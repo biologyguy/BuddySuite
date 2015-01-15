@@ -20,7 +20,12 @@ Simply download SeqBuddy.py and make it executable
 Run with the -h flag to see a list of available functions
 
   `./SeqBuddy.py -h`
-  
+
+I like to sym-link SeqBuddy to the command 'sb' somewhere in my PATH, so I can access it quickly. For example:
+ 
+ `ln -s /path/to/SeqBuddy.py /usr/local/bin/sb`
+
+
 ## Dependencies
 SeqBuddy requires the [BioPython](http://biopython.org/) package
 
@@ -28,7 +33,15 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
  if you want to use the blast, bl2seq, or purge functions
  
 
-## SeqBuddy functions
+## SeqBuddy
+### Modifying flags
+*Flag* | *Description*
+------ | ----------
+-o --out_format | Specify the format you want the output returned in
+-i --in_place | Rewrites the input file in-place. Be careful!
+-p --params | Some functions can be uniquely modified by -p; see function for details
+
+### Functions
 *Function* | *Flag* | *Parameters* | *Description*
 ---------- | -------- | ---------- | ----------
 clean_seq | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
