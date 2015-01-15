@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 34 tools
+# 35 tools
 """
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
@@ -36,11 +36,6 @@ with warnings.catch_warnings():
 
 # ##################################################### WISH LIST #################################################### #
 def reverse_complement():
-    x = 1
-    return x
-
-
-def complement():
     x = 1
     return x
 
@@ -265,6 +260,14 @@ def dna2rna(_seqs):
         _seq.seq = Seq(str(_seq.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
         _output.append(_seq)
     _seqs.seqs = _output
+    return _seqs
+
+
+def complement(_seqs):
+    if _seqs.alpha == IUPAC.protein:
+        sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
+    for _seq in _seqs.seqs:
+        _seq.seq = _seq.seq.complement()
     return _seqs
 
 
@@ -788,6 +791,8 @@ if __name__ == '__main__':
                         help="Convert DNA sequences to RNA")
     parser.add_argument('-r2d', '--back_transcribe', action='store_true',
                         help="Convert RNA sequences to DNA")
+    parser.add_argument('-comp', '--complement', action='store_true',
+                        help="Return complement of nucleotide sequence")
     parser.add_argument('-li', '--list_ids', action='store_true',
                         help="Output all the sequence identifiers in a file. Use -p to specify # columns to write")
     parser.add_argument('-ns', '--num_seqs', action='store_true',
@@ -795,7 +800,8 @@ if __name__ == '__main__':
     parser.add_argument('-cts', '--concat_seqs', action='store_true',
                         help="Concatenate a bunch of sequences into a single solid string.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
-                        help="Arguments: one cDNA file and one protein file")
+                        help="Take the features annotated onto nucleotide sequences and map to protein sequences. "
+                             "Both a protein and cDNA file must be passed in.")
     parser.add_argument('-fp2d', '--map_features_prot2dna', action='store_true',
                         help="Arguments: one cDNA file and one protein file")
     parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
@@ -812,13 +818,13 @@ if __name__ == '__main__':
                         help="Randomly reorder the position of records in the file.")
     parser.add_argument('-hsi', '--hash_seq_ids', action='store_true',
                         help="Rename all the identifiers in a sequence list to a 10 character hash.")
-    parser.add_argument('-pr', '--pull_records', action='store', metavar="<Regular expression>",
+    parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
                         help="Get all the records with ids containing a given string")
-    parser.add_argument('-pe', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
+    parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
                         help="Get the ends (front or rear) of all sequences in a file.")
-    parser.add_argument('-dr', '--delete_records', action='store', nargs="+",
+    parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove reocrds from a file. The deleted IDs are sent to stderr.")
-    parser.add_argument('-df', '--delete_features', action='store', nargs="+",
+    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
                         help="Strip repeat records (ids and/or identical sequences")
@@ -826,10 +832,10 @@ if __name__ == '__main__':
                         help="Identify whether a file contains repeat sequences and/or sequence ids")
     parser.add_argument("-mg", "--merge", action="store_true",
                         help="Group a bunch of seq files together",)
-    parser.add_argument("-bl", "--blast", metavar="BLAST database", action="store",
+    parser.add_argument("-bl", "--blast", metavar="<BLAST database>", action="store",
                         help="BLAST your sequence file using common settings, return the hits from blastdb")
     parser.add_argument("-bl2s", "--bl2seq", action="store_true",
-                        help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search.")
+                        help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
@@ -1083,6 +1089,11 @@ if __name__ == '__main__':
             sys.exit("Error: You need to provide an RNA sequence.")
         seqs = rna2dna(seqs)
         _print_recs(seqs)
+
+    # Complement
+    if in_args.complement:
+        in_place_allowed = True
+        _print_recs(complement(seqs))
 
     # List identifiers
     if in_args.list_ids:

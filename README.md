@@ -41,6 +41,7 @@ translate6frames | -tr6 | None | Translate nucleotide sequences into all six rea
 back_translate | -btr | None | Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]
 transcribe | -d2r | None | Convert DNA sequences to RNA
 back_transcribe | -r2d | None | Convert RNA sequences to DNA
+complement | -comp | None | Return complement of nucleotide sequence
 list_ids | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
 num_seqs | -ns | None | Counts how many sequences are present in an input file
 concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
