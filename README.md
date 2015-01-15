@@ -44,8 +44,7 @@ back_transcribe | -r2d | None | Convert RNA sequences to DNA
 list_ids | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
 num_seqs | -ns | None | Counts how many sequences are present in an input file
 concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
-map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein 
-sequences. Both a protein and cDNA file must be passed in
+map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
 map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
 rename_ids | -ri | <regex pattern> <subst string> | Replace some pattern in ids with something else.
 combine_features | -cf | None | Takes the features in two files and combines them for each sequence
