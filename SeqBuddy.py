@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-
+# 34 tools
 """
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
@@ -26,11 +26,8 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
-from scipy.cluster.hierarchy import linkage, to_tree, dendrogram
-import numpy as np
-import matplotlib.pylab as plt
 
-# This will suppress the SearchIO warning, but be aware that new versions of BioPython may break SearchIO
+# This will suppress the experimental SearchIO warning, but be aware that new versions of BioPython may break SearchIO
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -38,16 +35,6 @@ with warnings.catch_warnings():
 
 
 # ##################################################### WISH LIST #################################################### #
-def get_genbank_file():
-    x = 1
-    return x
-
-
-def run_prosite():
-    x = 1
-    return x
-
-
 def reverse_complement():
     x = 1
     return x
@@ -126,7 +113,7 @@ def guess_alphabet(_seqs):  # Does not handle ambiguous dna
 
 
 def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
-    # If input is just a list, there is no BioPython in-format. Default to permissive gb.
+    # If input is just a list, there is no BioPython in-format. Default to gb.
     if isinstance(_input, list):
         return "gb"
 
@@ -773,50 +760,11 @@ def lowercase(_seqs):
     return _seqs
 
 
-def denroblast(_seqs):  # This does not work yet... See Kelly and Maini, 2013, PlosONE
-    _blast_res = bl2seq(_seqs).split("\n")
-
-    # format the data into a dictionary for easier manipulation
-    dist_dict = {}
-    for pair in _blast_res:
-        pair = pair.split("\t")
-        if pair[0] in dist_dict:
-            dist_dict[pair[0]][pair[1]] = float(pair[5])
-        else:
-            dist_dict[pair[0]] = {pair[1]: float(pair[5])}
-
-        if pair[1] in dist_dict:
-            dist_dict[pair[1]][pair[0]] = float(pair[5])
-        else:
-            dist_dict[pair[1]] = {pair[0]: float(pair[5])}
-
-    # make a numpy array and headings list
-    dist_array = np.zeros([len(_seqs.seqs), len(_seqs.seqs)])
-    headings = []
-    i = 0
-    for _seq1 in _seqs.seqs:
-        headings.append(_seq1.id)
-        j = 0
-        for _seq2 in _seqs.seqs:
-            if _seq1.id != _seq2.id:
-                dist_array[i][j] = dist_dict[_seq1.id][_seq2.id]
-            j += 1
-        i += 1
-
-    headings.reverse()
-    print(headings)
-    data_link = linkage(dist_array, method='complete')
-    dendrogram(data_link, labels=headings)
-    plt.xticks(fontsize=8, rotation=90)
-    plt.savefig("dendrogram.svg", format='svg')
-    plt.show()
-
-
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="SeqBuddy.py", description="Commandline wrapper for all the fun functions in"
-                                                                      " this file. Play with your sequences!")
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", description="Commandline wrapper for all the fun functions in "
+                                                                     "this file. Play with your sequences!")
 
     parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="+", default=sys.stdin)
 
@@ -884,8 +832,6 @@ if __name__ == '__main__':
                         help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search.")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
-    parser.add_argument("-drb", "--dendroblast", action="store_true",
-                        help="Create a dendrogram from pairwise blast bit-scores. Returns newick format.")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
 
@@ -964,10 +910,6 @@ if __name__ == '__main__':
         return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # DendroBlast
-    if in_args.dendroblast:
-        denroblast(seqs)
-
     # Purge
     if in_args.purge:
         in_place_allowed = True
