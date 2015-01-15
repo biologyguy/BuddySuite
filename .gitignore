@@ -1,0 +1,16 @@
+#Python binaries
+*.pyc
+
+#PyCharm profile stuff
+.idea
+.idea/*
+
+#Spyder IDE config files
+.spyderworkspace
+.spyderproject
+
+#Mac system stuff
+.DS_Store
+
+#Test files
+workshop/test_files/*
