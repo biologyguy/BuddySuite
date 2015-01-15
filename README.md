@@ -30,7 +30,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 
 ## SeqBuddy functions
 *Function* | *Flag* | *Parameters* | *Description*
----------- | ------ | ---------- | ----------
+---------- | -------- | ---------- | ----------
 clean_seq | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
 uppercase | -uc | None | Convert all sequences to uppercase
 lowercase | -lc | None | Convert all sequences to lowercase
@@ -46,8 +46,7 @@ num_seqs | -ns | None | Counts how many sequences are present in an input file
 concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
 map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein 
 sequences. Both a protein and cDNA file must be passed in
-map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA 
-sequences. Both a protein and cDNA file must be passed in
+map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
 rename_ids | -ri | <regex pattern> <subst string> | Replace some pattern in ids with something else.
 combine_features | -cf | None | Takes the features in two files and combines them for each sequence
 order_features_by_position | -ofp | None | Change the output order of sequence features, based on sequence position
