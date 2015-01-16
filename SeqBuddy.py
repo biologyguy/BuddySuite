@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 35 tools
+# 36 tools
 """
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
@@ -28,6 +28,7 @@ from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
 # This will suppress the experimental SearchIO warning, but be aware that new versions of BioPython may break SearchIO
+# ToDo: Remove this dependency completely
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -35,11 +36,6 @@ with warnings.catch_warnings():
 
 
 # ##################################################### WISH LIST #################################################### #
-def reverse_complement():
-    x = 1
-    return x
-
-
 def extract_range():
     x = 1
     return x
@@ -207,7 +203,7 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
     Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 20 -evalue 0.01 -outfmt 6" %
           (blast_path, blast_db, tmp_dir.name, tmp_dir.name), shell=True).wait()
 
-    with open("%s/out.txt" % tmp_dir.name, "r") as ifile:
+    with open("%s/out.txt" % tmp_dir.name, "r") as ifile:  # ToDo: remove the SearchIO dependency. Just .split()
         blast_results = SearchIO.parse(ifile, "blast-tab")
         _records = list(blast_results)
 
@@ -268,6 +264,14 @@ def complement(_seqs):
         sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
     for _seq in _seqs.seqs:
         _seq.seq = _seq.seq.complement()
+    return _seqs
+
+
+def reverse_complement(_seqs):
+    if _seqs.alpha == IUPAC.protein:
+        sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
+    for _seq in _seqs.seqs:
+        _seq.seq = _seq.seq.reverse_complement()
     return _seqs
 
 
@@ -376,7 +380,7 @@ def concat_seqs(_seqs):
 
 
 def clean_seq(_seqs):
-    """remove all non-sequence chracters from sequence strings"""
+    """remove all non-sequence charcters from sequence strings"""
     _output = []
     for _seq in _seqs.seqs:
         _seq.seq = str(_seq.seq).upper()
@@ -791,8 +795,10 @@ if __name__ == '__main__':
                         help="Convert DNA sequences to RNA")
     parser.add_argument('-r2d', '--back_transcribe', action='store_true',
                         help="Convert RNA sequences to DNA")
-    parser.add_argument('-comp', '--complement', action='store_true',
+    parser.add_argument('-cmp', '--complement', action='store_true',
                         help="Return complement of nucleotide sequence")
+    parser.add_argument('-rcmp', '--reverse_complement', action='store_true',
+                        help="Return reverse complement of nucleotide sequence")
     parser.add_argument('-li', '--list_ids', action='store_true',
                         help="Output all the sequence identifiers in a file. Use -p to specify # columns to write")
     parser.add_argument('-ns', '--num_seqs', action='store_true',
@@ -1094,6 +1100,11 @@ if __name__ == '__main__':
     if in_args.complement:
         in_place_allowed = True
         _print_recs(complement(seqs))
+
+    # Reverse complement
+    if in_args.reverse_complement:
+        in_place_allowed = True
+        _print_recs(reverse_complement(seqs))
 
     # List identifiers
     if in_args.list_ids:
