@@ -36,9 +36,6 @@ with warnings.catch_warnings():
 
 
 # ##################################################### WISH LIST #################################################### #
-def extract_range():
-    x = 1
-    return x
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -416,9 +413,9 @@ def map_features_dna2prot(dna_seqs, prot_seqs):
         _new_seqs[_seq_id] = prot_dict[_seq_id]
 
         for feature in dna_dict[_seq_id].features:
-            start = feature.location.start / 3
-            end = feature.location.end / 3
-            location = FeatureLocation(ceil(start), ceil(end))
+            _start = feature.location.start / 3
+            _end = feature.location.end / 3
+            location = FeatureLocation(ceil(_start), ceil(_end))
             feature.location = location
             prot_dict[_seq_id].features.append(feature)
 
@@ -445,9 +442,9 @@ def map_features_prot2dna(prot_seqs, dna_seqs):
         _new_seqs[_seq_id] = dna_dict[_seq_id]
 
         for feature in prot_dict[_seq_id].features:
-            start = feature.location.start * 3
-            end = feature.location.end * 3
-            location = FeatureLocation(start, end)
+            _start = feature.location.start * 3
+            _end = feature.location.end * 3
+            location = FeatureLocation(_start, _end)
             feature.location = location
             dna_dict[_seq_id].features.append(feature)
 
@@ -586,6 +583,38 @@ def pull_seq_ends(_seqs, _amount, _which_end):
             sys.exit("Error: you much pick 'front' or 'rear' as the third argument in pull_seq_ends.")
         seq_ends.append(_seq)
     _seqs.seqs = seq_ends
+    return _seqs
+
+
+def extract_range(_seqs, _start, _end):
+    _start = 1 if int(_start) < 1 else _start
+    # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
+    _start, _end = int(_start) - 1, int(_end)
+    if _end < _start:
+        sys.exit("Error at extract range: The value given for end of range is smaller than for the start of range.")
+
+    for _seq in _seqs.seqs:
+        _seq.seq = Seq(str(_seq.seq)[_start:_end], alphabet=_seq.seq.alphabet)
+        _seq.description += " Sub-sequence extraction, from residue %s to %s" % (_start, _end)
+        _features = []
+        for _feature in _seq.features:
+            if _feature.location.end < _start:
+                continue
+            if _feature.location.start > _end:
+                continue
+
+            feat_start = _feature.location.start - _start
+            if feat_start < 0:
+                feat_start = 0
+
+            feat_end = _feature.location.end - _start
+            if feat_end > len(str(_seq.seq)):
+                feat_end = len(str(_seq.seq))
+
+            new_location = FeatureLocation(feat_start, feat_end)
+            _feature.location = new_location
+            _features.append(_feature)
+        _seq.features = _features
     return _seqs
 
 
@@ -828,6 +857,8 @@ if __name__ == '__main__':
                         help="Get all the records with ids containing a given string")
     parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
                         help="Get the ends (front or rear) of all sequences in a file.")
+    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
+                        type=int, help="Pull out sub-sequences.")
     parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove reocrds from a file. The deleted IDs are sent to stderr.")
     parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",
@@ -1197,6 +1228,12 @@ if __name__ == '__main__':
         amount = int(amount)
         new_seqs = pull_seq_ends(seqs, amount, which_end)
         _print_recs(new_seqs)
+
+    # Extract regions
+    if in_args.extract_region:
+        start, end = in_args.extract_region
+        seqs = extract_range(seqs, start, end)
+        _print_recs(seqs)
 
     # Pull records
     if in_args.pull_records:

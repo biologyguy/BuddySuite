@@ -70,6 +70,7 @@ shuffle | -sh | None | Randomly reorder the position of records in the file
 hash_seq_ids | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
 pull_records | -pr | \<regex pattern\> | Get all the records with ids containing a given string
 pull_record_ends | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
+extract_region | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
 delete_records | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
 delete_features | -df | \<regex pattern(s)\> | Remove specified features from all records
 delete_repeats | -drp | None | Strip repeat records (ids and/or identical sequences
