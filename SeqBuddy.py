@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 36 tools
+# 38 tools
 """
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
@@ -355,6 +355,13 @@ def back_translate(_seqs, _mode='random'):  # available modes --> random ToDo: I
             sys.exit("Error: Mode '%s' not implemented. Valid choices are random, blahh, blahh, or blahh" % _mode)
 
     return _seqs
+
+
+def ave_seq_length(_seqs):
+    sum_length = 0.
+    for _seq in _seqs.seqs:
+        sum_length += len(_seq.seq)
+    return sum_length / len(_seqs.seqs)
 
 
 def concat_seqs(_seqs):
@@ -832,6 +839,8 @@ if __name__ == '__main__':
                         help="Output all the sequence identifiers in a file. Use -p to specify # columns to write")
     parser.add_argument('-ns', '--num_seqs', action='store_true',
                         help="Counts how many sequences are present in an input file")
+    parser.add_argument('-asl', '--ave_seq_length', action='store_true',
+                        help="Return the average length of all sequences")
     parser.add_argument('-cts', '--concat_seqs', action='store_true',
                         help="Concatenate a bunch of sequences into a single solid string.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
@@ -1187,6 +1196,10 @@ if __name__ == '__main__':
     # Count number of sequences in a file
     if in_args.num_seqs:
         sys.stdout.write("%s\n" % len(seqs.seqs))
+
+    # Average length of sequences
+    if in_args.ave_seq_length:
+        sys.stdout.write("%s\n" % round(ave_seq_length(seqs), 2))
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
