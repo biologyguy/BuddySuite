@@ -27,13 +27,6 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
-# This will suppress the experimental SearchIO warning, but be aware that new versions of BioPython may break SearchIO
-# ToDo: Remove this dependency completely
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    from Bio import SearchIO
-
 
 # ##################################################### WISH LIST #################################################### #
 
@@ -200,19 +193,20 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
     Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 20 -evalue 0.01 -outfmt 6" %
           (blast_path, blast_db, tmp_dir.name, tmp_dir.name), shell=True).wait()
 
-    with open("%s/out.txt" % tmp_dir.name, "r") as ifile:  # ToDo: remove the SearchIO dependency. Just .split()
-        blast_results = SearchIO.parse(ifile, "blast-tab")
-        _records = list(blast_results)
+    with open("%s/out.txt" % tmp_dir.name, "r") as ifile:
+        blast_results = ifile.read()
+        _records = blast_results.split("\n")
 
     hit_ids = []
     for record in _records:
-        for hsp in record.hsps:
-            hit_id = hsp.hit_id
+        record = record.split("\t")
+        if len(record) == 1:
+            continue
+        hit_id = record[1].strip()
+        if hit_id in hit_ids:
+            continue
 
-            if hit_id in hit_ids:
-                continue
-
-            hit_ids.append(hit_id)
+        hit_ids.append(hit_id)
 
     ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
     for hit_id in hit_ids:
@@ -763,7 +757,7 @@ def bl2seq(_seqs):  # Does an all-by-all analysis, and does not return sequences
     blast_bin = "blastp" if _seqs.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
         sys.exit("Error: %s not present in $PATH.")  # ToDo: Implement -p flag
-    print(blast_bin)
+
     tmp_dir = TemporaryDirectory()
     _seqs_copy = _seqs.seqs[1:]
     subject_file = "%s/subject.fa" % tmp_dir.name
@@ -869,7 +863,7 @@ if __name__ == '__main__':
     parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
                         type=int, help="Pull out sub-sequences.")
     parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
-                        help="Remove reocrds from a file. The deleted IDs are sent to stderr.")
+                        help="Remove records from a file. The deleted IDs are sent to stderr.")
     parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
