@@ -1,8 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 38 tools
+# 38 tools and counting
+
 """
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+details at http://www.gnu.org/licenses/.
+
+name: SeqBuddy.py
+date: Nov-20-2014
+version: 0, unstable
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/BuddySuite
+© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+derivative work: No
+
+Description:
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
 
