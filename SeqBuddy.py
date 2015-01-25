@@ -34,7 +34,7 @@ import os
 import re
 import string
 from copy import copy
-from random import sample, choice, randint
+from random import sample, choice, randint, random
 from math import ceil
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
@@ -332,134 +332,172 @@ def translate6frames(_seqs):
     return _seqs
 
 
-def back_translate(_seqs, _mode='random'):  # available modes --> random ToDo: Implement other modes
-    codon_table = {'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L', 'TCT': 'S',
-                   'TCC': 'S', 'TCA': 'S', 'TCG': 'S', 'TAT': 'Y', 'TAC': 'Y',
-                   'TGT': 'C', 'TGC': 'C', 'TGG': 'W', 'CTT': 'L', 'CTC': 'L',
-                   'CTA': 'L', 'CTG': 'L', 'CCT': 'P', 'CCC': 'P', 'CCA': 'P',
-                   'CCG': 'P', 'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
-                   'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R', 'ATT': 'I',
-                   'ATC': 'I', 'ATA': 'I', 'ATG': 'M', 'ACT': 'T', 'ACC': 'T',
-                   'ACA': 'T', 'ACG': 'T', 'AAT': 'N', 'AAC': 'N', 'AAA': 'K',
-                   'AAG': 'K', 'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
-                   'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V', 'GCT': 'A',
-                   'GCC': 'A', 'GCA': 'A', 'GCG': 'A', 'GAT': 'D', 'GAC': 'D',
-                   'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
-                   'GGG': 'G', 'TAA': '*', 'TAG': '*', 'TGA': '*'}
+def back_translate(_seqs, _mode='random', _species=None):
+    # available modes --> random, optimized
+    # available species --> human, mouse, yeast, ecoli
+    # codon preference tables derived from the data at http://www.kazusa.or.jp
+    # Homo sapiens, species=9606
+    if _mode not in ['random', 'r', 'optimized', 'o']:
+        sys.exit("Error: Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. You entered '%s'" % _mode)
 
-    # codon preferences
-    # H. sapiense
-    h_sapiense = {'H': ([0.58, 0.42], ['CAC', 'CAT']), 'T': ([0.25, 0.11, 0.28, 0.36], ['ACT', 'ACG', 'ACA', 'ACC']),
-                  'A': ([0.23, 0.27, 0.40, 0.11], ['GCA', 'GCT', 'GCC', 'GCG']), 'I': ([], ['ATC', 'ATT', 'ATA']),
-                  'V': ([], ['GTG', 'GTT', 'GTA', 'GTC']), 'L': ([], ['CTC', 'CTG', 'TTG', 'CTA', 'CTT', 'TTA']),
-                  'K': ([], ['AAA', 'AAG']), 'F': ([], ['TTT', 'TTC']), 'D': ([], ['GAC', 'GAT']), 'Y': ([], ['TAC', 'TAT']),
-                  'Q': ([], ['CAA', 'CAG']), 'S': ([], ['TCT', 'TCC', 'TCG', 'TCA', 'AGT', 'AGC']),
-                  'C': ([], ['TGC', 'TGT']), 'P': ([], ['CCC', 'CCA', 'CCT', 'CCG']), '*': ([], ['TAG', 'TGA', 'TAA']),
-                  'R': ([], ['CGT', 'AGA', 'AGG', 'CGC', 'CGG', 'CGA']), 'E': ([], ['GAG', 'GAA']),
-                  'N': ([], ['AAT', 'AAC']), 'G': ([], ['GGC', 'GGT', 'GGA', 'GGG']), 'W': ([], ['TGG']), 'M': ([], ['ATG'])}
+    h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.27, 0.40, 0.23, 0.11]),
+              'C': (['TGT', 'TGC'], [0.46, 0.54]),
+              'D': (['GAT', 'GAC'], [0.46, 0.54]),
+              'E': (['GAA', 'GAG'], [0.42, 0.58]),
+              'F': (['TTT', 'TTC'], [0.46, 0.54]),
+              'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.16, 0.34, 0.25, 0.25]),
+              'H': (['CAT', 'CAC'], [0.42, 0.58]),
+              'I': (['ATT', 'ATC', 'ATA'], [0.36, 0.47, 0.17]),
+              'K': (['AAA', 'AAG'], [0.43, 0.57]),
+              'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.08, 0.13, 0.13, 0.20, 0.07, 0.40]),
+              'M': (['ATG'], [1.00]),
+              'N': (['AAT', 'AAC'], [0.47, 0.53]),
+              'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.29, 0.32, 0.28, 0.11]),
+              'Q': (['CAA', 'CAG'], [0.27, 0.73]),
+              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.08, 0.18, 0.11, 0.20, 0.21, 0.21]),
+              'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.19, 0.22, 0.15, 0.05, 0.15, 0.24]),
+              '*': (['TAA', 'TGA', 'TAG'], [0.30, 0.47, 0.24]),
+              'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.25, 0.36, 0.28, 0.11]),
+              'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.18, 0.24, 0.12, 0.46]),
+              'W': (['TGG'], [1.00]),
+              'Y': (['TAT', 'TAC'], [0.44, 0.56]),
+              'X': (['NNN'], [1.0])}
 
-    UUU F 0.46 17.6 (714298)  UCU S 0.19 15.2 (618711)  UAU Y 0.44 12.2 (495699)  UGU C 0.46 10.6 (430311)
-    UUC F 0.54 20.3 (824692)  UCC S 0.22 17.7 (718892)  UAC Y 0.56 15.3 (622407)  UGC C 0.54 12.6 (513028)
-    UUA L 0.08  7.7 (311881)  UCA S 0.15 12.2 (496448)  UAA * 0.30  1.0 ( 40285)  UGA * 0.47  1.6 ( 63237)
-    UUG L 0.13 12.9 (525688)  UCG S 0.05  4.4 (179419)  UAG * 0.24  0.8 ( 32109)  UGG W 1.00 13.2 (535595)
+    # Mus musculus, species=10090
+    m_muscul = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.29, 0.38, 0.23, 0.09]),
+                'C': (['TGT', 'TGC'], [0.48, 0.52]),
+                'D': (['GAT', 'GAC'], [0.45, 0.55]),
+                'E': (['GAA', 'GAG'], [0.41, 0.59]),
+                'F': (['TTT', 'TTC'], [0.44, 0.56]),
+                'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.18, 0.33, 0.26, 0.23]),
+                'H': (['CAT', 'CAC'], [0.41, 0.59]),
+                'I': (['ATT', 'ATC', 'ATA'], [0.34, 0.50, 0.16]),
+                'K': (['AAA', 'AAG'], [0.39, 0.61]),
+                'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.07, 0.13, 0.13, 0.20, 0.08, 0.39]),
+                'M': (['ATG'], [1.00]),
+                'N': (['AAT', 'AAC'], [0.43, 0.57]),
+                'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.31, 0.30, 0.29, 0.10]),
+                'Q': (['CAA', 'CAG'], [0.26, 0.74]),
+                'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.08, 0.17, 0.12, 0.19, 0.22, 0.22]),
+                'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.20, 0.22, 0.14, 0.05, 0.15, 0.24]),
+                '*': (['TAA', 'TGA', 'TAG'], [0.28, 0.49, 0.23]),
+                'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.25, 0.35, 0.29, 0.10]),
+                'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.17, 0.25, 0.12, 0.46]),
+                'W': (['TGG'], [1.00]),
+                'Y': (['TAT', 'TAC'], [0.43, 0.57]),
+                'X': (['NNN'], [1.0])}
 
-    CUU L 0.13 13.2 (536515)  CCU P 0.29 17.5 (713233)  CGU R 0.08  4.5 (184609)
-    CUC L 0.20 19.6 (796638)  CCC P 0.32 19.8 (804620)  CGC R 0.18 10.4 (423516)
-    CUA L 0.07  7.2 (290751)  CCA P 0.28 16.9 (688038)  CAA Q 0.27 12.3 (501911)  CGA R 0.11  6.2 (250760)
-    CUG L 0.40 39.6 (1611801)  CCG P 0.11  6.9 (281570)  CAG Q 0.73 34.2 (1391973)  CGG R 0.20 11.4 (464485)
+    # Escherichia coli O157:H7 EDL933, species=155864
+    e_coli = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.16, 0.27, 0.22, 0.35]),
+              'C': (['TGT', 'TGC'], [0.45, 0.55]),
+              'D': (['GAT', 'GAC'], [0.63, 0.37]),
+              'E': (['GAA', 'GAG'], [0.68, 0.32]),
+              'F': (['TTT', 'TTC'], [0.58, 0.42]),
+              'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.33, 0.39, 0.12, 0.16]),
+              'H': (['CAT', 'CAC'], [0.58, 0.42]),
+              'I': (['ATT', 'ATC', 'ATA'], [0.50, 0.40, 0.09]),
+              'K': (['AAA', 'AAG'], [0.76, 0.24]),
+              'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.13, 0.13, 0.11, 0.10, 0.04, 0.49]),
+              'M': (['ATG'], [1.00]),
+              'N': (['AAT', 'AAC'], [0.47, 0.53]),
+              'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.17, 0.13, 0.19, 0.51]),
+              'Q': (['CAA', 'CAG'], [0.33, 0.67]),
+              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.36, 0.37, 0.07, 0.11, 0.05, 0.03]),
+              'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.14, 0.15, 0.14, 0.15, 0.16, 0.27]),
+              '*': (['TAA', 'TGA', 'TAG'], [0.59, 0.33, 0.08]),
+              'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.17, 0.41, 0.15, 0.27]),
+              'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.26, 0.21, 0.16, 0.37]),
+              'W': (['TGG'], [1.00]),
+              'Y': (['TAT', 'TAC'], [0.57, 0.43]),
+              'X': (['NNN'], [1.0])}
 
-    AUU I 0.36 16.0 (650473)  AAU N 0.47 17.0 (689701)  AGU S 0.15 12.1 (493429)
-    AUC I 0.47 20.8 (846466)  AAC N 0.53 19.1 (776603)  AGC S 0.24 19.5 (791383)
-    AUA I 0.17  7.5 (304565)  AAA K 0.43 24.4 (993621)  AGA R 0.21 12.2 (494682)
-    AUG M 1.00 22.0 (896005)  AAG K 0.57 31.9 (1295568)  AGG R 0.21 12.0 (486463)
+    # Saccharomyces cerevisiae, species=4932
+    s_cerev = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.38, 0.22, 0.29, 0.11]),
+               'C': (['TGT', 'TGC'], [0.63, 0.37]),
+               'D': (['GAT', 'GAC'], [0.65, 0.35]),
+               'E': (['GAA', 'GAG'], [0.70, 0.30]),
+               'F': (['TTT', 'TTC'], [0.59, 0.41]),
+               'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.47, 0.19, 0.22, 0.12]),
+               'H': (['CAT', 'CAC'], [0.64, 0.36]),
+               'I': (['ATT', 'ATC', 'ATA'], [0.46, 0.26, 0.27]),
+               'K': (['AAA', 'AAG'], [0.58, 0.42]),
+               'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.28, 0.29, 0.13, 0.06, 0.14, 0.11]),
+               'M': (['ATG'], [1.00]),
+               'N': (['AAT', 'AAC'], [0.59, 0.41]),
+               'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.31, 0.15, 0.42, 0.12]),
+               'Q': (['CAA', 'CAG'], [0.69, 0.31]),
+               'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.14, 0.06, 0.07, 0.04, 0.48, 0.21]),
+               'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.26, 0.16, 0.21, 0.10, 0.16, 0.11]),
+               '*': (['TAA', 'TGA', 'TAG'], [0.47, 0.30, 0.23]),
+               'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.35, 0.22, 0.30, 0.14]),
+               'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.39, 0.21, 0.21, 0.19]),
+               'W': (['TGG'], [1.00]),
+               'Y': (['TAT', 'TAC'], [0.56, 0.44]),
+               'X': (['NNN'], [1.0])}
 
-    GUU V 0.18 11.0 (448607)  GAU D 0.46 21.8 (885429)  GGU G 0.16 10.8 (437126)
-    GUC V 0.24 14.5 (588138)  GAC D 0.54 25.1 (1020595)  GGC G 0.34 22.2 (903565)
-    GUA V 0.12  7.1 (287712)  GAA E 0.42 29.0 (1177632)  GGA G 0.25 16.5 (669873)
-    GUG V 0.46 28.1 (1143534)  GAG E 0.58 39.6 (1609975)  GGG G 0.25 16.5 (669768)
-
-    # E. coli
-    e_coli = {'H': ([], ['CAC', 'CAT']), 'T': ([], ['ACT', 'ACG', 'ACA', 'ACC']),
-              'A': ([], ['GCA', 'GCT', 'GCC', 'GCG']), 'I': ([], ['ATC', 'ATT', 'ATA']),
-              'V': ([], ['GTG', 'GTT', 'GTA', 'GTC']), 'L': ([], ['CTC', 'CTG', 'TTG', 'CTA', 'CTT', 'TTA']),
-              'K': ([], ['AAA', 'AAG']), 'F': ([], ['TTT', 'TTC']), 'D': ([], ['GAC', 'GAT']), 'Y': ([], ['TAC', 'TAT']),
-              'Q': ([], ['CAA', 'CAG']), 'S': ([], ['TCT', 'TCC', 'TCG', 'TCA', 'AGT', 'AGC']),
-              'C': ([], ['TGC', 'TGT']), 'P': ([], ['CCC', 'CCA', 'CCT', 'CCG']), '*': ([], ['TAG', 'TGA', 'TAA']),
-              'R': ([], ['CGT', 'AGA', 'AGG', 'CGC', 'CGG', 'CGA']), 'E': ([], ['GAG', 'GAA']),
-              'N': ([], ['AAT', 'AAC']), 'G': ([], ['GGC', 'GGT', 'GGA', 'GGG']), 'W': ([], ['TGG']), 'M': ([], ['ATG'])}
-
-    UUU F 0.57 25.5 (     4)  UCU S 0.29 25.5 (     4)  UAU Y 0.78 44.6 (     7)  UGU C 1.00 19.1 (     3)
-    UUC F 0.43 19.1 (     3)  UCC S 0.07  6.4 (     1)  UAC Y 0.22 12.7 (     2)  UGC C 0.00  0.0 (     0)
-    UUA L 0.42 51.0 (     8)  UCA S 0.29 25.5 (     4)  UAA * 1.00  6.4 (     1)  UGA * 0.00  0.0 (     0)
-    UUG L 0.21 25.5 (     4)  UCG S 0.21 19.1 (     3)  UAG * 0.00  0.0 (     0)  UGG W 1.00  6.4 (     1)
-
-    CUU L 0.16 19.1 (     3)  CCU P 0.40 12.7 (     2)  CAU H 1.00 19.1 (     3)  CGU R 0.20  6.4 (     1)
-    CUC L 0.05  6.4 (     1)  CCC P 0.00  0.0 (     0)  CAC H 0.00  0.0 (     0)  CGC R 0.00  0.0 (     0)
-    CUA L 0.00  0.0 (     0)  CCA P 0.20  6.4 (     1)  CAA Q 0.50  6.4 (     1)  CGA R 0.00  0.0 (     0)
-    CUG L 0.16 19.1 (     3)  CCG P 0.40 12.7 (     2)  CAG Q 0.50  6.4 (     1)  CGG R 0.00  0.0 (     0)
-
-    AUU I 0.73 51.0 (     8)  ACU T 0.00  0.0 (     0)  AAU N 0.69 57.3 (     9)  AGU S 0.00  0.0 (     0)
-    AUC I 0.00  0.0 (     0)  ACC T 0.33  6.4 (     1)  AAC N 0.31 25.5 (     4)  AGC S 0.14 12.7 (     2)
-    AUA I 0.27 19.1 (     3)  ACA T 0.67 12.7 (     2)  AAA K 0.83 31.8 (     5)  AGA R 0.60 19.1 (     3)
-    AUG M 1.00 31.8 (     5)  ACG T 0.00  0.0 (     0)  AAG K 0.17  6.4 (     1)  AGG R 0.20  6.4 (     1)
-
-    GUU V 0.33 12.7 (     2)  GCU A 0.30 19.1 (     3)  GAU D 0.88 44.6 (     7)  GGU G 0.22 12.7 (     2)
-    GUC V 0.50 19.1 (     3)  GCC A 0.20 12.7 (     2)  GAC D 0.12  6.4 (     1)  GGC G 0.11  6.4 (     1)
-    GUA V 0.17  6.4 (     1)  GCA A 0.30 19.1 (     3)  GAA E 0.71 76.4 (    12)  GGA G 0.56 31.8 (     5)
-    GUG V 0.00  0.0 (     0)  GCG A 0.20 12.7 (     2)  GAG E 0.29 31.8 (     5)  GGG G 0.11  6.4 (     1)
-
-    # S. cerevisiae
-    s_cerevisiae = {'H': ([], ['CAC', 'CAT']), 'T': ([], ['ACT', 'ACG', 'ACA', 'ACC']),
-                    'A': ([], ['GCA', 'GCT', 'GCC', 'GCG']), 'I': ([], ['ATC', 'ATT', 'ATA']),
-                    'V': ([], ['GTG', 'GTT', 'GTA', 'GTC']), 'L': ([], ['CTC', 'CTG', 'TTG', 'CTA', 'CTT', 'TTA']),
-                    'K': ([], ['AAA', 'AAG']), 'F': ([], ['TTT', 'TTC']), 'D': ([], ['GAC', 'GAT']), 'Y': ([], ['TAC', 'TAT']),
-                    'Q': ([], ['CAA', 'CAG']), 'S': ([], ['TCT', 'TCC', 'TCG', 'TCA', 'AGT', 'AGC']),
-                    'C': ([], ['TGC', 'TGT']), 'P': ([], ['CCC', 'CCA', 'CCT', 'CCG']), '*': ([], ['TAG', 'TGA', 'TAA']),
-                    'R': ([], ['CGT', 'AGA', 'AGG', 'CGC', 'CGG', 'CGA']), 'E': ([], ['GAG', 'GAA']),
-                    'N': ([], ['AAT', 'AAC']), 'G': ([], ['GGC', 'GGT', 'GGA', 'GGG']), 'W': ([], ['TGG']), 'M': ([], ['ATG'])}
-    UUU F 0.59 26.1 (170666)  UCU S 0.26 23.5 (153557)  UAU Y 0.56 18.8 (122728)  UGU C 0.63  8.1 ( 52903)
-    UUC F 0.41 18.4 (120510)  UCC S 0.16 14.2 ( 92923)  UAC Y 0.44 14.8 ( 96596)  UGC C 0.37  4.8 ( 31095)
-    UUA L 0.28 26.2 (170884)  UCA S 0.21 18.7 (122028)  UAA * 0.47  1.1 (  6913)  UGA * 0.30  0.7 (  4447)
-    UUG L 0.29 27.2 (177573)  UCG S 0.10  8.6 ( 55951)  UAG * 0.23  0.5 (  3312)  UGG W 1.00 10.4 ( 67789)
-
-    CUU L 0.13 12.3 ( 80076)  CCU P 0.31 13.5 ( 88263)  CAU H 0.64 13.6 ( 89007)  CGU R 0.14  6.4 ( 41791)
-    CUC L 0.06  5.4 ( 35545)  CCC P 0.15  6.8 ( 44309)  CAC H 0.36  7.8 ( 50785)  CGC R 0.06  2.6 ( 16993)
-    CUA L 0.14 13.4 ( 87619)  CCA P 0.42 18.3 (119641)  CAA Q 0.69 27.3 (178251)  CGA R 0.07  3.0 ( 19562)
-    CUG L 0.11 10.5 ( 68494)  CCG P 0.12  5.3 ( 34597)  CAG Q 0.31 12.1 ( 79121)  CGG R 0.04  1.7 ( 11351)
-
-    AUU I 0.46 30.1 (196893)  ACU T 0.35 20.3 (132522)  AAU N 0.59 35.7 (233124)  AGU S 0.16 14.2 ( 92466)
-    AUC I 0.26 17.2 (112176)  ACC T 0.22 12.7 ( 83207)  AAC N 0.41 24.8 (162199)  AGC S 0.11  9.8 ( 63726)
-    AUA I 0.27 17.8 (116254)  ACA T 0.30 17.8 (116084)  AAA K 0.58 41.9 (273618)  AGA R 0.48 21.3 (139081)
-    AUG M 1.00 20.9 (136805)  ACG T 0.14  8.0 ( 52045)  AAG K 0.42 30.8 (201361)  AGG R 0.21  9.2 ( 60289)
-
-    GUU V 0.39 22.1 (144243)  GCU A 0.38 21.2 (138358)  GAU D 0.65 37.6 (245641)  GGU G 0.47 23.9 (156109)
-    GUC V 0.21 11.8 ( 76947)  GCC A 0.22 12.6 ( 82357)  GAC D 0.35 20.2 (132048)  GGC G 0.19  9.8 ( 63903)
-    GUA V 0.21 11.8 ( 76927)  GCA A 0.29 16.2 (105910)  GAA E 0.70 45.6 (297944)  GGA G 0.22 10.9 ( 71216)
-    GUG V 0.19 10.8 ( 70337)  GCG A 0.11  6.2 ( 40358)  GAG E 0.30 19.2 (125717)  GGG G 0.12  6.0 ( 39359)
-
-
-    aa_lookup_table = {'H': ['CAC', 'CAT'], 'T': ['ACT', 'ACG', 'ACA', 'ACC'], 'A': ['GCA', 'GCT', 'GCC', 'GCG'],
-                       'I': ['ATC', 'ATT', 'ATA'], 'V': ['GTG', 'GTT', 'GTA', 'GTC'],
-                       'L': ['CTC', 'CTG', 'TTG', 'CTA', 'CTT', 'TTA'], 'K': ['AAA', 'AAG'], 'F': ['TTT', 'TTC'],
-                       'D': ['GAC', 'GAT'], 'Y': ['TAC', 'TAT'], 'Q': ['CAA', 'CAG'],
-                       'S': ['TCT', 'TCC', 'TCG', 'TCA', 'AGT', 'AGC'], 'C': ['TGC', 'TGT'],
-                       'P': ['CCC', 'CCA', 'CCT', 'CCG'], '*': ['TAG', 'TGA', 'TAA'],
-                       'R': ['CGT', 'AGA', 'AGG', 'CGC', 'CGG', 'CGA'], 'E': ['GAG', 'GAA'],
-                       'N': ['AAT', 'AAC'], 'G': ['GGC', 'GGT', 'GGA', 'GGG'], 'W': ['TGG'], 'M': ['ATG']}
+    # random
+    rand_table = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.25, 0.25, 0.25, 0.25]),
+                  'C': (['TGT', 'TGC'], [0.5, 0.5]),
+                  'D': (['GAT', 'GAC'], [0.5, 0.5]),
+                  'E': (['GAA', 'GAG'], [0.5, 0.5]),
+                  'F': (['TTT', 'TTC'], [0.5, 0.5]),
+                  'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.25, 0.25, 0.25, 0.25]),
+                  'H': (['CAT', 'CAC'], [0.5, 0.5]),
+                  'I': (['ATT', 'ATC', 'ATA'], [0.3333, 0.3333, 0.3334]),
+                  'K': (['AAA', 'AAG'], [0.5, 0.5]),
+                  'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.167, 0.167, 0.167, 0.167, 0.166, 0.166]),
+                  'M': (['ATG'], [1.00]),
+                  'N': (['AAT', 'AAC'], [0.5, 0.5]),
+                  'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.25, 0.25, 0.25, 0.25]),
+                  'Q': (['CAA', 'CAG'], [0.5, 0.5]),
+                  'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.167, 0.167, 0.167, 0.167, 0.166, 0.166]),
+                  'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.167, 0.167, 0.167, 0.167, 0.166, 0.166]),
+                  '*': (['TAA', 'TGA', 'TAG'], [0.3333, 0.3333, 0.3334]),
+                  'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.25, 0.25, 0.25, 0.25]),
+                  'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.25, 0.25, 0.25, 0.25]),
+                  'W': (['TGG'], [1.00]),
+                  'Y': (['TAT', 'TAC'], [0.5, 0.5]),
+                  'X': (['NNN'], [1.0])}
 
     if _seqs.alpha != IUPAC.protein:
         sys.exit("Error: The input sequence needs to be protein, not %s" % _seqs.alpha)
 
+    if not _species:
+        lookup_table = rand_table
+    elif _species.upper() in ["HUMAN", "H"]:
+        lookup_table = h_sapi
+    elif _species.upper() in ["MOUSE", "M"]:
+        lookup_table = m_muscul
+        print("mouse")
+    elif _species.upper() in ["ECOLI", "E"]:
+        lookup_table = e_coli
+        print("ecoli")
+    elif _species.upper() in ["YEAST", "Y"]:
+        lookup_table = s_cerev
+        print(_species)
+    else:
+        sys.exit("Error: The species requested does not match any lookup tables currently implemented. Please leave "
+                 "blank or select from human, mouse, ecoli, or yeast.")
+
+    if _mode in ['optimized', 'o']:
+        for aa in lookup_table:
+            best = ["", 0.]
+            for _i in range(len(lookup_table[aa][1])):
+                if lookup_table[aa][1][_i] > best[1]:
+                    best = [lookup_table[aa][0][_i], lookup_table[aa][1][_i]]
+            lookup_table[aa] = ([best[0]], [1.0])
+
     for _seq in _seqs.seqs:
         dna_seq = ""
-        if _mode == 'random':
-            for aa in _seq.seq:
-                dna_seq += choice(aa_lookup_table[aa])
+        for aa in _seq.seq:
+            rand_num = random()
+            sum_probs = 0.
+            for _i in range(len(lookup_table[aa][1])):
+                sum_probs += lookup_table[aa][1][_i]
+                if sum_probs >= rand_num:
+                    dna_seq += lookup_table[aa][0][_i]
+                    break
             _seq.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
-
-        else:
-            sys.exit("Error: Mode '%s' not implemented. Valid choices are random, blahh, blahh, or blahh" % _mode)
-
     return _seqs
 
 
@@ -932,7 +970,9 @@ if __name__ == '__main__':
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
     parser.add_argument('-btr', '--back_translate', action='store_true',
-                        help="Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]")
+                        help="Convert amino acid sequences into codons. Select mode and species with -p flag "
+                             "['random', 'r', 'optimized', 'o'] "
+                             "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']")
     parser.add_argument('-d2r', '--transcribe', action='store_true',
                         help="Convert DNA sequences to RNA")
     parser.add_argument('-r2d', '--back_transcribe', action='store_true',
@@ -1289,8 +1329,9 @@ if __name__ == '__main__':
     # Back translate CDS
     if in_args.back_translate:
         in_place_allowed = True
-        mode = in_args.params if in_args.params else 'random'
-        _print_recs(back_translate(seqs, mode))
+        mode = in_args.params[0] if in_args.params else 'random'
+        species = in_args.params[1] if in_args.params and len(in_args.params) > 1 else None
+        _print_recs(back_translate(seqs, mode, species))
 
     # Concatenate sequences
     if in_args.concat_seqs:
