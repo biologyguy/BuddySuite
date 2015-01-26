@@ -27,7 +27,10 @@ I like to sym-link SeqBuddy to the command 'sb' somewhere in my PATH, so I can a
 
 
 ## Dependencies
-SeqBuddy requires the [BioPython](http://biopython.org/) package
+SeqBuddy is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
+[here](https://www.python.org/downloads/) 
+
+The [BioPython](http://biopython.org/) package is also required. 
 
 You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/)
  if you want to use the blast, bl2seq, or purge functions
@@ -74,7 +77,7 @@ pull_record_ends | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (f
 extract_region | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
 delete_records | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
 delete_features | -df | \<regex pattern(s)\> | Remove specified features from all records
-delete_repeats | -drp | None | Strip repeat records (ids and/or identical sequences
+delete_repeats | -drp | None | Strip repeat records (ids and/or identical sequences)
 find_repeats | -fr | None | Identify whether a file contains repeat sequences and/or sequence ids
 merge | -mg | None | Group a bunch of seq files together
 blast | -bl | \<BLAST database\> | BLAST your sequence file using common blast settings, return the hits from blastdb
