@@ -33,7 +33,7 @@ import sys
 import os
 import re
 import string
-from copy import copy
+from copy import copy, deepcopy
 from random import sample, choice, randint, random
 from math import ceil
 from tempfile import TemporaryDirectory
@@ -50,7 +50,9 @@ from Bio.Data.CodonTable import TranslationError
 
 
 # ##################################################### WISH LIST #################################################### #
-
+def sim_ident(_seqs):  # Return the pairwise similarity and identity scores among sequences
+    x = 1
+    return x
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 
@@ -229,6 +231,9 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
 
         hit_ids.append(hit_id)
 
+    if len(hit_ids) == 0:
+        sys.exit("No matches identified.")
+
     ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
     for hit_id in hit_ids:
         hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (blast_db, hit_id), stdout=PIPE, shell=True).communicate()
@@ -288,8 +293,8 @@ def reverse_complement(_seqs):
 
 
 def translate_cds(_seqs):
-    _output = []
-    for _seq in _seqs.seqs:
+    _translation = deepcopy(_seqs)
+    for _seq in _translation.seqs:
         try:
             _seq.seq = _seq.seq.translate(cds=True, to_stop=True)
         except TranslationError as e1:
@@ -299,14 +304,13 @@ def translate_cds(_seqs):
                 sys.stderr.write("Warning: %s is not a standard CDS\t-->\t%s\n" % (_seq.id, e1))
             except TranslationError as e2:
                 sys.stderr.write("Error: %s failed to translate\t-->\t%s\n" % (_seq.id, e2))
-
         _seq.seq.alphabet = IUPAC.protein
-        _output.append(_seq)
-    _seqs.seqs = _output
-    return _seqs
+
+    _output = map_features_dna2prot(_seqs, _translation)
+    return _output
 
 
-def translate6frames(_seqs):
+def translate6frames(_seqs):  # ToDo map_features_dna2prot
     _output = []
     for _seq in _seqs.seqs:
         for i in range(3):
@@ -332,7 +336,7 @@ def translate6frames(_seqs):
     return _seqs
 
 
-def back_translate(_seqs, _mode='random', _species=None):
+def back_translate(_seqs, _mode='random', _species=None):  # ToDo map_features_prot2dna
     # available modes --> random, optimized
     # available species --> human, mouse, yeast, ecoli
     # codon preference tables derived from the data at http://www.kazusa.or.jp
