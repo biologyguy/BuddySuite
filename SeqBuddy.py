@@ -295,6 +295,7 @@ def reverse_complement(_seqs):
 def translate_cds(_seqs):
     _translation = deepcopy(_seqs)
     for _seq in _translation.seqs:
+        _seq.features = []
         try:
             _seq.seq = _seq.seq.translate(cds=True, to_stop=True)
         except TranslationError as e1:
@@ -302,11 +303,12 @@ def translate_cds(_seqs):
             try:
                 _seq.seq = _seq.seq.translate()
                 sys.stderr.write("Warning: %s is not a standard CDS\t-->\t%s\n" % (_seq.id, e1))
-            except TranslationError as e2:
+            except TranslationError as e2:  # ToDo: capture non-standard characters
                 sys.stderr.write("Error: %s failed to translate\t-->\t%s\n" % (_seq.id, e2))
         _seq.seq.alphabet = IUPAC.protein
 
     _output = map_features_dna2prot(_seqs, _translation)
+    _output.out_format = _seqs.out_format
     return _output
 
 
