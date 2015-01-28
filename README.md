@@ -36,7 +36,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
  if you want to use the blast, bl2seq, or purge functions
  
 
-## SeqBuddy
+## [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy)
 ### Modifying flags
 *Flag* | *Description*
 ------ | ----------
@@ -47,9 +47,9 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 ### Functions
 *Function* | *Flag* | *Parameters* | *Description*
 ---------- | -------- | ---------- | ----------
-clean_seq | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
-uppercase | -uc | None | Convert all sequences to uppercase
-lowercase | -lc | None | Convert all sequences to lowercase
+[clean_seq](https://github.com/biologyguy/BuddySuite/wiki/clean_seq) | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
+[uppercase](https://github.com/biologyguy/BuddySuite/wiki/uppercase) | -uc | None | Convert all sequences to uppercase
+[lowercase](https://github.com/biologyguy/BuddySuite/wiki/lowercase) | -lc | None | Convert all sequences to lowercase
 delete_metadata | -dm | None | Remove meta-data from file (only id is retained)
 raw_seq | -rs | None | Return line break separated sequences
 translate | -tr | None | Convert coding sequences into amino acid sequences
