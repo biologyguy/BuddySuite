@@ -50,9 +50,9 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [clean_seq](https://github.com/biologyguy/BuddySuite/wiki/clean_seq) | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
 [uppercase](https://github.com/biologyguy/BuddySuite/wiki/uppercase) | -uc | None | Convert all sequences to uppercase
 [lowercase](https://github.com/biologyguy/BuddySuite/wiki/lowercase) | -lc | None | Convert all sequences to lowercase
-delete_metadata | -dm | None | Remove meta-data from file (only id is retained)
-raw_seq | -rs | None | Return line break separated sequences
-translate | -tr | None | Convert coding sequences into amino acid sequences
+[delete_metadata](https://github.com/biologyguy/BuddySuite/wiki/delete_metadata) | -dm | None | Remove meta-data from file (only id is retained)
+[raw_seq](https://github.com/biologyguy/BuddySuite/wiki/raw_seq) | -rs | None | Return line break separated sequences
+[translate](https://github.com/biologyguy/BuddySuite/wiki/translate) | -tr | None | Convert coding sequences into amino acid sequences
 translate6frames | -tr6 | None | Translate nucleotide sequences into all six reading frames
 back_translate | -btr | None | Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]
 transcribe | -d2r | None | Convert DNA sequences to RNA
