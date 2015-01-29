@@ -292,21 +292,62 @@ def reverse_complement(_seqs):
     return _seqs
 
 
-def translate_cds(_seqs):
+def translate_cds(_seqs, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+    def trans(in_seq):
+        try:
+            in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
+            return in_seq
+
+        except TranslationError as e1:
+            if not quiet:
+                sys.stderr.write("Warning: %s in %s\n" % (e1, in_seq.id))
+            return e1
+
     _translation = deepcopy(_seqs)
     for _seq in _translation.seqs:
         _seq.features = []
-        try:
-            _seq.seq = _seq.seq.translate(cds=True, to_stop=True)
-        except TranslationError as e1:
-            _seq.seq = Seq(str(_seq.seq)[:(len(str(_seq.seq)) - len(str(_seq.seq)) % 3)])
-            try:
-                _seq.seq = _seq.seq.translate()
-                sys.stderr.write("Warning: %s is not a standard CDS\t-->\t%s\n" % (_seq.id, e1))
-            except TranslationError as e2:  # ToDo: capture non-standard characters
-                sys.stderr.write("Error: %s failed to translate\t-->\t%s\n" % (_seq.id, e2))
-        _seq.seq.alphabet = IUPAC.protein
+        temp_seq = deepcopy(_seq)
+        while True:  # Modify a copy of the sequence as needed to complete the cds translation
+            test_trans = trans(temp_seq)
+            # success
+            if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
+                break
 
+            # not standard length
+            if re.search("Sequence length [0-9]+ is not a multiple of three", str(test_trans)):
+                temp_seq.seq = Seq(str(temp_seq.seq)[:(len(str(temp_seq.seq)) - len(str(temp_seq.seq)) % 3)])
+                _seq.seq = Seq(str(_seq.seq)[:(len(str(_seq.seq)) - len(str(_seq.seq)) % 3)])
+                continue
+
+            # not a stop codon
+            if re.search("Final codon '[A-Za-z]{3}' is not a stop codon", str(test_trans)):
+                temp_seq.seq = Seq(str(temp_seq.seq) + "TGA")
+                continue
+
+            # non-standard characters
+            if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
+                regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
+                temp_seq.seq = Seq(re.sub(regex[0], "NNN", str(temp_seq.seq), count=1))
+                _seq.seq = Seq(re.sub(regex[0], "NNN", str(_seq.seq), count=1))
+                continue
+
+            # internal stop codon(s) found
+            if re.search("Extra in frame stop codon found", str(test_trans)):
+                for _i in range(round(len(str(temp_seq.seq)) / 3) - 1):
+                    codon = str(temp_seq.seq)[(_i * 3):(_i * 3 + 3)]
+                    if codon.upper() in ["TGA", "TAG", "TAA"]:
+                        new_seq = str(temp_seq.seq)[:(_i * 3)] + "NNN" + str(temp_seq.seq)[(_i * 3 + 3):]
+                        temp_seq.seq = Seq(new_seq)
+                continue
+
+            break
+
+        try:
+            _seq.seq = _seq.seq.translate()
+        except TranslationError as e1:
+            sys.stderr.write("Error: %s failed to translate  --> %s\n" % (_seq.id, e1))
+
+        _seq.seq.alphabet = IUPAC.protein
     _output = map_features_dna2prot(_seqs, _translation)
     _output.out_format = _seqs.out_format
     return _output
@@ -1041,6 +1082,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
+    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')  # ToDo: implement this everywhere
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
                         action='store')
@@ -1318,7 +1360,11 @@ if __name__ == '__main__':
         in_place_allowed = True
         if seqs.alpha == IUPAC.protein:
             sys.exit("Error: you need to supply DNA or RNA sequences to translate")
-        _print_recs(translate_cds(seqs))
+
+        if in_args.quiet:
+            _print_recs(translate_cds(seqs, quiet=True))
+        else:
+            _print_recs(translate_cds(seqs))
 
     # Translate 6 reading frames
     if in_args.translate6frames:
