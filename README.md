@@ -43,6 +43,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 -o --out_format | Specify the format you want the output returned in
 -i --in_place | Rewrites the input file in-place. Be careful!
 -p --params | Some functions can be uniquely modified by -p; see function for details
+-q --quiet | Suppress stderr messages
 
 ### Functions
 *Function* | *Flag* | *Parameters* | *Description*
@@ -55,8 +56,8 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [translate](https://github.com/biologyguy/BuddySuite/wiki/translate) | -tr | None | Convert coding sequences into amino acid sequences
 translate6frames | -tr6 | None | Translate nucleotide sequences into all six reading frames
 back_translate | -btr | None | Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]
-transcribe | -d2r | None | Convert DNA sequences to RNA
-back_transcribe | -r2d | None | Convert RNA sequences to DNA
+[transcribe](https://github.com/biologyguy/BuddySuite/wiki/transcribe) | -d2r | None | Convert DNA sequences to RNA
+[back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/back_transcribe) | -r2d | None | Convert RNA sequences to DNA
 complement | -cmp | None | Return complement of nucleotide sequence
 reverse_complement | -rcmp | None | Return reverse complement of nucleotide sequence
 list_ids | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
