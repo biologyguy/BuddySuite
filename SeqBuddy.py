@@ -284,7 +284,7 @@ def complement(_seqs):
     return _seqs
 
 
-def reverse_complement(_seqs):
+def reverse_complement(_seqs):  # ToDo: Handle features
     if _seqs.alpha == IUPAC.protein:
         sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
     for _seq in _seqs.seqs:
@@ -315,20 +315,27 @@ def translate_cds(_seqs, quiet=False):  # adding 'quiet' will suppress the error
 
             # not standard length
             if re.search("Sequence length [0-9]+ is not a multiple of three", str(test_trans)):
-                temp_seq.seq = Seq(str(temp_seq.seq)[:(len(str(temp_seq.seq)) - len(str(temp_seq.seq)) % 3)])
-                _seq.seq = Seq(str(_seq.seq)[:(len(str(_seq.seq)) - len(str(_seq.seq)) % 3)])
+                temp_seq.seq = Seq(str(temp_seq.seq)[:(len(str(temp_seq.seq)) - len(str(temp_seq.seq)) % 3)],
+                                   alphabet=temp_seq.seq.alphabet)
+                _seq.seq = Seq(str(_seq.seq)[:(len(str(_seq.seq)) - len(str(_seq.seq)) % 3)],
+                               alphabet=_seq.seq.alphabet)
+                continue
+
+            # not a start codon
+            if re.search("First codon '[A-Za-z]{3}' is not a start codon", str(test_trans)):
+                temp_seq.seq = Seq("ATG" + str(temp_seq.seq)[3:], alphabet=temp_seq.seq.alphabet)
                 continue
 
             # not a stop codon
             if re.search("Final codon '[A-Za-z]{3}' is not a stop codon", str(test_trans)):
-                temp_seq.seq = Seq(str(temp_seq.seq) + "TGA")
+                temp_seq.seq = Seq(str(temp_seq.seq) + "TGA", alphabet=temp_seq.seq.alphabet)
                 continue
 
             # non-standard characters
             if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
                 regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
-                temp_seq.seq = Seq(re.sub(regex[0], "NNN", str(temp_seq.seq), count=1))
-                _seq.seq = Seq(re.sub(regex[0], "NNN", str(_seq.seq), count=1))
+                temp_seq.seq = Seq(re.sub(regex[0], "NNN", str(temp_seq.seq), count=1), alphabet=temp_seq.seq.alphabet)
+                _seq.seq = Seq(re.sub(regex[0], "NNN", str(_seq.seq), count=1), alphabet=_seq.seq.alphabet)
                 continue
 
             # internal stop codon(s) found
@@ -337,45 +344,63 @@ def translate_cds(_seqs, quiet=False):  # adding 'quiet' will suppress the error
                     codon = str(temp_seq.seq)[(_i * 3):(_i * 3 + 3)]
                     if codon.upper() in ["TGA", "TAG", "TAA"]:
                         new_seq = str(temp_seq.seq)[:(_i * 3)] + "NNN" + str(temp_seq.seq)[(_i * 3 + 3):]
-                        temp_seq.seq = Seq(new_seq)
+                        temp_seq.seq = Seq(new_seq, alphabet=temp_seq.seq.alphabet)
                 continue
 
             break
 
         try:
             _seq.seq = _seq.seq.translate()
+            _seq.seq.alphabet = IUPAC.protein
+
         except TranslationError as e1:
             sys.stderr.write("Error: %s failed to translate  --> %s\n" % (_seq.id, e1))
 
-        _seq.seq.alphabet = IUPAC.protein
     _output = map_features_dna2prot(_seqs, _translation)
     _output.out_format = _seqs.out_format
     return _output
 
 
 def translate6frames(_seqs):  # ToDo map_features_dna2prot
+    frame1, frame2, frame3 = deepcopy(_seqs), deepcopy(_seqs), deepcopy(_seqs)
+    _seqs = reverse_complement(_seqs)
+
+    rframe1, rframe2, rframe3 = deepcopy(_seqs), deepcopy(_seqs), deepcopy(_seqs)
+
+    def change_frame(in_seqs, shift):  # ToDo implement this as a stand alone function
+        for _seq in in_seqs.seqs:
+            _seq.seq = Seq(str(_seq.seq)[shift:], alphabet=_seq.seq.alphabet)
+            for _feature in _seq.features:
+                _start = _feature.location.start - 1 if _feature.location.start > 0 else 0
+                _end = _feature.location.end - 1 if _feature.location.end > 0 else 0
+                _feature.location = FeatureLocation(_start, _end)
+        return in_seqs
+
+    frame2 = change_frame(frame2, 1)
+    frame3 = change_frame(frame3, 2)
+    rframe2 = change_frame(rframe2, 1)
+    rframe3 = change_frame(rframe3, 2)
+
+    frame1 = translate_cds(frame1, quiet=True)
+    frame2 = translate_cds(frame2, quiet=True)
+    frame3 = translate_cds(frame3, quiet=True)
+    rframe1 = translate_cds(rframe1, quiet=True)
+    rframe2 = translate_cds(rframe2, quiet=True)
+    rframe3 = translate_cds(rframe3, quiet=True)
+
     _output = []
-    for _seq in _seqs.seqs:
-        for i in range(3):
-            x = len(str(_seq.seq)) if len(str(_seq.seq)) % 3 * (-1) == 0 else len(str(_seq.seq)) % 3 * (-1)
-            temp_seq = str(_seq.seq)[:x]
-            temp_seq = Seq(temp_seq, alphabet=_seq.seq.alphabet)
-            temp_seq = Seq(str(temp_seq.translate()), alphabet=IUPAC.protein)
-            _output.append(SeqRecord(temp_seq, description="", id="%s_%s" % (_seq.id, i + 1),
-                                     name="%s" % _seq.name))
-            _seq.seq = Seq(str(_seq.seq)[1:], alphabet=_seq.seq.alphabet)
+    for _i in range(len(frame1.seqs)):
+        frame1.seqs[_i].id = "%s_f1" % frame1.seqs[_i].id
+        frame2.seqs[_i].id = "%s_f2" % frame2.seqs[_i].id
+        frame3.seqs[_i].id = "%s_f3" % frame3.seqs[_i].id
+        rframe1.seqs[_i].id = "%s_rf1" % rframe1.seqs[_i].id
+        rframe2.seqs[_i].id = "%s_rf2" % rframe2.seqs[_i].id
+        rframe3.seqs[_i].id = "%s_rf3" % rframe3.seqs[_i].id
 
-        revcomp = _seq.seq.reverse_complement()
-        for i in range(3):
-            x = len(str(revcomp)) if len(str(revcomp)) % 3 * (-1) == 0 else len(str(revcomp)) % 3 * (-1)
-            temp_seq = str(revcomp)[:x]
-            temp_seq = Seq(temp_seq, alphabet=revcomp.alphabet)
-            temp_seq = Seq(str(temp_seq.translate()), alphabet=IUPAC.protein)
-            _output.append(SeqRecord(temp_seq, description="", id="%s_revcomp_%s" % (_seq.id, i + 1),
-                                     name="%s" % _seq.name))
-            revcomp = Seq(str(revcomp)[1:], alphabet=revcomp.alphabet)
+        _output += [frame1.seqs[_i], frame2.seqs[_i], frame3.seqs[_i],
+                    rframe1.seqs[_i], rframe2.seqs[_i], rframe3.seqs[_i]]
 
-    _seqs = SeqBuddy(_output, _out_format="fasta")
+    _seqs = SeqBuddy(_output, _out_format=_seqs.out_format)
     return _seqs
 
 
