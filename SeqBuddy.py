@@ -42,19 +42,45 @@ from shutil import which
 
 # Third party package imports
 from Bio import SeqIO
-from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
-
+from pprint import pprint
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(_seqs):  # Return the pairwise similarity and identity scores among sequences
     x = 1
     return x
 
+# ToDo: Change all error handling from sys.exit() to RaiseError
+
+
 # ################################################# HELPER FUNCTIONS ################################################# #
+def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
+    if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
+        new_compound_location = []
+        for sub_feature in _feature.location.parts:
+            sub_feature = _shift_feature(SeqFeature(sub_feature), _shift, full_seq_len)
+            new_compound_location.append(sub_feature.location)
+        _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+
+    elif type(_feature.location) == FeatureLocation:
+        _start = _feature.location.start + _shift
+        _start = _start if _start >= 0 else 0
+        _start = _start if _start <= full_seq_len else full_seq_len
+        _end = _feature.location.end + _shift
+        _end = _end if _end >= 0 else 0
+        _end = _end if _end <= full_seq_len else full_seq_len
+        _feature.location = FeatureLocation(_start, _end, _feature.strand)
+
+    else:
+        raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
+                        "not %s" % type(_feature.location))
+
+    return _feature
+# #################################################################################################################### #
 
 
 class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into a Seq object
