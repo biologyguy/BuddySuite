@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 38 tools and counting
+# 39 tools and counting
 
 """
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -249,7 +249,7 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
     return _new_seqs
 
 
-def shuffle(_seqs):
+def shuffle(_seqs):  # ToDo: delete features
     _output = []
     for _ in range(len(_seqs.seqs)):
         random_index = randint(1, len(_seqs.seqs)) - 1
@@ -361,25 +361,26 @@ def translate_cds(_seqs, quiet=False):  # adding 'quiet' will suppress the error
     return _output
 
 
+def shift_frame(_seqs, frame):
+    for _seq in _seqs.seqs:
+        _seq.seq = Seq(str(_seq.seq)[frame - 1:], alphabet=_seq.seq.alphabet)
+        for _feature in _seq.features:
+            _start = _feature.location.start - 1 if _feature.location.start > 0 else 0
+            _end = _feature.location.end - 1 if _feature.location.end > 0 else 0
+            _feature.location = FeatureLocation(_start, _end)
+    return _seqs
+
+
 def translate6frames(_seqs):  # ToDo map_features_dna2prot
     frame1, frame2, frame3 = deepcopy(_seqs), deepcopy(_seqs), deepcopy(_seqs)
     _seqs = reverse_complement(_seqs)
 
     rframe1, rframe2, rframe3 = deepcopy(_seqs), deepcopy(_seqs), deepcopy(_seqs)
 
-    def change_frame(in_seqs, shift):  # ToDo implement this as a stand alone function
-        for _seq in in_seqs.seqs:
-            _seq.seq = Seq(str(_seq.seq)[shift:], alphabet=_seq.seq.alphabet)
-            for _feature in _seq.features:
-                _start = _feature.location.start - 1 if _feature.location.start > 0 else 0
-                _end = _feature.location.end - 1 if _feature.location.end > 0 else 0
-                _feature.location = FeatureLocation(_start, _end)
-        return in_seqs
-
-    frame2 = change_frame(frame2, 1)
-    frame3 = change_frame(frame3, 2)
-    rframe2 = change_frame(rframe2, 1)
-    rframe3 = change_frame(rframe3, 2)
+    frame2 = shift_frame(frame2, 2)
+    frame3 = shift_frame(frame3, 3)
+    rframe2 = shift_frame(rframe2, 2)
+    rframe3 = shift_frame(rframe3, 3)
 
     frame1 = translate_cds(frame1, quiet=True)
     frame2 = translate_cds(frame2, quiet=True)
@@ -1039,6 +1040,8 @@ if __name__ == '__main__':
                         help="Return line break separated sequences")
     parser.add_argument('-tr', '--translate', action='store_true',
                         help="Convert coding sequences into amino acid sequences")
+    parser.add_argument('-sfr', '--shift_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
+                        help="Change the reading from of sequences by deleting characters off of the front")
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
     parser.add_argument('-btr', '--back_translate', action='store_true',
@@ -1390,6 +1393,11 @@ if __name__ == '__main__':
             _print_recs(translate_cds(seqs, quiet=True))
         else:
             _print_recs(translate_cds(seqs))
+
+    # Shift reading frame
+    if in_args.shift_frame:
+        in_place_allowed = True
+        _print_recs(shift_frame(seqs, in_args.shift_frame))
 
     # Translate 6 reading frames
     if in_args.translate6frames:
