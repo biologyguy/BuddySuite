@@ -28,7 +28,8 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 """
 
 # Standard library imports
-import pdb
+# from pprint import pprint
+# import pdb
 import sys
 import os
 import re
@@ -48,7 +49,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
-from pprint import pprint
+
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(_seqs):  # Return the pairwise similarity and identity scores among sequences
     x = 1
@@ -79,6 +80,22 @@ def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far 
         raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
                         "not %s" % type(_feature.location))
 
+    return _feature
+
+
+def _feature_rc(_feature, seq_len):  # BioPython does not properly handle reverse complement of features, so implement..
+    if type(_feature.location) == CompoundLocation:
+        new_compound_location = []
+        for sub_feature in _feature.location.parts:
+            sub_feature = _feature_rc(SeqFeature(sub_feature), seq_len)
+            new_compound_location.append(sub_feature.location)
+        _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+
+    else:
+        _end = seq_len - _feature.location.end
+        _shift = _end - _feature.location.start
+        _feature = _shift_feature(_feature, _shift, seq_len)
+        _feature.strand *= -1
     return _feature
 # #################################################################################################################### #
 
@@ -304,17 +321,20 @@ def dna2rna(_seqs):
 
 def complement(_seqs):
     if _seqs.alpha == IUPAC.protein:
-        sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
+        raise TypeError("Nucleic acid sequence required, not protein.")
     for _seq in _seqs.seqs:
         _seq.seq = _seq.seq.complement()
     return _seqs
 
 
-def reverse_complement(_seqs):  # ToDo: Handle features
+def reverse_complement(_seqs):
     if _seqs.alpha == IUPAC.protein:
-        sys.exit("Error: The complement function requires a nucleic acid sequence, not protein.")
+        raise TypeError("Nucleic acid sequence required, not protein.")
     for _seq in _seqs.seqs:
         _seq.seq = _seq.seq.reverse_complement()
+        seq_len = len(_seq.seq)
+        shifted_features = [_feature_rc(_feature, seq_len) for _feature in _seq.features]
+        _seq.features = shifted_features
     return _seqs
 
 
@@ -1080,7 +1100,7 @@ if __name__ == '__main__':
                         help="Convert RNA sequences to DNA")
     parser.add_argument('-cmp', '--complement', action='store_true',
                         help="Return complement of nucleotide sequence")
-    parser.add_argument('-rcmp', '--reverse_complement', action='store_true',
+    parser.add_argument('-rc', '--reverse_complement', action='store_true',
                         help="Return reverse complement of nucleotide sequence")
     parser.add_argument('-li', '--list_ids', action='store_true',
                         help="Output all the sequence identifiers in a file. Use -p to specify # columns to write")
