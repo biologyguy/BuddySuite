@@ -54,12 +54,13 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [delete_metadata](https://github.com/biologyguy/BuddySuite/wiki/delete_metadata) | -dm | None | Remove meta-data from file (only id is retained)
 [raw_seq](https://github.com/biologyguy/BuddySuite/wiki/raw_seq) | -rs | None | Return line break separated sequences
 [translate](https://github.com/biologyguy/BuddySuite/wiki/translate) | -tr | None | Convert coding sequences into amino acid sequences
+shift_frame | -sfr | \<frame (1, 2, or 3)\> | Change the reading from of sequences by deleting characters off of the front
 translate6frames | -tr6 | None | Translate nucleotide sequences into all six reading frames
 back_translate | -btr | None | Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]
 [transcribe](https://github.com/biologyguy/BuddySuite/wiki/transcribe) | -d2r | None | Convert DNA sequences to RNA
 [back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/back_transcribe) | -r2d | None | Convert RNA sequences to DNA
-complement | -cmp | None | Return complement of nucleotide sequence
-reverse_complement | -rcmp | None | Return reverse complement of nucleotide sequence
+[complement](https://github.com/biologyguy/BuddySuite/wiki/complement) | -cmp | None | Return complement of nucleotide sequence
+[reverse_complement](https://github.com/biologyguy/BuddySuite/wiki/reverse_complement) | -rc | None | Return reverse complement of nucleotide sequence
 list_ids | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
 num_seqs | -ns | None | Counts how many sequences are present in an input file
 ave_seq_length | -asl | None | Find the average length of all sequences in an input file
