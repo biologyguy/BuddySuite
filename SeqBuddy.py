@@ -1083,6 +1083,13 @@ def lowercase(_seqs):
         _seq.seq = Seq(str(_seq.seq).lower(), alphabet=_seq.seq.alphabet)
     return _seqs
 
+def remove_above_max(_seqs,max_value):
+    _output = []
+    for _seq in _seqs.seqs:
+        if(len(str(_seq.seq)) <= max_value):
+            _output.append(_seq)
+    _seqs.seqs=_output
+    return _seqs
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -1151,6 +1158,7 @@ if __name__ == '__main__':
                         help="Get all the records with ids containing a given string")
     parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
                         help="Get the ends (front or rear) of all sequences in a file.")
+    parser.add_argument('-max', '--pull_smaller_seqs', help='make a new fastq with sequences shorter than the given argument', type=int, action='store')
     parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
                         type=int, help="Pull out sub-sequences.")
     parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
@@ -1655,3 +1663,7 @@ if __name__ == '__main__':
     if in_args.order_features_alphabetically:
         in_place_allowed = True
         _print_recs(order_features_alphabetically(seqs))
+    
+    #given a fastq file remove sequences above a specific maximum    
+    if in_args.pull_smaller_seqs:
+        _print_recs(remove_above_max(seqs, in_args.pull_smaller_seqs))
