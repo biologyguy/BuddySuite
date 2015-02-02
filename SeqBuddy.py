@@ -28,7 +28,7 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 """
 
 # Standard library imports
-# from pprint import pprint
+from pprint import pprint
 # import pdb
 import sys
 import os
@@ -95,6 +95,12 @@ def _feature_rc(_feature, seq_len):  # BioPython does not properly handle revers
         _feature = _shift_feature(_feature, _shift, seq_len)
         _feature.strand *= -1
     return _feature
+
+
+def _stderr(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+    return
 # #################################################################################################################### #
 
 
@@ -103,6 +109,9 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
         if not _in_format:
             self.in_format = guess_format(_input)
             self.out_format = str(self.in_format) if not _out_format else _out_format
+
+        else:
+            self.in_format = _in_format
 
         if not self.in_format:
             raise AttributeError("Could not determine sequence format from _input. "
@@ -177,7 +186,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("_input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "nexus"]
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -847,8 +856,10 @@ def pull_seq_ends(_seqs, _amount, _which_end):
     seq_ends = []
     for _seq in _seqs.seqs:
         if _which_end == 'front':
-            _seq.seq = _seq.seq[:_amount]
-
+            blahh = {'phred_quality': _seq.letter_annotations['phred_quality'][:_amount]}
+            del(_seq.letter_annotations['phred_quality'])
+            _seq.seq = Seq(str(_seq.seq)[:_amount], alphabet=_seq.seq.alphabet)
+            _seq.letter_annotations = blahh
         elif _which_end == "rear":
             _seq.seq = _seq.seq[-1 * _amount:]
 
@@ -868,7 +879,10 @@ def extract_range(_seqs, _start, _end):
                              "of range.")
 
     for _seq in _seqs.seqs:
+        blahh = {'phred_quality': _seq.letter_annotations['phred_quality'][_start:_end]}
+        del(_seq.letter_annotations['phred_quality'])
         _seq.seq = Seq(str(_seq.seq)[_start:_end], alphabet=_seq.seq.alphabet)
+        _seq.letter_annotations = blahh
         _seq.description += " Sub-sequence extraction, from residue %s to %s" % (_start, _end)
         _features = []
         for _feature in _seq.features:
@@ -1543,7 +1557,7 @@ if __name__ == '__main__':
         hash_table = "# Hash table\n"
         for seq in hashed[0]:
             hash_table += "%s,%s\n" % (seq[0], seq[1])
-        sys.stderr.write("%s\n" % hash_table)
+        _stderr("%s\n" % hash_table, in_args.quiet)
         _print_recs(hashed[1])
 
     # Guess alphabet
