@@ -28,7 +28,7 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 """
 
 # Standard library imports
-from pprint import pprint
+# from pprint import pprint
 # import pdb
 import sys
 import os
@@ -856,10 +856,8 @@ def pull_seq_ends(_seqs, _amount, _which_end):
     seq_ends = []
     for _seq in _seqs.seqs:
         if _which_end == 'front':
-            blahh = {'phred_quality': _seq.letter_annotations['phred_quality'][:_amount]}
-            del(_seq.letter_annotations['phred_quality'])
-            _seq.seq = Seq(str(_seq.seq)[:_amount], alphabet=_seq.seq.alphabet)
-            _seq.letter_annotations = blahh
+            _seq.seq = _seq.seq[:_amount]
+
         elif _which_end == "rear":
             _seq.seq = _seq.seq[-1 * _amount:]
 
@@ -879,10 +877,7 @@ def extract_range(_seqs, _start, _end):
                              "of range.")
 
     for _seq in _seqs.seqs:
-        blahh = {'phred_quality': _seq.letter_annotations['phred_quality'][_start:_end]}
-        del(_seq.letter_annotations['phred_quality'])
         _seq.seq = Seq(str(_seq.seq)[_start:_end], alphabet=_seq.seq.alphabet)
-        _seq.letter_annotations = blahh
         _seq.description += " Sub-sequence extraction, from residue %s to %s" % (_start, _end)
         _features = []
         for _feature in _seq.features:
