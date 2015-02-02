@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 39 tools and counting
+# 41 tools and counting
 
 """
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -56,6 +56,7 @@ def sim_ident(_seqs):  # Return the pairwise similarity and identity scores amon
     return x
 
 
+# ToDo: Add FASTQ support
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
@@ -965,6 +966,24 @@ def delete_records(_seqs, search_str):
     return _seqs
 
 
+def delete_large(_seqs, max_value):
+    _output = []
+    for _seq in _seqs.seqs:
+        if len(str(_seq.seq)) <= max_value:
+            _output.append(_seq)
+    _seqs.seqs = _output
+    return _seqs
+
+
+def delete_small(_seqs, min_value):
+    _output = []
+    for _seq in _seqs.seqs:
+        if len(str(_seq.seq)) >= min_value:
+            _output.append(_seq)
+    _seqs.seqs = _output
+    return _seqs
+
+
 def delete_features(_seqs, _pattern):
     for _seq in _seqs.seqs:
         retained_features = []
@@ -1078,13 +1097,6 @@ def lowercase(_seqs):
         _seq.seq = Seq(str(_seq.seq).lower(), alphabet=_seq.seq.alphabet)
     return _seqs
 
-def remove_above_max(_seqs,max_value):
-    _output = []
-    for _seq in _seqs.seqs:
-        if(len(str(_seq.seq)) <= max_value):
-            _output.append(_seq)
-    _seqs.seqs=_output
-    return _seqs
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -1153,11 +1165,14 @@ if __name__ == '__main__':
                         help="Get all the records with ids containing a given string")
     parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
                         help="Get the ends (front or rear) of all sequences in a file.")
-    parser.add_argument('-max', '--pull_smaller_seqs', help='make a new fastq with sequences shorter than the given argument', type=int, action='store')
     parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
                         type=int, help="Pull out sub-sequences.")
     parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove records from a file. The deleted IDs are sent to stderr.")
+    parser.add_argument('-dsm', '--delete_small', help='Delete sequences with length below threshold', type=int,
+                        action='store')
+    parser.add_argument('-dlg', '--delete_large', help='Delete sequences with length above threshold', type=int,
+                        action='store')
     parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
@@ -1365,6 +1380,16 @@ if __name__ == '__main__':
 
         new_list.out_format = in_args.out_format if in_args.out_format else seqs.out_format
         _print_recs(new_list)
+
+    # Delete sequences above threshold
+    if in_args.delete_large:
+        in_place_allowed = True
+        _print_recs(delete_large(seqs, in_args.delete_large))
+
+    # Delete sequences below threshold
+    if in_args.delete_small:
+        in_place_allowed = True
+        _print_recs(delete_small(seqs, in_args.delete_small))
 
     # Delete features
     if in_args.delete_features:
@@ -1658,7 +1683,3 @@ if __name__ == '__main__':
     if in_args.order_features_alphabetically:
         in_place_allowed = True
         _print_recs(order_features_alphabetically(seqs))
-    
-    #given a fastq file remove sequences above a specific maximum    
-    if in_args.pull_smaller_seqs:
-        _print_recs(remove_above_max(seqs, in_args.pull_smaller_seqs))
