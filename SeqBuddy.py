@@ -55,8 +55,6 @@ def sim_ident(_seqs):  # Return the pairwise similarity and identity scores amon
     x = 1
     return x
 
-# ToDo: Change all error handling from sys.exit() to RaiseError
-
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -105,9 +103,10 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
         if not _in_format:
             self.in_format = guess_format(_input)
             self.out_format = str(self.in_format) if not _out_format else _out_format
+
         if not self.in_format:
-            sys.exit("Error: could not determine the seq format in SeqBuddy(). "
-                     "Try explicitly setting with -f flag.")
+            raise AttributeError("Could not determine sequence format from _input. "
+                                 "Try explicitly setting with -f flag.")
 
         self.out_format = self.in_format if not _out_format else _out_format
 
@@ -118,7 +117,7 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
             # make sure that the list is actually SeqIO records (just test a few...)
             for _seq in _input[:3]:
                 if type(_seq) != SeqRecord:
-                    sys.exit("Error: Seqlist is not populated with SeqRecords.")
+                    raise TypeError("Seqlist is not populated with SeqRecords.")
             _sequences = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -165,7 +164,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return "gb"
 
     # Pull value directly from object if appropriate
-    if str(type(_input)) == "<class '__main__.SeqBuddy'>":
+    if type(_input) == SeqBuddy:
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
@@ -173,6 +172,11 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         _input = open(_input, "r")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>":
+        # Die if file is empty
+        if _input.read() == "":
+            sys.exit("_input file is empty.")
+        _input.seek(0)
+
         possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "nexus"]
         for _format in possible_formats:
             try:
@@ -190,7 +194,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return None  # Unable to determine format from file handle
 
     else:
-        sys.exit("Error: Unsupported _input argument in guess_format(). %s" % _input)
+        raise AttributeError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def phylipi(_input, _format="relaxed"):  # _format in ["strict", "relaxed"]
@@ -224,20 +228,20 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
     blast_db = os.path.abspath(blast_db)
     if blast_check == "blastp":
         if not which(blast_path):
-            raise FileNotFoundError("blastp")
+            raise FileNotFoundError("blastp binary not found")
 
         if not os.path.isfile("%s.pin" % blast_db) or not os.path.isfile("%s.phr" % blast_db) \
                 or not os.path.isfile("%s.psq" % blast_db):
-            sys.exit("Error:\tBlastp database not found at '%s'" % blast_db)
+            raise RuntimeError("Blastp database not found at '%s'" % blast_db)
     elif blast_check == "blastn":
         if not which(blast_path):
-            raise FileNotFoundError("blastn")
+            raise FileNotFoundError("blastn binary not found")
 
         if not os.path.isfile("%s.nin" % blast_db) or not os.path.isfile("%s.nhr" % blast_db) \
                 or not os.path.isfile("%s.nsq" % blast_db):
-            sys.exit("Error:\tBlastn database not found at '%s'" % blast_db)
+            raise RuntimeError("Blastn database not found at '%s'" % blast_db)
     else:
-        sys.exit("Blast binary doesn't seem to work, at %s" % blast_path)
+        raise RuntimeError("Blast binary doesn't seem to work, at %s" % blast_path)
 
     if not blastdbcmd:
         blastdbcmd = "blastdbcmd"
@@ -250,7 +254,7 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
     if not os.path.isfile("%s.%s" % (blast_db, extensions[0])) or not \
             os.path.isfile("%s.%s" % (blast_db, extensions[1])) or not \
             os.path.isfile("%s.%s" % (blast_db, extensions[2])):
-        sys.exit("Error: Incorrect blastdb. When making the blast database, please use the -parse_seqids flag.")
+        raise RuntimeError("Incorrect blastdb. When making the blast database, please use the -parse_seqids flag.")
 
     tmp_dir = TemporaryDirectory()
     with open("%s/tmp.fa" % tmp_dir.name, "w") as ofile:
@@ -275,7 +279,8 @@ def blast(_seqs, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow wei
         hit_ids.append(hit_id)
 
     if len(hit_ids) == 0:
-        sys.exit("No matches identified.")
+        sys.stderr.write("No matches identified.\n")
+        return None
 
     ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
     for hit_id in hit_ids:
@@ -400,7 +405,7 @@ def translate_cds(_seqs, quiet=False):  # adding 'quiet' will suppress the error
             _seq.seq.alphabet = IUPAC.protein
 
         except TranslationError as e1:
-            sys.stderr.write("Error: %s failed to translate  --> %s\n" % (_seq.id, e1))
+            raise TranslationError("%s failed to translate  --> %s\n" % (_seq.id, e1))
 
     _output = map_features_dna2prot(_seqs, _translation)
     _output.out_format = _seqs.out_format
@@ -457,7 +462,7 @@ def back_translate(_seqs, _mode='random', _species=None):  # ToDo map_features_p
     # codon preference tables derived from the data at http://www.kazusa.or.jp
     # Homo sapiens, species=9606
     if _mode not in ['random', 'r', 'optimized', 'o']:
-        sys.exit("Error: Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. You entered '%s'" % _mode)
+        raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. You entered '%s'" % _mode)
 
     h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.27, 0.40, 0.23, 0.11]),
               'C': (['TGT', 'TGC'], [0.46, 0.54]),
@@ -579,7 +584,7 @@ def back_translate(_seqs, _mode='random', _species=None):  # ToDo map_features_p
                   'X': (['NNN'], [1.0])}
 
     if _seqs.alpha != IUPAC.protein:
-        sys.exit("Error: The input sequence needs to be protein, not %s" % _seqs.alpha)
+        raise AttributeError("The input sequence needs to be protein, not %s" % _seqs.alpha)
 
     if not _species:
         lookup_table = rand_table
@@ -595,8 +600,8 @@ def back_translate(_seqs, _mode='random', _species=None):  # ToDo map_features_p
         lookup_table = s_cerev
         print(_species)
     else:
-        sys.exit("Error: The species requested does not match any lookup tables currently implemented. Please leave "
-                 "blank or select from human, mouse, ecoli, or yeast.")
+        raise AttributeError("The species requested does not match any lookup tables currently implemented. "
+                             "Please leave blank or select from human, mouse, ecoli, or yeast.")
 
     if _mode in ['optimized', 'o']:
         for aa in lookup_table:
@@ -733,11 +738,11 @@ def combine_features(seqs1, seqs2):
     # make sure there are no repeat ids
     _unique, _rep_ids, _rep_seqs = find_repeats(seqs1)
     if len(_rep_ids) > 0:
-        sys.exit("Error: There are repeat IDs in the first file provided\n%s" % _rep_ids)
+        raise RuntimeError("There are repeat IDs in the first file provided\n%s" % _rep_ids)
 
     _unique, _rep_ids, _rep_seqs = find_repeats(seqs2)
     if len(_rep_ids) > 0:
-        sys.exit("Error: There are repeat IDs in the second file provided\n%s" % _rep_ids)
+        raise RuntimeError("There are repeat IDs in the second file provided\n%s" % _rep_ids)
 
     seq_dict1 = {}
     seq_dict2 = {}
@@ -752,17 +757,15 @@ def combine_features(seqs1, seqs2):
     reference_alphabet = sample(seq_dict1.items(), 1)[0][1].seq.alphabet
     for _seq_id in seq_dict1:
         if type(seq_dict1[_seq_id].seq.alphabet) != type(reference_alphabet):
-            error_mes = "You have mixed multiple alphabets into your sequences. Make sure everything is the same.\n" \
-                        "\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s" \
-                        % (_seq_id, seq_dict1[_seq_id].seq.alphabet, reference_alphabet)
-            sys.exit(error_mes)
+            raise RuntimeError("You have mixed multiple alphabets into your sequences. Make sure everything is the same"
+                               "\n\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s"
+                               % (_seq_id, seq_dict1[_seq_id].seq.alphabet, reference_alphabet))
 
     for _seq_id in seq_dict2:
         if type(seq_dict2[_seq_id].seq.alphabet) != type(reference_alphabet):
-            error_mes = "You have mixed multiple alphabets into your sequences. Make sure everything is the same.\n" \
-                        "\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s" \
-                        % (_seq_id, seq_dict2[_seq_id].seq.alphabet, reference_alphabet)
-            sys.exit(error_mes)
+            raise RuntimeError("You have mixed multiple alphabets into your sequences. Make sure everything is the same"
+                               "\n\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s"
+                               % (_seq_id, seq_dict2[_seq_id].seq.alphabet, reference_alphabet))
 
     _new_seqs = {}
     for _seq_id in seq_dict1:
@@ -850,7 +853,7 @@ def pull_seq_ends(_seqs, _amount, _which_end):
             _seq.seq = _seq.seq[-1 * _amount:]
 
         else:
-            sys.exit("Error: you much pick 'front' or 'rear' as the third argument in pull_seq_ends.")
+            raise AttributeError("You much pick 'front' or 'rear' as the third argument in pull_seq_ends.")
         seq_ends.append(_seq)
     _seqs.seqs = seq_ends
     return _seqs
@@ -861,7 +864,8 @@ def extract_range(_seqs, _start, _end):
     # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
     _start, _end = int(_start) - 1, int(_end)
     if _end < _start:
-        sys.exit("Error at extract range: The value given for end of range is smaller than for the start of range.")
+        raise AttributeError("Error at extract range: The value given for end of range is smaller than for the start "
+                             "of range.")
 
     for _seq in _seqs.seqs:
         _seq.seq = Seq(str(_seq.seq)[_start:_end], alphabet=_seq.seq.alphabet)
@@ -1025,7 +1029,7 @@ def purge(_seqs, threshold):  # ToDo: Implement a way to return a certain # of s
 def bl2seq(_seqs):  # Does an all-by-all analysis, and does not return sequences
     blast_bin = "blastp" if _seqs.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
-        sys.exit("Error: %s not present in $PATH.")  # ToDo: Implement -p flag
+        raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
 
     tmp_dir = TemporaryDirectory()
     _seqs_copy = _seqs.seqs[1:]
@@ -1256,8 +1260,8 @@ if __name__ == '__main__':
                               blastdbcmd=blast_binaries["blastdbcmd"])
 
         except FileNotFoundError as e:
-            sys.exit("%s binary not found, explicitly set with the -p flag.\n"
-                     "To pass in the path to both blast(p/n) and blastdbcmd, separate them with a space." % e)
+            raise FileNotFoundError("%s binary not found, explicitly set with the -p flag.\nTo pass in the path to "
+                                    "both blast(p/n) and blastdbcmd, separate them with a space." % e)
         _print_recs(blast_res)
 
     # Shuffle
@@ -1392,7 +1396,7 @@ if __name__ == '__main__':
     if in_args.transcribe:
         in_place_allowed = True
         if seqs.alpha != IUPAC.ambiguous_dna:
-            sys.exit("Error: You need to provide a DNA sequence.")
+            raise AttributeError("You need to provide a DNA sequence.")
         seqs = dna2rna(seqs)
         _print_recs(seqs)
 
@@ -1400,7 +1404,7 @@ if __name__ == '__main__':
     if in_args.back_transcribe:
         in_place_allowed = True
         if seqs.alpha != IUPAC.ambiguous_rna:
-            sys.exit("Error: You need to provide an RNA sequence.")
+            raise AttributeError("You need to provide an RNA sequence.")
         seqs = rna2dna(seqs)
         _print_recs(seqs)
 
@@ -1433,7 +1437,7 @@ if __name__ == '__main__':
     if in_args.translate:
         in_place_allowed = True
         if seqs.alpha == IUPAC.protein:
-            sys.exit("Error: you need to supply DNA or RNA sequences to translate")
+            raise AttributeError("You need to supply DNA or RNA sequences to translate")
 
         if in_args.quiet:
             _print_recs(translate_cds(seqs, quiet=True))
@@ -1449,7 +1453,7 @@ if __name__ == '__main__':
     if in_args.translate6frames:
         in_place_allowed = True
         if seqs.alpha == IUPAC.protein:
-            sys.exit("Error: you need to supply DNA or RNA sequences to translate")
+            raise AttributeError("You need to supply DNA or RNA sequences to translate")
 
         seqs = translate6frames(seqs)
         if in_args.out_format:
@@ -1585,7 +1589,7 @@ if __name__ == '__main__':
         file2 = SeqBuddy(file2)
 
         if file1.alpha == file2.alpha:
-            sys.exit("Error: You must provide one DNA file and one protein file")
+            raise AttributeError("You must provide one DNA file and one protein file")
 
         if file1.alpha == IUPAC.protein:
             prot = file1
@@ -1607,7 +1611,7 @@ if __name__ == '__main__':
         file2 = SeqBuddy(file2)
 
         if file1.alpha == file2.alpha:
-            sys.exit("Error: You must provide one DNA file and one protein file")
+            raise AttributeError("You must provide one DNA file and one protein file")
 
         if file1.alpha != IUPAC.protein:
             dna = file1
