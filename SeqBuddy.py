@@ -635,7 +635,10 @@ def back_translate(_seqbuddy, _mode='random', _species=None):  # ToDo map_featur
     return _seqbuddy
 
 
-def ave_seq_length(_seqbuddy):
+def ave_seq_length(_seqbuddy, _clean=False):
+    if _clean:  # Strip out all gaps and stuff before counting
+        clean_seq(_seqbuddy)
+
     sum_length = 0.
     for _rec in _seqbuddy.records:
         sum_length += len(_rec.seq)
@@ -1139,7 +1142,8 @@ if __name__ == '__main__':
     parser.add_argument('-ns', '--num_seqs', action='store_true',
                         help="Counts how many sequences are present in an input file")
     parser.add_argument('-asl', '--ave_seq_length', action='store_true',
-                        help="Return the average length of all sequences")
+                        help="Return the average length of all sequences. Use '-p clean' to remove gaps etc from the "
+                             "sequences before counting.")
     parser.add_argument('-cts', '--concat_seqs', action='store_true',
                         help="Concatenate a bunch of sequences into a single solid string.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
@@ -1523,7 +1527,8 @@ if __name__ == '__main__':
 
     # Average length of sequences
     if in_args.ave_seq_length:
-        sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy), 2))
+        clean = False if not in_args.params or in_args.params[0] != "clean" else True
+        sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
