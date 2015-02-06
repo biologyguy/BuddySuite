@@ -645,7 +645,10 @@ def ave_seq_length(_seqbuddy, _clean=False):
     return sum_length / len(_seqbuddy.records)
 
 
-def concat_seqs(_seqbuddy):
+def concat_seqs(_seqbuddy, _clean=False):
+    if _clean:
+        clean_seq(_seqbuddy)
+
     _new_seq = ""
     concat_ids = []
     features = []
@@ -695,6 +698,7 @@ def delete_metadata(_seqbuddy):
 
 
 # Apply DNA features to protein sequences
+# ToDo: deal with compound features
 def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
@@ -724,6 +728,7 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
 
 
 # Apply DNA features to protein sequences
+# ToDo: deal with compound features
 def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
@@ -1151,7 +1156,8 @@ if __name__ == '__main__':
                         help="Return the average length of all sequences. Use '-p clean' to remove gaps etc from the "
                              "sequences before counting.")
     parser.add_argument('-cts', '--concat_seqs', action='store_true',
-                        help="Concatenate a bunch of sequences into a single solid string.")
+                        help="Concatenate a bunch of sequences into a single solid string. Use '-p clean' to remove "
+                             "stops, gaps, etc., from the sequences before concatenating.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
                         help="Take the features annotated onto nucleotide sequences and map to protein sequences. "
                              "Both a protein and cDNA file must be passed in.")
@@ -1522,7 +1528,8 @@ if __name__ == '__main__':
 
     # Concatenate sequences
     if in_args.concat_seqs:
-        seqbuddy = concat_seqs(seqbuddy)
+        clean = False if not in_args.params or in_args.params[0] != "clean" else True
+        seqbuddy = concat_seqs(seqbuddy, clean)
         if in_args.out_format:
             seqbuddy.out_format = in_args.out_format
         _print_recs(seqbuddy)
