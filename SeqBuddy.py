@@ -650,9 +650,15 @@ def concat_seqs(_seqbuddy):
     concat_ids = []
     features = []
     for _rec in _seqbuddy.records:
+        for _feature in _rec.features:
+            _shift = len(_new_seq)
+            full_seq_len = len(_new_seq) + len(str(_rec.seq))
+            _feature = _shift_feature(_feature, _shift, full_seq_len)
+
         location = FeatureLocation(len(_new_seq), len(_new_seq) + len(str(_rec.seq)))
         feature = SeqFeature(location=location, id=_rec.id, type=_rec.id[:15])
         features.append(feature)
+        features += _rec.features
         concat_ids.append(_rec.id)
         _new_seq += str(_rec.seq)
 
