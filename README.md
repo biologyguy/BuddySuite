@@ -61,9 +61,9 @@ back_translate | -btr | None | Convert amino acid sequences into codons. Select 
 [back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/back_transcribe) | -r2d | None | Convert RNA sequences to DNA
 [complement](https://github.com/biologyguy/BuddySuite/wiki/complement) | -cmp | None | Return complement of nucleotide sequence
 [reverse_complement](https://github.com/biologyguy/BuddySuite/wiki/reverse_complement) | -rc | None | Return reverse complement of nucleotide sequence
-list_ids | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
-num_seqs | -ns | None | Counts how many sequences are present in an input file
-ave_seq_length | -asl | None | Find the average length of all sequences in an input file
+[list_ids](https://github.com/biologyguy/BuddySuite/wiki/list_ids) | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
+[num_seqs](https://github.com/biologyguy/BuddySuite/wiki/num_seqs) | -ns | None | Counts how many sequences are present in an input file
+[ave_seq_length](https://github.com/biologyguy/BuddySuite/wiki/ave_seq_length) | -asl | None | Find the average length of all sequences in an input file
 concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
 map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
 map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
