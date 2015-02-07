@@ -56,7 +56,12 @@ def sim_ident(_seqs):  # Return the pairwise similarity and identity scores amon
     return x
 
 
-# ToDo: Add FASTQ support
+# - Add FASTQ support... More generally, support letter annotation mods
+# - Check on memory requirements before execution
+# - Implement daisy chaining
+# - Execution timer, for long running jobs
+# - Handle all stderr output from private function (to allow quiet execution)
+# - Unit Tests
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
@@ -307,7 +312,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     return _new_seqs
 
 
-def shuffle(_seqbuddy):  # ToDo: delete features
+def shuffle(_seqbuddy):
     _output = []
     for _ in range(len(_seqbuddy.records)):
         random_index = randint(1, len(_seqbuddy.records)) - 1
@@ -318,9 +323,9 @@ def shuffle(_seqbuddy):  # ToDo: delete features
 
 def rna2dna(_seqbuddy):
     _output = []
-    for rec in _seqbuddy.records:
-        rec.seq = Seq(str(rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
-        _output.append(rec)
+    for _rec in _seqbuddy.records:
+        _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
+        _output.append(_rec)
     _seqbuddy.records = _output
     return _seqbuddy
 
@@ -432,7 +437,7 @@ def shift_frame(_seqbuddy, frame):
     return _seqbuddy
 
 
-def translate6frames(_seqbuddy):  # ToDo map_features_dna2prot
+def translate6frames(_seqbuddy):
     frame1, frame2, frame3 = deepcopy(_seqbuddy), deepcopy(_seqbuddy), deepcopy(_seqbuddy)
     _seqbuddy = reverse_complement(_seqbuddy)
 
@@ -466,12 +471,12 @@ def translate6frames(_seqbuddy):  # ToDo map_features_dna2prot
     return _seqbuddy
 
 
-def back_translate(_seqbuddy, _mode='random', _species=None):  # ToDo map_features_prot2dna
+def back_translate(_seqbuddy, _mode='random', _species=None): # ToDo: Maybe need to handle compound features
     # available modes --> random, optimized
     # available species --> human, mouse, yeast, ecoli
     # codon preference tables derived from the data at http://www.kazusa.or.jp
     # Homo sapiens, species=9606
-    if _mode not in ['random', 'r', 'optimized', 'o']:
+    if _mode.upper() not in ['RANDOM', 'R', 'OPTIMIZED', 'O']:
         raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. You entered '%s'" % _mode)
 
     h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.27, 0.40, 0.23, 0.11]),
@@ -613,15 +618,16 @@ def back_translate(_seqbuddy, _mode='random', _species=None):  # ToDo map_featur
         raise AttributeError("The species requested does not match any lookup tables currently implemented. "
                              "Please leave blank or select from human, mouse, ecoli, or yeast.")
 
-    if _mode in ['optimized', 'o']:
+    if _mode.upper() in ['OPTIMIZED', 'O']:
         for aa in lookup_table:
             best = ["", 0.]
             for _i in range(len(lookup_table[aa][1])):
                 if lookup_table[aa][1][_i] > best[1]:
                     best = [lookup_table[aa][0][_i], lookup_table[aa][1][_i]]
             lookup_table[aa] = ([best[0]], [1.0])
-
+    originals = deepcopy(_seqbuddy)
     for _rec in _seqbuddy.records:
+        _rec.features = []
         dna_seq = ""
         for aa in _rec.seq:
             rand_num = random()
@@ -632,7 +638,8 @@ def back_translate(_seqbuddy, _mode='random', _species=None):  # ToDo map_featur
                     dna_seq += lookup_table[aa][0][_i]
                     break
             _rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
-    return _seqbuddy
+
+    return map_features_prot2dna(originals, _seqbuddy)
 
 
 def ave_seq_length(_seqbuddy, _clean=False):
