@@ -51,7 +51,7 @@ from Bio.Data.CodonTable import TranslationError
 
 
 # ##################################################### WISH LIST #################################################### #
-def sim_ident(_seqs):  # Return the pairwise similarity and identity scores among sequences
+def sim_ident():  # Return the pairwise similarity and identity scores among sequences
     x = 1
     return x
 
@@ -95,11 +95,14 @@ def _feature_rc(_feature, seq_len):  # BioPython does not properly handle revers
             new_compound_location.append(sub_feature.location)
         _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
 
-    else:
+    elif type(_feature.location) == FeatureLocation:
         _end = seq_len - _feature.location.end
         _shift = _end - _feature.location.start
         _feature = _shift_feature(_feature, _shift, seq_len)
         _feature.strand *= -1
+    else:
+        raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
+                        "not %s" % type(_feature.location))
     return _feature
 
 
@@ -364,10 +367,10 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
             in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
             return in_seq
 
-        except TranslationError as e1:
+        except TranslationError as _e1:
             if not quiet:
-                sys.stderr.write("Warning: %s in %s\n" % (e1, in_seq.id))
-            return e1
+                sys.stderr.write("Warning: %s in %s\n" % (_e1, in_seq.id))
+            return _e1
 
     _translation = deepcopy(_seqbuddy)
     for _rec in _translation.records:
@@ -471,13 +474,14 @@ def translate6frames(_seqbuddy):
     return _seqbuddy
 
 
-def back_translate(_seqbuddy, _mode='random', _species=None): # ToDo: Maybe need to handle compound features
+def back_translate(_seqbuddy, _mode='random', _species=None):
     # available modes --> random, optimized
     # available species --> human, mouse, yeast, ecoli
     # codon preference tables derived from the data at http://www.kazusa.or.jp
     # Homo sapiens, species=9606
     if _mode.upper() not in ['RANDOM', 'R', 'OPTIMIZED', 'O']:
-        raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. You entered '%s'" % _mode)
+        raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. "
+                             "You entered '%s'" % _mode)
 
     h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.27, 0.40, 0.23, 0.11]),
               'C': (['TGT', 'TGC'], [0.46, 0.54]),
@@ -663,7 +667,7 @@ def concat_seqs(_seqbuddy, _clean=False):
         for _feature in _rec.features:
             _shift = len(_new_seq)
             full_seq_len = len(_new_seq) + len(str(_rec.seq))
-            _feature = _shift_feature(_feature, _shift, full_seq_len)
+            _shift_feature(_feature, _shift, full_seq_len)
 
         location = FeatureLocation(len(_new_seq), len(_new_seq) + len(str(_rec.seq)))
         feature = SeqFeature(location=location, id=_rec.id, type=_rec.id[:15])
@@ -705,8 +709,26 @@ def delete_metadata(_seqbuddy):
 
 
 # Apply DNA features to protein sequences
-# ToDo: deal with compound features
 def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
+    def _feature_map(_feature):
+        if type(_feature.location) == CompoundLocation:
+            new_compound_location = []
+            for sub_feature in _feature.location.parts:
+                sub_feature = _feature_map(SeqFeature(sub_feature))
+                new_compound_location.append(sub_feature.location)
+            _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+
+        elif type(_feature.location) == FeatureLocation:
+            _start = _feature.location.start / 3
+            _end = _feature.location.end / 3
+            location = FeatureLocation(ceil(_start), ceil(_end))
+            _feature.location = location
+
+        else:
+            raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
+                            "not %s" % type(_feature.location))
+        return _feature
+
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
@@ -716,13 +738,8 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
             continue
 
         _new_seqs[_seq_id] = prot_dict[_seq_id]
-
         for feature in dna_dict[_seq_id].features:
-            _start = feature.location.start / 3
-            _end = feature.location.end / 3
-            location = FeatureLocation(ceil(_start), ceil(_end))
-            feature.location = location
-            prot_dict[_seq_id].features.append(feature)
+            prot_dict[_seq_id].features.append(_feature_map(feature))
 
     for _seq_id in prot_dict:
         if _seq_id not in dna_dict:
@@ -735,8 +752,26 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
 
 
 # Apply DNA features to protein sequences
-# ToDo: deal with compound features
 def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
+    def _feature_map(_feature):
+        if type(_feature.location) == CompoundLocation:
+            new_compound_location = []
+            for sub_feature in _feature.location.parts:
+                sub_feature = _feature_map(SeqFeature(sub_feature))
+                new_compound_location.append(sub_feature.location)
+            _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+
+        elif type(_feature.location) == FeatureLocation:
+            _start = feature.location.start * 3
+            _end = feature.location.end * 3
+            location = FeatureLocation(_start, _end)
+            _feature.location = location
+
+        else:
+            raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
+                            "not %s" % type(_feature.location))
+        return _feature
+
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
@@ -746,13 +781,8 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
             continue
 
         _new_seqs[_seq_id] = dna_dict[_seq_id]
-
         for feature in prot_dict[_seq_id].features:
-            _start = feature.location.start * 3
-            _end = feature.location.end * 3
-            location = FeatureLocation(_start, _end)
-            feature.location = location
-            dna_dict[_seq_id].features.append(feature)
+            dna_dict[_seq_id].features.append(_feature_map(feature))
 
     for _seq_id in dna_dict:
         if _seq_id not in prot_dict:
@@ -1436,7 +1466,8 @@ if __name__ == '__main__':
         seqbuddy.out_format = in_args.screw_formats
         if in_args.in_place:  # Need to change the file extension
             os.remove(in_args.sequence[0])
-            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + "." + seqbuddy.out_format
+            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
+                                  "." + seqbuddy.out_format
             open(in_args.sequence[0], "w").close()
 
         _print_recs(seqbuddy)
