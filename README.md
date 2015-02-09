@@ -48,22 +48,22 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 ### Functions
 *Function* | *Flag* | *Parameters* | *Description*
 ---------- | -------- | ---------- | ----------
-[clean_seq](https://github.com/biologyguy/BuddySuite/wiki/clean_seq) | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
-[uppercase](https://github.com/biologyguy/BuddySuite/wiki/uppercase) | -uc | None | Convert all sequences to uppercase
-[lowercase](https://github.com/biologyguy/BuddySuite/wiki/lowercase) | -lc | None | Convert all sequences to lowercase
-[delete_metadata](https://github.com/biologyguy/BuddySuite/wiki/delete_metadata) | -dm | None | Remove meta-data from file (only id is retained)
-[raw_seq](https://github.com/biologyguy/BuddySuite/wiki/raw_seq) | -rs | None | Return line break separated sequences
-[translate](https://github.com/biologyguy/BuddySuite/wiki/translate) | -tr | None | Convert coding sequences into amino acid sequences
+[clean_seq](https://github.com/biologyguy/BuddySuite/wiki/Clean-sequence) | -cs | None | Strip out non-sequence characters, such as stops (*) and gaps (-)
+[uppercase](https://github.com/biologyguy/BuddySuite/wiki/Uppercase) | -uc | None | Convert all sequences to uppercase
+[lowercase](https://github.com/biologyguy/BuddySuite/wiki/Lowercase) | -lc | None | Convert all sequences to lowercase
+[delete_metadata](https://github.com/biologyguy/BuddySuite/wiki/Delete-metadata) | -dm | None | Remove meta-data from file (only id is retained)
+[raw_seq](https://github.com/biologyguy/BuddySuite/wiki/Raw-sequence) | -rs | None | Return line break separated sequences
+[translate](https://github.com/biologyguy/BuddySuite/wiki/Translate) | -tr | None | Convert coding sequences into amino acid sequences
 shift_frame | -sfr | \<frame (1, 2, or 3)\> | Change the reading from of sequences by deleting characters off of the front
 translate6frames | -tr6 | None | Translate nucleotide sequences into all six reading frames
-back_translate | -btr | None | Convert amino acid sequences into codons. Select mode with -p flag ['random', <others>]
-[transcribe](https://github.com/biologyguy/BuddySuite/wiki/transcribe) | -d2r | None | Convert DNA sequences to RNA
-[back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/back_transcribe) | -r2d | None | Convert RNA sequences to DNA
-[complement](https://github.com/biologyguy/BuddySuite/wiki/complement) | -cmp | None | Return complement of nucleotide sequence
-[reverse_complement](https://github.com/biologyguy/BuddySuite/wiki/reverse_complement) | -rc | None | Return reverse complement of nucleotide sequence
-[list_ids](https://github.com/biologyguy/BuddySuite/wiki/list_ids) | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
-[num_seqs](https://github.com/biologyguy/BuddySuite/wiki/num_seqs) | -ns | None | Counts how many sequences are present in an input file
-[ave_seq_length](https://github.com/biologyguy/BuddySuite/wiki/ave_seq_length) | -asl | None | Find the average length of all sequences in an input file
+back_translate | -btr | None | Convert amino acid sequences into codons. Select mode/species with -p flag \['random', 'optimized'\] \['human', 'mouse', 'yeast', 'ecoli'\]
+[transcribe](https://github.com/biologyguy/BuddySuite/wiki/Transcribe) | -d2r | None | Convert DNA sequences to RNA
+[back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/Back-transcribe) | -r2d | None | Convert RNA sequences to DNA
+[complement](https://github.com/biologyguy/BuddySuite/wiki/Complement) | -cmp | None | Return complement of nucleotide sequence
+[reverse_complement](https://github.com/biologyguy/BuddySuite/wiki/Reverse-complement) | -rc | None | Return reverse complement of nucleotide sequence
+[list_ids](https://github.com/biologyguy/BuddySuite/wiki/List-IDs) | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
+[num_seqs](https://github.com/biologyguy/BuddySuite/wiki/Number-of-sequences) | -ns | None | Counts how many sequences are present in an input file
+[ave_seq_length](https://github.com/biologyguy/BuddySuite/wiki/Average-sequence-length) | -asl | None | Find the average length of all sequences in an input file
 concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
 map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
 map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
