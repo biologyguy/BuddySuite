@@ -430,13 +430,13 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
     return _output
 
 
-def shift_frame(_seqbuddy, frame):
+def select_frame(_seqbuddy, frame):  # ToDo: record the deleted residues so the earlier frame can be returned to.
+    if _seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Select frame requires nucleic acid, not protein.")
     for _rec in _seqbuddy.records:
-        _rec.seq = Seq(str(_rec.seq)[frame - 1:], alphabet=_rec.seq.alphabet)
         for _feature in _rec.features:
-            _start = _feature.location.start - 1 if _feature.location.start > 0 else 0
-            _end = _feature.location.end - 1 if _feature.location.end > 0 else 0
-            _feature.location = FeatureLocation(_start, _end)
+            _shift_feature(_feature, (frame - 1) * -1, len(_rec.seq))
+        _rec.seq = Seq(str(_rec.seq)[frame - 1:], alphabet=_rec.seq.alphabet)
     return _seqbuddy
 
 
@@ -446,10 +446,10 @@ def translate6frames(_seqbuddy):
 
     rframe1, rframe2, rframe3 = deepcopy(_seqbuddy), deepcopy(_seqbuddy), deepcopy(_seqbuddy)
 
-    frame2 = shift_frame(frame2, 2)
-    frame3 = shift_frame(frame3, 3)
-    rframe2 = shift_frame(rframe2, 2)
-    rframe3 = shift_frame(rframe3, 3)
+    frame2 = select_frame(frame2, 2)
+    frame3 = select_frame(frame3, 3)
+    rframe2 = select_frame(rframe2, 2)
+    rframe3 = select_frame(rframe3, 3)
 
     frame1 = translate_cds(frame1, quiet=True)
     frame2 = translate_cds(frame2, quiet=True)
@@ -1169,7 +1169,7 @@ if __name__ == '__main__':
                         help="Return line break separated sequences")
     parser.add_argument('-tr', '--translate', action='store_true',
                         help="Convert coding sequences into amino acid sequences")
-    parser.add_argument('-sfr', '--shift_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
+    parser.add_argument('-sfr', '--select_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
                         help="Change the reading from of sequences by deleting characters off of the front")
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
@@ -1541,9 +1541,9 @@ if __name__ == '__main__':
             _print_recs(translate_cds(seqbuddy))
 
     # Shift reading frame
-    if in_args.shift_frame:
+    if in_args.select_frame:
         in_place_allowed = True
-        _print_recs(shift_frame(seqbuddy, in_args.shift_frame))
+        _print_recs(select_frame(seqbuddy, in_args.select_frame))
 
     # Translate 6 reading frames
     if in_args.translate6frames:
