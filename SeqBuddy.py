@@ -1065,9 +1065,14 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
                 for _rep_seq_id in _rep_seqs[_seq]:
                     _rep_seq_ids[-1].append(_rep_seq_id)
 
+            repeat_regex = ""
+
             for _rep_seqs in _rep_seq_ids:
                 for _rep_seq in _rep_seqs[1:]:
-                    delete_records(_seqbuddy, _rep_seq)
+                    repeat_regex += "%s|" % _rep_seq
+
+            repeat_regex = repeat_regex[:-1]
+            delete_records(_seqbuddy, repeat_regex)
 
     return _seqbuddy
 
@@ -1606,13 +1611,13 @@ if __name__ == '__main__':
             output = "%s\n\n" % output.strip(", ")
         else:
             output += "No records with duplicate sequences\n\n"
-        if len(unique) > 0:
-            output += "Unique records:\n"
-            for next_id in unique:
-                output += "%s, " % next_id
-            output = "%s" % output.strip(", ")
-        else:
-            output += "No unique records"
+        #if len(unique) > 0:
+        #    output += "Unique records:\n"
+        #    for next_id in unique:
+        #        output += "%s, " % next_id
+        #    output = "%s" % output.strip(", ")
+        #else:
+        #    output += "No unique records"
         sys.stdout.write("%s\n" % output)
 
     # Pull sequence ends
