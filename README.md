@@ -55,7 +55,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [raw_seq](https://github.com/biologyguy/BuddySuite/wiki/Raw-sequence) | -rs | None | Return line break separated sequences
 [translate](https://github.com/biologyguy/BuddySuite/wiki/Translate) | -tr | None | Convert coding sequences into amino acid sequences
 [select_frame](https://github.com/biologyguy/BuddySuite/wiki/Select-frame) | -sfr | \<frame (1, 2, or 3)\> | Change the reading from of sequences by deleting characters off of the front
-translate6frames | -tr6 | None | Translate nucleotide sequences into all six reading frames
+[translate6frames](https://github.com/biologyguy/BuddySuite/wiki/Translate-6-frames) | -tr6 | None | Translate nucleotide sequences into all six reading frames
 back_translate | -btr | None | Convert amino acid sequences into codons. Select mode/species with -p flag \['random', 'optimized'\] \['human', 'mouse', 'yeast', 'ecoli'\]
 [transcribe](https://github.com/biologyguy/BuddySuite/wiki/Transcribe) | -d2r | None | Convert DNA sequences to RNA
 [back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/Back-transcribe) | -r2d | None | Convert RNA sequences to DNA
