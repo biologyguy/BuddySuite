@@ -36,7 +36,7 @@ import re
 import string
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
-from math import ceil
+from math import ceil, floor
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
@@ -721,7 +721,7 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
         elif type(_feature.location) == FeatureLocation:
             _start = _feature.location.start / 3
             _end = _feature.location.end / 3
-            location = FeatureLocation(ceil(_start), ceil(_end))
+            location = FeatureLocation(floor(_start), floor(_end))
             _feature.location = location
 
         else:
