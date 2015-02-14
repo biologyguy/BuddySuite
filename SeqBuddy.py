@@ -676,9 +676,8 @@ def concat_seqs(_seqbuddy, _clean=False):
         concat_ids.append(_rec.id)
         _new_seq += str(_rec.seq)
 
-    concat_ids = "|".join(concat_ids)
     _new_seq = [SeqRecord(Seq(_new_seq, alphabet=_seqbuddy.alpha),
-                          description=concat_ids, id="concatination", features=features)]
+                          description="", id="concatination", features=features)]
     _seqbuddy = SeqBuddy(_new_seq)
     _seqbuddy.out_format = "gb"
     return _seqbuddy
