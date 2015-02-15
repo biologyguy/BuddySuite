@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 41 tools and counting
+# 42 tools and counting
 
 """
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -320,6 +320,14 @@ def shuffle(_seqbuddy):
     for _ in range(len(_seqbuddy.records)):
         random_index = randint(1, len(_seqbuddy.records)) - 1
         _output.append(_seqbuddy.records.pop(random_index))
+    _seqbuddy.records = _output
+    return _seqbuddy
+
+
+def order_ids(_seqbuddy, _reverse=False):
+    _output = [(_rec.id, _rec) for _rec in _seqbuddy.records]
+    _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
+    _output = [_rec[1] for _rec in _output]
     _seqbuddy.records = _output
     return _seqbuddy
 
@@ -1208,14 +1216,16 @@ if __name__ == '__main__':
                         help="Replace some pattern in ids with something else.")
     parser.add_argument('-cf', '--combine_features', action='store_true',
                         help="Takes the features in two files and combines them for each sequence")
+    parser.add_argument('-sh', '--shuffle', action='store_true',
+                        help="Randomly reorder the position of records in the file.")
+    parser.add_argument('-oi', '--order_ids', action='store_true',
+                        help="Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order")
     parser.add_argument('-ofp', '--order_features_by_position', action='store_true',
                         help="Change the output order of sequence features, based on sequence position")
     parser.add_argument('-ofa', '--order_features_alphabetically', action='store_true',
                         help="Change the output order of sequence features, based on sequence position")
     parser.add_argument('-sf', '--screw_formats', action='store', metavar="<out_format>",
                         help="Change the file format to something else.")
-    parser.add_argument('-sh', '--shuffle', action='store_true',
-                        help="Randomly reorder the position of records in the file.")
     parser.add_argument('-hsi', '--hash_seq_ids', action='store_true',
                         help="Rename all the identifiers in a sequence list to a 10 character hash.")
     parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
@@ -1357,6 +1367,12 @@ if __name__ == '__main__':
     if in_args.shuffle:
         in_place_allowed = True
         _print_recs(shuffle(seqbuddy))
+
+    # Order ids
+    if in_args.order_ids:
+        in_place_allowed = True
+        reverse = True if in_args.params[0] == "rev" else False
+        _print_recs(order_ids(seqbuddy, _reverse=reverse))
 
     # Delete repeats
     if in_args.delete_repeats:
