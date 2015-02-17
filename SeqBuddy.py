@@ -36,7 +36,7 @@ import re
 import string
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
-from math import ceil, floor
+from math import floor
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
@@ -1078,6 +1078,7 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
 
             for _rep_seqs in _rep_seq_ids:
                 for _rep_seq in _rep_seqs[1:]:
+                    _rep_seq = re.sub("([|.*?^\[\]()])", r"\\\1", _rep_seq)
                     repeat_regex += "%s|" % _rep_seq
 
             repeat_regex = repeat_regex[:-1]
@@ -1363,7 +1364,9 @@ if __name__ == '__main__':
         except FileNotFoundError as e:
             raise FileNotFoundError("%s binary not found, explicitly set with the -p flag.\nTo pass in the path to "
                                     "both blast(p/n) and blastdbcmd, separate them with a space." % e)
-        _print_recs(blast_res)
+
+        if blast_res:
+            _print_recs(blast_res)
 
     # Shuffle
     if in_args.shuffle:
