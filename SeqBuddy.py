@@ -651,7 +651,9 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
                     break
             _rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
 
-    return map_features_prot2dna(originals, _seqbuddy)
+    mapped_features = map_features_prot2dna(originals, _seqbuddy)
+    mapped_features.out_format = _seqbuddy.out_format
+    return mapped_features
 
 
 def ave_seq_length(_seqbuddy, _clean=False):
@@ -1580,8 +1582,17 @@ if __name__ == '__main__':
     # Back translate CDS
     if in_args.back_translate:
         in_place_allowed = True
-        mode = in_args.params[0] if in_args.params else 'random'
-        species = in_args.params[1] if in_args.params and len(in_args.params) > 1 else None
+        if in_args.params:
+            in_args.params = [i.upper() for i in in_args.params]
+            mode = [i for i in in_args.params if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
+            mode = "RANDOM" if len(mode) == 0 else mode[0]
+            species = [i for i in in_args.params if i in ['HUMAN', 'H', "MOUSE", "M",
+                                                          "YEAST", "Y", "ECOLI", "E"]]
+            species = None if len(species) == 0 else species[0]
+        else:
+            mode = "RANDOM"
+            species = None
+
         _print_recs(back_translate(seqbuddy, mode, species))
 
     # Concatenate sequences
