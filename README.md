@@ -56,7 +56,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [translate](https://github.com/biologyguy/BuddySuite/wiki/Translate) | -tr | None | Convert coding sequences into amino acid sequences
 [select_frame](https://github.com/biologyguy/BuddySuite/wiki/Select-frame) | -sfr | \<frame (1, 2, or 3)\> | Change the reading from of sequences by deleting characters off of the front
 [translate6frames](https://github.com/biologyguy/BuddySuite/wiki/Translate-6-frames) | -tr6 | None | Translate nucleotide sequences into all six reading frames
-back_translate | -btr | None | Convert amino acid sequences into codons. Select mode/species with -p flag \['random', 'optimized'\] \['human', 'mouse', 'yeast', 'ecoli'\]
+[back_translate](https://github.com/biologyguy/BuddySuite/wiki/Back-translate) | -btr | None | Convert amino acid sequences into codons. Select mode/species with -p flag \['random', 'optimized'\] \['human', 'mouse', 'yeast', 'ecoli'\]
 [transcribe](https://github.com/biologyguy/BuddySuite/wiki/Transcribe) | -d2r | None | Convert DNA sequences to RNA
 [back_transcribe](https://github.com/biologyguy/BuddySuite/wiki/Back-transcribe) | -r2d | None | Convert RNA sequences to DNA
 [complement](https://github.com/biologyguy/BuddySuite/wiki/Complement) | -cmp | None | Return complement of nucleotide sequence
@@ -64,7 +64,7 @@ back_translate | -btr | None | Convert amino acid sequences into codons. Select 
 [list_ids](https://github.com/biologyguy/BuddySuite/wiki/List-IDs) | -li | None | Output all the sequence identifiers in a file. Use -p to specify # columns to write
 [num_seqs](https://github.com/biologyguy/BuddySuite/wiki/Number-of-sequences) | -ns | None | Counts how many sequences are present in an input file
 [ave_seq_length](https://github.com/biologyguy/BuddySuite/wiki/Average-sequence-length) | -asl | None | Find the average length of all sequences in an input file
-concat_seqs | -cts | None | Concatenate a bunch of sequences into a single solid string
+[concat_seqs](https://github.com/biologyguy/BuddySuite/wiki/Concatinate-sequences) | -cts | None | Concatenate a bunch of sequences into a single solid string
 map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
 map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
 rename_ids | -ri | \<regex pattern\> \<subst string\> | Replace some pattern in ids with something else.
@@ -72,7 +72,8 @@ combine_features | -cf | None | Takes the features in two files and combines the
 order_features_by_position | -ofp | None | Change the output order of sequence features, based on sequence position
 order_features_alphabetically | -ofa | None | Change the output order of sequence features, based on sequence position
 screw_formats | -sf | \<new format\> | Change the file format to something else
-shuffle | -sh | None | Randomly reorder the position of records in the file
+[shuffle](https://github.com/biologyguy/BuddySuite/wiki/Shuffle-sequences) | -sh | None | Randomly reorder the position of records in the file
+[order_ids](https://github.com/biologyguy/BuddySuite/wiki/Order-IDs) | -oi | None | Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order.
 hash_seq_ids | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
 pull_records | -pr | \<regex pattern\> | Get all the records with ids containing a given string
 pull_record_ends | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
