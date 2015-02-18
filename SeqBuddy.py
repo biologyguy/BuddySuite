@@ -63,28 +63,34 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
 # ################################################# HELPER FUNCTIONS ################################################# #
-def _shift_feature(_feature, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
-    if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
-        new_compound_location = []
-        for sub_feature in _feature.location.parts:
-            sub_feature = _shift_feature(SeqFeature(sub_feature), _shift, full_seq_len)
-            new_compound_location.append(sub_feature.location)
-        _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
+    shifted_features = []
+    for _feature in _features:
+        if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
+            sub_features = []
+            for sub_feature in _feature.location.parts:
+                sub_features.append(SeqFeature(sub_feature))
 
-    elif type(_feature.location) == FeatureLocation:
-        _start = _feature.location.start + _shift
-        _start = _start if _start >= 0 else 0
-        _start = _start if _start <= full_seq_len else full_seq_len
-        _end = _feature.location.end + _shift
-        _end = _end if _end >= 0 else 0
-        _end = _end if _end <= full_seq_len else full_seq_len
-        _feature.location = FeatureLocation(_start, _end, _feature.strand)
+            new_compound_location = _shift_features(sub_features, _shift, full_seq_len)
+            _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
 
-    else:
-        raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
-                        "not %s" % type(_feature.location))
+        elif type(_feature.location) == FeatureLocation:
+            _start = _feature.location.start + _shift
+            _end = _feature.location.end + _shift
+            if _start > full_seq_len or _end < 0:
+                continue
 
-    return _feature
+            _start = _start if _start >= 0 else 0
+            _end = _end if _end <= full_seq_len else full_seq_len
+
+            _feature.location = FeatureLocation(_start, _end, _feature.strand)
+
+        else:
+            raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
+                            "not %s" % type(_feature.location))
+        shifted_features.append(_feature)
+
+    return shifted_features
 
 
 def _feature_rc(_feature, seq_len):  # BioPython does not properly handle reverse complement of features, so implement..
@@ -98,7 +104,7 @@ def _feature_rc(_feature, seq_len):  # BioPython does not properly handle revers
     elif type(_feature.location) == FeatureLocation:
         _end = seq_len - _feature.location.end
         _shift = _end - _feature.location.start
-        _feature = _shift_feature(_feature, _shift, seq_len)
+        _feature = _shift_features([_feature], _shift, seq_len)[0]
         _feature.strand *= -1
     else:
         raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
@@ -442,8 +448,7 @@ def select_frame(_seqbuddy, frame):  # ToDo: record the deleted residues so the 
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Select frame requires nucleic acid, not protein.")
     for _rec in _seqbuddy.records:
-        for _feature in _rec.features:
-            _shift_feature(_feature, (frame - 1) * -1, len(_rec.seq))
+        _rec.features = _shift_features(_rec.features, (frame - 1) * -1, len(_rec.seq))
         _rec.seq = Seq(str(_rec.seq)[frame - 1:], alphabet=_rec.seq.alphabet)
     return _seqbuddy
 
@@ -674,10 +679,9 @@ def concat_seqs(_seqbuddy, _clean=False):
     concat_ids = []
     features = []
     for _rec in _seqbuddy.records:
-        for _feature in _rec.features:
-            _shift = len(_new_seq)
-            full_seq_len = len(_new_seq) + len(str(_rec.seq))
-            _shift_feature(_feature, _shift, full_seq_len)
+        _shift = len(_new_seq)
+        full_seq_len = len(_new_seq) + len(str(_rec.seq))
+        _rec.features = _shift_features(_rec.features, _shift, full_seq_len)
 
         location = FeatureLocation(len(_new_seq), len(_new_seq) + len(str(_rec.seq)))
         feature = SeqFeature(location=location, id=_rec.id, type=_rec.id[:15])
@@ -924,7 +928,11 @@ def pull_seq_ends(_seqbuddy, _amount, _which_end):
 
         else:
             raise AttributeError("You much pick 'front' or 'rear' as the third argument in pull_seq_ends.")
+
+        _rec.features = _shift_features(_rec.features, 0, len(_rec.seq))
+
         seq_ends.append(_rec)
+
     _seqbuddy.records = seq_ends
     return _seqbuddy
 
