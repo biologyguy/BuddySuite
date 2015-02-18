@@ -757,9 +757,11 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
+    stderr_written = False
     for _seq_id in dna_dict:
         if _seq_id not in prot_dict:
-            sys.stderr.write("Warning: %s is in protein file, but not cDNA file\n" % _seq_id)
+            stderr_written = True
+            sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
             continue
 
         _new_seqs[_seq_id] = prot_dict[_seq_id]
@@ -768,7 +770,11 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
 
     for _seq_id in prot_dict:
         if _seq_id not in dna_dict:
-            sys.stderr.write("Warning: %s is in cDNA file, but not protein file\n" % _seq_id)
+            stderr_written = True
+            sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
+
+    if stderr_written:
+        sys.stderr.write("\n")
 
     _seqs_list = [_new_seqs[_seq_id] for _seq_id in _new_seqs]
     _seqbuddy = SeqBuddy(_seqs_list)
@@ -800,9 +806,11 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
+    stderr_written = False
     for _seq_id in prot_dict:
         if _seq_id not in dna_dict:
-            sys.stderr.write("Warning: %s is in protein file, but not cDNA file\n" % _seq_id)
+            stderr_written = True
+            sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
             continue
 
         _new_seqs[_seq_id] = dna_dict[_seq_id]
@@ -811,7 +819,11 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
 
     for _seq_id in dna_dict:
         if _seq_id not in prot_dict:
-            sys.stderr.write("Warning: %s is in cDNA file, but not protein file\n" % _seq_id)
+            stderr_written = True
+            sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
+
+    if stderr_written:
+        sys.stderr.write("\n")
 
     _seqs_list = [_new_seqs[_seq_id] for _seq_id in _new_seqs]
     _seqbuddy = SeqBuddy(_seqs_list)
