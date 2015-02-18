@@ -64,14 +64,22 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Unit Tests
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
+    if type(_features) != list:  # Duck type for single feature input
+        _features = [_features]
+
     shifted_features = []
     for _feature in _features:
-        if type(_feature.location) == CompoundLocation:  # Recursively call _shift_feature for compound locations
-            sub_features = []
+        if type(_feature.location) == CompoundLocation:  # Recursively call _shift_features() for compound locations
+            new_compound_location = []
             for sub_feature in _feature.location.parts:
-                sub_features.append(SeqFeature(sub_feature))
+                sub_feature = _shift_features(SeqFeature(sub_feature), _shift, full_seq_len)
+                if not sub_feature:
+                    continue
+                new_compound_location.append(sub_feature.location)
 
-            new_compound_location = _shift_features(sub_features, _shift, full_seq_len)
+            if not new_compound_location:
+                continue
+
             _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
 
         elif type(_feature.location) == FeatureLocation:
@@ -90,6 +98,9 @@ def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how fa
                             "not %s" % type(_feature.location))
         shifted_features.append(_feature)
 
+    if len(shifted_features) == 1:
+        shifted_features = shifted_features[0]
+
     return shifted_features
 
 
@@ -104,7 +115,7 @@ def _feature_rc(_feature, seq_len):  # BioPython does not properly handle revers
     elif type(_feature.location) == FeatureLocation:
         _end = seq_len - _feature.location.end
         _shift = _end - _feature.location.start
-        _feature = _shift_features([_feature], _shift, seq_len)[0]
+        _feature = _shift_features(_feature, _shift, seq_len)
         _feature.strand *= -1
     else:
         raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
