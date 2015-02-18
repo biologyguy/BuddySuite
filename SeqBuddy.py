@@ -58,10 +58,11 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Check on memory requirements before execution
-# - Implement daisy chaining
 # - Execution timer, for long running jobs
+# - Implement daisy chaining
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
+# - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_features) != list:  # Duck type for single feature input
@@ -1288,7 +1289,7 @@ if __name__ == '__main__':
     
     in_args = parser.parse_args()
 
-    in_place_allowed = False
+    in_place_allowed = True  # This might be deprecated, because no tools that call _print_recs() are False
 
     seqbuddy = []
     seq_set = ""
@@ -1357,7 +1358,6 @@ if __name__ == '__main__':
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Purge
     if in_args.purge:
-        in_place_allowed = True
         purged_seqs, deleted = purge(seqbuddy, in_args.purge)
 
         stderr_output = "# Deleted record mapping #\n"
@@ -1389,18 +1389,15 @@ if __name__ == '__main__':
 
     # Shuffle
     if in_args.shuffle:
-        in_place_allowed = True
         _print_recs(shuffle(seqbuddy))
 
     # Order ids
     if in_args.order_ids:
-        in_place_allowed = True
         reverse = True if in_args.params[0] == "rev" else False
         _print_recs(order_ids(seqbuddy, _reverse=reverse))
 
     # Delete repeats
     if in_args.delete_repeats:
-        in_place_allowed = True
         if in_args.params:
             columns = int(in_args.params[0])
         else:
@@ -1447,7 +1444,6 @@ if __name__ == '__main__':
 
     # Delete records
     if in_args.delete_records:
-        in_place_allowed = True
         if in_args.params:
             columns = int(in_args.params[0])
         else:
@@ -1480,17 +1476,14 @@ if __name__ == '__main__':
 
     # Delete sequences above threshold
     if in_args.delete_large:
-        in_place_allowed = True
         _print_recs(delete_large(seqbuddy, in_args.delete_large))
 
     # Delete sequences below threshold
     if in_args.delete_small:
-        in_place_allowed = True
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
 
     # Delete features
     if in_args.delete_features:
-        in_place_allowed = True
         for next_pattern in in_args.delete_features:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
@@ -1506,7 +1499,6 @@ if __name__ == '__main__':
 
     # Screw formats
     if in_args.screw_formats:
-        in_place_allowed = True
         seqbuddy.out_format = in_args.screw_formats
         if in_args.in_place:  # Need to change the file extension
             os.remove(in_args.sequence[0])
@@ -1518,23 +1510,19 @@ if __name__ == '__main__':
 
     # Renaming
     if in_args.rename_ids:
-        in_place_allowed = True
         seqbuddy = rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1])
         _print_recs(seqbuddy)
 
     # Uppercase
     if in_args.uppercase:
-        in_place_allowed = True
         _print_recs(uppercase(seqbuddy))
 
     # Lowercase
     if in_args.lowercase:
-        in_place_allowed = True
         _print_recs(lowercase(seqbuddy))
 
     # Transcribe
     if in_args.transcribe:
-        in_place_allowed = True
         if seqbuddy.alpha != IUPAC.ambiguous_dna:
             raise AttributeError("You need to provide a DNA sequence.")
         seqbuddy = dna2rna(seqbuddy)
@@ -1542,7 +1530,6 @@ if __name__ == '__main__':
 
     # Back Transcribe
     if in_args.back_transcribe:
-        in_place_allowed = True
         if seqbuddy.alpha != IUPAC.ambiguous_rna:
             raise AttributeError("You need to provide an RNA sequence.")
         seqbuddy = rna2dna(seqbuddy)
@@ -1550,12 +1537,10 @@ if __name__ == '__main__':
 
     # Complement
     if in_args.complement:
-        in_place_allowed = True
         _print_recs(complement(seqbuddy))
 
     # Reverse complement
     if in_args.reverse_complement:
-        in_place_allowed = True
         _print_recs(reverse_complement(seqbuddy))
 
     # List identifiers
@@ -1575,7 +1560,6 @@ if __name__ == '__main__':
 
     # Translate CDS
     if in_args.translate:
-        in_place_allowed = True
         if seqbuddy.alpha == IUPAC.protein:
             raise AttributeError("You need to supply DNA or RNA sequences to translate")
 
@@ -1586,12 +1570,10 @@ if __name__ == '__main__':
 
     # Shift reading frame
     if in_args.select_frame:
-        in_place_allowed = True
         _print_recs(select_frame(seqbuddy, in_args.select_frame))
 
     # Translate 6 reading frames
     if in_args.translate6frames:
-        in_place_allowed = True
         if seqbuddy.alpha == IUPAC.protein:
             raise AttributeError("You need to supply DNA or RNA sequences to translate")
 
@@ -1603,7 +1585,6 @@ if __name__ == '__main__':
 
     # Back translate CDS
     if in_args.back_translate:
-        in_place_allowed = True
         if in_args.params:
             in_args.params = [i.upper() for i in in_args.params]
             mode = [i for i in in_args.params if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
@@ -1689,7 +1670,6 @@ if __name__ == '__main__':
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
-        in_place_allowed = True
         hashed = hash_seqeunce_ids(seqbuddy)
         hash_table = "# Hash table\n"
         for seq in hashed[0]:
@@ -1710,7 +1690,6 @@ if __name__ == '__main__':
 
     # Delete metadata
     if in_args.delete_metadata:
-        in_place_allowed = True
         _print_recs(delete_metadata(seqbuddy))
 
     # Raw Seq
@@ -1723,7 +1702,6 @@ if __name__ == '__main__':
 
     # Clean Seq
     if in_args.clean_seq:
-        in_place_allowed = True
         _print_recs(clean_seq(seqbuddy))
 
     # Guess format
@@ -1733,7 +1711,6 @@ if __name__ == '__main__':
 
     # Map features from cDNA over to protein
     if in_args.map_features_dna2prot:
-        in_place_allowed = True
         file1, file2 = in_args.sequence[:2]
 
         file1 = SeqBuddy(file1)
@@ -1755,7 +1732,6 @@ if __name__ == '__main__':
 
     # Map features from protein over to cDNA
     if in_args.map_features_prot2dna:
-        in_place_allowed = True
         file1, file2 = in_args.sequence[:2]
 
         file1 = SeqBuddy(file1)
@@ -1785,10 +1761,8 @@ if __name__ == '__main__':
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
-        in_place_allowed = True
         _print_recs(order_features_by_position(seqbuddy))
 
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
-        in_place_allowed = True
         _print_recs(order_features_alphabetically(seqbuddy))
