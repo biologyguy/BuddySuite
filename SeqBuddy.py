@@ -63,6 +63,7 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
+# - Flag that will suppress stdout, while still outputting stderr
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_features) != list:  # Duck type for single feature input
@@ -1119,9 +1120,9 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
     return _seqbuddy
 
 
-def rename(_seqbuddy, query, replace=""):  # TODO Allow a replacement pattern increment (like numbers)
+def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
     for _rec in _seqbuddy.records:
-        new_name = re.sub(query, replace, _rec.id)
+        new_name = re.sub(query, replace, _rec.id, _num)
         _rec.id = new_name
         _rec.name = new_name
     return _seqbuddy
@@ -1522,7 +1523,8 @@ if __name__ == '__main__':
 
     # Renaming
     if in_args.rename_ids:
-        seqbuddy = rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1])
+        num = 0 if not in_args.params else int(in_args.params[0])
+        seqbuddy = rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num)
         _print_recs(seqbuddy)
 
     # Uppercase
