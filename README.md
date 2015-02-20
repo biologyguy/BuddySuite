@@ -65,8 +65,8 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [num_seqs](https://github.com/biologyguy/BuddySuite/wiki/Number-of-sequences) | -ns | None | Counts how many sequences are present in an input file
 [ave_seq_length](https://github.com/biologyguy/BuddySuite/wiki/Average-sequence-length) | -asl | None | Find the average length of all sequences in an input file
 [concat_seqs](https://github.com/biologyguy/BuddySuite/wiki/Concatinate-sequences) | -cts | None | Concatenate a bunch of sequences into a single solid string
-map_features_dna2prot | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
-map_features_prot2dna | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
+[map_features_dna2prot](https://github.com/biologyguy/BuddySuite/wiki/Map-features-nucl2prot) | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
+[map_features_prot2dna](https://github.com/biologyguy/BuddySuite/wiki/Map-features-prot2nucl) | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
 rename_ids | -ri | \<regex pattern\> \<subst string\> | Replace some pattern in ids with something else.
 combine_features | -cf | None | Takes the features in two files and combines them for each sequence
 order_features_by_position | -ofp | None | Change the output order of sequence features, based on sequence position
