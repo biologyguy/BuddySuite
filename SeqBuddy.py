@@ -833,7 +833,7 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
 
 
 # Merge feature lists
-def combine_features(_seqbuddy1, _seqbuddy2):
+def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept any number of input files.
     # make sure there are no repeat ids
     _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy1)
     if len(_rep_ids) > 0:
@@ -867,6 +867,7 @@ def combine_features(_seqbuddy1, _seqbuddy2):
                                % (_seq_id, seq_dict2[_seq_id].seq.alphabet, reference_alphabet))
 
     _new_seqs = {}
+    warning_used = False
     for _seq_id in seq_dict1:
         if _seq_id in seq_dict2:
             _seq_feats1 = []  # Test list so features common to both records are not duplicated
@@ -879,16 +880,22 @@ def combine_features(_seqbuddy1, _seqbuddy2):
                 else:
                     seq_dict1[_seq_id].features.append(feature)
         else:
+            warning_used = True
             sys.stderr.write("Warning: %s is only in the first set of sequences\n" % _seq_id)
 
         _new_seqs[_seq_id] = seq_dict1[_seq_id]
 
     for _seq_id in seq_dict2:
         if _seq_id not in seq_dict1:
+            warning_used = True
             sys.stderr.write("Warning: %s is only in the first set of sequences\n" % _seq_id)
             _new_seqs[_seq_id] = seq_dict2[_seq_id]
 
+    if warning_used:
+        sys.stderr.write("\n")
+
     _seqbuddy = SeqBuddy([_new_seqs[_seq_id] for _seq_id in _new_seqs], _out_format=_seqbuddy1.in_format)
+    _seqbuddy = order_features_by_position(_seqbuddy)
     return _seqbuddy
 
 
