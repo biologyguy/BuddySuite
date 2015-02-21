@@ -899,19 +899,19 @@ def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept an
     return _seqbuddy
 
 
-def order_features_by_position(_seqbuddy):
+def order_features_by_position(_seqbuddy, _reverse=False):
     for _rec in _seqbuddy.records:
         new_feature_list = [(int(_feature.location.start), _feature) for _feature in _rec.features]
-        new_feature_list = sorted(new_feature_list, key=lambda x: x[0])
+        new_feature_list = sorted(new_feature_list, key=lambda x: x[0], reverse=_reverse)
         new_feature_list = [_feature[1] for _feature in new_feature_list]
         _rec.features = new_feature_list
     return _seqbuddy
 
 
-def order_features_alphabetically(_seqbuddy):
+def order_features_alphabetically(_seqbuddy, _reverse=False):
     for _rec in _seqbuddy.records:
         new_feature_list = [(_feature.type, _feature) for _feature in _rec.features]
-        new_feature_list = sorted(new_feature_list, key=lambda x: x[0])
+        new_feature_list = sorted(new_feature_list, key=lambda x: x[0], reverse=_reverse)
         new_feature_list = [_feature[1] for _feature in new_feature_list]
         _rec.features = new_feature_list
     return _seqbuddy
@@ -1413,7 +1413,7 @@ if __name__ == '__main__':
 
     # Order ids
     if in_args.order_ids:
-        reverse = True if in_args.params[0] == "rev" else False
+        reverse = True if in_args.params and in_args.params[0] == "rev" else False
         _print_recs(order_ids(seqbuddy, _reverse=reverse))
 
     # Delete repeats
@@ -1782,8 +1782,10 @@ if __name__ == '__main__':
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
-        _print_recs(order_features_by_position(seqbuddy))
+        reverse = True if in_args.params and in_args.params[0] == "rev" else False
+        _print_recs(order_features_by_position(seqbuddy, reverse))
 
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
-        _print_recs(order_features_alphabetically(seqbuddy))
+        reverse = True if in_args.params and in_args.params[0] == "rev" else False
+        _print_recs(order_features_alphabetically(seqbuddy, reverse))
