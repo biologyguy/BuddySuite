@@ -67,11 +67,11 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [concat_seqs](https://github.com/biologyguy/BuddySuite/wiki/Concatinate-sequences) | -cts | None | Concatenate a bunch of sequences into a single solid string
 [map_features_dna2prot](https://github.com/biologyguy/BuddySuite/wiki/Map-features-nucl2prot) | -fd2p | None | Take the features annotated onto cDNA sequences and map to protein sequences. Both a protein and cDNA file must be passed in
 [map_features_prot2dna](https://github.com/biologyguy/BuddySuite/wiki/Map-features-prot2nucl) | -fp2d | None | Take the features annotated onto protein sequences and map to cDNA sequences. Both a protein and cDNA file must be passed in
-rename_ids | -ri | \<regex pattern\> \<subst string\> | Replace some pattern in ids with something else.
-combine_features | -cf | None | Takes the features in two files and combines them for each sequence
-order_features_by_position | -ofp | None | Change the output order of sequence features, based on sequence position
-order_features_alphabetically | -ofa | None | Change the output order of sequence features, based on sequence position
-screw_formats | -sf | \<new format\> | Change the file format to something else
+[rename_ids](https://github.com/biologyguy/BuddySuite/wiki/Rename-IDs) | -ri | \<regex pattern\> \<subst string\> | Replace some pattern in ids with something else.
+[combine_features](https://github.com/biologyguy/BuddySuite/wiki/Combine-features) | -cf | None | Takes the features in two files and combines them for each sequence
+[order_features_by_position](https://github.com/biologyguy/BuddySuite/wiki/Order-features-by-position) | -ofp | None | Change the output order of sequence features, based on sequence position
+[order_features_alphabetically](https://github.com/biologyguy/BuddySuite/wiki/Order-features-alphabetically) | -ofa | None | Change the output order of sequence features, based on sequence position
+[screw_formats](https://github.com/biologyguy/BuddySuite/wiki/Screw-formats) | -sf | \<new format\> | Change the file format to something else
 [shuffle](https://github.com/biologyguy/BuddySuite/wiki/Shuffle-sequences) | -sh | None | Randomly reorder the position of records in the file
 [order_ids](https://github.com/biologyguy/BuddySuite/wiki/Order-IDs) | -oi | None | Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order.
 hash_seq_ids | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
