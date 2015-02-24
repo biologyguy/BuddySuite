@@ -36,7 +36,7 @@ import re
 import string
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
-from math import floor
+from math import floor, ceil, log
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
@@ -917,14 +917,25 @@ def order_features_alphabetically(_seqbuddy, _reverse=False):
     return _seqbuddy
 
 
-def hash_seqeunce_ids(_seqbuddy):
+def hash_seqeunce_ids(_seqbuddy, _hash_length=10):
     hash_list = []
     seq_ids = []
+    if type(_hash_length) != int or _hash_length < 1:
+        sys.stderr.write("Warning: The _hash_length parameter was passed in with the value %s. This is not an integer"
+                         " greater than 0, so the hash length as been set to 10.\n\n" % _hash_length)
+        _hash_length = 10
+
+    if 32 ** _hash_length <= len(_seqbuddy.records) * 2:
+        holder = ceil(log(len(_seqbuddy.records) * 2, 32))
+        sys.stderr.write("Warning: The _hash_length parameter was passed in with the value %s. This is too small to "
+                         "properly cover all sequences, so it has been increased to %s.\n\n" % (_hash_length, holder))
+        _hash_length = holder
+
     for i in range(len(_seqbuddy.records)):
         new_hash = ""
         seq_ids.append(_seqbuddy.records[i].id)
         while True:
-            new_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+            new_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(_hash_length)])
             if new_hash in hash_list:
                 continue
             else:
@@ -1691,7 +1702,8 @@ if __name__ == '__main__':
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
-        hashed = hash_seqeunce_ids(seqbuddy)
+        hash_length = in_args.params[0] if in_args.params else 10
+        hashed = hash_seqeunce_ids(seqbuddy, hash_length)
         hash_table = "# Hash table\n"
         for seq in hashed[0]:
             hash_table += "%s,%s\n" % (seq[0], seq[1])
