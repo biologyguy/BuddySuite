@@ -30,7 +30,15 @@ def root(_trees, position="guess"):
 def screw_formats(_trees, _format):
     x = 1
 
+# Compare two trees, and add colour to the nodes that differ.
 
+# Implement sum_bootstrap(), but generalize to any value.
+
+# Prune taxa
+
+# Regex taxa names
+
+# See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
 # ################################################ INTERNAL FUNCTIONS ################################################ #
 def _print_trees(_trees):  # TODO: Remove the calls to in_args
     if len(_trees.trees) == 0:
