@@ -972,6 +972,9 @@ def pull_recs(_seqbuddy, _search):
 
 
 def pull_record_ends(_seqbuddy, _amount, _which_end):
+    if _amount < 0:
+        raise ValueError("Positive integer required for '_amount' argument in pull_record_ends.")
+
     seq_ends = []
     for _rec in _seqbuddy.records:
         if _which_end == 'front':
@@ -984,9 +987,7 @@ def pull_record_ends(_seqbuddy, _amount, _which_end):
             _rec.seq = _rec.seq[-1 * _amount:]
 
         else:
-            raise AttributeError("You much pick 'front' or 'rear' as the third argument in pull_record_ends.")
-
-
+            raise AttributeError("You much pick 'front' or 'rear' for the '_which_end' argument in pull_record_ends.")
 
         seq_ends.append(_rec)
 
@@ -1004,7 +1005,7 @@ def extract_range(_seqbuddy, _start, _end):
 
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
-        _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start, _end)
+        _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start + 1, _end)
         _features = []
         for _feature in _rec.features:
             if _feature.location.end < _start:
@@ -1504,7 +1505,7 @@ if __name__ == '__main__':
             deleted_seqs += pull_recs(copy(new_list), next_pattern).records
             delete_records(new_list, next_pattern)
 
-        if len(deleted_seqs) > 0:
+        if len(deleted_seqs) > 0 and not in_args.quiet:
                 counter = 1
                 output = "# ####################### Deleted records ######################## #\n"
                 for seq in deleted_seqs:
