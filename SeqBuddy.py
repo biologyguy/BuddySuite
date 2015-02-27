@@ -77,12 +77,16 @@ def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how fa
                 sub_feature = _shift_features(SeqFeature(sub_feature), _shift, full_seq_len)
                 if not sub_feature:
                     continue
-                new_compound_location.append(sub_feature.location)
+                new_compound_location.append(sub_feature[0].location)
 
             if not new_compound_location:
                 continue
 
-            _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
+            elif len(new_compound_location) == 1:
+                _feature.location = new_compound_location[0]
+
+            else:
+                _feature.location = CompoundLocation(new_compound_location, _feature.location.operator)
 
         elif type(_feature.location) == FeatureLocation:
             _start = _feature.location.start + _shift
@@ -99,9 +103,6 @@ def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how fa
             raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
                             "not %s" % type(_feature.location))
         shifted_features.append(_feature)
-
-    if len(shifted_features) == 1:
-        shifted_features = shifted_features[0]
 
     return shifted_features
 
@@ -970,19 +971,22 @@ def pull_recs(_seqbuddy, _search):
     return _seqbuddy
 
 
-def pull_seq_ends(_seqbuddy, _amount, _which_end):
+def pull_record_ends(_seqbuddy, _amount, _which_end):
     seq_ends = []
     for _rec in _seqbuddy.records:
         if _which_end == 'front':
-            _rec.seq = _rec.seq[:_amount]
+            _rec.seq = Seq(str(_rec.seq)[:_amount], alphabet=_rec.seq.alphabet)
+            _rec.features = _shift_features(_rec.features, 0, len(str(_rec.seq)))
 
         elif _which_end == "rear":
+            _shift = -1 * (len(str(_rec.seq)) - _amount)
+            _rec.features = _shift_features(_rec.features, _shift, len(str(_rec.seq)))
             _rec.seq = _rec.seq[-1 * _amount:]
 
         else:
-            raise AttributeError("You much pick 'front' or 'rear' as the third argument in pull_seq_ends.")
+            raise AttributeError("You much pick 'front' or 'rear' as the third argument in pull_record_ends.")
 
-        _rec.features = _shift_features(_rec.features, 0, len(_rec.seq))
+
 
         seq_ends.append(_rec)
 
@@ -1699,7 +1703,7 @@ if __name__ == '__main__':
     if in_args.pull_record_ends:
         amount, which_end = in_args.pull_record_ends
         amount = int(amount)
-        new_seqs = pull_seq_ends(seqbuddy, amount, which_end)
+        new_seqs = pull_record_ends(seqbuddy, amount, which_end)
         _print_recs(new_seqs)
 
     # Extract regions
