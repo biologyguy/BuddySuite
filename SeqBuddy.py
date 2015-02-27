@@ -174,6 +174,16 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
 
         self.records = _sequences
 
+    def to_dict(self):
+        _unique, _rep_ids, _rep_seqs = find_repeats(self)
+        if len(_rep_ids) > 0:
+            raise RuntimeError("There are repeat IDs in self.records\n%s" % _rep_ids)
+
+        records_dict = {}
+        for _rec in self.records:
+            records_dict[_rec.id] = _rec
+        return records_dict
+
 
 def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
     _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
@@ -1172,6 +1182,10 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
 
 
 def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return sequences
+    """
+    Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
+    threshold may need to be increased quite a bit to return short alignments
+    """
     blast_bin = "blastp" if _seqbuddy.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
         raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
@@ -1181,7 +1195,7 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     subject_file = "%s/subject.fa" % tmp_dir.name
     query_file = "%s/query.fa" % tmp_dir.name
     _output = ""
-    for subject in _seqbuddy.records:
+    for subject in _seqbuddy.records:  # ToDo: implement multicore, and query as stdin
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
