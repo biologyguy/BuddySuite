@@ -74,9 +74,9 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [screw_formats](https://github.com/biologyguy/BuddySuite/wiki/Screw-formats) | -sf | \<new format\> | Change the file format to something else
 [shuffle](https://github.com/biologyguy/BuddySuite/wiki/Shuffle-sequences) | -sh | None | Randomly reorder the position of records in the file
 [order_ids](https://github.com/biologyguy/BuddySuite/wiki/Order-IDs) | -oi | None | Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order.
-hash_seq_ids | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
-pull_records | -pr | \<regex pattern\> | Get all the records with ids containing a given string
-pull_record_ends | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
+[hash_seq_ids](https://github.com/biologyguy/BuddySuite/wiki/Hash-sequence-IDs) | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
+[pull_records](https://github.com/biologyguy/BuddySuite/wiki/Pull-records) | -pr | \<regex pattern\> | Get all the records with ids containing a given string
+[pull_record_ends](https://github.com/biologyguy/BuddySuite/wiki/Rename-IDs) | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
 extract_region | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
 delete_records | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
 delete_features | -df | \<regex pattern(s)\> | Remove specified features from all records
