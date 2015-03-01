@@ -80,8 +80,8 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [extract_region](https://github.com/biologyguy/BuddySuite/wiki/Extract-region) | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
 [delete_records](https://github.com/biologyguy/BuddySuite/wiki/Delete-records) | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
 [delete_features](https://github.com/biologyguy/BuddySuite/wiki/Delete-features) | -df | \<regex pattern(s)\> | Remove specified features from all records
-delete_repeats | -drp | None | Strip repeat records (ids and/or identical sequences)
-find_repeats | -fr | None | Identify whether a file contains repeat sequences and/or sequence ids
+[find_repeats](https://github.com/biologyguy/BuddySuite/wiki/Find-repeats) | -frp | None | Identify whether a file contains repeat sequences and/or sequence ids
+[delete_repeats](https://github.com/biologyguy/BuddySuite/wiki/Delete-repeats) | -drp | None | Strip repeat records (ids and/or identical sequences)
 merge | -mg | None | Group a bunch of seq files together
 blast | -bl | \<BLAST database\> | BLAST your sequence file using common blast settings, return the hits from blastdb
 bl2seq | -bl2s | None | All-by-all blast among sequences using bl2seq. Only Returns top hit from each search
