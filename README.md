@@ -77,9 +77,9 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [hash_seq_ids](https://github.com/biologyguy/BuddySuite/wiki/Hash-sequence-IDs) | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
 [pull_records](https://github.com/biologyguy/BuddySuite/wiki/Pull-records) | -pr | \<regex pattern\> | Get all the records with ids containing a given string
 [pull_record_ends](https://github.com/biologyguy/BuddySuite/wiki/Rename-IDs) | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
-extract_region | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
-delete_records | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
-delete_features | -df | \<regex pattern(s)\> | Remove specified features from all records
+[extract_region](https://github.com/biologyguy/BuddySuite/wiki/Extract-region) | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
+[delete_records](https://github.com/biologyguy/BuddySuite/wiki/Delete-records) | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
+[delete_features](https://github.com/biologyguy/BuddySuite/wiki/Delete-features) | -df | \<regex pattern(s)\> | Remove specified features from all records
 delete_repeats | -drp | None | Strip repeat records (ids and/or identical sequences)
 find_repeats | -fr | None | Identify whether a file contains repeat sequences and/or sequence ids
 merge | -mg | None | Group a bunch of seq files together
