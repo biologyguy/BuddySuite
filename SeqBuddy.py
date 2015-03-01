@@ -1126,8 +1126,8 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
         _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy)
         if len(_rep_ids) > 0:
             for _rep_id in _rep_ids:
-                store_one_copy = pull_recs(copy(_seqbuddy), _rep_id).records[0]
-                delete_records(_seqbuddy, _rep_id)
+                store_one_copy = pull_recs(copy(_seqbuddy), "^%s$" % _rep_id).records[0]
+                delete_records(_seqbuddy, "^%s$" % _rep_id)
                 _seqbuddy.records.append(store_one_copy)
 
     # Then remove duplicate sequences
@@ -1145,7 +1145,7 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
             for _rep_seqs in _rep_seq_ids:
                 for _rep_seq in _rep_seqs[1:]:
                     _rep_seq = re.sub("([|.*?^\[\]()])", r"\\\1", _rep_seq)
-                    repeat_regex += "%s|" % _rep_seq
+                    repeat_regex += "^%s$|" % _rep_seq
 
             repeat_regex = repeat_regex[:-1]
             delete_records(_seqbuddy, repeat_regex)
@@ -1446,6 +1446,40 @@ if __name__ == '__main__':
         reverse = True if in_args.params and in_args.params[0] == "rev" else False
         _print_recs(order_ids(seqbuddy, _reverse=reverse))
 
+    # Find repeat sequences or ids
+    if in_args.find_repeats:
+        unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
+        output = ""
+        if len(rep_ids) > 0:
+            output += "Records with duplicate IDs:\n"
+            for next_id in rep_ids:
+                output += "%s, " % next_id
+            output = "%s\n\n" % output.strip(", ")
+
+        else:
+            output += "No records with duplicate IDs\n\n"
+        if len(rep_seqs) > 0:
+            output += "Records with duplicate sequences:\n"
+            for next_id in rep_seqs:
+                if len(rep_seqs[next_id]) > 1:
+                    output += "("
+                    for seq_id in rep_seqs[next_id]:
+                        output += "%s, " % seq_id
+                    output = "%s), " % output.strip(", ")
+                else:
+                    output += "%s, " % next_id
+            output = "%s\n\n" % output.strip(", ")
+        else:
+            output += "No records with duplicate sequences\n\n"
+        #if len(unique) > 0:
+        #    output += "Unique records:\n"
+        #    for next_id in unique:
+        #        output += "%s, " % next_id
+        #    output = "%s" % output.strip(", ")
+        #else:
+        #    output += "No unique records"
+        sys.stdout.write("%s\n" % output)
+
     # Delete repeats
     if in_args.delete_repeats:
         if in_args.params:
@@ -1463,7 +1497,9 @@ if __name__ == '__main__':
                 if counter % columns == 0:
                     stderr_output = "%s\n" % stderr_output.strip()
                 counter += 1
-            stderr_output += "\n\n"
+            stderr_output = "%s\n\n" % stderr_output.strip()
+            seqbuddy = delete_repeats(seqbuddy, 'ids')
+            unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
 
         rep_seq_ids = []
         for seq in rep_seqs:
@@ -1475,19 +1511,21 @@ if __name__ == '__main__':
             stderr_output += "# Records with duplicate sequence deleted (first instance retained)\n"
             counter = 1
             for rep_seqs in rep_seq_ids:
-                for rep_seq in rep_seqs[1:]:
+                stderr_output += "["
+                for rep_seq in rep_seqs:
                     stderr_output += "%s\t" % rep_seq
-                    if counter % columns == 0:
-                        stderr_output = "%s\n" % stderr_output.strip()
-                    counter += 1
-            stderr_output += "\n"
+                stderr_output = "%s]\t" % stderr_output.strip()
+                if counter % columns == 0:
+                    stderr_output = "%s\n" % stderr_output.strip()
+                counter += 1
+            stderr_output = "%s\n" % stderr_output.strip()
 
         if stderr_output != "":
             sys.stderr.write("# ################################################################ #\n")
             sys.stderr.write("%s\n" % stderr_output.strip())
-            sys.stderr.write("# ################################################################ #\n")
+            sys.stderr.write("# ################################################################ #\n\n")
 
-            _print_recs(delete_repeats(seqbuddy))
+            _print_recs(delete_repeats(seqbuddy, 'seqs'))
 
         else:
             sys.stderr.write("No duplicate records found\n")
@@ -1665,40 +1703,6 @@ if __name__ == '__main__':
     if in_args.ave_seq_length:
         clean = False if not in_args.params or in_args.params[0] != "clean" else True
         sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
-
-    # Find repeat sequences or ids
-    if in_args.find_repeats:
-        unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
-        output = ""
-        if len(rep_ids) > 0:
-            output += "Records with duplicate IDs:\n"
-            for next_id in rep_ids:
-                output += "%s, " % next_id
-            output = "%s\n\n" % output.strip(", ")
-
-        else:
-            output += "No records with duplicate IDs\n\n"
-        if len(rep_seqs) > 0:
-            output += "Records with duplicate sequences:\n"
-            for next_id in rep_seqs:
-                if len(rep_seqs[next_id]) > 1:
-                    output += "("
-                    for seq_id in rep_seqs[next_id]:
-                        output += "%s, " % seq_id
-                    output = "%s), " % output.strip(", ")
-                else:
-                    output += "%s, " % next_id
-            output = "%s\n\n" % output.strip(", ")
-        else:
-            output += "No records with duplicate sequences\n\n"
-        #if len(unique) > 0:
-        #    output += "Unique records:\n"
-        #    for next_id in unique:
-        #        output += "%s, " % next_id
-        #    output = "%s" % output.strip(", ")
-        #else:
-        #    output += "No unique records"
-        sys.stdout.write("%s\n" % output)
 
     # Pull sequence ends
     if in_args.pull_record_ends:
