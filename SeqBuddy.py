@@ -118,7 +118,7 @@ def _feature_rc(_feature, seq_len):  # BioPython does not properly handle revers
     elif type(_feature.location) == FeatureLocation:
         _end = seq_len - _feature.location.end
         _shift = _end - _feature.location.start
-        _feature = _shift_features(_feature, _shift, seq_len)
+        _feature = _shift_features(_feature, _shift, seq_len)[0]
         _feature.strand *= -1
     else:
         raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
@@ -1317,7 +1317,7 @@ if __name__ == '__main__':
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
                         help="Strip repeat records (ids and/or identical sequences")
-    parser.add_argument('-fr', '--find_repeats', action='store_true',
+    parser.add_argument('-frp', '--find_repeats', action='store_true',
                         help="Identify whether a file contains repeat sequences and/or sequence ids")
     parser.add_argument("-mg", "--merge", action="store_true",
                         help="Group a bunch of seq files together",)
@@ -1448,36 +1448,45 @@ if __name__ == '__main__':
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
+        if in_args.params:
+            columns = int(in_args.params[0])
+        else:
+            columns = 1
+
         unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
         output = ""
         if len(rep_ids) > 0:
-            output += "Records with duplicate IDs:\n"
+            output += "#### Records with duplicate IDs: ####\n"
+            counter = 1
             for next_id in rep_ids:
-                output += "%s, " % next_id
-            output = "%s\n\n" % output.strip(", ")
+                output += "%s\t" % next_id
+                if counter % columns == 0:
+                    output = "%s\n" % output.strip()
+                counter += 1
+
+            output = "%s\n\n" % output.strip()
 
         else:
-            output += "No records with duplicate IDs\n\n"
+            output += "#### No records with duplicate IDs ####\n\n"
+
         if len(rep_seqs) > 0:
-            output += "Records with duplicate sequences:\n"
+            output += "#### Records with duplicate sequences: ####\n"
+            counter = 1
             for next_id in rep_seqs:
-                if len(rep_seqs[next_id]) > 1:
-                    output += "("
-                    for seq_id in rep_seqs[next_id]:
-                        output += "%s, " % seq_id
-                    output = "%s), " % output.strip(", ")
-                else:
-                    output += "%s, " % next_id
+                output += "["
+                for seq_id in rep_seqs[next_id]:
+                    output += "%s, " % seq_id
+                output = "%s], " % output.strip(", ")
+
+                if counter % columns == 0:
+                    output = "%s\n" % output.strip(", ")
+
+                counter += 1
+
             output = "%s\n\n" % output.strip(", ")
         else:
-            output += "No records with duplicate sequences\n\n"
-        #if len(unique) > 0:
-        #    output += "Unique records:\n"
-        #    for next_id in unique:
-        #        output += "%s, " % next_id
-        #    output = "%s" % output.strip(", ")
-        #else:
-        #    output += "No unique records"
+            output += "#### No records with duplicate sequences ####\n\n"
+
         sys.stdout.write("%s\n" % output)
 
     # Delete repeats
@@ -1513,14 +1522,17 @@ if __name__ == '__main__':
             for rep_seqs in rep_seq_ids:
                 stderr_output += "["
                 for rep_seq in rep_seqs:
-                    stderr_output += "%s\t" % rep_seq
-                stderr_output = "%s]\t" % stderr_output.strip()
+                    stderr_output += "%s, " % rep_seq
+                stderr_output = "%s], " % stderr_output.strip(", ")
                 if counter % columns == 0:
-                    stderr_output = "%s\n" % stderr_output.strip()
+                    stderr_output = "%s\n" % stderr_output.strip(", ")
                 counter += 1
-            stderr_output = "%s\n" % stderr_output.strip()
+            stderr_output = "%s\n" % stderr_output.strip(", ")
 
-        if stderr_output != "":
+        if stderr_output != "" and in_args.quiet:
+            _print_recs(delete_repeats(seqbuddy, 'seqs'))
+
+        elif stderr_output != "":
             sys.stderr.write("# ################################################################ #\n")
             sys.stderr.write("%s\n" % stderr_output.strip())
             sys.stderr.write("# ################################################################ #\n\n")
