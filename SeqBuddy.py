@@ -270,10 +270,20 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     if blast_check:
         blast_check = blast_check.group(0)
 
-    # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
+    extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
+                  "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
 
-    # Check to make sure blast is in path and ensure that the blast_db is present
+    # Try to catch the common variations of the database names that might be given as input
+    if blast_db[-2:] in [".p", ".n"]:
+        blast_db = blast_db[:-2]
+
+    if blast_db[-3:] in extensions[blast_check]:
+        blast_db = blast_db[:-4]
+
     blast_db = os.path.abspath(blast_db)
+
+    # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
+    # Check to make sure blast is in $PATH and ensure that the blast_db is present
     if blast_check == "blastp":
         if not which(blast_path):
             raise FileNotFoundError("blastp binary not found")
@@ -297,18 +307,19 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     if not which(blastdbcmd):
         raise FileNotFoundError("blastdbcmd")
 
-    # Check that blastdb was made with the -parse_seqids flag
-    extensions = ["pog", "psd", "psi"] if blast_check == "blastp" else ["nog", "nsd", "nsi"]
-    if not os.path.isfile("%s.%s" % (blast_db, extensions[0])) or not \
-            os.path.isfile("%s.%s" % (blast_db, extensions[1])) or not \
-            os.path.isfile("%s.%s" % (blast_db, extensions[2])):
-        raise RuntimeError("Incorrect blastdb. When making the blast database, please use the -parse_seqids flag.")
+    # Check that compelte blastdb is present and was made with the -parse_seqids flag
+    for extension in extensions[blast_check]:
+        if not os.path.isfile("%s.%s" % (blast_db, extension)):
+            raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
+                               "used with makeblastdb." % extension)
+
+    _seqbuddy = clean_seq(_seqbuddy)  # in case there are gaps or something in the sequences
 
     tmp_dir = TemporaryDirectory()
     with open("%s/tmp.fa" % tmp_dir.name, "w") as ofile:
         SeqIO.write(_seqbuddy.records, ofile, "fasta")
 
-    Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 20 -evalue 0.01 -outfmt 6" %
+    Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 4 -evalue 0.01 -outfmt 6" %
           (blast_path, blast_db, tmp_dir.name, tmp_dir.name), shell=True).wait()
 
     with open("%s/out.txt" % tmp_dir.name, "r") as ifile:
