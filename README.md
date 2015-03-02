@@ -82,8 +82,8 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [delete_features](https://github.com/biologyguy/BuddySuite/wiki/Delete-features) | -df | \<regex pattern(s)\> | Remove specified features from all records
 [find_repeats](https://github.com/biologyguy/BuddySuite/wiki/Find-repeats) | -frp | None | Identify whether a file contains repeat sequences and/or sequence ids
 [delete_repeats](https://github.com/biologyguy/BuddySuite/wiki/Delete-repeats) | -drp | None | Strip repeat records (ids and/or identical sequences)
-merge | -mg | None | Group a bunch of seq files together
-blast | -bl | \<BLAST database\> | BLAST your sequence file using common blast settings, return the hits from blastdb
+[merge](https://github.com/biologyguy/BuddySuite/wiki/Merge) | -mg | None | Group a bunch of seq files together
+[blast](https://github.com/biologyguy/BuddySuite/wiki/BLAST) | -bl | \<BLAST database\> | BLAST your sequence file using common blast settings, return the hits from blastdb
 bl2seq | -bl2s | None | All-by-all blast among sequences using bl2seq. Only Returns top hit from each search
 purge | -prg | \<Max BLAST score (int)\> | Delete sequences with high similarity
 guess_alphabet | -ga | None | Return the alphabet type found in the input file
