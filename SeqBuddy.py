@@ -30,6 +30,7 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 # Standard library imports
 # from pprint import pprint
 # import pdb
+# import time
 import sys
 import os
 import re
@@ -40,6 +41,8 @@ from math import floor, ceil, log
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
+from multiprocessing import Manager
+import ctypes
 
 # Third party package imports
 from Bio import SeqIO
@@ -48,6 +51,9 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
+
+# My functions
+from MyFuncs import run_multicore_function
 
 
 # ##################################################### WISH LIST #################################################### #
@@ -1197,7 +1203,38 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     return [_seqbuddy, _output["deleted"]]
 
 
-def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return sequences
+def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
+    """
+    Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
+    threshold may need to be increased quite a bit to return short alignments
+    """
+    def mc_blast(_query, args):
+        _values, _subject = args
+
+        if subject.id == _query.id:
+            return
+
+        _blast_res = Popen("echo '%s' | %s -subject %s -outfmt 6" %
+                           (_query.format("fasta"), blast_bin, subject_file), stdout=PIPE, shell=True).communicate()
+        _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
+
+        while True:
+            indx = randint(0, len(_values) - 1)
+            try:
+                if len(_blast_res) == 1:
+                    _values[indx].value += "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
+                else:
+                    # values are: query, subject, %_ident, length, evalue, bit_score
+                    if _blast_res[10] == '0.0':
+                        _blast_res[10] = '1e-180'
+                    _values[indx].value += "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
+                                                                         _blast_res[3], _blast_res[10],
+                                                                         _blast_res[11].strip())
+                break
+            except ConnectionRefusedError:
+                continue
+        return
+
     """
     Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     threshold may need to be increased quite a bit to return short alignments
@@ -1207,29 +1244,27 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
         raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
 
     tmp_dir = TemporaryDirectory()
-    _seqs_copy = _seqbuddy.records[1:]
+    values = []
+    manager = Manager()
+    for _ in range(cores * 2):
+        values.append(manager.Value(ctypes.c_char_p, ''))
+
+    _seqs_copy = _seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.name
-    query_file = "%s/query.fa" % tmp_dir.name
-    _output = ""
-    for subject in _seqbuddy.records:  # ToDo: implement multicore, and query as stdin
+    _output = ''
+
+    for subject in _seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        for query in _seqs_copy:
-            with open(query_file, "w") as ifile:
-                SeqIO.write(query, ifile, "fasta")
+        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)
 
-            _blast_res = Popen("%s -subject %s -query %s -outfmt 6" %
-                               (blast_bin, subject_file, query_file), stdout=PIPE, shell=True).communicate()
-            _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
-            if len(_blast_res) == 1:
-                _output += "%s\t%s\t0\t0\t0\t0\n" % (subject.id, query.id)
-            else:
-                # values are: query, subject, %_ident, length, evalue, bit_score
-                _output += "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
-                                                         _blast_res[3], _blast_res[10], _blast_res[11].strip())
+        for i in range(len(values)):
+            _output += values[i].value
+            values[i].value = ''
 
         _seqs_copy = _seqs_copy[1:]
+
     return _output.strip()
 
 
@@ -1430,8 +1465,9 @@ if __name__ == '__main__':
 
     # BL2SEQ
     if in_args.bl2seq:
-        sys.stderr.write("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
-        sys.stdout.write("%s\n" % bl2seq(seqbuddy))
+        output = bl2seq(seqbuddy)
+        sys.stdout.write("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
+        sys.stdout.write("%s\n" % output)
 
     # BLAST
     if in_args.blast:
