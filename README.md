@@ -87,4 +87,4 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 bl2seq | -bl2s | None | All-by-all blast among sequences using bl2seq. Only Returns top hit from each search
 purge | -prg | \<Max BLAST score (int)\> | Delete sequences with high similarity
 guess_alphabet | -ga | None | Return the alphabet type found in the input file
-guess_format | -gf | None | Guess the flatfile format of the input file
+[guess_format](https://github.com/biologyguy/BuddySuite/wiki/Guess-format) | -gf | None | Guess the flatfile format of the input file
