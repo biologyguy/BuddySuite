@@ -39,6 +39,7 @@ def screw_formats(_trees, _format):
 # Regex taxa names
 
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
+# Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
 # ################################################ INTERNAL FUNCTIONS ################################################ #
 def _print_trees(_trees):  # TODO: Remove the calls to in_args
     if len(_trees.trees) == 0:
