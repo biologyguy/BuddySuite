@@ -62,6 +62,11 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
     return x
 
 
+def pull_random(num=1):  # Return a random set of sequences (without replacement)
+    x = 1
+    return 1
+
+
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
