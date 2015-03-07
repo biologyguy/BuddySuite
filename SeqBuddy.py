@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 20 2014 
-# 42 tools and counting
+# 43 tools and counting
 
 """
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -60,11 +60,6 @@ from MyFuncs import run_multicore_function
 def sim_ident():  # Return the pairwise similarity and identity scores among sequences
     x = 1
     return x
-
-
-def pull_random(num=1):  # Return a random set of sequences (without replacement)
-    x = 1
-    return 1
 
 
 # - Add FASTQ support... More generally, support letter annotation mods
@@ -993,6 +988,17 @@ def pull_recs(_seqbuddy, _search):
     return _seqbuddy
 
 
+def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (without replacement)
+    _output = []
+    _count = _count if _count <= len(_seqbuddy.records) else len(_seqbuddy.records)
+    for i in range(_count):
+        rand_index = randint(0, len(_seqbuddy.records) - 1)
+        _output.append(_seqbuddy.records.pop(rand_index))
+
+    _seqbuddy.records = _output
+    return _seqbuddy
+
+
 def pull_record_ends(_seqbuddy, _amount, _which_end):
     if _amount < 0:
         raise ValueError("Positive integer required for '_amount' argument in pull_record_ends.")
@@ -1354,6 +1360,8 @@ if __name__ == '__main__':
                         help="Rename all the identifiers in a sequence list to a 10 character hash.")
     parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
                         help="Get all the records with ids containing a given string")
+    parser.add_argument('-prr', '--pull_random_record', action='store_true',
+                        help="Extract random sequences. Use the -p flag to increase the number of sequences returned")
     parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
                         help="Get the ends (front or rear) of all sequences in a file.")
     parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
@@ -1786,6 +1794,16 @@ if __name__ == '__main__':
         search = in_args.pull_records
         records = pull_recs(seqbuddy, search)
         _print_recs(records)
+
+    # Pull random records
+    if in_args.pull_random_record:
+        count = 1 if not in_args.params else in_args.params[0]
+        try:
+            count = int(count)
+        except ValueError:
+            sys.exit("Error: When passing in the -p flag to --pull_random_recs, the value must be convertable into an "
+                     "integer. You passed in '%s'..." % count)
+        _print_recs(pull_random_recs(seqbuddy, count))
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
