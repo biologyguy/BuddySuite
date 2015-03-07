@@ -990,7 +990,7 @@ def pull_recs(_seqbuddy, _search):
 
 def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (without replacement)
     _output = []
-    _count = _count if _count <= len(_seqbuddy.records) else len(_seqbuddy.records)
+    _count = abs(_count) if abs(_count) <= len(_seqbuddy.records) else len(_seqbuddy.records)
     for i in range(_count):
         rand_index = randint(0, len(_seqbuddy.records) - 1)
         _output.append(_seqbuddy.records.pop(rand_index))
