@@ -76,6 +76,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [order_ids](https://github.com/biologyguy/BuddySuite/wiki/Order-IDs) | -oi | None | Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order.
 [hash_seq_ids](https://github.com/biologyguy/BuddySuite/wiki/Hash-sequence-IDs) | -hsi | None | Rename all the identifiers in a sequence list to a 10 character hash
 [pull_records](https://github.com/biologyguy/BuddySuite/wiki/Pull-records) | -pr | \<regex pattern\> | Get all the records with ids containing a given string
+[pull_random_record](https://github.com/biologyguy/BuddySuite/wiki/Pull-random-record) | -prr | None | Extract random sequences. Use the -p flag to increase the number of sequences returned
 [pull_record_ends](https://github.com/biologyguy/BuddySuite/wiki/Rename-IDs) | -pre | \<amount (int)\> \<'front'\|'rear'\> | Get the ends (front or rear) of all sequences in a file
 [extract_region](https://github.com/biologyguy/BuddySuite/wiki/Extract-region) | -er | \<start (int)\> \<end (int)\> | Pull out sub-sequences
 [delete_records](https://github.com/biologyguy/BuddySuite/wiki/Delete-records) | -dr | \<regex pattern(s)\> | Remove reocrds from a file. The deleted IDs are sent to stderr
