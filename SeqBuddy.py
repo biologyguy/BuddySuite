@@ -43,6 +43,7 @@ from subprocess import Popen, PIPE
 from shutil import which
 from multiprocessing import Manager
 import ctypes
+from hashlib import md5
 
 # Third party package imports
 from Bio import SeqIO
@@ -1072,7 +1073,7 @@ def find_repeats(_seqbuddy):
         else:
             unique_seqs[_rec.id] = _rec
 
-    # Then look for replicate sequences
+    # Then look for replicate sequences ToDo: use MD5 hashes instead of whole sequences as keys
     flip_uniqe = {}
     del_keys = []
     for key, value in unique_seqs.items():  # find and remove duplicates in/from the unique list
@@ -1246,10 +1247,6 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
                 continue
         return
 
-    """
-    Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
-    threshold may need to be increased quite a bit to return short alignments
-    """
     blast_bin = "blastp" if _seqbuddy.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
         raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
@@ -1815,17 +1812,6 @@ if __name__ == '__main__':
         _stderr("%s\n" % hash_table, in_args.quiet)
         _print_recs(hashed[1])
 
-    # Guess alphabet
-    if in_args.guess_alphabet:
-        if seqbuddy.alpha == IUPAC.protein:
-            sys.stdout.write("prot\n")
-        elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-            sys.stdout.write("dna\n")
-        elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-            sys.stdout.write("rna\n")
-        else:
-            sys.stdout.write("Undetermined\n")
-
     # Delete metadata
     if in_args.delete_metadata:
         _print_recs(delete_metadata(seqbuddy))
@@ -1846,6 +1832,20 @@ if __name__ == '__main__':
     if in_args.guess_format:
         for seq_set in in_args.sequence:
             sys.stdout.write("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+
+    # Guess alphabet
+    if in_args.guess_alphabet:
+        for seq_set in in_args.sequence:
+            seqbuddy = SeqBuddy(seq_set)
+            sys.stdout.write("%s\t-->\t" % seq_set)
+            if seqbuddy.alpha == IUPAC.protein:
+                sys.stdout.write("prot\n")
+            elif seqbuddy.alpha == IUPAC.ambiguous_dna:
+                sys.stdout.write("dna\n")
+            elif seqbuddy.alpha == IUPAC.ambiguous_rna:
+                sys.stdout.write("rna\n")
+            else:
+                sys.stdout.write("Undetermined\n")
 
     # Map features from cDNA over to protein
     if in_args.map_features_dna2prot:
