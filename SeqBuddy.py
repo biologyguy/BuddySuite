@@ -1429,7 +1429,7 @@ if __name__ == '__main__':
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
         if len(_seqbuddy.records) == 0:
-            sys.stderr.write("Nothing returned.\n")
+            _stderr("Nothing returned.\n")
             return False
 
         if _seqbuddy.out_format == "phylipi":
@@ -1448,13 +1448,13 @@ if __name__ == '__main__':
 
         if in_args.in_place and in_place_allowed:
             if not os.path.exists(in_args.sequence[0]):
-                sys.stderr.write("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                                 "file. Nothing was written.\n")
-                sys.stdout.write("%s\n" % _output.strip())
+                _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                        "file. Nothing was written.\n")
+                _stderr("%s\n" % _output.strip())
             else:
                 with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
                     ofile.write(_output)
-                sys.stderr.write("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]))
+                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]))
         else:
             sys.stdout.write("%s\n" % _output.strip())
 
@@ -1493,8 +1493,8 @@ if __name__ == '__main__':
                     stderr_output += "%s, " % del_seq_id
                 stderr_output = stderr_output.strip(", ") + "\n\n"
 
-            sys.stderr.write(stderr_output.strip())
-            sys.stderr.write("\n##############################\n\n")
+            _stderr(stderr_output.strip())
+            _stderr("\n##############################\n\n")
 
         _print_recs(purged_seqs)
 
@@ -1623,14 +1623,14 @@ if __name__ == '__main__':
             _print_recs(delete_repeats(seqbuddy, 'seqs'))
 
         elif stderr_output != "":
-            sys.stderr.write("# ################################################################ #\n")
-            sys.stderr.write("%s\n" % stderr_output.strip())
-            sys.stderr.write("# ################################################################ #\n\n")
+            _stderr("# ################################################################ #\n")
+            _stderr("%s\n" % stderr_output.strip())
+            _stderr("# ################################################################ #\n\n")
 
             _print_recs(delete_repeats(seqbuddy, 'seqs'))
 
         else:
-            sys.stderr.write("No duplicate records found\n")
+            _stderr("No duplicate records found\n")
 
     # Delete records
     if in_args.delete_records:
@@ -1654,12 +1654,12 @@ if __name__ == '__main__':
                         output = "%s\n" % output.strip()
                     counter += 1
                 output = "%s\n# ################################################################ #\n" % output.strip()
-                sys.stderr.write(output)
+                _stderr(output)
 
         if len(deleted_seqs) == 0:
-            sys.stderr.write("# ################################################################ #\n")
-            sys.stderr.write("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
-            sys.stderr.write("# ################################################################ #\n")
+            _stderr("# ################################################################ #\n")
+            _stderr("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
+            _stderr("# ################################################################ #\n")
 
         new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
         _print_recs(new_list)
