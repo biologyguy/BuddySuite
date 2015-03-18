@@ -1191,28 +1191,29 @@ def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pa
 
 
 def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of sequences (i.e. auto-determine threshold)
-    purge_set = {}
+    keep_set = {}
+    purged = []
+    _blast_res = bl2seq(_seqbuddy)
+    for _query_id in _blast_res:
+        if _query_id in purged:
+            continue
+        else:
+            keep_set[_query_id] = []
+            for _subj_id in _blast_res[_query_id]:
+                _ident, _length, _evalue, _bit_score = _blast_res[_query_id][_subj_id]
+
+                if _bit_score >= threshold:
+                    purged.append(_subj_id)
+                    keep_set[_query_id].append(_subj_id)
+
+    _output = []
+
     for _rec in _seqbuddy.records:
-        _unique = True
-        for _seq_id in purge_set:
-            purge_seq = purge_set[_seq_id]["seq"]
-            blast_seqs = SeqBuddy([_rec, purge_seq])
-            _blast_res = bl2seq(blast_seqs)
-            bit_score = float(_blast_res.split("\t")[5])
-            if bit_score >= threshold:
-                _unique = False
-                purge_set[_seq_id]["sim_seq"].append(_rec.id)
+        if _rec.id in keep_set:
+            _output.append(_rec)
 
-        if _unique:
-            purge_set[_rec.id] = {"seq": _rec, "sim_seq": []}
-
-    _output = {"seqs": [], "deleted": {}}
-    for _seq_id in purge_set:
-        _output["seqs"].append(purge_set[_seq_id]["seq"])
-        _output["deleted"][_seq_id] = purge_set[_seq_id]["sim_seq"]
-
-    _seqbuddy.records = _output["seqs"]
-    return [_seqbuddy, _output["deleted"]]
+    _seqbuddy.records = _output
+    return [_seqbuddy, keep_set]
 
 
 def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
@@ -1485,10 +1486,15 @@ if __name__ == '__main__':
         purged_seqs, deleted = purge(seqbuddy, in_args.purge)
 
         if not in_args.quiet:
-            stderr_output = "# Deleted record mapping #\n"
+            stderr_output = "### Deleted record mapping ###\n"
             for seq_id in deleted:
-                stderr_output += "%s\n%s\n\n" % (seq_id, deleted[seq_id])
-            sys.stderr.write(stderr_output)
+                stderr_output += "%s\n" % seq_id
+                for del_seq_id in deleted[seq_id]:
+                    stderr_output += "%s, " % del_seq_id
+                stderr_output = stderr_output.strip(", ") + "\n\n"
+
+            sys.stderr.write(stderr_output.strip())
+            sys.stderr.write("\n##############################\n\n")
 
         _print_recs(purged_seqs)
 
