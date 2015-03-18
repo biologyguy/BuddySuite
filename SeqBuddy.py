@@ -1063,7 +1063,11 @@ def find_repeats(_seqbuddy):
     repeat_seqs = {}
 
     # First find replicate IDs
+    # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
     for _rec in _seqbuddy.records:
+        _seq = str(_rec.seq).encode()
+        _seq = md5(_seq).hexdigest()
+        _rec.seq = Seq(_seq)
         if _rec.id in repeat_ids:
             repeat_ids[_rec.id].append(_rec)
         elif _rec.id in unique_seqs:
@@ -1073,7 +1077,7 @@ def find_repeats(_seqbuddy):
         else:
             unique_seqs[_rec.id] = _rec
 
-    # Then look for replicate sequences ToDo: use MD5 hashes instead of whole sequences as keys
+    # Then look for replicate sequences
     flip_uniqe = {}
     del_keys = []
     for key, value in unique_seqs.items():  # find and remove duplicates in/from the unique list
