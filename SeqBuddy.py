@@ -1252,15 +1252,17 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
         raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
 
     tmp_dir = TemporaryDirectory()
+
+    # Prepare to store multicore output in list of Value objects
     values = []
     manager = Manager()
     for _ in range(cores * 2):
         values.append(manager.Value(ctypes.c_char_p, ''))
 
+    # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     _seqs_copy = _seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.name
     _output = ''
-
     for subject in _seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
@@ -1273,7 +1275,23 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
 
         _seqs_copy = _seqs_copy[1:]
 
-    return _output.strip()
+    # Push output into a dictionary of dictionaries, for more flexible use outside of this function
+    output_list = _output.strip().split("\n")
+    output_list = [x.split("\t") for x in output_list]
+    output_dir = {}
+    for match in output_list:
+        query, subj, _ident, _length, _evalue, _bit_score = match
+        if query not in output_dir:
+            output_dir[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        else:
+            output_dir[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+
+        if subj not in output_dir:
+            output_dir[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        else:
+            output_dir[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+
+    return output_dir
 
 
 def uppercase(_seqbuddy):
@@ -1466,18 +1484,27 @@ if __name__ == '__main__':
     if in_args.purge:
         purged_seqs, deleted = purge(seqbuddy, in_args.purge)
 
-        stderr_output = "# Deleted record mapping #\n"
-        for seq_id in deleted:
-            stderr_output += "%s\n%s\n\n" % (seq_id, deleted[seq_id])
+        if not in_args.quiet:
+            stderr_output = "# Deleted record mapping #\n"
+            for seq_id in deleted:
+                stderr_output += "%s\n%s\n\n" % (seq_id, deleted[seq_id])
+            sys.stderr.write(stderr_output)
 
-        sys.stderr.write(stderr_output)
         _print_recs(purged_seqs)
 
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
         sys.stdout.write("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
-        sys.stdout.write("%s\n" % output)
+        ids_already_seen = []
+        for query_id in output:
+            ids_already_seen.append(query_id)
+            for subj_id in output[query_id]:
+                if subj_id in ids_already_seen:
+                    continue
+
+                ident, length, evalue, bit_score = output[query_id][subj_id]
+                sys.stdout.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
 
     # BLAST
     if in_args.blast:
