@@ -87,7 +87,7 @@ You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://
 [delete_repeats](https://github.com/biologyguy/BuddySuite/wiki/Delete-repeats) | -drp | None | Strip repeat records (ids and/or identical sequences)
 [merge](https://github.com/biologyguy/BuddySuite/wiki/Merge) | -mg | None | Group a bunch of seq files together
 [blast](https://github.com/biologyguy/BuddySuite/wiki/BLAST) | -bl | \<BLAST database\> | BLAST your sequence file using common blast settings, return the hits from blastdb
-bl2seq | -bl2s | None | All-by-all blast among sequences using bl2seq. Only Returns top hit from each search
-purge | -prg | \<Max BLAST score (int)\> | Delete sequences with high similarity
-guess_alphabet | -ga | None | Return the alphabet type found in the input file
+[bl2seq](https://github.com/biologyguy/BuddySuite/wiki/Blast-2-seqs) | -bl2s | None | All-by-all blast among sequences using bl2seq. Only Returns top hit from each search
+[purge](https://github.com/biologyguy/BuddySuite/wiki/Purge) | -prg | \<Max BLAST bit-score (int)\> | Delete sequences with high similarity
+[guess_alphabet](https://github.com/biologyguy/BuddySuite/wiki/Guess-alphabet) | -ga | None | Return the alphabet type found in the input file
 [guess_format](https://github.com/biologyguy/BuddySuite/wiki/Guess-format) | -gf | None | Guess the flatfile format of the input file
