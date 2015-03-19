@@ -13,7 +13,7 @@ details at http://www.gnu.org/licenses/.
 
 name: SeqBuddy.py
 date: Nov-20-2014
-version: 0, unstable
+version: 1, unstable
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -1314,10 +1314,21 @@ def lowercase(_seqbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="SeqBuddy.py", description="Commandline wrapper for all the fun functions in "
-                                                                     "this file. Play with your sequences!")
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=argparse.RawTextHelpFormatter,
+                                     description="Commandline wrapper for all the fun functions in this file. "
+                                                 "Play with your sequences!")
 
     parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="+", default=sys.stdin)
+
+    parser.add_argument('-v', '--version', action='version',
+                        version='''\
+SeqBuddy 1.alpha (2015)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
     parser.add_argument('-cs', '--clean_seq', action='store_true',
                         help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
