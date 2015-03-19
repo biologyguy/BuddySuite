@@ -5,45 +5,70 @@ Do fun stuff with biological data files. Seriously, biological data is fun stuff
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file 
 manipulations.
 
-Currently the Buddy'Suite' only consists of one module, SeqBuddy, with plans to create at least three more 
+Currently the Buddy 'Suite' only consists of one module, SeqBuddy, with plans to create at least three more 
 modules using the same general architecture:
 
 - AlignBuddy
 - DatabaseBuddy
-- PhyloBuddy.
+- PhyloBuddy
 
-## Installation
-Simply download SeqBuddy.py and make it executable
- 
- `chmod +x SeqBuddy.py`
+Being pure Python, the BuddySuite should be cross platform. Almost all development and testing has been done on Linux
+  and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
-Run with the -h flag to see a list of available functions
+## Standalone installation
+Simply download the desired Buddy tool(s), and make executable.
+    
+    $: wget https://raw.github.com/biologyguy/BuddySuite/master/SeqBuddy
+    $: chmod +x SeqBuddy
 
-  `./SeqBuddy.py -h`
+Run with the -h flag to see a list of available functions.
 
-I like to sym-link SeqBuddy to the command 'sb' somewhere in my PATH, so I can access it quickly. For example:
- 
- `ln -s /path/to/SeqBuddy.py /usr/local/bin/sb`
+    $: ./SeqBuddy -h
+
+I like to sym-link the main tools to short commands somewhere in my PATH (e.g., 'sb' for SeqBuddy, 'pb' for PhyloBuddy, 
+etc.), so I can access them quickly (examples in the wiki use these short forms).
+
+    $: ln -s /path/to/SeqBuddy.py /usr/local/bin/sb
+   
+These are the stable release versions of the BuddySuite. If bugs are found they will be fixed, but the *expected* 
+behavior will not be changed once the release is finalized. Likewise, new features added to the development versions
+will not become available in the standalones until the next release. Version can be displayed using the -v flag.
+
+## Development version installation and contribution
+All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the 
+official release versions, and have dependencies (see below).
+The easiest way to get the development version up and running is to clone the repository.
+
+    $: git clone https://github.com/biologyguy/BuddySuite.git
+
+The Buddy tools are structured so they can be used as importable modules as well as command line programs. If you wish
+to contribute to the project, new features require three components:
+
+1. A self contained function that accepts a buddy object as input, and (usually) returns a new buddy object.
+2. An argparse entry, allowing the function to be called from the command line.
+3. Wrapper code in the `if __name__ == '__main__':` block to handle command line calls
 
 
 ## Dependencies
 SeqBuddy is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
-[here](https://www.python.org/downloads/) 
+[here](https://www.python.org/downloads/). 
 
-The [BioPython](http://biopython.org/) package is also required. 
-
-You will need blastp, blastn, and blastdbcmd from the [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/)
- if you want to use the blast, bl2seq, or purge functions
+The blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
+[NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
  
+[BioPython](http://biopython.org/) is used heavily by SeqBuddy, and the package must be installed to use the development
+version of the software. This dependency is bundled into the stand alone version, however, so no extra download is 
+required unless you are developing (or want the bleeding edge).
 
 ## [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy)
 ### Modifying flags
 *Flag* | *Description*
 ------ | ----------
--o --out_format | Specify the format you want the output returned in
 -i --in_place | Rewrites the input file in-place. Be careful!
+-o --out_format | Specify the format you want the output returned in
 -p --params | Some functions can be uniquely modified by -p; see function for details
 -q --quiet | Suppress stderr messages
+-v --version | Output version information
 
 ### Functions
 *Function* | *Flag* | *Parameters* | *Description*
