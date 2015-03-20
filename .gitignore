@@ -12,5 +12,6 @@
 #Mac system stuff
 .DS_Store
 
-#Test files
+#Test/build files
 workshop/test_files/*
+workshop/build_dir/*
