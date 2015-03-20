@@ -11,8 +11,8 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Ge
 details at http://www.gnu.org/licenses/.
 
 name: SeqBuddy.py
-date: Nov-20-2014
-version: 2, unstable
+date: Mar-19-2015
+version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -1321,7 +1321,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-v', '--version', action='version',
                         version='''\
-SeqBuddy 2.alpha (2015)
+SeqBuddy 1.1 (2015)
 
 Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
 This is free software; see the source for detailed copying conditions.
