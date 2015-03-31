@@ -1422,13 +1422,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
+    parser.add_argument('-t', '--test', action='store_true',
+                        help="Run the function and return any stderr/stdout other than sequences.")
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
                         action='store')
     
     in_args = parser.parse_args()
-
-    in_place_allowed = True  # This might be deprecated, because no tools that call _print_recs() are False
 
     seqbuddy = []
     seq_set = ""
@@ -1460,7 +1460,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
                 _output = ifile.read()
 
-        if in_args.in_place and in_place_allowed:
+        if in_args.test:
+            _stderr("*** Test passed ***\n")
+            pass
+
+        elif in_args.in_place:
             if not os.path.exists(in_args.sequence[0]):
                 _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                         "file. Nothing was written.\n")
@@ -1469,6 +1473,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
                     ofile.write(_output)
                 _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]))
+
         else:
             sys.stdout.write("%s\n" % _output.strip())
 
