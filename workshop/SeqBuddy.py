@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# 43 tools and counting
+# 44 tools and counting
 
 """
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
@@ -228,7 +228,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
     if str(type(_input)) == "<class '_io.TextIOWrapper'>":
         # Die if file is empty
         if _input.read() == "":
-            sys.exit("_input file is empty.")
+            sys.exit("Input file is empty.")
         _input.seek(0)
 
         possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]
@@ -1310,6 +1310,18 @@ def lowercase(_seqbuddy):
     return _seqbuddy
 
 
+def split_by_taxa(_seqbuddy, split_char):
+    taxa = {}
+    for _rec in _seqbuddy.records:
+        split = _rec.id.split(split_char)
+        if split[0] not in taxa:
+            taxa[split[0]] = [_rec]
+        else:
+            taxa[split[0]].append(_rec)
+
+    return taxa
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1416,6 +1428,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
+    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar="<Split Char> <out dir>",
+                        help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
 
@@ -1443,7 +1457,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
         if len(_seqbuddy.records) == 0:
-            _stderr("Nothing returned.\n")
+            _stderr("Nothing returned.\n", in_args.quiet)
             return False
 
         if _seqbuddy.out_format == "phylipi":
@@ -1461,18 +1475,18 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _output = ifile.read()
 
         if in_args.test:
-            _stderr("*** Test passed ***\n")
+            _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
             if not os.path.exists(in_args.sequence[0]):
                 _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                        "file. Nothing was written.\n")
-                _stderr("%s\n" % _output.strip())
+                        "file. Nothing was written.\n", in_args.quiet)
+                _stderr("%s\n" % _output.strip(), in_args.quiet)
             else:
                 with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
                     ofile.write(_output)
-                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]))
+                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
 
         else:
             sys.stdout.write("%s\n" % _output.strip())
@@ -1958,3 +1972,18 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.order_features_alphabetically:
         reverse = True if in_args.params and in_args.params[0] == "rev" else False
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
+
+    # Split sequences by taxa
+    if in_args.split_by_taxa:
+        in_args.in_place = True
+        out_dir = os.path.abspath(in_args.split_by_taxa[1])
+        taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
+        check_quiet = in_args.quiet
+        for taxa_heading in taxa_groups:
+            seqbuddy.records = taxa_groups[taxa_heading]
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, seqbuddy.out_format)
+            _stderr("New file: %s\n" % in_args.sequence[0], in_args.quiet)
+            open(in_args.sequence[0], "w").close()
+            in_args.quiet = True
+            _print_recs(seqbuddy)
+            in_args.quiet = check_quiet
