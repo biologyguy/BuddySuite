@@ -66,10 +66,16 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Implement daisy chaining
+#   -- Sammy is having a look at this.
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
+#   -- Started, just need to spend a whole bunch of time getting the test written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
-# - Flag that will suppress stdout, while still outputting stderr
+
+# ################################################ CHANGE LOG for V1.2 ############################################### #
+# - New flag -t/--test, which runs a function but suppressed all stdout (stderr still returned)
+# - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
+
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_features) != list:  # Duck type for single feature input
@@ -168,9 +174,8 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
             _sequences = list(SeqIO.parse(_input, self.in_format))
 
         elif os.path.isfile(_input):
-            _input = open(_input, "r")
-            _sequences = list(SeqIO.parse(_input, self.in_format))
-            _input.close()
+            with open(_input, "r") as _input:
+                _sequences = list(SeqIO.parse(_input, self.in_format))
         else:
             _sequences = [SeqRecord(Seq(_input))]
 
