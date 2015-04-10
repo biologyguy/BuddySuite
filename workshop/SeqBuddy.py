@@ -43,6 +43,7 @@ from shutil import which
 from multiprocessing import Manager
 import ctypes
 from hashlib import md5
+from io import StringIO
 
 # Third party package imports
 from Bio import SeqIO
@@ -72,7 +73,7 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 #   -- Started, just need to spend a whole bunch of time getting the test written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 
-# ################################################ CHANGE LOG for V1.2 ############################################### #
+# ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppressed all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 
@@ -147,6 +148,11 @@ def _stderr(message, quiet=False):
 
 class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
+        if str(type(_input)) == "<class '_io.TextIOWrapper'>" and not _input.seekable():
+            temp = StringIO(_input.read())
+            _input = temp
+            _input.seek(0)
+
         if not _in_format:
             self.in_format = guess_format(_input)
             self.out_format = str(self.in_format) if not _out_format else _out_format
@@ -170,7 +176,7 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
                     raise TypeError("Seqlist is not populated with SeqRecords.")
             _sequences = _input
 
-        elif str(type(_input)) == "<class '_io.TextIOWrapper'>":
+        elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
             _sequences = list(SeqIO.parse(_input, self.in_format))
 
         elif os.path.isfile(_input):
@@ -230,7 +236,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
     if os.path.isfile(str(_input)):
         _input = open(_input, "r")
 
-    if str(type(_input)) == "<class '_io.TextIOWrapper'>":
+    if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         # Die if file is empty
         if _input.read() == "":
             sys.exit("Input file is empty.")
@@ -1334,7 +1340,7 @@ if __name__ == '__main__':
                                      description="Commandline wrapper for all the fun functions in this file. "
                                                  "Play with your sequences!")
 
-    parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="+", default=sys.stdin)
+    parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="*", default=[sys.stdin])
 
     parser.add_argument('-v', '--version', action='version',
                         version='''\
@@ -1451,6 +1457,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     seqbuddy = []
     seq_set = ""
+
     for seq_set in in_args.sequence:
         seq_set = SeqBuddy(seq_set, in_args.in_format)
         seqbuddy += seq_set.records
