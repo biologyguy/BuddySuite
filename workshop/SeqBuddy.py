@@ -66,8 +66,6 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
-# - Implement daisy chaining
-#   -- Sammy is having a look at this.
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
 #   -- Started, just need to spend a whole bunch of time getting the test written
@@ -76,6 +74,7 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppressed all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
+# - Standard-in will be handled as input now, allowing SeqBuddy to be daisy chained.
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -1900,7 +1899,19 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         output = ""
         for rec in seqbuddy.records:
             output += "%s\n\n" % rec.seq
-        sys.stdout.write("%s\n" % output.strip())
+
+        if in_args.in_place:
+            if not os.path.exists(in_args.sequence[0]):
+                _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                        "file. Nothing was written.\n", in_args.quiet)
+                sys.stdout.write("%s\n" % output.strip())
+            else:
+                with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
+                    ofile.write(output)
+                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
+
+        else:
+            sys.stdout.write("%s\n" % output.strip())
 
     # Clean Seq
     if in_args.clean_seq:
