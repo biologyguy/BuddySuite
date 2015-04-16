@@ -46,6 +46,7 @@ from hashlib import md5
 from io import StringIO
 
 # Third party package imports
+sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with SeqBuddy
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
@@ -332,8 +333,8 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     _seqbuddy = clean_seq(_seqbuddy)  # in case there are gaps or something in the sequences
 
     tmp_dir = TemporaryDirectory()
-    with open("%s/tmp.fa" % tmp_dir.name, "w") as ofile:
-        SeqIO.write(_seqbuddy.records, ofile, "fasta")
+    with open("%s/tmp.fa" % tmp_dir.name, "w") as _ofile:
+        SeqIO.write(_seqbuddy.records, _ofile, "fasta")
 
     Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 4 -evalue 0.01 -outfmt 6" %
           (blast_path, blast_db, tmp_dir.name, tmp_dir.name), shell=True).wait()
@@ -357,14 +358,14 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         sys.stderr.write("No matches identified.\n")
         return None
 
-    ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
+    _ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
     for hit_id in hit_ids:
         hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (blast_db, hit_id), stdout=PIPE, shell=True).communicate()
         hit = hit[0].decode("utf-8")
         hit = re.sub("lcl\|", "", hit)
-        ofile.write("%s\n" % hit)
+        _ofile.write("%s\n" % hit)
 
-    ofile.close()
+    _ofile.close()
 
     with open("%s/seqs.fa" % tmp_dir.name, "r") as ifile:
         _new_seqs = SeqBuddy(ifile)
@@ -1073,6 +1074,8 @@ def find_repeats(_seqbuddy):
 
     # First find replicate IDs
     # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
+    # Need to work from a copy though, so sequences aren't overwritten
+    _seqbuddy = deepcopy(_seqbuddy)
     for _rec in _seqbuddy.records:
         _seq = str(_rec.seq).encode()
         _seq = md5(_seq).hexdigest()
@@ -1479,8 +1482,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         else:
             tmp_dir = TemporaryDirectory()
-            with open("%s/seqs.tmp" % tmp_dir.name, "w") as ofile:
-                SeqIO.write(_seqbuddy.records, ofile, _seqbuddy.out_format)
+            with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                SeqIO.write(_seqbuddy.records, _ofile, _seqbuddy.out_format)
 
             with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
                 _output = ifile.read()
@@ -1495,8 +1498,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         "file. Nothing was written.\n", in_args.quiet)
                 _stderr("%s\n" % _output.strip(), in_args.quiet)
             else:
-                with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
-                    ofile.write(_output)
+                with open(os.path.abspath(in_args.sequence[0]), "w") as _ofile:
+                    _ofile.write(_output)
                 _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
 
         else:
