@@ -65,17 +65,19 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 
 
 # - Add FASTQ support... More generally, support letter annotation mods
+# - Add Clustal support
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
 #   -- Started, just need to spend a whole bunch of time getting the test written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
-
+# - Make an 'installer' that puts SeqBuddy into path and adds `sb` sym link
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppressed all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
-# - Standard-in will be handled as input now, allowing SeqBuddy to be daisy chained.
+# - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
+# - Remove the need to use -p flag with -prr, -li
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -1370,7 +1372,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Change the reading from of sequences by deleting characters off of the front")
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
-    parser.add_argument('-btr', '--back_translate', action='store_true',
+    parser.add_argument('-btr', '--back_translate', action='store_true',        # ToDo: Strip -p flag
                         help="Convert amino acid sequences into codons. Select mode and species with -p flag "
                              "['random', 'r', 'optimized', 'o'] "
                              "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']")
@@ -1382,14 +1384,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Return complement of nucleotide sequence")
     parser.add_argument('-rc', '--reverse_complement', action='store_true',
                         help="Return reverse complement of nucleotide sequence")
-    parser.add_argument('-li', '--list_ids', action='store_true',
-                        help="Output all the sequence identifiers in a file. Use -p to specify # columns to write")
+    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
+                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                             "specify the # of columns to write")
     parser.add_argument('-ns', '--num_seqs', action='store_true',
                         help="Counts how many sequences are present in an input file")
-    parser.add_argument('-asl', '--ave_seq_length', action='store_true',
+    parser.add_argument('-asl', '--ave_seq_length', action='store_true',           # ToDo: Strip -p flag
                         help="Return the average length of all sequences. Use '-p clean' to remove gaps etc from the "
                              "sequences before counting.")
-    parser.add_argument('-cts', '--concat_seqs', action='store_true',
+    parser.add_argument('-cts', '--concat_seqs', action='store_true',               # ToDo: Strip -p flag
                         help="Concatenate a bunch of sequences into a single solid string. Use '-p clean' to remove "
                              "stops, gaps, etc., from the sequences before concatenating.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
@@ -1403,7 +1406,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Takes the features in two files and combines them for each sequence")
     parser.add_argument('-sh', '--shuffle', action='store_true',
                         help="Randomly reorder the position of records in the file.")
-    parser.add_argument('-oi', '--order_ids', action='store_true',
+    parser.add_argument('-oi', '--order_ids', action='store_true',                  # ToDo: Strip -p flag
                         help="Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order")
     parser.add_argument('-ofp', '--order_features_by_position', action='store_true',
                         help="Change the output order of sequence features, based on sequence position")
@@ -1415,19 +1418,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Rename all the identifiers in a sequence list to a 10 character hash.")
     parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
                         help="Get all the records with ids containing a given string")
-    parser.add_argument('-prr', '--pull_random_record', action='store_true',
-                        help="Extract random sequences. Use the -p flag to increase the number of sequences returned")
-    parser.add_argument('-pre', '--pull_record_ends', action='store', nargs=2, metavar="<amount (int)> <front|rear>",
-                        help="Get the ends (front or rear) of all sequences in a file.")
-    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar="<start (int)> <end (int)>",
+    parser.add_argument('-prr', '--pull_random_record', nargs='?', action='append', type=int, metavar='int (optional)',
+                        help="Extract random sequences. Optionally, pass in an integer to increase the number of "
+                             "sequences returned")
+    parser.add_argument('-pre', '--pull_record_ends', nargs=2, metavar=('<amount (int)>', "<front|rear>"),
+                        action='store', help="Get the ends (front or rear) of all sequences in a file.")
+    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
                         type=int, help="Pull out sub-sequences.")
-    parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",
+    parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
                         help="Remove records from a file. The deleted IDs are sent to stderr.")
     parser.add_argument('-dsm', '--delete_small', help='Delete sequences with length below threshold', type=int,
-                        action='store')
+                        metavar='<threshold (int)>', action='store')
     parser.add_argument('-dlg', '--delete_large', help='Delete sequences with length above threshold', type=int,
-                        action='store')
-    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",
+                        metavar='<threshold (int)>', action='store')
+    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
                         help="Strip repeat records (ids and/or identical sequences")
@@ -1441,13 +1445,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
-    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar="<Split Char> <out dir>",
+    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
+    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')   # ToDo: Remove this completely
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
@@ -1783,10 +1787,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # List identifiers
     if in_args.list_ids:
-        if in_args.params:
-            columns = int(in_args.params[0])
-        else:
-            columns = 1
+        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
         output = ""
         counter = 1
         for rec in seqbuddy.records:
@@ -1874,7 +1875,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Pull random records
     if in_args.pull_random_record:
-        count = 1 if not in_args.params else in_args.params[0]
+        count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
         try:
             count = int(count)
         except ValueError:
