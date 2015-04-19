@@ -74,10 +74,10 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Make an 'installer' that puts SeqBuddy into path and adds `sb` sym link
 # ################################################# CHANGE LOG for V2 ################################################ #
-# - New flag -t/--test, which runs a function but suppressed all stdout (stderr still returned)
+# - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
-# - Remove the need to use -p flag with -prr, -li
+# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, and -oi
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -1372,8 +1372,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Change the reading from of sequences by deleting characters off of the front")
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
-    parser.add_argument('-btr', '--back_translate', action='store_true',        # ToDo: Strip -p flag
-                        help="Convert amino acid sequences into codons. Select mode and species with -p flag "
+    parser.add_argument('-btr', '--back_translate', action='append', nargs="*",
+                        help="Convert amino acid sequences into codons. Optionally, select mode by passing in "
                              "['random', 'r', 'optimized', 'o'] "
                              "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']")
     parser.add_argument('-d2r', '--transcribe', action='store_true',
@@ -1389,33 +1389,34 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                              "specify the # of columns to write")
     parser.add_argument('-ns', '--num_seqs', action='store_true',
                         help="Counts how many sequences are present in an input file")
-    parser.add_argument('-asl', '--ave_seq_length', action='store_true',           # ToDo: Strip -p flag
-                        help="Return the average length of all sequences. Use '-p clean' to remove gaps etc from the "
-                             "sequences before counting.")
-    parser.add_argument('-cts', '--concat_seqs', action='store_true',               # ToDo: Strip -p flag
-                        help="Concatenate a bunch of sequences into a single solid string. Use '-p clean' to remove "
-                             "stops, gaps, etc., from the sequences before concatenating.")
+    parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
+                        help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
+                             "from the sequences before counting.")
+    parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
+                        help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
+                             "remove stops, gaps, etc., from the sequences before concatenating.")
     parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
                         help="Take the features annotated onto nucleotide sequences and map to protein sequences. "
                              "Both a protein and cDNA file must be passed in.")
     parser.add_argument('-fp2d', '--map_features_prot2dna', action='store_true',
                         help="Arguments: one cDNA file and one protein file")
     parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
-                        help="Replace some pattern in ids with something else.")
+                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
     parser.add_argument('-cf', '--combine_features', action='store_true',
                         help="Takes the features in two files and combines them for each sequence")
     parser.add_argument('-sh', '--shuffle', action='store_true',
                         help="Randomly reorder the position of records in the file.")
-    parser.add_argument('-oi', '--order_ids', action='store_true',                  # ToDo: Strip -p flag
-                        help="Sort all sequences by id in alpha-numeric order. Use -p 'rev' for reverse order")
+    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
+                        help="Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order")
     parser.add_argument('-ofp', '--order_features_by_position', action='store_true',
                         help="Change the output order of sequence features, based on sequence position")
     parser.add_argument('-ofa', '--order_features_alphabetically', action='store_true',
                         help="Change the output order of sequence features, based on sequence position")
     parser.add_argument('-sf', '--screw_formats', action='store', metavar="<out_format>",
                         help="Change the file format to something else.")
-    parser.add_argument('-hsi', '--hash_seq_ids', action='store_true',
-                        help="Rename all the identifiers in a sequence list to a 10 character hash.")
+    parser.add_argument('-hsi', '--hash_seq_ids', action='append', nargs="?", type=int,
+                        help="Rename all the identifiers in a sequence list to a fixed length hash. Default 10; "
+                             "override by passing in an integer.")
     parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
                         help="Get all the records with ids containing a given string")
     parser.add_argument('-prr', '--pull_random_record', nargs='?', action='append', type=int, metavar='int (optional)',
@@ -1451,7 +1452,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-gf', '--guess_format', action='store_true')
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')   # ToDo: Remove this completely
+    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
@@ -1584,7 +1585,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Order ids
     if in_args.order_ids:
-        reverse = True if in_args.params and in_args.params[0] == "rev" else False
+        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
         _print_recs(order_ids(seqbuddy, _reverse=reverse))
 
     # Find repeat sequences or ids
@@ -1824,12 +1825,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Back translate CDS
     if in_args.back_translate:
-        if in_args.params:
-            in_args.params = [i.upper() for i in in_args.params]
-            mode = [i for i in in_args.params if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
+        if in_args.back_translate[0]:
+            in_args.back_translate = in_args.back_translate[0]
+            in_args.back_translate = [i.upper() for i in in_args.back_translate]
+            mode = [i for i in in_args.back_translate if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
             mode = "RANDOM" if len(mode) == 0 else mode[0]
-            species = [i for i in in_args.params if i in ['HUMAN', 'H', "MOUSE", "M",
-                                                          "YEAST", "Y", "ECOLI", "E"]]
+            species = [i for i in in_args.back_translate if i in ['HUMAN', 'H', "MOUSE", "M",
+                                                                  "YEAST", "Y", "ECOLI", "E"]]
             species = None if len(species) == 0 else species[0]
         else:
             mode = "RANDOM"
@@ -1839,7 +1841,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Concatenate sequences
     if in_args.concat_seqs:
-        clean = False if not in_args.params or in_args.params[0] != "clean" else True
+        clean = False if not in_args.concat_seqs[0] or in_args.concat_seqs[0] != "clean" else True
         seqbuddy = concat_seqs(seqbuddy, clean)
         if in_args.out_format:
             seqbuddy.out_format = in_args.out_format
@@ -1851,7 +1853,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Average length of sequences
     if in_args.ave_seq_length:
-        clean = False if not in_args.params or in_args.params[0] != "clean" else True
+        clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
         sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
 
     # Pull sequence ends
@@ -1885,7 +1887,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
-        hash_length = in_args.params[0] if in_args.params else 10
+        hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
         hashed = hash_seqeunce_ids(seqbuddy, hash_length)
         hash_table = "# Hash table\n"
         for seq in hashed[0]:
