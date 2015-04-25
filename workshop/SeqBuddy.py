@@ -77,7 +77,7 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
-# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, and -oi
+# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, and -oi (-frp,
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -244,7 +244,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"] # ToDo: Glean CLUSTAL
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -1436,8 +1436,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='store_true',
                         help="Strip repeat records (ids and/or identical sequences")
-    parser.add_argument('-frp', '--find_repeats', action='store_true',
-                        help="Identify whether a file contains repeat sequences and/or sequence ids")
+    parser.add_argument('-frp', '--find_repeats', action='append', nargs="?", type=int,
+                        help="Identify whether a file contains repeat sequences and/or sequence ids. The number of "
+                             "output columns can be modified by passing in an integer.")
     parser.add_argument("-mg", "--merge", action="store_true",
                         help="Group a bunch of seq files together",)
     parser.add_argument("-bl", "--blast", metavar="<BLAST database>", action="store",
@@ -1590,8 +1591,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
-        if in_args.params:
-            columns = int(in_args.params[0])
+        if in_args.find_repeats[0]:
+            columns = in_args.find_repeats[0]
         else:
             columns = 1
 
