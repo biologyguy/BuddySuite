@@ -70,14 +70,16 @@ def sim_ident():  # Return the pairwise similarity and identity scores among seq
 # - Execution timer, for long running jobs
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
-#   -- Started, just need to spend a whole bunch of time getting the test written
+#   -- Started, just need to spend a whole bunch of time getting the tests written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Make an 'installer' that puts SeqBuddy into path and adds `sb` sym link
+# - Sort out a good way to manage 'lazy' imports
+
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
-# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, and -oi (-frp,
+# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, -frp, -drp, -ofa, -ofp, and -oi
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
@@ -1408,10 +1410,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Randomly reorder the position of records in the file.")
     parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
                         help="Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order")
-    parser.add_argument('-ofp', '--order_features_by_position', action='store_true',
-                        help="Change the output order of sequence features, based on sequence position")
-    parser.add_argument('-ofa', '--order_features_alphabetically', action='store_true',
-                        help="Change the output order of sequence features, based on sequence position")
+    parser.add_argument('-ofp', '--order_features_by_position', action='append', nargs="?",
+                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
+                             "to reverse order.")
+    parser.add_argument('-ofa', '--order_features_alphabetically', action='append', nargs="?",
+                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
+                             "to reverse order.")
     parser.add_argument('-sf', '--screw_formats', action='store', metavar="<out_format>",
                         help="Change the file format to something else.")
     parser.add_argument('-hsi', '--hash_seq_ids', action='append', nargs="?", type=int,
@@ -1434,8 +1438,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         metavar='<threshold (int)>', action='store')
     parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
                         help="Remove specified features from all records.")
-    parser.add_argument('-drp', '--delete_repeats', action='store_true',
-                        help="Strip repeat records (ids and/or identical sequences")
+    parser.add_argument('-drp', '--delete_repeats', action='append', nargs="?", type=int,
+                        help="Strip repeat records (ids and/or identical sequences. Optional, pass in an integer to "
+                             "specify # columns for deleted ids")
     parser.add_argument('-frp', '--find_repeats', action='append', nargs="?", type=int,
                         help="Identify whether a file contains repeat sequences and/or sequence ids. The number of "
                              "output columns can be modified by passing in an integer.")
@@ -1634,8 +1639,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Delete repeats
     if in_args.delete_repeats:
-        if in_args.params:
-            columns = int(in_args.params[0])
+        if in_args.delete_repeats[0]:
+            columns = int(in_args.delete_repeats[0])
         else:
             columns = 1
 
@@ -1995,12 +2000,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
-        reverse = True if in_args.params and in_args.params[0] == "rev" else False
+        reverse = True if in_args.order_features_by_position[0] \
+            and in_args.order_features_by_position[0] == "rev" else False
+
         _print_recs(order_features_by_position(seqbuddy, reverse))
 
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
-        reverse = True if in_args.params and in_args.params[0] == "rev" else False
+        reverse = True if in_args.order_features_alphabetically[0] \
+            and in_args.order_features_alphabetically[0] == "rev" else False
+
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
 
     # Split sequences by taxa
