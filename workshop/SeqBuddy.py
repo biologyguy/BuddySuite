@@ -324,7 +324,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"] # ToDo: Glean CLUSTAL
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]  # ToDo: Glean CLUSTAL
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -1409,10 +1409,7 @@ def split_by_taxa(_seqbuddy, split_char):
     taxa = {}
     for _rec in _seqbuddy.records:
         split = _rec.id.split(split_char)
-        if split[0] not in taxa:
-            taxa[split[0]] = [_rec]
-        else:
-            taxa[split[0]].append(_rec)
+        taxa.setdefault(split[0], []).append(_rec)
 
     return taxa
 
@@ -2094,6 +2091,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.split_by_taxa:
         in_args.in_place = True
         out_dir = os.path.abspath(in_args.split_by_taxa[1])
+        os.makedirs(out_dir, exist_ok=True)
         taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
         check_quiet = in_args.quiet
         for taxa_heading in taxa_groups:
