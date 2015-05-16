@@ -59,10 +59,88 @@ from MyFuncs import run_multicore_function
 
 
 # ##################################################### WISH LIST #################################################### #
-def sim_ident():  # Return the pairwise similarity and identity scores among sequences
+def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     x = 1
     return x
 
+
+def residue_counter():
+    # generate frequency statistics for sequence composition
+    return
+
+
+def codon_counter():
+    # generate frequency statistics for codon composition
+    return
+
+
+def molecular_weight():
+    # get the mass of each sequence
+    return
+
+
+def isoelectric_point():
+    # predicted...
+    return
+
+
+def split_file(directory):
+    # distribute a mutiple sequence file into a bunch of individual files
+    return
+
+
+def predict_orfs():
+    return
+
+
+def shuffle_seqs():
+    # randomly reorder the residues in each sequence
+    return
+
+
+def find_CpG():
+    # http://www.ncbi.nlm.nih.gov/pubmed/3656447
+    # http://bioinformatics.org/sms/cpg_island.html
+    return
+
+
+def find_pattern():
+    # search through sequences for regex matches. For example, to find micro-RNAs
+    return
+
+
+def delete_pattern():
+    # remove residues that match a given pattern from all records
+    return
+
+
+def insert_sequence():
+    # Add a specific sequence at a defined location in all records. E.g., adding a barcode
+    return
+
+
+def find_restriction_sites():
+    return
+
+
+def mutate():
+    # Apply some model of evolution to generate new sequences from input
+    return
+
+
+def random_aa(length, number, matrix):
+    # create random protein sequences
+    return
+
+
+def random_dna(length, number, matrix):
+    # create random DNA sequences
+    return
+
+
+def divergence_value():
+    # http://bioinformatics.org/sms/uneven.html
+    return
 
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
