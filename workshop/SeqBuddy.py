@@ -142,15 +142,16 @@ def divergence_value():
     # http://bioinformatics.org/sms/uneven.html
     return
 
-# - Add FASTQ support... More generally, support letter annotation mods
-# - Add Clustal support
-# - Check on memory requirements before execution
-# - Execution timer, for long running jobs
-# - Handle all stderr output from private function (to allow quiet execution)
 # - Unit Tests
 #   -- Started, just need to spend a whole bunch of time getting the tests written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
+# - Add FASTQ support... More generally, support letter annotation mods
+# - Add Clustal support
 # - Make an 'installer' that puts SeqBuddy into path and adds `sb` sym link
+# - Get BuddySuite into PyPi
+# - Check on memory requirements before execution
+# - Execution timer, for long running jobs
+# - Handle all stderr output from private function (to allow quiet execution)
 # - Sort out a good way to manage 'lazy' imports
 
 # ################################################# CHANGE LOG for V2 ################################################ #
