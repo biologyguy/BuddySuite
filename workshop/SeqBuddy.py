@@ -229,11 +229,12 @@ def _stderr(message, quiet=False):
 # #################################################################################################################### #
 
 
-class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into a Seq object
+class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
-        if str(type(_input)) == "<class '_io.TextIOWrapper'>" and not _input.seekable():
-            temp = StringIO(_input.read())
-            _input = temp
+        if str(type(_input)) == "<class '_io.TextIOWrapper'>":
+            if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
+                temp = StringIO(_input.read())
+                _input = temp
             _input.seek(0)
 
         if not _in_format:
@@ -254,7 +255,7 @@ class SeqBuddy():  # Open a file or read a handle and parse, or convert raw into
 
         elif isinstance(_input, list):
             # make sure that the list is actually SeqIO records (just test a few...)
-            for _seq in _input[:3]:
+            for _seq in sample(_input, 5):
                 if type(_seq) != SeqRecord:
                     raise TypeError("Seqlist is not populated with SeqRecords.")
             _sequences = _input
@@ -1289,7 +1290,7 @@ def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pa
     return _seqbuddy
 
 
-def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of sequences (i.e. auto-determine threshold)
+def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
     keep_set = {}
     purged = []
     _blast_res = bl2seq(_seqbuddy)
