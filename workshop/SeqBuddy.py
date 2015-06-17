@@ -60,7 +60,7 @@ from MyFuncs import run_multicore_function
 
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
-    x = 1
+    x = matrix
     return x
 
 
@@ -86,7 +86,8 @@ def isoelectric_point():
 
 def split_file(directory):
     # distribute a mutiple sequence file into a bunch of individual files
-    return
+    x = directory
+    return x
 
 
 def predict_orfs():
@@ -128,14 +129,16 @@ def mutate():
     return
 
 
-def random_aa(length, number, matrix):
+def random_aa(_length, number, matrix):
     # create random protein sequences
-    return
+    x = [_length, number, matrix]
+    return x
 
 
-def random_dna(length, number, matrix):
+def random_dna(_length, number, matrix):
     # create random DNA sequences
-    return
+    x = [_length, number, matrix]
+    return x
 
 
 def divergence_value():
@@ -159,8 +162,11 @@ def divergence_value():
 # - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
 # - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, -frp, -drp, -ofa, -ofp, and -oi
+# - Add print method to SeqBuddy class that outputs all sequences to string
 
 # ################################################# HELPER FUNCTIONS ################################################# #
+
+
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_features) != list:  # Duck type for single feature input
         _features = [_features]
@@ -237,6 +243,12 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
                 _input = temp
             _input.seek(0)
 
+        # Raw sequences
+        if type(_input) == str:
+            temp = StringIO(_input)
+            _input = temp
+            _input.seek(0)
+
         if not _in_format:
             self.in_format = guess_format(_input)
             self.out_format = str(self.in_format) if not _out_format else _out_format
@@ -255,7 +267,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         elif isinstance(_input, list):
             # make sure that the list is actually SeqIO records (just test a few...)
-            for _seq in sample(_input, 5):
+            _sample = _input if len(_input) < 5 else sample(_input, 5)
+            for _seq in _sample:
                 if type(_seq) != SeqRecord:
                     raise TypeError("Seqlist is not populated with SeqRecords.")
             _sequences = _input
@@ -285,6 +298,12 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         for _rec in self.records:
             records_dict[_rec.id] = _rec
         return records_dict
+
+    def print(self):
+        _output = ""
+        for _rec in self.records:
+            _output += _rec.format(self.out_format)
+        return _output
 
 
 def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
