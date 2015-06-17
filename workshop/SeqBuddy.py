@@ -244,7 +244,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _input.seek(0)
 
         # Raw sequences
-        if type(_input) == str:
+        if type(_input) == str and not os.path.isfile(_input):
             temp = StringIO(_input)
             _input = temp
             _input.seek(0)
