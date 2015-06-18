@@ -57,6 +57,13 @@ from Bio.Data.CodonTable import TranslationError
 # My functions
 from MyFuncs import run_multicore_function
 
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
 
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
@@ -237,17 +244,31 @@ def _stderr(message, quiet=False):
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
+        in_file = None
+        raw_seq = None
+        in_handle = None
+
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
                 temp = StringIO(_input.read())
                 _input = temp
             _input.seek(0)
+            in_handle = _input.read()
+            _input.seek(0)
 
         # Raw sequences
         if type(_input) == str and not os.path.isfile(_input):
+            raw_seq = _input
             temp = StringIO(_input)
             _input = temp
             _input.seek(0)
+
+        try:
+            if os.path.isfile(_input):
+                in_file = _input
+
+        except TypeError:  # This happens when testing something other than a string.
+            pass
 
         if not _in_format:
             self.in_format = guess_format(_input)
@@ -257,8 +278,17 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             self.in_format = _in_format
 
         if not self.in_format:
-            raise AttributeError("Could not determine sequence format from _input. "
-                                 "Try explicitly setting with -f flag.")
+            if in_file:
+                raise GuessError("Could not determine format from _input file '{0}'.\n"
+                                 "Try explicitly setting with -f flag.".format(in_file))
+            elif raw_seq:
+                raise GuessError("Could not determine format from raw input\n{0} ..."
+                                 "Try explicitly setting with -f flag.".format(raw_seq)[:50])
+            elif in_handle:
+                raise GuessError("Could not determine format from input file-like object\n{0} ..."
+                                 "Try explicitly setting with -f flag.".format(in_handle)[:50])
+            else:
+                raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
         self.out_format = self.in_format if not _out_format else _out_format
 
@@ -362,7 +392,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return None  # Unable to determine format from file handle
 
     else:
-        raise AttributeError("Unsupported _input argument in guess_format(). %s" % _input)
+        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
