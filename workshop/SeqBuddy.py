@@ -335,6 +335,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _output += _rec.format(self.out_format)
         return _output
 
+    def write(self, _file_path):
+        with open(_file_path, "w") as _ofile:
+            SeqIO.write(self.records, _ofile, self.out_format)
+        return
+
 
 def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
     _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
