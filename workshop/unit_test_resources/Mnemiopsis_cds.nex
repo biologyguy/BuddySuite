@@ -3,7 +3,7 @@ begin data;
 	dimensions ntax=13 nchar=2043;
 	format datatype=dna missing=? gap=- interleave;
 matrix
-'Mle-Panxα9   ---------atgttaga---------------------------------catactttcaaagtttaaag
+'Mle-Panxα9'   ---------atgttaga---------------------------------catactttcaaagtttaaag
 'Mle-Panxα7A'  atg------ggggtggaaat---------------------------tctgtttcccataatcaacagag
 'Mle-Panxα1'   atgtactggatatttga---------------------------------gatttgtcaagagataaagc
 'Mle-Panxα3'   atg---ttgttgctcgg---------------------------------ctcactcggaacgatcaaga
