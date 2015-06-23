@@ -64,9 +64,9 @@ formats = ["fasta", "gb", "nexus", "phylip-relaxed", "stockholm",
 # fa gb nex phy phyr stklm
 
 #'-ofa', '--order_features_alphabetically'
-hashes = ["25073539df4a982b7f99c72dd280bb8f", "0ca1c910e2d566556e839c3ca29e162d", "cb1169c2dd357771a97a02ae2160935d",
+hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553", "cb1169c2dd357771a97a02ae2160935d",
           "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "c10d136c93f41db280933d5b3468f187", "2cd6ab6a922a6695ba2ffdbfa81f740d", "8b6737fe33058121fd99d2deee2f9a76",
+          "c10d136c93f41db280933d5b3468f187", "f6b3c090ab6ac147cf6d87881a8ce5dc", "8b6737fe33058121fd99d2deee2f9a76",
           "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
 
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
