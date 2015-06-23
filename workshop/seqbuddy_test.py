@@ -6,12 +6,15 @@ import pytest
 from hashlib import md5
 from Bio import SeqIO
 import os
-import workshop.SeqBuddy as Sb
+try:
+    import workshop.SeqBuddy as Sb
+except ImportError:
+    import SeqBuddy as Sb
 import MyFuncs
 
 write_file = MyFuncs.TempFile()
 
-def seqs_to_hash(_seqbuddy):
+def seqs_to_hash(_seqbuddy, mode='hash'):
     if _seqbuddy.out_format == "phylipi":
         write_file.write(Sb.phylipi(_seqbuddy, "relaxed"))
     elif _seqbuddy.out_format == "phylipis":
@@ -19,8 +22,12 @@ def seqs_to_hash(_seqbuddy):
     else:
         _seqbuddy.write(write_file.path)
 
-    seqs_string = "{0}\n".format(write_file.read().strip()).encode()
-    _hash = md5(seqs_string).hexdigest()
+    seqs_string = "{0}\n".format(write_file.read().strip())
+
+    if mode != "hash":
+        return seqs_string
+
+    _hash = md5(seqs_string.encode()).hexdigest()
     return _hash
 
 root_dir = os.getcwd()
@@ -68,3 +75,6 @@ def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
+if __name__ == '__main__':
+    debug = test_order_features_alphabetically(sb_objects[2])
+    print(seqs_to_hash(debug, "string"))
