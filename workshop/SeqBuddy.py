@@ -1587,6 +1587,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
+    parser.add_argument('-ho', '--hash_output', help="For ")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -1645,7 +1646,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
 
         else:
-            sys.stdout.write("%s\n" % _output.strip())
+            sys.stdout.write("{0}\n".format(_output.strip()))
 
     def _get_blast_binaries():
         blastp = None
