@@ -76,5 +76,5 @@ def test_order_features_alphabetically(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 if __name__ == '__main__':
-    debug = test_order_features_alphabetically(sb_objects[2])
+    debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))

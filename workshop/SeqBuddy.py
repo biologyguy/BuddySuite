@@ -1492,7 +1492,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-cs', '--clean_seq', action='store_true',
                         help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
     parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')
+                        help='Convert all sequences to uppercase')  #TODO Fix for genbank
     parser.add_argument('-lc', '--lowercase', action='store_true',
                         help='Convert all sequences to lowercase')
     parser.add_argument('-dm', '--delete_metadata', action='store_true',
