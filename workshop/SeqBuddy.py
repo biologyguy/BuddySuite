@@ -353,10 +353,14 @@ def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
 
     if len(_sequence) == 0:
         return None
+    if re.search('U', _sequence):  # U is unique to RNA
+        return IUPAC.ambiguous_rna
+    elif re.search('Q', _sequence):  # Q is unique to Protein
+        return IUPAC.protein
     percent_dna = float(_sequence.count("A") + _sequence.count("G") + _sequence.count("T") +
-                        _sequence.count("C") + _sequence.count("U")) / float(len(_sequence))
-    if percent_dna > 0.95:
-        nuc = IUPAC.ambiguous_rna if re.search('U', _sequence) else IUPAC.ambiguous_dna
+                        _sequence.count("C")) / float(len(_sequence))
+    if percent_dna > 0.85: # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
+        nuc = IUPAC.ambiguous_dna if re.search('T', _sequence) else IUPAC.ambiguous_rna
         return nuc
     else:
         return IUPAC.protein
@@ -1480,13 +1484,13 @@ def molecular_weight(_seqbuddy):
                           'X': 110}
     deoxynucleotide_weights = {'A': 313.2, 'G': 329.2, 'C': 289.2, 'T': 304.2, 'Y': 296.7, 'R': 321.2, 'W': 308.7,
                                'S': 309.2, 'K': 316.7, 'M': 301.2, 'D': 315.53, 'V': 310.53, 'H': 302.2, 'B': 307.53,
-                               'X': 308.95, 'N': 308.95, '-': 0}
+                               'X': 308.95, 'N': 308.95, '-': 0, '.': 0}
     deoxyribonucleotide_weights = {'A': 329.2, 'G': 306.2, 'C': 305.2, 'U': 345.2, 'Y': 325.2, 'R': 317.7, 'W': 337.2,
                                'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53, 'B': 318.87,
-                               'X': 321.45, 'N': 321.45, '-': 0}
+                               'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
     deoxynucleotide_compliments = {'A': 'T', 'G': 'C', 'C': 'G', 'T': 'A', 'Y': 'R', 'R': 'Y', 'W': 'W',
                                'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
-                               'X': 'X', 'N': 'N', '-': '-'}
+                               'X': 'X', 'N': 'N', '-': '-', '.': '.'}
     _dna = False
     _output = {'masses_ss':[], 'masses_ds':[],'ids':[]}
     _dict = amino_acid_weights
