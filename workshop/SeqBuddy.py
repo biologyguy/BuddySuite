@@ -234,16 +234,19 @@ def _stderr(message, quiet=False):
     if not quiet:
         sys.stderr.write(message)
     return
-# #################################################################################################################### #
+# ##################################################### SEQ BUDDY #################################################### #
 
 # TODO Handle stdin when not piped
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
-        in_file = None
-        raw_seq = None
+        # ####  IN AND OUT FORMATS  #### #
+        # Holders for input type. Used for some error handling below
         in_handle = None
+        raw_seq = None
+        in_file = None
 
+        # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
                 temp = StringIO(_input.read())
@@ -259,6 +262,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _input = temp
             _input.seek(0)
 
+        # File paths
         try:
             if os.path.isfile(_input):
                 in_file = _input
@@ -288,6 +292,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         self.out_format = self.in_format if not _out_format else _out_format
 
+        # ####  RECORDS  #### #
         if str(type(_input)) == "<class '__main__.SeqBuddy'>":
             _sequences = _input.records
 
@@ -1542,7 +1547,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-tr', '--translate', action='store_true',
                         help="Convert coding sequences into amino acid sequences")
     parser.add_argument('-sfr', '--select_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
-                        help="Change the reading from of sequences by deleting characters off of the front")
+                        help="Change the reading frame of sequences by deleting characters off of the front")
     parser.add_argument('-tr6', '--translate6frames', action='store_true',
                         help="Translate nucleotide sequences into all six reading frames")
     parser.add_argument('-btr', '--back_translate', action='append', nargs="*",
