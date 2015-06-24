@@ -6,7 +6,6 @@
 DESCRIPTION OF PROGRAM
 """
 
-from Bio import Phylo
 import sys
 import os
 import argparse
@@ -23,10 +22,11 @@ from newick_utils import *
 
 # ##################################################### WISH LIST #################################################### #
 def unroot(_trees):
-    x = 1
+    pass
+
 
 def screw_formats(_phylobuddy, _format):
-    x = 1
+    pass
 
 # Compare two trees, and add colour to the nodes that differ.
 
@@ -43,11 +43,13 @@ def screw_formats(_phylobuddy, _format):
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
 # Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
 
+
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _stderr(message, quiet=False):
     if not quiet:
         sys.stderr.write(message)
     return
+
 
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
@@ -56,6 +58,7 @@ class GuessError(Exception):
 
     def __str__(self):
         return self.value
+
 
 # #################################################################################################################### #
 class PhyloBuddy:
@@ -159,7 +162,7 @@ def guess_format(_input):
         possible_formats = ["newick", "nexus", "nexml", "phyloxml"]  # Look into cdao in future
         for _format in possible_formats:
             _input.seek(0)
-            _seqs = Phylo.parse(_input, _format)
+            _seqs = Bio.Phylo.parse(_input, _format)
             if next(_seqs):
                 _input.seek(0)
                 return _format
@@ -172,10 +175,11 @@ def guess_format(_input):
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 # #################################################### TOOL KIT ###################################################### #
 
+
 def split_polytomies(_trees):
     _output = []
     for _tree in _trees.trees:
-        #print(Tree.parse_newick_input(_tree))
+        # print(Tree.parse_newick_input(_tree))
         print(_tree)
     return _trees
 
