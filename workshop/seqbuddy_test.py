@@ -75,6 +75,10 @@ def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
+mw_files = ["mw_test_pep.fa", "mw_test_cds_a.fa", "mw_test_cds_u.fa", "mw_test_rna_cds_a.fa", "mw_test_rna_cds_u.fa"]
+expected_mw = [2505.75, 105121.99, 210243.1]
+
+
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))
