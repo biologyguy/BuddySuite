@@ -81,11 +81,6 @@ def codon_counter():
     return
 
 
-def molecular_weight():
-    # get the mass of each sequence
-    return
-
-
 def isoelectric_point():
     # predicted...
     return
@@ -241,6 +236,7 @@ def _stderr(message, quiet=False):
     return
 # #################################################################################################################### #
 
+# TODO Handle stdin when not piped
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
@@ -1470,6 +1466,50 @@ def split_by_taxa(_seqbuddy, split_char):
     return taxa
 
 
+def molecular_weight(_seqbuddy):
+    # get the mass of each sequence in daltons
+
+    amino_acid_weights = {'A': 71.08, 'R': 156.19, 'N': 114.10, 'D': 115.09, 'C': 103.14, 'Q': 128.13, 'E': 129.12,
+                          'G': 57.05, 'H': 137.14, 'I': 113.16, 'L': 113.16, 'K': 128.17, 'M': 131.19, 'F': 147.18,
+                          'P': 97.12, 'S': 87.08, 'T': 101.11, 'W': 186.21,'Y': 163.18, 'V': 99.13, '-': 0, '*': 0,
+                          'X': 110}
+    deoxynucleotide_weights = {'A': 313.2, 'G': 329.2, 'C': 289.2, 'T': 304.2, 'Y': 296.7, 'R': 321.2, 'W': 308.7,
+                               'S': 309.2, 'K': 316.7, 'M': 301.2, 'D': 315.53, 'V': 310.53, 'H': 302.2, 'B': 307.53,
+                               'X': 308.95, 'N': 308.95, '-': 0}
+    deoxyribonucleotide_weights = {'A': 329.2, 'G': 306.2, 'C': 305.2, 'U': 345.2, 'Y': 325.2, 'R': 317.7, 'W': 337.2,
+                               'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53, 'B': 318.87,
+                               'X': 321.45, 'N': 321.45, '-': 0}
+    deoxynucleotide_compliments = {'A': 'T', 'G': 'C', 'C': 'G', 'T': 'A', 'Y': 'R', 'R': 'Y', 'W': 'W',
+                               'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
+                               'X': 'X', 'N': 'N', '-': '-'}
+    _dna = False
+    _output = {'masses_ss':[], 'masses_ds':[],'ids':[]}
+    _dict = amino_acid_weights
+    if _seqbuddy.alpha == IUPAC.protein:
+        _dict = amino_acid_weights
+    elif _seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+        _dict = deoxynucleotide_weights
+        _dna = True
+    elif _seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+        _dict = deoxyribonucleotide_weights
+    for _rec in _seqbuddy.records:
+        _rec.mass_ds = 18.02  # molecular weight of a water molecule
+        _rec.mass_ss = 18.02  # molecular weight of a water molecule
+        if _seqbuddy.alpha != IUPAC.protein:
+            if _dna:
+                _rec.mass_ss += 79.0  # molecular weight of 5' monophosphate in ssDNA
+                _rec.mass_ds += 157.9  # molecular weight of the 5' triphosphate in dsDNA
+            else:
+                _rec.mass_ss += 159.0  # molecular weight of a 5' triphosphate in ssRNA
+        for indx, value in enumerate(str(_rec.seq).upper()):
+            _rec.mass_ss += _dict[value]
+            if _dna:
+                _rec.mass_ds += _dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
+        _output['masses_ss'].append(round(_rec.mass_ss,3))
+        if _dna:
+            _output['masses_ds'].append(round(_rec.mass_ds,3))
+        _output['ids'].append(_rec.id)
+    return _output
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1490,9 +1530,9 @@ PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
     parser.add_argument('-cs', '--clean_seq', action='store_true',
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
+                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)") # TODO Fix for .phy, .phyr, .stklm, .nex
     parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')  #TODO Fix for genbank
+                        help='Convert all sequences to uppercase')  # TODO Fix for genbank
     parser.add_argument('-lc', '--lowercase', action='store_true',
                         help='Convert all sequences to lowercase')
     parser.add_argument('-dm', '--delete_metadata', action='store_true',
@@ -1524,7 +1564,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Counts how many sequences are present in an input file")
     parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
                         help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
-                             "from the sequences before counting.")
+                             "from the sequences before counting.") # Fasta returns different result, unless clean is used
     parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
                         help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
                              "remove stops, gaps, etc., from the sequences before concatenating.")
@@ -1584,6 +1624,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
+                        help="")
+    parser.add_argument("-mw", "--molecular_weight", action='store_true',
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
@@ -2159,3 +2201,18 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             in_args.quiet = True
             _print_recs(seqbuddy)
             in_args.quiet = check_quiet
+
+    #Calculate Molecular Weight
+    if in_args.molecular_weight:
+        lists = molecular_weight(seqbuddy)
+        if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+            sys.stderr.write("ssDNA\t\tdsDNA\t\tID\n")
+        elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+            sys.stderr.write("ssRNA\t\tID\n")
+        else:
+            sys.stderr.write("Protein\t\tID\n")
+        for indx, value in enumerate(lists['ids']):
+            if len(lists['masses_ds']) != 0:
+                print("{0}\t{1}\t{2}".format(lists['masses_ss'][indx], lists['masses_ds'][indx], value))
+            else:
+                print("{0}\t{1}".format(lists['masses_ss'][indx], value))
