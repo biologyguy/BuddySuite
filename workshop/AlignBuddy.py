@@ -8,12 +8,215 @@ AlignmentBuddy is a general wrapper for popular DNA and protein alignment progra
 and allows maintencance of rich feature annotation following alignment.
 """
 
-import argparse
-from Bio import SeqIO, AlignIO
-import os
+# Standard library imports
 import sys
+import os
+import argparse
 import shutil
+from io import StringIO
+from random import sample
 
+# Third party package imports
+from Bio import SeqIO, AlignIO
+
+
+# ##################################################### WISH LIST #################################################### #
+# 'Clean' an alignment, as implemented in phyutility
+
+
+# ################################################# HELPER FUNCTIONS ################################################# #
+def _stderr(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+    return
+
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+# #################################################### ALIGN BUDDY ################################################### #
+class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
+    def __init__(self, _input, _in_format=None, _out_format=None):
+        # ####  IN AND OUT FORMATS  #### #
+        # Holders for input type. Used for some error handling below
+        in_handle = None
+        raw_seq = None
+        in_file = None
+
+        # Handles
+        if str(type(_input)) == "<class '_io.TextIOWrapper'>":
+            if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
+                temp = StringIO(_input.read())
+                _input = temp
+            _input.seek(0)
+            in_handle = _input.read()
+            _input.seek(0)
+
+        # Raw sequences
+        if type(_input) == str and not os.path.isfile(_input):
+            raw_seq = _input
+            temp = StringIO(_input)
+            _input = temp
+            _input.seek(0)
+
+        # File paths
+        try:
+            if os.path.isfile(_input):
+                in_file = _input
+
+        except TypeError:  # This happens when testing something other than a string.
+            pass
+
+        if not _in_format:
+            self.in_format = guess_format(_input)
+            self.out_format = str(self.in_format) if not _out_format else _out_format
+
+        else:
+            self.in_format = _in_format
+
+        if not self.in_format:
+            if in_file:
+                raise GuessError("Could not determine format from _input file '{0}'.\n"
+                                 "Try explicitly setting with -f flag.".format(in_file))
+            elif raw_seq:
+                raise GuessError("Could not determine format from raw input\n{0} ..."
+                                 "Try explicitly setting with -f flag.".format(raw_seq)[:50])
+            elif in_handle:
+                raise GuessError("Could not determine format from input file-like object\n{0} ..."
+                                 "Try explicitly setting with -f flag.".format(in_handle)[:50])
+            else:
+                raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
+
+        self.out_format = self.in_format if not _out_format else _out_format
+
+        # ####  RECORDS  #### #
+        if str(type(_input)) == "<class '__main__.SeqBuddy'>":
+            _sequences = _input.records
+
+        elif isinstance(_input, list):
+            # make sure that the list is actually SeqIO records (just test a few...)
+            _sample = _input if len(_input) < 5 else sample(_input, 5)
+            for _seq in _sample:
+                if type(_seq) != SeqRecord:
+                    raise TypeError("Seqlist is not populated with SeqRecords.")
+            _sequences = _input
+
+        elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
+            _sequences = list(SeqIO.parse(_input, self.in_format))
+
+        elif os.path.isfile(_input):
+            with open(_input, "r") as _input:
+                _sequences = list(SeqIO.parse(_input, self.in_format))
+        else:
+            _sequences = [SeqRecord(Seq(_input))]
+
+        self.alpha = guess_alphabet(_sequences)
+
+        for _i in range(len(_sequences)):
+            _sequences[_i].seq.alphabet = self.alpha
+
+        self.records = _sequences
+
+    def to_dict(self):
+        _unique, _rep_ids, _rep_seqs = find_repeats(self)
+        if len(_rep_ids) > 0:
+            raise RuntimeError("There are repeat IDs in self.records\n%s" % _rep_ids)
+
+        records_dict = {}
+        for _rec in self.records:
+            records_dict[_rec.id] = _rec
+        return records_dict
+
+    def print(self):
+        _output = ""
+        for _rec in self.records:
+            _output += _rec.format(self.out_format)
+        return _output
+
+    def write(self, _file_path):
+        with open(_file_path, "w") as _ofile:
+            SeqIO.write(self.records, _ofile, self.out_format)
+        return
+
+
+def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
+    _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
+    _sequence = ""
+    for next_seq in _seq_list:
+        if len(_sequence) > 1000:
+            break
+        _sequence += re.sub("[NX\-?]", "", str(next_seq.seq))
+        _sequence = _sequence.upper()
+
+    if len(_sequence) == 0:
+        return None
+    percent_dna = float(_sequence.count("A") + _sequence.count("G") + _sequence.count("T") +
+                        _sequence.count("C") + _sequence.count("U")) / float(len(_sequence))
+    if percent_dna > 0.95:
+        nuc = IUPAC.ambiguous_rna if float(_sequence.count("U")) / float(len(_sequence)) > 0.05 else IUPAC.ambiguous_dna
+        return nuc
+    else:
+        return IUPAC.protein
+
+
+def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
+    # If input is just a list, there is no BioPython in-format. Default to gb.
+    if isinstance(_input, list):
+        return "gb"
+
+    # Pull value directly from object if appropriate
+    if type(_input) == SeqBuddy:
+        return _input.in_format
+
+    # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
+    if os.path.isfile(str(_input)):
+        _input = open(_input, "r")
+
+    if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
+        # Die if file is empty
+        if _input.read() == "":
+            sys.exit("Input file is empty.")
+        _input.seek(0)
+
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]  # ToDo: Glean CLUSTAL
+        for _format in possible_formats:
+            try:
+                _input.seek(0)
+                _seqs = SeqIO.parse(_input, _format)
+                if next(_seqs):
+                    _input.seek(0)
+                    return _format
+                else:
+                    continue
+            except StopIteration:  # ToDo check that other types of error are not possible
+                continue
+            except ValueError:
+                continue
+        return None  # Unable to determine format from file handle
+
+    else:
+        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+
+
+def phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
+    max_id_length = 0
+    max_seq_length = 0
+    for _rec in _seqbuddy.records:
+        max_id_length = len(_rec.id) if len(_rec.id) > max_id_length else max_id_length
+        max_seq_length = len(_rec.seq) if len(_rec.seq) > max_seq_length else max_seq_length
+
+    _output = " %s %s\n" % (len(_seqbuddy.records), max_seq_length)
+    for _rec in _seqbuddy.records:
+        _seq_id = _rec.id.ljust(max_id_length) if _format == "relaxed" else _rec.id[:10].ljust(10)
+        _output += "%s  %s\n" % (_seq_id, _rec.seq)
+
+    return _output
+
+# #################################################################################################################### #
 
 def screw_formats_align(_alignments, _out_format):
     _output = ""
