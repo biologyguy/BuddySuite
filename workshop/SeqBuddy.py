@@ -1490,17 +1490,19 @@ def molecular_weight(_seqbuddy):
                           'H':137.14, 'I':113.16, 'L':113.16, 'K':128.17, 'M':131.19, 'F':147.18, 'P':97.12, 'S':87.08, 'T':101.11, 'W':186.21,
                           'Y':163.18, 'V':99.13, '-':0, '*':0, 'X':110} # In Daltons
     masses = []
+    ids = []
     if _seqbuddy.alpha == IUPAC.protein:
         temp_sb = _seqbuddy
     else:
         temp_sb = translate_cds(_seqbuddy,True)
     i = 0
     for rec in temp_sb.records:
+        ids.append(rec.name)
         masses.append(18.02)
         for x in range(len(rec.seq.__str__())):
             masses[i]+=amino_acid_weights[rec.seq.__str__().upper()[x]]
         i+=1
-    return masses
+    return [masses,ids]
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -2195,6 +2197,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     #Calculate Molecular Weight
     if in_args.molecular_weight:
-        mw_list = molecular_weight(seqbuddy)
-        for mw in mw_list:
-            sys.stdout.write(str(round(mw,3))+"\n")
+        lists = molecular_weight(seqbuddy)
+        for x in range(len(lists[0])):
+            sys.stdout.write(str(round(lists[0][x],3))+"\t"+lists[1][x]+"\n")
