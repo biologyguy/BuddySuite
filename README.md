@@ -116,4 +116,4 @@ required unless you are developing (or want the bleeding edge).
 [purge](https://github.com/biologyguy/BuddySuite/wiki/Purge) | -prg | \<Max BLAST bit-score (int)\> | Delete sequences with high similarity
 [guess_alphabet](https://github.com/biologyguy/BuddySuite/wiki/Guess-alphabet) | -ga | None | Return the alphabet type found in the input file
 [guess_format](https://github.com/biologyguy/BuddySuite/wiki/Guess-format) | -gf | None | Guess the flatfile format of the input file
-[molecular_weight](https://github.com/biologyguy/BuddySuite/wiki/Guess-format) | -mw | None | Computes the molecular weight of all of the sequences found in the input file.
+[molecular_weight](https://github.com/biologyguy/BuddySuite/wiki/Molecular-weight) | -mw | None | Computes the molecular weight of all of the sequences found in the input file.
