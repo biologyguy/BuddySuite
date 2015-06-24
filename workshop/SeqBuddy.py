@@ -351,7 +351,7 @@ def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
     percent_dna = float(_sequence.count("A") + _sequence.count("G") + _sequence.count("T") +
                         _sequence.count("C") + _sequence.count("U")) / float(len(_sequence))
     if percent_dna > 0.95:
-        nuc = IUPAC.ambiguous_rna if float(_sequence.count("U")) / float(len(_sequence)) > 0.05 else IUPAC.ambiguous_dna
+        nuc = IUPAC.ambiguous_rna if re.search('U', _sequence) else IUPAC.ambiguous_dna
         return nuc
     else:
         return IUPAC.protein
@@ -1493,9 +1493,11 @@ def molecular_weight(_seqbuddy):
     elif _seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
         _dict = deoxyribonucleotide_weights
     for _rec in _seqbuddy.records:
-        _rec.mass_ds = 18.02  # molecular weight of a water molecule
-        _rec.mass_ss = 18.02  # molecular weight of a water molecule
-        if _seqbuddy.alpha != IUPAC.protein:
+        _rec.mass_ds = 0  # molecular weight of a water molecule
+        _rec.mass_ss = 0  # molecular weight of a water molecule
+        if _seqbuddy.alpha == IUPAC.protein:
+            _rec.mass_ss += 18.02
+        else:
             if _dna:
                 _rec.mass_ss += 79.0  # molecular weight of 5' monophosphate in ssDNA
                 _rec.mass_ds += 157.9  # molecular weight of the 5' triphosphate in dsDNA
@@ -2206,11 +2208,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.molecular_weight:
         lists = molecular_weight(seqbuddy)
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            sys.stderr.write("ssDNA\t\tdsDNA\t\tID\n")
+            _stderr("ssDNA\t\tdsDNA\t\tID\n")
         elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            sys.stderr.write("ssRNA\t\tID\n")
+            _stderr("ssRNA\t\tID\n")
         else:
-            sys.stderr.write("Protein\t\tID\n")
+            _stderr("Protein\t\tID\n")
         for indx, value in enumerate(lists['ids']):
             if len(lists['masses_ds']) != 0:
                 print("{0}\t{1}\t{2}".format(lists['masses_ss'][indx], lists['masses_ds'][indx], value))
