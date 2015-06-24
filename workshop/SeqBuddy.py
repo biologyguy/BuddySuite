@@ -83,7 +83,19 @@ def codon_counter():
 
 def molecular_weight():
     # get the mass of each sequence
-    return
+
+    amino_acid_weights = {'A':71.08, 'R':156.19, 'N':114.10, 'D':115.09, 'C':103.14, 'Q':128.13, 'E':129.12, 'G':57.05,
+                          'H':137.14, 'I':113.16, 'L':113.16, 'K':128.17, 'M':131.19, 'F':147.18, 'P':97.12, 'S':87.08, 'T':101.11, 'W':186.21,
+                          'Y':163.18, 'V':99.13} # In Daltons
+    mass = 0
+    if _seqbuddy.alpha == IUPAC.protein:
+        for x in range(0,len(raw_sec)):
+            mass+=(amino_acid_weights[raw_sec[x].upper()])
+    else:
+        temp_sb = translate_cds(this,True)
+        for x in range(0,len(temp_sb.raw_sec)):
+            mass+=(amino_acid_weights[temp_sb.raw_sec[x].upper()])
+    return mass
 
 
 def isoelectric_point():
@@ -241,6 +253,7 @@ def _stderr(message, quiet=False):
     return
 # #################################################################################################################### #
 
+# TODO Handle stdin when not piped
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
@@ -1470,6 +1483,24 @@ def split_by_taxa(_seqbuddy, split_char):
     return taxa
 
 
+def molecular_weight(_seqbuddy):
+    # get the mass of each sequence
+
+    amino_acid_weights = {'A':71.08, 'R':156.19, 'N':114.10, 'D':115.09, 'C':103.14, 'Q':128.13, 'E':129.12, 'G':57.05,
+                          'H':137.14, 'I':113.16, 'L':113.16, 'K':128.17, 'M':131.19, 'F':147.18, 'P':97.12, 'S':87.08, 'T':101.11, 'W':186.21,
+                          'Y':163.18, 'V':99.13, '-':0, '*':0, 'X':110} # In Daltons
+    masses = []
+    if _seqbuddy.alpha == IUPAC.protein:
+        temp_sb = _seqbuddy
+    else:
+        temp_sb = translate_cds(_seqbuddy,True)
+    i = 0
+    for rec in temp_sb.records:
+        masses.append(18.02)
+        for x in range(len(rec.seq.__str__())):
+            masses[i]+=amino_acid_weights[rec.seq.__str__().upper()[x]]
+        i+=1
+    return masses
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1490,9 +1521,9 @@ PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
     parser.add_argument('-cs', '--clean_seq', action='store_true',
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
+                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)") # TODO Fix for .phy, .phyr, .stklm, .nex
     parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')  #TODO Fix for genbank
+                        help='Convert all sequences to uppercase')  # TODO Fix for genbank
     parser.add_argument('-lc', '--lowercase', action='store_true',
                         help='Convert all sequences to lowercase')
     parser.add_argument('-dm', '--delete_metadata', action='store_true',
@@ -1524,7 +1555,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Counts how many sequences are present in an input file")
     parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
                         help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
-                             "from the sequences before counting.")
+                             "from the sequences before counting.") # Fasta returns different result, unless clean is used
     parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
                         help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
                              "remove stops, gaps, etc., from the sequences before concatenating.")
@@ -1584,6 +1615,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
+                        help="")
+    parser.add_argument("-mw", "--molecular_weight", action='store_true',
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
@@ -2159,3 +2192,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             in_args.quiet = True
             _print_recs(seqbuddy)
             in_args.quiet = check_quiet
+
+    #Calculate Molecular Weight
+    if in_args.molecular_weight:
+        mw_list = molecular_weight(seqbuddy)
+        for mw in mw_list:
+            sys.stdout.write(str(round(mw,3))+"\n")
