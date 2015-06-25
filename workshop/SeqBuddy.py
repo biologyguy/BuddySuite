@@ -239,12 +239,13 @@ def _stderr(message, quiet=False):
 # TODO Handle stdin when not piped
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
-    def __init__(self, _input, _in_format=None, _out_format=None):
+    def __init__(self, _input, _in_format=None, _out_format=None, _alpha=""):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
         in_handle = None
         raw_seq = None
         in_file = None
+        self.alpha = _alpha
 
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -313,7 +314,16 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         else:
             _sequences = [SeqRecord(Seq(_input))]
 
-        self.alpha = guess_alphabet(_sequences)
+        if self.alpha is None:
+            self.alpha = guess_alphabet(_sequences)
+        elif self.alpha == 'protein':
+            self.alpha = IUPAC.protein
+        elif self.alpha == 'dna':
+            self.alpha = IUPAC.ambiguous_dna
+        elif self.alpha == 'rna':
+            self.alpha = IUPAC.ambiguous_rna
+        else:
+            self.alpha = guess_alphabet(_sequences)
 
         for _i in range(len(_sequences)):
             _sequences[_i].seq.alphabet = self.alpha
@@ -1646,6 +1656,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
                         action='store')
+    parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
     
     in_args = parser.parse_args()
 
@@ -1653,10 +1664,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     seq_set = ""
 
     for seq_set in in_args.sequence:
-        seq_set = SeqBuddy(seq_set, in_args.in_format)
+        seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
         seqbuddy += seq_set.records
 
-    seqbuddy = SeqBuddy(seqbuddy)
+    seqbuddy = SeqBuddy(seqbuddy,in_args.in_format, in_args.out_format, in_args.alpha)
 
     seqbuddy.out_format = in_args.out_format if in_args.out_format else seq_set.out_format
 
