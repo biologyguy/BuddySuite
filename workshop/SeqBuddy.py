@@ -341,27 +341,23 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             SeqIO.write(self.records, _ofile, self.out_format)
         return
 
-
-def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
+# Does not attempt to explicitly deal with weird cases (e.g., ambigous residues).
+# The user will need to specify an alphabet with the -a flag if using non-standard characters in their sequences.
+def guess_alphabet(_seqbuddy):
     _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
-    _sequence = ""
-    for next_seq in _seq_list:
-        if len(_sequence) > 1000:
-            break
-        _sequence += re.sub("[NX\-?]", "", str(next_seq.seq))
-        _sequence = _sequence.upper()
+    _seq_list = [str(x.seq) for x in _seq_list]
+    _sequence = "".join(_seq_list).upper()
+    _sequence = re.sub("[NX\-?]", "", _sequence)
 
     if len(_sequence) == 0:
         return None
+
     if re.search('U', _sequence):  # U is unique to RNA
         return IUPAC.ambiguous_rna
-    elif re.search('Q', _sequence):  # Q is unique to Protein
-        return IUPAC.protein
-    percent_dna = float(_sequence.count("A") + _sequence.count("G") + _sequence.count("T") +
-                        _sequence.count("C")) / float(len(_sequence))
-    if percent_dna > 0.85: # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
-        nuc = IUPAC.ambiguous_dna if re.search('T', _sequence) else IUPAC.ambiguous_rna
-        return nuc
+
+    percent_dna = len(re.findall("[ATCG]", _sequence)) / float(len(_sequence))
+    if percent_dna > 0.85:  # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
+        return IUPAC.ambiguous_dna
     else:
         return IUPAC.protein
 
