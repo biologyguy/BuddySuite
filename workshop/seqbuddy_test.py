@@ -76,8 +76,23 @@ def test_order_features_alphabetically(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 mw_files = ["mw_test_pep.fa", "mw_test_cds_a.fa", "mw_test_cds_u.fa", "mw_test_rna_cds_a.fa", "mw_test_rna_cds_u.fa"]
-expected_mw = [2505.75, 105121.99, 210243.1]
-
+mw_formats = ["protein", "dna", "dna", "rna", "rna"]
+mw_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", mw_formats[indx])) for indx, value in enumerate(mw_files)]
+expected_mw = [[2505.75, None], [5022.19, 10044.28], [3168.0, 6335.9], [4973.0, None], [3405.0, None]]
+expected_mw = [(mw_objects[indx], value) for indx, value in enumerate(expected_mw)]
+@pytest.mark.parametrize("seqbuddy,next_mw", expected_mw)
+@pytest.mark.mw
+def test_molecular_weight(seqbuddy, next_mw):  # IndexError for both RNA files. Seqbuddy.records is empty
+    tester = Sb.molecular_weight(seqbuddy)
+    masses_ss = tester['masses_ss']
+    masses_ds = tester['masses_ds']
+    print(tester)
+    print(seqbuddy)
+    print(seqbuddy.records)
+    print(masses_ss)
+    assert masses_ss[0] == next_mw[0]
+    if len(masses_ds) != 0:
+        assert masses_ds[0] == next_mw[1]
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])

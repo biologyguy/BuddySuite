@@ -237,6 +237,7 @@ def _stderr(message, quiet=False):
 # ##################################################### SEQ BUDDY #################################################### #
 
 # TODO Handle stdin when not piped
+# TODO Fix error reporting when file is not found (currently throws could not guess format)
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None, _alpha=""):
@@ -362,7 +363,7 @@ def guess_alphabet(_seqbuddy):
     if len(_sequence) == 0:
         return None
 
-    if re.search('U', _sequence):  # U is unique to RNA
+    if 'U' in _sequence:  # U is unique to RNA
         return IUPAC.ambiguous_rna
 
     percent_dna = len(re.findall("[ATCG]", _sequence)) / float(len(_sequence))
@@ -370,7 +371,6 @@ def guess_alphabet(_seqbuddy):
         return IUPAC.ambiguous_dna
     else:
         return IUPAC.protein
-
 
 def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
     # If input is just a list, there is no BioPython in-format. Default to gb.
