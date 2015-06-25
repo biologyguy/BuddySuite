@@ -82,7 +82,6 @@ mw_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", mw_formats[indx]))
 expected_mw = [[2505.75, None], [5022.19, 10044.28], [3168.0, 6335.9], [4973.0, None], [3405.0, None]]
 expected_mw = [(mw_objects[indx], value) for indx, value in enumerate(expected_mw)]
 @pytest.mark.parametrize("seqbuddy,next_mw", expected_mw)
-@pytest.mark.mw
 def test_molecular_weight(seqbuddy, next_mw):
     tester = Sb.molecular_weight(seqbuddy)
     masses_ss = tester['masses_ss']
@@ -97,6 +96,15 @@ def test_molecular_weight(seqbuddy, next_mw):
 
 #'cs', '--clean_seq'
 cs_files = ["cs_test_pep.fa", "cs_test_cds_a.fa", "cs_test_cds_u.fa"]
+cs_formats = ["protein","dna","dna"]
+cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
+cs_hashes = ['91a49ad673238e5454227f5d0f8c29ba', "11f39968ab6e6841960b7dd7a4ca124b", "d71a59aaa3716cdc4b3934a2c04d932a"]
+cs_hashes = [(cs_objects[indx], value) for indx, value in enumerate(cs_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash",cs_hashes)
+def test_clean_seq(seqbuddy, next_hash):
+    tester = Sb.clean_seq(seqbuddy)
+    print(tester.records[0].seq)
+    assert seqs_to_hash(tester) == next_hash
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
