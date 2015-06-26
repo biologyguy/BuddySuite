@@ -240,7 +240,7 @@ def _stderr(message, quiet=False):
 # TODO Fix error reporting when file is not found (currently throws could not guess format)
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
-    def __init__(self, _input, _in_format=None, _out_format=None, _alpha=""):
+    def __init__(self, _input, _in_format=None, _out_format=None, _alpha=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
         in_handle = None
@@ -317,13 +317,14 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         if self.alpha is None:
             self.alpha = guess_alphabet(_sequences)
-        elif self.alpha == 'protein':
+        elif self.alpha in ['protein', 'prot', 'p', 'pep']:
             self.alpha = IUPAC.protein
-        elif self.alpha == 'dna':
+        elif self.alpha in ['dna', 'd', 'cds']:
             self.alpha = IUPAC.ambiguous_dna
-        elif self.alpha == 'rna':
+        elif self.alpha in ['rna', 'r']:
             self.alpha = IUPAC.ambiguous_rna
         else:
+            _stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
             self.alpha = guess_alphabet(_sequences)
 
         for _i in range(len(_sequences)):
