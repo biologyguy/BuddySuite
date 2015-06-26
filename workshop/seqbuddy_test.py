@@ -6,6 +6,9 @@ import pytest
 from hashlib import md5
 from Bio import SeqIO
 import os
+import subprocess
+import tempfile
+
 try:
     import workshop.SeqBuddy as Sb
 except ImportError:
@@ -13,6 +16,7 @@ except ImportError:
 import MyFuncs
 
 write_file = MyFuncs.TempFile()
+
 
 def seqs_to_hash(_seqbuddy, mode='hash'):
     if _seqbuddy.out_format == "phylipi":
@@ -30,19 +34,24 @@ def seqs_to_hash(_seqbuddy, mode='hash'):
     _hash = md5(seqs_string.encode()).hexdigest()
     return _hash
 
+
 root_dir = os.getcwd()
+
 
 def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
+
 
 seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy",
              "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
              "Mnemiopsis_pep.fa", "Mnemiopsis_pep.gb", "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy",
              "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm"]
 
+
 @pytest.mark.parametrize("seq_file", seq_files)
 def test_instantiate_seqbuddy_from_file(seq_file):
     assert type(Sb.SeqBuddy(resource(seq_file))) == Sb.SeqBuddy
+
 
 @pytest.mark.parametrize("seq_file", seq_files)
 def test_instantiate_seqbuddy_from_handle(seq_file):
@@ -63,24 +72,28 @@ formats = ["fasta", "gb", "nexus", "phylip-relaxed", "stockholm",
 
 # fa gb nex phy phyr stklm
 
-#'-ofa', '--order_features_alphabetically'
+# '-ofa', '--order_features_alphabetically'
 hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553", "cb1169c2dd357771a97a02ae2160935d",
           "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
           "c10d136c93f41db280933d5b3468f187", "f6b3c090ab6ac147cf6d87881a8ce5dc", "8b6737fe33058121fd99d2deee2f9a76",
           "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
 
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-#'-mw', '--molecular_weight'
+# '-mw', '--molecular_weight'
 mw_files = ["mw_test_pep.fa", "mw_test_cds_a.fa", "mw_test_cds_u.fa", "mw_test_rna_a.fa", "mw_test_rna_u.fa"]
 mw_formats = ["protein", "dna", "dna", "rna", "rna"]
 mw_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", mw_formats[indx])) for indx, value in enumerate(mw_files)]
 expected_mw = [[2505.75, None], [5022.19, 10044.28], [3168.0, 6335.9], [4973.0, None], [3405.0, None]]
 expected_mw = [(mw_objects[indx], value) for indx, value in enumerate(expected_mw)]
+
+
 @pytest.mark.parametrize("seqbuddy,next_mw", expected_mw)
 def test_molecular_weight(seqbuddy, next_mw):
     tester = Sb.molecular_weight(seqbuddy)
@@ -90,17 +103,20 @@ def test_molecular_weight(seqbuddy, next_mw):
     if len(masses_ds) != 0:
         assert masses_ds[0] == next_mw[1]
 
-#'cs', '--clean_seq'
+# 'cs', '--clean_seq'
 cs_files = ["cs_test_pep.fa", "cs_test_cds_a.fa", "cs_test_cds_u.fa"]
-cs_formats = ["protein","dna","dna"]
+cs_formats = ["protein", "dna", "dna"]
 cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
 cs_hashes = ['9289d387b1c8f990b44a9cb15e12443b', "8e161d5e4115bf483f5196adf7de88f0", "2e873cee6f807fe17cb0ff9437d698fb"]
 cs_hashes = [(cs_objects[indx], value) for indx, value in enumerate(cs_hashes)]
-@pytest.mark.parametrize("seqbuddy,next_hash",cs_hashes)
+
+
+@pytest.mark.parametrize("seqbuddy,next_hash", cs_hashes)
 def test_clean_seq(seqbuddy, next_hash):
     tester = Sb.clean_seq(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
+# 'uc', '--uppercase'
 lc_files = ["lower_Mnemiopsis_cds.fa", "lower_Mnemiopsis_cds.gb", "lower_Mnemiopsis_cds.nex",
             "lower_Mnemiopsis_cds.phyr", "lower_Mnemiopsis_cds.stklm", "lower_Mnemiopsis_pep.fa",
             "lower_Mnemiopsis_pep.gb", "lower_Mnemiopsis_pep.nex", "lower_Mnemiopsis_pep.phyr",
@@ -111,11 +127,14 @@ lc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "d41d8cd98f00b204e9800998ecf842
              "d41d8cd98f00b204e9800998ecf8427e", "8b6737fe33058121fd99d2deee2f9a76", "b229db9c07ff3e4bc049cea73d3ebe2c",
              "f35cbc6e929c51481e4ec31e95671638"]
 lc_hashes = [(lc_objects[indx], value) for indx, value in enumerate(lc_hashes)]
+
+
 @pytest.mark.parametrize("seqbuddy,next_hash", lc_hashes)
-def test_uppercase(seqbuddy, next_hash): # genbank should fail right now
+def test_uppercase(seqbuddy, next_hash):  # genbank should fail right now
     tester = Sb.uppercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
+# 'lc', '--lowercase'
 uc_files = ["upper_Mnemiopsis_cds.fa", "upper_Mnemiopsis_cds.gb", "upper_Mnemiopsis_cds.nex",
             "upper_Mnemiopsis_cds.phyr", "upper_Mnemiopsis_cds.stklm", "upper_Mnemiopsis_pep.fa",
             "upper_Mnemiopsis_pep.gb", "upper_Mnemiopsis_pep.nex", "upper_Mnemiopsis_pep.phyr",
@@ -126,10 +145,42 @@ uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932c
              "0e575609db51ae25d4d41333c56f5661", "17ff1b919cac899c5f918ce8d71904f6", "6a3ee818e2711995c95372afe073490b",
              "c0dce60745515b31a27de1f919083fe9"]
 uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
+
+
 @pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
-def test_lowercase(seqbuddy, next_hash): # not sure why genbank is failing here
+def test_lowercase(seqbuddy, next_hash):  # not sure why genbank is failing here
     tester = Sb.lowercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
+
+# 'rs', '--raw_seq'
+seq_paths = ["/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.fa",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.gb",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.nex",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.phy",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.phyr",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.stklm",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.fa",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.gb",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.nex",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.phy",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.phyr",
+             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.stklm"]
+rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
+             "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
+             "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
+             "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
+rs_hashes = [(seq_paths[indx], value) for indx, value in enumerate(rs_hashes)]
+@pytest.mark.rs
+@pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
+def test_raw_seq(seqbuddy, next_hash):
+    _input = ["sb", seqbuddy, "-rs"]
+    _output = subprocess.Popen(_input, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    _output = subprocess.Popen('md5', stdout=subprocess.PIPE, stdin=_output.stdout).communicate()[0]
+    print(type(_output))
+    _output = str(_output)
+    print(type(_output))
+    _output= _output[2:len(_output)-3]
+    assert _output == next_hash
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
