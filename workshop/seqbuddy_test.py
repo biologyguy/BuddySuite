@@ -153,32 +153,20 @@ def test_lowercase(seqbuddy, next_hash):  # not sure why genbank is failing here
     assert seqs_to_hash(tester) == next_hash
 
 # 'rs', '--raw_seq'
-seq_paths = ["/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.fa",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.gb",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.nex",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.phy",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.phyr",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.stklm",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.fa",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.gb",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.nex",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.phy",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.phyr",
-             "/Users/keatke/PycharmProjects/BuddySuite/workshop/unit_test_resources/Mnemiopsis_pep.stklm"]
+
+seq_path = root_dir+"/unit_test_resources/"
 rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
              "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
-rs_hashes = [(seq_paths[indx], value) for indx, value in enumerate(rs_hashes)]
-@pytest.mark.rs
+rs_hashes = [(seq_path + seq_files[indx], value) for indx, value in enumerate(rs_hashes)]
+@pytest.mark.slow
 @pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
 def test_raw_seq(seqbuddy, next_hash):
     _input = ["sb", seqbuddy, "-rs"]
     _output = subprocess.Popen(_input, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     _output = subprocess.Popen('md5', stdout=subprocess.PIPE, stdin=_output.stdout).communicate()[0]
-    print(type(_output))
     _output = str(_output)
-    print(type(_output))
     _output= _output[2:len(_output)-3]
     assert _output == next_hash
 
