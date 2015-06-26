@@ -86,10 +86,6 @@ def test_molecular_weight(seqbuddy, next_mw):
     tester = Sb.molecular_weight(seqbuddy)
     masses_ss = tester['masses_ss']
     masses_ds = tester['masses_ds']
-    print(tester)
-    print(seqbuddy)
-    print(seqbuddy.records)
-    print(masses_ss)
     assert masses_ss[0] == next_mw[0]
     if len(masses_ds) != 0:
         assert masses_ds[0] == next_mw[1]
@@ -98,12 +94,41 @@ def test_molecular_weight(seqbuddy, next_mw):
 cs_files = ["cs_test_pep.fa", "cs_test_cds_a.fa", "cs_test_cds_u.fa"]
 cs_formats = ["protein","dna","dna"]
 cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
-cs_hashes = ['91a49ad673238e5454227f5d0f8c29ba', "11f39968ab6e6841960b7dd7a4ca124b", "d71a59aaa3716cdc4b3934a2c04d932a"]
+cs_hashes = ['9289d387b1c8f990b44a9cb15e12443b', "8e161d5e4115bf483f5196adf7de88f0", "2e873cee6f807fe17cb0ff9437d698fb"]
 cs_hashes = [(cs_objects[indx], value) for indx, value in enumerate(cs_hashes)]
 @pytest.mark.parametrize("seqbuddy,next_hash",cs_hashes)
 def test_clean_seq(seqbuddy, next_hash):
     tester = Sb.clean_seq(seqbuddy)
-    print(tester.records[0].seq)
+    assert seqs_to_hash(tester) == next_hash
+
+lc_files = ["lower_Mnemiopsis_cds.fa", "lower_Mnemiopsis_cds.gb", "lower_Mnemiopsis_cds.nex",
+            "lower_Mnemiopsis_cds.phyr", "lower_Mnemiopsis_cds.stklm", "lower_Mnemiopsis_pep.fa",
+            "lower_Mnemiopsis_pep.gb", "lower_Mnemiopsis_pep.nex", "lower_Mnemiopsis_pep.phyr",
+            "lower_Mnemiopsis_pep.stklm"]
+lc_objects = [Sb.SeqBuddy(resource(file)) for file in lc_files]
+lc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "d41d8cd98f00b204e9800998ecf8427e", "52e74a09c305d031fc5263d1751e265d",
+             "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce", "c10d136c93f41db280933d5b3468f187",
+             "d41d8cd98f00b204e9800998ecf8427e", "8b6737fe33058121fd99d2deee2f9a76", "b229db9c07ff3e4bc049cea73d3ebe2c",
+             "f35cbc6e929c51481e4ec31e95671638"]
+lc_hashes = [(lc_objects[indx], value) for indx, value in enumerate(lc_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", lc_hashes)
+def test_uppercase(seqbuddy, next_hash): # genbank should fail right now
+    tester = Sb.uppercase(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+uc_files = ["upper_Mnemiopsis_cds.fa", "upper_Mnemiopsis_cds.gb", "upper_Mnemiopsis_cds.nex",
+            "upper_Mnemiopsis_cds.phyr", "upper_Mnemiopsis_cds.stklm", "upper_Mnemiopsis_pep.fa",
+            "upper_Mnemiopsis_pep.gb", "upper_Mnemiopsis_pep.nex", "upper_Mnemiopsis_pep.phyr",
+            "upper_Mnemiopsis_pep.stklm"]
+uc_objects = [Sb.SeqBuddy(resource(file)) for file in lc_files]
+uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932ceb", "cb1169c2dd357771a97a02ae2160935d",
+             "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b", "14227e77440e75dd3fbec477f6fd8bdc",
+             "0e575609db51ae25d4d41333c56f5661", "17ff1b919cac899c5f918ce8d71904f6", "6a3ee818e2711995c95372afe073490b",
+             "c0dce60745515b31a27de1f919083fe9"]
+uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
+def test_lowercase(seqbuddy, next_hash): # not sure why genbank is failing here
+    tester = Sb.lowercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 if __name__ == '__main__':
