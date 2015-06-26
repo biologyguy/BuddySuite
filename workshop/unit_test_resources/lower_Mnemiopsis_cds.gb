@@ -1,0 +1,736 @@
+LOCUS       Mle-Panxα9              1203 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML47742a.
+ACCESSION   Mle-Panxα9
+VERSION     Mle-Panxα9
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..45,46..198,199..322,323..494,495..847,848..1203)
+                     /created_by="User"
+                     /label="ML47742a"
+                     /modified_by="User"
+     splice_donor    36..45
+                     /created_by="User"
+                     /label="47%"
+     TMD1            79..141
+     TMD2            388..450
+     TMD3            640..702
+     TMD4            901..993
+ORIGIN
+        1 atgttagaca tactttcaaa gtttaaagga gttactcctt ttaaaggtat aacgatagat
+       61 gacgggtggg atcaactcaa tcggagtttt atgttcgtcc tgctcgttgt catgggaacg
+      121 actgtcactg tccggcaata caccggcagt gtcatcagtt gtgacggctt caaaaagttt
+      181 ggatccactt ttgcggagga ttactgttgg acccagggac tgtacacagt tttagaagga
+      241 tatgaccaac ccagccaaaa tatcccttac ccaggcctcc ttccagacga ggcaccaccc
+      301 tgtacaccag tcagactcaa ggacggtacg aggttaaagt gcccagaccc tgatcagttg
+      361 ttgtcaccga cgcggatatc ccacctatgg taccagtggg tcccttttta cttctggttg
+      421 gcggctgctg ccttcttcat gccctacctt ctgtacaaga attttggcat gggagatatc
+      481 aagcctctcg tgagattact acacaatcca gtagaatcag accaggagtt aaagaagatg
+      541 acagacaagg ctgcaacatg gctgttctac aagtttgacc tgtacatgag cgaacagtcg
+      601 ctcctagcaa gtctcaccag aaaacacggt cttggtctat ccatggtctt tgtaaagatc
+      661 ctatacgccg cagtgtcgtt cgggtgtttc ctcctgaccg ctgagatgtt ctcaattgga
+      721 gattttaaaa cctatggatc agaatggatc aagaagttaa agttggaaga taatctagct
+      781 acggaggaaa aggataaact ttttcctaag atggtggcat gtgaagtgaa acgctggggt
+      841 gcatcaggta ttgaggagga acaagggatg tgtgtcctgg cccccaacgt aatcaaccaa
+      901 tacctcttcc ttattctctg gttctgtctg gtattcgtga tgttctgcaa cattgtctcc
+      961 atattcgcct ccctcatcaa gctcctcttc acctacggct cctaccgccg cctcctttcc
+     1021 accgccttcc tgagggacga ctccgccatc aaacacatgt acttcaacgt ggggtcgtca
+     1081 gggagattga tattgcacgt gctggcgaac aacaccgccc cgcgcgtctt cgaggacatc
+     1141 ctgctgaccc tggcccccaa gctgatccaa cggaaactca gaggtaacgg aaaagctttg
+     1201 tag
+//
+LOCUS       Mle-Panxα7A             1875 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML218922a-1.
+ACCESSION   Mle-Panxα7A
+VERSION     Mle-Panxα7A
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..143,144..292,293..407,408..528,529..675,676..862,
+                     863..1875)
+                     /created_by="User"
+                     /label="ML218922a"
+                     /modified_by="User"
+     TMD1            88..150
+     TMD2            403..465
+     TMD3            631..723
+     splice_donor    853..862
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor complement(863..872)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(871..880)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(874..883)
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor complement(881..890)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            916..1008
+     splice_acceptor complement(1053..1062)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1056..1065)
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor complement(1061..1070)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1162..1171)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1169..1178)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1174..1183)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1195..1204)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1365..1374)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1369..1378)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(1372..1381)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_donor    1413..1422
+                     /created_by="User"
+                     /label="Donor"
+     splice_donor    1541..1550
+                     /created_by="User"
+                     /label="Donor"
+ORIGIN
+        1 atgggggtgg aaattctgtt tcccataatc aacagagcca ccgctccgat caagtctgtt
+       61 aacatcgacg atttgagtag tcagctcaac cgaactttta tgttttactt atcgctgact
+      121 ttcgccatca ctatcaccat caggcagcag ctaggcggag cgtacattgc ttgtgacgga
+      181 ttctccagag acgaggaata tgaacggttt gcagaggagt ggtgctggag tagtggaatc
+      241 tacactatca aggaggctta tgagatgagc aacagagtca gcccttatcc gggaataatc
+      301 ccagaaaatc taccagcctg tatagagatg gagctgatat ctgggggcag agtagagtgt
+      361 cctgaagaga aagacgtcaa gcctttcacc aggatatacc aatcttggta cccatttgtg
+      421 atgttttact attggctgac tgctttgatg tttttcttgc cgtaccagct ttacaaggtc
+      481 tttggttttg aagacgtcaa agcggttgta gctatgttgc agaacccggt agaggatggc
+      541 tttgagaaga aggagctgat aaaaaggggt tcagtgtggc tgtatcttaa atctacaatg
+      601 accctttcca acccttcagt ttactcgagc ttcatcgtga aacacagcct agctttctac
+      661 gctcttactg tcaaggttat gtatttgggg aacacacttc ttatgtactg gctgactcac
+      721 aaaatgttca agtttggatc gtttgcggag tacggtcttc tctgggacac aagaaaccca
+      781 cttaacaacg tccagagcct tgttcaagag aaattgttcc caaaagttgc agcgtgcgaa
+      841 gtaaagcgct ttggtgcatc gggacttgag gaggaccaag gtatgtgcat gctggctcta
+      901 aacgtcctta accagtacct cttcttaatc ttctggttct gtctcctttt cgtgacaata
+      961 gtcaacacca tatccctcct cctcaccctc cttaacatca tctctccttg ctttatgctc
+     1021 caacagtttc tcctggcctc ctctcttgat aggagtccag ctgtcggtgt catatccaag
+     1081 ctgtatcttg actgtggttc ctcgctaagg ttcatcatga ctatatttgc ttggaatgta
+     1141 gacccaaaat tgtttgggga gattttagta cagctcaact ctctccttgc caaggatgaa
+     1201 tcgcccaggg ctgaagtgct gaagcggcgt tcaaaaaaag tgaaagttcc aagtccaaga
+     1261 aagcctaaac tcttatttca tgaagaaatt aagaaaaagt taataaagag gactgaacga
+     1321 aaagatgata acctaaccaa tttcacgaat atgtcgaaaa ttagcaagaa gtttgaaggc
+     1381 ctcaaaaaaa gaaatctcct tcagacgaaa agcatcatta atgtaagcgt tcctaagaaa
+     1441 atgagcgagt tagaagtaga agaagatttc attcttactc ctactgaaga aagtggtatc
+     1501 caaaacaacc ctgacaccaa gtatgctcaa gaggatgtac tggactcaga gtacgtagtg
+     1561 gtggaacaat cagtcccaga aacaatgaca gagcaggaat cagtggagga atcagtccca
+     1621 gagataagta aagctgagca agaaggcggg agctcagatc acatcgatgt tgaggagacc
+     1681 ccgccagcat cagatgttga tcgcgaagtc aactctccga ttgttcagca cgaatatcag
+     1741 gttcagatcg acttggtttc cgacgatgga agcgcccatc gtttatcgtc agatgaagct
+     1801 ctttttccgc tgcggatccc tattgtgaaa ttgaatggcg atgttctgtc attaagatcc
+     1861 gagagtttgc agtaa
+//
+LOCUS       Mle-Panxα1              1341 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML078817.
+ACCESSION   Mle-Panxα1
+VERSION     Mle-Panxα1
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..572,573..1341)
+                     /created_by="User"
+                     /label="ML078817"
+     TMD1            91..153
+     TMD2            373..435
+     TMD3            625..687
+     TMD4            871..963
+ORIGIN
+        1 atgtactgga tatttgagat ttgtcaagag ataaagcgag ctcaatcctg ccgaaagttc
+       61 gcgatagacg gaccattcga ctggacgaac cggattatca tgccaacact catggtaatc
+      121 tgctgctttc tccaaacctt caccttcatg ttcggcagca acatcagctg tatcggcttc
+      181 gagaagttgg aaaggaactt tgtggaggag tactgctgga cccagggtat ctatacaagc
+      241 aaggctgcgt ataacatgcc attacatact ccctacccgg ggattgcccc ctgtgtgccc
+      301 gagtatgatc ccgtgactca gaagtattgg ttaccctgtg gggtggagga agaagacaag
+      361 gcttatcatt tgtggtatca gtgggttccg ttttactttc tcgctgtggc cgtgggttat
+      421 tatttgccat ttcttatctt gaagggttca aagctgcatc aggtgaagcc gctgattacg
+      481 tatttgatga accagaggaa cctggagact gatcctaacc atttggtagg aaagctatcg
+      541 cattggatct tcagacagct tgtttattca aggtttgcgg ccacctctac aatcagaatg
+      601 tactggcacg actgggggct tgtcctcctt gtttgctctg taaagatcct ctaccttacc
+      661 gtctctctta tccacctctt tgccactgcc aagatgttcc acatcggcaa ctggtttacg
+      721 tacgggatca tgttcgcgcg gcgcagcaac agtcacacta cccacgttaa ggatgtgttc
+      781 ttcccgaaga tggtggcctg taagatcgag acatggagtt tcacagggaa gaatcatctt
+      841 cacgggatgt gtgttttagc tctgaacgtg atgaaccaat atttgttttt gatcgtgtgg
+      901 tacgtcaacg taatcatcat cttcctcaac agtatcagct gtatttacac tatagtcaag
+      961 ttttgtagcc ctaacatcgt tcaccaccgg atagtcaact cctcctcctt agacgaccac
+     1021 catgacttta cccggatgtt tggttatgtg ggaccttccg gacggataat cctggctaaa
+     1081 atgtcggaac atatgccggg gtacatgctg aaacaagtag ccaagaaggt gacagagaag
+     1141 atagatatag agaatgaaaa gaatagaggg agagccccga ctattaagtt taccaaggtt
+     1201 aacggtcagc cctcagagct ggccagacag cctctcatgc acctgaacgc tctgatgtta
+     1261 gggatggttc ctcagaatct accagaacct aaaattcaga atatccaacg gtcgcagaaa
+     1321 aaagtacggt ttctggttta a
+//
+LOCUS       Mle-Panxα3              1236 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML036514a.
+ACCESSION   Mle-Panxα3
+VERSION     Mle-Panxα3
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..151,152..334,335..456,457..549,550..726,727..845,
+                     846..1036,1037..1236)
+                     /created_by="User"
+                     /label="ML036514a"
+                     /modified_by="User"
+     TMD1            85..147
+     TMD2            394..456
+     TMD3            652..714
+     TMD4            904..996
+ORIGIN
+        1 atgttgttgc tcggctcact cggaacgatc aagaacttga gcatcttcaa agacctgtcc
+       61 ttggacgact ggctggatca gatgaacagg accttcatgt ttctactgct ctgtttcatg
+      121 ggaacaattg tcgccgttag tcagtacact ggtaaaaaca tatcttgcga tggctttacg
+      181 aagttcggag aagatttctc gcaagactac tgctggaccc agggcttgta cacgattaaa
+      241 gaagcgtacg acttgcccga gtcccagatc ccgtatcctg ggattatccc tgaaaacgtg
+      301 ccggcatgta gagagcacgc tctgaaaaac ggaggaaaga tagtctgccc tcctgaagat
+      361 caagtgaagc ccctgacccg ggctcgacat ctctggtacc agtggatacc tttctacttc
+      421 tgggtgatag ctccagtctt ctatctccct tacatgtttg tgaaaaggat gggacttgac
+      481 agaatgaaac ctctgttgaa gatcatgagc gactactacc actgcactac agagacacct
+      541 tcagaggaga taatagtgaa gtgtgcagac tgggtataca acagtatagt agacaggctg
+      601 tcagagggca gcagctggac aagctggaga aacagacacg gtcttggtct ggctgtcttg
+      661 gtcagcaagt tcatgtatct cggaggtagt gtcctcgtca tgatgatgac cactctcatg
+      721 ttccaggttg gtgatttcaa gacgtacggt atagagtggt tgaggcagtt ccctaatcca
+      781 gaaaactatt cgacctcagt taaacacaaa ctattcccca aaatggtagc ctgtgagata
+      841 aaacgatggg gcactaccgg gctagaagag gagaatggaa tgtgtgtcct tgccccgaat
+      901 gtcatctacc agtacatttt tctaatcatg tggttcgctc tagccatcac catatgcacc
+      961 aacttcggca acatattttt ctatctcttc aagctgacag ccactagata cacttacaac
+     1021 aaattggtgg ccacaggaca tttctcccac aagcacccag gttggaagtt catgtactac
+     1081 cggattggga cgtcaggtcg cgttctcctg aacattgtcg ctcaaaacac gaaccctatc
+     1141 attttcgggg ctatcatgga aaaactgaca ccttcagtca ttaagcattt gaggataggt
+     1201 cacgtgcccg gggagtattt aacggaccca gcatag
+//
+LOCUS       Mle-Panxα12             1209 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML25997a.
+ACCESSION   Mle-Panxα12
+VERSION     Mle-Panxα12
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..61,62..151,152..277,278..377,378..526,527..680,
+                     681..850,851..923,924..1048,1049..1209)
+                     /created_by="User"
+                     /label="ML25997a"
+     TMD1            82..144
+     TMD2            391..453
+     TMD3            643..705
+     TMD4            895..987
+ORIGIN
+        1 atggttattg acatcctctc cggttttaag gggatcacgc ccttcaaagg catcacttta
+       61 gacgatggat gggatcaaat caacaggagt tttatgttcg ttctgtgcgt tttaatggga
+      121 acggtggtga cggtgcggca gtacgcggga ggaattatat catgtgacgg cttcaccaaa
+      181 tactcgggct cgtttagcga ggattactgt tggacacagg gtctttacac catcaaggaa
+      241 gcctatgatc tcctcaccat gaatgtgcct tatccaggtg tcatccctga ggacatgccc
+      301 acctgtatcg agcgggaact tataaatgga ggccgagtgt cctgccccga ccctgaaaca
+      361 gtcaaaccac ccacaagagt ctaccactta tggtaccaat gggttccatt ctacttctgg
+      421 ctcgcagctg ccgccttctt cttcccttat ctcatctaca aacatttcgg cgttggcgac
+      481 ctcaaacccc tcatccaaat gctccacaac cctattgttg acgaaggtga ccagaactgc
+      541 atggccgaaa aagctagcat gtggctcttc tacaaactga acgttttcat gaacgagaac
+      601 acaatcttcg ctatcctgac tgaaaaacac cgacttttct tcattgttat gctcgtcaag
+      661 gtgctctatc tgatcatcag tattctggcc ctctacctta cggacgagat gttccacatc
+      721 ggctcctttg tctcgtacgg gagcgagtgg gcgacctccc tgcccgaggg agacaacgag
+      781 acgactctcg ttaaagacaa actcttcccc aagatggtcg cttgtgagat caaacgatgg
+      841 ggacctaccg gtctcgagga ggaacagggc atgtgtgtgt tggctcccaa cgttatcaac
+      901 caatatctct tcctcatcct ctggttcgcc attattttct gcattgcttg caactgtttg
+      961 tccgtcctct tcgcccttac aaagctggtc ttcgtcttgg gctcctacaa gaggctccta
+     1021 gccagtgctt tcctcaagga tgaactccac tacaaacaca tgttcttcaa cattggtaca
+     1081 agtggacgag ttctcctaca aatcgttgcg acgaatgtgt caccgcgggt cttcgagtcc
+     1141 atcatggcta accttgcgac caagttgata gctgaacgtt tgaagggaaa cggcaaaggt
+     1201 agcgtctag
+//
+LOCUS       Mle-Panxα11             1197 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML25999a.
+ACCESSION   Mle-Panxα11
+VERSION     Mle-Panxα11
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..32,33..148,149..310,311..435,436..625,626..760,
+                     761..907,908..1023,1024..1197)
+                     /created_by="User"
+                     /label="ML25999a"
+     TMD1            82..144
+     splice_acceptor complement(311..320)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            364..426
+     TMD3            616..678
+     TMD4            868..960
+ORIGIN
+        1 atgctgatct cgagcttagt tcagttcagc aggttatctc cttttaagga gataactata
+       61 gatgacgggt gggaccaact taacaggagt ttcatgttcg ttctgatggt tatctgtgga
+      121 actatcgtca ctgtccgaca acatacaggt aacatcatct cgtgtaacgg tttcacaaaa
+      181 tacgacggat ccttctccga ggactactgc tggacgcagg gactctacac gatcagggag
+      241 gcgtaccacg tgagcgacgt caacgtccct tatcccggag ttatcccgga ggagatccca
+      301 ctctgtctag gagacaattg tgataagcta gcaaacagca acaccactcg agtgtatcat
+      361 ctgtggtacc agtggatccc cttctacttc tggctcgctt ccgccgcctt cttcctccct
+      421 tatctgatct acaagagata cggatttgga gatatcaagc ctctgatcca catgctgtac
+      481 aatcctctcg acggggacga aggagtgaag gcagattcgg agaaggcctc aatctggctt
+      541 tatcacagat tctctatcta catgaacgag cattccatgt acgccaactt tatggagaga
+      601 cacggaatcg gcattctcgt tatcgctatc aaggtgatgt acctgatcat ctccgtccta
+      661 ctcatggtca tgaccgccat gatgttcgag ctggctgact tcaagcagta cggtattgtg
+      721 tgggcccaac agtggcctga ccctcctgcc aatgtcacag gaatcaagga cctgctcttc
+      781 cccaagatgg ttgcttgcga gatcaagaga tggggaccta ctggtctgga ggacgagaac
+      841 ggaatgtgtg tcctggcccc caacgtcatc aaccagtaca tattcctcat cctctggtgg
+      901 gcccttgttt tcaccattgt ctctaacgtt ttcaacgtac tggctggagt tataagaatc
+      961 gtcttcatct atggttctta ccgccggatg ttggctagcg ctttcctcag agatgatcct
+     1021 cattacaaga aggtctacta caagatcggc acctccggtc gggttatcct gaacatgctg
+     1081 gcagcctcca tctctccgac ctgcttccag gagatcatga acaacgtctg tccgcgtctc
+     1141 atccgggccc acgtctccaa gaagggacga aacctgggcg acgaccccct gttgtag
+//
+LOCUS       Mle-Panxα4              1275 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA and genomic - ML129317a.
+ACCESSION   Mle-Panxα4
+VERSION     Mle-Panxα4
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     TMD1            82..144
+     TMD2            391..453
+     TMD3            643..705
+     TMD4            913..1005
+ORIGIN
+        1 atggttattg agctgctagc tggatacaaa ggtctgtccc cgtttaaaga cgcgactgtt
+       61 gacgactcat gggaccaaat aaaccgatgt tacgtgttca tcgccatggt ggtgatgggt
+      121 gctgtgacta caatgaggca atactctgga acattgattg catgtgacgg gttcacgaag
+      181 ttccaccctc agtttgcaga agattactgc tggagcatag gaatgtacac ggtacgcgag
+      241 gcctatgact tgcccagcag tatggttgca taccccggag tgataccctg ggatatgcct
+      301 gcatgtgttc cacgtctcct gaagaacgga accaggacca aatgtggcag tgagaaggac
+      361 gttatgccct cagagaaaat ctaccacttg tggtaccagt gggcaagttt ctacttctgg
+      421 atagtggcta tactgtacta cgcgccgtat ataatgttca aacagttggg agggggagag
+      481 tacaagcccc tgatcaagct actttgtctt gcgtctggat ctcctgaaca acagatgcag
+      541 gacatccagg agcgtgtcgt caagtggctt ttcttcaggt ttaagaccta catattcgct
+      601 aagggttact acgcgtggct acgtaaaaac agtttcagta tcgctatcgg cgtgacaaaa
+      661 ttgtcctatc tcctgataac tatccttgtg ttctacttaa caggcttcat gttcgaatat
+      721 ggctctaaca cgtggtaccg gtacggtgct gactggtacg gtaccagatt ctcctcgtac
+      781 cacgaaacta acaactcaat cacactcaca aaggacatca tcttcccaaa gatggtagcg
+      841 tgtgagatca agcgatgggg tccctcaggg attgaggttg agaccgctca gtgcgtactt
+      901 gccccgaatg tgctctacca gtaccttttc ctctttactt ggtacctcct gatcgcggta
+      961 ttcttcacta acctcatcag ttgtttcctc cacatttctg agatgttctt ctctaacggt
+     1021 acgtacaaca ggatgataga tcaaggaatg ttgccagaca agcccagtta tcggtacgtc
+     1081 ttcatgaaca ttggcgccgg tggcagagag atagtccaga ttctaacaga caattccaac
+     1141 cccctcttgt ttagcaagat atttgacgat cttaccaatt tactaatcac tacttccaaa
+     1201 aacgctgacg tcattgaaaa cctgtcgaag ttggattcct ccgtaattga actaggcagc
+     1261 aaagactcaa tctaa
+//
+LOCUS       Mle-Panxα8              1251 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML07312a.
+ACCESSION   Mle-Panxα8
+VERSION     Mle-Panxα8
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     gene            <1..180
+                     /created_by="User"
+                     /label="ML07312a"
+     CDS             order(1..180,181..277,278..377,378..469,470..560,561..768,
+                     769..853,854..1191,1192..1251)
+                     /Innexin_02=""
+                     /created_by="User"
+                     /label="Innexin 02"
+                     /modified_by="User"
+     TMD1            82..144
+     TMD2            391..453
+     TMD3            640..702
+     TMD4            898..990
+ORIGIN
+        1 atggtgctgg aagtgctcgc tctcttcccc cggctagccc ccttcaaagt gataactctg
+       61 gatgacgtgt gggaccagtg gaaccggagc ttcatgttca tcatgacggt cctgtttgga
+      121 agtatagtga ctatacggtc ttacacggga agtgttatag aatgtgatgg ctttcttaag
+      181 gtaccagtgg agtttgctaa agattattgt tggacacagg gaatctacac tctcagagaa
+      241 ggatacgatt atcacagttc tctcttgcca tatcccgggg tgtttcctga agacgctcct
+      301 ggctgtttag acaaagtatt agacaatgga ggaagggtta tttgtcccat ggataaaaag
+      361 tacagaaagt atcagagggt ttaccattcc tggtatcagt tcactgcttt ctacttttgg
+      421 acagcatcct gcgctttctt ccttccttac atgatgttta agttttttgg aatgggtgat
+      481 ttgaagccgg tgatatccat gttacacaat cctgtggaga ccgctgaaga gttggatatg
+      541 ctcacgaaga aagctgccag atggctgtac gtgcgagtcc acgcctacat ccacactgac
+      601 caatactacg gcaagagggt ggagaaacac ctcctcttct tctccataat gctaaccaag
+      661 tcgtgctatc tcctcttctc agtgctgctc ttctggctta ctgagaaaat gtttcacatc
+      721 ggcagtttct tcagttacgg tgtcgactgg gctgcagagg agcctgagcc tggtgaagat
+      781 tataaaacac tcatacaaga caagctcttc ccaaaaatgg catcttgtga aataaaaaga
+      841 tggggaacta cagggataga ggaagagcaa ggaatgtgtg ttctagcagc taacgtcatc
+      901 aaccaatatc tcttcctcat cttctgggga gggatggtcg tcaccatcat cgtcaacgtc
+      961 ctctctgttc tcatcgccct cagcaacctc tgttttatcc agggagcata ccggaatctc
+     1021 ctcgctactg ccttcctccg ggacgaacct gcttactcgg aaatctggag aaaatccgga
+     1081 acctccgggc gggtcatctt gcagctgatc gccaagaatg tgaaccccaa nnnnnnnnnn
+     1141 ncacgtgctg aacgagctgg tgaacttgct gaggttggcg gagaggtcag gtgccttgtg
+     1201 gagcgatgtt tttccttgaa caggccgcat ataccacacc tggtgaagtg a
+//
+LOCUS       Mle-Panxα6              1221 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML25993a.
+ACCESSION   Mle-Panxα6
+VERSION     Mle-Panxα6
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..127,128..277,278..377,378..513,514..676,677..768,
+                     769..850,851..1221)
+                     /created_by="User"
+                     /label="ML25993"
+                     /modified_by="User"
+     TMD1            82..144
+     splice_acceptor complement(315..324)
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     TMD2            391..453
+     splice_acceptor complement(434..443)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(455..464)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            643..705
+     splice_acceptor complement(851..860)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            895..987
+     splice_donor    991..1000
+                     /created_by="User"
+                     /label="Donor"
+ORIGIN
+        1 atgttattgg agatattagc gaacttcaaa ggagcgacac ctttcaaaga aatagttcta
+       61 gatgacaagt gggaccagat taaccgatgt tacatgttcc tgctgtgtgt gattttcgga
+      121 actgtcgtga cattcagaca gtataccggt ggtatcattg cttgtgacgg tctgacaaag
+      181 ttctcagctg cctttgcgga ggactattgc tggacgcagg gtctttatac cataaaggag
+      241 gcgtatgaca tagtggataa ttccttacct tacccaggac tgctaccgga agatgcgcct
+      301 ccctgtctct ccagacgatt agtgtctggt ggaagaatag aatgtcctcc tgctgacctg
+      361 tacttggaac caacaagggt tcatcacaca tggtatcagt ggataccgtt ttacttttgg
+      421 gtcatatcca tagcgttcat tggtccttac atagtctaca agcagctggg tgtcaacgaa
+      481 ctgaagccta ttctggcaat gcttcataac ccggttgatg gtgacgatgt tacaaaggat
+      541 caaataagca aagtctcaag atggttagct atcaagctga acatctttat ccaagaaaaa
+      601 tctacctatg ccaagatcac tcagagccat aggatgttta ttctaatctt tttaactaaa
+      661 atattctatc ttggagtaag tttggctaca atgtatttta ctgacaccat gtttgaatcc
+      721 ggccgctacc ttacttacgg cagcgaatgg ttcgcatctc tcgataagca atcaaactac
+      781 acaagttttg tgcgagacag actgttcccg aaaatggtgg catgtgagat caagagatgg
+      841 ggtccttcag gtatggagga ggaacaaggg atgtgtgttc ttgctccgaa cgtgatgaac
+      901 caatatctct tcctcatctt ctggttcgca ctcgtcttca ccatcttctc caacaccttc
+      961 tccatcttct tctccgtttc gacccactgt tttattgacg gtgggtacca gaggtttatc
+     1021 cagagctgct ttctaaaaga aaacagcaaa ctgaagttca tctatttcaa ttgtgggact
+     1081 actggccgga cttatctgca tctaattgcc aaaaacgtta accctcggat ttttgaacag
+     1141 ctcatcatca aacttagtgc agatttagtt gaggagaaaa ataagcaaca cttaaagggg
+     1201 tcaaaggaca tactagtttg a
+//
+LOCUS       Mle-Panxα10B            1077 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML32831a-2.
+ACCESSION   Mle-Panxα10B
+VERSION     Mle-Panxα10B
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..84,85..237,238..371,372..724,725..1060,1061..1077)
+                     /created_by="User"
+                     /label="ML32831a"
+     splice_donor    75..84
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor complement(85..94)
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor complement(98..107)
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            118..180
+     splice_acceptor complement(126..135)
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    228..237
+                     /created_by="User"
+                     /label=""
+     splice_acceptor complement(238..247)
+                     /created_by="User"
+                     /label="26%"
+     splice_donor    362..371
+                     /created_by="User"
+                     /label="67%"
+                     /modified_by="User"
+     splice_acceptor complement(372..381)
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor complement(389..398)
+                     /created_by="User"
+                     /label="31%"
+     TMD2            523..585
+     splice_donor    715..724
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD3            778..822
+     TMD4            826..870
+     splice_donor    1051..1060
+                     /created_by="User"
+                     /label="90%"
+ORIGIN
+        1 atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac
+       61 aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat
+      121 cggagtttta tgttcggcct gctcgttgtc atgggaacga ctgtcactgt ccggcaatac
+      181 accggcagtg tcatcagttg tgacggcttc aaaaagtttg gatctacttt tgcggaggat
+      241 tactgttgga cccagggaca gtacacagtt ttagaaggat atgaccaacc caaccaaaat
+      301 atcccctgcc cagtacccag gcctccttcc agacgaggct ccaccctgaa caccatgagt
+      361 cagactcaag gatttctaca caatccagta gaatcagacc aggaattgaa gaagatgaca
+      421 gacaaggccg caacctggct gttctacaag tttgacctgt acatgagcga acagtcgctc
+      481 ctagcaagtc tgaccaataa acacggtctt ggtctatctg tggtctttgt aaagatccta
+      541 tatgccgcag tttcgttcgg gtgttttctc ctgaccgctg atatgttctc aattggagat
+      601 ttcaaaacct atggatcaga atggattaat aagttgaagt tggaagataa tctagctacg
+      661 gaggaaaagg ataagctttt tcctaaaatg gtggcatgtg aagtgaaacg ctggggtgca
+      721 tcaggtattg aagaggaaca agggatgtgt gtcctggccc ccaacgtaat caaccaatac
+      781 ctattcctta ttctctggtt ctgtctggta ttcgtgatgt tctgcaacat tgtctccata
+      841 ttcgcctccc tcatcaagct cctcttcacc tacggctcct accgccgtct cctttccacc
+      901 gccttcctga gggacgactc cgccatcaaa cacatgtact tcaacgtggg gtcgtcaggg
+      961 agattgatat tgcacgtgct ggcgaacaac accgccccgc gcgtcttcga ggacatcctg
+     1021 ctgaccctgg cccccaagct gatccaacgg aaactcagag ctaaggacta tgactaa
+//
+LOCUS       Mle-Panxα5              1218 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML223536a.
+ACCESSION   Mle-Panxα5
+VERSION     Mle-Panxα5
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..148,149..283,284..405,406..1218)
+                     /created_by="User"
+                     /label="ML223536a"
+                     /modified_by="User"
+     TMD1            82..144
+     TMD2            397..459
+     TMD3            652..714
+     TMD4            904..996
+ORIGIN
+        1 atgatctact gggtgtgggc ggtgtttaaa cggatggcac ctttcaaggt ggtcactctt
+       61 gacgacaggt gggaccagat gaaccgcagc ttcatgatgc cgctaaccat gtccttcgct
+      121 tatctcatcg actatgggat cattgcagga tccacaatca agtgcactgg atttgaagat
+      181 tccttccgat cggaagcttt tgtagacgag tactgttgga ctcagggaat ctatacactg
+      241 agagaagcgt acgatctcga gaacacaaaa ataccctacc caggtataat accggaggga
+      301 ttcccgaact gcatgcctta tgaaagatgg gatgggatga aagtggaatg tcccaaggag
+      361 gaacagtacc tgaaacccac tcgggtttat cacctatact atcagcacat ccaactctac
+      421 ttctggctgg tgtgcacact cttctacctc ccctacatgg tgggaatctg tctaggtttc
+      481 aactacacca aacctctcat caatcttctc cacaaccctc tcaccagaga cgaggaggag
+      541 ctcgaggctc tgctggacaa agctgcccgg tctctgagac tccgtctgga tatttactcc
+      601 gaccagaaat cctggtttga tctgctctac cgacgacata caatgttgta tctcctcttc
+      661 tttatcaagc tgcagtacct tggattttct gtagcgattc ttggtctcac tcaagccaag
+      721 tttaagatcg gcaactttgt aacgtatggg tttgagtggg ttgggagtca agtccctaac
+      781 ggctccacct atactctagt tcaacacaaa ctcttcccaa agatggctgc ctgtgagatc
+      841 aaacgctggg gagcatcagg tttagacgtt ttgagaggga tgtgtgttct tccccaaaat
+      901 gtttcaaact catacatctt tctcgtattc tggatttttc ttctgctcac catcctgggc
+      961 aatgtcatag ggtgcatcct gaccgtgaaa cagtacttgg tgaaatcaga gggttacagc
+     1021 aagcttgttg cctgtacttt ctggaatgat tggaatctga gacatttgta ttggaatgta
+     1081 ggggggtcag gccgggtgat tcttcatcat ctggcagata acctccatcc ctgtactttt
+     1141 gagaaactta ttaggaggta ctggtggctg aagaggaacg agtatgtcca gtataatgga
+     1201 catctaaaga cttcttag
+//
+LOCUS       Mle-Panxα2              1314 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML25998a.
+ACCESSION   Mle-Panxα2
+VERSION     Mle-Panxα2
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..144,145..307,308..555,556..688,689..810,811..1314)
+                     /created_by="User"
+                     /label=""
+                     /modified_by="User"
+     TMD1            85..147
+     splice_donor    135..144
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor complement(145..154)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(152..161)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(183..192)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(185..194)
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_donor    298..307
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor complement(348..357)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(352..361)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(376..385)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(388..397)
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor complement(392..401)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            421..483
+     splice_acceptor complement(495..504)
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            682..744
+     TMD4            931..1023
+ORIGIN
+        1 atggtattgg atctcatttc tggaagcttg aatggctttt taaagatcaa gtcagttagc
+       61 atcgacgatc agtgggacca gattaacaga acctatttgg tcatgttttg tattttatct
+      121 ggtacaatca tgacctttaa acagaattta ggatcaataa tacactgtat atcggatgca
+      181 agaggcgacg acagttcgtt tgcggatgct catgcgacat ttgtgcaaga ctattgtgct
+      241 gctcaagggc tgtacacttt aaaagaagtg tatgacaagt cttggccaga tgaaattcct
+      301 tacccaggta ttctccaaat gaaaacaatc ggttgtttcc cggggagaca gttcaaaaac
+      361 ggaaccccca tccagtgccc ggacgagaaa gatctgaaac ccttcacaac ggtctatcat
+      421 gtctggtaca tgttcgtacc gttctacttc tgcgctgttg gcatcgcttt ttacttcccc
+      481 tacacggttt tcagacacct cagcggcatc tacgacatca agcctatgtt gaacagcctt
+      541 gccctcgaca ttggggccta cacggaggag gacataagtc gacgtataga caatgtctcg
+      601 aggtggttgt acatcaagtt ggatccctac atgaacaaca tgcttcctta tactcagata
+      661 gttcacaaac attccatctt ttacacggtg atgttggtga aggtgatgta cctagctacc
+      721 agtgtttcta ttttttacgc cactcaccgg atattcgacc aaggaaactt tgcactctac
+      781 ggatacgatg ttctaatgag cataccacag gaaacaagct ataaagtgat ggacacaatc
+      841 ttccctaaaa tggttggctg tgagatcaac atgtggggcc ggactggcga acagagcgaa
+      901 tctcttctgt gtgtcctccc tcaaaacatc ggcaaccaat acttcttcct tatattctgg
+      961 tttctcctga ttctcaccat actttccaac tgtatctctg taatagtgac catattcaga
+     1021 tttatattcg ttagtgggag ctacaaaagg ttcctggcta ccagcctctt gaatcacgaa
+     1081 gaacgataca agctggtgtt tacacatgtc ggcacgactg gaagatacat tttactgctc
+     1141 tgtgccgatc atagcaaccc caaaatattc gaggatcttc tagagatcgt ctgttccctt
+     1201 ctcatagcaa actatcacaa aagaaagagg agtcgggata agggacacag tcgagcggag
+     1261 ggggtaggga ctaaagggcg acacggtctg tcttttgtgg actcaaccgt gtga
+//
+LOCUS       Mle-Panxα10A            1290 bp    DNA              UNA 02-JAN-2015
+DEFINITION  cDNA - ML32831a-1.
+ACCESSION   Mle-Panxα10A
+VERSION     Mle-Panxα10A
+KEYWORDS    .
+SOURCE      
+  ORGANISM  . . .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..84,85..237,238..312,313..412,413..584,585..937,
+                     938..1273,1274..1290)
+                     /created_by="User"
+                     /label="ML32831a"
+                     /modified_by="User"
+     splice_donor    75..84
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor complement(85..94)
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor complement(98..107)
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            118..180
+     splice_acceptor complement(126..135)
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    228..237
+                     /created_by="User"
+                     /label=""
+     splice_acceptor complement(238..247)
+                     /created_by="User"
+                     /label="26%"
+     splice_acceptor complement(355..364)
+                     /created_by="User"
+                     /label="18%"
+     splice_acceptor complement(358..367)
+                     /created_by="User"
+                     /label="17%"
+     splice_donor    403..412
+                     /created_by="User"
+                     /label="91%"
+                     /modified_by="User"
+     splice_donor    <413..415
+                     /created_by="User"
+                     /label="34%"
+     TMD2            478..540
+     splice_acceptor complement(487..496)
+                     /created_by="User"
+                     /label="7%"
+     splice_donor    575..584
+                     /created_by="User"
+                     /label="71%"
+     splice_acceptor complement(585..594)
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor complement(602..611)
+                     /created_by="User"
+                     /label="31%"
+     TMD3            730..792
+     splice_donor    928..937
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD4            991..1083
+     splice_donor    1264..1273
+                     /created_by="User"
+                     /label="90%"
+ORIGIN
+        1 atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac
+       61 aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat
+      121 cggagtttta tgttcggcct gctcgttgtc atgggaacga ctgtcactgt ccggcaatac
+      181 accggcagtg tcatcagttg tgacggcttc aaaaagtttg gatctacttt tgcggaggat
+      241 tactgttgga cccagggaca gtacacagtt ttagaaggat atgaccaacc caaccaaaat
+      301 atcccctgcc cattgcccgc tgcgtttgct ccgtaccccg ggattttccc ggaggagcta
+      361 tcgcactgtc tggttggcgc tcgtaaagcc ggccagtctg aggacctgat taacggtacg
+      421 aggttaaagt gcccagaccc tgatcagttg ttgtcaccga cgcggatatc ccacctatgg
+      481 taccagtggg tcccttttta cttctggctg gcggctgctg ccttcttcat gccctaccta
+      541 ttgtacaaga attttggcat aggagatatc aagcctctcg tgagatttct acacaatcca
+      601 gtagaatcag accaggaatt gaagaagatg acagacaagg ccgcaacctg gctgttctac
+      661 aagtttgacc tgtacatgag cgaacagtcg ctcctagcaa gtctgaccaa taaacacggt
+      721 cttggtctat ctgtggtctt tgtaaagatc ctatatgccg cagtttcgtt cgggtgtttt
+      781 ctcctgaccg ctgatatgtt ctcaattgga gatttcaaaa cctatggatc agaatggatt
+      841 aataagttga agttggaaga taatctagct acggaggaaa aggataagct ttttcctaaa
+      901 atggtggcat gtgaagtgaa acgctggggt gcatcaggta ttgaagagga acaagggatg
+      961 tgtgtcctgg cccccaacgt aatcaaccaa tacctattcc ttattctctg gttctgtctg
+     1021 gtattcgtga tgttctgcaa cattgtctcc atattcgcct ccctcatcaa gctcctcttc
+     1081 acctacggct cctaccgccg tctcctttcc accgccttcc tgagggacga ctccgccatc
+     1141 aaacacatgt acttcaacgt ggggtcgtca gggagattga tattgcacgt gctggcgaac
+     1201 aacaccgccc cgcgcgtctt cgaggacatc ctgctgaccc tggcccccaa gctgatccaa
+     1261 cggaaactca gagctaagga ctatgactaa
+//
