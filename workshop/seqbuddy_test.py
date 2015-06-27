@@ -70,8 +70,6 @@ sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 formats = ["fasta", "gb", "nexus", "phylip-relaxed", "stockholm",
            "fasta", "gb", "nexus", "phylip-relaxed", "stockholm"]
 
-# fa gb nex phy phyr stklm
-
 # '-ofa', '--order_features_alphabetically'
 hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553", "cb1169c2dd357771a97a02ae2160935d",
           "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
@@ -139,7 +137,7 @@ uc_files = ["upper_Mnemiopsis_cds.fa", "upper_Mnemiopsis_cds.gb", "upper_Mnemiop
             "upper_Mnemiopsis_cds.phyr", "upper_Mnemiopsis_cds.stklm", "upper_Mnemiopsis_pep.fa",
             "upper_Mnemiopsis_pep.gb", "upper_Mnemiopsis_pep.nex", "upper_Mnemiopsis_pep.phyr",
             "upper_Mnemiopsis_pep.stklm"]
-uc_objects = [Sb.SeqBuddy(resource(file)) for file in lc_files]
+uc_objects = [Sb.SeqBuddy(resource(file)) for file in uc_files]
 uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932ceb", "cb1169c2dd357771a97a02ae2160935d",
              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b", "14227e77440e75dd3fbec477f6fd8bdc",
              "0e575609db51ae25d4d41333c56f5661", "17ff1b919cac899c5f918ce8d71904f6", "6a3ee818e2711995c95372afe073490b",
@@ -148,26 +146,24 @@ uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
-def test_lowercase(seqbuddy, next_hash):  # not sure why genbank is failing here
+def test_lowercase(seqbuddy, next_hash):
     tester = Sb.lowercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 # 'rs', '--raw_seq'
-
 seq_path = root_dir+"/unit_test_resources/"
 rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
              "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
-rs_hashes = [(seq_path + seq_files[indx], value) for indx, value in enumerate(rs_hashes)]
+rs_hashes = [(resource(value), rs_hashes[indx]) for indx, value in enumerate(seq_files)]
+
+
 @pytest.mark.slow
-@pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
-def test_raw_seq(seqbuddy, next_hash):
-    _input = ["sb", seqbuddy, "-rs"]
-    _output = subprocess.Popen(_input, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    _output = subprocess.Popen('md5', stdout=subprocess.PIPE, stdin=_output.stdout).communicate()[0]
-    _output = str(_output)
-    _output= _output[2:len(_output)-3]
+@pytest.mark.parametrize("seq_file,next_hash", rs_hashes)
+def test_raw_seq(seq_file, next_hash):
+    _output = subprocess.Popen("sb {0} -rs | md5".format(seq_file), stdout=subprocess.PIPE, shell=True).communicate()[0]
+    _output = _output.decode().strip()
     assert _output == next_hash
 
 if __name__ == '__main__':
