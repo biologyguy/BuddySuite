@@ -151,20 +151,21 @@ def test_lowercase(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 # 'rs', '--raw_seq'
+
 seq_path = root_dir+"/unit_test_resources/"
 rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
              "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
-rs_hashes = [(resource(value), rs_hashes[indx]) for indx, value in enumerate(seq_files)]
-
-
+rs_hashes = [(seq_path + seq_files[indx], value) for indx, value in enumerate(rs_hashes)]
 @pytest.mark.slow
 @pytest.mark.parametrize("seq_file,next_hash", rs_hashes)
 def test_raw_seq(seq_file, next_hash):
     _output = subprocess.Popen("sb {0} -rs | md5".format(seq_file), stdout=subprocess.PIPE, shell=True).communicate()[0]
     _output = _output.decode().strip()
     assert _output == next_hash
+
+# 'tr', '--translate'
 
 tr_hashes = ["c453de9e32cfee50c8425c3cddc27711", "8c5e6b8898924493aa25f22b1b483e11"]
 tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)]
@@ -173,6 +174,22 @@ def test_translate(seqbuddy,next_hash):
     tester = Sb.translate_cds(seqbuddy)
     tester = Sb.order_features_alphabetically(tester)
     assert seqs_to_hash(tester) == next_hash
+
+# 'sfr', '--select_frame'
+
+sfr_hashes = ["25073539df4a982b7f99c72dd280bb8f", "91ade6dd5aa97dfb14826a44f0497e17",
+              "ba029cbc1a52fccddb4304e9b6a4c3db"]
+sfr_hashes = [(value, indx+1) for indx, value in enumerate(sfr_hashes)]
+sfr_buddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+@pytest.mark.parametrize("next_hash, shift", sfr_hashes)  # only tests fasta, shouldn't matter
+def test_select_frame(next_hash, shift):
+    tester = Sb.select_frame(sfr_buddy, shift)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_select_frame_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    with pytest.raises(TypeError):
+        Sb.select_frame(seqbuddy, 3)
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
