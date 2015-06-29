@@ -144,6 +144,7 @@ uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932c
              "c0dce60745515b31a27de1f919083fe9"]
 uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
 
+#TODO add --delete_metadata test
 
 @pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
 def test_lowercase(seqbuddy, next_hash):
@@ -180,9 +181,9 @@ def test_translate(seqbuddy,next_hash):
 sfr_hashes = ["25073539df4a982b7f99c72dd280bb8f", "91ade6dd5aa97dfb14826a44f0497e17",
               "ba029cbc1a52fccddb4304e9b6a4c3db"]
 sfr_hashes = [(value, indx+1) for indx, value in enumerate(sfr_hashes)]
-sfr_buddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
 @pytest.mark.parametrize("next_hash, shift", sfr_hashes)  # only tests fasta, shouldn't matter
 def test_select_frame(next_hash, shift):
+    sfr_buddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.select_frame(sfr_buddy, shift)
     assert seqs_to_hash(tester) == next_hash
 
@@ -190,6 +191,24 @@ def test_select_frame_pep_exception():  # Asserts that a TypeError will be throw
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
     with pytest.raises(TypeError):
         Sb.select_frame(seqbuddy, 3)
+
+#TODO add --translate6frames test
+#TODO add --back_translate test
+
+d2r_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+d2r_hashes = ["013ebe2bc7d83c44f58344b865e1f55b", "7464605c739e23d34ce08d3ef51e6a0a",
+              "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
+              "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
+d2r_hashes = [(d2r_objects[indx],value) for indx, value in enumerate(d2r_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", d2r_hashes)
+def test_transcribe(seqbuddy, next_hash):
+    tester = Sb.dna2rna(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    with pytest.raises(ValueError):
+        Sb.dna2rna(seqbuddy)
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
