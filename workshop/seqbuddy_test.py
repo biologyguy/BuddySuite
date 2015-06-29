@@ -247,6 +247,21 @@ def test_complement_pep_exception():  # Asserts that a TypeError will be thrown 
     with pytest.raises(TypeError):
         Sb.complement(seqbuddy)
 
+# 'rc', '--reverse_complement'
+rc_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+rc_hashes = ["cb3ad86bdaed7dd0bcfbca0a46cdfbf9", "d3c70b16443606ef4f51296f67420231", "f549c8dc076f6b3b4cf5a1bc47bf269d",
+             "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
+rc_hashes = [(rc_objects[indx], value) for indx, value in enumerate(rc_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", rc_hashes)
+def test_reverse_complement(seqbuddy, next_hash):
+    tester = Sb.reverse_complement(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
+    with pytest.raises(TypeError):
+        Sb.reverse_complement(seqbuddy)
+
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))
