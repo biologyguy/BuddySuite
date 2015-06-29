@@ -313,7 +313,20 @@ def test_rename_ids(seq_file, next_hash):  # Probably don't need to test ALL the
 
 # 'oi', '--order_ids'
 
+oi_files = [seq_files[0],seq_files[6]]
+oi_hashes = ["d103a7a41a5644614d59e0c44469d1b2", "945b2b43a423a5371ad7e90adda6e703"]
+oi_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(oi_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", oi_hashes)
+def test_order_ids(seqbuddy, next_hash):
+    tester = Sb.order_ids(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
 
+oi_rev_hashes = ["3658c4b79cd7e8dfd6afe1a9cddc2dfa", "8c4e450b72410c37683f83e528c9a610"]
+oi_rev_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(oi_rev_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", oi_rev_hashes)
+def test_order_ids_rev(seqbuddy, next_hash):
+    tester = Sb.order_ids(seqbuddy, _reverse=True)
+    assert seqs_to_hash(tester) == next_hash
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
