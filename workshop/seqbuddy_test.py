@@ -170,6 +170,14 @@ def test_raw_seq(seqbuddy, next_hash):
     _output= _output[2:len(_output)-3]
     assert _output == next_hash
 
+tr_hashes = ["c453de9e32cfee50c8425c3cddc27711", "8c5e6b8898924493aa25f22b1b483e11"]
+tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", tr_hashes)
+def test_translate(seqbuddy,next_hash):
+    tester = Sb.translate_cds(seqbuddy)
+    tester = Sb.order_features_alphabetically(tester)
+    assert seqs_to_hash(tester) == next_hash
+
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))

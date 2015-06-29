@@ -1582,7 +1582,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Counts how many sequences are present in an input file")
     parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
                         help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
-                             "from the sequences before counting.") # Fasta returns different result, unless clean is used
+                             "from the sequences before counting.")
     parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
                         help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
                              "remove stops, gaps, etc., from the sequences before concatenating.")
