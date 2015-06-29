@@ -328,6 +328,22 @@ def test_order_ids_rev(seqbuddy, next_hash):
     tester = Sb.order_ids(seqbuddy, _reverse=True)
     assert seqs_to_hash(tester) == next_hash
 
+# 'ofp', '--order_features_by_position'
+
+ofp_hashes = ["25073539df4a982b7f99c72dd280bb8f", "c10d136c93f41db280933d5b3468f187"]
+ofp_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(ofp_hashes)]
+@pytest.mark.parametrize("seqbuddy, next_hash", ofp_hashes)
+def test_order_features_by_position(seqbuddy, next_hash):
+    tester = Sb.order_features_by_position(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+ofp_rev_hashes = ["25073539df4a982b7f99c72dd280bb8f", "c10d136c93f41db280933d5b3468f187"]
+ofp_rev_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(ofp_rev_hashes)]
+@pytest.mark.parametrize("seqbuddy, next_hash", ofp_rev_hashes)
+def test_order_features_by_position_rev(seqbuddy, next_hash):
+    tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
+    assert seqs_to_hash(tester) == next_hash
+
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))
