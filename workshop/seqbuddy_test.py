@@ -274,6 +274,47 @@ def test_list_ids(seq_file, next_hash):
     _output = _output.decode().strip()
     assert _output == next_hash
 
+#  are num_seqs and ave_seq_length even worth testing?
+
+# 'cts', '--concat_seqs'
+
+cts_hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47",
+              "494988ffae2ef3072c1619eca8a0ff3b", "710cad348c5560446daf2c916ff3b3e4",
+              "494988ffae2ef3072c1619eca8a0ff3b", "494988ffae2ef3072c1619eca8a0ff3b",
+              "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
+              "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
+              "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
+cts_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(cts_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", cts_hashes)
+def test_concat_seqs(seqbuddy, next_hash):
+    tester = Sb.concat_seqs(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+# TODO fd2p and fp2d
+
+# 'ri', '--rename_ids'
+
+ri_hashes = ["7de0b95a6511180bdbd920e0ba056512", "2f0bff7901de9920a5b6f5a71d2d040c", "c1705b3a93a872b44944ecdda876061c",
+             "b99e0d4ba8698dae58cf5bd5ec26646a", "f33cf0409cddd0c079c380886a26f2ca", "e8f5009cd336d3379b952e3ab6309938",
+             "ac9a462cda32a4049a64adca42a67529", "9ef1dad6f3719dc8fe2137fb3768ed65", "89a5e946ba31aaf2c86c14f26505029d",
+             "295e01fc34ab77b872350399f50f78d5", "d689d5a4d0f50139ae991587d5a619f6", "c89f63cdcbed96052ff824bf3f1effe3"]
+ri_hashes = [(seq_path+seq_files[indx], value) for indx, value in enumerate(ri_hashes)]
+@pytest.mark.slow
+@pytest.mark.parametrize("seq_file,next_hash", ri_hashes)
+def test_rename_ids(seq_file, next_hash):  # Probably don't need to test ALL the files
+    _output = subprocess.Popen("sb {0} -ri Panx Test -li | md5".format(seq_file),
+                               stdout=subprocess.PIPE, shell=True).communicate()[0]
+    _output = _output.decode().strip()
+    assert _output == next_hash
+
+#TODO combine_features
+
+# How do you test the 'shuffle' method?
+
+# 'oi', '--order_ids'
+
+
+
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))
