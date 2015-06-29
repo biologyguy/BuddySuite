@@ -79,7 +79,7 @@ hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553"
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes) # might modify in place
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)  # might modify in place
 def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
@@ -169,7 +169,7 @@ def test_raw_seq(seq_file, next_hash):
 # 'tr', '--translate'
 
 tr_hashes = ["c453de9e32cfee50c8425c3cddc27711", "8c5e6b8898924493aa25f22b1b483e11"]
-tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)] # might modify in place
+tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)]  # might modify in place
 @pytest.mark.parametrize("seqbuddy,next_hash", tr_hashes)
 def test_translate(seqbuddy,next_hash):
     tester = Sb.translate_cds(seqbuddy)
@@ -200,7 +200,7 @@ d2r_hashes = ["013ebe2bc7d83c44f58344b865e1f55b", "7464605c739e23d34ce08d3ef51e6
               "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
               "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
 d2r_hashes = [(d2r_objects[indx],value) for indx, value in enumerate(d2r_hashes)]
-@pytest.mark.parametrize("seqbuddy,next_hash", d2r_hashes) # might modify in place
+@pytest.mark.parametrize("seqbuddy,next_hash", d2r_hashes)  # might modify in place
 def test_transcribe(seqbuddy, next_hash):
     tester = Sb.dna2rna(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
@@ -210,7 +210,20 @@ def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown
     with pytest.raises(ValueError):
         Sb.dna2rna(seqbuddy)
 
+r2d_hashes = ["25073539df4a982b7f99c72dd280bb8f", "57bd873f08cd69f00333eac94c120000",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
+r2d_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+r2d_hashes = [(Sb.dna2rna(r2d_objects[indx]), value) for indx, value in enumerate(r2d_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", r2d_hashes)  # once again fails for genbank???
+def test_back_transcribe(seqbuddy, next_hash):
+    tester = Sb.rna2dna(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
 
+def test_back_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
+    with pytest.raises(ValueError):
+        Sb.rna2dna(seqbuddy)
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
