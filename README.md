@@ -64,6 +64,7 @@ required unless you are developing (or want the bleeding edge).
 ### Modifying flags
 *Flag* | *Description*
 ------ | ----------
+-a --alphabet | Sets the alphabet for the sequence. Otherwise, alphabet will be guessed.
 -i --in_place | Rewrites the input file in-place. Be careful!
 -o --out_format | Specify the format you want the output returned in
 -p --params | Some functions can be uniquely modified by -p; see function for details
