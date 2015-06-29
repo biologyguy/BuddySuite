@@ -195,6 +195,8 @@ def test_select_frame_pep_exception():  # Asserts that a TypeError will be throw
 #TODO add --translate6frames test
 #TODO add --back_translate test
 
+# 'd2r', '--transcribe'
+
 d2r_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
 d2r_hashes = ["013ebe2bc7d83c44f58344b865e1f55b", "7464605c739e23d34ce08d3ef51e6a0a",
               "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
@@ -210,6 +212,8 @@ def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown
     with pytest.raises(ValueError):
         Sb.dna2rna(seqbuddy)
 
+# 'r2d', '--back_transcribe'
+
 r2d_hashes = ["25073539df4a982b7f99c72dd280bb8f", "57bd873f08cd69f00333eac94c120000",
               "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
               "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
@@ -220,10 +224,28 @@ def test_back_transcribe(seqbuddy, next_hash):
     tester = Sb.rna2dna(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
+#TODO make errors consistent
 def test_back_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.rna2dna(seqbuddy)
+
+# 'cmp', '--complement'
+
+cmp_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+cmp_hashes = ["cd4a98936eef4ebb05f58a8c614a0f7c", "366e0a2b28623c51591047768e8ddb08",
+              "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
+              "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
+cmp_hashes = [(cmp_objects[indx], value) for indx, value in enumerate(cmp_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", cmp_hashes)
+def test_complement(seqbuddy, next_hash):
+    tester = Sb.complement(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
+    with pytest.raises(TypeError):
+        Sb.complement(seqbuddy)
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
