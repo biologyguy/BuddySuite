@@ -144,12 +144,13 @@ uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932c
              "c0dce60745515b31a27de1f919083fe9"]
 uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
 
-#TODO add --delete_metadata test
 
 @pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
 def test_lowercase(seqbuddy, next_hash):
     tester = Sb.lowercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
+
+#TODO add --delete_metadata test
 
 # 'rs', '--raw_seq'
 
@@ -248,6 +249,7 @@ def test_complement_pep_exception():  # Asserts that a TypeError will be thrown 
         Sb.complement(seqbuddy)
 
 # 'rc', '--reverse_complement'
+
 rc_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
 rc_hashes = ["cb3ad86bdaed7dd0bcfbca0a46cdfbf9", "d3c70b16443606ef4f51296f67420231", "f549c8dc076f6b3b4cf5a1bc47bf269d",
              "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
@@ -261,6 +263,16 @@ def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(TypeError):
         Sb.reverse_complement(seqbuddy)
+
+li_hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
+             "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
+li_hashes = [(seq_path+seq_files[indx], value) for indx, value in enumerate(li_hashes)]
+@pytest.mark.slow
+@pytest.mark.parametrize("seq_file,next_hash", li_hashes)
+def test_list_ids(seq_file, next_hash):
+    _output = subprocess.Popen("sb {0} -li | md5".format(seq_file), stdout=subprocess.PIPE, shell=True).communicate()[0]
+    _output = _output.decode().strip()
+    assert _output == next_hash
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
