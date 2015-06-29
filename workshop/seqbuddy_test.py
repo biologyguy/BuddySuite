@@ -42,10 +42,10 @@ def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
 
-seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy",
-             "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
-             "Mnemiopsis_pep.fa", "Mnemiopsis_pep.gb", "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy",
-             "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm"]
+seq_files = ["Mnemiopsis/Mnemiopsis_cds.fa", "Mnemiopsis/Mnemiopsis_cds.gb", "Mnemiopsis/Mnemiopsis_cds.nex",
+             "Mnemiopsis/Mnemiopsis_cds.phy", "Mnemiopsis/Mnemiopsis_cds.phyr", "Mnemiopsis/Mnemiopsis_cds.stklm",
+             "Mnemiopsis/Mnemiopsis_pep.fa", "Mnemiopsis/Mnemiopsis_pep.gb", "Mnemiopsis/Mnemiopsis_pep.nex",
+             "Mnemiopsis/Mnemiopsis_pep.phy", "Mnemiopsis/Mnemiopsis_pep.phyr", "Mnemiopsis/Mnemiopsis_pep.stklm"]
 
 
 @pytest.mark.parametrize("seq_file", seq_files)
@@ -79,18 +79,18 @@ hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553"
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes) # might modify in place
 def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 # '-mw', '--molecular_weight'
-mw_files = ["mw_test_pep.fa", "mw_test_cds_a.fa", "mw_test_cds_u.fa", "mw_test_rna_a.fa", "mw_test_rna_u.fa"]
+mw_files = ["mw/mw_test_pep.fa", "mw/mw_test_cds_a.fa", "mw/mw_test_cds_u.fa", "mw/mw_test_rna_a.fa",
+            "mw/mw_test_rna_u.fa"]
 mw_formats = ["protein", "dna", "dna", "rna", "rna"]
 mw_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", mw_formats[indx])) for indx, value in enumerate(mw_files)]
 expected_mw = [[2505.75, None], [5022.19, 10044.28], [3168.0, 6335.9], [4973.0, None], [3405.0, None]]
 expected_mw = [(mw_objects[indx], value) for indx, value in enumerate(expected_mw)]
-
 
 @pytest.mark.parametrize("seqbuddy,next_mw", expected_mw)
 def test_molecular_weight(seqbuddy, next_mw):
@@ -102,7 +102,7 @@ def test_molecular_weight(seqbuddy, next_mw):
         assert masses_ds[0] == next_mw[1]
 
 # 'cs', '--clean_seq'
-cs_files = ["cs_test_pep.fa", "cs_test_cds_a.fa", "cs_test_cds_u.fa"]
+cs_files = ["cs/cs_test_pep.fa", "cs/cs_test_cds_a.fa", "cs/cs_test_cds_u.fa"]
 cs_formats = ["protein", "dna", "dna"]
 cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
 cs_hashes = ['9289d387b1c8f990b44a9cb15e12443b', "8e161d5e4115bf483f5196adf7de88f0", "2e873cee6f807fe17cb0ff9437d698fb"]
@@ -115,10 +115,10 @@ def test_clean_seq(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 # 'uc', '--uppercase'
-lc_files = ["lower_Mnemiopsis_cds.fa", "lower_Mnemiopsis_cds.gb", "lower_Mnemiopsis_cds.nex",
-            "lower_Mnemiopsis_cds.phyr", "lower_Mnemiopsis_cds.stklm", "lower_Mnemiopsis_pep.fa",
-            "lower_Mnemiopsis_pep.gb", "lower_Mnemiopsis_pep.nex", "lower_Mnemiopsis_pep.phyr",
-            "lower_Mnemiopsis_pep.stklm"]
+lc_files = ["lower/lower_Mnemiopsis_cds.fa", "lower/lower_Mnemiopsis_cds.gb", "lower/lower_Mnemiopsis_cds.nex",
+            "lower/lower_Mnemiopsis_cds.phyr", "lower/lower_Mnemiopsis_cds.stklm", "lower/lower_Mnemiopsis_pep.fa",
+            "lower/lower_Mnemiopsis_pep.gb", "lower/lower_Mnemiopsis_pep.nex", "lower/lower_Mnemiopsis_pep.phyr",
+            "lower/lower_Mnemiopsis_pep.stklm"]
 lc_objects = [Sb.SeqBuddy(resource(file)) for file in lc_files]
 lc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "d41d8cd98f00b204e9800998ecf8427e", "52e74a09c305d031fc5263d1751e265d",
              "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce", "c10d136c93f41db280933d5b3468f187",
@@ -133,10 +133,10 @@ def test_uppercase(seqbuddy, next_hash):  # genbank should fail right now
     assert seqs_to_hash(tester) == next_hash
 
 # 'lc', '--lowercase'
-uc_files = ["upper_Mnemiopsis_cds.fa", "upper_Mnemiopsis_cds.gb", "upper_Mnemiopsis_cds.nex",
-            "upper_Mnemiopsis_cds.phyr", "upper_Mnemiopsis_cds.stklm", "upper_Mnemiopsis_pep.fa",
-            "upper_Mnemiopsis_pep.gb", "upper_Mnemiopsis_pep.nex", "upper_Mnemiopsis_pep.phyr",
-            "upper_Mnemiopsis_pep.stklm"]
+uc_files = ["upper/upper_Mnemiopsis_cds.fa", "upper/upper_Mnemiopsis_cds.gb", "upper/upper_Mnemiopsis_cds.nex",
+            "upper/upper_Mnemiopsis_cds.phyr", "upper/upper_Mnemiopsis_cds.stklm", "upper/upper_Mnemiopsis_pep.fa",
+            "upper/upper_Mnemiopsis_pep.gb", "upper/upper_Mnemiopsis_pep.nex", "upper/upper_Mnemiopsis_pep.phyr",
+            "upper/upper_Mnemiopsis_pep.stklm"]
 uc_objects = [Sb.SeqBuddy(resource(file)) for file in uc_files]
 uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932ceb", "cb1169c2dd357771a97a02ae2160935d",
              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b", "14227e77440e75dd3fbec477f6fd8bdc",
@@ -169,7 +169,7 @@ def test_raw_seq(seq_file, next_hash):
 # 'tr', '--translate'
 
 tr_hashes = ["c453de9e32cfee50c8425c3cddc27711", "8c5e6b8898924493aa25f22b1b483e11"]
-tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)]
+tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)] # might modify in place
 @pytest.mark.parametrize("seqbuddy,next_hash", tr_hashes)
 def test_translate(seqbuddy,next_hash):
     tester = Sb.translate_cds(seqbuddy)
@@ -183,12 +183,12 @@ sfr_hashes = ["25073539df4a982b7f99c72dd280bb8f", "91ade6dd5aa97dfb14826a44f0497
 sfr_hashes = [(value, indx+1) for indx, value in enumerate(sfr_hashes)]
 @pytest.mark.parametrize("next_hash, shift", sfr_hashes)  # only tests fasta, shouldn't matter
 def test_select_frame(next_hash, shift):
-    sfr_buddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    sfr_buddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_cds.fa"))
     tester = Sb.select_frame(sfr_buddy, shift)
     assert seqs_to_hash(tester) == next_hash
 
 def test_select_frame_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(TypeError):
         Sb.select_frame(seqbuddy, 3)
 
@@ -200,15 +200,17 @@ d2r_hashes = ["013ebe2bc7d83c44f58344b865e1f55b", "7464605c739e23d34ce08d3ef51e6
               "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
               "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
 d2r_hashes = [(d2r_objects[indx],value) for indx, value in enumerate(d2r_hashes)]
-@pytest.mark.parametrize("seqbuddy,next_hash", d2r_hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash", d2r_hashes) # might modify in place
 def test_transcribe(seqbuddy, next_hash):
     tester = Sb.dna2rna(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.dna2rna(seqbuddy)
+
+
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
