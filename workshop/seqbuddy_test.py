@@ -164,7 +164,8 @@ rs_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in 
 @pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
 def test_raw_seq(seqbuddy, next_hash):
     tester = Sb.raw_seq(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == next_hash
 
 # 'tr', '--translate'
 

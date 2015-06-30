@@ -1538,11 +1538,11 @@ def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
         _sequence[0] = ".".join(os.path.abspath(_sequence[0]).split(".")[:-1]) + \
                               "." + _seqbuddy.out_format
         open(_sequence[0], "w").close()
-
-    _print_recs(seqbuddy)
+    _print_recs(_seqbuddy)
 
 
 def raw_seq(_seqbuddy, in_place=False, _sequence=None):
+    _seqbuddy = clean_seq(_seqbuddy)
     output = ""
     for rec in _seqbuddy.records:
         output += "%s\n\n" % rec.seq
@@ -1559,6 +1559,7 @@ def raw_seq(_seqbuddy, in_place=False, _sequence=None):
 
     else:
         sys.stdout.write("%s\n" % output.strip())
+    return "%s\n" % output.strip()
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -2126,7 +2127,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Raw Seq
     if in_args.raw_seq:
-        seqbuddy = clean_seq(seqbuddy)
         raw_seq(seqbuddy, in_args.in_place, in_args.sequence)
 
 
