@@ -1562,6 +1562,16 @@ def raw_seq(_seqbuddy, in_place=False, _sequence=None):
     return "%s\n" % output.strip()
 
 
+def list_ids(_seqbuddy, _columns):
+    _output = ""
+    _counter = 1
+    for rec in _seqbuddy.records:
+        _output += "%s\t" % rec.id
+        if _counter % _columns == 0:
+            _output = "%s\n" % _output.strip()
+        _counter += 1
+    sys.stdout.write("%s\n" % _output.strip())
+    return "%s\n" % _output.strip()
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -2015,14 +2025,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # List identifiers
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        output = ""
-        counter = 1
-        for rec in seqbuddy.records:
-            output += "%s\t" % rec.id
-            if counter % columns == 0:
-                output = "%s\n" % output.strip()
-            counter += 1
-        sys.stdout.write("%s\n" % output.strip())
+        list_ids(seqbuddy, columns)
 
     # Translate CDS
     if in_args.translate:
