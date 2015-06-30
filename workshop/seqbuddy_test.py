@@ -7,7 +7,7 @@ from hashlib import md5
 from Bio import SeqIO
 import os
 import subprocess
-import tempfile
+import copy
 
 try:
     import workshop.SeqBuddy as Sb
@@ -344,7 +344,40 @@ def test_order_features_by_position_rev(seqbuddy, next_hash):
     tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
     assert seqs_to_hash(tester) == next_hash
 
-#TODO screw_formats
+# 'sf', '--screw_formats'
+
+# last three formats rebuilt each time to work correctly in parallel
+fasta_files = ["Mnemiopsis/Mnemiopsis_cds.fa", "Mnemiopsis/Mnemiopsis_pep.fa"]
+fasta_files = [Sb.SeqBuddy(resource(file)) for file in fasta_files]
+gb_files = ["Mnemiopsis/Mnemiopsis_cds.gb", "Mnemiopsis/Mnemiopsis_pep.gb"]
+gb_files = [Sb.SeqBuddy(resource(file)) for file in gb_files]
+nex_files = ["Mnemiopsis/Mnemiopsis_cds.nex", "Mnemiopsis/Mnemiopsis_pep.nex"]
+# nex_files = [Sb.SeqBuddy(resource(file)) for file in nex_files]
+phyr_files = ["Mnemiopsis/Mnemiopsis_cds.phyr", "Mnemiopsis/Mnemiopsis_pep.phyr"]
+# phyr_files = [Sb.SeqBuddy(resource(file)) for file in phyr_files]
+stklm_files = ["Mnemiopsis/Mnemiopsis_cds.stklm", "Mnemiopsis/Mnemiopsis_pep.stklm"]
+# stklm_files = [Sb.SeqBuddy(resource(file)) for file in stklm_files]
+@pytest.mark.parametrize("indx", [0,1])
+def test_screw_formats_fa_gb(indx):
+    fasta = fasta_files[indx]
+    gb = gb_files[indx]
+    assert seqs_to_hash(fasta) == seqs_to_hash(Sb.screw_formats(gb, "fasta"))
+
+other_files = [nex_files, phyr_files, stklm_files]
+screw_files = []
+for l1 in other_files:
+    for l2 in other_files:
+        if l1 is not l2:
+            for indx in range(2):
+                screw_files.append((indx, l1, l2))
+
+@pytest.mark.parametrize("indx,l1,l2", screw_files) # fails when stklm is the out_format
+def test_screw_formats_other(indx, l1, l2):
+    sb1 = Sb.SeqBuddy(resource(l1[indx]))
+    sb2 = Sb.SeqBuddy(resource(l2[indx]))
+    sb2 = Sb.screw_formats(sb2, sb1.out_format)
+    assert seqs_to_hash(sb1) == seqs_to_hash(sb2)
+
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])

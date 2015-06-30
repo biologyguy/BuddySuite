@@ -1538,7 +1538,7 @@ def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
         _sequence[0] = ".".join(os.path.abspath(_sequence[0]).split(".")[:-1]) + \
                               "." + _seqbuddy.out_format
         open(_sequence[0], "w").close()
-    _print_recs(_seqbuddy)
+    return _seqbuddy
 
 
 def raw_seq(_seqbuddy, in_place=False, _sequence=None):
@@ -1974,7 +1974,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Screw formats
     if in_args.screw_formats:
-        screw_formats(seqbuddy, in_args.screw_formats, in_args.in_place, in_args.sequence)
+        _print_recs(screw_formats(seqbuddy, in_args.screw_formats, in_args.in_place, in_args.sequence))
 
     # Renaming
     if in_args.rename_ids:
