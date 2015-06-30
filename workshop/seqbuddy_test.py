@@ -160,7 +160,6 @@ rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374
              "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
              "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
 rs_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(rs_hashes)]
-@pytest.mark.slow
 @pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
 def test_raw_seq(seqbuddy, next_hash):
     tester = Sb.raw_seq(seqbuddy)
@@ -266,13 +265,12 @@ def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be
 
 li_hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
              "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
-li_hashes = [(seq_path+seq_files[indx], value) for indx, value in enumerate(li_hashes)]
-@pytest.mark.slow
-@pytest.mark.parametrize("seq_file,next_hash", li_hashes)
-def test_list_ids(seq_file, next_hash):
-    _output = subprocess.Popen("sb {0} -li | md5".format(seq_file), stdout=subprocess.PIPE, shell=True).communicate()[0]
-    _output = _output.decode().strip()
-    assert _output == next_hash
+li_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(li_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", li_hashes)
+def test_list_ids(seqbuddy, next_hash):
+    tester = Sb.list_ids(seqbuddy, 1)
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == next_hash
 
 #  are num_seqs and ave_seq_length even worth testing?
 
@@ -294,18 +292,13 @@ def test_concat_seqs(seqbuddy, next_hash):
 
 # 'ri', '--rename_ids'
 
-ri_hashes = ["7de0b95a6511180bdbd920e0ba056512", "2f0bff7901de9920a5b6f5a71d2d040c", "c1705b3a93a872b44944ecdda876061c",
-             "b99e0d4ba8698dae58cf5bd5ec26646a", "f33cf0409cddd0c079c380886a26f2ca", "e8f5009cd336d3379b952e3ab6309938",
-             "ac9a462cda32a4049a64adca42a67529", "9ef1dad6f3719dc8fe2137fb3768ed65", "89a5e946ba31aaf2c86c14f26505029d",
-             "295e01fc34ab77b872350399f50f78d5", "d689d5a4d0f50139ae991587d5a619f6", "c89f63cdcbed96052ff824bf3f1effe3"]
-ri_hashes = [(seq_path+seq_files[indx], value) for indx, value in enumerate(ri_hashes)]
-@pytest.mark.slow
-@pytest.mark.parametrize("seq_file,next_hash", ri_hashes)
-def test_rename_ids(seq_file, next_hash):  # Probably don't need to test ALL the files
-    _output = subprocess.Popen("sb {0} -ri Panx Test -li | md5".format(seq_file),
-                               stdout=subprocess.PIPE, shell=True).communicate()[0]
-    _output = _output.decode().strip()
-    assert _output == next_hash
+ri_hashes = ["0672973b580581f15cf2ce467b89144e", "3847ad5210a85b8db59e256261552ee7", "243024bfd2f686e6a6e0ef65aa963494",
+             "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
+ri_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(ri_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", ri_hashes)
+def test_rename_ids(seqbuddy, next_hash):  # Probably don't need to test ALL the files
+    tester = Sb.rename(seqbuddy, 'Panx', 'Test', 0)
+    assert seqs_to_hash(tester) == next_hash
 
 #TODO combine_features
 
