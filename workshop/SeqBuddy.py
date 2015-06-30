@@ -1556,13 +1556,12 @@ def raw_seq(_seqbuddy, in_place=False, _sequence=None):
             with open(os.path.abspath(_sequence[0]), "w") as ofile:
                 ofile.write(output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_sequence[0]), in_args.quiet)
-
     else:
         sys.stdout.write("%s\n" % output.strip())
     return "%s\n" % output.strip()
 
 
-def list_ids(_seqbuddy, _columns):
+def list_ids(_seqbuddy, _columns=1):
     _output = ""
     _counter = 1
     for rec in _seqbuddy.records:
@@ -1572,6 +1571,20 @@ def list_ids(_seqbuddy, _columns):
         _counter += 1
     sys.stdout.write("%s\n" % _output.strip())
     return "%s\n" % _output.strip()
+
+
+def num_seqs(_seqbuddy):
+    return len(_seqbuddy.records)
+
+
+def merge(_seqbuddy, _sequences, _out_format=None):
+    new_list = SeqBuddy([])
+    for infile in _sequences:
+        new_list.records += SeqBuddy(infile).records
+    new_list.out_format = _out_format if _out_format else _seqbuddy.out_format
+    return new_list
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1975,12 +1988,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Merge
     if in_args.merge:
-        new_list = SeqBuddy([])
-        for infile in in_args.sequence:
-            new_list.records += SeqBuddy(infile).records
-
-        new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
-        _print_recs(new_list)
+        _print_recs(merge(seqbuddy, in_args.sequence, in_args.out_format))
 
     # Screw formats
     if in_args.screw_formats:
@@ -2078,7 +2086,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Count number of sequences in a file
     if in_args.num_seqs:
-        sys.stdout.write("%s\n" % len(seqbuddy.records))
+        sys.stdout.write("%s\n" % num_seqs(seqbuddy))
 
     # Average length of sequences
     if in_args.ave_seq_length:
