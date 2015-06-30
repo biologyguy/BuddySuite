@@ -159,13 +159,12 @@ rs_hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374
              "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
              "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
              "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
-rs_hashes = [(seq_path + seq_files[indx], value) for indx, value in enumerate(rs_hashes)]
+rs_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(rs_hashes)]
 @pytest.mark.slow
-@pytest.mark.parametrize("seq_file,next_hash", rs_hashes)
-def test_raw_seq(seq_file, next_hash):
-    _output = subprocess.Popen("sb {0} -rs | md5".format(seq_file), stdout=subprocess.PIPE, shell=True).communicate()[0]
-    _output = _output.decode().strip()
-    assert _output == next_hash
+@pytest.mark.parametrize("seqbuddy,next_hash", rs_hashes)
+def test_raw_seq(seqbuddy, next_hash):
+    tester = Sb.raw_seq(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
 
 # 'tr', '--translate'
 
@@ -193,8 +192,8 @@ def test_select_frame_pep_exception():  # Asserts that a TypeError will be throw
     with pytest.raises(TypeError):
         Sb.select_frame(seqbuddy, 3)
 
-#TODO add --translate6frames test
-#TODO add --back_translate test
+#TODO add --translate6frames test after ordering is fixed
+#TODO add --back_translate test after ordering is fixed
 
 # 'd2r', '--transcribe'
 
@@ -343,6 +342,8 @@ ofp_rev_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value
 def test_order_features_by_position_rev(seqbuddy, next_hash):
     tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
     assert seqs_to_hash(tester) == next_hash
+
+#TODO screw_formats
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])

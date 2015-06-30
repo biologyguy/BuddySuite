@@ -238,6 +238,7 @@ def _stderr(message, quiet=False):
 
 # TODO Handle stdin when not piped
 # TODO Fix error reporting when file is not found (currently throws could not guess format)
+# TODO Object Oriented Programming
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None, _alpha=None):
@@ -1528,6 +1529,38 @@ def molecular_weight(_seqbuddy):
             _output['masses_ds'].append(round(_rec.mass_ds,3))
         _output['ids'].append(_rec.id)
     return _output
+
+
+def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
+    _seqbuddy.out_format = _format
+    if in_place:  # Need to change the file extension
+        os.remove(_sequence[0])
+        _sequence[0] = ".".join(os.path.abspath(_sequence[0]).split(".")[:-1]) + \
+                              "." + _seqbuddy.out_format
+        open(_sequence[0], "w").close()
+
+    _print_recs(seqbuddy)
+
+
+def raw_seq(_seqbuddy, in_place=False, _sequence=None):
+    output = ""
+    for rec in _seqbuddy.records:
+        output += "%s\n\n" % rec.seq
+
+    if in_place:
+        if not os.path.exists(_sequence[0]):
+            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                    "file. Nothing was written.\n", in_args.quiet)
+            sys.stdout.write("%s\n" % output.strip())
+        else:
+            with open(os.path.abspath(_sequence[0]), "w") as ofile:
+                ofile.write(output)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(_sequence[0]), in_args.quiet)
+
+    else:
+        sys.stdout.write("%s\n" % output.strip())
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1940,14 +1973,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Screw formats
     if in_args.screw_formats:
-        seqbuddy.out_format = in_args.screw_formats
-        if in_args.in_place:  # Need to change the file extension
-            os.remove(in_args.sequence[0])
-            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
-                                  "." + seqbuddy.out_format
-            open(in_args.sequence[0], "w").close()
-
-        _print_recs(seqbuddy)
+        screw_formats(seqbuddy, in_args.screw_formats, in_args.in_place, in_args.sequence)
 
     # Renaming
     if in_args.rename_ids:
@@ -2101,22 +2127,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Raw Seq
     if in_args.raw_seq:
         seqbuddy = clean_seq(seqbuddy)
-        output = ""
-        for rec in seqbuddy.records:
-            output += "%s\n\n" % rec.seq
+        raw_seq(seqbuddy, in_args.in_place, in_args.sequence)
 
-        if in_args.in_place:
-            if not os.path.exists(in_args.sequence[0]):
-                _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                        "file. Nothing was written.\n", in_args.quiet)
-                sys.stdout.write("%s\n" % output.strip())
-            else:
-                with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
-                    ofile.write(output)
-                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
-
-        else:
-            sys.stdout.write("%s\n" % output.strip())
 
     # Clean Seq
     if in_args.clean_seq:
