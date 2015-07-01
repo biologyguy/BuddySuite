@@ -78,7 +78,7 @@ hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553"
 
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
-
+#TODO Fix all of the ordering methods
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)  # might modify in place
 def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
@@ -313,6 +313,8 @@ def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be
     with pytest.raises(ValueError):
         Sb.reverse_complement(seqbuddy)
 
+# 'li', '--list_ids'
+
 li_hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
              "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
 li_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(li_hashes)]
@@ -354,11 +356,14 @@ fd2p_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7
                "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
                "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
                "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2"]  # placeholders
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e"]  # placeholders
 fd2p_objects = []
 hash_indx = 0
 for dna in seq_files[:6]:
-    for prot in seq_files[7:]:
+    for prot in seq_files[6:]:
         fd2p_objects.append((dna, prot, fd2p_hashes[hash_indx]))
         hash_indx += 1
 
@@ -385,15 +390,18 @@ fp2d_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7
                "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
                "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
                "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2"]  # placeholders
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e"]  # placeholders
 fp2d_objects = []
 hash_indx = 0
-for prot in seq_files[7:]:
-    for dna in seq_files[6:]:
-        fd2p_objects.append((prot, dna, fd2p_hashes[hash_indx]))
+for prot in seq_files[6:]:
+    for dna in seq_files[:6]:
+        fp2d_objects.append((prot, dna, fd2p_hashes[hash_indx]))
         hash_indx += 1
 @pytest.mark.parametrize("prot,dna,next_hash", fp2d_objects)
-def test_map_features_dna2prot(prot, dna, next_hash):
+def test_map_features_prot2dna(prot, dna, next_hash):
     _dna = Sb.SeqBuddy(resource(dna))
     _prot = Sb.SeqBuddy(resource(prot))
     tester = Sb.map_features_prot2dna(_prot, _dna)
@@ -410,7 +418,32 @@ def test_rename_ids(seqbuddy, next_hash):  # Probably don't need to test ALL the
     tester = Sb.rename(seqbuddy, 'Panx', 'Test', 0)
     assert seqs_to_hash(tester) == next_hash
 
-#TODO combine_features
+# 'cf', '--combine_features'
+
+cf_hashes = ["d6fbbf1cc2a654e1198a516cdd0f8889", "d6fbbf1cc2a654e1198a516cdd0f8889", "d6fbbf1cc2a654e1198a516cdd0f8889",
+             "d6fbbf1cc2a654e1198a516cdd0f8889", "4d86c221a89b9e804a76c916d20e303a", "4d86c221a89b9e804a76c916d20e303a",
+             "4d86c221a89b9e804a76c916d20e303a", "4d86c221a89b9e804a76c916d20e303a", "071475aa0566013628d420b89c4f602c",
+             "071475aa0566013628d420b89c4f602c", "071475aa0566013628d420b89c4f602c", "071475aa0566013628d420b89c4f602c",
+             "46ee4b02fbdfa31a5bd6e527e690d129", "46ee4b02fbdfa31a5bd6e527e690d129", "46ee4b02fbdfa31a5bd6e527e690d129",
+             "46ee4b02fbdfa31a5bd6e527e690d129", "abc020b655549bad175d33077d1b307a", "abc020b655549bad175d33077d1b307a",
+             "abc020b655549bad175d33077d1b307a", "abc020b655549bad175d33077d1b307a"]  # placeholders
+cf_objects = []
+hash_indx = 0
+cf_list = seq_files[0:3]
+cf_list.append(seq_files[4])
+cf_list.append(seq_files[5])
+for seq1 in cf_list:
+    for seq2 in cf_list:
+        if seq1 is not seq2:
+            cf_objects.append((seq1, seq2, fd2p_hashes[hash_indx]))
+            hash_indx += 1
+@pytest.mark.parametrize("seq1,seq2,next_hash", cf_objects)
+def test_combine_features(seq1, seq2, next_hash):
+    _seq1 = Sb.SeqBuddy(resource(seq1))
+    _seq2 = Sb.SeqBuddy(resource(seq2))
+    tester = Sb.combine_features(_seq1, _seq2)
+    assert seqs_to_hash(tester) == next_hash
+
 
 # How do you test the 'shuffle' method?
 
