@@ -168,13 +168,18 @@ def test_raw_seq(seqbuddy, next_hash):
 
 # 'tr', '--translate'
 
-tr_hashes = ["c453de9e32cfee50c8425c3cddc27711", "8c5e6b8898924493aa25f22b1b483e11"]
-tr_hashes = [(sb_objects[indx], value) for indx, value in enumerate(tr_hashes)]  # might modify in place
+tr_hashes = ["fasta_placeholder", "genbank_placeholder"]  # need to replace hashes later
+tr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(tr_hashes)]
 @pytest.mark.parametrize("seqbuddy,next_hash", tr_hashes)
 def test_translate(seqbuddy,next_hash):
     tester = Sb.translate_cds(seqbuddy)
     tester = Sb.order_features_alphabetically(tester)
     assert seqs_to_hash(tester) == next_hash
+
+def test_translate_pep_exception():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
+    with pytest.raises(ValueError):
+        Sb.translate_cds(seqbuddy)
 
 # 'sfr', '--select_frame'
 
@@ -189,15 +194,50 @@ def test_select_frame(next_hash, shift):
 
 def test_select_frame_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         Sb.select_frame(seqbuddy, 3)
 
-#TODO add --translate6frames test after ordering is fixed
-#TODO add --back_translate test after ordering is fixed
+# 'tr6', '--translate6frames' (inconsistent with underscore naming convention)
+
+tr6_hashes = ["fasta_placeholder", "genbank_placeholder"]  # need to replace hashes later
+tr6_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(tr6_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", tr6_hashes)
+def test_translate6frames(seqbuddy,next_hash):
+    tester = Sb.translate6frames(seqbuddy)
+    tester = Sb.order_features_alphabetically(tester)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_translate6frames_pep_exception():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
+    with pytest.raises(ValueError):
+        Sb.translate6frames(seqbuddy)
+
+# 'btr', '--back_translate'
+
+btr_hashes = ["fasta_human_placeholder", "fasta_yeast_placeholder", "fasta_ecoli_placeholder",
+              "genbank_human_placeholder", "genbank_yeast_placeholder", "genbank_ecoli_placeholder"]
+btr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx+6])), value) for indx, value in enumerate(btr_hashes)]
+btr_organisms = ['human', 'yeast', 'ecoli']
+btr_objects = []
+for indx, md5_hash in enumerate(btr_hashes):
+    for organism in btr_organisms:
+        obj = Sb.SeqBuddy(resource(seq_files[indx+6]))
+        btr_objects.append((obj, organism, md5_hash))
+
+@pytest.mark.parametrize("seqbuddy,_organism,next_hash", btr_objects)
+def test_back_translate(seqbuddy, _organism, next_hash):
+    tester = Sb.back_translate(seqbuddy, 'OPTIMIZED', _organism)
+    tester = Sb.order_features_alphabetically(tester)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_back_translate_nucleotide_exception():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_cds.fa"))
+    with pytest.raises(ValueError):
+        Sb.back_translate(seqbuddy)
 
 # 'd2r', '--transcribe'
 
-d2r_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+d2r_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
 d2r_hashes = ["013ebe2bc7d83c44f58344b865e1f55b", "7464605c739e23d34ce08d3ef51e6a0a",
               "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
               "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
@@ -217,7 +257,7 @@ def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown
 r2d_hashes = ["25073539df4a982b7f99c72dd280bb8f", "57bd873f08cd69f00333eac94c120000",
               "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
               "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
-r2d_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+r2d_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
 r2d_hashes = [(Sb.dna2rna(r2d_objects[indx]), value) for indx, value in enumerate(r2d_hashes)]
 @pytest.mark.parametrize("seqbuddy,next_hash", r2d_hashes)  # once again fails for genbank???
 def test_back_transcribe(seqbuddy, next_hash):
@@ -232,7 +272,7 @@ def test_back_transcribe_pep_exception():  # Asserts that a ValueError will be t
 
 # 'cmp', '--complement'
 
-cmp_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+cmp_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
 cmp_hashes = ["cd4a98936eef4ebb05f58a8c614a0f7c", "366e0a2b28623c51591047768e8ddb08",
               "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
               "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
@@ -244,12 +284,12 @@ def test_complement(seqbuddy, next_hash):
 
 def test_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         Sb.complement(seqbuddy)
 
 # 'rc', '--reverse_complement'
 
-rc_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6]]
+rc_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
 rc_hashes = ["cb3ad86bdaed7dd0bcfbca0a46cdfbf9", "d3c70b16443606ef4f51296f67420231", "f549c8dc076f6b3b4cf5a1bc47bf269d",
              "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
 rc_hashes = [(rc_objects[indx], value) for indx, value in enumerate(rc_hashes)]
@@ -260,7 +300,7 @@ def test_reverse_complement(seqbuddy, next_hash):
 
 def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         Sb.reverse_complement(seqbuddy)
 
 li_hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
