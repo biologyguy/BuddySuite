@@ -150,7 +150,17 @@ def test_lowercase(seqbuddy, next_hash):
     tester = Sb.lowercase(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-#TODO add --delete_metadata test
+# 'dm', '--delete_metadata'
+
+dm_hashes = ["8b98dc863c2483ee2fa813df983f9941", "544ab887248a398d6dd1aab513bae5b1", "cb1169c2dd357771a97a02ae2160935d",
+             "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "a50943ccd028b6f5fa658178fa8cf54d",
+             "31b3aa8d247175ae31d5f17b146daf46", "858e8475f7bc6e6a24681083a8635ef9", "8b6737fe33058121fd99d2deee2f9a76",
+             "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "45ee83084fbd886d5ab1875f8af4560e"]
+dm_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(dm_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", dm_hashes)
+def test_delete_metadata(seqbuddy, next_hash):
+    tester = Sb.delete_metadata(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
 
 # 'rs', '--raw_seq'
 
