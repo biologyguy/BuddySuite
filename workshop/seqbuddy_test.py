@@ -338,7 +338,67 @@ def test_concat_seqs(seqbuddy, next_hash):
     tester = Sb.concat_seqs(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-# TODO fd2p and fp2d
+# 'fd2p', '--map_features_dna2prot'
+
+fd2p_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "f26e10bf351f2e94364ea9dd9a758986",
+               "037314b4adeda8ddf8d2424f2c11c2ff", "20c6563dcc6743a2f7723f3c087f4c32",
+               "cb065e0dc2f4943c16b72b4dfad248aa", "35d1d272617b73fa16bcfdf1e65f7efd",
+               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "9e21db637248e571ba57a5331aa37c7e",
+               "76fe4e79a9cdcbccfad4ca651e2c0faa", "87a1bd7e787735e7fd82daa09555d7a2",
+               "87a1bd7e787735e7fd82daa09555d7a2", "f34ed1f8a05ff8975b2b2c796235040b",
+               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
+               "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2"]  # placeholders
+fd2p_objects = []
+hash_indx = 0
+for dna in seq_files[:6]:
+    for prot in seq_files[7:]:
+        fd2p_objects.append((dna, prot, fd2p_hashes[hash_indx]))
+        hash_indx += 1
+
+@pytest.mark.parametrize("dna,prot,next_hash", fd2p_objects)
+def test_map_features_dna2prot(dna, prot, next_hash):
+    _dna = Sb.SeqBuddy(resource(dna))
+    _prot = Sb.SeqBuddy(resource(prot))
+    tester = Sb.map_features_dna2prot(_dna, _prot)
+    assert seqs_to_hash(tester) == next_hash
+
+# 'fp2d', '--map_features_prot2dna'
+
+fp2d_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "f26e10bf351f2e94364ea9dd9a758986",
+               "037314b4adeda8ddf8d2424f2c11c2ff", "20c6563dcc6743a2f7723f3c087f4c32",
+               "cb065e0dc2f4943c16b72b4dfad248aa", "35d1d272617b73fa16bcfdf1e65f7efd",
+               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "9e21db637248e571ba57a5331aa37c7e",
+               "76fe4e79a9cdcbccfad4ca651e2c0faa", "87a1bd7e787735e7fd82daa09555d7a2",
+               "87a1bd7e787735e7fd82daa09555d7a2", "f34ed1f8a05ff8975b2b2c796235040b",
+               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
+               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
+               "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
+               "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
+               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2"]  # placeholders
+fp2d_objects = []
+hash_indx = 0
+for prot in seq_files[7:]:
+    for dna in seq_files[6:]:
+        fd2p_objects.append((prot, dna, fd2p_hashes[hash_indx]))
+        hash_indx += 1
+@pytest.mark.parametrize("prot,dna,next_hash", fp2d_objects)
+def test_map_features_dna2prot(prot, dna, next_hash):
+    _dna = Sb.SeqBuddy(resource(dna))
+    _prot = Sb.SeqBuddy(resource(prot))
+    tester = Sb.map_features_prot2dna(_prot, _dna)
+    assert seqs_to_hash(tester) == next_hash
+
 
 # 'ri', '--rename_ids'
 
@@ -400,10 +460,10 @@ phyr_files = ["Mnemiopsis/Mnemiopsis_cds.phyr", "Mnemiopsis/Mnemiopsis_pep.phyr"
 # phyr_files = [Sb.SeqBuddy(resource(file)) for file in phyr_files]
 stklm_files = ["Mnemiopsis/Mnemiopsis_cds.stklm", "Mnemiopsis/Mnemiopsis_pep.stklm"]
 # stklm_files = [Sb.SeqBuddy(resource(file)) for file in stklm_files]
-@pytest.mark.parametrize("indx", [0,1])
-def test_screw_formats_fa_gb(indx):
-    fasta = fasta_files[indx]
-    gb = gb_files[indx]
+@pytest.mark.parametrize("_indx", [0,1])
+def test_screw_formats_fa_gb(_indx):
+    fasta = fasta_files[_indx]
+    gb = gb_files[_indx]
     assert seqs_to_hash(fasta) == seqs_to_hash(Sb.screw_formats(gb, "fasta"))
 
 other_files = [nex_files, phyr_files, stklm_files]
