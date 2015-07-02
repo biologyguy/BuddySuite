@@ -516,6 +516,8 @@ def test_screw_formats_other(indx, l1, l2):
     sb2 = Sb.screw_formats(sb2, sb1.out_format)
     assert seqs_to_hash(sb1) == seqs_to_hash(sb2)
 
+# 'er', '--extract_range'
+
 er_hashes = ["1e31d4bc840532497e3e13f7f9ff2b6c", "0fd49e9218567966f4b00c44856662bc", "4063ab66ced2fafb080ceba88965d2bb",
              "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
              "e402f09afdb555bd8249d737dd7add99", "3b2f53ed43d9d0a771d6aad861a8ae34", "03cbca359b8674fdc6791590a329d807",
@@ -530,6 +532,17 @@ def test_extract_range_end_less_than_start():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_cds.fa"))
     with pytest.raises(AttributeError):
         Sb.extract_range(seqbuddy, 500, 50)
+
+# 'ns', '--num_seqs'
+ns_files = [(Sb.SeqBuddy(resource("ns/20.fa")), 20), (Sb.SeqBuddy(resource("ns/5.fa")), 5),
+            (Sb.SeqBuddy(resource("ns/1.fa")), 1)]
+@pytest.mark.parametrize("seqbuddy, num", ns_files)
+def test_num_seqs(seqbuddy, num):
+    assert Sb.num_seqs(seqbuddy) == num
+
+def test_empty_file():
+    with pytest.raises(SystemExit):
+        Sb.SeqBuddy(resource("ns/blank.fa"))
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
