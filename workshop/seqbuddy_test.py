@@ -516,6 +516,20 @@ def test_screw_formats_other(indx, l1, l2):
     sb2 = Sb.screw_formats(sb2, sb1.out_format)
     assert seqs_to_hash(sb1) == seqs_to_hash(sb2)
 
+er_hashes = ["1e31d4bc840532497e3e13f7f9ff2b6c", "0fd49e9218567966f4b00c44856662bc", "4063ab66ced2fafb080ceba88965d2bb",
+             "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
+             "e402f09afdb555bd8249d737dd7add99", "3b2f53ed43d9d0a771d6aad861a8ae34", "03cbca359b8674fdc6791590a329d807",
+             "1d0ec72b618c165894c49d71de366302", "926e76bde33bfd5f4a588addfd7592b9", "6d6ac54cd809cf7d843beed8b362efb3"]
+er_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(er_hashes)]
+@pytest.mark.parametrize("seqbuddy,next_hash", er_hashes)
+def test_extract_range(seqbuddy, next_hash):
+    tester = Sb.extract_range(seqbuddy, 50, 300)
+    assert seqs_to_hash(tester) == next_hash
+
+def test_extract_range_end_less_than_start():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_cds.fa"))
+    with pytest.raises(AttributeError):
+        Sb.extract_range(seqbuddy, 500, 50)
 
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])

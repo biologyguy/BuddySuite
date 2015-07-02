@@ -1107,7 +1107,7 @@ def order_features_alphabetically(_seqbuddy, _reverse=False):
     return _seqbuddy
 
 
-def hash_seqeunce_ids(_seqbuddy, _hash_length=10):
+def hash_sequence_ids(_seqbuddy, _hash_length=10):
     hash_list = []
     seq_ids = []
     if type(_hash_length) != int or _hash_length < 1:
@@ -2125,7 +2125,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Hash sequence ids
     if in_args.hash_seq_ids:
         hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
-        hashed = hash_seqeunce_ids(seqbuddy, hash_length)
+        hashed = hash_sequence_ids(seqbuddy, hash_length)
         hash_table = "# Hash table\n"
         for seq in hashed[0]:
             hash_table += "%s,%s\n" % (seq[0], seq[1])
