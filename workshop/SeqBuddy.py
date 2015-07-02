@@ -561,7 +561,7 @@ def dna2rna(_seqbuddy):
 
 def complement(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
+        raise ValueError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
         _rec.seq = _rec.seq.complement()
     return _seqbuddy
@@ -569,7 +569,7 @@ def complement(_seqbuddy):
 
 def reverse_complement(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
+        raise ValueError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
         _rec.seq = _rec.seq.reverse_complement()
         seq_len = len(_rec.seq)
@@ -2011,14 +2011,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Transcribe
     if in_args.transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_dna:
-            raise AttributeError("You need to provide a DNA sequence.")
+            raise ValueError("You need to provide a DNA sequence.")
         seqbuddy = dna2rna(seqbuddy)
         _print_recs(seqbuddy)
 
     # Back Transcribe
     if in_args.back_transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_rna:
-            raise AttributeError("You need to provide an RNA sequence.")
+            raise ValueError("You need to provide an RNA sequence.")
         seqbuddy = rna2dna(seqbuddy)
         _print_recs(seqbuddy)
 
@@ -2038,7 +2038,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Translate CDS
     if in_args.translate:
         if seqbuddy.alpha == IUPAC.protein:
-            raise AttributeError("You need to supply DNA or RNA sequences to translate")
+            raise ValueError("You need to supply DNA or RNA sequences to translate")
 
         if in_args.quiet:
             _print_recs(translate_cds(seqbuddy, quiet=True))
@@ -2052,7 +2052,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Translate 6 reading frames
     if in_args.translate6frames:
         if seqbuddy.alpha == IUPAC.protein:
-            raise AttributeError("You need to supply DNA or RNA sequences to translate")
+            raise ValueError("You need to supply DNA or RNA sequences to translate")
 
         seqbuddy = translate6frames(seqbuddy)
         if in_args.out_format:
@@ -2172,7 +2172,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         file2 = SeqBuddy(file2)
 
         if file1.alpha == file2.alpha:
-            raise AttributeError("You must provide one DNA file and one protein file")
+            raise ValueError("You must provide one DNA file and one protein file")
 
         if file1.alpha == IUPAC.protein:
             prot = file1
@@ -2193,7 +2193,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         file2 = SeqBuddy(file2)
 
         if file1.alpha == file2.alpha:
-            raise AttributeError("You must provide one DNA file and one protein file")
+            raise ValueError("You must provide one DNA file and one protein file")
 
         if file1.alpha != IUPAC.protein:
             dna = file1

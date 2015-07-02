@@ -178,12 +178,12 @@ def test_raw_seq(seqbuddy, next_hash):
 
 # 'tr', '--translate'
 
-tr_hashes = ["fasta_placeholder", "genbank_placeholder"]  # need to replace hashes later
+tr_hashes = ["945b2b43a423a5371ad7e90adda6e703", "65218d32d29871faec6e3f335e988721"]
 tr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(tr_hashes)]
 @pytest.mark.parametrize("seqbuddy,next_hash", tr_hashes)
 def test_translate(seqbuddy,next_hash):
     tester = Sb.translate_cds(seqbuddy)
-    tester = Sb.order_features_alphabetically(tester)
+    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 def test_translate_pep_exception():
@@ -202,19 +202,19 @@ def test_select_frame(next_hash, shift):
     tester = Sb.select_frame(sfr_buddy, shift)
     assert seqs_to_hash(tester) == next_hash
 
-def test_select_frame_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+def test_select_frame_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.select_frame(seqbuddy, 3)
 
 # 'tr6', '--translate6frames' (inconsistent with underscore naming convention)
 
-tr6_hashes = ["fasta_placeholder", "genbank_placeholder"]  # need to replace hashes later
+tr6_hashes = ["a0c65c7b3d0b5d69e912840964f14755", "17b33894b4414b2d8f4605c6b45193b9"]
 tr6_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(tr6_hashes)]
 @pytest.mark.parametrize("seqbuddy,next_hash", tr6_hashes)
 def test_translate6frames(seqbuddy,next_hash):
     tester = Sb.translate6frames(seqbuddy)
-    tester = Sb.order_features_alphabetically(tester)
+    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 def test_translate6frames_pep_exception():
@@ -224,20 +224,21 @@ def test_translate6frames_pep_exception():
 
 # 'btr', '--back_translate'
 
-btr_hashes = ["fasta_human_placeholder", "fasta_yeast_placeholder", "fasta_ecoli_placeholder",
-              "genbank_human_placeholder", "genbank_yeast_placeholder", "genbank_ecoli_placeholder"]
-btr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx+6])), value) for indx, value in enumerate(btr_hashes)]
+btr_hashes = ["230bb9b510081307617e69eaa30f7be4", "0d9c5a205abed5336cd89f7545ff05e1",
+              "c0c912d951d4a1c2c097ecc5715b4fc1", "ec11936125445611b0dfb9771fa6781b",
+              "5e6b7029910cde40bccab7f24fcfbae4", "8bebb4088017a02c55c85b56cb5deebe"]
 btr_organisms = ['human', 'yeast', 'ecoli']
 btr_objects = []
-for indx, md5_hash in enumerate(btr_hashes):
-    for organism in btr_organisms:
-        obj = Sb.SeqBuddy(resource(seq_files[indx+6]))
-        btr_objects.append((obj, organism, md5_hash))
-
+hash_indx = 0
+for organism in btr_organisms:
+    for file in seq_files[6:8]:
+        obj = Sb.SeqBuddy(resource(file))
+        btr_objects.append((obj, organism, btr_hashes[hash_indx]))
+        hash_indx += 1
 @pytest.mark.parametrize("seqbuddy,_organism,next_hash", btr_objects)
 def test_back_translate(seqbuddy, _organism, next_hash):
     tester = Sb.back_translate(seqbuddy, 'OPTIMIZED', _organism)
-    tester = Sb.order_features_alphabetically(tester)
+    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 def test_back_translate_nucleotide_exception():
@@ -257,7 +258,7 @@ def test_transcribe(seqbuddy, next_hash):
     tester = Sb.dna2rna(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
+def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.dna2rna(seqbuddy)
@@ -275,7 +276,7 @@ def test_back_transcribe(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 #TODO make errors consistent
-def test_back_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein into -sfr
+def test_back_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.rna2dna(seqbuddy)
@@ -292,7 +293,7 @@ def test_complement(seqbuddy, next_hash):
     tester = Sb.complement(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-def test_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+def test_complement_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.complement(seqbuddy)
@@ -308,7 +309,7 @@ def test_reverse_complement(seqbuddy, next_hash):
     tester = Sb.reverse_complement(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein into -sfr
+def test_reverse_complement_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
     with pytest.raises(ValueError):
         Sb.reverse_complement(seqbuddy)
@@ -341,25 +342,25 @@ def test_concat_seqs(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 # 'fd2p', '--map_features_dna2prot'
-
-fd2p_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "f26e10bf351f2e94364ea9dd9a758986",
-               "037314b4adeda8ddf8d2424f2c11c2ff", "20c6563dcc6743a2f7723f3c087f4c32",
-               "cb065e0dc2f4943c16b72b4dfad248aa", "35d1d272617b73fa16bcfdf1e65f7efd",
-               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "9e21db637248e571ba57a5331aa37c7e",
-               "76fe4e79a9cdcbccfad4ca651e2c0faa", "87a1bd7e787735e7fd82daa09555d7a2",
-               "87a1bd7e787735e7fd82daa09555d7a2", "f34ed1f8a05ff8975b2b2c796235040b",
-               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
-               "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e"]  # placeholders
+#orderids
+fd2p_hashes = ["6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
+               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
+               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
+               "c16097007c8b07a9055ffe1679872cf2", "79c3d1dff4a76b3435720462886d8684",
+               "8241e0decf21ca5c9e5115f5b75b7e5d", "d7248fff16f9304b745f4d0bd7819615",
+               "d89ba68693ae99dc413116f14df620f2", "a332eb306f9bc0c4a8e4fe717eb247b4",
+               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
+               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
+               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
+               "60bb60e33e4f085d81bb896dbafaf16c", "4a915d56473c9e1353a5a9701794f7bb",
+               "be2be4d8dc4d082060ac35210552a4e2", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
+               "cab1d0dcfe4a4b5a681f6b8d26e700a3", "aad02b6ab74ffb288b635e7591148244",
+               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
+               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
+               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
+               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
+               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
+               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4"]  
 fd2p_objects = []
 hash_indx = 0
 for dna in seq_files[:6]:
@@ -372,39 +373,40 @@ def test_map_features_dna2prot(dna, prot, next_hash):
     _dna = Sb.SeqBuddy(resource(dna))
     _prot = Sb.SeqBuddy(resource(prot))
     tester = Sb.map_features_dna2prot(_dna, _prot)
+    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 # 'fp2d', '--map_features_prot2dna'
-
-fp2d_hashes = ["d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "f26e10bf351f2e94364ea9dd9a758986",
-               "037314b4adeda8ddf8d2424f2c11c2ff", "20c6563dcc6743a2f7723f3c087f4c32",
-               "cb065e0dc2f4943c16b72b4dfad248aa", "35d1d272617b73fa16bcfdf1e65f7efd",
-               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "9e21db637248e571ba57a5331aa37c7e",
-               "76fe4e79a9cdcbccfad4ca651e2c0faa", "87a1bd7e787735e7fd82daa09555d7a2",
-               "87a1bd7e787735e7fd82daa09555d7a2", "f34ed1f8a05ff8975b2b2c796235040b",
-               "d6adfa96f17c28448581bc26ecabb34a", "5ede74633e1ae3a74dd676dc2bd7161d",
-               "b0f0de42f0cb31a9c70ac775a2daef45", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "7ec44044c0e29adbb6462cbd28329bf2", "d6adfa96f17c28448581bc26ecabb34a",
-               "5ede74633e1ae3a74dd676dc2bd7161d", "b0f0de42f0cb31a9c70ac775a2daef45",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "7ec44044c0e29adbb6462cbd28329bf2",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e",
-               "4b3c6cfbe5e4ecbb759a6a57d6d03b0e", "4b3c6cfbe5e4ecbb759a6a57d6d03b0e"]  # placeholders
+fp2d_hashes = ["f320b57dbf05517cba5bcc2e5ef36781", "57b12348267157870c83e85e3f0a5941",
+               "f320b57dbf05517cba5bcc2e5ef36781", "064431b9e108595e13a0b5cf3fada88a",
+               "f320b57dbf05517cba5bcc2e5ef36781", "f320b57dbf05517cba5bcc2e5ef36781",
+               "9c6fb895e4c810bfdacdab3befe0882c", "604eaa62a8a71dbad31348ee8db03274",
+               "9c6fb895e4c810bfdacdab3befe0882c", "cf0d0ce76aa7d268cca2aa2afe71fcc1",
+               "9c6fb895e4c810bfdacdab3befe0882c", "9c6fb895e4c810bfdacdab3befe0882c",
+               "d64eb777d4ba1c64397cb7bf089b2945", "c550801b2f8f87bcd973a55dd30130a0",
+               "d64eb777d4ba1c64397cb7bf089b2945", "d373cac8c896a5379e3c0b6c767526db",
+               "d64eb777d4ba1c64397cb7bf089b2945", "d64eb777d4ba1c64397cb7bf089b2945",
+               "a49f248f982547fa1143cc711bb0eae7", "ac103e7d6ba14b92f6c52cf11666219f",
+               "a49f248f982547fa1143cc711bb0eae7", "a49f248f982547fa1143cc711bb0eae7",
+               "a49f248f982547fa1143cc711bb0eae7", "a49f248f982547fa1143cc711bb0eae7",
+               "ddecbbc1a905b43e57085117ecd5773e", "4a5bc89b11c99eeb5a35a363384ccf14",
+               "ddecbbc1a905b43e57085117ecd5773e", "a49f248f982547fa1143cc711bb0eae7",
+               "ddecbbc1a905b43e57085117ecd5773e", "ddecbbc1a905b43e57085117ecd5773e",
+               "1bf626401ac805e3d53e8ffe3d8350e9", "dffde8d5a130291e288d6268cf152d3a",
+               "1bf626401ac805e3d53e8ffe3d8350e9", "5228ca449ce6a25fddf02cd230472146",
+               "1bf626401ac805e3d53e8ffe3d8350e9", "1bf626401ac805e3d53e8ffe3d8350e9"]
 fp2d_objects = []
 hash_indx = 0
-for prot in seq_files[6:]:
-    for dna in seq_files[:6]:
-        fp2d_objects.append((prot, dna, fd2p_hashes[hash_indx]))
+for dna in seq_files[:6]:
+    for prot in seq_files[6:]:
+        fp2d_objects.append((prot, dna, fp2d_hashes[hash_indx]))
         hash_indx += 1
 @pytest.mark.parametrize("prot,dna,next_hash", fp2d_objects)
 def test_map_features_prot2dna(prot, dna, next_hash):
     _dna = Sb.SeqBuddy(resource(dna))
     _prot = Sb.SeqBuddy(resource(prot))
     tester = Sb.map_features_prot2dna(_prot, _dna)
+    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 
@@ -504,10 +506,10 @@ screw_files = []
 for l1 in other_files:
     for l2 in other_files:
         if l1 is not l2:
-            for indx in range(2):
+            for indx in range(3):
                 screw_files.append((indx, l1, l2))
 
-@pytest.mark.parametrize("indx,l1,l2", screw_files) # fails when stklm is the out_format
+@pytest.mark.parametrize("indx,l1,l2", screw_files)  # fails when stklm is the out_format
 def test_screw_formats_other(indx, l1, l2):
     sb1 = Sb.SeqBuddy(resource(l1[indx]))
     sb2 = Sb.SeqBuddy(resource(l2[indx]))
