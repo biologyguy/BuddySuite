@@ -234,6 +234,11 @@ def _stderr(message, quiet=False):
     if not quiet:
         sys.stderr.write(message)
     return
+
+def _stdout(message, quiet=False):
+    if not quiet:
+        sys.stdout.write(message)
+    return
 # ##################################################### SEQ BUDDY #################################################### #
 
 # TODO Handle stdin when not piped
@@ -1550,7 +1555,6 @@ def list_ids(_seqbuddy, _columns=1):
         if _counter % _columns == 0:
             _output = "%s\n" % _output.strip()
         _counter += 1
-    sys.stdout.write("%s\n" % _output.strip())
     return "%s\n" % _output.strip()
 
 
@@ -1737,7 +1741,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _in_place(_output, in_args.sequence[0])
 
         else:
-            sys.stdout.write("{0}\n".format(_output.strip()))
+            _stdout("{0}\n".format(_output.strip()))
 
 
     def _in_place(_output, _path):
@@ -1794,7 +1798,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
-        sys.stdout.write("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
+        _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
         ids_already_seen = []
         for query_id in output:
             ids_already_seen.append(query_id)
@@ -1803,7 +1807,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     continue
 
                 ident, length, evalue, bit_score = output[query_id][subj_id]
-                sys.stdout.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
+                _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
 
     # BLAST
     if in_args.blast:
@@ -1870,7 +1874,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             output += "#### No records with duplicate sequences ####\n\n"
 
-        sys.stdout.write("%s\n" % output)
+        _stdout("%s\n" % output)
 
     # Delete repeats
     if in_args.delete_repeats:
@@ -2024,7 +2028,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # List identifiers
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        list_ids(seqbuddy, columns)
+        _stdout(list_ids(seqbuddy, columns))
 
     # Translate CDS
     if in_args.translate:
@@ -2077,12 +2081,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Count number of sequences in a file
     if in_args.num_seqs:
-        sys.stdout.write("%s\n" % num_seqs(seqbuddy))
+        _stdout("%s\n" % num_seqs(seqbuddy))
 
     # Average length of sequences
     if in_args.ave_seq_length:
         clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
-        sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
+        _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
 
     # Pull sequence ends
     if in_args.pull_record_ends:
@@ -2130,12 +2134,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Raw Seq
     if in_args.raw_seq:
         output = raw_seq(seqbuddy)
-
         if in_args.in_place:
             _in_place(output, in_args.sequence[0])
-
         else:
-            sys.stdout.write(output)
+            _stdout(output)
 
     # Clean Seq
     if in_args.clean_seq:
@@ -2144,21 +2146,21 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Guess format
     if in_args.guess_format:
         for seq_set in in_args.sequence:
-            sys.stdout.write("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+            _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
 
     # Guess alphabet
     if in_args.guess_alphabet:
         for seq_set in in_args.sequence:
             seqbuddy = SeqBuddy(seq_set)
-            sys.stdout.write("%s\t-->\t" % seq_set)
+            _stdout("%s\t-->\t" % seq_set)
             if seqbuddy.alpha == IUPAC.protein:
-                sys.stdout.write("prot\n")
+                _stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                sys.stdout.write("dna\n")
+                _stdout("dna\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                sys.stdout.write("rna\n")
+                _stdout("rna\n")
             else:
-                sys.stdout.write("Undetermined\n")
+                _stdout("Undetermined\n")
 
     # Map features from cDNA over to protein
     if in_args.map_features_dna2prot:
