@@ -81,6 +81,11 @@ def codon_counter():
     return
 
 
+def isoelectric_point():
+    # predicted...
+    return
+
+
 def split_file(directory):
     # distribute a mutiple sequence file into a bunch of individual files
     x = directory
@@ -1238,26 +1243,26 @@ def find_repeats(_seqbuddy):
     # Then look for replicate sequences
     flip_uniqe = {}
     del_keys = []
-    for key, value in unique_seqs.items():  # find and remove duplicates in/from the unique list
-        value = str(value.seq)
-        if value not in flip_uniqe:
-            flip_uniqe[value] = [key]
+    for key, _value in unique_seqs.items():  # find and remove duplicates in/from the unique list
+        _value = str(_value.seq)
+        if _value not in flip_uniqe:
+            flip_uniqe[_value] = [key]
         else:
-            if value not in repeat_seqs:
-                repeat_seqs[value] = [key]
-                repeat_seqs[value] += flip_uniqe[value]
-                if flip_uniqe[value][0] in unique_seqs:
-                    del_keys.append(flip_uniqe[value][0])
+            if _value not in repeat_seqs:
+                repeat_seqs[_value] = [key]
+                repeat_seqs[_value] += flip_uniqe[_value]
+                if flip_uniqe[_value][0] in unique_seqs:
+                    del_keys.append(flip_uniqe[_value][0])
             else:
-                repeat_seqs[value].append(key)
+                repeat_seqs[_value].append(key)
             del_keys.append(unique_seqs[key].id)
 
     for key in del_keys:
         if key in unique_seqs:
             del(unique_seqs[key])
 
-    for key, value in repeat_ids.items():  # find duplicates in the repeat ID list
-        for _rep_seq in value:
+    for key, _value in repeat_ids.items():  # find duplicates in the repeat ID list
+        for _rep_seq in _value:
             _rep_seq = str(_rep_seq.seq)
             if _rep_seq not in flip_uniqe:
                 flip_uniqe[_rep_seq] = [key]
@@ -1394,17 +1399,17 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
         while True:
-            indx = randint(0, len(_values) - 1)
+            _indx = randint(0, len(_values) - 1)
             try:
                 if len(_blast_res) == 1:
-                    _values[indx].value += "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
+                    _values[_indx].value += "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
                 else:
                     # values are: query, subject, %_ident, length, evalue, bit_score
                     if _blast_res[10] == '0.0':
                         _blast_res[10] = '1e-180'
-                    _values[indx].value += "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
-                                                                         _blast_res[3], _blast_res[10],
-                                                                         _blast_res[11].strip())
+                    _values[_indx].value += "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
+                                                                          _blast_res[3], _blast_res[10],
+                                                                          _blast_res[11].strip())
                 break
             except ConnectionRefusedError:
                 continue
@@ -1483,19 +1488,19 @@ def molecular_weight(_seqbuddy):
 
     amino_acid_weights = {'A': 71.08, 'R': 156.19, 'N': 114.10, 'D': 115.09, 'C': 103.14, 'Q': 128.13, 'E': 129.12,
                           'G': 57.05, 'H': 137.14, 'I': 113.16, 'L': 113.16, 'K': 128.17, 'M': 131.19, 'F': 147.18,
-                          'P': 97.12, 'S': 87.08, 'T': 101.11, 'W': 186.21,'Y': 163.18, 'V': 99.13, '-': 0, '*': 0,
+                          'P': 97.12, 'S': 87.08, 'T': 101.11, 'W': 186.21, 'Y': 163.18, 'V': 99.13, '-': 0, '*': 0,
                           'X': 110}
     deoxynucleotide_weights = {'A': 313.2, 'G': 329.2, 'C': 289.2, 'T': 304.2, 'Y': 296.7, 'R': 321.2, 'W': 308.7,
                                'S': 309.2, 'K': 316.7, 'M': 301.2, 'D': 315.53, 'V': 310.53, 'H': 302.2, 'B': 307.53,
                                'X': 308.95, 'N': 308.95, '-': 0, '.': 0}
     deoxyribonucleotide_weights = {'A': 329.2, 'G': 306.2, 'C': 305.2, 'U': 345.2, 'Y': 325.2, 'R': 317.7, 'W': 337.2,
-                               'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53, 'B': 318.87,
-                               'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
+                                   'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53, 'B': 318.87,
+                                   'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
     deoxynucleotide_compliments = {'A': 'T', 'G': 'C', 'C': 'G', 'T': 'A', 'Y': 'R', 'R': 'Y', 'W': 'W',
-                               'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
-                               'X': 'X', 'N': 'N', '-': '-', '.': '.'}
+                                   'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
+                                   'X': 'X', 'N': 'N', '-': '-', '.': '.'}
     _dna = False
-    _output = {'masses_ss':[], 'masses_ds':[],'ids':[]}
+    _output = {'masses_ss': [], 'masses_ds': [], 'ids': []}
     _dict = amino_acid_weights
     if _seqbuddy.alpha == IUPAC.protein:
         _dict = amino_acid_weights
@@ -1515,13 +1520,13 @@ def molecular_weight(_seqbuddy):
                 _rec.mass_ds += 157.9  # molecular weight of the 5' triphosphate in dsDNA
             else:
                 _rec.mass_ss += 159.0  # molecular weight of a 5' triphosphate in ssRNA
-        for indx, value in enumerate(str(_rec.seq).upper()):
-            _rec.mass_ss += _dict[value]
+        for _indx, _value in enumerate(str(_rec.seq).upper()):
+            _rec.mass_ss += _dict[_value]
             if _dna:
-                _rec.mass_ds += _dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
-        _output['masses_ss'].append(round(_rec.mass_ss,3))
+                _rec.mass_ds += _dict[_value] + deoxynucleotide_weights[deoxynucleotide_compliments[_value]]
+        _output['masses_ss'].append(round(_rec.mass_ss, 3))
         if _dna:
-            _output['masses_ds'].append(round(_rec.mass_ds,3))
+            _output['masses_ds'].append(round(_rec.mass_ds, 3))
         _output['ids'].append(_rec.id)
     return _output
 
@@ -1570,24 +1575,13 @@ def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
     return _seqbuddy
 
 
-def raw_seq(_seqbuddy, in_place=False, _sequence=None):
+def raw_seq(_seqbuddy):
     _seqbuddy = clean_seq(_seqbuddy)
-    output = ""
-    for rec in _seqbuddy.records:
-        output += "%s\n\n" % rec.seq
+    _output = ""
+    for _rec in _seqbuddy.records:
+        _output += "%s\n\n" % _rec.seq
 
-    if in_place:
-        if not os.path.exists(_sequence[0]):
-            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                    "file. Nothing was written.\n", in_args.quiet)
-            sys.stdout.write("%s\n" % output.strip())
-        else:
-            with open(os.path.abspath(_sequence[0]), "w") as ofile:
-                ofile.write(output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(_sequence[0]), in_args.quiet)
-    else:
-        sys.stdout.write("%s\n" % output.strip())
-    return "%s\n" % output.strip()
+    return "%s\n" % _output.strip()
 
 
 def list_ids(_seqbuddy, _columns=1):
@@ -1598,7 +1592,6 @@ def list_ids(_seqbuddy, _columns=1):
         if _counter % _columns == 0:
             _output = "%s\n" % _output.strip()
         _counter += 1
-    sys.stdout.write("%s\n" % _output.strip())
     return "%s\n" % _output.strip()
 
 
@@ -1606,12 +1599,11 @@ def num_seqs(_seqbuddy):
     return len(_seqbuddy.records)
 
 
-def merge(_seqbuddy, _sequences, _out_format=None):
-    new_list = SeqBuddy([])
-    for infile in _sequences:
-        new_list.records += SeqBuddy(infile).records
-    new_list.out_format = _out_format if _out_format else _seqbuddy.out_format
-    return new_list
+def merge(_seqbuddy_list):
+    _output = _seqbuddy_list[0]
+    for _seqbuddy in _seqbuddy_list[1:]:
+        _output.records += _seqbuddy.records
+    return _output
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1632,9 +1624,9 @@ This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
-
+    # TODO Fix --clean_seq for .phy, .phyr, .stklm, .nex
     parser.add_argument('-cs', '--clean_seq', action='store_true',
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)") # TODO Fix for .phy, .phyr, .stklm, .nex
+                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
     parser.add_argument('-uc', '--uppercase', action='store_true',
                         help='Convert all sequences to uppercase')  # TODO Fix for genbank
     parser.add_argument('-lc', '--lowercase', action='store_true',
@@ -1756,7 +1748,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
         seqbuddy += seq_set.records
 
-    seqbuddy = SeqBuddy(seqbuddy,in_args.in_format, in_args.out_format, in_args.alpha)
+    seqbuddy = SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format, in_args.alpha)
 
     seqbuddy.out_format = in_args.out_format if in_args.out_format else seq_set.out_format
 
@@ -1785,17 +1777,22 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             pass
 
         elif in_args.in_place:
-            if not os.path.exists(in_args.sequence[0]):
-                _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                        "file. Nothing was written.\n", in_args.quiet)
-                _stderr("%s\n" % _output.strip(), in_args.quiet)
-            else:
-                with open(os.path.abspath(in_args.sequence[0]), "w") as _ofile:
-                    _ofile.write(_output)
-                _stderr("File over-written at:\n%s\n" % os.path.abspath(in_args.sequence[0]), in_args.quiet)
+            _in_place(_output, in_args.sequence[0])
 
         else:
-            sys.stdout.write("{0}\n".format(_output.strip()))
+            _stdout("{0}\n".format(_output.strip()))
+
+
+    def _in_place(_output, _path):
+        if not os.path.exists(_path):
+            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                    "file. Nothing was written.\n", in_args.quiet)
+            _stderr("%s\n" % _output.strip(), in_args.quiet)
+        else:
+            with open(os.path.abspath(_path), "w") as _ofile:
+                _ofile.write(_output)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
+
 
     def _get_blast_binaries():
         blastp = None
@@ -1840,7 +1837,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
-        sys.stdout.write("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
+        _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
         ids_already_seen = []
         for query_id in output:
             ids_already_seen.append(query_id)
@@ -1849,7 +1846,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     continue
 
                 ident, length, evalue, bit_score = output[query_id][subj_id]
-                sys.stdout.write("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
+                _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
 
     # BLAST
     if in_args.blast:
@@ -1916,7 +1913,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             output += "#### No records with duplicate sequences ####\n\n"
 
-        sys.stdout.write("%s\n" % output)
+        _stdout("%s\n" % output)
 
     # Delete repeats
     if in_args.delete_repeats:
@@ -2019,11 +2016,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Merge
     if in_args.merge:
-        _print_recs(merge(seqbuddy, in_args.sequence, in_args.out_format))
+        _print_recs(seqbuddy)
 
     # Screw formats
     if in_args.screw_formats:
-        _print_recs(screw_formats(seqbuddy, in_args.screw_formats, in_args.in_place, in_args.sequence))
+        seqbuddy.out_format = in_args.screw_formats
+        if in_args.in_place:  # Need to change the file extension
+            os.remove(in_args.sequence[0])
+            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
+                                  "." + seqbuddy.out_format
+            open(in_args.sequence[0], "w").close()
+        _print_recs(seqbuddy)
 
     # Renaming
     if in_args.rename_ids:
@@ -2064,7 +2067,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # List identifiers
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        list_ids(seqbuddy, columns)
+        _stdout(list_ids(seqbuddy, columns))
 
     # Translate CDS
     if in_args.translate:
@@ -2117,12 +2120,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Count number of sequences in a file
     if in_args.num_seqs:
-        sys.stdout.write("%s\n" % num_seqs(seqbuddy))
+        _stdout("%s\n" % num_seqs(seqbuddy))
 
     # Average length of sequences
     if in_args.ave_seq_length:
         clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
-        sys.stdout.write("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
+        _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
 
     # Pull sequence ends
     if in_args.pull_record_ends:
@@ -2169,8 +2172,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Raw Seq
     if in_args.raw_seq:
-        raw_seq(seqbuddy, in_args.in_place, in_args.sequence)
-
+        output = raw_seq(seqbuddy)
+        if in_args.in_place:
+            _in_place(output, in_args.sequence[0])
+        else:
+            _stdout(output)
 
     # Clean Seq
     if in_args.clean_seq:
@@ -2179,21 +2185,21 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Guess format
     if in_args.guess_format:
         for seq_set in in_args.sequence:
-            sys.stdout.write("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+            _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
 
     # Guess alphabet
     if in_args.guess_alphabet:
         for seq_set in in_args.sequence:
             seqbuddy = SeqBuddy(seq_set)
-            sys.stdout.write("%s\t-->\t" % seq_set)
+            _stdout("%s\t-->\t" % seq_set)
             if seqbuddy.alpha == IUPAC.protein:
-                sys.stdout.write("prot\n")
+                _stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                sys.stdout.write("dna\n")
+                _stdout("dna\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                sys.stdout.write("rna\n")
+                _stdout("rna\n")
             else:
-                sys.stdout.write("Undetermined\n")
+                _stdout("Undetermined\n")
 
     # Map features from cDNA over to protein
     if in_args.map_features_dna2prot:
@@ -2275,7 +2281,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _print_recs(seqbuddy)
             in_args.quiet = check_quiet
 
-    #Calculate Molecular Weight
+    # Calculate Molecular Weight
     if in_args.molecular_weight:
         lists = molecular_weight(seqbuddy)
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
