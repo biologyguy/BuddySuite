@@ -1534,13 +1534,11 @@ def molecular_weight(_seqbuddy):
 def isoelectric_point(_seqbuddy):
     if seqbuddy.alpha is not IUPAC.protein:
         raise ValueError("Protein sequence required, not nucleic acid.")
-    amino_acid_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'H': 6.04, 'K': 10.54, 'R': 12.48, 'Y': 10.46, 'NH2': 8.2,
-                       'COOH': 3.65}
+    neg_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'Y': 10.46, 'COOH': 3.65}
+    pos_pkas = {'H': 6.04, 'K': 10.54, 'R': 12.48, 'NH2': 8.2}
     isoelectric_points = []
     for _rec in _seqbuddy.records:
-        net_charge = 0
         pH = 0
-        cr = 0
         num_acids = {'C': 0, 'D': 0, 'E': 0, 'H': 0, 'K': 0, 'R': 0, 'Y': 0, 'NH2': 0, 'COOH': 0}
         num_acids['NH2'] = 1
         num_acids['COOH'] = 1
@@ -1548,20 +1546,18 @@ def isoelectric_point(_seqbuddy):
             if _char in num_acids:
                 num_acids[_char] += 1
         while True:
+            net_charge = 0
             for key in num_acids:
-                net_charge += num_acids[key]*amino_acid_pkas[key]
-                if key is 'D' or 'E' or 'C' or 'Y' or 'COOH':
-                    net_charge -= (10**(amino_acid_pkas[key]-pH))
-                    print(net_charge)
+                if key in neg_pkas:
+                    net_charge += -num_acids[key]/(1+pow(10, neg_pkas[key]-pH))
                 else:
-                    net_charge += (num_acids[key]/(1+(10**(pH-amino_acid_pkas[key]))))
-                    print(net_charge)
+                    net_charge += num_acids[key]/(1+pow(10, pH-pos_pkas[key]))
             if pH > 14.0:
                 raise RuntimeError("pH has reached above 14")
             elif net_charge <= 0:
                 break
             pH += .01
-        isoelectric_points.append((_rec.id,pH))
+        isoelectric_points.append((_rec.id, round(pH, 2)))
     return isoelectric_points
 
 
@@ -2299,6 +2295,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     #Calculate Isoelectric Point
     if in_args.isoelectric_point:
         isoelectric_points = isoelectric_point(seqbuddy)
-        _stderr("ID\tpI\n")
+        _stderr("ID\t\tpI\n")
         for pI in isoelectric_points:
             print("{0}\t{1}".format(pI[0], pI[1]))
