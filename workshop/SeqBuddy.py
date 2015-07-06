@@ -50,6 +50,8 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
+from Bio import SeqUtils
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
@@ -1592,30 +1594,11 @@ def molecular_weight(_seqbuddy):
 def isoelectric_point(_seqbuddy):
     if seqbuddy.alpha is not IUPAC.protein:
         raise ValueError("Protein sequence required, not nucleic acid.")
-    neg_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'Y': 10.46, 'COOH': 3.65}
-    pos_pkas = {'H': 6.04, 'K': 10.54, 'R': 12.48, 'NH2': 8.2}
     isoelectric_points = []
     for _rec in _seqbuddy.records:
-        pH = 0
-        num_acids = {'C', 'D', 'E', 'H', 'K', 'R', 'Y', 'NH2', 'COOH'}
-        num_acids['NH2'] = 1
-        num_acids['COOH'] = 1
-        for _char in str(_rec.seq):
-            if _char in num_acids:
-                num_acids[_char] += 1
-        while True:
-            net_charge = 0
-            for key in num_acids:
-                if key in neg_pkas:
-                    net_charge += -num_acids[key]/(1+pow(10, neg_pkas[key]-pH))
-                else:
-                    net_charge += num_acids[key]/(1+pow(10, pH-pos_pkas[key]))
-            if pH > 14.0:
-                raise RuntimeError("pH has reached above 14")
-            elif net_charge <= 0:
-                break
-            pH += .01
-        isoelectric_points.append((_rec.id, round(pH, 2)))
+        _pI = ProteinAnalysis(str(_rec.seq))
+        _pI = round(_pI.isoelectric_point(), 10)
+        isoelectric_points.append((_rec.id, _pI))
     return isoelectric_points
 
 
@@ -1630,7 +1613,7 @@ def count_residues(_seqbuddy):
                            '% Ambiguous': 0, '% Positive': 0, '% Negative': 0}
         else:
             resid_count = {'A': 0, 'G': 0, 'C': 0, 'T': 0, 'Y': 0, 'R': 0, 'W': 0, 'S': 0, 'K': 0, 'M': 0, 'D': 0,
-                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0, '-': 0, '.': 0}
+                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0}
         num_acids = 0
         for char in str(_rec.seq).upper():
             if char in resid_count:
@@ -2318,12 +2301,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Count residues
     if in_args.count_residues:
-        try:
-            output = count_residues(seqbuddy)
-            for _sequence in output:
-                print(_sequence[0])
-                for residue in sorted(_sequence[1]):
-                    print("{0}: {1}".format(residue, _sequence[1][residue]))
-                print()
-        except ValueError as e:
-            _raise_error(e)
+        output = count_residues(seqbuddy)
+        for _sequence in output:
+            print(_sequence[0])
+            if seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                  IUPAC.unambiguous_rna]:
+                for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
+                    print("{0}: {1}".format(residue, _sequence[1].pop(residue, None)))
+            for residue in sorted(_sequence[1]):
+                print("{0}: {1}".format(residue, _sequence[1][residue]))
+            print()
