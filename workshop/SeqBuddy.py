@@ -1226,7 +1226,7 @@ def extract_range(_seqbuddy, _start, _end):
     return _seqbuddy
 
 
-def find_repeats(_seqbuddy):
+def find_repeats(_seqbuddy, _columns=1):
     unique_seqs = {}
     repeat_ids = {}
     repeat_seqs = {}
@@ -1281,7 +1281,42 @@ def find_repeats(_seqbuddy):
 
                 else:
                     repeat_seqs[_rep_seq].append(key)
-    return [unique_seqs, repeat_ids, repeat_seqs]
+
+    output_str = ""
+    if len(repeat_ids) > 0:
+        output_str += "#### Records with duplicate IDs: ####\n"
+        _counter = 1
+        for _next_id in repeat_ids:
+            output_str += "%s\t" % _next_id
+            if _counter % _columns == 0:
+                output_str = "%s\n" % output_str.strip()
+            _counter += 1
+
+        output_str = "%s\n\n" % output_str.strip()
+
+    else:
+        output_str += "#### No records with duplicate IDs ####\n\n"
+
+    if len(repeat_seqs) > 0:
+        output_str += "#### Records with duplicate sequences: ####\n"
+        _counter = 1
+        for _next_id in repeat_seqs:
+            output_str += "["
+            for seq_id in repeat_seqs[_next_id]:
+                output_str += "%s, " % seq_id
+            output_str = "%s], " % output_str.strip(", ")
+
+            if _counter % _columns == 0:
+                output_str = "%s\n" % output_str.strip(", ")
+
+            _counter += 1
+
+        output_str = "%s\n\n" % output_str.strip(", ")
+    else:
+        output_str += "#### No records with duplicate sequences ####\n\n"
+
+    output_str = "{0}\n".format(output_str.strip())
+    return [unique_seqs, repeat_ids, repeat_seqs, output_str]
 
 
 def delete_records(_seqbuddy, search_str):
@@ -1857,7 +1892,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         output = bl2seq(seqbuddy)
         _stdout(output[1])
 
-    # BLAST
+    # BLAST  ToDo: Determine if this can be refactored
     if in_args.blast:
         blast_binaries = _get_blast_binaries()
         blast_binary_path = blast_binaries["blastp"] if seqbuddy.alpha == IUPAC.protein else blast_binaries["blastn"]
@@ -1883,46 +1918,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
-        if in_args.find_repeats[0]:
-            columns = in_args.find_repeats[0]
-        else:
-            columns = 1
-
-        unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
-        output = ""
-        if len(rep_ids) > 0:
-            output += "#### Records with duplicate IDs: ####\n"
-            counter = 1
-            for next_id in rep_ids:
-                output += "%s\t" % next_id
-                if counter % columns == 0:
-                    output = "%s\n" % output.strip()
-                counter += 1
-
-            output = "%s\n\n" % output.strip()
-
-        else:
-            output += "#### No records with duplicate IDs ####\n\n"
-
-        if len(rep_seqs) > 0:
-            output += "#### Records with duplicate sequences: ####\n"
-            counter = 1
-            for next_id in rep_seqs:
-                output += "["
-                for seq_id in rep_seqs[next_id]:
-                    output += "%s, " % seq_id
-                output = "%s], " % output.strip(", ")
-
-                if counter % columns == 0:
-                    output = "%s\n" % output.strip(", ")
-
-                counter += 1
-
-            output = "%s\n\n" % output.strip(", ")
-        else:
-            output += "#### No records with duplicate sequences ####\n\n"
-
-        _stdout("%s\n" % output)
+        columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
+        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
+        _stdout(out_string)
 
     # Delete repeats
     if in_args.delete_repeats:
