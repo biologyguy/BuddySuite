@@ -230,7 +230,7 @@ def _stderr(message, quiet=False):
 
 def _stdout(message, quiet=False):
     if not quiet:
-        sys.stderr.write(message)
+        sys.stdout.write(message)
     return
 # ##################################################### SEQ BUDDY #################################################### #
 
@@ -1217,7 +1217,7 @@ def extract_range(_seqbuddy, _start, _end):
     return _seqbuddy
 
 
-def find_repeats(_seqbuddy):
+def find_repeats(_seqbuddy, _columns=1):
     unique_seqs = {}
     repeat_ids = {}
     repeat_seqs = {}
@@ -1272,7 +1272,42 @@ def find_repeats(_seqbuddy):
 
                 else:
                     repeat_seqs[_rep_seq].append(key)
-    return [unique_seqs, repeat_ids, repeat_seqs]
+
+    output_str = ""
+    if len(repeat_ids) > 0:
+        output_str += "#### Records with duplicate IDs: ####\n"
+        _counter = 1
+        for _next_id in repeat_ids:
+            output_str += "%s\t" % _next_id
+            if _counter % _columns == 0:
+                output_str = "%s\n" % output_str.strip()
+            _counter += 1
+
+        output_str = "%s\n\n" % output_str.strip()
+
+    else:
+        output_str += "#### No records with duplicate IDs ####\n\n"
+
+    if len(repeat_seqs) > 0:
+        output_str += "#### Records with duplicate sequences: ####\n"
+        _counter = 1
+        for _next_id in repeat_seqs:
+            output_str += "["
+            for seq_id in repeat_seqs[_next_id]:
+                output_str += "%s, " % seq_id
+            output_str = "%s], " % output_str.strip(", ")
+
+            if _counter % _columns == 0:
+                output_str = "%s\n" % output_str.strip(", ")
+
+            _counter += 1
+
+        output_str = "%s\n\n" % output_str.strip(", ")
+    else:
+        output_str += "#### No records with duplicate sequences ####\n\n"
+
+    output_str = "{0}\n".format(output_str.strip())
+    return [unique_seqs, repeat_ids, repeat_seqs, output_str]
 
 
 def delete_records(_seqbuddy, search_str):
@@ -1373,14 +1408,22 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
                     keep_set[_query_id].append(_subj_id)
 
     _output = []
-
     for _rec in _seqbuddy.records:
         if _rec.id in keep_set:
             _output.append(_rec)
 
     _seqbuddy.records = _output
-    record_map = 0
-    return [_seqbuddy, purged, record_map]
+
+    _record_map = "### Deleted record mapping ###\n"
+    for _seq_id in keep_set:
+        _record_map += "%s\n" % _seq_id
+        for del_seq_id in keep_set[_seq_id]:
+            _record_map += "%s, " % del_seq_id
+        _record_map = _record_map.strip(", ") + "\n\n"
+
+    _record_map = _record_map.strip() + "\n##############################\n\n"
+
+    return [_seqbuddy, purged, _record_map]
 
 
 def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
@@ -1446,20 +1489,31 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
     output_list = _output.strip().split("\n")
     output_list = [x.split("\t") for x in output_list]
-    output_dir = {}
+    output_dict = {}
     for match in output_list:
         query, subj, _ident, _length, _evalue, _bit_score = match
-        if query not in output_dir:
-            output_dir[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        if query not in output_dict:
+            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
         else:
-            output_dir[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
 
-        if subj not in output_dir:
-            output_dir[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        if subj not in output_dict:
+            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
         else:
-            output_dir[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
 
-    return output_dir
+    output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+    ids_already_seen = []
+    for query_id in output_dict:
+        ids_already_seen.append(query_id)
+        for subj_id in output_dict[query_id]:
+            if subj_id in ids_already_seen:
+                continue
+
+            ident, length, evalue, bit_score = output_dict[query_id][subj_id]
+            output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
+
+    return [output_dict, output_str]
 
 
 def uppercase(_seqbuddy):
@@ -1852,35 +1906,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Purge
     if in_args.purge:
         purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
-
-        if not in_args.quiet:
-            stderr_output = "### Deleted record mapping ###\n"
-            for seq_id in deleted:
-                stderr_output += "%s\n" % seq_id
-                for del_seq_id in deleted[seq_id]:
-                    stderr_output += "%s, " % del_seq_id
-                stderr_output = stderr_output.strip(", ") + "\n\n"
-
-            _stderr(stderr_output.strip())
-            _stderr("\n##############################\n\n")
-
+        _stderr(record_map, in_args.quiet)
         _print_recs(purged_seqs)
 
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
-        _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
-        ids_already_seen = []
-        for query_id in output:
-            ids_already_seen.append(query_id)
-            for subj_id in output[query_id]:
-                if subj_id in ids_already_seen:
-                    continue
+        _stdout(output[1])
 
-                ident, length, evalue, bit_score = output[query_id][subj_id]
-                _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
-
-    # BLAST
+    # BLAST  ToDo: Determine if this can be refactored
     if in_args.blast:
         blast_binaries = _get_blast_binaries()
         blast_binary_path = blast_binaries["blastp"] if seqbuddy.alpha == IUPAC.protein else blast_binaries["blastn"]
@@ -1906,46 +1940,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
-        if in_args.find_repeats[0]:
-            columns = in_args.find_repeats[0]
-        else:
-            columns = 1
-
-        unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
-        output = ""
-        if len(rep_ids) > 0:
-            output += "#### Records with duplicate IDs: ####\n"
-            counter = 1
-            for next_id in rep_ids:
-                output += "%s\t" % next_id
-                if counter % columns == 0:
-                    output = "%s\n" % output.strip()
-                counter += 1
-
-            output = "%s\n\n" % output.strip()
-
-        else:
-            output += "#### No records with duplicate IDs ####\n\n"
-
-        if len(rep_seqs) > 0:
-            output += "#### Records with duplicate sequences: ####\n"
-            counter = 1
-            for next_id in rep_seqs:
-                output += "["
-                for seq_id in rep_seqs[next_id]:
-                    output += "%s, " % seq_id
-                output = "%s], " % output.strip(", ")
-
-                if counter % columns == 0:
-                    output = "%s\n" % output.strip(", ")
-
-                counter += 1
-
-            output = "%s\n\n" % output.strip(", ")
-        else:
-            output += "#### No records with duplicate sequences ####\n\n"
-
-        _stdout("%s\n" % output)
+        columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
+        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
+        _stdout(out_string)
 
     # Delete repeats
     if in_args.delete_repeats:
