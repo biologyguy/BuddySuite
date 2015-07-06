@@ -234,6 +234,12 @@ def _stderr(message, quiet=False):
     if not quiet:
         sys.stderr.write(message)
     return
+
+
+def _stdout(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+    return
 # ##################################################### SEQ BUDDY #################################################### #
 
 # TODO Handle stdin when not piped
@@ -245,7 +251,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
         in_handle = None
-        raw_seq = None
+        _raw_seq = None
         in_file = None
         self.alpha = _alpha
 
@@ -260,7 +266,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         # Raw sequences
         if type(_input) == str and not os.path.isfile(_input):
-            raw_seq = _input
+            _raw_seq = _input
             temp = StringIO(_input)
             _input = temp
             _input.seek(0)
@@ -284,9 +290,9 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             if in_file:
                 raise GuessError("Could not determine format from _input file '{0}'.\n"
                                  "Try explicitly setting with -f flag.".format(in_file))
-            elif raw_seq:
+            elif _raw_seq:
                 raise GuessError("Could not determine format from raw input\n{0} ..."
-                                 "Try explicitly setting with -f flag.".format(raw_seq)[:50])
+                                 "Try explicitly setting with -f flag.".format(_raw_seq)[:50])
             elif in_handle:
                 raise GuessError("Could not determine format from input file-like object\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(in_handle)[:50])
@@ -354,6 +360,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             SeqIO.write(self.records, _ofile, self.out_format)
         return
 
+
 # Does not attempt to explicitly deal with weird cases (e.g., ambigous residues).
 # The user will need to specify an alphabet with the -a flag if using non-standard characters in their sequences.
 def guess_alphabet(_seqbuddy):
@@ -373,6 +380,7 @@ def guess_alphabet(_seqbuddy):
         return IUPAC.ambiguous_dna
     else:
         return IUPAC.protein
+
 
 def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
     # If input is just a list, there is no BioPython in-format. Default to gb.
@@ -1380,7 +1388,8 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
             _output.append(_rec)
 
     _seqbuddy.records = _output
-    return [_seqbuddy, keep_set]
+    record_map = 0
+    return [_seqbuddy, purged, record_map]
 
 
 def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
@@ -1818,7 +1827,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Purge
     if in_args.purge:
-        purged_seqs, deleted = purge(seqbuddy, in_args.purge)
+        purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
 
         if not in_args.quiet:
             stderr_output = "### Deleted record mapping ###\n"
