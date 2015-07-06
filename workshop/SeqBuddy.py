@@ -1728,7 +1728,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true',
                         help="")
-    parser.add_argument("-pi", "--isoelectric_point", action='store_true',
+    parser.add_argument("-ip", "--isoelectric_point", action='store_true',
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
