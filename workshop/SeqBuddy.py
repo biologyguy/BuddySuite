@@ -333,7 +333,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         self.records = _sequences
 
     def to_dict(self):
-        _unique, _rep_ids, _rep_seqs = find_repeats(self)
+        _unique, _rep_ids, _rep_seqs, output_str = find_repeats(self)
         if len(_rep_ids) > 0:
             raise RuntimeError("There are repeat IDs in self.records\n%s" % _rep_ids)
 
@@ -1026,11 +1026,11 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
 # Merge feature lists
 def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept any number of input files.
     # make sure there are no repeat ids
-    _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy1)
+    _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy1)
     if len(_rep_ids) > 0:
         raise RuntimeError("There are repeat IDs in the first file provided\n%s" % _rep_ids)
 
-    _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy2)
+    _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy2)
     if len(_rep_ids) > 0:
         raise RuntimeError("There are repeat IDs in the second file provided\n%s" % _rep_ids)
 
@@ -1135,11 +1135,15 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
         _seqbuddy.records[i].id = new_hash
         _seqbuddy.records[i].name = new_hash
 
-    hash_map = []
+    _hash_map = []
     for i in range(len(hash_list)):
-        hash_map.append((hash_list[i], seq_ids[i]))
+        _hash_map.append((hash_list[i], seq_ids[i]))
 
-    return [hash_map, _seqbuddy]
+    _hash_table = "# Hash table\n"
+    for _seq in _hash_map:
+        _hash_table += "%s,%s\n" % (_seq[0], _seq[1])
+
+    return [_seqbuddy, _hash_map, _hash_table]
 
 
 def pull_recs(_seqbuddy, _search):
@@ -1163,6 +1167,7 @@ def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (
 
 
 def pull_record_ends(_seqbuddy, _amount, _which_end):
+    _amount = int(_amount)
     if _amount < 0:
         raise ValueError("Positive integer required for '_amount' argument in pull_record_ends.")
 
@@ -1352,10 +1357,10 @@ def delete_features(_seqbuddy, _pattern):
     return _seqbuddy
 
 
-def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
+def delete_repeats(_seqbuddy, scope='all', _columns=1):  # scope in ['all', 'ids', 'seqs']
     # First, remove duplicate IDs
     if scope in ['all', 'ids']:
-        _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy)
+        _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy)
         if len(_rep_ids) > 0:
             for _rep_id in _rep_ids:
                 store_one_copy = pull_recs(copy(_seqbuddy), "^%s$" % _rep_id).records[0]
@@ -1364,7 +1369,7 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
 
     # Then remove duplicate sequences
     if scope in ['all', 'seqs']:
-        _unique, _rep_ids, _rep_seqs = find_repeats(_seqbuddy)
+        _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy)
         if len(_rep_seqs) > 0:
             _rep_seq_ids = []
             for _seq in _rep_seqs:
@@ -1531,12 +1536,11 @@ def lowercase(_seqbuddy):
 
 
 def split_by_taxa(_seqbuddy, split_char):
-    taxa = {}
+    recs_by_taxa = {}
     for _rec in _seqbuddy.records:
         split = _rec.id.split(split_char)
-        taxa.setdefault(split[0], []).append(_rec)
-
-    return taxa
+        recs_by_taxa.setdefault(split[0], []).append(_rec)
+    return recs_by_taxa
 
 
 def molecular_weight(_seqbuddy):
@@ -1903,7 +1907,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             columns = 1
 
-        unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
+        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy)
         stderr_output = ""
         if len(rep_ids) > 0:
             stderr_output += "# Records with duplicate ids deleted (first instance retained)\n"
@@ -1915,7 +1919,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 counter += 1
             stderr_output = "%s\n\n" % stderr_output.strip()
             seqbuddy = delete_repeats(seqbuddy, 'ids')
-            unique, rep_ids, rep_seqs = find_repeats(seqbuddy)
+            unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy)
 
         rep_seq_ids = []
         for seq in rep_seqs:
@@ -2012,8 +2016,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Renaming
     if in_args.rename_ids:
         num = 0 if not in_args.params else int(in_args.params[0])
-        seqbuddy = rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num)
-        _print_recs(seqbuddy)
+        _print_recs(rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
 
     # Uppercase
     if in_args.uppercase:
@@ -2027,15 +2030,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_dna:
             raise ValueError("You need to provide a DNA sequence.")
-        seqbuddy = dna2rna(seqbuddy)
-        _print_recs(seqbuddy)
+        _print_recs(dna2rna(seqbuddy))
 
     # Back Transcribe
     if in_args.back_transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_rna:
             raise ValueError("You need to provide an RNA sequence.")
-        seqbuddy = rna2dna(seqbuddy)
-        _print_recs(seqbuddy)
+        _print_recs(rna2dna(seqbuddy))
 
     # Complement
     if in_args.complement:
@@ -2055,10 +2056,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if seqbuddy.alpha == IUPAC.protein:
             raise ValueError("You need to supply DNA or RNA sequences to translate")
 
-        if in_args.quiet:
-            _print_recs(translate_cds(seqbuddy, quiet=True))
-        else:
-            _print_recs(translate_cds(seqbuddy))
+        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
 
     # Shift reading frame
     if in_args.select_frame:
@@ -2077,7 +2075,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Back translate CDS
     if in_args.back_translate:
-        if in_args.back_translate[0]:
+        if in_args.back_translate[0]:  # All this logic is to determine what mode is being used by the UI
             in_args.back_translate = in_args.back_translate[0]
             in_args.back_translate = [i.upper() for i in in_args.back_translate]
             mode = [i for i in in_args.back_translate if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
@@ -2110,42 +2108,27 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Pull sequence ends
     if in_args.pull_record_ends:
-        amount, which_end = in_args.pull_record_ends
-        amount = int(amount)
-        new_seqs = pull_record_ends(seqbuddy, amount, which_end)
-        _print_recs(new_seqs)
+        _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
 
     # Extract regions
     if in_args.extract_region:
-        start, end = in_args.extract_region
-        seqbuddy = extract_range(seqbuddy, start, end)
-        _print_recs(seqbuddy)
+        _print_recs(extract_range(seqbuddy, *in_args.extract_region))
 
     # Pull records
     if in_args.pull_records:
-        search = in_args.pull_records
-        records = pull_recs(seqbuddy, search)
-        _print_recs(records)
+        _print_recs(pull_recs(seqbuddy, in_args.pull_records))
 
     # Pull random records
     if in_args.pull_random_record:
         count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
-        try:
-            count = int(count)
-        except ValueError:
-            sys.exit("Error: When passing in the -p flag to --pull_random_recs, the value must be convertable into an "
-                     "integer. You passed in '%s'..." % count)
         _print_recs(pull_random_recs(seqbuddy, count))
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
         hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
-        hashed = hash_sequence_ids(seqbuddy, hash_length)
-        hash_table = "# Hash table\n"
-        for seq in hashed[0]:
-            hash_table += "%s,%s\n" % (seq[0], seq[1])
-        _stderr("%s\n" % hash_table, in_args.quiet)
-        _print_recs(hashed[1])
+        seqbuddy, hash_map, hash_table = hash_sequence_ids(seqbuddy, hash_length)
+        _stderr(hash_table, in_args.quiet)
+        _print_recs(seqbuddy)
 
     # Delete metadata
     if in_args.delete_metadata:
@@ -2200,8 +2183,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             prot = file2
             dna = file1
 
-        new_seqs = map_features_dna2prot(dna, prot)
-        _print_recs(new_seqs)
+        _print_recs(map_features_dna2prot(dna, prot))
 
     # Map features from protein over to cDNA
     if in_args.map_features_prot2dna:
@@ -2221,16 +2203,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             dna = file2
             prot = file1
 
-        new_seqs = map_features_prot2dna(prot, dna)
-        _print_recs(new_seqs)
+        _print_recs(map_features_prot2dna(prot, dna))
 
     # Combine feature sets from two files into one
     if in_args.combine_features:
         file1, file2 = in_args.sequence[:2]
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-        new_seqs = combine_features(file1, file2)
-        _print_recs(new_seqs)
+        _print_recs(combine_features(file1, file2))
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
@@ -2243,24 +2223,22 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.order_features_alphabetically:
         reverse = True if in_args.order_features_alphabetically[0] \
             and in_args.order_features_alphabetically[0] == "rev" else False
-
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
 
-    # Split sequences by taxa
+    # Split sequences by taxa.
     if in_args.split_by_taxa:
         in_args.in_place = True
         out_dir = os.path.abspath(in_args.split_by_taxa[1])
         os.makedirs(out_dir, exist_ok=True)
         taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
-        check_quiet = in_args.quiet
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        in_args.quiet = True
         for taxa_heading in taxa_groups:
             seqbuddy.records = taxa_groups[taxa_heading]
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, seqbuddy.out_format)
-            _stderr("New file: %s\n" % in_args.sequence[0], in_args.quiet)
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
-            in_args.quiet = True
             _print_recs(seqbuddy)
-            in_args.quiet = check_quiet
 
     # Calculate Molecular Weight
     if in_args.molecular_weight:
@@ -2277,7 +2255,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             else:
                 print("{0}\t{1}".format(lists['masses_ss'][indx], value))
 
-    #Calculate Isoelectric Point
+    # Calculate Isoelectric Point
     if in_args.isoelectric_point:
         try:
             isoelectric_points = isoelectric_point(seqbuddy)
@@ -2287,11 +2265,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         except ValueError as e:
             _raise_error(e)
 
-    #Count residues
+    # Count residues
     if in_args.count_residues:
         try:
-            _output = count_residues(seqbuddy)
-            for _sequence in _output:
+            output = count_residues(seqbuddy)
+            for _sequence in output:
                 print(_sequence[0])
                 for residue in sorted(_sequence[1]):
                     print("{0}: {1}".format(residue, _sequence[1][residue]))
