@@ -50,6 +50,8 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
+from Bio import SeqUtils
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
@@ -1538,49 +1540,18 @@ def split_by_taxa(_seqbuddy, split_char):
 
 
 def molecular_weight(_seqbuddy):
-    # get the mass of each sequence in daltons
-
-    amino_acid_weights = {'A': 71.08, 'R': 156.19, 'N': 114.10, 'D': 115.09, 'C': 103.14, 'Q': 128.13, 'E': 129.12,
-                          'G': 57.05, 'H': 137.14, 'I': 113.16, 'L': 113.16, 'K': 128.17, 'M': 131.19, 'F': 147.18,
-                          'P': 97.12, 'S': 87.08, 'T': 101.11, 'W': 186.21, 'Y': 163.18, 'V': 99.13, '-': 0, '*': 0,
-                          'X': 110}
-    deoxynucleotide_weights = {'A': 313.2, 'G': 329.2, 'C': 289.2, 'T': 304.2, 'Y': 296.7, 'R': 321.2, 'W': 308.7,
-                               'S': 309.2, 'K': 316.7, 'M': 301.2, 'D': 315.53, 'V': 310.53, 'H': 302.2, 'B': 307.53,
-                               'X': 308.95, 'N': 308.95, '-': 0, '.': 0}
-    deoxyribonucleotide_weights = {'A': 329.2, 'G': 306.2, 'C': 305.2, 'U': 345.2, 'Y': 325.2, 'R': 317.7, 'W': 337.2,
-                                   'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53,
-                                   'B': 318.87, 'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
-    deoxynucleotide_compliments = {'A': 'T', 'G': 'C', 'C': 'G', 'T': 'A', 'Y': 'R', 'R': 'Y', 'W': 'W',
-                                   'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
-                                   'X': 'X', 'N': 'N', '-': '-', '.': '.'}
-    _dna = False
     _output = {'masses_ss': [], 'masses_ds': [], 'ids': []}
-    _dict = amino_acid_weights
-    if _seqbuddy.alpha == IUPAC.protein:
-        _dict = amino_acid_weights
-    elif _seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-        _dict = deoxynucleotide_weights
-        _dna = True
-    elif _seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-        _dict = deoxyribonucleotide_weights
-    for _rec in _seqbuddy.records:
-        _rec.mass_ds = 0
-        _rec.mass_ss = 0
-        if _seqbuddy.alpha == IUPAC.protein:
-            _rec.mass_ss += 18.02  # molecular weight of a water molecule
+    _sb = clean_seq(_seqbuddy)
+    for _rec in _sb.records:
+        if _sb.alpha == IUPAC.ambiguous_dna or IUPAC.unambiguous_dna:
+            mass_ds = SeqUtils.molecular_weight(_rec.seq, double_stranded=True)
+            mass_ss = SeqUtils.molecular_weight(_rec.seq)
+            _output['masses_ds'].append(mass_ds)
+        elif _sb.alpha == IUPAC.ambiguous_rna or IUPAC.ambiguous_rna:
+            mass_ss = SeqUtils.molecular_weight(_rec.seq)
         else:
-            if _dna:
-                _rec.mass_ss += 79.0  # molecular weight of 5' monophosphate in ssDNA
-                _rec.mass_ds += 157.9  # molecular weight of the 5' triphosphate in dsDNA
-            else:
-                _rec.mass_ss += 159.0  # molecular weight of a 5' triphosphate in ssRNA
-        for _indx, _value in enumerate(str(_rec.seq).upper()):
-            _rec.mass_ss += _dict[_value]
-            if _dna:
-                _rec.mass_ds += _dict[_value] + deoxynucleotide_weights[deoxynucleotide_compliments[_value]]
-        _output['masses_ss'].append(round(_rec.mass_ss, 3))
-        if _dna:
-            _output['masses_ds'].append(round(_rec.mass_ds, 3))
+            mass_ss = SeqUtils.molecular_weight(_rec.seq, double_stranded=False)
+        _output['masses_ss'].append(mass_ss)
         _output['ids'].append(_rec.id)
     return _output
 
@@ -1588,30 +1559,11 @@ def molecular_weight(_seqbuddy):
 def isoelectric_point(_seqbuddy):
     if seqbuddy.alpha is not IUPAC.protein:
         raise ValueError("Protein sequence required, not nucleic acid.")
-    neg_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'Y': 10.46, 'COOH': 3.65}
-    pos_pkas = {'H': 6.04, 'K': 10.54, 'R': 12.48, 'NH2': 8.2}
     isoelectric_points = []
     for _rec in _seqbuddy.records:
-        pH = 0
-        num_acids = {'C', 'D', 'E', 'H', 'K', 'R', 'Y', 'NH2', 'COOH'}
-        num_acids['NH2'] = 1
-        num_acids['COOH'] = 1
-        for _char in str(_rec.seq):
-            if _char in num_acids:
-                num_acids[_char] += 1
-        while True:
-            net_charge = 0
-            for key in num_acids:
-                if key in neg_pkas:
-                    net_charge += -num_acids[key]/(1+pow(10, neg_pkas[key]-pH))
-                else:
-                    net_charge += num_acids[key]/(1+pow(10, pH-pos_pkas[key]))
-            if pH > 14.0:
-                raise RuntimeError("pH has reached above 14")
-            elif net_charge <= 0:
-                break
-            pH += .01
-        isoelectric_points.append((_rec.id, round(pH, 2)))
+        _pI = ProteinAnalysis(str(_rec.seq))
+        _pI = round(pI.isoelectric_point(), 10)
+        isoelectric_points.append((_rec.id, _pI))
     return isoelectric_points
 
 
