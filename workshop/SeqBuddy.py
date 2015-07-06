@@ -1463,20 +1463,31 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
     output_list = _output.strip().split("\n")
     output_list = [x.split("\t") for x in output_list]
-    output_dir = {}
+    output_dict = {}
     for match in output_list:
         query, subj, _ident, _length, _evalue, _bit_score = match
-        if query not in output_dir:
-            output_dir[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        if query not in output_dict:
+            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
         else:
-            output_dir[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
 
-        if subj not in output_dir:
-            output_dir[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+        if subj not in output_dict:
+            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
         else:
-            output_dir[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
 
-    return output_dir
+    output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+    ids_already_seen = []
+    for query_id in output_dict:
+        ids_already_seen.append(query_id)
+        for subj_id in output_dict[query_id]:
+            if subj_id in ids_already_seen:
+                continue
+
+            ident, length, evalue, bit_score = output_dict[query_id][subj_id]
+            output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
+
+    return [output_dict, output_str]
 
 
 def uppercase(_seqbuddy):
@@ -1844,16 +1855,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
-        _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
-        ids_already_seen = []
-        for query_id in output:
-            ids_already_seen.append(query_id)
-            for subj_id in output[query_id]:
-                if subj_id in ids_already_seen:
-                    continue
-
-                ident, length, evalue, bit_score = output[query_id][subj_id]
-                _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
+        _stdout(output[1])
 
     # BLAST
     if in_args.blast:
