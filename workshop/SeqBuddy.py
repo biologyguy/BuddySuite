@@ -1613,7 +1613,7 @@ def count_residues(_seqbuddy):
                            '% Ambiguous': 0, '% Positive': 0, '% Negative': 0}
         else:
             resid_count = {'A': 0, 'G': 0, 'C': 0, 'T': 0, 'Y': 0, 'R': 0, 'W': 0, 'S': 0, 'K': 0, 'M': 0, 'D': 0,
-                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0, '-': 0, '.': 0}
+                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0}
         num_acids = 0
         for char in str(_rec.seq).upper():
             if char in resid_count:
@@ -2298,12 +2298,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Count residues
     if in_args.count_residues:
-        try:
-            output = count_residues(seqbuddy)
-            for _sequence in output:
-                print(_sequence[0])
-                for residue in sorted(_sequence[1]):
-                    print("{0}: {1}".format(residue, _sequence[1][residue]))
-                print()
-        except ValueError as e:
-            _raise_error(e)
+        output = count_residues(seqbuddy)
+        for _sequence in output:
+            print(_sequence[0])
+            if seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                  IUPAC.unambiguous_rna]:
+                for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
+                    print("{0}: {1}".format(residue, _sequence[1].pop(residue, None)))
+            for residue in sorted(_sequence[1]):
+                print("{0}: {1}".format(residue, _sequence[1][residue]))
+            print()
