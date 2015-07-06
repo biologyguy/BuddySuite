@@ -71,18 +71,8 @@ def sim_ident(matrix):  # Return the pairwise similarity and identity scores amo
     return x
 
 
-def residue_counter():
-    # generate frequency statistics for sequence composition
-    return
-
-
 def codon_counter():
     # generate frequency statistics for codon composition
-    return
-
-
-def isoelectric_point():
-    # predicted...
     return
 
 
@@ -165,6 +155,8 @@ def divergence_value():
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
 # - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, -frp, -drp, -ofa, -ofp, and -oi
 # - Add print method to SeqBuddy class that outputs all sequences to string
+# - Add molecular_weight() method that calculates molecular weight
+# - Add isoelectric_point() method that calculates isoelectric point
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 
@@ -275,7 +267,6 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         try:
             if os.path.isfile(_input):
                 in_file = _input
-
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -291,8 +282,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
                 raise GuessError("Could not determine format from _input file '{0}'.\n"
                                  "Try explicitly setting with -f flag.".format(in_file))
             elif _raw_seq:
-                raise GuessError("Could not determine format from raw input\n{0} ..."
-                                 "Try explicitly setting with -f flag.".format(_raw_seq)[:50])
+                raise GuessError("File not found, or could not determine format from raw input\n{0} ..."
+                                 "Try explicitly setting with -f flag.".format(_raw_seq)[:60])
             elif in_handle:
                 raise GuessError("Could not determine format from input file-like object\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(in_handle)[:50])
@@ -1503,8 +1494,8 @@ def molecular_weight(_seqbuddy):
                                'S': 309.2, 'K': 316.7, 'M': 301.2, 'D': 315.53, 'V': 310.53, 'H': 302.2, 'B': 307.53,
                                'X': 308.95, 'N': 308.95, '-': 0, '.': 0}
     deoxyribonucleotide_weights = {'A': 329.2, 'G': 306.2, 'C': 305.2, 'U': 345.2, 'Y': 325.2, 'R': 317.7, 'W': 337.2,
-                                   'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53, 'B': 318.87,
-                                   'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
+                                   'S': 305.7, 'K': 325.7, 'M': 317.2, 'D': 326.87, 'V': 313.53, 'H': 326.53,
+                                   'B': 318.87, 'X': 321.45, 'N': 321.45, '-': 0, '.': 0}
     deoxynucleotide_compliments = {'A': 'T', 'G': 'C', 'C': 'G', 'T': 'A', 'Y': 'R', 'R': 'Y', 'W': 'W',
                                    'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
                                    'X': 'X', 'N': 'N', '-': '-', '.': '.'}
@@ -1548,7 +1539,7 @@ def isoelectric_point(_seqbuddy):
     isoelectric_points = []
     for _rec in _seqbuddy.records:
         pH = 0
-        num_acids = {'C': 0, 'D': 0, 'E': 0, 'H': 0, 'K': 0, 'R': 0, 'Y': 0, 'NH2': 0, 'COOH': 0}
+        num_acids = {'C', 'D', 'E', 'H', 'K', 'R', 'Y', 'NH2', 'COOH'}
         num_acids['NH2'] = 1
         num_acids['COOH'] = 1
         for _char in str(_rec.seq):
@@ -1568,6 +1559,35 @@ def isoelectric_point(_seqbuddy):
             pH += .01
         isoelectric_points.append((_rec.id, round(pH, 2)))
     return isoelectric_points
+
+
+def count_residues(_seqbuddy):
+    # TODO add % Neutral
+    # TODO distinguish between ambiguous and unambiguous DNA
+    _output = []
+    for _rec in _seqbuddy.records:
+        if _seqbuddy.alpha is IUPAC.protein:
+            resid_count = {'A': 0, 'R': 0, 'N': 0, 'D': 0, 'C': 0, 'Q': 0, 'E': 0, 'G': 0, 'H': 0, 'I': 0, 'L': 0, 'K': 0,
+                           'M': 0, 'F': 0, 'P': 0, 'S': 0, 'T': 0, 'W': 0, 'Y': 0, 'V': 0, 'X': 0,
+                           '% Ambiguous': 0, '% Positive': 0, '% Negative': 0}
+        else:
+            resid_count = {'A': 0, 'G': 0, 'C': 0, 'T': 0, 'Y': 0, 'R': 0, 'W': 0, 'S': 0, 'K': 0, 'M': 0, 'D': 0,
+                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0, '-': 0, '.': 0}
+        num_acids = 0
+        for char in str(_rec.seq).upper():
+            if char in resid_count:
+                resid_count[char] += 1
+                num_acids += 1
+        if _seqbuddy.alpha is IUPAC.protein:
+            resid_count['% Ambiguous'] = round(100*(resid_count['X'])/num_acids, 2)
+            resid_count['% Positive'] = round(100*(resid_count['H']+resid_count['K']+resid_count['R'])/num_acids, 2)
+            resid_count['% Negative'] = round(100*(resid_count['D']+resid_count['E']+resid_count['C']+resid_count['Y'])
+                                              / num_acids, 2)
+        else:
+            resid_count['% Ambiguous'] = round(100*((num_acids - (resid_count['A'] + resid_count['T'] + resid_count['C']+
+                                                                 resid_count['G'] + resid_count['U']))/num_acids), 2)
+        _output.append((_rec.id, resid_count))
+    return _output
 
 
 def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
@@ -1729,6 +1749,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-mw", "--molecular_weight", action='store_true',
                         help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true',
+                        help="")
+    parser.add_argument("-cr", "--count_residues", action='store_true',
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
@@ -2313,5 +2335,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("ID\t\tpI\n")
             for pI in isoelectric_points:
                 print("{0}\t{1}".format(pI[0], pI[1]))
+        except ValueError as e:
+            _raise_error(e)
+
+    #Count residues
+    if in_args.count_residues:
+        try:
+            _output = count_residues(seqbuddy)
+            for _sequence in _output:
+                print(_sequence[0])
+                for residue in sorted(_sequence[1]):
+                    print("{0}: {1}".format(residue, _sequence[1][residue]))
+                print()
         except ValueError as e:
             _raise_error(e)
