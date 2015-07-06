@@ -81,11 +81,6 @@ def codon_counter():
     return
 
 
-def isoelectric_point():
-    # predicted...
-    return
-
-
 def split_file(directory):
     # distribute a mutiple sequence file into a bunch of individual files
     x = directory
@@ -1510,10 +1505,10 @@ def molecular_weight(_seqbuddy):
     elif _seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
         _dict = deoxyribonucleotide_weights
     for _rec in _seqbuddy.records:
-        _rec.mass_ds = 0  # molecular weight of a water molecule
-        _rec.mass_ss = 0  # molecular weight of a water molecule
+        _rec.mass_ds = 0
+        _rec.mass_ss = 0
         if _seqbuddy.alpha == IUPAC.protein:
-            _rec.mass_ss += 18.02
+            _rec.mass_ss += 18.02  # molecular weight of a water molecule
         else:
             if _dna:
                 _rec.mass_ss += 79.0  # molecular weight of 5' monophosphate in ssDNA
@@ -1529,6 +1524,40 @@ def molecular_weight(_seqbuddy):
             _output['masses_ds'].append(round(_rec.mass_ds,3))
         _output['ids'].append(_rec.id)
     return _output
+
+
+def isoelectric_point(_seqbuddy):
+    if seqbuddy.alpha is not IUPAC.protein:
+        raise ValueError("Protein sequence required, not nucleic acid.")
+    amino_acid_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'H': 6.04, 'K': 10.54, 'R': 12.48, 'Y': 10.46, 'NH2': 8.2,
+                       'COOH': 3.65}
+    isoelectric_points = []
+    for _rec in _seqbuddy.records:
+        net_charge = 0
+        pH = 0
+        cr = 0
+        num_acids = {'C': 0, 'D': 0, 'E': 0, 'H': 0, 'K': 0, 'R': 0, 'Y': 0, 'NH2': 0, 'COOH': 0}
+        num_acids['NH2'] = 1
+        num_acids['COOH'] = 1
+        for _char in str(_rec.seq):
+            if _char in num_acids:
+                num_acids[_char] += 1
+        while True:
+            for key in num_acids:
+                net_charge += num_acids[key]*amino_acid_pkas[key]
+                if key is 'D' or 'E' or 'C' or 'Y' or 'COOH':
+                    net_charge -= (10**(amino_acid_pkas[key]-pH))
+                    print(net_charge)
+                else:
+                    net_charge += (num_acids[key]/(1+(10**(pH-amino_acid_pkas[key]))))
+                    print(net_charge)
+            if pH > 14.0:
+                raise RuntimeError("pH has reached above 14")
+            elif net_charge <= 0:
+                break
+            pH += .01
+        isoelectric_points.append((_rec.id,pH))
+    return isoelectric_points
 
 
 def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
@@ -1701,6 +1730,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
                         help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true',
+                        help="")
+    parser.add_argument("-pi", "--isoelectric_point", action='store_true',
                         help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
@@ -2258,3 +2289,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 print("{0}\t{1}\t{2}".format(lists['masses_ss'][indx], lists['masses_ds'][indx], value))
             else:
                 print("{0}\t{1}".format(lists['masses_ss'][indx], value))
+
+    #Calculate Isoelectric Point
+    if in_args.isoelectric_point:
+        isoelectric_points = isoelectric_point(seqbuddy)
+        _stderr("ID\tpI\n")
+        for pI in isoelectric_points:
+            print("{0}\t{1}".format(pI[0], pI[1]))
