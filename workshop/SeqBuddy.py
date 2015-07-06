@@ -1542,8 +1542,7 @@ def molecular_weight(_seqbuddy):
 
 def isoelectric_point(_seqbuddy):
     if seqbuddy.alpha is not IUPAC.protein:
-        raise_error(ValueError("Protein sequence required, not nucleic acid."))
-        return
+        raise ValueError("Protein sequence required, not nucleic acid.")
     neg_pkas = {'C': 8.18, 'D': 3.9, 'E': 4.07, 'Y': 10.46, 'COOH': 3.65}
     pos_pkas = {'H': 6.04, 'K': 10.54, 'R': 12.48, 'NH2': 8.2}
     isoelectric_points = []
@@ -1611,8 +1610,6 @@ def merge(_seqbuddy_list):
         _output.records += _seqbuddy.records
     return _output
 
-def raise_error(_err):
-    _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -1823,6 +1820,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         blastdbcmd = blastdbcmd if blastdbcmd else which("blastdbcmd")
 
         return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
+
+
+    def _raise_error(_err):
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Purge
@@ -2306,8 +2308,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     #Calculate Isoelectric Point
     if in_args.isoelectric_point:
-        isoelectric_points = isoelectric_point(seqbuddy)
-        if isoelectric_points is not None:
+        try:
+            isoelectric_points = isoelectric_point(seqbuddy)
             _stderr("ID\t\tpI\n")
             for pI in isoelectric_points:
                 print("{0}\t{1}".format(pI[0], pI[1]))
+        except ValueError as e:
+            _raise_error(e)
