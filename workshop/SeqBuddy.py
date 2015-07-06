@@ -238,7 +238,7 @@ def _stderr(message, quiet=False):
 
 def _stdout(message, quiet=False):
     if not quiet:
-        sys.stderr.write(message)
+        sys.stdout.write(message)
     return
 # ##################################################### SEQ BUDDY #################################################### #
 
@@ -1382,14 +1382,22 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
                     keep_set[_query_id].append(_subj_id)
 
     _output = []
-
     for _rec in _seqbuddy.records:
         if _rec.id in keep_set:
             _output.append(_rec)
 
     _seqbuddy.records = _output
-    record_map = 0
-    return [_seqbuddy, purged, record_map]
+
+    _record_map = "### Deleted record mapping ###\n"
+    for _seq_id in keep_set:
+        _record_map += "%s\n" % _seq_id
+        for del_seq_id in keep_set[_seq_id]:
+            _record_map += "%s, " % del_seq_id
+        _record_map = _record_map.strip(", ") + "\n\n"
+
+    _record_map = _record_map.strip() + "\n##############################\n\n"
+
+    return [_seqbuddy, purged, _record_map]
 
 
 def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
@@ -1830,18 +1838,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Purge
     if in_args.purge:
         purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
-
-        if not in_args.quiet:
-            stderr_output = "### Deleted record mapping ###\n"
-            for seq_id in deleted:
-                stderr_output += "%s\n" % seq_id
-                for del_seq_id in deleted[seq_id]:
-                    stderr_output += "%s, " % del_seq_id
-                stderr_output = stderr_output.strip(", ") + "\n\n"
-
-            _stderr(stderr_output.strip())
-            _stderr("\n##############################\n\n")
-
+        _stderr(record_map, in_args.quiet)
         _print_recs(purged_seqs)
 
     # BL2SEQ
