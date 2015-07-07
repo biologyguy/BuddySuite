@@ -50,7 +50,7 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
-from Bio import SeqUtils
+from Bio import Restriction
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -105,10 +105,6 @@ def delete_pattern():
 
 def insert_sequence():
     # Add a specific sequence at a defined location in all records. E.g., adding a barcode
-    return
-
-
-def find_restriction_sites():
     return
 
 
@@ -1688,6 +1684,34 @@ def split_file(_seqbuddy):
         _output.append(_sb)
     return _output
 
+
+def find_restriction_sites(_seqbuddy, commercial=True, single_cut=True):
+    sites = []
+    blacklist = [Restriction.AbaSI, Restriction.FspEI, Restriction.MspJI, Restriction.SgeI, Restriction.AspBHI,
+                 Restriction.SgrTI, Restriction.YkrI, Restriction.BmeDI]
+    for rec in _seqbuddy.records:
+        if commercial:
+            analysis = Restriction.Restriction.Analysis(Restriction.CommOnly, rec.seq)
+        else:
+            analysis = Restriction.Restriction.Analysis(Restriction.AllEnzymes, rec.seq)
+        if single_cut:
+            cut_keys = set(analysis.blunt().keys())
+        else:
+            cut_keys = set(analysis.overhang5()).union(set(analysis.overhang3()))
+        comm_keys = set(analysis.with_sites().keys())
+        keys = cut_keys & comm_keys
+        for key in blacklist:
+            keys.discard(key)
+        result = {key: analysis.with_sites()[key] for key in keys}
+        sites.append((rec.id, result))
+    print_output = ''
+    for tup in sites:
+        print_output += "{0}\n".format(tup[0])
+        for key in sorted(tup[1]):
+            print_output += "{0}:\t{1}\n".format(key, str(tup[1][key]))
+        print_output += "\n"
+    return [sites, print_output]
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1803,6 +1827,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
                         help="")
+    parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
+                        metavar=("<commercial>", "<num_cuts>"), help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
     parser.add_argument("-cr", "--count_residues", action='store_true', help="")
@@ -2324,6 +2350,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 print("{0}: {1}".format(residue, _sequence[1][residue]))
             print()
 
+    # Split file
     if in_args.split_file:
         in_args.in_place = True
         out_dir = os.path.abspath(in_args.split_file)
@@ -2338,3 +2365,21 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(seqbuddy)
+
+    # Find restriction sites
+    if in_args.find_restriction_sites:
+        if in_args.find_restriction_sites[0] in ['commercial', 'com', 'c']:
+            _commercial = True
+        elif in_args.find_restriction_sites[0] in ['all', 'a', 'noncommercial', 'nc', 'noncom']:
+            _commercial = False
+        else:
+            _commercial = True
+        if in_args.find_restriction_sites[1] in ['1', 'single', 's']:
+            _single_cut = True
+        elif in_args.find_restriction_sites[1] in ['2', 'double', 'd']:
+            _single_cut = False
+        else:
+            _single_cut = True
+        sb = clean_seq(seqbuddy)
+        _output = find_restriction_sites(sb, _commercial, _single_cut)
+        _stdout(_output[1])
