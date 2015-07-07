@@ -562,7 +562,7 @@ def dna2rna(_seqbuddy):
 
 def complement(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
-        raise ValueError("Nucleic acid sequence required, not protein.")
+        raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
         _rec.seq = _rec.seq.complement()
     return _seqbuddy
@@ -570,7 +570,7 @@ def complement(_seqbuddy):
 
 def reverse_complement(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
-        raise ValueError("Nucleic acid sequence required, not protein.")
+        raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
         _rec.seq = _rec.seq.reverse_complement()
         seq_len = len(_rec.seq)
@@ -579,6 +579,7 @@ def reverse_complement(_seqbuddy):
     return _seqbuddy
 
 
+# ToDo: Deal with alignments...
 def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
     def trans(in_seq):
         try:
@@ -589,6 +590,9 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
             if not quiet:
                 sys.stderr.write("Warning: %s in %s\n" % (_e1, in_seq.id))
             return _e1
+
+        except ValueError:
+            raise TypeError("Nucleic acid sequence required, not protein.")
 
     _translation = deepcopy(_seqbuddy)
     for _rec in _translation.records:
@@ -1595,7 +1599,7 @@ def molecular_weight(_seqbuddy):
 
 def isoelectric_point(_seqbuddy):
     if seqbuddy.alpha is not IUPAC.protein:
-        raise ValueError("Protein sequence required, not nucleic acid.")
+        raise TypeError("Protein sequence required, not nucleic acid.")
     isoelectric_points = []
     for _rec in _seqbuddy.records:
         _pI = ProteinAnalysis(str(_rec.seq))
