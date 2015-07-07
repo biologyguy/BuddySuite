@@ -65,26 +65,54 @@ def test_instantiate_seqbuddy_from_raw(seq_file):
         assert type(Sb.SeqBuddy(ifile.read())) == Sb.SeqBuddy
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
-# need to be done over and over for each subsequent test. Note: take care that objects are not modified in place
+# need to be done over and over for each subsequent test. Note: The objects are often modified in place, so be careful
 sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
-formats = ["fasta", "gb", "nexus", "phylip-relaxed", "stockholm",
-           "fasta", "gb", "nexus", "phylip-relaxed", "stockholm"]
+formats = ["fasta", "gb", "nexus", "phylip", "phylip-relaxed", "stockholm",
+           "fasta", "gb", "nexus", "phylip", "phylip-relaxed", "stockholm"]
 
-# '-ofa', '--order_features_alphabetically'
-hashes = ["25073539df4a982b7f99c72dd280bb8f", "ffa7cb60cb98e50bc4741eed7c88e553", "cb1169c2dd357771a97a02ae2160935d",
-          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "c10d136c93f41db280933d5b3468f187", "f6b3c090ab6ac147cf6d87881a8ce5dc", "8b6737fe33058121fd99d2deee2f9a76",
+# ######################  'uc', '--uppercase' ###################### #
+hashes = ["25073539df4a982b7f99c72dd280bb8f", "4ccc2d108eb01614351bcbeb21932ceb", "52e74a09c305d031fc5263d1751e265d",
+          "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
+          "c10d136c93f41db280933d5b3468f187", "0e575609db51ae25d4d41333c56f5661", "8b6737fe33058121fd99d2deee2f9a76",
           "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
+def test_uppercase(seqbuddy, next_hash):  # NOTE: Biopython always writes genbank to spec in lower case
+    tester = Sb.uppercase(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+# ######################  'lc', '--lowercase' ###################### #
+hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932ceb", "cb1169c2dd357771a97a02ae2160935d",
+          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+          "14227e77440e75dd3fbec477f6fd8bdc", "0e575609db51ae25d4d41333c56f5661", "17ff1b919cac899c5f918ce8d71904f6",
+          "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
+def test_lowercase(seqbuddy, next_hash):
+    # We know uppercase works, so convert objects to uppercase before testing lowercase function
+    seqbuddy = Sb.uppercase(seqbuddy)
+    tester = Sb.lowercase(seqbuddy)
+    assert seqs_to_hash(tester) == next_hash
+
+# ######################  '-ofa', '--order_features_alphabetically' ###################### #
+hashes = ["b831e901d8b6b1ba52bad797bad92d14", "ffa7cb60cb98e50bc4741eed7c88e553", "cb1169c2dd357771a97a02ae2160935d",
+          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+          "14227e77440e75dd3fbec477f6fd8bdc", "f6b3c090ab6ac147cf6d87881a8ce5dc", "17ff1b919cac899c5f918ce8d71904f6",
+          "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
 
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
-# TODO Fix all of the ordering methods
+
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)  # might modify in place
 def test_order_features_alphabetically(seqbuddy, next_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-# '-mw', '--molecular_weight'
+# ######################  '-mw', '--molecular_weight' ###################### #
 mw_files = ["mw/mw_test_pep.fa", "mw/mw_test_cds_a.fa", "mw/mw_test_cds_u.fa", "mw/mw_test_rna_a.fa",
             "mw/mw_test_rna_u.fa"]
 mw_formats = ["protein", "dna", "dna", "rna", "rna"]
@@ -102,7 +130,7 @@ def test_molecular_weight(seqbuddy, next_mw):
     if len(masses_ds) != 0:
         assert masses_ds[0] == next_mw[1]
 
-# 'cs', '--clean_seq'
+# ######################  'cs', '--clean_seq' ###################### #
 cs_files = ["cs/cs_test_pep.fa", "cs/cs_test_cds_a.fa", "cs/cs_test_cds_u.fa"]
 cs_formats = ["protein", "dna", "dna"]
 cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
@@ -115,43 +143,8 @@ def test_clean_seq(seqbuddy, next_hash):
     tester = Sb.clean_seq(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-# 'uc', '--uppercase'
-lc_files = ["lower/lower_Mnemiopsis_cds.fa", "lower/lower_Mnemiopsis_cds.gb", "lower/lower_Mnemiopsis_cds.nex",
-            "lower/lower_Mnemiopsis_cds.phyr", "lower/lower_Mnemiopsis_cds.stklm", "lower/lower_Mnemiopsis_pep.fa",
-            "lower/lower_Mnemiopsis_pep.gb", "lower/lower_Mnemiopsis_pep.nex", "lower/lower_Mnemiopsis_pep.phyr",
-            "lower/lower_Mnemiopsis_pep.stklm"]
-lc_objects = [Sb.SeqBuddy(resource(file)) for file in lc_files]
-lc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "d41d8cd98f00b204e9800998ecf8427e", "52e74a09c305d031fc5263d1751e265d",
-             "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce", "c10d136c93f41db280933d5b3468f187",
-             "d41d8cd98f00b204e9800998ecf8427e", "8b6737fe33058121fd99d2deee2f9a76", "b229db9c07ff3e4bc049cea73d3ebe2c",
-             "f35cbc6e929c51481e4ec31e95671638"]
-lc_hashes = [(lc_objects[indx], value) for indx, value in enumerate(lc_hashes)]
 
-
-@pytest.mark.parametrize("seqbuddy,next_hash", lc_hashes)
-def test_uppercase(seqbuddy, next_hash):  # genbank should fail right now
-    tester = Sb.uppercase(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
-# 'lc', '--lowercase'
-uc_files = ["upper/upper_Mnemiopsis_cds.fa", "upper/upper_Mnemiopsis_cds.gb", "upper/upper_Mnemiopsis_cds.nex",
-            "upper/upper_Mnemiopsis_cds.phyr", "upper/upper_Mnemiopsis_cds.stklm", "upper/upper_Mnemiopsis_pep.fa",
-            "upper/upper_Mnemiopsis_pep.gb", "upper/upper_Mnemiopsis_pep.nex", "upper/upper_Mnemiopsis_pep.phyr",
-            "upper/upper_Mnemiopsis_pep.stklm"]
-uc_objects = [Sb.SeqBuddy(resource(file)) for file in uc_files]
-uc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4ccc2d108eb01614351bcbeb21932ceb", "cb1169c2dd357771a97a02ae2160935d",
-             "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b", "14227e77440e75dd3fbec477f6fd8bdc",
-             "0e575609db51ae25d4d41333c56f5661", "17ff1b919cac899c5f918ce8d71904f6", "6a3ee818e2711995c95372afe073490b",
-             "c0dce60745515b31a27de1f919083fe9"]
-uc_hashes = [(uc_objects[indx], value) for indx, value in enumerate(uc_hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", uc_hashes)
-def test_lowercase(seqbuddy, next_hash):
-    tester = Sb.lowercase(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
-# 'dm', '--delete_metadata'
+# ######################  'dm', '--delete_metadata' ###################### #
 dm_hashes = ["8b98dc863c2483ee2fa813df983f9941", "544ab887248a398d6dd1aab513bae5b1", "cb1169c2dd357771a97a02ae2160935d",
              "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "a50943ccd028b6f5fa658178fa8cf54d",
              "31b3aa8d247175ae31d5f17b146daf46", "858e8475f7bc6e6a24681083a8635ef9", "8b6737fe33058121fd99d2deee2f9a76",
@@ -161,6 +154,7 @@ dm_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", dm_hashes)
 def test_delete_metadata(seqbuddy, next_hash):
+    assert 0 == 1
     tester = Sb.delete_metadata(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
@@ -390,7 +384,7 @@ for dna in seq_files[:6]:
         hash_indx += 1
 
 
-@pytest.mark.parametrize("dna,prot,next_hash", fd2p_objects)
+@pytest.mark.parametrize("_dna,_prot,next_hash", fd2p_objects)
 def test_map_features_dna2prot(_dna, _prot, next_hash):
     _dna = Sb.SeqBuddy(resource(_dna))
     _prot = Sb.SeqBuddy(resource(_prot))
@@ -425,7 +419,7 @@ for dna in seq_files[:6]:
         hash_indx += 1
 
 
-@pytest.mark.parametrize("prot,dna,next_hash", fp2d_objects)
+@pytest.mark.parametrize("_prot,_dna,next_hash", fp2d_objects)
 def test_map_features_prot2dna(_prot, _dna, next_hash):
     _dna = Sb.SeqBuddy(resource(_dna))
     _prot = Sb.SeqBuddy(resource(_prot))
@@ -465,7 +459,7 @@ for seq1 in cf_list:
             hash_indx += 1
 
 
-@pytest.mark.parametrize("seq1,seq2,next_hash", cf_objects)
+@pytest.mark.parametrize("_seq1,_seq2,next_hash", cf_objects)
 def test_combine_features(_seq1, _seq2, next_hash):
     _seq1 = Sb.SeqBuddy(resource(_seq1))
     _seq2 = Sb.SeqBuddy(resource(_seq2))
@@ -544,7 +538,7 @@ for l1 in other_files:
                 screw_files.append((indx, l1, l2))
 
 
-@pytest.mark.parametrize("indx,l1,l2", screw_files)  # fails when stklm is the out_format
+@pytest.mark.parametrize("indx,_l1,_l2", screw_files)  # fails when stklm is the out_format
 def test_screw_formats_other(indx, _l1, _l2):
     sb1 = Sb.SeqBuddy(resource(_l1[indx]))
     sb2 = Sb.SeqBuddy(resource(_l2[indx]))
