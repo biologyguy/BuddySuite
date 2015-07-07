@@ -317,11 +317,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         if self.alpha is None:
             self.alpha = guess_alphabet(_sequences)
-        elif self.alpha in ['protein', 'prot', 'p', 'pep']:
+        elif self.alpha in ['protein', 'prot', 'p', 'pep', IUPAC.protein]:
             self.alpha = IUPAC.protein
-        elif self.alpha in ['dna', 'd', 'cds']:
+        elif self.alpha in ['dna', 'd', 'cds', IUPAC.ambiguous_dna]:
             self.alpha = IUPAC.ambiguous_dna
-        elif self.alpha in ['rna', 'r']:
+        elif self.alpha in ['rna', 'r', IUPAC.ambiguous_rna]:
             self.alpha = IUPAC.ambiguous_rna
         else:
             _stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
@@ -1823,9 +1823,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
         seqbuddy += seq_set.records
 
-    seqbuddy = SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format, in_args.alpha)
+    seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
 
-    seqbuddy.out_format = in_args.out_format if in_args.out_format else seq_set.out_format
 
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
@@ -2186,14 +2185,18 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Guess format
     if in_args.guess_format:
-        for seq_set in in_args.sequence:
-            _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+        if str(type(in_args.sequence[0])) == "<class '_io.TextIOWrapper'>":
+            _stdout("{0}\n".format(seqbuddy.in_format))
+        else:
+            for seq_set in in_args.sequence:
+                _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
 
     # Guess alphabet
     if in_args.guess_alphabet:
         for seq_set in in_args.sequence:
-            seqbuddy = SeqBuddy(seq_set)
-            _stdout("%s\t-->\t" % seq_set)
+            if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
+                seqbuddy = SeqBuddy(seq_set)
+                _stdout("%s\t-->\t" % seq_set)
             if seqbuddy.alpha == IUPAC.protein:
                 _stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
