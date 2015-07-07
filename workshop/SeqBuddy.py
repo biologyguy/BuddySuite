@@ -225,6 +225,7 @@ def _stdout(message, quiet=False):
         sys.stdout.write(message)
     return
 
+
 def _format_to_extension(_format):
     format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
@@ -539,20 +540,26 @@ def order_ids(_seqbuddy, _reverse=False):
 
 
 def rna2dna(_seqbuddy):
+    if _seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
     _output = []
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
         _output.append(_rec)
     _seqbuddy.records = _output
+    _seqbuddy.alpha = IUPAC.ambiguous_dna
     return _seqbuddy
 
 
 def dna2rna(_seqbuddy):
+    if _seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
     _output = []
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
         _output.append(_rec)
     _seqbuddy.records = _output
+    _seqbuddy.alpha = IUPAC.ambiguous_rna
     return _seqbuddy
 
 
@@ -819,8 +826,9 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
                   'Y': (['TAT', 'TAC'], [0.5, 0.5]),
                   'X': (['NNN'], [1.0])}
 
-    if _seqbuddy.alpha != IUPAC.protein:
-        raise AttributeError("The input sequence needs to be protein, not %s" % _seqbuddy.alpha)
+    if str(type(_seqbuddy.alpha)) != "<class 'Bio.Alphabet.IUPAC.IUPACProtein'>":
+        raise TypeError("The input sequence needs to be <class 'Bio.Alphabet.IUPAC.IUPACProtein'>, not %s" %
+                        str(type(_seqbuddy.alpha)))
 
     if not _species:
         lookup_table = rand_table
@@ -828,13 +836,10 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
         lookup_table = h_sapi
     elif _species.upper() in ["MOUSE", "M"]:
         lookup_table = m_muscul
-        print("mouse")
     elif _species.upper() in ["ECOLI", "E"]:
         lookup_table = e_coli
-        print("ecoli")
     elif _species.upper() in ["YEAST", "Y"]:
         lookup_table = s_cerev
-        print(_species)
     else:
         raise AttributeError("The species requested does not match any lookup tables currently implemented. "
                              "Please leave blank or select from human, mouse, ecoli, or yeast.")
@@ -850,7 +855,7 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
     for _rec in _seqbuddy.records:
         _rec.features = []
         dna_seq = ""
-        for aa in _rec.seq:
+        for aa in _rec.seq.upper():
             rand_num = random()
             sum_probs = 0.
             for _i in range(len(lookup_table[aa][1])):
@@ -1019,7 +1024,7 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
     if stderr_written:
         sys.stderr.write("\n")
 
-    _seqs_list = [_new_seqs[_rec.id] for _rec in dna_seqbuddy]
+    _seqs_list = [_new_seqs[_rec.id] for _rec in dna_seqbuddy.records]
     _seqbuddy = SeqBuddy(_seqs_list)
     _seqbuddy.out_format = "gb"
     return _seqbuddy
@@ -1685,16 +1690,16 @@ def split_file(_seqbuddy):
     return _output
 
 
-def find_restriction_sites(_seqbuddy, commercial=True, single_cut=True):
+def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
     sites = []
     blacklist = [Restriction.AbaSI, Restriction.FspEI, Restriction.MspJI, Restriction.SgeI, Restriction.AspBHI,
                  Restriction.SgrTI, Restriction.YkrI, Restriction.BmeDI]
     for rec in _seqbuddy.records:
-        if commercial:
+        if _commercial:
             analysis = Restriction.Restriction.Analysis(Restriction.CommOnly, rec.seq)
         else:
             analysis = Restriction.Restriction.Analysis(Restriction.AllEnzymes, rec.seq)
-        if single_cut:
+        if _single_cut:
             cut_keys = set(analysis.blunt().keys())
         else:
             cut_keys = set(analysis.overhang5()).union(set(analysis.overhang3()))
@@ -1862,6 +1867,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if len(_seqbuddy.records) == 0:
             _stderr("Nothing returned.\n", in_args.quiet)
             return False
+
+        # There is a weird bug in genbank write that concatenates dots to the organism name (if set). Work around...
+        if _seqbuddy.out_format in ["gb", "genbank"]:
+            for _rec in _seqbuddy.records:
+                try:
+                    if re.search("(\. )+", _rec.annotations['organism']):
+                        _rec.annotations['organism'] = "."
+                except KeyError:
+                    pass
 
         if _seqbuddy.out_format == "phylipi":
             _output = phylipi(_seqbuddy)
@@ -2340,14 +2354,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Count residues
     if in_args.count_residues:
         output = count_residues(seqbuddy)
-        for _sequence in output:
-            print(_sequence[0])
+        for sequence in output:
+            print(sequence[0])
             if seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
                                   IUPAC.unambiguous_rna]:
                 for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
-                    print("{0}: {1}".format(residue, _sequence[1].pop(residue, None)))
-            for residue in sorted(_sequence[1]):
-                print("{0}: {1}".format(residue, _sequence[1][residue]))
+                    print("{0}: {1}".format(residue, sequence[1].pop(residue, None)))
+            for residue in sorted(sequence[1]):
+                print("{0}: {1}".format(residue, sequence[1][residue]))
             print()
 
     # Split file
@@ -2369,17 +2383,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Find restriction sites
     if in_args.find_restriction_sites:
         if in_args.find_restriction_sites[0] in ['commercial', 'com', 'c']:
-            _commercial = True
+            commercial = True
         elif in_args.find_restriction_sites[0] in ['all', 'a', 'noncommercial', 'nc', 'noncom']:
-            _commercial = False
+            commercial = False
         else:
-            _commercial = True
+            commercial = True
         if in_args.find_restriction_sites[1] in ['1', 'single', 's']:
-            _single_cut = True
+            single_cut = True
         elif in_args.find_restriction_sites[1] in ['2', 'double', 'd']:
-            _single_cut = False
+            single_cut = False
         else:
-            _single_cut = True
+            single_cut = True
         sb = clean_seq(seqbuddy)
-        _output = find_restriction_sites(sb, _commercial, _single_cut)
-        _stdout(_output[1])
+        output = find_restriction_sites(sb, commercial, single_cut)
+        _stdout(output[1])
