@@ -964,11 +964,12 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
         if _seq_id not in dna_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
+            _new_seqs[_seq_id] = prot_dict[_seq_id]
 
     if stderr_written:
         sys.stderr.write("\n")
 
-    _seqs_list = [_new_seqs[_seq_id] for _seq_id in _new_seqs]
+    _seqs_list = [_new_seqs[_rec.id] for _rec in prot_seqbuddy.records]
     _seqbuddy = SeqBuddy(_seqs_list)
     _seqbuddy.out_format = "gb"
     return _seqbuddy
@@ -1013,11 +1014,12 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
         if _seq_id not in prot_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
+            _new_seqs[_seq_id] = dna_dict[_seq_id]
 
     if stderr_written:
         sys.stderr.write("\n")
 
-    _seqs_list = [_new_seqs[_seq_id] for _seq_id in _new_seqs]
+    _seqs_list = [_new_seqs[_rec.id] for _rec in dna_seqbuddy]
     _seqbuddy = SeqBuddy(_seqs_list)
     _seqbuddy.out_format = "gb"
     return _seqbuddy
@@ -1357,7 +1359,7 @@ def delete_features(_seqbuddy, _pattern):
     return _seqbuddy
 
 
-def delete_repeats(_seqbuddy, scope='all', _columns=1):  # scope in ['all', 'ids', 'seqs']
+def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
     # First, remove duplicate IDs
     if scope in ['all', 'ids']:
         _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy)
@@ -1824,7 +1826,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         seqbuddy += seq_set.records
 
     seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
-
 
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
