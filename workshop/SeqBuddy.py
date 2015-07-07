@@ -78,12 +78,6 @@ def codon_counter():
     return
 
 
-def split_file(directory):
-    # distribute a mutiple sequence file into a bunch of individual files
-    x = directory
-    return x
-
-
 def predict_orfs():
     return
 
@@ -234,6 +228,12 @@ def _stdout(message, quiet=False):
     if not quiet:
         sys.stdout.write(message)
     return
+
+def _format_to_extension(_format):
+    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
+                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
+                           'stockholm': 'stklm', 'stklm': 'stklm'}
+    return format_to_extension[_format]
 # ##################################################### SEQ BUDDY #################################################### #
 
 # TODO Handle stdin when not piped
@@ -1672,6 +1672,16 @@ def merge(_seqbuddy_list):
     return _output
 
 
+def split_file(_seqbuddy):
+    # distribute a mutiple sequence file into a bunch of individual files
+    _output = []
+    for _rec in _seqbuddy.records:
+        _sb = SeqBuddy([_rec])
+        _sb.in_format = _seqbuddy.in_format
+        _sb.out_format = _seqbuddy.out_format
+        _output.append(_sb)
+    return _output
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1787,16 +1797,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
                         help="")
-    parser.add_argument("-mw", "--molecular_weight", action='store_true',
-                        help="")
-    parser.add_argument("-ip", "--isoelectric_point", action='store_true',
-                        help="")
-    parser.add_argument("-cr", "--count_residues", action='store_true',
-                        help="")
+    parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
+    parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
+    parser.add_argument("-cr", "--count_residues", action='store_true', help="")
+    parser.add_argument("-spf", "--split_file", action='store', help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
     parser.add_argument('-ho', '--hash_output', help="For ")
-
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
@@ -2308,3 +2315,18 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             for residue in sorted(_sequence[1]):
                 print("{0}: {1}".format(residue, _sequence[1][residue]))
             print()
+
+    if in_args.split_file:
+        in_args.in_place = True
+        out_dir = os.path.abspath(in_args.split_file)
+        os.makedirs(out_dir, exist_ok=True)
+        taxa_groups = split_by_taxa(seqbuddy, in_args.split_file)
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        in_args.quiet = True
+        for buddy in split_file(seqbuddy):
+            seqbuddy.records = buddy.records
+            ext = _format_to_extension(seqbuddy.out_format)
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, seqbuddy.records[0].id, ext)
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            open(in_args.sequence[0], "w").close()
+            _print_recs(seqbuddy)

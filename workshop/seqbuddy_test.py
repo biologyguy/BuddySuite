@@ -390,7 +390,7 @@ for dna in seq_files[:6]:
         hash_indx += 1
 
 
-@pytest.mark.parametrize("dna,prot,next_hash", fd2p_objects)
+@pytest.mark.parametrize("_dna,_prot,next_hash", fd2p_objects)
 def test_map_features_dna2prot(_dna, _prot, next_hash):
     _dna = Sb.SeqBuddy(resource(_dna))
     _prot = Sb.SeqBuddy(resource(_prot))
@@ -425,7 +425,7 @@ for dna in seq_files[:6]:
         hash_indx += 1
 
 
-@pytest.mark.parametrize("prot,dna,next_hash", fp2d_objects)
+@pytest.mark.parametrize("_prot,_dna,next_hash", fp2d_objects)
 def test_map_features_prot2dna(_prot, _dna, next_hash):
     _dna = Sb.SeqBuddy(resource(_dna))
     _prot = Sb.SeqBuddy(resource(_prot))
@@ -465,7 +465,7 @@ for seq1 in cf_list:
             hash_indx += 1
 
 
-@pytest.mark.parametrize("seq1,seq2,next_hash", cf_objects)
+@pytest.mark.parametrize("_seq1,_seq2,next_hash", cf_objects)
 def test_combine_features(_seq1, _seq2, next_hash):
     _seq1 = Sb.SeqBuddy(resource(_seq1))
     _seq2 = Sb.SeqBuddy(resource(_seq2))
@@ -544,7 +544,7 @@ for l1 in other_files:
                 screw_files.append((indx, l1, l2))
 
 
-@pytest.mark.parametrize("indx,l1,l2", screw_files)  # fails when stklm is the out_format
+@pytest.mark.parametrize("indx,_l1,_l2", screw_files)  # fails when stklm is the out_format
 def test_screw_formats_other(indx, _l1, _l2):
     sb1 = Sb.SeqBuddy(resource(_l1[indx]))
     sb2 = Sb.SeqBuddy(resource(_l2[indx]))
