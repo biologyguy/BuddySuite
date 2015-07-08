@@ -972,8 +972,14 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
             sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
                              (_seq_id, len(dna_rec.seq), len(prot_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = prot_dict[_seq_id]
+        prot_feature_hashes = []
+        for feature in prot_dict[_seq_id].features:
+            prot_feature_hashes.append(md5(str(feature).encode()).hexdigest())
+
         for feature in dna_rec.features:
-            prot_dict[_seq_id].features.append(_feature_map(feature))
+            feature = _feature_map(feature)
+            if md5(str(feature).encode()).hexdigest() not in prot_feature_hashes:
+                prot_dict[_seq_id].features.append(feature)
 
     for _seq_id, prot_rec in prot_dict.items():
         if _seq_id not in dna_dict:
@@ -1027,8 +1033,20 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
             sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
                              (_seq_id, len(prot_rec.seq), len(dna_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = dna_dict[_seq_id]
+        dna_feature_hashes = []
+        for feature in dna_dict[_seq_id].features:
+            dna_feature_hashes.append(md5(str(feature).encode()).hexdigest())
+
         for feature in prot_rec.features:
-            dna_dict[_seq_id].features.append(_feature_map(feature))
+            feature = _feature_map(feature)
+            prot_feature_hashes = [md5(str(feature).encode()).hexdigest()]
+            # Need to account for strand orientation
+            feature.strand = 0
+            prot_feature_hashes.append(md5(str(feature).encode()).hexdigest())
+            feature.strand = 1
+            prot_feature_hashes.append(md5(str(feature).encode()).hexdigest())
+            if not set(prot_feature_hashes) & set(dna_feature_hashes):
+                dna_dict[_seq_id].features.append(feature)
 
     for _seq_id, dna_rec in dna_dict.items():
         if _seq_id not in prot_dict:
