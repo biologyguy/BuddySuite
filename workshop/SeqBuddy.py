@@ -256,7 +256,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _input.seek(0)
 
         # Raw sequences
-        if type(_input) == str and not os.path.isfile(_input):
+        if _in_format == "raw":
+            _in_format = "fasta"
+            _input = [SeqRecord(Seq(_input), id="raw_input", description="")]
+
+        elif type(_input) == str and not os.path.isfile(_input):
             _raw_seq = _input
             temp = StringIO(_input)
             _input = temp
@@ -1232,6 +1236,7 @@ def extract_range(_seqbuddy, _start, _end):
 
 
 def find_repeats(_seqbuddy, _columns=1):
+    _columns = 1 if _columns == 0 else abs(_columns)
     unique_seqs = {}
     repeat_ids = {}
     repeat_seqs = {}
@@ -1658,6 +1663,7 @@ def raw_seq(_seqbuddy):
 
 
 def list_ids(_seqbuddy, _columns=1):
+    _columns = 1 if _columns == 0 else abs(_columns)
     _output = ""
     _counter = 1
     for rec in _seqbuddy.records:
