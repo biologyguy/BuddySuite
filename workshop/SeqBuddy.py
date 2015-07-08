@@ -956,25 +956,30 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
                             "not %s" % type(_feature.location))
         return _feature
 
+    prot_seqbuddy = clean_seq(prot_seqbuddy, "*")
+    dna_seqbuddy = clean_seq(dna_seqbuddy)
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
     stderr_written = False
-    for _seq_id in dna_dict:
+    for _seq_id, dna_rec in dna_dict.items():
         if _seq_id not in prot_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
             continue
 
+        if len(prot_dict[_seq_id].seq) * 3 not in [len(dna_rec.seq), len(dna_rec.seq) - 3]:  # len(cds) or len(cds minus stop)
+            sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                             (_seq_id, len(dna_rec.seq), len(prot_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = prot_dict[_seq_id]
-        for feature in dna_dict[_seq_id].features:
+        for feature in dna_rec.features:
             prot_dict[_seq_id].features.append(_feature_map(feature))
 
-    for _seq_id in prot_dict:
+    for _seq_id, prot_rec in prot_dict.items():
         if _seq_id not in dna_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
-            _new_seqs[_seq_id] = prot_dict[_seq_id]
+            _new_seqs[_seq_id] = prot_rec
 
     if stderr_written:
         sys.stderr.write("\n")
@@ -1006,25 +1011,30 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
                             "not %s" % type(_feature.location))
         return _feature
 
+    prot_seqbuddy = clean_seq(prot_seqbuddy, "*")
+    dna_seqbuddy = clean_seq(dna_seqbuddy)
     prot_dict = SeqIO.to_dict(prot_seqbuddy.records)
     dna_dict = SeqIO.to_dict(dna_seqbuddy.records)
     _new_seqs = {}
     stderr_written = False
-    for _seq_id in prot_dict:
+    for _seq_id, prot_rec in prot_dict.items():
         if _seq_id not in dna_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
             continue
 
+        if len(prot_rec.seq) * 3 not in [len(dna_dict[_seq_id].seq), len(dna_dict[_seq_id].seq) - 3]:  # len(cds) or len(cds minus stop)
+            sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                             (_seq_id, len(prot_rec.seq), len(dna_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = dna_dict[_seq_id]
-        for feature in prot_dict[_seq_id].features:
+        for feature in prot_rec.features:
             dna_dict[_seq_id].features.append(_feature_map(feature))
 
-    for _seq_id in dna_dict:
+    for _seq_id, dna_rec in dna_dict.items():
         if _seq_id not in prot_dict:
             stderr_written = True
             sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
-            _new_seqs[_seq_id] = dna_dict[_seq_id]
+            _new_seqs[_seq_id] = dna_rec
 
     if stderr_written:
         sys.stderr.write("\n")
