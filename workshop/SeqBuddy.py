@@ -602,6 +602,7 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
             raise TypeError("Nucleic acid sequence required, not protein.")
 
     _translation = deepcopy(_seqbuddy)
+    _translation.alpha = IUPAC.protein
     for _rec in _translation.records:
         _rec.features = []
         temp_seq = deepcopy(_rec)
@@ -910,15 +911,15 @@ def concat_seqs(_seqbuddy, _clean=False):
     return _seqbuddy
 
 
-def clean_seq(_seqbuddy):
+def clean_seq(_seqbuddy, skip_list=None):
     """remove all non-sequence charcters from sequence strings"""
+    skip_list = "" if not skip_list else "".join(skip_list)
     _output = []
     for _rec in _seqbuddy.records:
-        _rec.seq = str(_rec.seq).upper()
         if _seqbuddy.alpha == IUPAC.protein:
-            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXY]", "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
+            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
         else:
-            _rec.seq = Seq(re.sub("[^ATGCXNU]", "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
+            _rec.seq = Seq(re.sub("[^ATGCXNUatgcxnu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
 
         _output.append(_rec)
 
