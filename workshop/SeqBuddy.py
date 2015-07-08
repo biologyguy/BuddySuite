@@ -129,8 +129,6 @@ def divergence_value():
     # http://bioinformatics.org/sms/uneven.html
     return
 
-# - Unit Tests
-#   -- Started, just need to spend a whole bunch of time getting the tests written
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
@@ -149,6 +147,7 @@ def divergence_value():
 # - Add print method to SeqBuddy class that outputs all sequences to string
 # - Add molecular_weight() method that calculates molecular weight
 # - Add isoelectric_point() method that calculates isoelectric point
+# - Unit tests
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 
@@ -1241,8 +1240,8 @@ def extract_range(_seqbuddy, _start, _end):
     # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
     _start, _end = int(_start) - 1, int(_end)
     if _end < _start:
-        raise AttributeError("Error at extract range: The value given for end of range is smaller than for the start "
-                             "of range.")
+        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
+                         "of range.")
 
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
@@ -1675,16 +1674,6 @@ def count_residues(_seqbuddy):
                                                                  resid_count['G'] + resid_count['U']))/num_acids), 2)
         _output.append((_rec.id, resid_count))
     return _output
-
-
-def screw_formats(_seqbuddy, _format, in_place=False, _sequence=None):
-    _seqbuddy.out_format = _format
-    if in_place:  # Need to change the file extension
-        os.remove(_sequence[0])
-        _sequence[0] = ".".join(os.path.abspath(_sequence[0]).split(".")[:-1]) + \
-                              "." + _seqbuddy.out_format
-        open(_sequence[0], "w").close()
-    return _seqbuddy
 
 
 def raw_seq(_seqbuddy):

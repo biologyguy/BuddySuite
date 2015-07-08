@@ -4,9 +4,7 @@
 
 import pytest
 from hashlib import md5
-from Bio import SeqIO
 import os
-import subprocess
 import re
 from copy import deepcopy
 from Bio.Alphabet import IUPAC
@@ -52,10 +50,10 @@ def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
 
-seq_files = ["Mnemiopsis/Mnemiopsis_cds.fa", "Mnemiopsis/Mnemiopsis_cds.gb", "Mnemiopsis/Mnemiopsis_cds.nex",
-             "Mnemiopsis/Mnemiopsis_cds.phy", "Mnemiopsis/Mnemiopsis_cds.phyr", "Mnemiopsis/Mnemiopsis_cds.stklm",
-             "Mnemiopsis/Mnemiopsis_pep.fa", "Mnemiopsis/Mnemiopsis_pep.gb", "Mnemiopsis/Mnemiopsis_pep.nex",
-             "Mnemiopsis/Mnemiopsis_pep.phy", "Mnemiopsis/Mnemiopsis_pep.phyr", "Mnemiopsis/Mnemiopsis_pep.stklm"]
+seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex",
+             "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
+             "Mnemiopsis_pep.fa", "Mnemiopsis_pep.gb", "Mnemiopsis_pep.nex",
+             "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm"]
 
 
 @pytest.mark.parametrize("seq_file", seq_files)
@@ -77,53 +75,90 @@ def test_instantiate_seqbuddy_from_raw(seq_file):
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
-def set_sb_objs():
-    return [Sb.SeqBuddy(resource(x)) for x in seq_files]
-sb_objects = set_sb_objs()
+sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 
-# formats = ["fasta", "gb", "nexus", "phylip", "phylip-relaxed", "stockholm"]
-
-# ######################  'uc', '--uppercase' ###################### #
-hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
-          "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
-          "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
-          "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+# ######################  'rs', '--raw_seq' ###################### #
+hashes = ["6f0ff2d43706380d92817e644e5b78a5", "5d00d481e586e287f32d2d29916374ca", "6f0ff2d43706380d92817e644e5b78a5",
+          "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
+          "cdfe71aefecc62c5f5f2f45e9800922c", "4dd913ee3f73ba4bb5dc90d612d8447f", "cdfe71aefecc62c5f5f2f45e9800922c",
+          "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_uppercase(seqbuddy, next_hash):  # NOTE: Biopython always writes genbank to spec in lower case
+def test_raw_seq(seqbuddy, next_hash):
+    tester = Sb.raw_seq(seqbuddy)
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == next_hash
+
+# ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
+uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
+             "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
+             "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
+             "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+
+lc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c", "cb1169c2dd357771a97a02ae2160935d",
+             "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+             "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
+             "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+
+hashes = [(deepcopy(sb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,uc_hash,lc_hash", hashes)
+def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes genbank to spec in lower case
     tester = Sb.uppercase(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
-# ######################  'lc', '--lowercase' ###################### #
-hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c", "cb1169c2dd357771a97a02ae2160935d",
-          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
-          "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_lowercase(seqbuddy, next_hash):
-    # We know uppercase works, so convert objects to uppercase before testing lowercase function
-    seqbuddy = Sb.uppercase(seqbuddy)
-    tester = Sb.lowercase(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
+    assert seqs_to_hash(tester) == uc_hash
+    tester = Sb.lowercase(tester)
+    assert seqs_to_hash(tester) == lc_hash
 
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
-hashes = ["b831e901d8b6b1ba52bad797bad92d14", "21547b4b35e49fa37e5c5b858808befb", "cb1169c2dd357771a97a02ae2160935d",
-          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "14227e77440e75dd3fbec477f6fd8bdc", "d0297078b4c480a49b6da5b719310d0e", "17ff1b919cac899c5f918ce8d71904f6",
-          "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "21547b4b35e49fa37e5c5b858808befb",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "14227e77440e75dd3fbec477f6fd8bdc", "d0297078b4c480a49b6da5b719310d0e",
+              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
+              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
 
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "3b718ec3cb794bcb658d900e517110cc",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "14227e77440e75dd3fbec477f6fd8bdc", "c6a788d8ea916964605ac2942c459c9b",
+              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
+              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)  # modifies in place?
-def test_order_features_alphabetically(seqbuddy, next_hash):
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
+    assert seqs_to_hash(tester) == fwd_hash
+    tester = Sb.order_features_alphabetically(seqbuddy, _reverse=True)
+    assert seqs_to_hash(tester) == rev_hash
+
+# ######################  'ofp', '--order_features_by_position' ###################### #
+fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d",
+              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
+              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+
+rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4345a14fe27570b3c837c30a8cb55ea9",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "14227e77440e75dd3fbec477f6fd8bdc", "9e7c2571db1386bba5983365ae235e1b",
+              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
+              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
+    tester = Sb.order_features_by_position(seqbuddy)
+    assert seqs_to_hash(tester) == fwd_hash
+    tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
+    assert seqs_to_hash(tester) == rev_hash
 
 # ######################  '-mw', '--molecular_weight' ###################### # ToDo: review
 mw_files = ["mw/mw_test_pep.fa", "mw/mw_test_cds_a.fa", "mw/mw_test_cds_u.fa", "mw/mw_test_rna_a.fa",
@@ -161,7 +196,7 @@ hashes = ["aa92396a9bb736ae6a669bdeaee36038", "544ab887248a398d6dd1aab513bae5b1"
           "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "a50943ccd028b6f5fa658178fa8cf54d",
           "bac5dc724b1fee092efccd2845ff2513", "858e8475f7bc6e6a24681083a8635ef9", "17ff1b919cac899c5f918ce8d71904f6",
           "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "e224c16f6c27267b5f104c827e78df33"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -169,25 +204,10 @@ def test_delete_metadata(seqbuddy, next_hash):
     tester = Sb.delete_metadata(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-# ######################  'rs', '--raw_seq' ###################### #
-hashes = ["6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
-          "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
-          "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c",
-          "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_raw_seq(seqbuddy, next_hash):
-    tester = Sb.raw_seq(seqbuddy)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
-
 # ######################  'tr', '--translate' ###################### #
-sb_objects = set_sb_objs()
 hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", ]
 # NOTE: the first 6 sb_objects are DNA.
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -202,7 +222,6 @@ def test_translate_pep_exception():
 
 # ######################  'sfr', '--select_frame' ###################### #
 # Only fasta
-sb_objects = set_sb_objs()
 hashes = ["b831e901d8b6b1ba52bad797bad92d14", "a518e331fb29e8be0fdd5f3f815f5abb", "2cbe39bea876030da6d6bd45e514ae0e"]
 frame = [1, 2, 3]
 hashes = [(deepcopy(sb_objects[0]), _hash, frame[indx]) for indx, _hash in enumerate(hashes)]
@@ -243,6 +262,7 @@ organisms = ['human', 'human', 'yeast', 'yeast', 'ecoli', 'ecoli']
 hashes = [(deepcopy(sb_objects[sb_obj_indx]), organisms[indx], hashes[indx]) for indx, sb_obj_indx in
           enumerate([6, 7, 6, 7, 6, 7])]
 
+
 @pytest.mark.parametrize("seqbuddy,_organism,next_hash", hashes)
 def test_back_translate(seqbuddy, _organism, next_hash):
     seqbuddy.alpha = IUPAC.protein
@@ -254,39 +274,34 @@ def test_back_translate_nucleotide_exception():
     with pytest.raises(TypeError):
         Sb.back_translate(sb_objects[1])
 
-# ######################  'd2r', '--transcribe' ###################### #
-hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
-          "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
-          "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+# ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
+d2r_hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
+              "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
+              "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
+r2d_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
+              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
+              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
+
+hashes = [(deepcopy(sb_objects[indx]), d2r_hash, r2d_hashes[indx]) for indx, d2r_hash in enumerate(d2r_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_transcribe(seqbuddy, next_hash):
+@pytest.mark.parametrize("seqbuddy,d2r_hash,r2d_hash", hashes)
+def test_transcribe(seqbuddy, d2r_hash, r2d_hash):
     tester = Sb.dna2rna(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
+    assert seqs_to_hash(tester) == d2r_hash
+    tester = Sb.rna2dna(tester)
+    assert seqs_to_hash(tester) == r2d_hash
 
 
 def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
     with pytest.raises(TypeError):
         Sb.dna2rna(sb_objects[6])
 
-# ######################  'r2d', '--back_transcribe' ###################### #
-# NOTE: The sb_objects were converted to RNA in the previous test
-hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
-          "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-          "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_back_transcribe(seqbuddy, next_hash):
-    tester = Sb.rna2dna(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
 
 def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
     with pytest.raises(TypeError):
         Sb.rna2dna(sb_objects[6])
+
 
 # ######################  'cmp', '--complement' ###################### #
 hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
@@ -356,7 +371,7 @@ hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47"
           "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
           "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
           "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -368,12 +383,12 @@ def test_concat_seqs(seqbuddy, next_hash):
 
 # ######################  'fd2p', '--map_features_dna2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
-#sb_objects = set_sb_objs()
 hashes = ["5216ef85afec36d5282578458a41169a", "a8f7c129cf57a746c20198bf0a6b9cf4", "0deeea532d6dcbc0486e9b74d0d6aca8",
           "d595fabb157d5c996357b6a7058af4e8", "bb06e94456f99efc2068f5a52f0e0462", "a287e0054df7f5df76e792e0e0ab6756"]
 prot_indx = [6, 7, 8, 9, 10, 11]
 hashes = [(deepcopy(sb_objects[1]), deepcopy(sb_objects[prot_indx[indx]]), value) for indx, value in enumerate(hashes)]
 hashes.append((deepcopy(sb_objects[0]), deepcopy(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
+
 
 @pytest.mark.parametrize("_dna,_prot,next_hash", hashes)
 def test_map_features_dna2prot(_dna, _prot, next_hash):
@@ -382,185 +397,87 @@ def test_map_features_dna2prot(_dna, _prot, next_hash):
     tester = Sb.map_features_dna2prot(_dna, _prot)
     assert seqs_to_hash(tester) == next_hash
 
-"""
-# 'fp2d', '--map_features_prot2dna'
-fp2d_hashes = ["f320b57dbf05517cba5bcc2e5ef36781", "57b12348267157870c83e85e3f0a5941",
-               "f320b57dbf05517cba5bcc2e5ef36781", "064431b9e108595e13a0b5cf3fada88a",
-               "f320b57dbf05517cba5bcc2e5ef36781", "f320b57dbf05517cba5bcc2e5ef36781",
-               "9c6fb895e4c810bfdacdab3befe0882c", "604eaa62a8a71dbad31348ee8db03274",
-               "9c6fb895e4c810bfdacdab3befe0882c", "cf0d0ce76aa7d268cca2aa2afe71fcc1",
-               "9c6fb895e4c810bfdacdab3befe0882c", "9c6fb895e4c810bfdacdab3befe0882c",
-               "d64eb777d4ba1c64397cb7bf089b2945", "c550801b2f8f87bcd973a55dd30130a0",
-               "d64eb777d4ba1c64397cb7bf089b2945", "d373cac8c896a5379e3c0b6c767526db",
-               "d64eb777d4ba1c64397cb7bf089b2945", "d64eb777d4ba1c64397cb7bf089b2945",
-               "a49f248f982547fa1143cc711bb0eae7", "ac103e7d6ba14b92f6c52cf11666219f",
-               "a49f248f982547fa1143cc711bb0eae7", "a49f248f982547fa1143cc711bb0eae7",
-               "a49f248f982547fa1143cc711bb0eae7", "a49f248f982547fa1143cc711bb0eae7",
-               "ddecbbc1a905b43e57085117ecd5773e", "4a5bc89b11c99eeb5a35a363384ccf14",
-               "ddecbbc1a905b43e57085117ecd5773e", "a49f248f982547fa1143cc711bb0eae7",
-               "ddecbbc1a905b43e57085117ecd5773e", "ddecbbc1a905b43e57085117ecd5773e",
-               "1bf626401ac805e3d53e8ffe3d8350e9", "dffde8d5a130291e288d6268cf152d3a",
-               "1bf626401ac805e3d53e8ffe3d8350e9", "5228ca449ce6a25fddf02cd230472146",
-               "1bf626401ac805e3d53e8ffe3d8350e9", "1bf626401ac805e3d53e8ffe3d8350e9"]
-fp2d_objects = []
-hash_indx = 0
-for dna in seq_files[:6]:
-    for prot in seq_files[6:]:
-        fp2d_objects.append((prot, dna, fp2d_hashes[hash_indx]))
-        hash_indx += 1
+
+# ######################  'fp2d', '--map_features_prot2dna' ###################### #
+# Map the genbank protein file to all dna files, and the fasta protein file to fasta DNA
+hashes = ["3ebc92ca11505489cab2453d2ebdfcf2", "6b4dd3fc66cb7419acaf064b589f4dd1",
+          "8d403750ef83d60e31de0dee79a8f5d1", "74c6c4b5531c41f55f7349ed6c6b2f43",
+          "9133ab0becbec95ce7ed31e02dc17ef5", "3ebc92ca11505489cab2453d2ebdfcf2"]
+dna_indx = [0, 1, 2, 3, 4, 5]
+hashes = [(deepcopy(sb_objects[7]), deepcopy(sb_objects[dna_indx[indx]]), value) for indx, value in enumerate(hashes)]
+hashes.append((deepcopy(sb_objects[6]), deepcopy(sb_objects[0]), "720f36544f9c11855ac2673e63282f89"))
 
 
-@pytest.mark.parametrize("_prot,_dna,next_hash", fp2d_objects)
+@pytest.mark.parametrize("_prot,_dna,next_hash", hashes)
 def test_map_features_prot2dna(_prot, _dna, next_hash):
-    _dna = Sb.SeqBuddy(resource(_dna))
-    _prot = Sb.SeqBuddy(resource(_prot))
+    _prot.alpha = IUPAC.protein
+    _dna.alpha = IUPAC.ambiguous_dna
     tester = Sb.map_features_prot2dna(_prot, _dna)
-    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
 
-# 'ri', '--rename_ids'
-ri_hashes = ["0672973b580581f15cf2ce467b89144e", "3847ad5210a85b8db59e256261552ee7", "243024bfd2f686e6a6e0ef65aa963494",
-             "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
-ri_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(ri_hashes)]
+# ######################  'ri', '--rename_ids' ###################### #
+hashes = ["59bea136d93d30e3f11fd39d73a9adff", "78c73f97117bd937fd5cf52f4bd6c26e", "243024bfd2f686e6a6e0ef65aa963494",
+          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", ri_hashes)
-def test_rename_ids(seqbuddy, next_hash):  # Probably don't need to test ALL the files
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
+def test_rename_ids(seqbuddy, next_hash):
     tester = Sb.rename(seqbuddy, 'Panx', 'Test', 0)
     assert seqs_to_hash(tester) == next_hash
 
-# 'cf', '--combine_features'
-cf_hashes = ["d6fbbf1cc2a654e1198a516cdd0f8889", "d6fbbf1cc2a654e1198a516cdd0f8889", "d6fbbf1cc2a654e1198a516cdd0f8889",
-             "d6fbbf1cc2a654e1198a516cdd0f8889", "4d86c221a89b9e804a76c916d20e303a", "4d86c221a89b9e804a76c916d20e303a",
-             "4d86c221a89b9e804a76c916d20e303a", "4d86c221a89b9e804a76c916d20e303a", "071475aa0566013628d420b89c4f602c",
-             "071475aa0566013628d420b89c4f602c", "071475aa0566013628d420b89c4f602c", "071475aa0566013628d420b89c4f602c",
-             "46ee4b02fbdfa31a5bd6e527e690d129", "46ee4b02fbdfa31a5bd6e527e690d129", "46ee4b02fbdfa31a5bd6e527e690d129",
-             "46ee4b02fbdfa31a5bd6e527e690d129", "abc020b655549bad175d33077d1b307a", "abc020b655549bad175d33077d1b307a",
-             "abc020b655549bad175d33077d1b307a", "abc020b655549bad175d33077d1b307a"]  # placeholders
-cf_objects = []
-hash_indx = 0
-cf_list = seq_files[0:3]
-cf_list.append(seq_files[4])
-cf_list.append(seq_files[5])
-for seq1 in cf_list:
-    for seq2 in cf_list:
-        if seq1 is not seq2:
-            cf_objects.append((seq1, seq2, fd2p_hashes[hash_indx]))
-            hash_indx += 1
+# ######################  'cf', '--combine_features' ###################### #
+# Only one test at the moment. Maybe add more later.
+dummy_feats = Sb.SeqBuddy(resource("Mnemiopsis_cds_dummy_features.gb"))
 
 
-@pytest.mark.parametrize("_seq1,_seq2,next_hash", cf_objects)
-def test_combine_features(_seq1, _seq2, next_hash):
-    _seq1 = Sb.SeqBuddy(resource(_seq1))
-    _seq2 = Sb.SeqBuddy(resource(_seq2))
-    tester = Sb.combine_features(_seq1, _seq2)
-    assert seqs_to_hash(tester) == next_hash
+def test_combine_features():
+    tester = Sb.combine_features(dummy_feats, sb_objects[1])
+    assert seqs_to_hash(tester) == "11ae234528ba6871035c1a3641d71736"
+
+# ######################  'oi', '--order_ids' ###################### #
+fwd_hashes = ["ccc59629741421fb717b9b2403614c62", "2f9bc0dd9d79fd8160a621280be0b0aa",
+              "60bbc6306cbb4eb903b1212718bb4592", "4188a065adb5b8e80acd3073afc1c7f9",
+              "433520b63864022d82973f493dbf804b", "4078182a81382b815528fdd5c158fbec"]
+rev_hashes = ["503a71fc2e8d143361cbe8f4611527fd", "dd269961d4d5301d1bf87e0093568851",
+              "82fea6e3d3615ac75ec5022abce255da", "9d0910f3d303297283bace2718f60d61",
+              "8af06c3523a1bf7cde4fc2b8c64a388c", "3b83a3c73a6cdded6635ffa10c4a16e1"]
+
+hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-# How do you test the 'shuffle' method?
-
-# 'oi', '--order_ids'
-oi_files = [seq_files[0], seq_files[6]]
-oi_hashes = ["d103a7a41a5644614d59e0c44469d1b2", "945b2b43a423a5371ad7e90adda6e703"]
-oi_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(oi_hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", oi_hashes)
-def test_order_ids(seqbuddy, next_hash):
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
+def test_order_ids(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_ids(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
-oi_rev_hashes = ["3658c4b79cd7e8dfd6afe1a9cddc2dfa", "8c4e450b72410c37683f83e528c9a610"]
-oi_rev_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(oi_rev_hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", oi_rev_hashes)
-def test_order_ids_rev(seqbuddy, next_hash):
+    assert seqs_to_hash(tester) == fwd_hash
     tester = Sb.order_ids(seqbuddy, _reverse=True)
-    assert seqs_to_hash(tester) == next_hash
+    assert seqs_to_hash(tester) == rev_hash
 
-# 'ofp', '--order_features_by_position'
-ofp_hashes = ["25073539df4a982b7f99c72dd280bb8f", "c10d136c93f41db280933d5b3468f187"]
-ofp_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(ofp_hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy, next_hash", ofp_hashes)
-def test_order_features_by_position(seqbuddy, next_hash):
-    tester = Sb.order_features_by_position(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
-
-ofp_rev_hashes = ["25073539df4a982b7f99c72dd280bb8f", "c10d136c93f41db280933d5b3468f187"]
-ofp_rev_hashes = [(Sb.SeqBuddy(resource(oi_files[indx])), value) for indx, value in enumerate(ofp_rev_hashes)]
+# ######################  'er', '--extract_range' ###################### #
+hashes = ["201235ed91ad0ed9a7021136487fed94", "3e791c6a6683516aff9572c24f38f0b3", "4063ab66ced2fafb080ceba88965d2bb",
+          "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
+          "904a188282f19599a78a9d7af4169de6", "b8413624b9e684a14fc9f398a62e3965", "6a27222d8f60ee8496cbe0c41648a116",
+          "9ecc1d83eff77c61284869b088c833a1", "9c85530cd3e3aa628b0e8297c0c9f977", "38d571c9681b4fa420e3d8b54c507f9c"]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy, next_hash", ofp_rev_hashes)
-def test_order_features_by_position_rev(seqbuddy, next_hash):
-    tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
-    assert seqs_to_hash(tester) == next_hash
-
-# 'sf', '--screw_formats'
-
-# last three formats rebuilt each time to work correctly in parallel
-fasta_files = ["Mnemiopsis/Mnemiopsis_cds.fa", "Mnemiopsis/Mnemiopsis_pep.fa"]
-fasta_files = [Sb.SeqBuddy(resource(file)) for file in fasta_files]
-gb_files = ["Mnemiopsis/Mnemiopsis_cds.gb", "Mnemiopsis/Mnemiopsis_pep.gb"]
-gb_files = [Sb.SeqBuddy(resource(file)) for file in gb_files]
-nex_files = ["Mnemiopsis/Mnemiopsis_cds.nex", "Mnemiopsis/Mnemiopsis_pep.nex"]
-# nex_files = [Sb.SeqBuddy(resource(file)) for file in nex_files]
-phyr_files = ["Mnemiopsis/Mnemiopsis_cds.phyr", "Mnemiopsis/Mnemiopsis_pep.phyr"]
-# phyr_files = [Sb.SeqBuddy(resource(file)) for file in phyr_files]
-stklm_files = ["Mnemiopsis/Mnemiopsis_cds.stklm", "Mnemiopsis/Mnemiopsis_pep.stklm"]
-# stklm_files = [Sb.SeqBuddy(resource(file)) for file in stklm_files]
-
-
-@pytest.mark.parametrize("_indx", [0, 1])
-def test_screw_formats_fa_gb(_indx):
-    fasta = fasta_files[_indx]
-    gb = gb_files[_indx]
-    assert seqs_to_hash(fasta) == seqs_to_hash(Sb.screw_formats(gb, "fasta"))
-
-other_files = [nex_files, phyr_files, stklm_files]
-screw_files = []
-for l1 in other_files:
-    for l2 in other_files:
-        if l1 is not l2:
-            for indx in range(3):
-                screw_files.append((indx, l1, l2))
-
-
-@pytest.mark.parametrize("indx,_l1,_l2", screw_files)  # fails when stklm is the out_format
-def test_screw_formats_other(indx, _l1, _l2):
-    sb1 = Sb.SeqBuddy(resource(_l1[indx]))
-    sb2 = Sb.SeqBuddy(resource(_l2[indx]))
-    sb2 = Sb.screw_formats(sb2, sb1.out_format)
-    assert seqs_to_hash(sb1) == seqs_to_hash(sb2)
-
-# 'er', '--extract_range'
-er_hashes = ["1e31d4bc840532497e3e13f7f9ff2b6c", "0fd49e9218567966f4b00c44856662bc", "4063ab66ced2fafb080ceba88965d2bb",
-             "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
-             "e402f09afdb555bd8249d737dd7add99", "3b2f53ed43d9d0a771d6aad861a8ae34", "03cbca359b8674fdc6791590a329d807",
-             "1d0ec72b618c165894c49d71de366302", "926e76bde33bfd5f4a588addfd7592b9", "6d6ac54cd809cf7d843beed8b362efb3"]
-er_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(er_hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", er_hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_extract_range(seqbuddy, next_hash):
     tester = Sb.extract_range(seqbuddy, 50, 300)
     assert seqs_to_hash(tester) == next_hash
 
 
 def test_extract_range_end_less_than_start():
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_cds.fa"))
-    with pytest.raises(AttributeError):
-        Sb.extract_range(seqbuddy, 500, 50)
+    with pytest.raises(ValueError):
+        Sb.extract_range(sb_objects[0], 500, 50)
 
-# 'ns', '--num_seqs'
-ns_files = [(Sb.SeqBuddy(resource("ns/20.fa")), 20), (Sb.SeqBuddy(resource("ns/5.fa")), 5),
-            (Sb.SeqBuddy(resource("ns/1.fa")), 1)]
+# ######################  'ns', '--num_seqs' ###################### #
+seq_counts = [(sb_objects[0], 13), (sb_objects[1], 13), (sb_objects[2], 13), (sb_objects[3], 8),
+              (sb_objects[4], 13), (sb_objects[5], 13), (sb_objects[6], 13), (sb_objects[9], 8)]
 
 
-@pytest.mark.parametrize("seqbuddy, num", ns_files)
+@pytest.mark.parametrize("seqbuddy, num", seq_counts)
 def test_num_seqs(seqbuddy, num):
     assert Sb.num_seqs(seqbuddy) == num
 
@@ -568,8 +485,3 @@ def test_num_seqs(seqbuddy, num):
 def test_empty_file():
     with pytest.raises(SystemExit):
         Sb.SeqBuddy(resource("ns/blank.fa"))
-
-if __name__ == '__main__':
-    debug = Sb.order_features_alphabetically(sb_objects[1])
-    print(seqs_to_hash(debug, "string"))
-"""
