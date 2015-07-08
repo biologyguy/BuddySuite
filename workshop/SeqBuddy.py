@@ -831,8 +831,8 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
                   'Y': (['TAT', 'TAC'], [0.5, 0.5]),
                   'X': (['NNN'], [1.0])}
 
-    if str(type(_seqbuddy.alpha)) != "<class 'Bio.Alphabet.IUPAC.IUPACProtein'>":
-        raise TypeError("The input sequence needs to be <class 'Bio.Alphabet.IUPAC.IUPACProtein'>, not %s" %
+    if _seqbuddy.alpha != IUPAC.protein:
+        raise TypeError("The input sequence needs to be IUPAC.protein'>, not %s" %
                         str(type(_seqbuddy.alpha)))
 
     if not _species:
@@ -917,7 +917,8 @@ def clean_seq(_seqbuddy, skip_list=None):
     _output = []
     for _rec in _seqbuddy.records:
         if _seqbuddy.alpha == IUPAC.protein:
-            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
+            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)),
+                           alphabet=_seqbuddy.alpha)
         else:
             _rec.seq = Seq(re.sub("[^ATGCXNUatgcxnu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
 
@@ -996,7 +997,7 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
     return _seqbuddy
 
 
-# Apply DNA features to protein sequences
+# Apply Protein features to DNA sequences
 def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
     def _feature_map(_feature):
         if type(_feature.location) == CompoundLocation:
@@ -1076,12 +1077,16 @@ def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept an
 
     seq_dict1 = {}
     seq_dict2 = {}
+    seq_order = []
 
     for _rec in _seqbuddy1.records:
         seq_dict1[_rec.id] = _rec
+        seq_order.append(_rec.id)
 
     for _rec in _seqbuddy2.records:
         seq_dict2[_rec.id] = _rec
+        if _rec.id not in seq_order:
+            seq_order.append(_rec.id)
 
     # make sure that we're comparing apples to apples across all sequences (i.e., same alphabet)
     reference_alphabet = sample(seq_dict1.items(), 1)[0][1].seq.alphabet
@@ -1125,7 +1130,7 @@ def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept an
     if warning_used:
         sys.stderr.write("\n")
 
-    _seqbuddy = SeqBuddy([_new_seqs[_seq_id] for _seq_id in _new_seqs], _out_format=_seqbuddy1.in_format)
+    _seqbuddy = SeqBuddy([_new_seqs[_seq_id] for _seq_id in seq_order], _out_format=_seqbuddy1.in_format)
     _seqbuddy = order_features_by_position(_seqbuddy)
     return _seqbuddy
 
