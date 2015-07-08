@@ -9,6 +9,7 @@ import os
 import subprocess
 import re
 from copy import deepcopy
+from Bio.Alphabet import IUPAC
 
 try:
     import workshop.SeqBuddy as Sb
@@ -169,10 +170,10 @@ def test_delete_metadata(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 # ######################  'rs', '--raw_seq' ###################### #
-hashes = ["5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
-          "2602037afcfaa467b77db42a0f25a9c8", "5d00d481e586e287f32d2d29916374ca", "5d00d481e586e287f32d2d29916374ca",
-          "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f",
-          "215c09fec462c202989b416ebc47cccc", "4dd913ee3f73ba4bb5dc90d612d8447f", "4dd913ee3f73ba4bb5dc90d612d8447f"]
+hashes = ["6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
+          "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
+          "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c",
+          "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
 hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
 
@@ -244,6 +245,7 @@ hashes = [(deepcopy(sb_objects[sb_obj_indx]), organisms[indx], hashes[indx]) for
 
 @pytest.mark.parametrize("seqbuddy,_organism,next_hash", hashes)
 def test_back_translate(seqbuddy, _organism, next_hash):
+    seqbuddy.alpha = IUPAC.protein
     tester = Sb.back_translate(seqbuddy, 'OPTIMIZED', _organism)
     assert seqs_to_hash(tester) == next_hash
 
@@ -286,108 +288,101 @@ def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be th
     with pytest.raises(TypeError):
         Sb.rna2dna(sb_objects[6])
 
-# 'cmp', '--complement'
-cmp_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
-cmp_hashes = ["cd4a98936eef4ebb05f58a8c614a0f7c", "366e0a2b28623c51591047768e8ddb08",
-              "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
-              "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
-cmp_hashes = [(cmp_objects[indx], value) for indx, value in enumerate(cmp_hashes)]
+# ######################  'cmp', '--complement' ###################### #
+hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
+          "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
+          "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", cmp_hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_complement(seqbuddy, next_hash):
     tester = Sb.complement(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_complement_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
-    with pytest.raises(ValueError):
-        Sb.complement(seqbuddy)
+def test_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
+    with pytest.raises(TypeError):
+        Sb.complement(sb_objects[6])
 
-# 'rc', '--reverse_complement'
-rc_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files[:6]]
-rc_hashes = ["cb3ad86bdaed7dd0bcfbca0a46cdfbf9", "d3c70b16443606ef4f51296f67420231", "f549c8dc076f6b3b4cf5a1bc47bf269d",
-             "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
-rc_hashes = [(rc_objects[indx], value) for indx, value in enumerate(rc_hashes)]
+# ######################  'rc', '--reverse_complement' ###################### #
+hashes = ["e77be24b8a7067ed54f06e0db893ce27", "47941614adfcc5bd107f71abef8b3e00", "f549c8dc076f6b3b4cf5a1bc47bf269d",
+          "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
+hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", rc_hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_reverse_complement(seqbuddy, next_hash):
     tester = Sb.reverse_complement(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_reverse_complement_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis/Mnemiopsis_pep.fa"))
-    with pytest.raises(ValueError):
-        Sb.reverse_complement(seqbuddy)
+def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
+    with pytest.raises(TypeError):
+        Sb.reverse_complement(sb_objects[6])
 
-# 'li', '--list_ids'
-li_hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
-             "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
-li_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(li_hashes)]
+# ######################  'li', '--list_ids' ###################### #
+# first test that 1 column works for all file types
+hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
+          "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
+hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", li_hashes)
-def test_list_ids(seqbuddy, next_hash):
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
+def test_list_ids_one_col(seqbuddy, next_hash):
     tester = Sb.list_ids(seqbuddy, 1)
     tester = md5(tester.encode()).hexdigest()
     assert tester == next_hash
 
-#  are num_seqs and ave_seq_length even worth testing?
-
-# 'cts', '--concat_seqs'
-cts_hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47",
-              "494988ffae2ef3072c1619eca8a0ff3b", "710cad348c5560446daf2c916ff3b3e4",
-              "494988ffae2ef3072c1619eca8a0ff3b", "494988ffae2ef3072c1619eca8a0ff3b",
-              "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
-              "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
-              "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
-cts_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(cts_hashes)]
+# Now test different numbers of columns
+hashes = ["6fcee2c407bc4f7f70e0ae2a7e101761", "1c4a395d8aa3496d990c611c3b6c4d0a", "6fcee2c407bc4f7f70e0ae2a7e101761",
+          "bd177e4db7dd772c5c42199b0dff49a5", "6b595a436a38e353a03e36a9af4ba1f9", "c57028374ed3fc474009e890acfb041e"]
+columns = [-2, 0, 2, 5, 10, 100]
+hashes = [(sb_objects[0], value, columns[indx]) for indx, value in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,next_hash", cts_hashes)
+@pytest.mark.parametrize("seqbuddy,next_hash,cols", hashes)
+def test_list_ids_multi_col(seqbuddy, next_hash, cols):
+    tester = Sb.list_ids(seqbuddy, cols)
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == next_hash
+
+#  are num_seqs and ave_seq_length even worth testing? YES!!!! Just feed in numbers though, no need to calculate hashes
+
+# ######################  'cts', '--concat_seqs' ###################### #
+hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47",
+          "494988ffae2ef3072c1619eca8a0ff3b", "710cad348c5560446daf2c916ff3b3e4",
+          "494988ffae2ef3072c1619eca8a0ff3b", "494988ffae2ef3072c1619eca8a0ff3b",
+          "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
+          "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
+          "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
+hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_concat_seqs(seqbuddy, next_hash):
     tester = Sb.concat_seqs(seqbuddy)
     assert seqs_to_hash(tester) == next_hash
 
-# 'fd2p', '--map_features_dna2prot'
-# orderids
-fd2p_hashes = ["6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
-               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
-               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
-               "c16097007c8b07a9055ffe1679872cf2", "79c3d1dff4a76b3435720462886d8684",
-               "8241e0decf21ca5c9e5115f5b75b7e5d", "d7248fff16f9304b745f4d0bd7819615",
-               "d89ba68693ae99dc413116f14df620f2", "a332eb306f9bc0c4a8e4fe717eb247b4",
-               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
-               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
-               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
-               "60bb60e33e4f085d81bb896dbafaf16c", "4a915d56473c9e1353a5a9701794f7bb",
-               "be2be4d8dc4d082060ac35210552a4e2", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
-               "cab1d0dcfe4a4b5a681f6b8d26e700a3", "aad02b6ab74ffb288b635e7591148244",
-               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
-               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
-               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4",
-               "6e0d17893c25a3b378ea209f8a602597", "1d0c5242d747726d8f83df6bc7995100",
-               "f3606931238a1c0a321b94376aa1b25d", "cab1d0dcfe4a4b5a681f6b8d26e700a3",
-               "6756bac76b16c61a04220b64a36e2391", "9d5c297b0aab5774b0e69e6496a5a6f4"]  
-fd2p_objects = []
-hash_indx = 0
-for dna in seq_files[:6]:
-    for prot in seq_files[6:]:
-        fd2p_objects.append((dna, prot, fd2p_hashes[hash_indx]))
-        hash_indx += 1
+# ToDo: Test the _clean parameter
 
+# ######################  'fd2p', '--map_features_dna2prot' ###################### #
+# Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
+#sb_objects = set_sb_objs()
+hashes = ["5216ef85afec36d5282578458a41169a", "a8f7c129cf57a746c20198bf0a6b9cf4", "0deeea532d6dcbc0486e9b74d0d6aca8",
+          "d595fabb157d5c996357b6a7058af4e8", "bb06e94456f99efc2068f5a52f0e0462", "a287e0054df7f5df76e792e0e0ab6756"]
+prot_indx = [6, 7, 8, 9, 10, 11]
+hashes = [(deepcopy(sb_objects[1]), deepcopy(sb_objects[prot_indx[indx]]), value) for indx, value in enumerate(hashes)]
+hashes.append((deepcopy(sb_objects[0]), deepcopy(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
 
-@pytest.mark.parametrize("_dna,_prot,next_hash", fd2p_objects)
+@pytest.mark.parametrize("_dna,_prot,next_hash", hashes)
 def test_map_features_dna2prot(_dna, _prot, next_hash):
-    _dna = Sb.SeqBuddy(resource(_dna))
-    _prot = Sb.SeqBuddy(resource(_prot))
+    _prot.alpha = IUPAC.protein
+    _dna.alpha = IUPAC.ambiguous_dna
     tester = Sb.map_features_dna2prot(_dna, _prot)
-    tester = Sb.order_ids(tester)
     assert seqs_to_hash(tester) == next_hash
 
+"""
 # 'fp2d', '--map_features_prot2dna'
 fp2d_hashes = ["f320b57dbf05517cba5bcc2e5ef36781", "57b12348267157870c83e85e3f0a5941",
                "f320b57dbf05517cba5bcc2e5ef36781", "064431b9e108595e13a0b5cf3fada88a",
@@ -577,3 +572,4 @@ def test_empty_file():
 if __name__ == '__main__':
     debug = Sb.order_features_alphabetically(sb_objects[1])
     print(seqs_to_hash(debug, "string"))
+"""
