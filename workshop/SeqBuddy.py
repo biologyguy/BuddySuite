@@ -46,7 +46,7 @@ from hashlib import md5
 from io import StringIO
 
 # Third party package imports
-sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with SeqBuddy
+sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
@@ -59,13 +59,6 @@ from Bio.Data.CodonTable import TranslationError
 # My functions
 from MyFuncs import run_multicore_function
 
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return self.value
 
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
@@ -151,6 +144,14 @@ def divergence_value():
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
 
 def _shift_features(_features, _shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
     if type(_features) != list:  # Duck type for single feature input
@@ -231,10 +232,6 @@ def _format_to_extension(_format):
                            'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
 # ##################################################### SEQ BUDDY #################################################### #
-
-# TODO Handle stdin when not piped
-# TODO Fix error reporting when file is not found (currently throws could not guess format)
-# TODO Object Oriented Programming
 
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None, _alpha=None):
@@ -330,8 +327,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
             self.alpha = guess_alphabet(_sequences)
 
-        for _i in range(len(_sequences)):
-            _sequences[_i].seq.alphabet = self.alpha
+        for _seq in _sequences:
+            _seq.seq.alphabet = self.alpha
 
         self.records = _sequences
 
@@ -358,7 +355,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
 
 # Does not attempt to explicitly deal with weird cases (e.g., ambigous residues).
-# The user will need to specify an alphabet with the -a flag if using non-standard characters in their sequences.
+# The user will need to specify an alphabet with the -a flag if using many non-standard characters in their sequences.
 def guess_alphabet(_seqbuddy):
     _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
     _seq_list = [str(x.seq) for x in _seq_list]
@@ -1907,7 +1904,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("Nothing returned.\n", in_args.quiet)
             return False
 
-        # There is a weird bug in genbank write that concatenates dots to the organism name (if set). Work around...
+        # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
+        # The following is a work around...
         if _seqbuddy.out_format in ["gb", "genbank"]:
             for _rec in _seqbuddy.records:
                 try:
