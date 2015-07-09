@@ -257,7 +257,10 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         # Raw sequences
         if _in_format == "raw":
             _in_format = "fasta"
-            _input = [SeqRecord(Seq(_input), id="raw_input", description="")]
+            if _input.seekable():
+                _input = [SeqRecord(Seq(_input.read()), id="raw_input", description="")]
+            else:
+                _input = [SeqRecord(Seq(_input), id="raw_input", description="")]
 
         elif type(_input) == str and not os.path.isfile(_input):
             _raw_seq = _input
@@ -910,7 +913,7 @@ def concat_seqs(_seqbuddy, _clean=False):
     return _seqbuddy
 
 
-def clean_seq(_seqbuddy, skip_list=None):
+def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
     """remove all non-sequence charcters from sequence strings"""
     skip_list = "" if not skip_list else "".join(skip_list)
     _output = []
@@ -919,8 +922,10 @@ def clean_seq(_seqbuddy, skip_list=None):
             _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)),
                            alphabet=_seqbuddy.alpha)
         else:
-            _rec.seq = Seq(re.sub("[^ATGCXNUatgcxnu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
-
+            if ambiguous:
+                _rec.seq = Seq(re.sub("[^ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
+            else:
+                _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
         _output.append(_rec)
 
     _seqbuddy.records = _output
@@ -1765,8 +1770,9 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
     # TODO Fix --clean_seq for .phy, .phyr, .stklm, .nex
-    parser.add_argument('-cs', '--clean_seq', action='store_true',
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-)")
+    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
+                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
+                             "'strict' to remove all characters except the unambiguous letter codes.")
     parser.add_argument('-uc', '--uppercase', action='store_true',
                         help='Convert all sequences to uppercase')  # TODO Fix for genbank
     parser.add_argument('-lc', '--lowercase', action='store_true',
@@ -2259,7 +2265,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Clean Seq
     if in_args.clean_seq:
-        _print_recs(clean_seq(seqbuddy))
+        if in_args.clean_seq[0] == "strict":
+            _print_recs(clean_seq(seqbuddy, ambiguous=False))
+        else:
+            _print_recs(clean_seq(seqbuddy, ambiguous=True))
 
     # Guess format
     if in_args.guess_format:
