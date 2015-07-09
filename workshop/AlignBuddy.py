@@ -12,24 +12,27 @@ and allows maintencance of rich feature annotation following alignment.
 import sys
 import os
 import argparse
-import shutil
 from io import StringIO
 from random import sample
+import re
+from tempfile import TemporaryDirectory
 
 # Third party package imports
-from Bio import SeqIO, AlignIO
+sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+from Bio import AlignIO
+from Bio.Align import MultipleSeqAlignment
+# from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import IUPAC
 
+# My functions
+#from MyFuncs import run_multicore_function
 
 # ##################################################### WISH LIST #################################################### #
-# 'Clean' an alignment, as implemented in phyutility
-
+# - 'Clean' an alignment, as implemented in phyutility
+# - Map features from a sequence file over to the alignment
+# - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html)
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-    return
-
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
     def __init__(self, value):
@@ -37,6 +40,19 @@ class GuessError(Exception):
 
     def __str__(self):
         return self.value
+
+
+def _stderr(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+    return
+
+
+def _stdout(message, quiet=False):
+    if not quiet:
+        sys.stdout.write(message)
+    return
+
 
 # #################################################### ALIGN BUDDY ################################################### #
 class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
@@ -93,64 +109,55 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
         self.out_format = self.in_format if not _out_format else _out_format
 
-        # ####  RECORDS  #### #
-        if str(type(_input)) == "<class '__main__.SeqBuddy'>":
-            _sequences = _input.records
+        # ####  ALIGNMENTS  #### #
+        if str(type(_input)) == "<class '__main__.AlignBuddy'>":
+            _alignments = _input.alignments
 
         elif isinstance(_input, list):
-            # make sure that the list is actually SeqIO records (just test a few...)
+            # make sure that the list is actually MultipleSeqAlignment objects
             _sample = _input if len(_input) < 5 else sample(_input, 5)
             for _seq in _sample:
-                if type(_seq) != SeqRecord:
+                if type(_seq) != MultipleSeqAlignment:
                     raise TypeError("Seqlist is not populated with SeqRecords.")
-            _sequences = _input
+            _alignments = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-            _sequences = list(SeqIO.parse(_input, self.in_format))
+            _alignments = list(AlignIO.parse(_input, self.in_format))
 
         elif os.path.isfile(_input):
             with open(_input, "r") as _input:
-                _sequences = list(SeqIO.parse(_input, self.in_format))
+                _alignments = list(AlignIO.parse(_input, self.in_format))
         else:
-            _sequences = [SeqRecord(Seq(_input))]
+            _alignments = None
+            # _alignments = [SeqRecord(Seq(_input))]
 
-        self.alpha = guess_alphabet(_sequences)
+        self.alpha = guess_alphabet(_alignments)
+        for _alignment in _alignments:
+            for _seq in _alignment:
+                _seq.seq.alphabet = self.alpha
 
-        for _i in range(len(_sequences)):
-            _sequences[_i].seq.alphabet = self.alpha
-
-        self.records = _sequences
-
-    def to_dict(self):
-        _unique, _rep_ids, _rep_seqs = find_repeats(self)
-        if len(_rep_ids) > 0:
-            raise RuntimeError("There are repeat IDs in self.records\n%s" % _rep_ids)
-
-        records_dict = {}
-        for _rec in self.records:
-            records_dict[_rec.id] = _rec
-        return records_dict
+        self.alignments = _alignments
 
     def print(self):
         _output = ""
-        for _rec in self.records:
-            _output += _rec.format(self.out_format)
+        for _alignment in self.alignments:
+            _output += _alignment.format(self.out_format)
         return _output
 
     def write(self, _file_path):
         with open(_file_path, "w") as _ofile:
-            SeqIO.write(self.records, _ofile, self.out_format)
+            AlignIO.write(self.alignments, _ofile, self.out_format)
         return
 
 
-def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
-    _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
-    _sequence = ""
-    for next_seq in _seq_list:
-        if len(_sequence) > 1000:
-            break
-        _sequence += re.sub("[NX\-?]", "", str(next_seq.seq))
-        _sequence = _sequence.upper()
+def guess_alphabet(_alignbuddy):
+    _align_list = _alignbuddy if isinstance(_alignbuddy, list) else _alignbuddy.alignments
+    _seq_list = []
+    for _alignment in _align_list:
+        _seq_list += [str(x.seq) for x in _alignment]
+
+    _sequence = "".join(_seq_list).upper()
+    _sequence = re.sub("[NX\-?]", "", _sequence)
 
     if len(_sequence) == 0:
         return None
@@ -166,10 +173,10 @@ def guess_alphabet(_seqbuddy):  # Does not handle ambiguous dna
 def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
     # If input is just a list, there is no BioPython in-format. Default to gb.
     if isinstance(_input, list):
-        return "gb"
+        return "stockholm"
 
     # Pull value directly from object if appropriate
-    if type(_input) == SeqBuddy:
+    if type(_input) == AlignBuddy:
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
@@ -182,12 +189,12 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]  # ToDo: Glean CLUSTAL
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "nexus", "clustal"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
-                _seqs = SeqIO.parse(_input, _format)
-                if next(_seqs):
+                _alignments = AlignIO.parse(_input, _format)
+                if next(_alignments):
                     _input.seek(0)
                     return _format
                 else:
@@ -218,122 +225,84 @@ def phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
 
 # #################################################################################################################### #
 
-def screw_formats_align(_alignments, _out_format):
-    _output = ""
-    if _out_format == "phylipi":
-        if len(_alignments) > 1:
-            print("Warning: the input file contained more than one alignment, but phylip can only handle one. "
-                  "The topmost alignment is shown here.", file=sys.stderr)
-        _seqs = list(_alignments[0])
-        _output += " %s %s\n" % (len(_seqs), len(_seqs[0].seq))
-        max_id_length = 0
-        for _seq in _seqs:
-            max_id_length = len(_seq.id) if len(_seq.id) > max_id_length else max_id_length
-
-        for _seq in _seqs:
-            _seq_id = _seq.id.ljust(max_id_length)
-            _output += "%s  %s\n" % (_seq_id, _seq.seq)
-    else:
-        for alignment in _alignments:
-            _output += alignment.format(_out_format)
-
-    return _output
-
-'''
-# ################################################ INTERNAL FUNCTIONS ################################################ #
-def _set_alphabet(_sequences, alpha=None):  # update sequence alphabet in place
-    if not alpha:
-        alpha = guess_alphabet(_sequences)
-    if alpha == "nucl":
-        alpha = IUPAC.ambiguous_dna
-    elif alpha == "prot":
-        alpha = IUPAC.protein
-    else:
-        sys.exit("Error: Can't deterimine alphabet in _set_alphabet")
-    for i in range(len(_sequences)):
-        _sequences[i].seq.alphabet = alpha
-    return _sequences
-
-
-def sequence_list(sequence, _seq_format=None):  # Open a file and parse, or convert raw into a Seq object
-    if isinstance(sequence, list):
-        _sequences = sequence
-    elif os.path.isfile(sequence):
-        if not _seq_format:
-            _seq_format = guess_format(sequence)
-        if not _seq_format:
-            sys.exit("Error: could not determine the format of your input sequence file. Explicitly set with -r flag.")
-        with open(sequence, "r") as _infile:
-            _sequences = list(SeqIO.parse(_infile, _seq_format))
-    else:
-        # dna_or_prot = IUPAC.protein if guess_alphabet(sequence) == "prot" else IUPAC.ambiguous_dna
-        _sequences = [SeqRecord(Seq(sequence))]
-
-    return _sequences
-
-
-def _print_recs(_sequences, in_place=False):
-    if len(_sequences) == 0:
-        print("Nothing returned.", file=sys.stderr)
-        return False
-    _sequences = _set_alphabet(_sequences)
-    _output = ""
-    for _rec in _sequences:
-        try:
-            _output += _rec.format(out_format) + "\n"
-        except ValueError as e:
-            print("Error: %s\n" % e, file=sys.stderr)
-
-    if in_args.in_place and in_place_allowed:  # TODO This is broken! Don't call in_args from here
-        if not os.path.exists(in_args.sequence[0]):
-            print("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a file. Nothing "
-                  "was written.",
-                  file=sys.stderr)
-            print(_output.strip())
-        else:
-            with open(os.path.abspath(in_args.sequence[0]), "w") as ofile:
-                ofile.write(_output)
-            print("File over-written at:\n%s" % os.path.abspath(in_args.sequence[0]), file=sys.stderr)
-    else:
-        print(_output.strip())
-
-# #################################################################################################################### #
-'''
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
 
-    parser.add_argument("in_file", help="The file(s) you want to start working on", action="store", nargs="+")
-    parser.add_argument("-al", "--align",
-                        help="Pick your aligner. If the package is not in your $PATH, specify the location with -ab."
-                             "Set any options (all in quotes) with the -p flag",
-                        choices=["mafft", "prank", "pagan", "muscle", "clustalw"])
-    parser.add_argument("-ab", "--align_binary", help="Specify the path to your alignment package if not in $PATH",
-                        action="store")
+    parser.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
+    parser.add_argument('-v', '--version', action='version',
+                        version='''\
+AlignBuddy 1.alpha (2015)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
+    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
+    parser.add_argument('-t', '--test', action='store_true',
+                        help="Run the function and return any stderr/stdout other than sequences.")
     parser.add_argument('-o', '--out_format', help="Some functions use this flag for output format", action='store')
-    parser.add_argument('-f', '--in_format', help="If the file extension isn't sane, specify the format", action='store')
-
+    parser.add_argument('-f', '--in_format', action='store',
+                        help="If AlignBuddy can't guess the file format, just specify it directly.")
     in_args = parser.parse_args()
 
-    with open(in_args.in_file[0], "r") as ifile:
-        alignment = list(AlignIO.parse(ifile, "nexus"))
+    alignbuddy = []
+    align_set = ""
 
+    for align_set in in_args.alignment:
+        align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
+        alignbuddy += align_set.alignments
+
+    alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+
+    # ################################################ INTERNAL FUNCTIONS ################################################ #
+    def _print_aligments(_alignbuddy):
+        if len(_alignbuddy.alignments) == 0:
+            _stderr("Nothing returned.\n", in_args.quiet)
+            return False
+
+        if _alignbuddy.out_format == "phylipi":
+            _output = phylipi(_alignbuddy)
+
+        elif _alignbuddy.out_format == "phylipis":
+            _output = phylipi(_alignbuddy, "strict")
+
+        else:
+            tmp_dir = TemporaryDirectory()
+            with open("%s/align.tmp" % tmp_dir.name, "w") as _ofile:
+                AlignIO.write(_alignbuddy.alignments, _ofile, _alignbuddy.out_format)
+
+            with open("%s/align.tmp" % tmp_dir.name, "r") as ifile:
+                _output = ifile.read()
+
+        if in_args.test:
+            _stderr("*** Test passed ***\n", in_args.quiet)
+            pass
+
+        elif in_args.in_place:
+            _in_place(_output, in_args.sequence[0])
+
+        else:
+            _stdout("{0}\n".format(_output.strip()))
+
+
+    def _in_place(_output, _path):
+        if not os.path.exists(_path):
+            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                    "file. Nothing was written.\n", in_args.quiet)
+            _stderr("%s\n" % _output.strip(), in_args.quiet)
+        else:
+            with open(os.path.abspath(_path), "w") as _ofile:
+                _ofile.write(_output)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
+
+    # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Screw formats
     if in_args.screw_formats:
-        new_align = screw_formats_align(alignment, in_args.screw_formats)
-        print(new_align)
-
-
-    if in_args.align_binary:
-        if not shutil.which(in_args.alignment_package):
-            sys.exit("Error: Unable to locate %s in your $PATH. Please specify a path to the binary with the -a flag."
-                     % in_args.alignment_package)
-
-    elif False:
-        align_binary = os.path.abspath(in_args.align_binary)
-        if not os.path.isfile(align_binary):
-            sys.exit("Error: Unable to resolve the provided path to %s.\nUser input: %s" %
-                     (in_args.alignment_package, align_binary))
+        alignbuddy.out_format = in_args.screw_formats
+        _print_aligments(alignbuddy)
