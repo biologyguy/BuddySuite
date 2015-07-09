@@ -53,7 +53,8 @@ def resource(file_name):
 seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex",
              "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
              "Mnemiopsis_pep.fa", "Mnemiopsis_pep.gb", "Mnemiopsis_pep.nex",
-             "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm"]
+             "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
+             "ambiguous_dna.fa", "ambiguous_rna.fa"]
 
 
 @pytest.mark.parametrize("seq_file", seq_files)
@@ -160,36 +161,62 @@ def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
     assert seqs_to_hash(tester) == rev_hash
 
-# ######################  '-mw', '--molecular_weight' ###################### # ToDo: review
-mw_files = ["mw/mw_test_pep.fa", "mw/mw_test_cds_a.fa", "mw/mw_test_cds_u.fa", "mw/mw_test_rna_a.fa",
-            "mw/mw_test_rna_u.fa"]
-mw_formats = ["protein", "dna", "dna", "rna", "rna"]
-mw_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", mw_formats[indx])) for indx, value in enumerate(mw_files)]
-expected_mw = [[2505.75, None], [5022.19, 10044.28], [3168.0, 6335.9], [4973.0, None], [3405.0, None]]
-expected_mw = [(mw_objects[indx], value) for indx, value in enumerate(expected_mw)]
+# ######################  '-mw', '--molecular_weight' ###################### #
+def test_molecular_weight():
+    # Unambiguous DNA
+    tester = Sb.molecular_weight(sb_objects[0])
+    assert tester['masses_ds'][0] == 743477.1
+    assert tester['masses_ss'][0] == 371242.6
+    # Ambiguous DNA
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))
+    assert tester['masses_ds'][0] == 743477.08
+    assert tester['masses_ss'][0] == 371202.59
+    # Unambiguous RNA
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))
+    assert tester['masses_ss'][0] == 387372.6
+    # Ambiguous RNA
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))
+    assert tester['masses_ss'][0] == 387371.6
+    # Protein
+    tester = Sb.molecular_weight(sb_objects[6])
+    assert tester['masses_ss'][0] == 45692.99
 
+# ######################  'cs', '--clean_seq' ###################### #
+def test_clean_seq():
+    # Protein
+    tester = deepcopy(sb_objects[6])
+    tester.alpha = IUPAC.protein
+    tester = Sb.clean_seq(tester, ambiguous=True)
+    assert seqs_to_hash(tester) == "dc53f3be7a7c24425dddeea26ea0ebb5"
+    tester = Sb.clean_seq(tester, ambiguous=False)
+    assert seqs_to_hash(tester) == "dc53f3be7a7c24425dddeea26ea0ebb5"
 
-@pytest.mark.parametrize("seqbuddy,next_mw", expected_mw)
-def test_molecular_weight(seqbuddy, next_mw):
-    tester = Sb.molecular_weight(seqbuddy)
-    masses_ss = tester['masses_ss']
-    masses_ds = tester['masses_ds']
-    assert masses_ss[0] == next_mw[0]
-    if len(masses_ds) != 0:
-        assert masses_ds[0] == next_mw[1]
+    # DNA
+    tester = deepcopy(sb_objects[12])
+    tester.alpha = IUPAC.ambiguous_dna
+    tester = Sb.clean_seq(tester, ambiguous=True)
+    assert seqs_to_hash(tester) == "71b28ad2730a9849f2ba0f70e9e51a9f"
+    tester = Sb.clean_seq(tester, ambiguous=False)
+    assert seqs_to_hash(tester) == "5fd0b78e37c81e0fa727db34a37cc743"
 
-# ######################  'cs', '--clean_seq' ###################### # ToDo: review
-cs_files = ["cs/cs_test_pep.fa", "cs/cs_test_cds_a.fa", "cs/cs_test_cds_u.fa"]
-cs_formats = ["protein", "dna", "dna"]
-cs_objects = [(Sb.SeqBuddy(resource(value), "fasta", "fasta", cs_formats[indx])) for indx, value in enumerate(cs_files)]
-cs_hashes = ['9289d387b1c8f990b44a9cb15e12443b', "8e161d5e4115bf483f5196adf7de88f0", "2e873cee6f807fe17cb0ff9437d698fb"]
-cs_hashes = [(cs_objects[indx], value) for indx, value in enumerate(cs_hashes)]
+    # RNA
+    tester = deepcopy(sb_objects[13])
+    tester.alpha = IUPAC.ambiguous_rna
+    tester = Sb.clean_seq(tester, ambiguous=True)
+    assert seqs_to_hash(tester) == "cdb1b963536d57efc7b7f87d2bf4ad22"
+    tester = Sb.clean_seq(tester, ambiguous=False)
+    assert seqs_to_hash(tester) == "ef61174330f2d9cf5da4f087d12ca201"
 
-
-@pytest.mark.parametrize("seqbuddy,next_hash", cs_hashes)
-def test_clean_seq(seqbuddy, next_hash):
-    tester = Sb.clean_seq(seqbuddy)
-    assert seqs_to_hash(tester) == next_hash
+    # Alignment formats should raise an error because seq lengths change
+    with pytest.raises(ValueError):
+        tester = Sb.clean_seq(deepcopy(sb_objects[2]))
+        tester.write("temp.del")
+        tester = Sb.clean_seq(deepcopy(sb_objects[3]))
+        tester.write("temp.del")
+        tester = Sb.clean_seq(deepcopy(sb_objects[4]))
+        tester.write("temp.del")
+        tester = Sb.clean_seq(deepcopy(sb_objects[5]))
+        tester.write("temp.del")
 
 # ######################  'dm', '--delete_metadata' ###################### #
 hashes = ["aa92396a9bb736ae6a669bdeaee36038", "544ab887248a398d6dd1aab513bae5b1", "cb1169c2dd357771a97a02ae2160935d",
@@ -484,4 +511,4 @@ def test_num_seqs(seqbuddy, num):
 
 def test_empty_file():
     with pytest.raises(SystemExit):
-        Sb.SeqBuddy(resource("ns/blank.fa"))
+        Sb.SeqBuddy(resource("blank.fa"))
