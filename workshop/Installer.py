@@ -3,6 +3,7 @@ from tkinter import filedialog
 import collections
 from functools import partial
 from shutil import which
+from platform import *
 
 root = Tk()
 sw = root.winfo_screenwidth()
@@ -23,6 +24,9 @@ class Installer(Frame):
     install_dir = "/usr/local/bin/BuddySuite"
     default_dir = "/usr/local/bin/BuddySuite"
     default = True
+    user_system = system()
+    user_os = platform()
+    print("Operating System: {0}".format(user_os))
 
     conflict = False
     if (which('sb') is not None) or (which('pb') is not None) or (which('ab') is not None) or (which('db') is not None):
@@ -135,7 +139,7 @@ class Installer(Frame):
         else:
             toggle_shortcuts.deselect()
         if self.conflict:
-            toggle_shortcuts.config(state=DISABLED)
+            toggle_shortcuts.config(state=DISABLED, text="Install Console Shortcuts (ERROR: Naming conflict)")
 
         toggle_default.pack(side=LEFT)
         toggle_shortcuts.pack(padx=60, anchor=NW)
@@ -167,6 +171,7 @@ class Installer(Frame):
         self.container.append(logo_label)
         info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10, pady=10)
         self.container.append(info_frame)
+        os_label = Label(info_frame, text="Operating System: {0}".format(self.user_os))
         sb_label = Label(info_frame, text="Install SeqBuddy: {0}".format(self.buddies["SeqBuddy"]))
         pb_label = Label(info_frame, text="Install PhyloBuddy: {0}".format(self.buddies["PhyloBuddy"]))
         ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
@@ -177,12 +182,13 @@ class Installer(Frame):
         else:
             short = self.install_shortcuts
         cs_label = Label(info_frame, text="Install Console Shortcuts: {0}".format(short))
-        sb_label.grid(row=0, sticky=NW)
-        pb_label.grid(row=1, sticky=NW)
-        ab_label.grid(row=2, sticky=NW)
-        db_label.grid(row=3, sticky=NW)
-        dir_label.grid(row=4, sticky=NW)
-        cs_label.grid(row=5, sticky=NW)
+        os_label.grid(row=0, sticky=NW)
+        sb_label.grid(row=1, sticky=NW)
+        pb_label.grid(row=2, sticky=NW)
+        ab_label.grid(row=3, sticky=NW)
+        db_label.grid(row=4, sticky=NW)
+        dir_label.grid(row=5, sticky=NW)
+        cs_label.grid(row=6, sticky=NW)
         info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
