@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 import collections
 from functools import partial
+from shutil import which
 
 root = Tk()
 sw = root.winfo_screenwidth()
@@ -22,6 +23,11 @@ class Installer(Frame):
     install_dir = "/usr/local/bin/BuddySuite"
     default_dir = "/usr/local/bin/BuddySuite"
     default = True
+
+    conflict = False
+    if (which('sb') is not None) or (which('pb') is not None) or (which('ab') is not None) or (which('db') is not None):
+        conflict = True
+    install_shortcuts = False if conflict else True
 
     def __init__(self, master=None):
         Frame.__init__(self, master)
@@ -116,15 +122,25 @@ class Installer(Frame):
 
         toggle_func = partial(self.default_directory, directory_text, browse_button)
         toggle_default = Checkbutton(frame, text="Default directory", pady=10, command=toggle_func)
+        toggle_shortcuts = Checkbutton(text="Install Console Shortcuts", pady=10,
+                                       command=self.toggle_console_shortcuts)
         if self.default:
             browse_button.config(state=DISABLED)
             directory_text.config(state=DISABLED)
             toggle_default.select()
         else:
             toggle_default.deselect()
-        toggle_default.pack(side=LEFT)
-        self.container.append(frame)
+        if self.install_shortcuts:
+            toggle_shortcuts.select()
+        else:
+            toggle_shortcuts.deselect()
+        if self.conflict:
+            toggle_shortcuts.config(state=DISABLED)
 
+        toggle_default.pack(side=LEFT)
+        toggle_shortcuts.pack(padx=60, anchor=NW)
+        self.container.append(toggle_shortcuts)
+        self.container.append(frame)
         button_frame = Frame()
         next_func = partial(self.confirmation, directory_text)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
@@ -140,25 +156,34 @@ class Installer(Frame):
         print(name)
         print(str(self.buddies[name]))
 
+    def toggle_console_shortcuts(self):
+        self.install_shortcuts = False if self.install_shortcuts else True
+
     def confirmation(self, in_dir):
         self.install_dir = in_dir.get()
         self.clear_container()
         logo_label = Label(image=self.cs_logo, pady=20)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        info_frame = Frame()
+        info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10, pady=10)
         self.container.append(info_frame)
         sb_label = Label(info_frame, text="Install SeqBuddy: {0}".format(self.buddies["SeqBuddy"]))
         pb_label = Label(info_frame, text="Install PhyloBuddy: {0}".format(self.buddies["PhyloBuddy"]))
         ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
         db_label = Label(info_frame, text="Install DBBuddy: {0}".format(self.buddies["DBBuddy"]))
         dir_label = Label(info_frame, text="Install Directory: {0}".format(self.install_dir))
+        if self.conflict:
+            short = "Naming conflict"
+        else:
+            short = self.install_shortcuts
+        cs_label = Label(info_frame, text="Install Console Shortcuts: {0}".format(short))
         sb_label.grid(row=0, sticky=NW)
         pb_label.grid(row=1, sticky=NW)
         ab_label.grid(row=2, sticky=NW)
         db_label.grid(row=3, sticky=NW)
         dir_label.grid(row=4, sticky=NW)
-        info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50)
+        cs_label.grid(row=5, sticky=NW)
+        info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
         next_button.pack(side=RIGHT)
