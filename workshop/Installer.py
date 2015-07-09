@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from tkinter import *
 from tkinter import filedialog
 import collections
@@ -16,10 +19,10 @@ class Installer(Frame):
     for buddy in buddy_names:
         buddies[buddy] = True
 
-    bs_logo = PhotoImage(file="BuddySuite-logo.gif")
-    id_logo = PhotoImage(file="InstallDirectory.gif")
-    cs_logo = PhotoImage(file="ConfirmSelection.gif")
-    suite_logos = [PhotoImage(file="{0}-logo.gif".format(buddy)) for buddy in buddy_names]
+    bs_logo = PhotoImage(file="../images/BuddySuite-logo.gif")
+    id_logo = PhotoImage(file="../images/InstallDirectory.gif")
+    cs_logo = PhotoImage(file="../images/ConfirmSelection.gif")
+    suite_logos = [PhotoImage(file="../images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
 
     install_dir = "/usr/local/bin/BuddySuite"
     default_dir = "/usr/local/bin/BuddySuite"
