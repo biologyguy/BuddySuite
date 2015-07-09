@@ -1885,11 +1885,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     seqbuddy = []
     seq_set = ""
 
-    for seq_set in in_args.sequence:
-        seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
-        seqbuddy += seq_set.records
+    try:
+        for seq_set in in_args.sequence:
+            seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
+            seqbuddy += seq_set.records
 
-    seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
+        seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
+    except GuessError:
+        sys.exit("Error: SeqBuddy could not understand your input. "
+                 "Check the file path or try specifying an input type with -f")
 
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
