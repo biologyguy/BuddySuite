@@ -219,7 +219,7 @@ def test_molecular_weight():
     tester = Sb.molecular_weight(sb_objects[6])
     assert tester['masses_ss'][0] == 45692.99
 
-# ######################  'cs', '--clean_seq' ###################### #
+# ######################  'cs', '--clean_seq'  ###################### #
 def test_clean_seq():
     # Protein
     tester = deepcopy(sb_objects[6])
@@ -338,6 +338,16 @@ def test_back_translate(seqbuddy, _organism, next_hash):
 def test_back_translate_nucleotide_exception():
     with pytest.raises(TypeError):
         Sb.back_translate(sb_objects[1])
+
+def test_back_translate_bad_mode():
+    with pytest.raises(AttributeError):
+        Sb.back_translate(deepcopy(sb_objects[6]), 'fgsdjkghjdalgsdf', 'human')
+
+def test_back_translate_bad_organism():
+    seqbuddy = deepcopy(sb_objects[6])
+    seqbuddy.alpha = IUPAC.protein
+    with pytest.raises(AttributeError):
+        Sb.back_translate(seqbuddy, 'OPTIMIZED', 'fgsdjkghjdalgsdf')
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
 d2r_hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
@@ -550,6 +560,17 @@ def test_num_seqs(seqbuddy, num):
 def test_empty_file():
     with pytest.raises(SystemExit):
         Sb.SeqBuddy(resource("blank.fa"))
+
+# ######################  'asl', '--ave_seq_length' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6] if ".phy" not in x])
+def test_ave_seq_length_dna(seqbuddy):
+    print(seqbuddy.in_format)
+    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 1285.15
+
+@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[6:12] if ".phy" not in x])
+def test_ave_seq_length_pep(seqbuddy):
+    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 427.38
+
 
 
 # ######################  'GuessError' ###################### #
