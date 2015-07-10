@@ -219,7 +219,7 @@ def test_molecular_weight():
     tester = Sb.molecular_weight(sb_objects[6])
     assert tester['masses_ss'][0] == 45692.99
 
-# ######################  'cs', '--clean_seq' ###################### #
+# ######################  'cs', '--clean_seq'  ###################### #
 def test_clean_seq():
     # Protein
     tester = deepcopy(sb_objects[6])
@@ -338,6 +338,16 @@ def test_back_translate(seqbuddy, _organism, next_hash):
 def test_back_translate_nucleotide_exception():
     with pytest.raises(TypeError):
         Sb.back_translate(sb_objects[1])
+
+def test_back_translate_bad_mode():
+    with pytest.raises(AttributeError):
+        Sb.back_translate(deepcopy(sb_objects[6]), 'fgsdjkghjdalgsdf', 'human')
+
+def test_back_translate_bad_organism():
+    seqbuddy = deepcopy(sb_objects[6])
+    seqbuddy.alpha = IUPAC.protein
+    with pytest.raises(AttributeError):
+        Sb.back_translate(seqbuddy, 'OPTIMIZED', 'fgsdjkghjdalgsdf')
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
 d2r_hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
@@ -550,6 +560,49 @@ def test_num_seqs(seqbuddy, num):
 def test_empty_file():
     with pytest.raises(SystemExit):
         Sb.SeqBuddy(resource("blank.fa"))
+
+
+# ######################  'asl', '--ave_seq_length' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6] if ".phy" not in x])
+def test_ave_seq_length_dna(seqbuddy):
+    print(seqbuddy.in_format)
+    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 1285.15
+
+@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[6:12] if ".phy" not in x])
+def test_ave_seq_length_pep(seqbuddy):
+    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 427.38
+
+
+# ######################  'pr', '--pull_recs' ###################### #
+pr_hashes = ["5b4154c2662b66d18776cdff5af89fc0", "e196fdc5765ba2c47f97807bafb6768c", "bc7dbc612bc8139eba58bf896b7eaf2f",
+             "e33828908fa836f832ee915957823039", "e33828908fa836f832ee915957823039", "b006b40ff17ba739929448ae2f9133a6"]
+pr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(pr_hashes)]
+@pytest.mark.parametrize("seqbuddy, next_hash", pr_hashes)
+def test_pull_recs(seqbuddy, next_hash):
+    tester = Sb.pull_recs(seqbuddy, 'α2')
+    assert seqs_to_hash(tester) == next_hash
+
+
+# ######################  'dr', '--delete_records' ###################### #
+dr_hashes = ["54bdb42423b1d331acea18218101e5fc", "e2c03f1fa21fd27b2ff55f7f721a1a99", "6bc8a9409b1ef38e4f6f12121368883e",
+             "a63320b6a679f97368329396e3b72bdd", "fe927a713e92b7de0c3a63996a4ce7c8", "4c97144c5337f8a40c4fd494e622bf0d"]
+dr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(dr_hashes)]
+@pytest.mark.parametrize("seqbuddy, next_hash", dr_hashes)
+def test_pull_recs(seqbuddy, next_hash):
+    tester = Sb.delete_records(seqbuddy, 'α2')
+    assert seqs_to_hash(tester) == next_hash
+
+
+# ######################  'dr', '--delete_records' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in [seq_files[6], seq_files[7], seq_files[8],
+                                                                         seq_files[10], seq_files[11]]])
+def test_isoelectric_point(seqbuddy):
+    output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
+    assert output[0][1] == 6.0117797852
+
+def test_isoelectric_point_type_error():
+    with pytest.raises(TypeError):
+        Sb.isoelectric_point(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))
 
 
 # ######################  'GuessError' ###################### #
