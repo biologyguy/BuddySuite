@@ -73,10 +73,48 @@ def test_instantiate_seqbuddy_from_raw(seq_file):
     with open(resource(seq_file), 'r') as ifile:
         assert type(Sb.SeqBuddy(ifile.read())) == Sb.SeqBuddy
 
+@pytest.mark.parametrize("seq_file", seq_files)
+def test_instantiate_seqbuddy_from_seqbuddy(seq_file):
+    input_buddy = Sb.SeqBuddy(resource(seq_file))
+    tester = Sb.SeqBuddy(input_buddy)
+    assert seqs_to_hash(input_buddy) == seqs_to_hash(tester)
+
+
+def test_alpha_arg_dna():
+    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='dna')
+    assert tester.alpha is IUPAC.ambiguous_dna
+
+def test_alpha_arg_rna():
+    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='rna')
+    assert tester.alpha is IUPAC.ambiguous_rna
+
+def test_alpha_arg_prot():
+    tester = Sb.SeqBuddy(resource(seq_files[6]), _alpha='prot')
+    assert tester.alpha is IUPAC.protein
+
+def test_alpha_arg_guess():
+    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='dgasldfkjhgaljhetlfdjkfg')
+    assert tester.alpha is IUPAC.ambiguous_dna
+
+def test_to_string():
+    tester = deepcopy(sb_objects[0])
+    assert seqs_to_hash(tester) == md5(str(tester).encode()).hexdigest()
+
+def test_to_dict():
+    # still figuring out how to do this one
+    assert 0
+
+
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
 sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
+# ######################  'sh', '--shuffle' ###################### #
+@pytest.mark.parametrize("seqbuddy", [deepcopy(x) for x in sb_objects])
+def test_shuffle(seqbuddy):
+    tester = Sb.shuffle(deepcopy(seqbuddy))
+    assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
+    assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
 
 # ######################  'rs', '--raw_seq' ###################### #
 hashes = ["6f0ff2d43706380d92817e644e5b78a5", "5d00d481e586e287f32d2d29916374ca", "6f0ff2d43706380d92817e644e5b78a5",
@@ -512,3 +550,18 @@ def test_num_seqs(seqbuddy, num):
 def test_empty_file():
     with pytest.raises(SystemExit):
         Sb.SeqBuddy(resource("blank.fa"))
+
+
+# ######################  'GuessError' ###################### #
+def test_guesserror_raw_seq():
+    with pytest.raises(Sb.GuessError):
+        Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
+
+def test_guesserror_infile():
+    with pytest.raises(Sb.GuessError):
+        Sb.SeqBuddy(resource("gibberish.fa"))
+
+def test_no__input():
+    with pytest.raises(TypeError):
+        Sb.SeqBuddy()
+
