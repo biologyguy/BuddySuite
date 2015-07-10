@@ -31,9 +31,8 @@ import SeqBuddy as SB
 # - 'Clean' an alignment by removing gaps (like phyutility -clean, or trimal -gt). Default removes cols with 100% gap
 # - Map features from a sequence file over to the alignment
 # - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html)
-# - List ids (break up by alignment)
 # - number of seqs in each alignment
-# - Concatinate all the sequences from each alignment with the same seq id (return new alignment)
+# - Concatenate sequences from multiple alignments by id, taxa, or position in alignment (return new AlignBuddy)
 # - Translate
 # - Transcribe
 # - Back-transcribe
@@ -67,6 +66,14 @@ def _stdout(message, quiet=False):
     if not quiet:
         sys.stdout.write(message)
     return
+
+
+def _get_seq_recs(_alignbuddy):
+    seq_recs = []
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            seq_recs.append(_rec)
+    return seq_recs
 
 
 # #################################################### ALIGN BUDDY ################################################### #
@@ -119,13 +126,13 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             elif in_handle:
                 raise GuessError("Could not determine format from input file-like object\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(in_handle)[:50])
-            else:
+            else:  # This should be unreachable.
                 raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
         self.out_format = self.in_format if not _out_format else _out_format
 
         # ####  ALIGNMENTS  #### #
-        if str(type(_input)) == "<class '__main__.AlignBuddy'>":
+        if type(_input) == AlignBuddy:
             _alignments = _input.alignments
 
         elif isinstance(_input, list):
@@ -142,9 +149,8 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         elif os.path.isfile(_input):
             with open(_input, "r") as _input:
                 _alignments = list(AlignIO.parse(_input, self.in_format))
-        else:
+        else:  # May be unreachable
             _alignments = None
-            # _alignments = [SeqRecord(Seq(_input))]
 
         self.alpha = guess_alphabet(_alignments)
         for _alignment in _alignments:
@@ -244,6 +250,22 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
 
 # #################################################################################################################### #
 
+def list_ids(_alignbuddy, _columns=1):
+    _columns = 1 if _columns == 0 else abs(_columns)
+    _output = ""
+    for _indx, alignment in enumerate(_alignbuddy.alignments):
+        _output += "# Alignment %s\n" % (_indx + 1) if len(_alignbuddy.alignments) > 1 else ""
+        _counter = 1
+        for _rec in alignment:
+            _output += "%s\t" % _rec.id
+            if _counter % _columns == 0:
+                _output = "%s\n" % _output.strip()
+            _counter += 1
+        _output += "\n"
+    return "%s\n" % _output.strip()
+
+
+# ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
 
@@ -260,6 +282,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
     parser.add_argument('-an', '--features', action="store_true")
+    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
+                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                             "specify the # of columns to write")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -280,13 +305,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
-    # ################################################ INTERNAL FUNCTIONS ################################################ #
+    # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         if len(_alignbuddy.alignments) == 0:
             _stderr("Nothing returned.\n", in_args.quiet)
             return False
 
-        if _alignbuddy.out_format == "phylipi":
+        if _alignbuddy.out_format == "fasta" and len(_alignbuddy.alignments) > 1:
+            _stderr("Error: FASTA format does not support multiple alignments in one file.")
+            return False
+
+        elif _alignbuddy.out_format == "phylipi":
             _output = phylipi(_alignbuddy)
 
         elif _alignbuddy.out_format == "phylipis":
@@ -309,6 +338,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         else:
             _stdout("{0}\n".format(_output.rstrip()))
+        return True
 
 
     def _in_place(_output, _path):
@@ -326,6 +356,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.screw_formats:
         alignbuddy.out_format = in_args.screw_formats
         _print_aligments(alignbuddy)
+
+    # List identifiers
+    if in_args.list_ids:
+        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
+        _stdout(list_ids(alignbuddy, columns))
 
     # This is temporary for testing purposes
     if in_args.features:
