@@ -297,7 +297,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         self.out_format = self.in_format if not _out_format else _out_format
 
         # ####  RECORDS  #### #
-        if str(type(_input)) == "<class '__main__.SeqBuddy'>":
+        if type(_input) == SeqBuddy:
             _sequences = _input.records
 
         elif isinstance(_input, list):
@@ -345,6 +345,9 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         return records_dict
 
     def print(self):
+        print(self)
+
+    def __str__(self):
         _output = ""
         for _rec in self.records:
             _output += _rec.format(self.out_format)
