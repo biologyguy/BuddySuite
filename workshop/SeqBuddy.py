@@ -637,8 +637,9 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
             # non-standard characters
             if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
                 regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
-                temp_seq.seq = Seq(re.sub(regex[0], "NNN", str(temp_seq.seq), count=1), alphabet=temp_seq.seq.alphabet)
-                _rec.seq = Seq(re.sub(regex[0], "NNN", str(_rec.seq), count=1), alphabet=_rec.seq.alphabet)
+                regex = "(?i)%s" % regex[0]
+                temp_seq.seq = Seq(re.sub(regex, "NNN", str(temp_seq.seq), count=1), alphabet=temp_seq.seq.alphabet)
+                _rec.seq = Seq(re.sub(regex, "NNN", str(_rec.seq), count=1), alphabet=_rec.seq.alphabet)
                 continue
 
             # internal stop codon(s) found
