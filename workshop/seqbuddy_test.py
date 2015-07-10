@@ -248,13 +248,13 @@ def test_clean_seq():
     # Alignment formats should raise an error because seq lengths change
     with pytest.raises(ValueError):
         tester = Sb.clean_seq(deepcopy(sb_objects[2]))
-        tester.write("temp.del")
+        tester.write("/dev/null")
         tester = Sb.clean_seq(deepcopy(sb_objects[3]))
-        tester.write("temp.del")
+        tester.write("/dev/null")
         tester = Sb.clean_seq(deepcopy(sb_objects[4]))
-        tester.write("temp.del")
+        tester.write("/dev/null")
         tester = Sb.clean_seq(deepcopy(sb_objects[5]))
-        tester.write("temp.del")
+        tester.write("/dev/null")
 
 # ######################  'dm', '--delete_metadata' ###################### #
 hashes = ["aa92396a9bb736ae6a669bdeaee36038", "544ab887248a398d6dd1aab513bae5b1", "cb1169c2dd357771a97a02ae2160935d",
