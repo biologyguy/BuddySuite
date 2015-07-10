@@ -160,6 +160,10 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         self.alignments = _alignments
 
     def print(self):
+        print(self)
+        return
+
+    def __str__(self):
         _output = ""
         for _alignment in self.alignments:
             _output += _alignment.format(self.out_format)

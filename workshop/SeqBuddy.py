@@ -346,6 +346,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
     def print(self):
         print(self)
+        return
 
     def __str__(self):
         _output = ""

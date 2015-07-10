@@ -54,7 +54,7 @@ file_types = ["nexus", "phylip", "phylip-relaxed", "stockholm",
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
 
 
-#def test_guess_format():
+# def test_guess_format():
 #    assert Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
 @pytest.mark.parametrize("align_file,file_type", input_tuples)
@@ -117,9 +117,92 @@ def test_guess_error():
         assert str(e) == "Could not determine format from _input file '/Users/bondsr/Documents/BuddySuite/workshop/" \
                          "unit_test_resources/unrecognizable.txt'.\nTry explicitly setting with -f flag."
 
-# Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
+
+def test_stderr(capsys):
+    Alb._stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    Alb._stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+
+
+def test_stdout(capsys):
+    Alb._stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    Alb._stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+# Now that we know that all the files are being turned into AlignBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
 alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
+
+
+# AlignBuddy print() and __str__() methods
+hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50",
+          "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
+          "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
+          "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9",
+          "90578980479ad235338dbb767444b05b", "9c6773e7d24000f8b72dd9d25620cff1",
+          "3fd5805f61777f7f329767c5f0fb7467"]
+hashes = [(alb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_print(alignbuddy, next_hash, capsys):
+    alignbuddy.print()
+    out, err = capsys.readouterr()
+    out = "{0}\n".format(out.rstrip())
+    tester = md5(out.encode()).hexdigest()
+    assert tester == next_hash
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_str(alignbuddy, next_hash):
+    tester = str(alignbuddy)
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == next_hash
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_write(alignbuddy, next_hash):
+    alignbuddy.write("/tmp/alignbuddywritetest")
+    with open("/tmp/alignbuddywritetest", "r") as ifile:
+        out = "{0}\n".format(ifile.read().rstrip())
+    tester = md5(out.encode()).hexdigest()
+    assert tester == next_hash
+
+def test_get_seq_recs():
+    tester = str(Alb._get_seq_recs(alb_objects[8]))
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "6168f8b57d0ff78d70fd22ee09d713b5"
+
+
+def test_phylipi():
+    tester = Alb.phylipi(alb_objects[0], _format="relaxed")
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "c5fb6a5ce437afa1a4004e4f8780ad68"
+
+    tester = Alb.phylipi(alb_objects[8], _format="relaxed").rstrip()
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "af97ddb03817ff050d3dfb42472c91e0"
+
+    tester = Alb.phylipi(alb_objects[0], _format="strict").rstrip()
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "270f1bac51b2e29c0e163d261795c5fe"
+
+    tester = Alb.phylipi(alb_objects[8], _format="strict").rstrip()
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "af97ddb03817ff050d3dfb42472c91e0"
+
 
 def test_guess_alphabet():
     assert str(type(Alb.guess_alphabet(alb_objects[0]))) == "<class 'Bio.Alphabet.IUPAC.IUPACAmbiguousDNA'>"
