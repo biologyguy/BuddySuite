@@ -572,6 +572,15 @@ def test_ave_seq_length_pep(seqbuddy):
     assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 427.38
 
 
+# ######################  'pr', '--pull_recs' ###################### #
+pr_hashes = ["5b4154c2662b66d18776cdff5af89fc0", "e196fdc5765ba2c47f97807bafb6768c", "bc7dbc612bc8139eba58bf896b7eaf2f",
+             "e33828908fa836f832ee915957823039", "e33828908fa836f832ee915957823039", "b006b40ff17ba739929448ae2f9133a6"]
+pr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(pr_hashes)]
+@pytest.mark.parametrize("seqbuddy, next_hash", pr_hashes)
+def test_pull_recs(seqbuddy, next_hash):
+    tester = Sb.pull_recs(seqbuddy, 'α2')
+    assert seqs_to_hash(tester) == next_hash
+
 
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():
