@@ -605,6 +605,19 @@ def test_isoelectric_point_type_error():
         Sb.isoelectric_point(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))
 
 
+# ######################  'frs', '--find_restriction_sites' ###################### #
+def test_restriction_sites_comm():
+    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))[1]
+    assert md5(output.encode()).hexdigest() == '2fd5ab2723b3377a16a3d692e5f32dad'
+
+def test_restriction_sites_noncomm():
+    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")), _commercial=False)[1]
+    assert md5(output.encode()).hexdigest() == '0009092142da23f6e3d618ab506499dc'
+
+def test_restriction_sites_double():
+    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")), _single_cut=False)[1]
+    assert md5(output.encode()).hexdigest() == '89fa9faa61571b1aeee0cdb4c6fd5e1d'
+
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():
     with pytest.raises(Sb.GuessError):
