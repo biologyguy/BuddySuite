@@ -25,12 +25,27 @@ from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
 
 # My functions
-#from MyFuncs import run_multicore_function
+import SeqBuddy as SB
 
 # ##################################################### WISH LIST #################################################### #
-# - 'Clean' an alignment, as implemented in phyutility
+# - 'Clean' an alignment by removing gaps (like phyutility -clean, or trimal -gt). Default removes cols with 100% gap
 # - Map features from a sequence file over to the alignment
 # - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html)
+# - List ids (break up by alignment)
+# - number of seqs in each alignment
+# - Concatinate all the sequences from each alignment with the same seq id (return new alignment)
+# - Translate
+# - Transcribe
+# - Back-transcribe
+# - Back-translate
+# - Order ids
+# - Alignment lengths
+# - Pull out specific rows from the alignment
+# - Delete specific rows from alignment
+# - Rename ids
+# - uppercase
+# - lowercase
+# - Separate multiple alignments into individual files
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
@@ -72,7 +87,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             in_handle = _input.read()
             _input.seek(0)
 
-        # Raw sequences
+        # Plain text in a specific format
         if type(_input) == str and not os.path.isfile(_input):
             raw_seq = _input
             temp = StringIO(_input)
@@ -133,9 +148,9 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
         self.alpha = guess_alphabet(_alignments)
         for _alignment in _alignments:
+            _alignment._alphabet = self.alpha
             for _seq in _alignment:
                 _seq.seq.alphabet = self.alpha
-
         self.alignments = _alignments
 
     def print(self):
@@ -161,11 +176,13 @@ def guess_alphabet(_alignbuddy):
 
     if len(_sequence) == 0:
         return None
-    percent_dna = float(_sequence.count("A") + _sequence.count("G") + _sequence.count("T") +
-                        _sequence.count("C") + _sequence.count("U")) / float(len(_sequence))
-    if percent_dna > 0.95:
-        nuc = IUPAC.ambiguous_rna if float(_sequence.count("U")) / float(len(_sequence)) > 0.05 else IUPAC.ambiguous_dna
-        return nuc
+
+    if 'U' in _sequence:  # U is unique to RNA
+        return IUPAC.ambiguous_rna
+
+    percent_dna = len(re.findall("[ATCG]", _sequence)) / float(len(_sequence))
+    if percent_dna > 0.85:  # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
+        return IUPAC.ambiguous_dna
     else:
         return IUPAC.protein
 
@@ -189,7 +206,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "nexus", "clustal"]
+        possible_formats = ["gb", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -209,18 +226,20 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
-    max_id_length = 0
-    max_seq_length = 0
-    for _rec in _seqbuddy.records:
-        max_id_length = len(_rec.id) if len(_rec.id) > max_id_length else max_id_length
-        max_seq_length = len(_rec.seq) if len(_rec.seq) > max_seq_length else max_seq_length
+def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
+    _output = ""
+    for _alignment in _alignbuddy.alignments:
+        max_id_length = 0
+        max_seq_length = 0
+        for _rec in _alignment:
+            max_id_length = len(_rec.id) if len(_rec.id) > max_id_length else max_id_length
+            max_seq_length = len(_rec.seq) if len(_rec.seq) > max_seq_length else max_seq_length
 
-    _output = " %s %s\n" % (len(_seqbuddy.records), max_seq_length)
-    for _rec in _seqbuddy.records:
-        _seq_id = _rec.id.ljust(max_id_length) if _format == "relaxed" else _rec.id[:10].ljust(10)
-        _output += "%s  %s\n" % (_seq_id, _rec.seq)
-
+        _output += " %s %s\n" % (len(_alignment), max_seq_length)
+        for _rec in _alignment:
+            _seq_id = _rec.id.ljust(max_id_length) if _format == "relaxed" else _rec.id[:10].ljust(10)
+            _output += "%s  %s\n" % (_seq_id, _rec.seq)
+        _output += "\n"
     return _output
 
 # #################################################################################################################### #
@@ -240,6 +259,7 @@ PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
+    parser.add_argument('-an', '--features', action="store_true")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -288,14 +308,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _in_place(_output, in_args.sequence[0])
 
         else:
-            _stdout("{0}\n".format(_output.strip()))
+            _stdout("{0}\n".format(_output.rstrip()))
 
 
     def _in_place(_output, _path):
         if not os.path.exists(_path):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
-            _stderr("%s\n" % _output.strip(), in_args.quiet)
+            _stderr("%s\n" % _output.rstrip(), in_args.quiet)
         else:
             with open(os.path.abspath(_path), "w") as _ofile:
                 _ofile.write(_output)
@@ -306,3 +326,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.screw_formats:
         alignbuddy.out_format = in_args.screw_formats
         _print_aligments(alignbuddy)
+
+    # This is temporary for testing purposes
+    if in_args.features:
+        blahh = ['annotations', 'dbxrefs', 'description', 'features', 'id', 'letter_annotations', 'name', 'seq']
+        foo = alignbuddy.alignments[0][0]
+        bar = [foo.annotations, foo.dbxrefs, foo.description, foo.features, foo.id, foo.letter_annotations, foo.name, foo.seq]
+        for indx, value in enumerate(blahh):
+            print("{0}: {1}".format(value, bar[indx]))
+        print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
