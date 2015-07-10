@@ -254,12 +254,14 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         # Raw sequences
         if _in_format == "raw":
             _in_format = "fasta"
-            if _input.seekable():
-                _input = [SeqRecord(Seq(_input.read()), id="raw_input", description="")]
-            else:
+            _out_format = "fasta"
+            if type(_input) == str:
                 _input = [SeqRecord(Seq(_input), id="raw_input", description="")]
+            else:
+                _input = [SeqRecord(Seq(_input.read()), id="raw_input", description="")]
 
-        elif type(_input) == str and not os.path.isfile(_input):
+        # Plain text in a specific format
+        if type(_input) == str and not os.path.isfile(_input):
             _raw_seq = _input
             temp = StringIO(_input)
             _input = temp
