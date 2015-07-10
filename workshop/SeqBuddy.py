@@ -315,7 +315,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             with open(_input, "r") as _input:
                 _sequences = list(SeqIO.parse(_input, self.in_format))
         else:
-            _sequences = [SeqRecord(Seq(_input))]
+            _sequences = [SeqRecord(Seq(_input))] # may be unreachable?
 
         if self.alpha is None:
             self.alpha = guess_alphabet(_sequences)
@@ -1645,7 +1645,7 @@ def molecular_weight(_seqbuddy):
 
 
 def isoelectric_point(_seqbuddy):
-    if seqbuddy.alpha is not IUPAC.protein:
+    if _seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
     isoelectric_points = []
     for _rec in _seqbuddy.records:
