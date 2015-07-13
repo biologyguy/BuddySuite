@@ -712,6 +712,61 @@ def test_hash_seq_ids_25():
     tester = Sb.hash_sequence_ids(tester, 25)
     assert len(tester[0].records[0].id) == 25
 
+
+# ######################  'dr', '--delete_records' ###################### #
+def test_delete_records():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.delete_records(tester, '10')
+    assert seqs_to_hash(tester) == '06cbd37ea352dcff9c3940328bca6b33'
+
+
+# ######################  'ds', '--delete_small' ###################### #
+def test_delete_small():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.delete_small(tester, 1285)
+    assert seqs_to_hash(tester) == '196adf08d4993c51050289e5167dacdf'
+
+
+# ######################  'dl', '--delete_large' ###################### #
+def test_delete_large():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.delete_large(tester, 1285)
+    assert seqs_to_hash(tester) == '25859dc69d46651a1e04a70c07741b35'
+
+
+# ######################  'df', '--delete_features' ###################### #
+def test_delete_features():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Sb.delete_features(tester, 'donor')
+    assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
+
+
+# ######################  'pre', '--pull_record_ends' ###################### #
+def test_pull_record_ends_front():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.pull_record_ends(tester, 10, 'front')
+    assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
+
+def test_pull_record_ends_back():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.pull_record_ends(tester, 10, 'rear')
+    assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
+
+def test_pull_record_ends_zero():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.pull_record_ends(deepcopy(seqbuddy), 0, 'rear')
+    assert seqs_to_hash(tester) == seqs_to_hash(seqbuddy)
+
+def test_pull_record_ends_neg():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    with pytest.raises(ValueError):
+        Sb.pull_record_ends(deepcopy(seqbuddy), -1, 'rear')
+
+def test_pull_record_ends_wrong_end():
+    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    with pytest.raises(AttributeError):
+        Sb.pull_record_ends(deepcopy(seqbuddy), 100, 'fghhgj')
+
 # ######################  'phylipi' ###################### #
 def test_phylipi():
     tester = Sb.phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="relaxed")
