@@ -636,6 +636,7 @@ def test_restriction_sites_double():
     output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")), _single_cut=False)[1]
     assert md5(output.encode()).hexdigest() == '89fa9faa61571b1aeee0cdb4c6fd5e1d'
 
+
 # ######################  'bl', '--blast' ###################### #
 def test_blastn():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[0])), '8')
@@ -647,6 +648,17 @@ def test_blastp():
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_pep.p"))
     assert seqs_to_hash(tester) == "4237c79672c1cf1d4a9bdb160a53a4b9"
 
+
+# ######################  'bl2s', '--bl2seq' ###################### #
+def test_bl2seq_cds():
+    seqbuddy = Sb.SeqBuddy(resource(seq_files[0]))
+    result = Sb.bl2seq(seqbuddy)[1]
+    assert md5(result.encode()).hexdigest() == 'c860c66c9f22eb5ee7b41000b636b47e'
+
+def test_bl2seq_pep():
+    seqbuddy = Sb.SeqBuddy(resource(seq_files[6]))
+    result = Sb.bl2seq(seqbuddy)[1]
+    assert md5(result.encode()).hexdigest() == '247e4a1edd01f2a85ebadf491d794587'
 
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():

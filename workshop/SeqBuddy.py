@@ -1565,7 +1565,7 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)
+        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)  # Todo Benchmark
 
         for i in range(len(values)):
             _output += values[i].value
@@ -1591,9 +1591,9 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
     ids_already_seen = []
-    for query_id in output_dict:
+    for query_id in sorted(output_dict):
         ids_already_seen.append(query_id)
-        for subj_id in output_dict[query_id]:
+        for subj_id in sorted(output_dict[query_id]):
             if subj_id in ids_already_seen:
                 continue
 
