@@ -1615,11 +1615,11 @@ def lowercase(_seqbuddy):
     return _seqbuddy
 
 
-def split_by_taxa(_seqbuddy, split_char):
+def split_by_taxa(_seqbuddy, split_pattern):
     recs_by_taxa = {}
     for _rec in _seqbuddy.records:
-        split = _rec.id.split(split_char)
-        recs_by_taxa.setdefault(split[0], []).append(_rec)
+        split = re.split(split_pattern, _rec.id)
+        recs_by_taxa.setdefault(split[1], []).append(_rec)
     return recs_by_taxa
 
 
@@ -1895,7 +1895,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
-    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
+    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
                         help="")
     parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
                         metavar=("<commercial>", "<num_cuts>"), help="")
@@ -2366,7 +2366,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         in_args.quiet = True
         for taxa_heading in taxa_groups:
             seqbuddy.records = taxa_groups[taxa_heading]
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, seqbuddy.out_format)
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, _format_to_extension(seqbuddy.out_format))
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(seqbuddy)
