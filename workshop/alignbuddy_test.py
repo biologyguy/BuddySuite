@@ -5,6 +5,7 @@
 import pytest
 from hashlib import md5
 import os
+from io import StringIO
 import re
 from copy import deepcopy
 from Bio.Alphabet import IUPAC
@@ -43,6 +44,19 @@ def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
 
+def test_guess_format():
+    assert Alb.guess_format(["dummy", "list"]) == "stockholm"
+    assert Alb.guess_format(alb_objects[0]) == "nexus"
+
+    with open(resource("Alignments_pep.stklm"), "r") as ifile:
+        assert Alb.guess_format(ifile) == "stockholm"
+        ifile.seek(0)
+        string_io = StringIO(ifile.read())
+    assert Alb.guess_format(string_io) == "stockholm"
+    with pytest.raises(Alb.GuessError):
+        Alb.guess_format(("Dummy-Tuple"))
+
+
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
                "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
                "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm"]
@@ -53,9 +67,6 @@ file_types = ["nexus", "phylip", "phylip-relaxed", "stockholm",
 
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
 
-
-# def test_guess_format():
-#    assert Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
 @pytest.mark.parametrize("align_file,file_type", input_tuples)
 def test_instantiate_alignbuddy_from_file(align_file, file_type):
@@ -93,6 +104,12 @@ def test_instantiate_alignbuddy_from_list(align_file):
     with pytest.raises(TypeError):  # When non-MultipleSeqAlignment objects are in the .alignments list
         tester.alignments.append("Dummy string object")
         Alb.AlignBuddy(tester.alignments)
+
+
+def test_empty_file(capsys):
+    with open(resource("blank.fa"), "r") as ifile:
+        with pytest.raises(SystemExit):
+            Alb.AlignBuddy(ifile)
 
 
 def test_guess_error():
