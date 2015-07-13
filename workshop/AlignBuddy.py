@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created on: Nov 18 2014 
 
@@ -22,6 +22,7 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 # from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
 # My functions
@@ -42,8 +43,6 @@ import SeqBuddy as SB
 # - Pull out specific rows from the alignment
 # - Delete specific rows from alignment
 # - Rename ids
-# - uppercase
-# - lowercase
 # - Separate multiple alignments into individual files
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -269,6 +268,16 @@ def list_ids(_alignbuddy, _columns=1):
     return "%s\n" % _output.strip()
 
 
+def uppercase(_alignbuddy):
+    for _rec in _get_seq_recs(_alignbuddy):
+        _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
+    return _alignbuddy
+
+
+def lowercase(_alignbuddy):
+    for _rec in _get_seq_recs(_alignbuddy):
+        _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
+    return _alignbuddy
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
@@ -285,6 +294,8 @@ PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
+    parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
+    parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
     parser.add_argument('-an', '--features', action="store_true")
     parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
@@ -365,6 +376,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
         _stdout(list_ids(alignbuddy, columns))
+
+    # Uppercase
+    if in_args.uppercase:
+        _print_aligments(uppercase(alignbuddy))
+
+    # Lowercase
+    if in_args.lowercase:
+        _print_aligments(lowercase(alignbuddy))
 
     # This is temporary for testing purposes
     if in_args.features:
