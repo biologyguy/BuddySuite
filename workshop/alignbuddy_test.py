@@ -20,7 +20,7 @@ except ImportError:
 def align_to_hash(_alignbuddy, mode='hash'):
     if mode != "hash":
         return str(_alignbuddy)
-    _hash = md5(str(_alignbuddy).encode()).hexdigest()
+    _hash = md5("{0}\n".format(str(_alignbuddy).rstrip()).encode()).hexdigest()
     return _hash
 
 root_dir = os.getcwd()
@@ -45,11 +45,13 @@ def test_guess_format():
 
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
                "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
-               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm"]
+               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
+               "Alignments_cds.phyr", "Alignments_cds.stklm"]
 
 file_types = ["nexus", "phylip", "phylip-relaxed", "stockholm",
               "nexus", "phylip", "phylip-relaxed", "stockholm",
-              "phylip", "phylip-relaxed", "stockholm"]
+              "phylip", "phylip-relaxed", "stockholm",
+              "phylip-relaxed", "stockholm"]
 
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
 
@@ -265,9 +267,22 @@ lc_hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab
 hashes = [(deepcopy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,uc_hash,lc_hash", hashes)
-def test_cases(seqbuddy, uc_hash, lc_hash):
-    tester = Alb.uppercase(seqbuddy)
+@pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
+def test_cases(alignbuddy, uc_hash, lc_hash):
+    tester = Alb.uppercase(alignbuddy)
     assert align_to_hash(tester) == uc_hash
     tester = Alb.lowercase(tester)
     assert align_to_hash(tester) == lc_hash
+
+# ###########################################  'ca', '--condon_alignment' ############################################ #
+hashes = ["c907d29434fe2b45db60f1a9b70f110d", "f150b94234e93f354839d7c2ca8dae24", "6a7a5416f2ce1b3161c8b5b8b4b9e901",
+          "54d412fbca5baa60e4c31305d35dd79a", "3ddc2109b15655ef0eed3908713510de", "f728ab606602ed67357f78194e500664"]
+indices = [0, 1, 2, 3, 11, 12]
+hashes = [(deepcopy(alb_objects[indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_codon_alignment(alignbuddy, next_hash):
+    tester = Alb.codon_alignment(alignbuddy)
+    tester.write("temp.del")
+    assert align_to_hash(tester) == next_hash
