@@ -15,27 +15,13 @@ try:
     import workshop.AlignBuddy as Alb
 except ImportError:
     import AlignBuddy as Alb
-import MyFuncs
-
-write_file = MyFuncs.TempFile()
 
 
 def align_to_hash(_alignbuddy, mode='hash'):
-    if _alignbuddy.out_format == "phylipi":
-        write_file.write(Alb.phylipi(_alignbuddy, "relaxed"))
-    elif _alignbuddy.out_format == "phylipis":
-        write_file.write(Alb.phylipi(_alignbuddy, "strict"))
-    else:
-        _alignbuddy.write(write_file.path)
-
-    align_string = "{0}\n".format(write_file.read().strip())
-
     if mode != "hash":
-        return align_string
-
-    _hash = md5(align_string.encode()).hexdigest()
+        return str(_alignbuddy)
+    _hash = md5(str(_alignbuddy).encode()).hexdigest()
     return _hash
-
 
 root_dir = os.getcwd()
 
@@ -186,12 +172,30 @@ def test_str(alignbuddy, next_hash):
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_write(alignbuddy, next_hash):
+def test_write1(alignbuddy, next_hash):
     alignbuddy.write("/tmp/alignbuddywritetest")
     with open("/tmp/alignbuddywritetest", "r") as ifile:
         out = "{0}\n".format(ifile.read().rstrip())
     tester = md5(out.encode()).hexdigest()
     assert tester == next_hash
+
+
+def test_write2():  # Unloopable components
+    tester = deepcopy(alb_objects[8])
+    tester.out_format = "fasta"
+    assert str(tester) == "Error: FASTA format does not support multiple alignments in one file.\n"
+
+    tester.alignments = []
+    assert str(tester) == "AlignBuddy object contains no alignments.\n"
+
+    tester = deepcopy(alb_objects[2])
+    tester.out_format = "phylipi"
+    assert md5(str(tester).encode()).hexdigest() == "0379295eb39370bdba17c848ec9a8b73"
+
+    tester.out_format = "phylipis"
+    assert md5(str(tester).encode()).hexdigest() == "729a3de75d70179a27a802bc0437f4ee"
+
+
 
 def test_get_seq_recs():
     tester = str(Alb._get_seq_recs(alb_objects[8]))
@@ -248,21 +252,21 @@ def test_list_ids():
 
 
 # ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
-uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
-             "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
-             "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
-             "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+uc_hashes = ["52e74a09c305d031fc5263d1751e265d", "34eefeafabfc55811a5c9fe958b61490", "6e5542f41d17ff33afb530b4d07408a3",
+             "b82538a4630810c004dc8a4c2d5165ce", "8b6737fe33058121fd99d2deee2f9a76", "b804b3c0077f342f8a5e8c36b8af627f",
+             "747ca137dc659f302a07b0c39e989e54", "f35cbc6e929c51481e4ec31e95671638", "73e3da29aa78f4abb4bc6392b81cd279",
+             "46e049a1be235d17f8379c293e1e393f", "6f3f234d796520c521cb85c66a3e239a"]
 
-lc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c", "cb1169c2dd357771a97a02ae2160935d",
-             "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
-             "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
-             "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+lc_hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50", "52c23bd793c9761b7c0f897d3d757c12",
+             "228e36a30e8433e4ee2cd78c3290fa6b", "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
+             "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9", "e4d6766b7544557b9ddbdcbf0cde0c16",
+             "12716bad78b2f7a40882df3ce183735b", "00661f7afb419c6bb8c9ac654af7c976"]
 
 hashes = [(deepcopy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,uc_hash,lc_hash", hashes)
-def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes genbank to spec in lower case
+def test_cases(seqbuddy, uc_hash, lc_hash):
     tester = Alb.uppercase(seqbuddy)
     assert align_to_hash(tester) == uc_hash
     tester = Alb.lowercase(tester)
