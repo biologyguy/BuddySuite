@@ -44,6 +44,7 @@ from multiprocessing import Manager
 import ctypes
 from hashlib import md5
 from io import StringIO
+from collections import OrderedDict
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -1565,7 +1566,7 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)
+        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)  # Todo Benchmark
 
         for i in range(len(values)):
             _output += values[i].value
@@ -1591,9 +1592,9 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
     ids_already_seen = []
-    for query_id in output_dict:
+    for query_id in sorted(output_dict):
         ids_already_seen.append(query_id)
-        for subj_id in output_dict[query_id]:
+        for subj_id in sorted(output_dict[query_id]):
             if subj_id in ids_already_seen:
                 continue
 
@@ -1615,11 +1616,11 @@ def lowercase(_seqbuddy):
     return _seqbuddy
 
 
-def split_by_taxa(_seqbuddy, split_char):
+def split_by_taxa(_seqbuddy, split_pattern):
     recs_by_taxa = {}
     for _rec in _seqbuddy.records:
-        split = _rec.id.split(split_char)
-        recs_by_taxa.setdefault(split[0], []).append(_rec)
+        split = re.split(split_pattern, _rec.id)
+        recs_by_taxa.setdefault(split[1], []).append(_rec)
     return recs_by_taxa
 
 
@@ -1688,12 +1689,13 @@ def count_residues(_seqbuddy):
     _output = []
     for _rec in _seqbuddy.records:
         if _seqbuddy.alpha is IUPAC.protein:
-            resid_count = {'A': 0, 'R': 0, 'N': 0, 'D': 0, 'C': 0, 'Q': 0, 'E': 0, 'G': 0, 'H': 0, 'I': 0, 'L': 0, 'K': 0,
-                           'M': 0, 'F': 0, 'P': 0, 'S': 0, 'T': 0, 'W': 0, 'Y': 0, 'V': 0, 'X': 0,
-                           '% Ambiguous': 0, '% Positive': 0, '% Negative': 0}
+            resid_count = OrderedDict.fromkeys(('A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F',
+                                                'P', 'S', 'T', 'W', 'Y', 'V', 'X', '% Ambiguous', '% Positive', 
+                                                '% Negative'), 0)
+            
         else:
-            resid_count = {'A': 0, 'G': 0, 'C': 0, 'T': 0, 'Y': 0, 'R': 0, 'W': 0, 'S': 0, 'K': 0, 'M': 0, 'D': 0,
-                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0}
+            resid_count = OrderedDict.fromkeys(('A', 'G', 'C', 'T', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B',
+                                                'X', 'N', 'U'), 0)
         num_acids = 0
         for char in str(_rec.seq).upper():
             if char in resid_count:
@@ -1708,7 +1710,7 @@ def count_residues(_seqbuddy):
             resid_count['% Ambiguous'] = round(100*((num_acids - (resid_count['A'] + resid_count['T'] + resid_count['C']+
                                                                  resid_count['G'] + resid_count['U']))/num_acids), 2)
         _output.append((_rec.id, resid_count))
-    return _output
+    return sorted(_output, key=lambda x: x[0])
 
 
 def raw_seq(_seqbuddy):
@@ -1895,7 +1897,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
     parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
                         help="Delete sequences with high similarity")
-    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Char>", "<out dir>"),
+    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
                         help="")
     parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
                         metavar=("<commercial>", "<num_cuts>"), help="")
@@ -2366,7 +2368,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         in_args.quiet = True
         for taxa_heading in taxa_groups:
             seqbuddy.records = taxa_groups[taxa_heading]
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, seqbuddy.out_format)
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, _format_to_extension(seqbuddy.out_format))
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(seqbuddy)
@@ -2405,7 +2407,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                                   IUPAC.unambiguous_rna]:
                 for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
                     print("{0}: {1}".format(residue, sequence[1].pop(residue, None)))
-            for residue in sorted(sequence[1]):
+            for residue in (sequence[1]):
                 print("{0}: {1}".format(residue, sequence[1][residue]))
             print()
 
