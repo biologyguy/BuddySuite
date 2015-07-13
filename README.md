@@ -118,3 +118,7 @@ required unless you are developing (or want the bleeding edge).
 [guess_alphabet](https://github.com/biologyguy/BuddySuite/wiki/Guess-alphabet) | -ga | None | Return the alphabet type found in the input file
 [guess_format](https://github.com/biologyguy/BuddySuite/wiki/Guess-format) | -gf | None | Guess the flatfile format of the input file
 [molecular_weight](https://github.com/biologyguy/BuddySuite/wiki/Molecular-weight) | -mw | None | Computes the molecular weight of all of the sequences found in the input file.
+[split_by_taxa](https://github.com/biologyguy/BuddySuite/wiki/Split-by-taxa) | -sbt | \<split char (s)\>, \<out dir (s)\> | Removes all sequences that do not contain a specific taxa in their ID.
+[isoelectric_point](https://github.com/biologyguy/BuddySuite/wiki/Isoelectric-point) | -ip | None | Returns a list of isoelectric points for each protein sequence in the file.
+[count_residues](https://github.com/biologyguy/BuddySuite/wiki/Count-residues) | -cr | None | Returns a list of residues and their frequencies for each sequence in the file.
+[find_restriction_sites](https://github.com/biologyguy/BuddySuite/wiki/Find-restriction-sites) | -sbt | \<commercial (s)\>, \<num_cuts (int)\>| Returns a dictionary of all of the restriction sites and their indices for each sequence in the file. 
