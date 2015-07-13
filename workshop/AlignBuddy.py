@@ -163,14 +163,31 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         return
 
     def __str__(self):
-        _output = ""
-        for _alignment in self.alignments:
-            _output += _alignment.format(self.out_format)
+        if len(self.alignments) == 0:
+            return "AlignBuddy object contains no alignments.\n"
+
+        if self.out_format == "fasta" and len(self.alignments) > 1:
+            return "Error: FASTA format does not support multiple alignments in one file.\n"
+
+        if self.out_format == "phylipi":
+            _output = phylipi(self)
+
+        elif self.out_format == "phylipis":
+            _output = phylipi(self, "strict")
+
+        else:
+            tmp_dir = TemporaryDirectory()
+            with open("%s/aligns.tmp" % tmp_dir.name, "w") as _ofile:
+                AlignIO.write(self.alignments, _ofile, self.out_format)
+
+            with open("%s/aligns.tmp" % tmp_dir.name, "r") as ifile:
+                _output = ifile.read()
+
         return _output
 
     def write(self, _file_path):
         with open(_file_path, "w") as _ofile:
-            AlignIO.write(self.alignments, _ofile, self.out_format)
+            _ofile.write(str(self))
         return
 
 
@@ -251,8 +268,8 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
         _output += "\n"
     return _output
 
-# #################################################################################################################### #
 
+# #################################################################################################################### #
 def list_ids(_alignbuddy, _columns=1):
     _columns = 1 if _columns == 0 else abs(_columns)
     _output = ""
@@ -322,34 +339,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
-        if len(_alignbuddy.alignments) == 0:
-            _stderr("Nothing returned.\n", in_args.quiet)
-            return False
-
-        if _alignbuddy.out_format == "fasta" and len(_alignbuddy.alignments) > 1:
-            _stderr("Error: FASTA format does not support multiple alignments in one file.")
-            return False
-
-        elif _alignbuddy.out_format == "phylipi":
-            _output = phylipi(_alignbuddy)
-
-        elif _alignbuddy.out_format == "phylipis":
-            _output = phylipi(_alignbuddy, "strict")
-
-        else:
-            tmp_dir = TemporaryDirectory()
-            with open("%s/align.tmp" % tmp_dir.name, "w") as _ofile:
-                AlignIO.write(_alignbuddy.alignments, _ofile, _alignbuddy.out_format)
-
-            with open("%s/align.tmp" % tmp_dir.name, "r") as ifile:
-                _output = ifile.read()
+        _output = str(alignbuddy)
 
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
-            _in_place(_output, in_args.sequence[0])
+            _in_place(_output, in_args.alignment[0])
 
         else:
             _stdout("{0}\n".format(_output.rstrip()))
