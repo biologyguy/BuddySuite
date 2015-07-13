@@ -11,7 +11,7 @@ and allows maintencance of rich feature annotation following alignment.
 # Standard library imports
 import sys
 import os
-import argparse
+from copy import copy, deepcopy
 from io import StringIO
 from random import sample
 import re
@@ -24,6 +24,7 @@ from Bio.Align import MultipleSeqAlignment
 # from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from Bio.Data.CodonTable import TranslationError
 
 # My functions
 import SeqBuddy as SB
@@ -187,7 +188,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
     def write(self, _file_path):
         with open(_file_path, "w") as _ofile:
-            _ofile.write(str(self))
+            _ofile.write("{0}\n".format(str(self).rstrip()))
         return
 
 
@@ -295,8 +296,91 @@ def lowercase(_alignbuddy):
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
+
+
+def codon_alignment(_alignbuddy):
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+
+    gap_characters = ["-", ".", " "]
+    for _rec in _get_seq_recs(_alignbuddy):
+        seq_string = str(_rec.seq)
+        _output = seq_string[0]
+        held_residues = ""
+        position = 2
+        for _residue in seq_string[1:]:
+            if position == 1:
+                while len(held_residues) >= 3:
+                    _output += held_residues[:3]
+                    held_residues = held_residues[3:]
+                position = len(held_residues) + 1
+                _output += held_residues
+                held_residues = ""
+
+            if position == 1:
+                _output += _residue
+
+            elif _output[-1] not in gap_characters and _residue not in gap_characters:
+                _output += _residue
+
+            elif _output[-1] in gap_characters and _residue in gap_characters:
+                _output += _residue
+
+            else:
+                held_residues += _residue
+                continue
+
+            if position != 3:
+                position += 1
+            else:
+                position = 1
+
+        _output += held_residues
+        _rec.seq = Seq(_output, alphabet=_rec.seq.alphabet)
+
+    return _alignbuddy
+
+"""
+def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+    gap_characters = ["-", ".", " "]
+
+    def convert_to_codon_align(in_seq):
+
+
+    for alignment in _alignbuddy.alignments:
+        sb_alignment = SB.SeqBuddy([x for x in alignment])
+        copy_sb_alignment = deepcopy(sb_alignment)
+
+        # Do the basic translation on the sequences after clearing out gaps
+        SB.clean_seq(sb_alignment)
+
+
+        # Convert
+        # Insert gaps into new protein sequences
+        for _rec in sb_alignment.records:
+            new_seq = ""
+            for aa in str(_rec.seq):
+                if codon_sorted[0] not in gap_characters:
+                    new_seq += aa
+                    codon_sorted = codon_sorted[2:]
+                    continue
+
+                while True:
+                    if codon_sorted[0] in gap_characters:
+                        new_seq += "-"
+                        codon_sorted = codon_sorted[2:]
+
+                    else:
+                        break
+            _rec.seq = Seq(new_seq, alphabet=IUPAC.protein)
+
+        _output = SB.map_features_dna2prot(_seqbuddy, _translation)
+        _output.out_format = _seqbuddy.out_format
+    return _output
+"""
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
+    import argparse
     parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
 
     parser.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
@@ -313,6 +397,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
     parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
     parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
+    parser.add_argument('-ca', '--condon_alignment', action='store_true',
+                        help="Shift all gaps so the sequence is in triplets.")
     parser.add_argument('-an', '--features', action="store_true")
     parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
@@ -390,3 +476,19 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         for indx, value in enumerate(blahh):
             print("{0}: {1}".format(value, bar[indx]))
         print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
+
+    # Condon alignment
+    if in_args.condon_alignment:
+        try:
+            _print_aligments(codon_alignment(alignbuddy))
+        except TypeError as e:
+            _stdout("%s\n" % str(e))
+
+    """
+    # Translate CDS
+    if in_args.translate:
+        if seqbuddy.alpha == IUPAC.protein:
+            raise ValueError("You need to supply DNA or RNA sequences to translate")
+
+        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
+    """
