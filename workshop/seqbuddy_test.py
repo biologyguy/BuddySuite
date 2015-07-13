@@ -447,7 +447,6 @@ def test_list_ids_multi_col(seqbuddy, next_hash, cols):
     tester = md5(tester.encode()).hexdigest()
     assert tester == next_hash
 
-#  are num_seqs and ave_seq_length even worth testing? YES!!!! Just feed in numbers though, no need to calculate hashes
 
 # ######################  'cts', '--concat_seqs' ###################### #
 hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47",
@@ -669,6 +668,71 @@ cr_hashes = [(Sb.SeqBuddy(resource(seq_files[0])), 'ce6c5e8132b88a8022b48a5370c6
 def test_count_residues(seqbuddy, next_hash):
     result = Sb.count_residues(seqbuddy)
     assert md5(str(result).encode()).hexdigest() == next_hash
+
+
+# ######################  'stdout and stderr' ###################### #
+def test_stdout(capsys):
+    Sb._stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    Sb._stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+def test_stderr(capsys):
+    Sb._stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    Sb._stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+
+
+# ######################  'hsi', '--hash_sequence_ids' ###################### #
+def test_hash_seq_ids_zero():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.hash_sequence_ids(tester, 0)
+    assert len(tester[0].records[0].id) == 10
+
+def test_hash_seq_ids_too_short():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester.records *= 10
+    tester = Sb.hash_sequence_ids(tester, 1)
+    assert len(tester[0].records[0].id) == 2
+
+def test_hash_seq_ids_default():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.hash_sequence_ids(tester)
+    assert len(tester[0].records[0].id) == 10
+
+def test_hash_seq_ids_25():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.hash_sequence_ids(tester, 25)
+    assert len(tester[0].records[0].id) == 25
+
+# ######################  'phylipi' ###################### #
+def test_phylipi():
+    tester = Sb.phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="relaxed")
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "c5fb6a5ce437afa1a4004e4f8780ad68"
+
+    tester = Sb.phylipi(Sb.SeqBuddy(resource("Alignments_pep.phy")), _format="relaxed")
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "5f70d8a339b922f27c308d48280d715f"
+
+    tester = Sb.phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="strict")
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "270f1bac51b2e29c0e163d261795c5fe"
+
+    tester = Sb.phylipi(Sb.SeqBuddy(resource("Alignments_pep.phy")), _format="strict")
+    tester = "{0}\n".format(tester.rstrip())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == "5f70d8a339b922f27c308d48280d715f"
 
 
 # ######################  'GuessError' ###################### #
