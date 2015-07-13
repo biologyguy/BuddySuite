@@ -142,12 +142,12 @@ def divergence_value():
 # - Add isoelectric_point() method that calculates isoelectric point
 # - Unit tests
 
-# ################################################# HELPER FUNCTIONS ################################################# #
 
+# ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, _value):
+        self.value = _value
 
     def __str__(self):
         return self.value
@@ -233,6 +233,7 @@ def _format_to_extension(_format):
     return format_to_extension[_format]
 # ##################################################### SEQ BUDDY #################################################### #
 
+
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None, _alpha=None):
         # ####  IN AND OUT FORMATS  #### #
@@ -315,7 +316,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             with open(_input, "r") as _input:
                 _sequences = list(SeqIO.parse(_input, self.in_format))
         else:
-            _sequences = [SeqRecord(Seq(_input))] # may be unreachable?
+            _sequences = [SeqRecord(Seq(_input))]  # may be unreachable?
 
         if self.alpha is None:
             self.alpha = guess_alphabet(_sequences)
@@ -349,14 +350,39 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         return
 
     def __str__(self):
-        _output = ""
-        for _rec in self.records:
-            _output += _rec.format(self.out_format)
+        if len(self.records) == 0:
+            _stderr("Error: No sequences in object.\n", in_args.quiet)
+            return False
+
+        # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
+        # The following is a work around...
+        if self.out_format in ["gb", "genbank"]:
+            for _rec in self.records:
+                try:
+                    if re.search("(\. )+", _rec.annotations['organism']):
+                        _rec.annotations['organism'] = "."
+                except KeyError:
+                    pass
+
+        if self.out_format == "phylipi":
+            _output = phylipi(self)
+
+        elif self.out_format == "phylipis":
+            _output = phylipi(self, "strict")
+
+        else:
+            tmp_dir = TemporaryDirectory()
+            with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                SeqIO.write(self.records, _ofile, self.out_format)
+
+            with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                _output = ifile.read()
+
         return _output
 
     def write(self, _file_path):
         with open(_file_path, "w") as _ofile:
-            SeqIO.write(self.records, _ofile, self.out_format)
+            _ofile.write(str(self))
         return
 
 
@@ -1907,43 +1933,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
-        if len(_seqbuddy.records) == 0:
-            _stderr("Nothing returned.\n", in_args.quiet)
-            return False
-
-        # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
-        # The following is a work around...
-        if _seqbuddy.out_format in ["gb", "genbank"]:
-            for _rec in _seqbuddy.records:
-                try:
-                    if re.search("(\. )+", _rec.annotations['organism']):
-                        _rec.annotations['organism'] = "."
-                except KeyError:
-                    pass
-
-        if _seqbuddy.out_format == "phylipi":
-            _output = phylipi(_seqbuddy)
-
-        elif _seqbuddy.out_format == "phylipis":
-            _output = phylipi(_seqbuddy, "strict")
-
-        else:
-            tmp_dir = TemporaryDirectory()
-            with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                SeqIO.write(_seqbuddy.records, _ofile, _seqbuddy.out_format)
-
-            with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
-                _output = ifile.read()
-
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
-            _in_place(_output, in_args.sequence[0])
+            _in_place(str(_seqbuddy), in_args.sequence[0])
 
         else:
-            _stdout("{0}\n".format(_output.strip()))
+            _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
 
 
     def _in_place(_output, _path):
