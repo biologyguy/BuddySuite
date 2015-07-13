@@ -245,3 +245,25 @@ def test_list_ids():
     tester = Alb.list_ids(alb_objects[8], _columns=4)
     tester = md5(tester.encode()).hexdigest()
     assert tester == "74bd0e70fd325d59c0399c4f8a0ea7c9"
+
+
+# ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
+uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
+             "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
+             "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
+             "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+
+lc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c", "cb1169c2dd357771a97a02ae2160935d",
+             "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+             "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
+             "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+
+hashes = [(deepcopy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
+
+
+@pytest.mark.parametrize("seqbuddy,uc_hash,lc_hash", hashes)
+def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes genbank to spec in lower case
+    tester = Alb.uppercase(seqbuddy)
+    assert align_to_hash(tester) == uc_hash
+    tester = Alb.lowercase(tester)
+    assert align_to_hash(tester) == lc_hash
