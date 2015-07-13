@@ -2375,11 +2375,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.molecular_weight:
         lists = molecular_weight(seqbuddy)
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            _stderr("ssDNA\t\tdsDNA\t\tID\n")
+            _stderr("ssDNA\tdsDNA\tID\n")
         elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            _stderr("ssRNA\t\tID\n")
+            _stderr("ssRNA\tID\n")
         else:
-            _stderr("Protein\t\tID\n")
+            _stderr("Protein\tID\n")
         for indx, value in enumerate(lists['ids']):
             if len(lists['masses_ds']) != 0:
                 print("{0}\t{1}\t{2}".format(lists['masses_ss'][indx], lists['masses_ds'][indx], value))
@@ -2390,7 +2390,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.isoelectric_point:
         try:
             isoelectric_points = isoelectric_point(seqbuddy)
-            _stderr("ID\t\tpI\n")
+            _stderr("ID\tpI\n")
             for pI in isoelectric_points:
                 print("{0}\t{1}".format(pI[0], pI[1]))
         except ValueError as e:
