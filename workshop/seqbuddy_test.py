@@ -660,6 +660,17 @@ def test_bl2seq_pep():
     result = Sb.bl2seq(seqbuddy)[1]
     assert md5(result.encode()).hexdigest() == '247e4a1edd01f2a85ebadf491d794587'
 
+
+# ######################  'cr', '--count_residues' ###################### #
+
+cr_hashes = [(Sb.SeqBuddy(resource(seq_files[0])), 'ce6c5e8132b88a8022b48a5370c63cde'),
+             (Sb.SeqBuddy(resource(seq_files[6])), 'ea9fdc93052a45ca08f853092ebc4075')]
+@pytest.mark.parametrize("seqbuddy, next_hash", cr_hashes)
+def test_count_residues(seqbuddy, next_hash):
+    result = Sb.count_residues(seqbuddy)
+    assert md5(str(result).encode()).hexdigest() == next_hash
+
+
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():
     with pytest.raises(Sb.GuessError):

@@ -44,6 +44,7 @@ from multiprocessing import Manager
 import ctypes
 from hashlib import md5
 from io import StringIO
+from collections import OrderedDict
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -1688,12 +1689,13 @@ def count_residues(_seqbuddy):
     _output = []
     for _rec in _seqbuddy.records:
         if _seqbuddy.alpha is IUPAC.protein:
-            resid_count = {'A': 0, 'R': 0, 'N': 0, 'D': 0, 'C': 0, 'Q': 0, 'E': 0, 'G': 0, 'H': 0, 'I': 0, 'L': 0, 'K': 0,
-                           'M': 0, 'F': 0, 'P': 0, 'S': 0, 'T': 0, 'W': 0, 'Y': 0, 'V': 0, 'X': 0,
-                           '% Ambiguous': 0, '% Positive': 0, '% Negative': 0}
+            resid_count = OrderedDict.fromkeys(('A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F',
+                                                'P', 'S', 'T', 'W', 'Y', 'V', 'X', '% Ambiguous', '% Positive', 
+                                                '% Negative'), 0)
+            
         else:
-            resid_count = {'A': 0, 'G': 0, 'C': 0, 'T': 0, 'Y': 0, 'R': 0, 'W': 0, 'S': 0, 'K': 0, 'M': 0, 'D': 0,
-                           'V': 0, 'H': 0, 'B': 0, 'X': 0, 'N': 0, 'U': 0}
+            resid_count = OrderedDict.fromkeys(('A', 'G', 'C', 'T', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B',
+                                                'X', 'N', 'U'), 0)
         num_acids = 0
         for char in str(_rec.seq).upper():
             if char in resid_count:
@@ -1708,7 +1710,7 @@ def count_residues(_seqbuddy):
             resid_count['% Ambiguous'] = round(100*((num_acids - (resid_count['A'] + resid_count['T'] + resid_count['C']+
                                                                  resid_count['G'] + resid_count['U']))/num_acids), 2)
         _output.append((_rec.id, resid_count))
-    return _output
+    return sorted(_output, key=lambda x: x[0])
 
 
 def raw_seq(_seqbuddy):
@@ -2405,7 +2407,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                                   IUPAC.unambiguous_rna]:
                 for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
                     print("{0}: {1}".format(residue, sequence[1].pop(residue, None)))
-            for residue in sorted(sequence[1]):
+            for residue in (sequence[1]):
                 print("{0}: {1}".format(residue, sequence[1][residue]))
             print()
 
