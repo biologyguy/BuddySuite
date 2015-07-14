@@ -825,6 +825,22 @@ def test_merge():
     assert seqs_to_hash(tester) == 'ce306df2c8d57c59baff51733ddb9ddc'
 
 
+# #####################  'sbt', '--split_by_taxa' ###################### ##
+def test_split_by_taxa():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.split_by_taxa(tester, 'Mle-')
+    output = md5(str(sorted(tester)).encode()).hexdigest()
+    assert output == '438cc47dd268453f38342ca276f77a73'
+
+
+# #####################  'sf', '--split_file' ###################### ##
+def test_split_file():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    output = Sb.split_file(tester)
+    for buddy in output:
+        assert buddy.records[0] in tester.records
+
+
 # ##################### 'to_dict' ###################### ##
 def test_to_dict():
     tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
