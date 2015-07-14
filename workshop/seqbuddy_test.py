@@ -776,6 +776,19 @@ def test_pull_random_recs(seqbuddy):
     assert tester.records[0].id in Sb.list_ids(seqbuddy)
 
 
+# #####################  'frp', '--find_repeats' ###################### ##
+def test_find_repeats_ids():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa"))
+    assert 'Mle-Panxα12' in Sb.find_repeats(tester)[1]
+
+def test_find_repeats_seqs():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
+    result = Sb.find_repeats(tester)[2]
+    for key in result:
+        assert 'Mle-Panxα1' in result[key]
+        assert 'Mle-Dupα' in result[key]
+
+
 # ######################  'phylipi' ###################### #
 def test_phylipi():
     tester = Sb.phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="relaxed")
