@@ -811,6 +811,27 @@ def test_delete_repeats_seqs():
     assert len(tester[2]) == 0
 
 
+# #####################  'prg', '--purge' ###################### ##
+def test_purge():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    tester = Sb.purge(tester, 200)
+    assert seqs_to_hash(tester[0]) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
+
+
+# #####################  'mg', '--merge' ###################### ##
+def test_merge():
+    tester = [Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))]
+    tester = Sb.merge(tester)
+    assert seqs_to_hash(tester) == 'ce306df2c8d57c59baff51733ddb9ddc'
+
+
+# ##################### 'to_dict' ###################### ##
+def test_to_dict():
+    tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
+    tester = md5(tester.encode()).hexdigest()
+    assert tester == 'b831e901d8b6b1ba52bad797bad92d14'
+
+
 # ######################  'phylipi' ###################### #
 def test_phylipi():
     tester = Sb.phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="relaxed")

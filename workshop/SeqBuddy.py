@@ -1922,7 +1922,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
                         action='store')
     parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
-    
+
     in_args = parser.parse_args()
 
     seqbuddy = []
