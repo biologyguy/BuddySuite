@@ -741,7 +741,7 @@ def test_delete_features():
     assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
 
 
-# ######################  'pre', '--pull_record_ends' ###################### #
+# #####################  'pre', '--pull_record_ends' ###################### ##
 def test_pull_record_ends_front():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.pull_record_ends(tester, 10, 'front')
@@ -766,6 +766,15 @@ def test_pull_record_ends_wrong_end():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(AttributeError):
         Sb.pull_record_ends(deepcopy(seqbuddy), 100, 'fghhgj')
+
+
+# #####################  'prr', '--pull_random_recs' ###################### ##
+@pytest.mark.parametrize("seqbuddy", sb_objects)
+def test_pull_random_recs(seqbuddy):
+    tester = Sb.pull_random_recs(deepcopy(seqbuddy))
+    assert len(tester.records) == 1
+    assert tester.records[0].id in Sb.list_ids(seqbuddy)
+
 
 # ######################  'phylipi' ###################### #
 def test_phylipi():
