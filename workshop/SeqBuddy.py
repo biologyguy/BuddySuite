@@ -362,8 +362,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
     def __str__(self):
         if len(self.records) == 0:
-            _stderr("Error: No sequences in object.\n", in_args.quiet)
-            return False
+            return "Error: No sequences in object.\n"
 
         # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
         # The following is a work around...
@@ -588,11 +587,8 @@ def order_ids(_seqbuddy, _reverse=False):
 def rna2dna(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
-    _output = []
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
-        _output.append(_rec)
-    _seqbuddy.records = _output
     _seqbuddy.alpha = IUPAC.ambiguous_dna
     return _seqbuddy
 
@@ -600,11 +596,8 @@ def rna2dna(_seqbuddy):
 def dna2rna(_seqbuddy):
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
-    _output = []
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
-        _output.append(_rec)
-    _seqbuddy.records = _output
     _seqbuddy.alpha = IUPAC.ambiguous_rna
     return _seqbuddy
 
@@ -957,7 +950,6 @@ def concat_seqs(_seqbuddy, _clean=False):
 def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
     """remove all non-sequence charcters from sequence strings"""
     skip_list = "" if not skip_list else "".join(skip_list)
-    _output = []
     for _rec in _seqbuddy.records:
         if _seqbuddy.alpha == IUPAC.protein:
             _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)),
@@ -967,9 +959,7 @@ def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
                 _rec.seq = Seq(re.sub("[^ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
             else:
                 _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
-        _output.append(_rec)
 
-    _seqbuddy.records = _output
     return _seqbuddy
 
 
@@ -1237,22 +1227,22 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
 
 
 def pull_recs(_seqbuddy, _search):
-    _output = []
+    matched_records = []
     for _rec in _seqbuddy.records:
         if re.search(_search, _rec.description) or re.search(_search, _rec.id) or re.search(_search, _rec.name):
-            _output.append(_rec)
-    _seqbuddy.records = _output
+            matched_records.append(_rec)
+    _seqbuddy.records = matched_records
     return _seqbuddy
 
 
 def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (without replacement)
-    _output = []
+    random_recs = []
     _count = abs(_count) if abs(_count) <= len(_seqbuddy.records) else len(_seqbuddy.records)
     for i in range(_count):
         rand_index = randint(0, len(_seqbuddy.records) - 1)
-        _output.append(_seqbuddy.records.pop(rand_index))
+        random_recs.append(_seqbuddy.records.pop(rand_index))
 
-    _seqbuddy.records = _output
+    _seqbuddy.records = random_recs
     return _seqbuddy
 
 
@@ -1340,36 +1330,36 @@ def find_repeats(_seqbuddy, _columns=1):
     # Then look for replicate sequences
     flip_uniqe = {}
     del_keys = []
-    for key, _value in unique_seqs.items():  # find and remove duplicates in/from the unique list
+    for _key, _value in unique_seqs.items():  # find and remove duplicates in/from the unique list
         _value = str(_value.seq)
         if _value not in flip_uniqe:
-            flip_uniqe[_value] = [key]
+            flip_uniqe[_value] = [_key]
         else:
             if _value not in repeat_seqs:
-                repeat_seqs[_value] = [key]
+                repeat_seqs[_value] = [_key]
                 repeat_seqs[_value] += flip_uniqe[_value]
                 if flip_uniqe[_value][0] in unique_seqs:
                     del_keys.append(flip_uniqe[_value][0])
             else:
-                repeat_seqs[_value].append(key)
-            del_keys.append(unique_seqs[key].id)
+                repeat_seqs[_value].append(_key)
+            del_keys.append(unique_seqs[_key].id)
 
-    for key in del_keys:
-        if key in unique_seqs:
-            del(unique_seqs[key])
+    for _key in del_keys:
+        if _key in unique_seqs:
+            del(unique_seqs[_key])
 
-    for key, _value in repeat_ids.items():  # find duplicates in the repeat ID list
+    for _key, _value in repeat_ids.items():  # find duplicates in the repeat ID list
         for _rep_seq in _value:
             _rep_seq = str(_rep_seq.seq)
             if _rep_seq not in flip_uniqe:
-                flip_uniqe[_rep_seq] = [key]
+                flip_uniqe[_rep_seq] = [_key]
             else:
                 if _rep_seq not in repeat_seqs:
-                    repeat_seqs[_rep_seq] = [key]
+                    repeat_seqs[_rep_seq] = [_key]
                     repeat_seqs[_rep_seq] += flip_uniqe[_rep_seq]
 
                 else:
-                    repeat_seqs[_rep_seq].append(key)
+                    repeat_seqs[_rep_seq].append(_key)
 
     output_str = ""
     if len(repeat_ids) > 0:
@@ -1409,32 +1399,32 @@ def find_repeats(_seqbuddy, _columns=1):
 
 
 def delete_records(_seqbuddy, search_str):
-    _output = []
+    retained_records = []
     _deleted = pull_recs(copy(_seqbuddy), search_str).records
     for _rec in _seqbuddy.records:
         if _rec in _deleted:
             continue
         else:
-            _output.append(_rec)
-    _seqbuddy.records = _output
+            retained_records.append(_rec)
+    _seqbuddy.records = retained_records
     return _seqbuddy
 
 
 def delete_large(_seqbuddy, max_value):
-    _output = []
+    retained_records = []
     for _rec in _seqbuddy.records:
         if len(str(_rec.seq)) <= max_value:
-            _output.append(_rec)
-    _seqbuddy.records = _output
+            retained_records.append(_rec)
+    _seqbuddy.records = retained_records
     return _seqbuddy
 
 
 def delete_small(_seqbuddy, min_value):
-    _output = []
+    retained_records = []
     for _rec in _seqbuddy.records:
         if len(str(_rec.seq)) >= min_value:
-            _output.append(_rec)
-    _seqbuddy.records = _output
+            retained_records.append(_rec)
+    _seqbuddy.records = retained_records
     return _seqbuddy
 
 
@@ -1493,7 +1483,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     keep_set = {}
     purged = []
     _blast_res = bl2seq(_seqbuddy)[0]
-    _blast_res = [(key, _value) for key, _value in _blast_res.items()]
+    _blast_res = [(_key, _value) for _key, _value in _blast_res.items()]
     _blast_res = sorted(_blast_res, key=lambda l: l[0])
     for _query_id, match_list in _blast_res:
         if _query_id in purged:
@@ -1515,7 +1505,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     _seqbuddy.records = _output
 
     _record_map = "### Deleted record mapping ###\n"
-    keep_set = [(key, sorted(_value)) for key, _value in keep_set.items()]
+    keep_set = [(_key, sorted(_value)) for _key, _value in keep_set.items()]
     keep_set = sorted(keep_set, key=lambda l: l[0])
     for _seq_id, seq_list in keep_set:
         _record_map += "%s\n" % _seq_id
@@ -1528,7 +1518,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     return [_seqbuddy, purged, _record_map]
 
 
-def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not return sequences
+def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return sequences
     """
     Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     threshold may need to be increased quite a bit to return short alignments
@@ -1601,13 +1591,13 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
 
-    output_list = [(key, _value) for key, _value in output_dict.items()]
+    output_list = [(_key, _value) for _key, _value in output_dict.items()]
     output_list = sorted(output_list, key=lambda l: l[0])
 
     ids_already_seen = []
     for query_id, query_values in output_list:
         ids_already_seen.append(query_id)
-        query_values = [(key, _value) for key, _value in query_values.items()]
+        query_values = [(_key, _value) for _key, _value in query_values.items()]
         query_values = sorted(query_values, key=lambda l: l[0])
         for subj_id, subj_values in query_values:
             if subj_id in ids_already_seen:
@@ -1690,12 +1680,12 @@ def molecular_weight(_seqbuddy):
 def isoelectric_point(_seqbuddy):
     if _seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
-    isoelectric_points = []
+    _isoelectric_points = []
     for _rec in _seqbuddy.records:
         _pI = ProteinAnalysis(str(_rec.seq))
         _pI = round(_pI.isoelectric_point(), 10)
-        isoelectric_points.append((_rec.id, _pI))
-    return isoelectric_points
+        _isoelectric_points.append((_rec.id, _pI))
+    return _isoelectric_points
 
 
 def count_residues(_seqbuddy):
@@ -1717,13 +1707,15 @@ def count_residues(_seqbuddy):
                 resid_count[char] += 1
                 num_acids += 1
         if _seqbuddy.alpha is IUPAC.protein:
-            resid_count['% Ambiguous'] = round(100*(resid_count['X'])/num_acids, 2)
-            resid_count['% Positive'] = round(100*(resid_count['H']+resid_count['K']+resid_count['R'])/num_acids, 2)
-            resid_count['% Negative'] = round(100*(resid_count['D']+resid_count['E']+resid_count['C']+resid_count['Y'])
-                                              / num_acids, 2)
+            resid_count['% Ambiguous'] = round(100 * (resid_count['X']) / num_acids, 2)
+            resid_count['% Positive'] = round(100 * (resid_count['H'] + resid_count['K'] +
+                                                     resid_count['R']) / num_acids, 2)
+            resid_count['% Negative'] = round(100 * (resid_count['D'] + resid_count['E'] +
+                                                     resid_count['C'] + resid_count['Y']) / num_acids, 2)
         else:
-            resid_count['% Ambiguous'] = round(100*((num_acids - (resid_count['A'] + resid_count['T'] + resid_count['C']+
-                                                                 resid_count['G'] + resid_count['U']))/num_acids), 2)
+            resid_count['% Ambiguous'] = round(100 * ((num_acids - (resid_count['A'] + resid_count['T'] +
+                                                                    resid_count['C'] + resid_count['G'] +
+                                                                    resid_count['U'])) / num_acids), 2)
         _output.append((_rec.id, resid_count))
     return sorted(_output, key=lambda x: x[0])
 
@@ -1761,14 +1753,14 @@ def merge(_seqbuddy_list):
 
 
 def split_file(_seqbuddy):
-    # distribute a mutiple sequence file into a bunch of individual files
-    _output = []
+    # Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
+    sb_objs_list = []
     for _rec in _seqbuddy.records:
         _sb = SeqBuddy([_rec])
         _sb.in_format = _seqbuddy.in_format
         _sb.out_format = _seqbuddy.out_format
-        _output.append(_sb)
-    return _output
+        sb_objs_list.append(_sb)
+    return sb_objs_list
 
 
 def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
@@ -1786,15 +1778,15 @@ def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
             cut_keys = set(analysis.overhang5()).union(set(analysis.overhang3()))
         comm_keys = set(analysis.with_sites().keys())
         keys = cut_keys & comm_keys
-        for key in blacklist:
-            keys.discard(key)
-        result = {key: analysis.with_sites()[key] for key in keys}
+        for _key in blacklist:
+            keys.discard(_key)
+        result = {_key: analysis.with_sites()[_key] for _key in keys}
         sites.append((rec.id, result))
     print_output = ''
     for tup in sites:
         print_output += "{0}\n".format(tup[0])
-        for key in sorted(tup[1]):
-            print_output += "{0}:\t{1}\n".format(key, str(tup[1][key]))
+        for _key in sorted(tup[1]):
+            print_output += "{0}:\t{1}\n".format(_key, str(tup[1][_key]))
         print_output += "\n"
     return [sites, print_output]
 
