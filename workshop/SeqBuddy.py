@@ -56,6 +56,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
+from Bio.SeqUtils import GC
 
 # My functions
 from MyFuncs import run_multicore_function
@@ -84,6 +85,20 @@ def shuffle_seqs():
 def find_CpG():
     # http://www.ncbi.nlm.nih.gov/pubmed/3656447
     # http://bioinformatics.org/sms/cpg_island.html
+    def is_island(_seq):
+        gc = GC(_seq)
+        if gc <= .5:
+            return False
+        cpg_count = count_CpG(_seq)
+        obsexp = cp
+    def count_CpG(_seq):
+        count = 0
+        ind = 0
+        while ind < len(_seq)-1:
+            if _seq[ind].upper() is 'C' and _seq[ind+1].upper() is 'G':
+                count += 1
+            int += 1
+        return count
     return
 
 
@@ -1789,11 +1804,9 @@ def find_pattern(_seqbuddy, pattern):
     _output = OrderedDict()
     for rec in _seqbuddy.records:
         indices = []
-        last_index = 0
-        while rec.seq.find(pattern, last_index) != -1:
-            indx = rec.seq.find(pattern, last_index)
-            indices.append(indx)
-            last_index = indx+1
+        matches = re.finditer(pattern, str(rec.seq))
+        for match in matches:
+            indices.append(match.start())
         _output[rec.id] = indices
     return _output
 
