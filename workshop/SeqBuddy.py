@@ -1799,7 +1799,7 @@ def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
     return [sites, print_output]
 
 
-def find_pattern(_seqbuddy, pattern):
+def find_pattern(_seqbuddy, pattern):  # TODO ambiguous letters mode
     # search through sequences for regex matches. For example, to find micro-RNAs
     _output = OrderedDict()
     for rec in _seqbuddy.records:
