@@ -82,26 +82,6 @@ def shuffle_seqs():
     return
 
 
-def find_CpG():
-    # http://www.ncbi.nlm.nih.gov/pubmed/3656447
-    # http://bioinformatics.org/sms/cpg_island.html
-    def is_island(_seq):
-        gc = GC(_seq)
-        if gc <= .5:
-            return False
-        cpg_count = count_CpG(_seq)
-        obsexp = cp
-    def count_CpG(_seq):
-        count = 0
-        ind = 0
-        while ind < len(_seq)-1:
-            if _seq[ind].upper() is 'C' and _seq[ind+1].upper() is 'G':
-                count += 1
-            int += 1
-        return count
-    return
-
-
 def delete_pattern():
     # remove residues that match a given pattern from all records
     return
@@ -1801,6 +1781,45 @@ def find_pattern(_seqbuddy, pattern):  # TODO ambiguous letters mode
             indices.append(match.start())
         _output[rec.id] = indices
     return _output
+
+
+def find_CpG(_seq):
+    # http://www.ncbi.nlm.nih.gov/pubmed/3656447
+    # http://bioinformatics.org/sms/cpg_island.html
+    percent_values = []
+    obsexp_values = []
+    dividing_factor = []
+    is_island = []
+    for letter in _seq:
+        percent_values.append(0)
+        obsexp_values.append(0)
+        dividing_factor.append(0)
+        is_island.append(False)
+    for x in range(len(_seq)-99):
+        countC = 0
+        countG = 0
+        countCpG = 0
+        subseq = _seq[x:x+100]
+        for indx, letter in enumerate(subseq):
+            if letter.upper() == 'C':
+                countC += 1
+                if indx < 99 and subseq[indx+1].upper() == 'G':
+                    countCpG += 1
+            elif letter.upper() == 'G':
+                countG += 1
+        percent_cg = float(countC+countG)/100
+        CxG = countC * countG + 1
+        obsexp = (float(countCpG) / CxG) * 100
+        for indx in range(x,x+100):
+            percent_values[indx] += percent_cg
+            obsexp_values[indx] += obsexp
+            dividing_factor[indx] += 1
+    for x in range(len(_seq)):
+        percent_values[x] /= dividing_factor[x]
+        obsexp_values[x] /= dividing_factor[x]
+        if percent_values[x] > .5 and obsexp_values[x] > .6:
+            is_island[x] = True
+    return is_island
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
