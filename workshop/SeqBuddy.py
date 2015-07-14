@@ -1482,14 +1482,16 @@ def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pa
 def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
     keep_set = {}
     purged = []
-    _blast_res = bl2seq(_seqbuddy)
-    for _query_id in _blast_res:
+    _blast_res = bl2seq(_seqbuddy)[0]
+    _blast_res = [(key, _value) for key, _value in _blast_res.items()]
+    _blast_res = sorted(_blast_res, key=lambda l: l[0])
+    for _query_id, match_list in _blast_res:
         if _query_id in purged:
             continue
         else:
             keep_set[_query_id] = []
-            for _subj_id in _blast_res[_query_id]:
-                _ident, _length, _evalue, _bit_score = _blast_res[_query_id][_subj_id]
+            for _subj_id in match_list:
+                _ident, _length, _evalue, _bit_score = match_list[_subj_id]
 
                 if _bit_score >= threshold:
                     purged.append(_subj_id)
@@ -1503,9 +1505,11 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     _seqbuddy.records = _output
 
     _record_map = "### Deleted record mapping ###\n"
-    for _seq_id in keep_set:
+    keep_set = [(key, sorted(_value)) for key, _value in keep_set.items()]
+    keep_set = sorted(keep_set, key=lambda l: l[0])
+    for _seq_id, seq_list in keep_set:
         _record_map += "%s\n" % _seq_id
-        for del_seq_id in keep_set[_seq_id]:
+        for del_seq_id in seq_list:
             _record_map += "%s, " % del_seq_id
         _record_map = _record_map.strip(", ") + "\n\n"
 
@@ -1520,63 +1524,58 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
     threshold may need to be increased quite a bit to return short alignments
     """
     def mc_blast(_query, args):
-        _values, _subject = args
+        _subject_file = args[0]
 
         if subject.id == _query.id:
             return
 
         _blast_res = Popen("echo '%s' | %s -subject %s -outfmt 6" %
-                           (_query.format("fasta"), blast_bin, subject_file), stdout=PIPE, shell=True).communicate()
+                           (_query.format("fasta"), blast_bin, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
-
+        _result = ""
         while True:
-            _indx = randint(0, len(_values) - 1)
             try:
                 if len(_blast_res) == 1:
-                    _values[_indx].value += "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
+                    _result = "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
                 else:
                     # values are: query, subject, %_ident, length, evalue, bit_score
                     if _blast_res[10] == '0.0':
                         _blast_res[10] = '1e-180'
-                    _values[_indx].value += "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
-                                                                          _blast_res[3], _blast_res[10],
-                                                                          _blast_res[11].strip())
+                    _result = "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
+                                                            _blast_res[3], _blast_res[10], _blast_res[11].strip())
                 break
             except ConnectionRefusedError:
                 continue
+        with lock:
+            with open("%s/blast_results.txt" % tmp_dir.name, "a") as _ofile:
+                _ofile.write(_result)
         return
 
     blast_bin = "blastp" if _seqbuddy.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
         raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
 
+    from multiprocessing import Lock
+    lock = Lock()
     tmp_dir = TemporaryDirectory()
-
-    # Prepare to store multicore output in list of Value objects
-    values = []
-    manager = Manager()
-    for _ in range(cores * 2):
-        values.append(manager.Value(ctypes.c_char_p, ''))
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     _seqs_copy = _seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.name
-    _output = ''
     for subject in _seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        run_multicore_function(_seqs_copy, mc_blast, [values, subject_file], out_type=sys.stderr, quiet=True)  # Todo Benchmark
-
-        for i in range(len(values)):
-            _output += values[i].value
-            values[i].value = ''
+        run_multicore_function(_seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)  # Todo Benchmark
 
         _seqs_copy = _seqs_copy[1:]
 
+    with open("%s/blast_results.txt" % tmp_dir.name, "r") as _ifile:
+        output_list = _ifile.read().strip().split("\n")
+
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
-    output_list = _output.strip().split("\n")
     output_list = [x.split("\t") for x in output_list]
+    output_list = sorted(output_list, key=lambda l: l[0])
     output_dict = {}
     for match in output_list:
         query, subj, _ident, _length, _evalue, _bit_score = match
@@ -1591,14 +1590,20 @@ def bl2seq(_seqbuddy, cores=4):  # Does an all-by-all analysis, and does not ret
             output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+
+    output_list = [(key, _value) for key, _value in output_dict.items()]
+    output_list = sorted(output_list, key=lambda l: l[0])
+
     ids_already_seen = []
-    for query_id in sorted(output_dict):
+    for query_id, query_values in output_list:
         ids_already_seen.append(query_id)
-        for subj_id in sorted(output_dict[query_id]):
+        query_values = [(key, _value) for key, _value in query_values.items()]
+        query_values = sorted(query_values, key=lambda l: l[0])
+        for subj_id, subj_values in query_values:
             if subj_id in ids_already_seen:
                 continue
 
-            ident, length, evalue, bit_score = output_dict[query_id][subj_id]
+            ident, length, evalue, bit_score = subj_values
             output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
 
     return [output_dict, output_str]
