@@ -46,6 +46,7 @@ import SeqBuddy as SB
 # - Rename ids
 # - Separate multiple alignments into individual files
 
+
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
@@ -168,7 +169,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             return "AlignBuddy object contains no alignments.\n"
 
         if self.out_format == "fasta" and len(self.alignments) > 1:
-            return "Error: FASTA format does not support multiple alignments in one file.\n"
+            raise ValueError("Error: FASTA format does not support multiple alignments in one file.\n")
 
         if self.out_format == "phylipi":
             _output = phylipi(self)
@@ -298,6 +299,19 @@ def lowercase(_alignbuddy):
     return _alignbuddy
 
 
+def clean_seq(_alignbuddy, skip_list=None):
+    """remove all non-sequence charcters from sequence strings"""
+    skip_list = "" if not skip_list else "".join(skip_list)
+    for _rec in _get_seq_recs(_alignbuddy):
+        if _alignbuddy.alpha == IUPAC.protein:
+            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)),
+                           alphabet=_alignbuddy.alpha)
+        else:
+            _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_alignbuddy.alpha)
+
+    return _alignbuddy
+
+
 def codon_alignment(_alignbuddy):
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -394,15 +408,18 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
-    parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
+    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
+                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
+                             "'strict' to remove all characters except the unambiguous letter codes.")
     parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
     parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
-    parser.add_argument('-ca', '--condon_alignment', action='store_true',
-                        help="Shift all gaps so the sequence is in triplets.")
     parser.add_argument('-an', '--features', action="store_true")
     parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
                              "specify the # of columns to write")
+    parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
+    parser.add_argument('-ca', '--condon_alignment', action='store_true',
+                        help="Shift all gaps so the sequence is in triplets.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -425,7 +442,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
-        _output = str(alignbuddy)
+        try:
+            _output = str(alignbuddy)
+        except ValueError as e:
+            _stderr("Error: %s\n" % str(e))
+            return False
+        except TypeError as e:
+            _stderr("Error: %s\n" % str(e))
+            return False
 
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
@@ -460,6 +484,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
         _stdout(list_ids(alignbuddy, columns))
 
+    # Clean Seq
+    if in_args.clean_seq:
+        if in_args.clean_seq[0] == "strict":
+            _print_aligments(clean_seq(alignbuddy))
+        else:
+            _print_aligments(clean_seq(alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx"))
+
     # Uppercase
     if in_args.uppercase:
         _print_aligments(uppercase(alignbuddy))
@@ -477,12 +508,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             print("{0}: {1}".format(value, bar[indx]))
         print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
 
-    # Condon alignment
+    # Codon alignment
     if in_args.condon_alignment:
-        try:
-            _print_aligments(codon_alignment(alignbuddy))
-        except TypeError as e:
-            _stdout("%s\n" % str(e))
+        _print_aligments(codon_alignment(alignbuddy))
+
 
     """
     # Translate CDS

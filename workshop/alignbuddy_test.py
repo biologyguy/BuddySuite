@@ -17,6 +17,14 @@ except ImportError:
     import AlignBuddy as Alb
 
 
+def make_copies(_alignbuddy):
+    copies = deepcopy(_alignbuddy)
+    copies.alpha = _alignbuddy.alpha
+    for _rec in Alb._get_seq_recs(copies):
+        _rec.alphabet = _alignbuddy.alpha
+    return copies
+
+
 def align_to_hash(_alignbuddy, mode='hash'):
     if mode != "hash":
         return str(_alignbuddy)
@@ -40,7 +48,7 @@ def test_guess_format():
         string_io = StringIO(ifile.read())
     assert Alb.guess_format(string_io) == "stockholm"
     with pytest.raises(Alb.GuessError):
-        Alb.guess_format(("Dummy-Tuple"))
+        Alb.guess_format({"Dummy dict": "Type not recognized by guess_format()"})
 
 
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
@@ -94,7 +102,7 @@ def test_instantiate_alignbuddy_from_list(align_file):
         Alb.AlignBuddy(tester.alignments)
 
 
-def test_empty_file(capsys):
+def test_empty_file():
     with open(resource("blank.fa"), "r") as ifile:
         with pytest.raises(SystemExit):
             Alb.AlignBuddy(ifile)
@@ -183,14 +191,15 @@ def test_write1(alignbuddy, next_hash):
 
 
 def test_write2():  # Unloopable components
-    tester = deepcopy(alb_objects[8])
+    tester = make_copies(alb_objects[8])
     tester.out_format = "fasta"
-    assert str(tester) == "Error: FASTA format does not support multiple alignments in one file.\n"
+    with pytest.raises(ValueError):
+        str(tester)
 
     tester.alignments = []
     assert str(tester) == "AlignBuddy object contains no alignments.\n"
 
-    tester = deepcopy(alb_objects[2])
+    tester = make_copies(alb_objects[2])
     tester.out_format = "phylipi"
     assert md5(str(tester).encode()).hexdigest() == "0379295eb39370bdba17c848ec9a8b73"
 
@@ -264,7 +273,7 @@ lc_hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab
              "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9", "e4d6766b7544557b9ddbdcbf0cde0c16",
              "12716bad78b2f7a40882df3ce183735b", "00661f7afb419c6bb8c9ac654af7c976"]
 
-hashes = [(deepcopy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
+hashes = [(make_copies(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
@@ -278,11 +287,40 @@ def test_cases(alignbuddy, uc_hash, lc_hash):
 hashes = ["c907d29434fe2b45db60f1a9b70f110d", "f150b94234e93f354839d7c2ca8dae24", "6a7a5416f2ce1b3161c8b5b8b4b9e901",
           "54d412fbca5baa60e4c31305d35dd79a", "3ddc2109b15655ef0eed3908713510de", "f728ab606602ed67357f78194e500664"]
 indices = [0, 1, 2, 3, 11, 12]
-hashes = [(deepcopy(alb_objects[indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
+hashes = [(make_copies(alb_objects[indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_codon_alignment(alignbuddy, next_hash):
     tester = Alb.codon_alignment(alignbuddy)
-    tester.write("temp.del")
     assert align_to_hash(tester) == next_hash
+
+    if next_hash == "f728ab606602ed67357f78194e500664":
+        with pytest.raises(TypeError):
+            Alb.codon_alignment(alb_objects[8])
+
+
+# ###########################################  'cs', '--clean_seqs' ############################################ #
+def test_clean_seqs():
+    # Test an amino acid file
+    tester = make_copies(alb_objects[8])
+    Alb.clean_seq(tester)
+
+    with pytest.raises(ValueError):
+        str(tester)
+
+    tester.out_format = "fasta"
+    with pytest.raises(ValueError):
+        str(tester)
+
+    tester.out_format = "genbank"
+    assert align_to_hash(tester) == "b613060f43f66248cda0088c06de0949"
+
+    # Test nucleotide files, but skip the errors
+    tester = make_copies(alb_objects[11])
+    Alb.clean_seq(tester, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
+    tester.out_format = "genbank"
+    assert align_to_hash(tester) == "81189bf7962cc2664815dc7fca8cd95d"
+
+    Alb.clean_seq(tester)
+    assert align_to_hash(tester) == "2f2cbf227d45aa49d15971ce214d3191"
