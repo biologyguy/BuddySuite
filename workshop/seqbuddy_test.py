@@ -788,6 +788,28 @@ def test_find_repeats_seqs():
         assert 'Mle-Panxα1' in result[key]
         assert 'Mle-Dupα' in result[key]
 
+def test_find_repeats_none():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
+    tester = Sb.find_repeats(tester)
+    assert len(tester[1]) == 0
+    assert len(tester[2]) == 0
+
+
+# #####################  'drp', '--delete_repeats' ###################### ##
+def test_delete_repeats_ids():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa"))
+    tester = Sb.delete_repeats(tester)
+    tester = Sb.find_repeats(tester)
+    assert len(tester[1]) == 0
+    assert len(tester[2]) == 0
+
+def test_delete_repeats_seqs():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
+    tester = Sb.delete_repeats(tester)
+    tester = Sb.find_repeats(tester)
+    assert len(tester[1]) == 0
+    assert len(tester[2]) == 0
+
 
 # ######################  'phylipi' ###################### #
 def test_phylipi():
