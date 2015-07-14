@@ -87,11 +87,6 @@ def find_CpG():
     return
 
 
-def find_pattern():
-    # search through sequences for regex matches. For example, to find micro-RNAs
-    return
-
-
 def delete_pattern():
     # remove residues that match a given pattern from all records
     return
@@ -1788,6 +1783,20 @@ def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
         print_output += "\n"
     return [sites, print_output]
 
+
+def find_pattern(_seqbuddy, pattern):
+    # search through sequences for regex matches. For example, to find micro-RNAs
+    _output = OrderedDict()
+    for rec in _seqbuddy.records:
+        indices = []
+        last_index = 0
+        while rec.seq.find(pattern, last_index) != -1:
+            indx = rec.seq.find(pattern, last_index)
+            indices.append(indx)
+            last_index = indx+1
+        _output[rec.id] = indices
+    return _output
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -1906,6 +1915,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="")
     parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
                         metavar=("<commercial>", "<num_cuts>"), help="")
+    parser.add_argument("-fp", "--find_pattern", action='store', nargs=1, metavar="<pattern>", help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
     parser.add_argument("-cr", "--count_residues", action='store_true', help="")
@@ -2449,3 +2459,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         sb = clean_seq(seqbuddy)
         output = find_restriction_sites(sb, commercial, single_cut)
         _stdout(output[1])
+
+    # Find pattern
+    if in_args.find_pattern:
+        output = find_pattern(seqbuddy, in_args.find_pattern[0])
+        out_string = ""
+        num_matches = 0
+        for key in output:
+            out_string += "{0}: {1}\n".format(key, str(output[key]))
+            num_matches += len(output[key])
+        _stderr("#### {0} matches found across {1} sequences for pattern '{2}' ####\n".format(num_matches, len(output),
+                                                                                  in_args.find_pattern[0]))
+        _stdout(out_string)
