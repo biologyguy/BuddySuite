@@ -77,6 +77,18 @@ def _get_seq_recs(_alignbuddy):
     return seq_recs
 
 
+def _make_copies(_alignbuddy):
+    alphabet_list = [_rec.seq.alphabet for _rec in _get_seq_recs(_alignbuddy)]
+    copies = deepcopy(_alignbuddy)
+    copies.alpha = _alignbuddy.alpha
+    for _indx, _rec in enumerate(_get_seq_recs(copies)):
+        _rec.seq.alphabet = alphabet_list[_indx]
+    return copies
+
+# ##################################################### Globals ###################################################### #
+gap_characters = ["-", ".", " "]
+
+
 # #################################################### ALIGN BUDDY ################################################### #
 class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
@@ -316,8 +328,10 @@ def codon_alignment(_alignbuddy):
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    gap_characters = ["-", ".", " "]
     for _rec in _get_seq_recs(_alignbuddy):
+        if _rec.seq.alphabet == IUPAC.protein:
+            raise TypeError("Error: Record %s is protein. Nucleic acid required." % _rec.name)
+
         seq_string = str(_rec.seq)
         _output = seq_string[0]
         held_residues = ""
@@ -354,44 +368,100 @@ def codon_alignment(_alignbuddy):
 
     return _alignbuddy
 
-"""
+
 def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
-    gap_characters = ["-", ".", " "]
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
 
-    def convert_to_codon_align(in_seq):
+    def trans(in_seq):
+        try:
+            in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
+            return in_seq
 
+        except TranslationError as _e1:
+            if not quiet:
+                sys.stderr.write("Warning: %s in %s\n" % (_e1, in_seq.id))
+            return _e1
 
-    for alignment in _alignbuddy.alignments:
-        sb_alignment = SB.SeqBuddy([x for x in alignment])
-        copy_sb_alignment = deepcopy(sb_alignment)
+    def map_gaps(nucl, pep):
+        nucl = str(nucl.seq)
+        pep_string = str(pep.seq)
+        new_seq = ""
+        for _codon in [nucl[i:i + 3] for i in range(0, len(nucl), 3)]:
+            if _codon[0] not in gap_characters:
+                new_seq += pep_string[0]
+                pep_string = pep_string[1:]
 
-        # Do the basic translation on the sequences after clearing out gaps
-        SB.clean_seq(sb_alignment)
+            else:
+                new_seq += "-"
+        pep.seq = Seq(new_seq, alphabet=IUPAC.protein)
+        return pep
 
+    codon_alignment(_alignbuddy)
+    copy_alignbuddy = _make_copies(_alignbuddy)
+    clean_seq(copy_alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
+    for align_indx, alignment in enumerate(copy_alignbuddy.alignments):
+        for rec_indx, _rec in enumerate(alignment):
+            _rec.features = []
+            while True:
+                test_trans = trans(copy(_rec))
+                # success
+                if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
+                    break
 
-        # Convert
-        # Insert gaps into new protein sequences
-        for _rec in sb_alignment.records:
-            new_seq = ""
-            for aa in str(_rec.seq):
-                if codon_sorted[0] not in gap_characters:
-                    new_seq += aa
-                    codon_sorted = codon_sorted[2:]
+                # not standard length
+                if re.search("Sequence length [0-9]+ is not a multiple of three", str(test_trans)):
+                    orig_rec = _alignbuddy.alignments[align_indx][rec_indx]
+                    orig_rec_seq = str(orig_rec.seq)
+                    for _ in range(len(str(_rec.seq)) % 3):
+                        orig_rec_seq = re.sub(".([%s]+)$" % "".join(gap_characters), r"\1-", orig_rec_seq)
+
+                    orig_rec.seq = Seq(orig_rec_seq, alphabet=orig_rec.seq.alphabet)
+
+                    _rec.seq = Seq(str(_rec.seq)[:(len(str(_rec.seq)) - len(str(_rec.seq)) % 3)],
+                                   alphabet=_rec.seq.alphabet)
                     continue
 
-                while True:
-                    if codon_sorted[0] in gap_characters:
-                        new_seq += "-"
-                        codon_sorted = codon_sorted[2:]
+                # not a start codon
+                if re.search("First codon '[A-Za-z]{3}' is not a start codon", str(test_trans)):
+                    _rec.seq = Seq("ATG" + str(_rec.seq)[3:], alphabet=_rec.seq.alphabet)
+                    continue
 
-                    else:
-                        break
-            _rec.seq = Seq(new_seq, alphabet=IUPAC.protein)
+                # not a stop codon
+                if re.search("Final codon '[A-Za-z]{3}' is not a stop codon", str(test_trans)):
+                    _rec.seq = Seq(str(_rec.seq) + "TGA", alphabet=_rec.seq.alphabet)
+                    continue
 
-        _output = SB.map_features_dna2prot(_seqbuddy, _translation)
-        _output.out_format = _seqbuddy.out_format
-    return _output
-"""
+                # non-standard characters
+                if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
+                    regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
+                    regex = "(?i)%s" % regex[0]
+                    _rec.seq = Seq(re.sub(regex, "NNN", str(_rec.seq), count=1), alphabet=_rec.seq.alphabet)
+                    continue
+
+                # internal stop codon(s) found
+                if re.search("Extra in frame stop codon found", str(test_trans)):
+                    for _i in range(round(len(str(_rec.seq)) / 3) - 1):
+                        codon = str(_rec.seq)[(_i * 3):(_i * 3 + 3)]
+                        if codon.upper() in ["TGA", "TAG", "TAA"]:
+                            stop_removed = str(_rec.seq)[:(_i * 3)] + "NNN" + str(_rec.seq)[(_i * 3 + 3):]
+                            _rec.seq = Seq(stop_removed, alphabet=_rec.seq.alphabet)
+                    continue
+
+                break  # Safety valve, should be unreachable
+
+            try:
+                _rec.seq = _rec.seq.translate()
+                _rec.seq.alphabet = IUPAC.protein
+                _rec = map_gaps(_alignbuddy.alignments[align_indx][rec_indx], _rec)
+                _alignbuddy.alignments[align_indx][rec_indx].seq = Seq(str(_rec.seq), alphabet=_rec.seq.alphabet)
+
+            except TranslationError as e1:  # Should be unreachable
+                raise TranslationError("%s failed to translate  --> %s\n" % (_rec.id, e1))
+
+    _alignbuddy.alpha = IUPAC.protein
+    return _alignbuddy
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -413,7 +483,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                              "'strict' to remove all characters except the unambiguous letter codes.")
     parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
     parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
-    parser.add_argument('-an', '--features', action="store_true")
+    parser.add_argument('-tr', '--translate', action='store_true',
+                        help="Convert coding sequences into amino acid sequences")
+    parser.add_argument('-an', '--features', action="store_true")  # ToDo: Delete
     parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
                              "specify the # of columns to write")
@@ -513,11 +585,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         _print_aligments(codon_alignment(alignbuddy))
 
 
-    """
     # Translate CDS
     if in_args.translate:
-        if seqbuddy.alpha == IUPAC.protein:
-            raise ValueError("You need to supply DNA or RNA sequences to translate")
-
-        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
-    """
+        _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
