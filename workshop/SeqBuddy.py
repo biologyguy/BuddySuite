@@ -1785,6 +1785,7 @@ def find_pattern(_seqbuddy, pattern):  # TODO ambiguous letters mode
 
 def find_CpG(_seqbuddy):
     # Predicts locations of CpG islands in DNA sequences
+    _seqbuddy = clean_seq(_seqbuddy)
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         raise TypeError("DNA sequence required, not protein or RNA.")
 
@@ -1850,9 +1851,12 @@ def find_CpG(_seqbuddy):
                 cg_percent_list[_index] /= window_size
 
         indices = find_islands(cg_percent_list, oe_vals_list)
-
+        cpg_features = [SeqFeature(location=FeatureLocation(start, end), type="CpG_island",
+                                   qualifiers={'created_by': 'SeqBuddy'}) for (start, end) in indices]
+        for feature in rec.features:
+            cpg_features.append(feature)
         _rec = SeqRecord(map_cpg(seq, indices), id=rec.id, name=rec.name, description=rec.description,
-                         dbxrefs=rec.dbxrefs, features=rec.features, annotations=rec.annotations,
+                         dbxrefs=rec.dbxrefs, features=cpg_features, annotations=rec.annotations,
                          letter_annotations=rec.letter_annotations)
 
         records.append(_rec)
@@ -1981,6 +1985,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-fp", "--find_pattern", action='store', nargs=1, metavar="<pattern>", help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
+    parser.add_argument("-fcpg", "--find_CpG", action='store_true', help="")
     parser.add_argument("-cr", "--count_residues", action='store_true', help="")
     parser.add_argument("-spf", "--split_file", action='store', help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
@@ -2534,3 +2539,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         _stderr("#### {0} matches found across {1} sequences for pattern '{2}' ####\n".format(num_matches, len(output),
                                                                                   in_args.find_pattern[0]))
         _stdout(out_string)
+
+    # Find CpG
+    if in_args.find_CpG:
+        output = find_CpG(seqbuddy)
+        out_string = ""
+        for key in output[1]:
+            out_string += "{0}: {1}\n".format(key, str(output[1][key]))
+        print(output[0])
+        _stderr('\n'+out_string)
