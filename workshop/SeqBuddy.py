@@ -1783,43 +1783,86 @@ def find_pattern(_seqbuddy, pattern):  # TODO ambiguous letters mode
     return _output
 
 
-def find_CpG(_seq):
-    # http://www.ncbi.nlm.nih.gov/pubmed/3656447
-    # http://bioinformatics.org/sms/cpg_island.html
-    percent_values = []
-    obsexp_values = []
-    dividing_factor = []
-    is_island = []
-    for letter in _seq:
-        percent_values.append(0)
-        obsexp_values.append(0)
-        dividing_factor.append(0)
-        is_island.append(False)
-    for x in range(len(_seq)-99):
-        countC = 0
-        countG = 0
-        countCpG = 0
-        subseq = _seq[x:x+100]
-        for indx, letter in enumerate(subseq):
-            if letter.upper() == 'C':
-                countC += 1
-                if indx < 99 and subseq[indx+1].upper() == 'G':
-                    countCpG += 1
-            elif letter.upper() == 'G':
-                countG += 1
-        percent_cg = float(countC+countG)/100
-        CxG = countC * countG + 1
-        obsexp = (float(countCpG) / CxG) * 100
-        for indx in range(x,x+100):
-            percent_values[indx] += percent_cg
-            obsexp_values[indx] += obsexp
-            dividing_factor[indx] += 1
-    for x in range(len(_seq)):
-        percent_values[x] /= dividing_factor[x]
-        obsexp_values[x] /= dividing_factor[x]
-        if percent_values[x] > .5 and obsexp_values[x] > .6:
-            is_island[x] = True
-    return is_island
+def find_CpG(_seqbuddy):
+    # Predicts locations of CpG islands in DNA sequences
+    _seqbuddy = clean_seq(_seqbuddy)
+    if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
+        raise TypeError("DNA sequence required, not protein or RNA.")
+
+    output = OrderedDict()
+    records = []
+
+    def cpg_calc(_seq):  # Returns observed/expected value of a sequence
+        _seq = _seq.upper()
+        observed_cpg = len(re.findall("CG", _seq)) * len(_seq)
+        expected = (len(re.findall("[CG]", _seq)) / 2) ** 2
+        return observed_cpg / expected
+
+    def cg_percent(_seq):  # Returns the CG % of a sequence
+        _seq = _seq.upper()
+        return len(re.findall("[CG]", _seq)) / len(_seq)
+
+    def find_islands(cg_percents, oe_values):  # Returns a list of tuples containing the start and end of an island
+        _indx = 0
+        _output = []
+        while _indx < len(cg_percents):
+            if cg_percents[_indx] > .5 and oe_values[_indx] > .6:
+                start = _indx
+                while _indx < len(cg_percents) and cg_percents[_indx] > .5 and oe_values[_indx] > .6:
+                    _indx += 1
+                end = _indx
+                _output.append((start, end))
+            _indx += 1
+        return _output
+
+    def map_cpg(_seq, island_ranges):  # Maps CpG islands onto a sequence as capital letters
+        cpg_seq = _seq.lower()
+        for pair in island_ranges:
+            cpg_seq = cpg_seq[:pair[0]] + cpg_seq[pair[0]:pair[1]+1].upper() + cpg_seq[pair[1]+1:]
+        return cpg_seq
+
+    for rec in _seqbuddy.records:
+        seq = rec.seq
+
+        oe_vals_list = [0 for _ in range(len(seq))]
+        cg_percent_list = [0 for _ in range(len(seq))]
+        window_size = len(seq) if len(seq) < 200 else 200
+
+        for _index, window in enumerate([seq[i:i + window_size] for i in range(len(seq) - window_size + 1)]):
+            cpg = cpg_calc(str(window))
+            for i in range(window_size):
+                oe_vals_list[_index + i] += cpg
+
+            cg_perc = cg_percent(str(window))
+            for i in range(window_size):
+                cg_percent_list[_index + i] += cg_perc
+
+        for _index in range(len(oe_vals_list)):
+            if _index + 1 <= window_size:
+                oe_vals_list[_index] /= (_index + 1)
+                cg_percent_list[_index] /= (_index + 1)
+
+            elif (len(oe_vals_list) - window_size) - (_index + 1) < 0:
+                oe_vals_list[_index] /= (len(oe_vals_list) - _index)
+                cg_percent_list[_index] /= (len(cg_percent_list) - _index)
+
+            else:
+                oe_vals_list[_index] /= window_size
+                cg_percent_list[_index] /= window_size
+
+        indices = find_islands(cg_percent_list, oe_vals_list)
+        cpg_features = [SeqFeature(location=FeatureLocation(start, end), type="CpG_island",
+                                   qualifiers={'created_by': 'SeqBuddy'}) for (start, end) in indices]
+        for feature in rec.features:
+            cpg_features.append(feature)
+        _rec = SeqRecord(map_cpg(seq, indices), id=rec.id, name=rec.name, description=rec.description,
+                         dbxrefs=rec.dbxrefs, features=cpg_features, annotations=rec.annotations,
+                         letter_annotations=rec.letter_annotations)
+
+        records.append(_rec)
+        output[rec.id] = indices
+    _seqbuddy.records = records
+    return _seqbuddy, output
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -1942,6 +1985,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-fp", "--find_pattern", action='store', nargs=1, metavar="<pattern>", help="")
     parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
+    parser.add_argument("-fcpg", "--find_CpG", action='store_true', help="")
     parser.add_argument("-cr", "--count_residues", action='store_true', help="")
     parser.add_argument("-spf", "--split_file", action='store', help="")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
@@ -2495,3 +2539,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         _stderr("#### {0} matches found across {1} sequences for pattern '{2}' ####\n".format(num_matches, len(output),
                                                                                   in_args.find_pattern[0]))
         _stdout(out_string)
+
+    # Find CpG
+    if in_args.find_CpG:
+        output = find_CpG(seqbuddy)
+        out_string = ""
+        for key in output[1]:
+            out_string += "{0}: {1}\n".format(key, str(output[1][key]))
+        print(output[0])
+        _stderr('\n'+out_string)
