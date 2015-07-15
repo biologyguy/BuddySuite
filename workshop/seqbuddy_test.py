@@ -105,11 +105,6 @@ def test_to_string():
     tester = deepcopy(sb_objects[0])
     assert seqs_to_hash(tester) == md5(str(tester).encode()).hexdigest()
 
-
-def test_to_dict():
-    # still figuring out how to do this one
-    assert 0
-
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
 sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
@@ -841,11 +836,18 @@ def test_split_file():
         assert buddy.records[0] in tester.records
 
 
+# #####################  'sf', '--find_CpG' ###################### ##
+def test_find_CpG():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Sb.find_CpG(tester)[0]
+    assert seqs_to_hash(tester) == "ce6aff066c03651401db627951862154"
+
 # ##################### 'to_dict' ###################### ##
 def test_to_dict():
     tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
+    tester = ''.join(sorted(tester))
     tester = md5(tester.encode()).hexdigest()
-    assert tester == 'b831e901d8b6b1ba52bad797bad92d14'
+    assert tester == '06f50839f94e8f917311b682837461fd'
 
 
 # ######################  'phylipi' ###################### #

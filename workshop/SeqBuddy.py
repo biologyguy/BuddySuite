@@ -2547,4 +2547,4 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         for key in output[1]:
             out_string += "{0}: {1}\n".format(key, str(output[1][key]))
         print(output[0])
-        _stderr('\n'+out_string)
+        _stderr('\n'+out_string, in_args.quiet)
