@@ -27,7 +27,6 @@ from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
 # My functions
-import SeqBuddy as SB
 
 # ##################################################### WISH LIST #################################################### #
 # - 'Clean' an alignment by removing gaps (like phyutility -clean, or trimal -gt). Default removes cols with 100% gap
@@ -35,6 +34,7 @@ import SeqBuddy as SB
 # - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html)
 # - number of seqs in each alignment
 # - Concatenate sequences from multiple alignments by id, taxa, or position in alignment (return new AlignBuddy)
+# - Translate
 # - Transcribe
 # - Back-transcribe
 # - Back-translate
@@ -298,10 +298,6 @@ def list_ids(_alignbuddy, _columns=1):
     return "%s\n" % _output.strip()
 
 
-def num_seqs(_alignbuddy):
-    return [len(_alignment) for _alignment in _alignbuddy.alignments]
-
-
 def uppercase(_alignbuddy):
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
@@ -492,8 +488,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
                              "specify the # of columns to write")
-    parser.add_argument('-ns', '--num_seqs', action='store_true',
-                        help="Counts how many sequences are present in each alignment")
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
     parser.add_argument('-ca', '--condon_alignment', action='store_true',
                         help="Shift all gaps so the sequence is in triplets.")
@@ -561,15 +555,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
         _stdout(list_ids(alignbuddy, columns))
 
-    # Number sequences per alignment
-    if in_args.num_seqs:
-        counts = num_seqs(alignbuddy)
-        output = ""
-        for indx, count in enumerate(counts):
-            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
-
-        _stdout("%s\n" % output.strip())
-
     # Clean Seq
     if in_args.clean_seq:
         if in_args.clean_seq[0] == "strict":
@@ -597,6 +582,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Codon alignment
     if in_args.condon_alignment:
         _print_aligments(codon_alignment(alignbuddy))
+
 
     # Translate CDS
     if in_args.translate:

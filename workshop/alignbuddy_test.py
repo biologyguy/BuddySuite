@@ -367,3 +367,15 @@ def test_translate2():
     tester = Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa"))
     Alb.translate_cds(tester)
     assert align_to_hash(tester) == "ab8fb45a38a6e5d553a29f3613bbc1a1"
+
+
+def test_num_seqs():
+    for i in [0, 2, 3, 4, 6, 7]:
+        assert Alb.num_seqs(alb_objects[i]) == [13]
+    for i in [1, 5]:
+        assert Alb.num_seqs(alb_objects[i]) == [8]
+    assert Alb.num_seqs(alb_objects[8]) == [20, 8]
+    for i in [9, 10]:
+        assert Alb.num_seqs(alb_objects[i]) == [20, 13]
+    for i in [11, 12]:
+        assert Alb.num_seqs(alb_objects[i]) == [8, 21]
