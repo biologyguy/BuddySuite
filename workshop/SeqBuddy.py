@@ -2460,16 +2460,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.molecular_weight:
         lists = molecular_weight(seqbuddy)
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            _stderr("ssDNA\tdsDNA\tID\n")
+            _stderr("ID\tssDNA\tdsDNA\n")
         elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            _stderr("ssRNA\tID\n")
+            _stderr("ID\tssRNA\n")
         else:
-            _stderr("Protein\tID\n")
+            _stderr("ID\tProtein\n")
         for indx, value in enumerate(lists['ids']):
             if len(lists['masses_ds']) != 0:
-                print("{0}\t{1}\t{2}".format(lists['masses_ss'][indx], lists['masses_ds'][indx], value))
+                print("{0}\t{1}\t{2}".format(value, lists['masses_ss'][indx], lists['masses_ds'][indx]))
             else:
-                print("{0}\t{1}".format(lists['masses_ss'][indx], value))
+                print("{0}\t{1}".format(value, lists['masses_ss'][indx]))
 
     # Calculate Isoelectric Point
     if in_args.isoelectric_point:
