@@ -32,6 +32,8 @@ import sys
 import requests
 from io import StringIO
 import re
+from urllib.parse import urlencode
+import time
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -73,7 +75,6 @@ def _stdout(message, quiet=False):
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _database=None, _out_format="summary"):
         self.search_terms = []
-        self.accessions = {}
         self.records = {}
         self.out_format = _out_format.lower()
 
@@ -85,9 +86,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
                 self.search_terms += _dbbuddy.search_terms
                 # ToDo: update() will overwrite any common records between the two dicts, should check whether values are already set first
-                self.accessions.update(_dbbuddy.accessions)
                 self.records.update(_dbbuddy.records)
-
             _input = None
 
         # Handles
@@ -105,7 +104,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 _input = _ifile.read().strip()
 
         else:
-            raise GuessError("Could not determine the input type.")
+            raise GuessError("DbBuddy could not determine the input type.")
 
         if _input:
             # try to glean accessions first
@@ -114,30 +113,27 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             for _accession in accessions_check:
                 db = guess_database(_accession)
                 if db:
-                    self.accessions[_accession] = db if not _database else _database
+                    self.records[_accession] = Record(_accession, db) if not _database else Record(_accession, _database)
 
             # If accessions not identified, assume search terms
-            if len(self.accessions) != len(accessions_check):
+            if len(self.records) != len(accessions_check):
                 search_term_check = re.sub("[\n\r,]+", "\t", _input)
-                search_term_check =  search_term_check.split("\t")
-                if search_term_check not in self.accessions:
-                    self.search_terms.append(search_term_check)
+                search_term_check = [x.strip() for x in search_term_check.split("\t")]
+                for search_term in search_term_check:
+                    if search_term not in self.records:
+                        self.search_terms.append(search_term)
 
     def __str__(self):
         _output = ""
         if self.out_format == "summary":
-            for _accession in self.accessions:
-                _output += "%s\t" % _accession
-                try:
-                    _output += "%s\n" % self.type
-                except IndexError:
-                    _output += "Unknown\n"
+            for _accession, _rec in self.records.items():
+                _output += "%s\t%s\n" % (_accession, _rec.database)
             _output = "%s/n" % _output.strip()
         return _output
 
 
-class record:
-    def __init__(self, _accession, _database=None, _seq=None, _meta=None, _type=None):
+class Record:
+    def __init__(self, _accession, _database, _seq=None, _meta=None, _type=None):
         self.accession = _accession
         self.database = _database
         self.seq = _seq
@@ -161,26 +157,161 @@ def guess_database(accession):
         return "ensembl"
 
     return None
-    #server = "http://rest.ensembl.org"
-    #ext = "/archive/id/ENSG00000157764?"
 
-    #r = requests.get(server + ext, headers={"Content-Type": "application/json"})
 
-    #if not r.ok:
-    #  r.raise_for_status()
-    #  sys.exit()
+# ################################################# Database Clients ################################################# #
+class EnsemblRestClient:
+    def __init__(self, server='http://rest.ensembl.org', reqs_per_sec=15):
+        self.server = server
+        self.reqs_per_sec = reqs_per_sec
+        self.req_count = 0
+        self.last_req = 0
 
-    #decoded = r.json()
-    #print(repr(decoded))
+    def perform_rest_action(self, endpoint, headers=None, params=None):
+        if headers is None:
+            {}
+
+        if 'Content-Type' not in headers:
+            headers['Content-Type'] = 'application/json'
+
+        if params:
+            endpoint += '?' + urlencode(params)
+
+        data = None
+
+        # check if we need to rate limit ourselves
+        if self.req_count >= self.reqs_per_sec:
+            delta = time.time() - self.last_req
+            if delta < 1:
+                time.sleep(1 - delta)
+            self.last_req = time.time()
+            self.req_count = 0
+
+        try:
+            request = urllib.Request(self.server + endpoint, headers=hdrs)
+            response = urllib.urlopen(request)
+            content = response.read()
+            if content:
+                data = json.loads(content)
+            self.req_count += 1
+
+        except urllib.HTTPError, e:
+            # check if we are being rate limited by the server
+            if e.code == 429:
+                if 'Retry-After' in e.headers:
+                    retry = e.headers['Retry-After']
+                    time.sleep(float(retry))
+                    self.perform_rest_action(endpoint, hdrs, params)
+            else:
+                sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
+
+        return data
+
+    def get_variants(self, species, symbol):
+        genes = self.perform_rest_action(
+            '/xrefs/symbol/{0}/{1}'.format(species, symbol),
+            params={'object_type': 'gene'}
+        )
+        if genes:
+            stable_id = genes[0]['id']
+            variants = self.perform_rest_action(
+                '/overlap/id/{0}'.format(stable_id),
+                params={'feature': 'variation'}
+            )
+            return variants
+        return None
 # #################################################################################################################### #
 
 
+def pull_ensembl_records(_dbbuddy):
+    search_recs = [_rec for _accession, _rec in _dbbuddy.records.items() if _rec.database == "ensembl"]
+    ids = '"%s' % '", "'.join([_rec.accession for _rec in search_recs])
+    ids += '"'
+    headers = {"Content-Type": "application/json"}
+    for _rec in search_recs:
+        #request = requests.get("http://rest.ensembl.org/archive/id/%s" % _rec.accession, headers=headers)
+        request = requests.get("http://rest.ensembl.org/archive/id/%s?type=protein" % _rec.accession, headers=headers)
+        #request = requests.get("http://rest.ensembl.org/sequence/id/%s" % _rec.accession, headers=headers)
+        #request = requests.get("http://rest.ensembl.org/sequence/id/%s?type=protein" % _rec.accession, headers=headers)
+        #request = requests.get("http://rest.ensembl.org/sequence/id/%s?type=protein" % _rec.accession, headers=headers)
+
+        if not request.ok:
+            request.raise_for_status()
+
+        decoded = request.json()
+        print(decoded)
+
+
+
 def search_ensembl(_dbbuddy):
+    for search_term in _dbbuddy.search_terms:
+        url = "http://metazoa.ensembl.org/Multi/Search/Results?q=%s;species=all;collection=all;site=ensemblunit"\
+              % search_term
+        content = requests.get(url).text
+
+        soup = BeautifulSoup(content, 'html.parser')
+        try:
+            paginate = soup.find('div', {"class": 'paginate'}).find_all('a')
+            max_page = 1
+            for page in paginate:
+                try:
+                    if int(page.text) > max_page:
+                        max_page = int(page.text)
+                except ValueError:
+                    continue
+        except AttributeError:
+            max_page = 1
+
+        print("%s pages of results were returned" % max_page)
+        ids = {}
+        for page_num in range(max_page):
+            stdout.write("\rCollecting data from results page %s" % (page_num + 1),)
+            stdout.flush()
+
+            url = "http://metazoa.ensembl.org/Multi/Search/Results?page=%s;q=%s;species=all;collection=all;site=ensemblunit"\
+                  % (page_num + 1, in_args.search_term)
+            content = requests.get(url).text
+
+            soup = BeautifulSoup(content)
+
+            for row in soup.find_all('div', {"class": 'row'}):
+                sub_soup = BeautifulSoup(str(row))
+                lhs = sub_soup.find('div', {"class": "lhs"}).text
+                rhs = sub_soup.find('div', {"class": "rhs"}).text
+
+                if lhs == "Gene ID":
+                    gene_id = rhs
+
+                if lhs == "Species":
+                    if rhs in ids:
+                        ids[rhs].append(gene_id)
+                    else:
+                        ids[rhs] = [gene_id]
+
+        if len(ids) == 0:
+            exit("\rNo records found for query '%s'" % in_args.search_term)
+
+        output = ""
+        for species in ids:
+            output += "%s\n" % species
+            for next_id in ids[species]:
+                output += "%s\n" % next_id
+            output += "\n"
+
+        if in_args.outfile:
+            outfile = os.path.abspath(in_args.outfile)
+            with open(outfile, "w") as ofile:
+                ofile.write(output)
+            print("Output written to %s" % outfile)
+
+        else:
+            print(output)
     return _dbbuddy
 
 
 def download_everything(_dbbuddy):
-    return _dbbuddy
+    pull_ensembl_records(_dbbuddy)
+    return
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -246,9 +377,23 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Download everything
     if in_args.download_everything:
-        _print_recs(download_everything(dbbuddy))
+        download_everything(dbbuddy)
 
-    # Guess database
+    # Guess database  ToDo: Sort by database
     if in_args.guess_database:
-        for accession, database in dbbuddy.accessions.items():
-            _stdout("%s:\t%s\n" % (accession, database))
+        output = ""
+        if len(dbbuddy.records) > 0:
+            output += "# Accession\tDatabase\n"
+            for accession, record in dbbuddy.records.items():
+                output += "%s\t%s\n" % (accession, record.database)
+            output += "\n"
+
+        if len(dbbuddy.search_terms) > 0:
+            output += "# Search terms\n"
+            for term in dbbuddy.search_terms:
+                output += "%s\n" % term
+
+        if len(dbbuddy.records) == 0 and len(dbbuddy.search_terms) == 0:
+            output += "Nothing to return\n"
+
+        _stdout(output)
