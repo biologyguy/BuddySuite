@@ -25,7 +25,20 @@ Description:
 Collection of functions that interact with public sequence databases. Pull them into a script or run from command line.
 """
 
+# Standard library imports
+# import pdb
+# import timeit
 import sys
+import requests
+from io import StringIO
+import re
+
+# Third party package imports
+sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+from bs4 import BeautifulSoup
+
+# My functions
+from MyFuncs import *
 
 
 # ##################################################### WISH LIST #################################################### #
@@ -58,18 +71,107 @@ def _stdout(message, quiet=False):
 
 # ##################################################### DB BUDDY ##################################################### #
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
-    def __init__(self, _input, _in_format=None, _out_format=None):
-        # ####  IN AND OUT FORMATS  #### #
-        # Holders for input type. Used for some error handling below
-        in_handle = None
-        _raw_search = None
-        in_file = None
+    def __init__(self, _input, _database=None, _out_format="summary"):
+        self.search_terms = []
+        self.accessions = {}
+        self.records = {}
+        self.out_format = _out_format.lower()
+
+        # DbBuddy objects
+        if type(_input) == list:
+            for _dbbuddy in _input:
+                if type(_dbbuddy) != DbBuddy:
+                    raise TypeError("List of non-DbBuddy objects passed into DbBuddy as _input. %s" % _dbbuddy)
+
+                self.search_terms += _dbbuddy.search_terms
+                # ToDo: update() will overwrite any common records between the two dicts, should check whether values are already set first
+                self.accessions.update(_dbbuddy.accessions)
+                self.records.update(_dbbuddy.records)
+
+            _input = None
+
+        # Handles
+        elif str(type(_input)) == "<class '_io.TextIOWrapper'>":
+            # This will also deal with input streams (e.g., stdout pipes)
+            _input = _input.read().strip()
+
+        # Plain text
+        elif type(_input) == str and not os.path.isfile(_input):
+            _input = _input.strip()
+
+        # File paths
+        elif os.path.isfile(_input):
+            with open(_input, "r") as _ifile:
+                _input = _ifile.read().strip()
+
+        else:
+            raise GuessError("Could not determine the input type.")
+
+        if _input:
+            # try to glean accessions first
+            accessions_check = re.sub("[\n\r, ]+", "\t", _input)
+            accessions_check = accessions_check.split("\t")
+            for _accession in accessions_check:
+                db = guess_database(_accession)
+                if db:
+                    self.accessions[_accession] = db if not _database else _database
+
+            # If accessions not identified, assume search terms
+            if len(self.accessions) != len(accessions_check):
+                search_term_check = re.sub("[\n\r,]+", "\t", _input)
+                search_term_check =  search_term_check.split("\t")
+                if search_term_check not in self.accessions:
+                    self.search_terms.append(search_term_check)
+
+    def __str__(self):
+        _output = ""
+        if self.out_format == "summary":
+            for _accession in self.accessions:
+                _output += "%s\t" % _accession
+                try:
+                    _output += "%s\n" % self.type
+                except IndexError:
+                    _output += "Unknown\n"
+            _output = "%s/n" % _output.strip()
+        return _output
 
 
-def guess_database(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
-    # If input is just a list, there is no BioPython in-format. Default to gb.
-    if isinstance(_input, list):
-        return "gb"
+class record:
+    def __init__(self, _accession, _database=None, _seq=None, _meta=None, _type=None):
+        self.accession = _accession
+        self.database = _database
+        self.seq = _seq
+        self.metadata = _meta
+        self.type = _type
+
+
+def guess_database(accession):
+    # RefSeq
+    if re.match("^[NX][MR]_[0-9]+", accession):
+        return "refseq_nucl"
+    if re.match("^[ANYXZ]P_[0-9]+", accession):
+        return "refseq_prot"
+
+    # UniProt
+    if re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", accession):
+        return "uniprot"
+
+    # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
+    if re.match("^(ENS|FB)[A-Z]*[0-9]+", accession):
+        return "ensembl"
+
+    return None
+    #server = "http://rest.ensembl.org"
+    #ext = "/archive/id/ENSG00000157764?"
+
+    #r = requests.get(server + ext, headers={"Content-Type": "application/json"})
+
+    #if not r.ok:
+    #  r.raise_for_status()
+    #  sys.exit()
+
+    #decoded = r.json()
+    #print(repr(decoded))
 # #################################################################################################################### #
 
 
@@ -100,26 +202,34 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
-    parser.add_argument('-de', '--download_everything',
+    parser.add_argument('-de', '--download_everything', action="store_true",
                         help="Retrieve full records for all search terms and accessions")
+    parser.add_argument('-gd', '--guess_database', action="store_true",
+                        help="List the database that each provided accession belongs to.")
+
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
+    parser.add_argument('-o', '--out_format', default="Summary",
+                        help="If you want a specific format output", action='store')
+    parser.add_argument('-f', '--in_format', help="If DbBuddy can't guess the file format, just specify it directly.",
                         action='store')
-
+    parser.add_argument('-d', '--database', choices=["all", "ensembl", "genbank", "uniprot", "dna", "protein"],
+                        help='Specify a specific database or database class to search', action='store')
     in_args = parser.parse_args()
 
     dbbuddy = []
     search_set = ""
 
     try:
-        for search_set in in_args.sequence:
-            search_set = DbBuddy(search_set, in_args.in_format, in_args.out_format)
-            dbbuddy += search_set.records
+        if len(in_args.user_input) > 1:
+            for search_set in in_args.user_input:
+                dbbuddy.append(DbBuddy(search_set, in_args.database, in_args.out_format))
 
-        seqbuddy = DbBuddy(dbbuddy, search_set.in_format, search_set.out_format)
+            dbbuddy = DbBuddy(dbbuddy, in_args.database, in_args.out_format)
+        else:
+            dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, in_args.out_format)
+
     except GuessError:
         sys.exit("Error: SeqBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
@@ -137,3 +247,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Download everything
     if in_args.download_everything:
         _print_recs(download_everything(dbbuddy))
+
+    # Guess database
+    if in_args.guess_database:
+        for accession, database in dbbuddy.accessions.items():
+            _stdout("%s:\t%s\n" % (accession, database))
