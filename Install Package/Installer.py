@@ -6,16 +6,19 @@ from tkinter import filedialog
 import collections
 from functools import partial
 from shutil import *
+import shutil
 from platform import *
 from os import path, mkdir
 from configparser import *
+import copy
+from re import sub
 
 root = Tk()
 sw = root.winfo_screenwidth()
 sh = root.winfo_screenheight()
+sys.path.insert(0, "./")
 
 class BuddyInstall:
-    sys.path.insert(0, "./")
 
     @staticmethod
     def install_buddy_suite(user_system, options):
@@ -31,13 +34,13 @@ class BuddyInstall:
         if not path.exists(install_directory):
             mkdir(install_directory)
         if user_system in ['Darwin', 'Linux', 'Unix']:
-            copy(resource_path, "{0}/resources".format(install_directory))
-            copy(biopython_path, "{0}/Bio".format(install_directory))
-            copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            copy(blast_path, "{0}/blast binaries".format(install_directory))
+            shutil.copy(resource_path, "{0}/resources".format(install_directory))
+            shutil.copy(biopython_path, "{0}/Bio".format(install_directory))
+            shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
+            shutil.copy(blast_path, "{0}/blast binaries".format(install_directory))
             for buddy in buddies_to_install:
                 if buddies_to_install[buddy]:
-                    copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                    shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
                     for shortcut in shortcuts[buddy]:
                         if which(shortcut) is None:
                             os.symlink("{0}/{1}.py".format(install_directory, buddy),
@@ -53,9 +56,9 @@ class BuddyInstall:
         writer.add_section('Install_path')
         writer.add_section('shortcuts')
         writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DatabaseBuddy': True},
-                             'Install_path': {'path': '/usr/local/bin/BuddySuite'},
-                             'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
-                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DatabaseBuddy': 'db\n\tDatabaseBuddy'}}
+                             'Install_path': {'path': '/usr/local/bin/.BuddySuite'},
+                             'shortcuts': {'SeqBuddy': 'sb\nseqbuddy', 'AlignBuddy': 'alb\nalignbuddy',
+                                           'PhyloBuddy': 'pb\nphylobuddy', 'DatabaseBuddy': 'db\nDatabaseBuddy'}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -68,7 +71,7 @@ class BuddyInstall:
         for buddy in options[2]:
             sc = ''
             for shortcut in options[2][buddy]:
-                sc += shortcut + "\n\t"
+                sc += shortcut + "\n"
             writer['shortcuts'][buddy] = sc if sc != '' else 'None'
 
         with open("{0}/resources/config.ini".format(options[1]), 'w') as configfile:
@@ -105,13 +108,15 @@ class Installer(Frame):
 
     bs_logo = PhotoImage(file="./resources/images/BuddySuite-logo.gif")
     id_logo = PhotoImage(file="./resources/images/InstallDirectory.gif")
+    sc_logo = PhotoImage(file="./resources/images/ConsoleShortcuts.gif")
     cs_logo = PhotoImage(file="./resources/images/ConfirmSelection.gif")
     suite_logos = [PhotoImage(file="./resources/images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
 
-    install_dir = "/usr/local/bin/BuddySuite"
-    default_dir = "/usr/local/bin/BuddySuite"
+    install_dir = "/usr/local/bin/.BuddySuite"
+    default_dir = "/usr/local/bin/.BuddySuite"
     default = True
-    shortcuts = {"SeqBuddy": ['seqbuddy'], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
+    shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
+                 "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
     user_system = system()
     user_os = platform()
     print("Operating System: {0}".format(user_os))
@@ -124,9 +129,8 @@ class Installer(Frame):
         for buddy in shortcuts:
             for shortcut in shortcuts:
                 os.remove("/usr/local/bin/{0}".format(shortcut))
-
+    original_shortcuts = copy.deepcopy(shortcuts)
     conflict = False
-    install_shortcuts = False if conflict else True
 
     def __init__(self, master=None):
         Frame.__init__(self, master)
@@ -143,7 +147,7 @@ class Installer(Frame):
 
     def license(self):
         self.clear_container()
-        frame = Frame(padx=50, pady=100)
+        frame = Frame(pady=75)
         scrollbar = Scrollbar(master=frame)
         license_file = open("LICENSE")
         license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
@@ -153,10 +157,16 @@ class Installer(Frame):
         frame.pack(side=TOP)
         license_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
-        next_button = Button(padx=50, pady=20, text="I agree", command=self.next_tool)
-        next_button.place(x=int(sw/6)-75, y=sh/2-100)
+        button_frame = Frame()
+        next_button = Button(button_frame, padx=50, pady=20, text="I agree", command=self.next_tool)
+        next_button.pack(side=TOP)
+        back_button = Label(button_frame, padx=50, pady=20, text="Cancel", fg='blue', font=('Helvetica', 12,
+                                                                                            'underline'))
+        back_button.bind("<Button-1>", exit)
+        back_button.pack(side=BOTTOM)
+        button_frame.pack(side=BOTTOM, pady=20)
         self.container.append(frame)
-        self.container.append(next_button)
+        self.container.append(button_frame)
 
     def next_tool(self, num=0, entry=None):
         if entry:
@@ -201,6 +211,11 @@ class Installer(Frame):
         self.container.append(mega_frame)
         self.container.append(next_button)
 
+    def toggle_tool(self, name):
+        self.buddies[name] = False if self.buddies[name] else True
+        print(name)
+        print(str(self.buddies[name]))
+
     def install_location(self):
         self.clear_container()
         logo_label = Label(image=self.id_logo, pady=20)
@@ -221,27 +236,18 @@ class Installer(Frame):
 
         toggle_func = partial(self.default_directory, directory_text, browse_button)
         toggle_default = Checkbutton(frame, text="Default directory", pady=10, command=toggle_func)
-        toggle_shortcuts = Checkbutton(text="Install Console Shortcuts", pady=10,
-                                       command=self.toggle_console_shortcuts)
+
         if self.default:
             browse_button.config(state=DISABLED)
             directory_text.config(state=DISABLED)
             toggle_default.select()
         else:
             toggle_default.deselect()
-        if self.install_shortcuts:
-            toggle_shortcuts.select()
-        else:
-            toggle_shortcuts.deselect()
-        if self.conflict:
-            toggle_shortcuts.config(state=DISABLED, text="Install Console Shortcuts (ERROR: Naming conflict)")
 
         toggle_default.pack(side=LEFT)
-        toggle_shortcuts.pack(padx=60, anchor=NW)
-        self.container.append(toggle_shortcuts)
         self.container.append(frame)
         button_frame = Frame()
-        next_func = partial(self.confirmation, directory_text)
+        next_func = partial(self.install_shortcuts, directory_text)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, 3, directory_text)
@@ -250,16 +256,98 @@ class Installer(Frame):
         button_frame.pack(side=BOTTOM, pady=40)
         self.container.append(button_frame)
 
-    def toggle_tool(self, name):
-        self.buddies[name] = False if self.buddies[name] else True
-        print(name)
-        print(str(self.buddies[name]))
+    def install_shortcuts(self, in_dir=None):
+        if in_dir is not None:
+            self.install_dir = in_dir.get()
+        self.clear_container()
+        logo_label = Label(image=self.sc_logo)
+        logo_label.pack(side=TOP)
+        self.container.append(logo_label)
 
-    def toggle_console_shortcuts(self):
-        self.install_shortcuts = False if self.install_shortcuts else True
+        button_frame = Frame()
+        next_button = Button(button_frame, padx=50, pady=20, text="Next", command=self.confirmation)
+        next_button.pack(side=RIGHT)
+        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=self.install_location)
+        back_button.pack(side=LEFT)
+        button_frame.pack(side=BOTTOM, pady=40)
+        self.container.append(button_frame)
 
-    def confirmation(self, in_dir):
-        self.install_dir = in_dir.get()
+        frame = Frame()
+        self.container.append(frame)
+        scrollbox_frame = Frame(frame)
+        scrollbar = Scrollbar(master=scrollbox_frame)
+        shortcut_box = Listbox(master=scrollbox_frame, yscrollcommand=scrollbar.set, bd=2, relief=SUNKEN)
+        for buddy in self.shortcuts:
+            if self.buddies[buddy]:
+                for shortcut in self.shortcuts[buddy]:
+                    shortcut_box.insert(END,"{0} ==> {1}".format(buddy, shortcut))
+        scrollbar.config(command=shortcut_box.yview())
+        shortcut_box.pack(side=LEFT, fill=BOTH, expand=1)
+        scrollbar.pack(side=RIGHT, fill=Y)
+        scrollbox_frame.pack(side=TOP, fill=BOTH, expand=1)
+        space = Frame()
+        space.pack(pady=25)
+        frame.pack(padx=100, expand=1, fill=BOTH, side=BOTTOM)
+        self.container.append(space)
+
+        debug_frame = Frame(frame)
+        debug = Label(debug_frame)
+        debug.pack(side=BOTTOM, anchor=NW)
+        selection_frame = Frame(debug_frame)
+        entry_frame = Frame(selection_frame)
+        buds = [x for x in self.buddies if self.buddies[x] is True]
+        curr_buddy = StringVar()
+        curr_buddy.set("SeqBuddy")
+        dropdown = OptionMenu(selection_frame, curr_buddy, *buds)
+        dropdown.config(width=13)
+        dropdown.pack(side=RIGHT)
+        selection_frame.pack(fill=X, expand=1, side=TOP)
+        debug_frame.pack(fill=X, expand=1, side=BOTTOM, anchor=NW)
+        self.container.append(entry_frame)
+        entry_button_frame = Frame(entry_frame)
+        shortcut_entry = Entry(entry_frame)
+        add_func = partial(self.add_shortcut, curr_buddy, shortcut_box, shortcut_entry, debug)
+        add_button = Button(entry_button_frame, text="Add", command=add_func)
+        add_button.pack(side=LEFT)
+        rmv_func = partial(self.remove_shortcut, curr_buddy, shortcut_box, shortcut_entry, debug)
+        rmv_button = Button(entry_button_frame, text="Remove", command=rmv_func)
+        rmv_button.pack(side=RIGHT)
+        shortcut_entry.pack(side=LEFT, fill=X, expand=1)
+        entry_button_frame.pack(side=LEFT)
+        entry_frame.pack(fill=X, expand=1, side=LEFT)
+
+
+    def add_shortcut(self, buddy, listbox, entry, debug):
+        addable = True
+        text = re.sub("[^a-zA-Z0-9]", '', entry.get())
+        entry.delete(0, END)
+        entry.insert(END, text)
+        bud = buddy.get()
+        for name in self.buddy_names:
+            if "{0} ==> {1}".format(name, text) in listbox.get(0, END):
+                addable = False
+        if addable:
+            if which(text) is not None and text not in self.original_shortcuts[bud]:
+                debug.config(text='Not added: Naming Conflict')
+            else:
+                listbox.insert(END, "{0} ==> {1}".format(bud, text))
+                self.shortcuts[bud].append(text)
+                debug.config(text='')
+        else:
+            debug.config(text='Not added: Already exists')
+            return
+
+    def remove_shortcut(self, buddy, listbox, entry, debug):
+        text = re.sub("[^a-zA-Z0-9]", '', entry.get())
+        entry.delete(0, END)
+        entry.insert(END, text)
+        lst = listbox.get(0, END)
+        if "{0} ==> {1}".format(buddy.get(), text) in lst:
+            index = lst.index("{0} ==> {1}".format(buddy.get(), text))
+            listbox.delete(index)
+            self.shortcuts[buddy.get()].remove(text)
+
+    def confirmation(self):
         self.clear_container()
         logo_label = Label(image=self.cs_logo, pady=20)
         logo_label.pack(side=TOP)
@@ -272,11 +360,7 @@ class Installer(Frame):
         ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
         db_label = Label(info_frame, text="Install DatabaseBuddy: {0}".format(self.buddies["DatabaseBuddy"]))
         dir_label = Label(info_frame, text="Install Directory: {0}".format(self.install_dir))
-        if self.conflict:
-            short = "Naming conflict"
-        else:
-            short = self.install_shortcuts
-        cs_label = Label(info_frame, text="Install Console Shortcuts: {0}".format(short))
+        cs_label = Label(info_frame, text="Console Shortcuts: {0}".format("[Placeholder]"))
         os_label.grid(row=0, sticky=NW)
         sb_label.grid(row=1, sticky=NW)
         pb_label.grid(row=2, sticky=NW)
@@ -288,7 +372,7 @@ class Installer(Frame):
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=self.install_location)
+        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=self.install_shortcuts)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM, pady=40)
         self.container.append(button_frame)
@@ -301,19 +385,11 @@ class Installer(Frame):
         for item in self.container:
             item.destroy()
 
-    def is_conflict(self):
-        conflicts = {"SeqBuddy": [], "AlignBuddy": [], "PhyloBuddy": [], "DatabaseBuddy": []}
-        for buddy in self.shortcuts:
-            for shortcut in self.shortcuts[buddy]:
-                if which(shortcut) is not None:
-                    conflicts[buddy].append(shortcut)
-        return conflicts
-
     def choose_directory(self, textbox):
         name = filedialog.askdirectory(parent=root, title="Select Directory", initialdir=textbox.get())
         if name is not "":
             textbox.delete(0, len(textbox.get()))
-            textbox.insert(END, name)
+            textbox.insert(END, name+"/.BuddySuite")
 
     def default_directory(self, textbox, browse):
         if self.default:
