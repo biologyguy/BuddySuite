@@ -31,13 +31,10 @@ class BuddyInstall:
         if not path.exists(install_directory):
             mkdir(install_directory)
         if user_system in ['Darwin', 'Linux', 'Unix']:
-            if not path.exists("{0}/resources".format(install_directory)):
-                copytree(resource_path, "{0}/resources".format(install_directory))
-            if not path.exists("{0}/Bio".format(install_directory)):
-                copytree(biopython_path, "{0}/Bio".format(install_directory))
+            copy(resource_path, "{0}/resources".format(install_directory))
+            copy(biopython_path, "{0}/Bio".format(install_directory))
             copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            if not path.exists("{0}/blast binaries".format(install_directory)):
-                copytree(blast_path, "{0}/blast binaries".format(install_directory))
+            copy(blast_path, "{0}/blast binaries".format(install_directory))
             for buddy in buddies_to_install:
                 if buddies_to_install[buddy]:
                     copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
@@ -55,10 +52,10 @@ class BuddyInstall:
         writer.add_section('selected')
         writer.add_section('Install_path')
         writer.add_section('shortcuts')
-        writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DBBuddy': True},
+        writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DatabaseBuddy': True},
                              'Install_path': {'path': '/usr/local/bin/BuddySuite'},
                              'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
-                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DBBuddy': 'db\n\tdbbuddy'}}
+                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DatabaseBuddy': 'db\n\tDatabaseBuddy'}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -82,7 +79,7 @@ class BuddyInstall:
         if path.exists("./resources/config.ini"):
             reader = ConfigParser()
             reader.read_string("./resources/config.ini")
-            options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DBBuddy": False},
+            options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
                        reader['Install_path']['path'], {}]
 
             for buddy in options[0]:
@@ -102,7 +99,7 @@ class BuddyInstall:
 class Installer(Frame):
     container = []
     buddies = collections.OrderedDict()
-    buddy_names = ["SeqBuddy", "PhyloBuddy", "AlignBuddy", "DBBuddy"]
+    buddy_names = ["SeqBuddy", "PhyloBuddy", "AlignBuddy", "DatabaseBuddy"]
     for buddy in buddy_names:
         buddies[buddy] = True
 
@@ -114,7 +111,7 @@ class Installer(Frame):
     install_dir = "/usr/local/bin/BuddySuite"
     default_dir = "/usr/local/bin/BuddySuite"
     default = True
-    shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DBBuddy": []}
+    shortcuts = {"SeqBuddy": ['seqbuddy'], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
     user_system = system()
     user_os = platform()
     print("Operating System: {0}".format(user_os))
@@ -124,10 +121,11 @@ class Installer(Frame):
         buddies = config[0]
         install_dir = config[1]
         shortcuts = config[2]
+        for buddy in shortcuts:
+            for shortcut in shortcuts:
+                os.remove("/usr/local/bin/{0}".format(shortcut))
 
     conflict = False
-    if (which('sb') is not None) or (which('pb') is not None) or (which('alb') is not None) or (which('db') is not None):
-        conflict = True
     install_shortcuts = False if conflict else True
 
     def __init__(self, master=None):
@@ -272,7 +270,7 @@ class Installer(Frame):
         sb_label = Label(info_frame, text="Install SeqBuddy: {0}".format(self.buddies["SeqBuddy"]))
         pb_label = Label(info_frame, text="Install PhyloBuddy: {0}".format(self.buddies["PhyloBuddy"]))
         ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
-        db_label = Label(info_frame, text="Install DBBuddy: {0}".format(self.buddies["DBBuddy"]))
+        db_label = Label(info_frame, text="Install DatabaseBuddy: {0}".format(self.buddies["DatabaseBuddy"]))
         dir_label = Label(info_frame, text="Install Directory: {0}".format(self.install_dir))
         if self.conflict:
             short = "Naming conflict"
@@ -302,6 +300,14 @@ class Installer(Frame):
     def clear_container(self):
         for item in self.container:
             item.destroy()
+
+    def is_conflict(self):
+        conflicts = {"SeqBuddy": [], "AlignBuddy": [], "PhyloBuddy": [], "DatabaseBuddy": []}
+        for buddy in self.shortcuts:
+            for shortcut in self.shortcuts[buddy]:
+                if which(shortcut) is not None:
+                    conflicts[buddy].append(shortcut)
+        return conflicts
 
     def choose_directory(self, textbox):
         name = filedialog.askdirectory(parent=root, title="Select Directory", initialdir=textbox.get())
