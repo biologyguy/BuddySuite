@@ -5,9 +5,9 @@ from tkinter import *
 from tkinter import filedialog
 import collections
 from functools import partial
-from shutil import which
+from shutil import *
 from platform import *
-from os import *
+from os import path, mkdir
 from configparser import *
 
 root = Tk()
@@ -24,18 +24,23 @@ class BuddyInstall:
         shortcuts = options[2]
 
         myfuncs_path = "./MyFuncs.py"
-        biopython_path = "./Bio"
-        blast_path = "./blast binaries"
+        biopython_path = "./resources/Bio"
+        blast_path = "./resources/blast binaries"
         resource_path = "./resources"
-        if user_system in ['Darwin', 'Linux', 'Unix']:
+        print(install_directory)
+        if not path.exists(install_directory):
             mkdir(install_directory)
-            copytree(biopython_path, "{0}/".format(install_directory))
-            copytree(myfuncs_path, "{0}/".format(install_directory))
-            copytree(blast_path, "{0}/".format(install_directory))
-            copytree(resource_path, "{0}/".format(install_directory))
+        if user_system in ['Darwin', 'Linux', 'Unix']:
+            if not path.exists("{0}/resources".format(install_directory)):
+                copytree(resource_path, "{0}/resources".format(install_directory))
+            if not path.exists("{0}/Bio".format(install_directory)):
+                copytree(biopython_path, "{0}/Bio".format(install_directory))
+            copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
+            if not path.exists("{0}/blast binaries".format(install_directory)):
+                copytree(blast_path, "{0}/blast binaries".format(install_directory))
             for buddy in buddies_to_install:
                 if buddies_to_install[buddy]:
-                    copytree("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                    copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
                     for shortcut in shortcuts[buddy]:
                         if which(shortcut) is None:
                             os.symlink("{0}/{1}.py".format(install_directory, buddy),
@@ -57,9 +62,9 @@ class BuddyInstall:
 
         for buddy in options[0]:
             if options[0][buddy]:
-                writer['selected'][buddy] = True
+                writer['selected'][buddy] = 'True'
             else:
-                writer['selected'][buddy] = False
+                writer['selected'][buddy] = 'False'
 
         writer["Install_path"]['path'] = options[1]
 
@@ -67,9 +72,9 @@ class BuddyInstall:
             sc = ''
             for shortcut in options[2][buddy]:
                 sc += shortcut + "\n\t"
-            writer["{0}_shortcuts".format(buddy)] = sc if sc != '' else 'None'
+            writer['shortcuts'][buddy] = sc if sc != '' else 'None'
 
-        with open("{0}/resources/config.ini".format(options[0]), 'w') as configfile:
+        with open("{0}/resources/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
 
     @staticmethod
@@ -291,7 +296,7 @@ class Installer(Frame):
         self.container.append(button_frame)
 
     def install(self):
-        BuddyInstall.make_config_file([self.buddies, self.install_dir, self.shortcuts])
+        BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts])
         raise SystemExit(0)
 
     def clear_container(self):
@@ -325,4 +330,3 @@ root.call('wm', 'attributes', '.', '-topmost', True)
 root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
 root.resizable(width=FALSE, height=FALSE)
 app.mainloop()
-
