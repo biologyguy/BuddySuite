@@ -14,6 +14,86 @@ root = Tk()
 sw = root.winfo_screenwidth()
 sh = root.winfo_screenheight()
 
+class BuddyInstall:
+    sys.path.insert(0, "./")
+
+    @staticmethod
+    def install_buddy_suite(user_system, options):
+        buddies_to_install = options[0]
+        install_directory = options[1]
+        shortcuts = options[2]
+
+        myfuncs_path = "./MyFuncs.py"
+        biopython_path = "./Bio"
+        blast_path = "./blast binaries"
+        resource_path = "./resources"
+        if user_system in ['Darwin', 'Linux', 'Unix']:
+            mkdir(install_directory)
+            copytree(biopython_path, "{0}/".format(install_directory))
+            copytree(myfuncs_path, "{0}/".format(install_directory))
+            copytree(blast_path, "{0}/".format(install_directory))
+            copytree(resource_path, "{0}/".format(install_directory))
+            for buddy in buddies_to_install:
+                if buddies_to_install[buddy]:
+                    copytree("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                    for shortcut in shortcuts[buddy]:
+                        if which(shortcut) is None:
+                            os.symlink("{0}/{1}.py".format(install_directory, buddy),
+                                   "/usr/local/bin/{0}".format(shortcut))
+        elif user_system == 'Windows':
+            return
+        BuddyInstall.make_config_file(options)
+
+    @staticmethod
+    def make_config_file(options):
+        writer = ConfigParser()
+        writer.add_section('selected')
+        writer.add_section('Install_path')
+        writer.add_section('shortcuts')
+        writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DBBuddy': True},
+                             'Install_path': {'path': '/usr/local/bin/BuddySuite'},
+                             'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
+                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DBBuddy': 'db\n\tdbbuddy'}}
+
+        for buddy in options[0]:
+            if options[0][buddy]:
+                writer['selected'][buddy] = True
+            else:
+                writer['selected'][buddy] = False
+
+        writer["Install_path"]['path'] = options[1]
+
+        for buddy in options[2]:
+            sc = ''
+            for shortcut in options[2][buddy]:
+                sc += shortcut + "\n\t"
+            writer["{0}_shortcuts".format(buddy)] = sc if sc != '' else 'None'
+
+        with open("{0}/resources/config.ini".format(options[0]), 'w') as configfile:
+            writer.write(configfile)
+
+    @staticmethod
+    def read_config_file():
+        if path.exists("./resources/config.ini"):
+            reader = ConfigParser()
+            reader.read_string("./resources/config.ini")
+            options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DBBuddy": False},
+                       reader['Install_path']['path'], {}]
+
+            for buddy in options[0]:
+                if reader['selected'][buddy] == 'True':
+                    options[0][buddy] = True
+                if reader['shortcuts'][buddy] != "None":
+                    sc = reader['shortcuts'][buddy].split("\n\t")
+                    options[2][buddy] = sc
+                else:
+                    options[2][buddy] = []
+
+            return options
+
+        else:
+            return None
+
 class Installer(Frame):
     container = []
     buddies = collections.OrderedDict()
@@ -236,84 +316,6 @@ class Installer(Frame):
             browse.config(state=DISABLED)
             textbox.config(state=DISABLED)
             self.default = True
-
-
-class BuddyInstall:
-    sys.path.insert(0, "./")
-
-    @staticmethod
-    def install_buddy_suite(user_system, options):
-        buddies_to_install = options[0]
-        install_directory = options[1]
-        shortcuts = options[2]
-
-        myfuncs_path = "./MyFuncs.py"
-        biopython_path = "./Bio"
-        blast_path = "./blast binaries"
-        resource_path = "./resources"
-        if user_system in ['Darwin', 'Linux', 'Unix']:
-            mkdir(install_directory)
-            copytree(biopython_path, "{0}/".format(install_directory))
-            copytree(myfuncs_path, "{0}/".format(install_directory))
-            copytree(blast_path, "{0}/".format(install_directory))
-            copytree(resource_path, "{0}/".format(install_directory))
-            for buddy in buddies_to_install:
-                if buddies_to_install[buddy]:
-                    copytree("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
-                    for shortcut in shortcuts[buddy]:
-                        if which(shortcut) is None:
-                            os.symlink("{0}/{1}.py".format(install_directory, buddy),
-                                   "/usr/local/bin/{0}".format(shortcut))
-        elif user_system == 'Windows':
-            return
-        BuddyInstall.make_config_file(options)
-
-    @staticmethod
-    def make_config_file(options):
-        writer = ConfigParser()
-        writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DBBuddy': True},
-                             'Install_path': {'path': '/usr/local/bin/BuddySuite'},
-                             'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
-                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DBBuddy': 'db\n\tdbbuddy'}}
-
-        for buddy in options[0]:
-            if options[0][buddy]:
-                writer['selected'][buddy] = True
-            else:
-                writer['selected'][buddy] = False
-
-        writer["Install_path"]['path'] = options[1]
-
-        for buddy in options[2]:
-            sc = ''
-            for shortcut in options[2][buddy]:
-                sc += shortcut + "\n\t"
-            writer["{0}_shortcuts".format(buddy)] = sc if sc != '' else 'None'
-
-        with open("{0}/resources/config.ini".format(options[0]), 'w') as configfile:
-            writer.write(configfile)
-
-    @staticmethod
-    def read_config_file():
-        if path.exists("./resources/config.ini"):
-            reader = ConfigParser()
-            reader.read_string("./resources/config.ini")
-            options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DBBuddy": False},
-                       reader['Install_path']['path'], {}]
-
-            for buddy in options[0]:
-                if reader['selected'][buddy] == 'True':
-                    options[0][buddy] = True
-                if reader['shortcuts'][buddy] != "None":
-                    sc = reader['shortcuts'][buddy].split("\n\t")
-                    options[2][buddy] = sc
-                else:
-                    options[2][buddy] = []
-
-            return options
-
-        else:
-            return None
 
 root.title("BuddySuite Installer")
 app = Installer(master=root)
