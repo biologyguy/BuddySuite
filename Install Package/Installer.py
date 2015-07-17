@@ -7,6 +7,8 @@ import collections
 from functools import partial
 from shutil import which
 from platform import *
+from os import *
+from configparser import *
 
 root = Tk()
 sw = root.winfo_screenwidth()
@@ -19,10 +21,10 @@ class Installer(Frame):
     for buddy in buddy_names:
         buddies[buddy] = True
 
-    bs_logo = PhotoImage(file="../images/BuddySuite-logo.gif")
-    id_logo = PhotoImage(file="../images/InstallDirectory.gif")
-    cs_logo = PhotoImage(file="../images/ConfirmSelection.gif")
-    suite_logos = [PhotoImage(file="../images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
+    bs_logo = PhotoImage(file="./images/BuddySuite-logo.gif")
+    id_logo = PhotoImage(file="./images/InstallDirectory.gif")
+    cs_logo = PhotoImage(file="./images/ConfirmSelection.gif")
+    suite_logos = [PhotoImage(file="./images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
 
     install_dir = "/usr/local/bin/BuddySuite"
     default_dir = "/usr/local/bin/BuddySuite"
@@ -32,8 +34,14 @@ class Installer(Frame):
     user_os = platform()
     print("Operating System: {0}".format(user_os))
 
+    if BuddyInstall.read_config_file() is not None:
+        config = BuddyInstall.read_config_file()
+        buddies = config[0]
+        install_dir = config[1]
+        shortcuts = config[2]
+
     conflict = False
-    if (which('sb') is not None) or (which('pb') is not None) or (which('ab') is not None) or (which('db') is not None):
+    if (which('sb') is not None) or (which('pb') is not None) or (which('alb') is not None) or (which('db') is not None):
         conflict = True
     install_shortcuts = False if conflict else True
 
@@ -203,8 +211,7 @@ class Installer(Frame):
         self.container.append(button_frame)
 
     def install(self):
-        if BuddyInstall.read_config_file() is None:
-            BuddyInstall.make_config_file([self.buddies, self.install_dir, self.shortcuts])
+        BuddyInstall.make_config_file([self.buddies, self.install_dir, self.shortcuts])
         raise SystemExit(0)
 
     def clear_container(self):
@@ -264,18 +271,18 @@ class BuddyInstall:
     @staticmethod
     def make_config_file(options):
         writer = ConfigParser()
-        writer['DEFAULT'] = {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DBBuddy': True,
-                             'Install_path': '/usr/local/bin/BuddySuite', 'SeqBuddy_shortcuts': 'sb, seqbuddy',
-                             'AlignBuddy_shortcuts': 'alb, alignbuddy', 'PhyloBuddy_shortcuts': 'pb, phylobuddy',
-                             'DBBuddy_shortcuts': 'db, dbbuddy'}
+        writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DBBuddy': True},
+                             'Install_path': {'path': '/usr/local/bin/BuddySuite'},
+                             'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
+                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DBBuddy': 'db\n\tdbbuddy'}}
 
         for buddy in options[0]:
             if options[0][buddy]:
-                writer[buddy] = True
+                writer['selected'][buddy] = True
             else:
-                writer[buddy] = False
+                writer['selected'][buddy] = False
 
-        writer["Install_path"] = options[1]
+        writer["Install_path"]['path'] = options[1]
 
         for buddy in options[2]:
             sc = ''
@@ -292,13 +299,13 @@ class BuddyInstall:
             reader = ConfigParser()
             reader.read_string("./resources/config.ini")
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DBBuddy": False},
-                       reader['Install_path'], {}]
+                       reader['Install_path']['path'], {}]
 
             for buddy in options[0]:
-                if reader[buddy] == 'True':
+                if reader['selected'][buddy] == 'True':
                     options[0][buddy] = True
-                if reader["{0}_shortcuts".format(buddy)] != "None":
-                    sc = reader["{0}_shortcuts"].split("\n\t")
+                if reader['shortcuts'][buddy] != "None":
+                    sc = reader['shortcuts'][buddy].split("\n\t")
                     options[2][buddy] = sc
                 else:
                     options[2][buddy] = []
