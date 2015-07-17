@@ -5,10 +5,11 @@ from tkinter import *
 from tkinter import filedialog
 import collections
 from functools import partial
-from shutil import *
+from shutil import copy, which, copy2, copystat
 from platform import *
 from os import path, mkdir
 from configparser import *
+import stat
 
 root = Tk()
 sw = root.winfo_screenwidth()
@@ -31,10 +32,10 @@ class BuddyInstall:
         if not path.exists(install_directory):
             mkdir(install_directory)
         if user_system in ['Darwin', 'Linux', 'Unix']:
-            copy(resource_path, "{0}/resources".format(install_directory))
-            copy(biopython_path, "{0}/Bio".format(install_directory))
+            BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
+            BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
             copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            copy(blast_path, "{0}/blast binaries".format(install_directory))
+            BuddyInstall.copytree(blast_path, "{0}/blast binaries".format(install_directory))
             for buddy in buddies_to_install:
                 if buddies_to_install[buddy]:
                     copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
@@ -44,6 +45,7 @@ class BuddyInstall:
                                    "/usr/local/bin/{0}".format(shortcut))
         elif user_system == 'Windows':
             return
+        os.symlink(install_directory, "/usr/local/bin/buddysuite")
         BuddyInstall.make_config_file(options)
 
     @staticmethod
@@ -53,9 +55,9 @@ class BuddyInstall:
         writer.add_section('Install_path')
         writer.add_section('shortcuts')
         writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DatabaseBuddy': True},
-                             'Install_path': {'path': '/usr/local/bin/BuddySuite'},
-                             'shortcuts': {'SeqBuddy': 'sb\n\tseqbuddy', 'AlignBuddy': 'alb\n\talignbuddy',
-                                           'PhyloBuddy': 'pb\n\tphylobuddy', 'DatabaseBuddy': 'db\n\tDatabaseBuddy'}}
+                             'Install_path': {'path': '/usr/local/bin/.BuddySuite'},
+                             'shortcuts': {'SeqBuddy': 'sb\nseqbuddy', 'AlignBuddy': 'alb\nalignbuddy',
+                                           'PhyloBuddy': 'pb\nphylobuddy', 'DatabaseBuddy': 'db\nDatabaseBuddy'}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -68,15 +70,15 @@ class BuddyInstall:
         for buddy in options[2]:
             sc = ''
             for shortcut in options[2][buddy]:
-                sc += shortcut + "\n\t"
+                sc += shortcut + "\n"
             writer['shortcuts'][buddy] = sc if sc != '' else 'None'
 
-        with open("{0}/resources/config.ini".format(options[1]), 'w') as configfile:
+        with open("{0}/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
 
     @staticmethod
     def read_config_file():
-        if path.exists("./resources/config.ini"):
+        if path.exists("/usr/local/bin/buddysuite/config.ini"):
             reader = ConfigParser()
             reader.read_string("./resources/config.ini")
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
@@ -96,6 +98,33 @@ class BuddyInstall:
         else:
             return None
 
+    @staticmethod
+    def copytree(src, dst, symlinks = False, ignore=None):
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+            copystat(src, dst)
+        lst = os.listdir(src)
+        if ignore:
+            excl = ignore(src, lst)
+            lst = [x for x in lst if x not in excl]
+        for item in lst:
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if symlinks and os.path.islink(s):
+                if os.path.lexists(d):
+                    os.remove(d)
+                os.symlink(os.readlink(s), d)
+                try:
+                    st = os.lstat(s)
+                    mode = stat.S_IMODE(st.st_mode)
+                    os.lchmod(d, mode)
+                except:
+                    pass
+            elif os.path.isdir(s):
+                BuddyInstall.copytree(s, d, symlinks, ignore)
+            else:
+                copy2(s, d)
+
 class Installer(Frame):
     container = []
     buddies = collections.OrderedDict()
@@ -108,10 +137,10 @@ class Installer(Frame):
     cs_logo = PhotoImage(file="./resources/images/ConfirmSelection.gif")
     suite_logos = [PhotoImage(file="./resources/images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
 
-    install_dir = "/usr/local/bin/BuddySuite"
-    default_dir = "/usr/local/bin/BuddySuite"
+    install_dir = "/usr/local/bin/.BuddySuite"
+    default_dir = "/usr/local/bin/.BuddySuite"
     default = True
-    shortcuts = {"SeqBuddy": ['seqbuddy'], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
+    shortcuts = {"SeqBuddy": ['sb', 'buddy'], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
     user_system = system()
     user_os = platform()
     print("Operating System: {0}".format(user_os))
@@ -313,7 +342,7 @@ class Installer(Frame):
         name = filedialog.askdirectory(parent=root, title="Select Directory", initialdir=textbox.get())
         if name is not "":
             textbox.delete(0, len(textbox.get()))
-            textbox.insert(END, name)
+            textbox.insert(END, name+"/.BuddySuite")
 
     def default_directory(self, textbox, browse):
         if self.default:
