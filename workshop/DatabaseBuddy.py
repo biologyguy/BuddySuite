@@ -40,7 +40,6 @@ import json
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
-from bs4 import BeautifulSoup
 from Bio import Entrez
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -51,9 +50,6 @@ from MyFuncs import *
 
 
 # ##################################################### WISH LIST #################################################### #
-def get_genbank_file():
-    x = 1
-    return x
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -153,7 +149,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         if self.out_format == "summary":
             for _accession, _rec in self.records.items():
                 _output += "%s\t%s\n" % (_accession, _rec.database)
-            _output = "%s/n" % _output.strip()
+            _output = "%s\n" % _output.strip()
 
         else:
             nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide" and _rec.record]
@@ -215,6 +211,24 @@ class Record:
 
 
 # ################################################# Database Clients ################################################# #
+class UniProtRestClient:
+    def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
+        self.dbbuddy = _dbbuddy
+        self.server = server
+
+    def fetch_proteins(self):
+        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
+        _ids = ",".join([_rec.accession for _rec in _records]).strip(",")
+        request = Request("%s?query=%s&format=txt" % (self.server, _ids))
+        response = urlopen(request)
+        data = SeqIO.to_dict(SeqIO.parse(response, "swiss"))
+        for _rec in _records:
+            if _rec.accession not in data:
+                self.dbbuddy.failures.append(_rec.accession)
+            else:
+                self.dbbuddy.records[_rec.accession].record = data[_rec.accession]
+
+
 class NCBIClient:
     def __init__(self, _dbbuddy):
         Entrez.email = ""
@@ -315,6 +329,10 @@ class EnsemblRestClient:
 # #################################################################################################################### #
 
 def download_everything(_dbbuddy):
+    # Get sequences from UniProt
+    uniprot = UniProtRestClient(_dbbuddy)
+    uniprot.fetch_proteins()
+
     # Get sequences from Ensembl
     ensembl = EnsemblRestClient(_dbbuddy)
     ensembl.fetch_nucleotides()
@@ -323,16 +341,6 @@ def download_everything(_dbbuddy):
     refseq = NCBIClient(_dbbuddy)
     refseq.fetch_nucliotides()
     refseq.fetch_proteins()
-
-    if len(_dbbuddy.failures) > 0:
-        _output = "# ##################### Accession failures ##################### #\n"
-        counter = 1
-        for next_acc in _dbbuddy.failures:
-            _output += "%s\t" % next_acc
-            if counter % 4 == 0:
-                _output = "%s\n" % _output.strip()
-            counter += 1
-        _stderr("%s\n# ################################################################ #\n\n" % _output.strip())
 
     return _dbbuddy
 
@@ -364,25 +372,25 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', default="Summary",
-                        help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If DbBuddy can't guess the file format, just specify it directly.",
-                        action='store')
+    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
+    parser.add_argument('-f', '--in_format', action='store',
+                        help="If DbBuddy can't guess the accession format, try specifying it directly.")
     parser.add_argument('-d', '--database', choices=["all", "ensembl", "genbank", "uniprot", "dna", "protein"],
                         help='Specify a specific database or database class to search', action='store')
     in_args = parser.parse_args()
 
     dbbuddy = []
+    out_format = "summary" if not in_args.out_format else in_args.out_format
     search_set = ""
 
     try:
         if len(in_args.user_input) > 1:
             for search_set in in_args.user_input:
-                dbbuddy.append(DbBuddy(search_set, in_args.database, in_args.out_format))
+                dbbuddy.append(DbBuddy(search_set, in_args.database, out_format))
 
             dbbuddy = DbBuddy(dbbuddy, in_args.database, in_args.out_format)
         else:
-            dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, in_args.out_format)
+            dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
 
     except GuessError:
         sys.exit("Error: SeqBuddy could not understand your input. "
@@ -399,12 +407,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 accession_only = [_accession for _accession, _rec in _dbbuddy.records.items() if not _rec.record]
                 if len(accession_only) > 0:
                     _output = "# ################## Accessions without Records ################## #\n"
-                    counter = 1
-                    for next_acc in accession_only:
-                        _output += "%s\t" % next_acc
-                        if counter % 4 == 0:
+                    _counter = 1
+                    for _next_acc in accession_only:
+                        _output += "%s\t" % _next_acc
+                        if _counter % 4 == 0:
                             _output = "%s\n" % _output.strip()
-                        counter += 1
+                        _counter += 1
                     _output = "%s\n# ################################################################ #\n\n" % _output.strip()
                     _stderr(_output, in_args.quiet)
 
@@ -413,8 +421,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Download everything
     if in_args.download_everything:
-        dbbuddy.out_format = "gb"
-        _print_recs(download_everything(dbbuddy))
+        dbbuddy.out_format = "gb" if not in_args.out_format else in_args.out_format
+        download_everything(dbbuddy)
+
+        if len(dbbuddy.failures) > 0:
+            output = "# ###################### Accession failures ###################### #\n"
+            counter = 1
+            for next_acc in dbbuddy.failures:
+                output += "%s\t" % next_acc
+                if counter % 4 == 0:
+                    output = "%s\n" % output.strip()
+                counter += 1
+            _stderr("%s\n# ################################################################ #\n\n" % output.strip())
+
+        _print_recs(dbbuddy)
 
     # Guess database  ToDo: Sort by database
     if in_args.guess_database:
