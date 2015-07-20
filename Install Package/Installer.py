@@ -28,22 +28,28 @@ class BuddyInstall:
         install_directory = options[1]
         shortcuts = options[2]
 
+        paths_to_delete = ["/resources", "blast_binaries", "Bio"]
+        files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
+        for loc in paths_to_delete:
+            if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
+                shutil.rmtree("/usr/local/bin/buddysuite/{0}".format(loc))
+        for loc in files_to_delete:
+            if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
+                os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
+
+
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./resources/Bio"
-        blast_path = "./resources/blast binaries"
+        blast_path = "./resources/blast_binaries"
         resource_path = "./resources"
         print(install_directory)
         if not path.exists(install_directory):
             mkdir(install_directory)
         if user_system in ['Darwin', 'Linux', 'Unix']:
-            shutil.copy(resource_path, "{0}/resources".format(install_directory))
-            shutil.copy(biopython_path, "{0}/Bio".format(install_directory))
             shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            shutil.copy(blast_path, "{0}/blast binaries".format(install_directory))
             BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
             BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
-            copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            BuddyInstall.copytree(blast_path, "{0}/blast binaries".format(install_directory))
+            BuddyInstall.copytree(blast_path, "{0}/blast_binaries".format(install_directory))
             for buddy in buddies_to_install:
                 if buddies_to_install[buddy]:
                     shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
@@ -51,9 +57,12 @@ class BuddyInstall:
                         if which(shortcut) is None:
                             os.symlink("{0}/{1}.py".format(install_directory, buddy),
                                    "/usr/local/bin/{0}".format(shortcut))
+            if not path.exists("/usr/local/bin/buddysuite/"):
+                os.symlink(install_directory, "/usr/local/bin/buddysuite")
+
         elif user_system == 'Windows':
             return
-        os.symlink(install_directory, "/usr/local/bin/buddysuite")
+
         BuddyInstall.make_config_file(options)
 
     @staticmethod
@@ -64,8 +73,8 @@ class BuddyInstall:
         writer.add_section('shortcuts')
         writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DatabaseBuddy': True},
                              'Install_path': {'path': '/usr/local/bin/.BuddySuite'},
-                             'shortcuts': {'SeqBuddy': 'sb\nseqbuddy', 'AlignBuddy': 'alb\nalignbuddy',
-                                           'PhyloBuddy': 'pb\nphylobuddy', 'DatabaseBuddy': 'db\nDatabaseBuddy'}}
+                             'shortcuts': {'SeqBuddy': 'sb\tseqbuddy', 'AlignBuddy': 'alb\talignbuddy',
+                                           'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -78,7 +87,7 @@ class BuddyInstall:
         for buddy in options[2]:
             sc = ''
             for shortcut in options[2][buddy]:
-                sc += shortcut + "\n"
+                sc += shortcut + "\t"
             writer['shortcuts'][buddy] = sc if sc != '' else 'None'
 
         with open("{0}/config.ini".format(options[1]), 'w') as configfile:
@@ -88,15 +97,16 @@ class BuddyInstall:
     def read_config_file():
         if path.exists("/usr/local/bin/buddysuite/config.ini"):
             reader = ConfigParser()
-            reader.read_string("./resources/config.ini")
+            reader.read("/usr/local/bin/buddysuite/config.ini")
+
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
-                       reader['Install_path']['path'], {}]
+                       reader.get('Install_path', 'path'), {}]
 
             for buddy in options[0]:
                 if reader['selected'][buddy] == 'True':
                     options[0][buddy] = True
                 if reader['shortcuts'][buddy] != "None":
-                    sc = reader['shortcuts'][buddy].split("\n\t")
+                    sc = reader['shortcuts'][buddy].split("\t")
                     options[2][buddy] = sc
                 else:
                     options[2][buddy] = []
@@ -119,7 +129,7 @@ class BuddyInstall:
             s = os.path.join(src, item)
             d = os.path.join(dst, item)
             if symlinks and os.path.islink(s):
-                if os.path.lexists(d):
+                if os.path.exists(d):
                     os.remove(d)
                 os.symlink(os.readlink(s), d)
                 try:
@@ -161,7 +171,7 @@ class Installer(Frame):
         install_dir = config[1]
         shortcuts = config[2]
         for buddy in shortcuts:
-            for shortcut in shortcuts:
+            for shortcut in shortcuts[buddy]:
                 os.remove("/usr/local/bin/{0}".format(shortcut))
     original_shortcuts = copy.deepcopy(shortcuts)
     conflict = False
@@ -412,6 +422,9 @@ class Installer(Frame):
         self.container.append(button_frame)
 
     def install(self):
+        for buddy in self.buddies:
+            if not self.buddies[buddy]:
+                self.shortcuts[buddy] = []
         BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts])
         raise SystemExit(0)
 
