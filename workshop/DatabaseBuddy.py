@@ -33,11 +33,16 @@ import requests
 from io import StringIO
 import re
 from urllib.parse import urlencode
+from urllib.error import HTTPError
 import time
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from bs4 import BeautifulSoup
+from Bio import Entrez
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 
 # My functions
 from MyFuncs import *
@@ -52,6 +57,14 @@ def get_genbank_file():
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
+class DatabaseError(Exception):
     def __init__(self, _value):
         self.value = _value
 
@@ -74,6 +87,12 @@ def _stdout(message, quiet=False):
 # ##################################################### DB BUDDY ##################################################### #
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _database=None, _out_format="summary"):
+        if _database and _database.lower() not in ["gb", "genbank", "uniprot", "ensembl"]:
+            raise DatabaseError("%s is not currently supported." % _database)
+
+        if _database and _database.lower() == "genbank":
+            _database = "gb"
+
         self.search_terms = []
         self.records = {}
         self.out_format = _out_format.lower()
@@ -111,9 +130,12 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             accessions_check = re.sub("[\n\r, ]+", "\t", _input)
             accessions_check = accessions_check.split("\t")
             for _accession in accessions_check:
-                db = guess_database(_accession)
-                if db:
-                    self.records[_accession] = Record(_accession, db) if not _database else Record(_accession, _database)
+                _record = Record(_accession)
+                _record.guess_database()
+                if _record.database:
+                    if _database:
+                        _record.database = _database.lower()
+                    self.records[_accession] = _record
 
             # If accessions not identified, assume search terms
             if len(self.records) != len(accessions_check):
@@ -129,37 +151,97 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             for _accession, _rec in self.records.items():
                 _output += "%s\t%s\n" % (_accession, _rec.database)
             _output = "%s/n" % _output.strip()
+
+        else:
+            nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide" and _rec.record]
+            prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein" and _rec.record]
+            tmp_dir = TemporaryDirectory()
+
+            if len(nuc_recs) > 0:
+                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                    SeqIO.write(nuc_recs, _ofile, self.out_format)
+
+                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                    _output = "%s\n" % ifile.read()
+
+            if len(prot_recs) > 0:
+                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                    SeqIO.write(prot_recs, _ofile, self.out_format)
+
+                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                    _output += "%s\n" % ifile.read()
+
+        if _output == "":
+            _output = "No records returned\n"
+
         return _output
 
 
 class Record:
-    def __init__(self, _accession, _database, _seq=None, _meta=None, _type=None):
+    def __init__(self, _accession, _database=None, _record=None, _type=None):
         self.accession = _accession
-        self.database = _database
-        self.seq = _seq
-        self.metadata = _meta
-        self.type = _type
+        self.database = _database  # genbank, ensembl, uniprot
+        self.record = _record  # SeqIO record
+        self.type = _type  # protein, nucleotide
 
+    def guess_database(self):
+        # RefSeq
+        if re.match("^[NX][MR]_[0-9]+", self.accession):
+            self.database = "gb"
+            self.type = "nucleotide"
 
-def guess_database(accession):
-    # RefSeq
-    if re.match("^[NX][MR]_[0-9]+", accession):
-        return "refseq_nucl"
-    if re.match("^[ANYXZ]P_[0-9]+", accession):
-        return "refseq_prot"
+        if re.match("^[ANYXZ]P_[0-9]+", self.accession):
+            self.database = "gb"
+            self.type = "protein"
 
-    # UniProt
-    if re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", accession):
-        return "uniprot"
+        # UniProt
+        if re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
+            self.database = "uniprot"
+            self.type = "protein"
 
-    # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
-    if re.match("^(ENS|FB)[A-Z]*[0-9]+", accession):
-        return "ensembl"
+        # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
+        if re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
+            self.database = "ensembl"
+            self.type = "nucleotide"
 
-    return None
+        return
+
+    def __str__(self):
+        return "Accession:\t{0}\nDatabase:\t{1}\nRecord:\t{2}\nType:\t{3}\n".format(self.accession, self.database,
+                                                                                    self.record, self.type)
 
 
 # ################################################# Database Clients ################################################# #
+class NCBIClient:
+    def __init__(self, _dbbuddy):
+        Entrez.email = ""
+        self.dbbuddy = _dbbuddy
+        self.failures = []
+        #handle = Entrez.einfo()
+        #result = Entrez.read(handle)
+        #print(handle.read())
+
+    def fetch_nucliotides(self):
+        for _accession, _rec in self.dbbuddy.records.items():
+            if _rec.database == "gb" and _rec.type == "nucleotide":
+                try:
+                    handle = Entrez.efetch(db="nucleotide", id=_rec.accession, rettype="gb", retmode="text")
+                    self.dbbuddy.records[_accession].record = SeqIO.read(handle, "gb")
+                except HTTPError as e:
+                    if e.getcode() == 400:
+                        self.failures.append(_rec.accession)
+
+    def fetch_proteins(self):
+        for _accession, _rec in self.dbbuddy.records.items():
+            if _rec.database == "gb" and _rec.type == "protein":
+                try:
+                    handle = Entrez.efetch(db="protein", id=_rec.accession, rettype="gb", retmode="text")
+                    self.dbbuddy.records[_accession].record = SeqIO.read(handle, "gb")
+                except HTTPError as e:
+                    if e.getcode() == 400:
+                        self.failures.append(_rec.accession)
+
+
 class EnsemblRestClient:
     def __init__(self, server='http://rest.ensembl.org', reqs_per_sec=15):
         self.server = server
@@ -186,7 +268,7 @@ class EnsemblRestClient:
                 time.sleep(1 - delta)
             self.last_req = time.time()
             self.req_count = 0
-
+        """
         try:
             request = urllib.Request(self.server + endpoint, headers=hdrs)
             response = urllib.urlopen(request)
@@ -220,6 +302,7 @@ class EnsemblRestClient:
             )
             return variants
         return None
+        """
 # #################################################################################################################### #
 
 
@@ -240,7 +323,6 @@ def pull_ensembl_records(_dbbuddy):
 
         decoded = request.json()
         print(decoded)
-
 
 
 def search_ensembl(_dbbuddy):
@@ -291,27 +373,44 @@ def search_ensembl(_dbbuddy):
         if len(ids) == 0:
             exit("\rNo records found for query '%s'" % in_args.search_term)
 
-        output = ""
+        _output = ""
         for species in ids:
-            output += "%s\n" % species
+            _output += "%s\n" % species
             for next_id in ids[species]:
-                output += "%s\n" % next_id
-            output += "\n"
+                _output += "%s\n" % next_id
+            _output += "\n"
 
         if in_args.outfile:
             outfile = os.path.abspath(in_args.outfile)
             with open(outfile, "w") as ofile:
-                ofile.write(output)
+                ofile.write(_output)
             print("Output written to %s" % outfile)
 
         else:
-            print(output)
+            print(_output)
     return _dbbuddy
 
 
 def download_everything(_dbbuddy):
-    pull_ensembl_records(_dbbuddy)
-    return
+    # Get sequences from Ensembl
+    #pull_ensembl_records(_dbbuddy)
+
+    # Get sequences from genbank
+    refseq = NCBIClient(_dbbuddy)
+    refseq.fetch_nucliotides()
+    refseq.fetch_proteins()
+
+    if len(refseq.failures) > 0:
+        _output = "# ################## GenBank accession failures ################## #\n"
+        counter = 1
+        for next_acc in refseq.failures:
+            _output += "%s\t" % next_acc
+            if counter % 4 == 0:
+                _output = "%s\n" % _output.strip()
+            counter += 1
+        _stderr("%s\n# ################################################################ #\n\n" % _output.strip())
+
+    return _dbbuddy
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -366,18 +465,31 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                  "Check the file path or try specifying an input type with -f")
 
     # ############################################# INTERNAL FUNCTION ################################################ #
-    def _print_recs(_seqbuddy):
+    def _print_recs(_dbbuddy):
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         else:
-            _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
+            if _dbbuddy.out_format != "summary":
+                accession_only = [_accession for _accession, _rec in _dbbuddy.records.items() if not _rec.record]
+                _output = "# ################## Accessions without Records ################## #\n"
+                counter = 1
+                for next_acc in accession_only:
+                    _output += "%s\t" % next_acc
+                    if counter % 4 == 0:
+                        _output = "%s\n" % _output.strip()
+                    counter += 1
+                _output = "%s\n# ################################################################ #\n\n" % _output.strip()
+                _stderr(_output, in_args.quiet)
+
+            _stdout("{0}\n".format(str(_dbbuddy).rstrip()))
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Download everything
     if in_args.download_everything:
-        download_everything(dbbuddy)
+        dbbuddy.out_format = "gb"
+        _print_recs(download_everything(dbbuddy))
 
     # Guess database  ToDo: Sort by database
     if in_args.guess_database:
