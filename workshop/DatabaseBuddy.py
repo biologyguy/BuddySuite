@@ -34,7 +34,9 @@ from io import StringIO
 import re
 from urllib.parse import urlencode
 from urllib.error import HTTPError
-import time
+from urllib.request import Request, urlopen
+from time import time, sleep
+import json
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -96,6 +98,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         self.search_terms = []
         self.records = {}
         self.out_format = _out_format.lower()
+        self.failures = []
 
         # DbBuddy objects
         if type(_input) == list:
@@ -216,10 +219,6 @@ class NCBIClient:
     def __init__(self, _dbbuddy):
         Entrez.email = ""
         self.dbbuddy = _dbbuddy
-        self.failures = []
-        #handle = Entrez.einfo()
-        #result = Entrez.read(handle)
-        #print(handle.read())
 
     def fetch_nucliotides(self):
         for _accession, _rec in self.dbbuddy.records.items():
@@ -229,7 +228,7 @@ class NCBIClient:
                     self.dbbuddy.records[_accession].record = SeqIO.read(handle, "gb")
                 except HTTPError as e:
                     if e.getcode() == 400:
-                        self.failures.append(_rec.accession)
+                        self.dbbuddy.failures.append(_rec.accession)
 
     def fetch_proteins(self):
         for _accession, _rec in self.dbbuddy.records.items():
@@ -239,22 +238,24 @@ class NCBIClient:
                     self.dbbuddy.records[_accession].record = SeqIO.read(handle, "gb")
                 except HTTPError as e:
                     if e.getcode() == 400:
-                        self.failures.append(_rec.accession)
+                        self.dbbuddy.failures.append(_rec.accession)
 
 
 class EnsemblRestClient:
-    def __init__(self, server='http://rest.ensembl.org', reqs_per_sec=15):
+    def __init__(self, _dbbuddy, server='http://rest.ensembl.org', reqs_per_sec=15):
+        self.dbbuddy = _dbbuddy
         self.server = server
         self.reqs_per_sec = reqs_per_sec
         self.req_count = 0
         self.last_req = 0
 
-    def perform_rest_action(self, endpoint, headers=None, params=None):
-        if headers is None:
-            {}
+    def perform_rest_action(self, endpoint, _id, headers=None, params=None):
+        endpoint = "/%s/%s" % (endpoint.strip("/"), _id)
+        if not headers:
+            headers = {}
 
         if 'Content-Type' not in headers:
-            headers['Content-Type'] = 'application/json'
+            headers['Content-Type'] = 'text/x-seqxml+xml'
 
         if params:
             endpoint += '?' + urlencode(params)
@@ -263,147 +264,70 @@ class EnsemblRestClient:
 
         # check if we need to rate limit ourselves
         if self.req_count >= self.reqs_per_sec:
-            delta = time.time() - self.last_req
+            delta = time() - self.last_req
             if delta < 1:
-                time.sleep(1 - delta)
-            self.last_req = time.time()
+                sleep(1 - delta)
+            self.last_req = time()
             self.req_count = 0
-        """
+
         try:
-            request = urllib.Request(self.server + endpoint, headers=hdrs)
-            response = urllib.urlopen(request)
-            content = response.read()
-            if content:
+            request = Request(self.server + endpoint, headers=headers)
+            response = urlopen(request)
+            if headers["Content-Type"] == "application/json":
+                content = response.read().decode()
                 data = json.loads(content)
+            else:
+                data = SeqIO.read(response, "seqxml")
+
             self.req_count += 1
 
-        except urllib.HTTPError, e:
+        except HTTPError as e:
             # check if we are being rate limited by the server
-            if e.code == 429:
+            if e.getcode() == 429:
                 if 'Retry-After' in e.headers:
                     retry = e.headers['Retry-After']
-                    time.sleep(float(retry))
-                    self.perform_rest_action(endpoint, hdrs, params)
+                    sleep(float(retry))
+                    self.perform_rest_action(endpoint, headers, params)
             else:
-                sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
+                self.dbbuddy.failures.append(_id)
+                #sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
 
         return data
 
-    def get_variants(self, species, symbol):
-        genes = self.perform_rest_action(
-            '/xrefs/symbol/{0}/{1}'.format(species, symbol),
-            params={'object_type': 'gene'}
-        )
-        if genes:
-            stable_id = genes[0]['id']
-            variants = self.perform_rest_action(
-                '/overlap/id/{0}'.format(stable_id),
-                params={'feature': 'variation'}
-            )
-            return variants
-        return None
-        """
+    def fetch_nucleotides(self):
+        for _accession, _rec in self.dbbuddy.records.items():
+            if _rec.database == "ensembl" and _rec.type == "nucleotide":
+                _rec.record = self.perform_rest_action("/sequence/id", _rec.accession)
+
+                if _rec.record:
+                    rec_info = self.perform_rest_action("/lookup/id", _rec.accession, headers={"Content-Type": "application/json"})
+
+                if _rec.record and rec_info:
+                    _rec.record.name = rec_info["display_name"]
+                    _rec.record.description = rec_info["description"]
+                    _rec.record.annotations["keywords"] = ['Ensembl']
+                    _rec.record.annotations["source"] = rec_info["source"]
+                    _rec.record.annotations["organism"] = rec_info["species"]
+                    _rec.record.annotations["accessions"] = [rec_info["id"]]
+                    _rec.record.annotations["sequence_version"] = int(rec_info["version"])
+
+
 # #################################################################################################################### #
-
-
-def pull_ensembl_records(_dbbuddy):
-    search_recs = [_rec for _accession, _rec in _dbbuddy.records.items() if _rec.database == "ensembl"]
-    ids = '"%s' % '", "'.join([_rec.accession for _rec in search_recs])
-    ids += '"'
-    headers = {"Content-Type": "application/json"}
-    for _rec in search_recs:
-        #request = requests.get("http://rest.ensembl.org/archive/id/%s" % _rec.accession, headers=headers)
-        request = requests.get("http://rest.ensembl.org/archive/id/%s?type=protein" % _rec.accession, headers=headers)
-        #request = requests.get("http://rest.ensembl.org/sequence/id/%s" % _rec.accession, headers=headers)
-        #request = requests.get("http://rest.ensembl.org/sequence/id/%s?type=protein" % _rec.accession, headers=headers)
-        #request = requests.get("http://rest.ensembl.org/sequence/id/%s?type=protein" % _rec.accession, headers=headers)
-
-        if not request.ok:
-            request.raise_for_status()
-
-        decoded = request.json()
-        print(decoded)
-
-
-def search_ensembl(_dbbuddy):
-    for search_term in _dbbuddy.search_terms:
-        url = "http://metazoa.ensembl.org/Multi/Search/Results?q=%s;species=all;collection=all;site=ensemblunit"\
-              % search_term
-        content = requests.get(url).text
-
-        soup = BeautifulSoup(content, 'html.parser')
-        try:
-            paginate = soup.find('div', {"class": 'paginate'}).find_all('a')
-            max_page = 1
-            for page in paginate:
-                try:
-                    if int(page.text) > max_page:
-                        max_page = int(page.text)
-                except ValueError:
-                    continue
-        except AttributeError:
-            max_page = 1
-
-        print("%s pages of results were returned" % max_page)
-        ids = {}
-        for page_num in range(max_page):
-            stdout.write("\rCollecting data from results page %s" % (page_num + 1),)
-            stdout.flush()
-
-            url = "http://metazoa.ensembl.org/Multi/Search/Results?page=%s;q=%s;species=all;collection=all;site=ensemblunit"\
-                  % (page_num + 1, in_args.search_term)
-            content = requests.get(url).text
-
-            soup = BeautifulSoup(content)
-
-            for row in soup.find_all('div', {"class": 'row'}):
-                sub_soup = BeautifulSoup(str(row))
-                lhs = sub_soup.find('div', {"class": "lhs"}).text
-                rhs = sub_soup.find('div', {"class": "rhs"}).text
-
-                if lhs == "Gene ID":
-                    gene_id = rhs
-
-                if lhs == "Species":
-                    if rhs in ids:
-                        ids[rhs].append(gene_id)
-                    else:
-                        ids[rhs] = [gene_id]
-
-        if len(ids) == 0:
-            exit("\rNo records found for query '%s'" % in_args.search_term)
-
-        _output = ""
-        for species in ids:
-            _output += "%s\n" % species
-            for next_id in ids[species]:
-                _output += "%s\n" % next_id
-            _output += "\n"
-
-        if in_args.outfile:
-            outfile = os.path.abspath(in_args.outfile)
-            with open(outfile, "w") as ofile:
-                ofile.write(_output)
-            print("Output written to %s" % outfile)
-
-        else:
-            print(_output)
-    return _dbbuddy
-
 
 def download_everything(_dbbuddy):
     # Get sequences from Ensembl
-    #pull_ensembl_records(_dbbuddy)
+    ensembl = EnsemblRestClient(_dbbuddy)
+    ensembl.fetch_nucleotides()
 
     # Get sequences from genbank
     refseq = NCBIClient(_dbbuddy)
     refseq.fetch_nucliotides()
     refseq.fetch_proteins()
 
-    if len(refseq.failures) > 0:
-        _output = "# ################## GenBank accession failures ################## #\n"
+    if len(_dbbuddy.failures) > 0:
+        _output = "# ##################### Accession failures ##################### #\n"
         counter = 1
-        for next_acc in refseq.failures:
+        for next_acc in _dbbuddy.failures:
             _output += "%s\t" % next_acc
             if counter % 4 == 0:
                 _output = "%s\n" % _output.strip()
@@ -473,15 +397,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             if _dbbuddy.out_format != "summary":
                 accession_only = [_accession for _accession, _rec in _dbbuddy.records.items() if not _rec.record]
-                _output = "# ################## Accessions without Records ################## #\n"
-                counter = 1
-                for next_acc in accession_only:
-                    _output += "%s\t" % next_acc
-                    if counter % 4 == 0:
-                        _output = "%s\n" % _output.strip()
-                    counter += 1
-                _output = "%s\n# ################################################################ #\n\n" % _output.strip()
-                _stderr(_output, in_args.quiet)
+                if len(accession_only) > 0:
+                    _output = "# ################## Accessions without Records ################## #\n"
+                    counter = 1
+                    for next_acc in accession_only:
+                        _output += "%s\t" % next_acc
+                        if counter % 4 == 0:
+                            _output = "%s\n" % _output.strip()
+                        counter += 1
+                    _output = "%s\n# ################################################################ #\n\n" % _output.strip()
+                    _stderr(_output, in_args.quiet)
 
             _stdout("{0}\n".format(str(_dbbuddy).rstrip()))
 
