@@ -5,18 +5,19 @@ Do fun stuff with biological data files. Seriously, biological data is fun stuff
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file 
 manipulations.
 
-Currently the Buddy 'Suite' only consists of one module, SeqBuddy, with plans to create at least three more 
-modules using the same general architecture:
+Currently the Buddy 'Suite' only consists of one stable module, 
+[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy), although three more modules are currently under 
+development using the same general architecture:
 
-- AlignBuddy
-- DatabaseBuddy
-- PhyloBuddy
+- [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
+- [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy)
+- [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
 
 Being pure Python, the BuddySuite should be cross platform. Almost all development and testing has been done on Linux
   and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
 ## Standalone installation
-Simply download the desired Buddy tool(s), and make executable.
+A graphical installer is in the works, but for now simply download the desired Buddy tool(s), and make executable.
     
     $: wget https://raw.github.com/biologyguy/BuddySuite/master/SeqBuddy
     $: chmod +x SeqBuddy
@@ -25,8 +26,8 @@ Run with the -h flag to see a list of available functions.
 
     $: ./SeqBuddy -h
 
-I like to sym-link the main tools to short commands somewhere in my PATH (e.g., 'sb' for SeqBuddy, 'pb' for PhyloBuddy, 
-etc.), so I can access them quickly (examples in the wiki use these short forms).
+I like to sym-link the main tools to short commands somewhere in my PATH (e.g., 'sb' for SeqBuddy, 'alb' for AlignBuddy, 
+etc.), so they can be accessed quickly (examples in the wiki use these short forms).
 
     $: ln -s /path/to/SeqBuddy.py /usr/local/bin/sb
    
@@ -50,15 +51,16 @@ to contribute to the project, new features require three components:
 
 
 ## Dependencies
-SeqBuddy is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
+The BuddySuite is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
 [here](https://www.python.org/downloads/). 
 
 The blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
 [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
  
-[BioPython](http://biopython.org/) is used heavily by SeqBuddy, and the package must be installed to use the development
-version of the software. This dependency is bundled into the stand alone version, however, so no extra download is 
-required unless you are developing (or want the bleeding edge).
+[BioPython](http://biopython.org/) is used heavily by the suite, and the package must be installed to use the development
+version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit tests to fail. 
+This dependency is bundled into the stand alone version, however, so no extra download is required unless you are 
+developing (or want the bleeding edge).
 
 ## [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy)
 ### Modifying flags
