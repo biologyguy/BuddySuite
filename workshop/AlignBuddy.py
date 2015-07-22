@@ -465,6 +465,36 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
     _alignbuddy.alpha = IUPAC.protein
     return _alignbuddy
 
+
+def pull_rows(_alignbuddy, _search):
+    _alignments = []
+    for alignment in _alignbuddy.alignments:
+        matches = []
+        for record in alignment:
+            if re.search(_search, record.id) or re.search(_search, record.description) \
+                    or re.search(_search, record.name):
+                matches.append(record)
+        _alignments.append(MultipleSeqAlignment(matches))
+    _alignbuddy.alignments = _alignments
+    trim(_alignbuddy, 1.0)
+    return _alignbuddy
+
+
+def trim(_alignbuddy, _threshold):
+    for alignment in _alignbuddy.alignments:
+        _indx = 0
+        while _indx < alignment.get_alignment_length():
+            _count = 0
+            for record in alignment:
+                if record.seq[_indx] == '-':
+                    _count += 1
+            if float(_count)/len(alignment) >= _threshold:
+                for record in alignment:
+                    record.seq = record.seq[0:_indx] + record.seq[_indx+1:]
+            else:
+                _indx += 1
+    return _alignbuddy
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -495,8 +525,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-ns', '--num_seqs', action='store_true',
                         help="Counts how many sequences are present in each alignment")
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
-    parser.add_argument('-ca', '--condon_alignment', action='store_true',
+    parser.add_argument('-ca', '--codon_alignment', action='store_true',
                         help="Shift all gaps so the sequence is in triplets.")
+    parser.add_argument('-pr', '--pull_rows', action='store',
+                        help="Arguments: <search_pattern>")
+    parser.add_argument('-tm', '--trim', action='store', type=float, metavar='float', nargs=1,
+                        help="Delete columns with a certain percentage of gaps.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -595,9 +629,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
 
     # Codon alignment
-    if in_args.condon_alignment:
+    if in_args.codon_alignment:
         _print_aligments(codon_alignment(alignbuddy))
 
     # Translate CDS
     if in_args.translate:
         _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
+
+    # Pull rows
+    if in_args.pull_rows:
+        _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
+
+    # Trim
+    if in_args.trim:
+        _print_aligments(trim(alignbuddy, in_args.trim[0]))
