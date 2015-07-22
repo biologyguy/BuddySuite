@@ -388,3 +388,13 @@ pr_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate
 def test_pull_rows(alignbuddy, next_hash):
     Alb.pull_rows(alignbuddy, 'Mle-Panxα[567]')
     assert align_to_hash(alignbuddy) == next_hash
+
+# ###########################################  'tm', '--trim' ############################################ #
+tm_hashes = ['909a9cca3354dd30d3459625c5027f99', '6251b6be4f8496036464be4ae10c70ed', '84f180416e52335d9c264f6617f424c7',
+             '0f97ca9bb4ef2805a238598d51f1479a', "ffc7d6a5f2b16b38aa3ab221e8ac0b9e", 'cdaf69b1210c1fa1baa6ebc52a16613f',
+             '4d5db89eb4c8629b727de9342391604b', 'fbe910fbcf9a1d7cce47b6a7dc378273']
+tm_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(tm_hashes)]
+@pytest.mark.parametrize("alignbuddy,next_hash", tm_hashes)
+def test_trim(alignbuddy, next_hash):
+    Alb.trim(alignbuddy, .9)
+    assert align_to_hash(alignbuddy) == next_hash
