@@ -10,7 +10,6 @@ import re
 from copy import deepcopy
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
-import SeqBuddy as SB
 
 try:
     import workshop.AlignBuddy as Alb
@@ -379,3 +378,13 @@ def test_num_seqs():
         assert Alb.num_seqs(alb_objects[i]) == [20, 13]
     for i in [11, 12]:
         assert Alb.num_seqs(alb_objects[i]) == [8, 21]
+
+# ###########################################  'pr', '--pull_rows' ############################################ #
+pr_hashes = ["2c0a60cd3f534d46662ed61272481898", '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
+             'f41422a10e3b5a7e53c6ba5cc9f28875', "9a1692f1762e67ca0364de22b124dfee", '80fe4fa125e3d944f914fd0c8b923076',
+             '52ee82ee31e0d0f9c84a577b01580f25', '068ad86e5e017bd88678b8f5b24512c1']
+pr_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(pr_hashes)]
+@pytest.mark.parametrize("alignbuddy,next_hash", pr_hashes)
+def test_pull_rows(alignbuddy, next_hash):
+    Alb.pull_rows(alignbuddy, 'Mle-Panxα[567]')
+    assert align_to_hash(alignbuddy) == next_hash

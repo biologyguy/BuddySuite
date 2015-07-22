@@ -7,9 +7,9 @@ from hashlib import md5
 
 
 try:
-    import workshop.DbBuddy as Db
+    import workshop.DatabaseBuddy as Db
 except ImportError:
-    import DbBuddy as Db
+    import DatabaseBuddy as Db
 
 
 def result_to_hash(_dbbuddy, mode='hash'):
