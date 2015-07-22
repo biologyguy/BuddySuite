@@ -1,3 +1,5 @@
+[ ![Release] [release-image] ] [releases]
+[ ![License] [license-image] ] [license]
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
