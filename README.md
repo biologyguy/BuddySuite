@@ -1,11 +1,12 @@
-<p align="center"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></p>
+<p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
+<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
 <a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/SeqBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/AlignBuddy-logo.gif" width=25%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/DBBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/DBBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/PhyloBuddy-logo.gif" width=25%/></a>
 </p>
-Do fun stuff with biological data files. Seriously, biological data is fun stuff :)
+<p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
 ## Description
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file 
