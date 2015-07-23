@@ -476,7 +476,7 @@ def delete_rows(_alignbuddy, _search):
                 matches.append(record)
         _alignments.append(MultipleSeqAlignment(matches))
     _alignbuddy.alignments = _alignments
-    trim(_alignbuddy, 1.0)
+    trimal(_alignbuddy, 1.0)
     return _alignbuddy
 
 
@@ -490,23 +490,39 @@ def pull_rows(_alignbuddy, _search):
                 matches.append(record)
         _alignments.append(MultipleSeqAlignment(matches))
     _alignbuddy.alignments = _alignments
-    trim(_alignbuddy, 1.0)
+    trimal(_alignbuddy, 1.0)
     return _alignbuddy
 
 
-def trim(_alignbuddy, _threshold):
-    for alignment in _alignbuddy.alignments:
-        _indx = 0
-        while _indx < alignment.get_alignment_length():
-            _count = 0
-            for record in alignment:
-                if record.seq[_indx] == '-':
-                    _count += 1
-            if float(_count)/len(alignment) >= _threshold:
-                for record in alignment:
-                    record.seq = record.seq[0:_indx] + record.seq[_indx+1:]
-            else:
-                _indx += 1
+# http://trimal.cgenomics.org/_media/manual.b.pdf
+def trimal(_alignbuddy, _threshold):
+    if _threshold == "gappyout":
+        pass
+    elif _threshold == "strict":
+        pass
+    elif _threshold == "strictplus":
+        pass
+    else:
+        try:
+            _threshold = float(_threshold)
+            _threshold = (_threshold / 100) if _threshold > 1 else _threshold  # Allows percent or fraction
+
+            for alignment in _alignbuddy.alignments:
+                _indx = 0
+                while _indx < alignment.get_alignment_length():
+                    _count = 0
+                    for record in alignment:
+                        if record.seq[_indx] == '-':
+                            _count += 1
+                    if float(_count)/len(alignment) >= _threshold:
+                        for record in alignment:
+                            record.seq = record.seq[0:_indx] + record.seq[_indx+1:]
+                    else:
+                        _indx += 1
+
+        except ValueError:
+            raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
+
     return _alignbuddy
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -542,10 +558,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-ca', '--codon_alignment', action='store_true',
                         help="Shift all gaps so the sequence is in triplets.")
     parser.add_argument('-dr', '--delete_rows', action='store',
-                        help="Arguments: <search_pattern>")
+                        help="Remove selected rows from alignments. Arguments: <search_pattern>")
     parser.add_argument('-pr', '--pull_rows', action='store',
-                        help="Arguments: <search_pattern>")
-    parser.add_argument('-tm', '--trim', action='store', type=float, metavar='float', nargs=1,
+                        help="Keep selected rows from alignements. Arguments: <search_pattern>")
+    parser.add_argument('-trm', '--trimal', action='store', type=float, metavar='float', nargs=1,
                         help="Delete columns with a certain percentage of gaps.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -660,6 +676,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.delete_rows:
         _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
 
-    # Trim
-    if in_args.trim:
-        _print_aligments(trim(alignbuddy, in_args.trim[0]))
+    # Trimal
+    if in_args.trimal:
+        _print_aligments(trimal(alignbuddy, in_args.trimal[0]))
