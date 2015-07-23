@@ -466,6 +466,20 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
     return _alignbuddy
 
 
+def delete_rows(_alignbuddy, _search):
+    _alignments = []
+    for alignment in _alignbuddy.alignments:
+        matches = []
+        for record in alignment:
+            if not re.search(_search, record.id) and not re.search(_search, record.description) \
+                    and not re.search(_search, record.name):
+                matches.append(record)
+        _alignments.append(MultipleSeqAlignment(matches))
+    _alignbuddy.alignments = _alignments
+    trim(_alignbuddy, 1.0)
+    return _alignbuddy
+
+
 def pull_rows(_alignbuddy, _search):
     _alignments = []
     for alignment in _alignbuddy.alignments:
@@ -527,6 +541,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
     parser.add_argument('-ca', '--codon_alignment', action='store_true',
                         help="Shift all gaps so the sequence is in triplets.")
+    parser.add_argument('-dr', '--delete_rows', action='store',
+                        help="Arguments: <search_pattern>")
     parser.add_argument('-pr', '--pull_rows', action='store',
                         help="Arguments: <search_pattern>")
     parser.add_argument('-tm', '--trim', action='store', type=float, metavar='float', nargs=1,
@@ -639,6 +655,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Pull rows
     if in_args.pull_rows:
         _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
+
+    # Pull rows
+    if in_args.delete_rows:
+        _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
 
     # Trim
     if in_args.trim:
