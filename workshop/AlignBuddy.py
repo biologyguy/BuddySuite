@@ -547,32 +547,32 @@ def trimal(_alignbuddy, _threshold, _window_size=1):
         for _alignment in _alignbuddy.alignments:
             gap_scores = [(x, gap_score(_alignment, x)) for x in range(_alignment.get_alignment_length())]
             gap_scores = OrderedDict(sorted(gap_scores, key=lambda tup: tup[1], reverse=True))
+            num_samples = len(_alignment)
             threshold_percentages = OrderedDict()
-            for x in range(1, 101):
+            for x in range(1, num_samples+1):
                 count_over = 0
                 for score in gap_scores:
-                    if gap_scores[score] >= float(x)/100:
+                    if gap_scores[score] >= float(x)/num_samples:
                         count_over += 1
-                threshold_percentages[x/100] = float(count_over)/len(gap_scores)
-            max_var = [0, 0]
-            for x in range(1, 98):
-                slope1 = 0 if (threshold_percentages[(x+1)/100] - threshold_percentages[(x)/100]) == 0 \
-                    else .1/(threshold_percentages[(x+1)/100] - threshold_percentages[(x)/100])
-                slope2 = 0 if (threshold_percentages[(x+2)/100] - threshold_percentages[(x)/100]) == 0 \
-                    else .2/(threshold_percentages[(x+2)/100] - threshold_percentages[(x)/100])
+                threshold_percentages[x/num_samples] = float(count_over)/len(gap_scores)
+            #pyplot.plot(list(threshold_percentages.values()), list(threshold_percentages.keys()))
+            max_var = {'score': 0, 'slope-diff': 0}
+            for x in range(1, num_samples-1):
+                slope1 = 0 if (threshold_percentages[(x+1)/num_samples] - threshold_percentages[(x)/num_samples]) == 0 else .1/(threshold_percentages[(x+1)/num_samples] - threshold_percentages[(x)/num_samples])
+                slope2 = 0 if (threshold_percentages[(x+2)/num_samples] - threshold_percentages[(x)/num_samples]) == 0 else .2/(threshold_percentages[(x+2)/num_samples] - threshold_percentages[(x)/num_samples])
                 if abs(slope2-slope1) > max_var[1]:
-                    max_var[0] = x
-                    max_var[1] = abs(slope2-slope1)
-            cutoff_point = max_var[0]/100
+                    max_var['score'] = x
+                    max_var['slope-diff'] = abs(slope2-slope1)
+            cutoff_point = max_var['score']/num_samples
+            print(cutoff_point)
             gap_index = len(gap_scores) - 1
             while gap_index >= 0:
-                end = gap_index
-                if gap_index >= 0 and gap_scores[gap_index] <= cutoff_point:
-                    while gap_index >= 0 and gap_scores[gap_index] <= cutoff_point:
-                        gap_index -= 1
-                    start = gap_index
-                    remove_in_range(_alignment, start, end)
+                if gap_scores[gap_index] < cutoff_point:
+                    for _rec in _alignment:
+                        _rec.seq = _rec.seq[:gap_index] + _rec.seq[gap_index+1:]
                 gap_index -= 1
+
+        #pyplot.show()
 
     elif _threshold == "strict":
         pass
@@ -600,6 +600,8 @@ def trimal(_alignbuddy, _threshold, _window_size=1):
             raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
 
     return _alignbuddy
+
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
