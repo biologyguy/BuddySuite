@@ -16,6 +16,7 @@ from io import StringIO
 from random import sample
 import re
 from tempfile import TemporaryDirectory
+from collections import OrderedDict
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -495,9 +496,84 @@ def pull_rows(_alignbuddy, _search):
 
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
-def trimal(_alignbuddy, _threshold):
+def trimal(_alignbuddy, _threshold, _window_size=1):
+    def gap_score(_alignment, _index):
+        gap_count = 0
+        for _rec in _alignment:
+            if _rec.seq[_index] == '-':
+                gap_count += 1
+        return 1 - (float(gap_count)/len(_alignment))
+
+    def res_sim_score(_alignment, _index):
+        return
+
+    def identity_score(_alignment, _index1, _index2):
+        match_count = 0
+        for x in range(_alignment.get_alignment_length()):
+            if _alignment.get(_index1).seq[x] == _alignment.get(_index2).seq[x]:
+                match_count += 1
+        return float(match_count)/_alignment.get_alignment_length()
+
+    def consistency_score(_alignments):
+        cumulative_score = 0
+        for ref in _alignments:
+            for _alignment in _alignments:
+                for ref_rec in ref:
+                    for al_rec in _alignment:
+                        if ref_rec.seq == al_rec.seq:
+                            cumulative_score += 1
+        return float(cumulative_score) / _alignments[0].get_alignment_length()
+
+    def res_overlap_score(_alignment, _seq_indx, _index):
+        _seq = _alignment[_seq_indx]
+        match_count = 0
+        for rec in _alignment:
+            if _indx is not _seq_indx and rec.seq[_index] == _seq[indx]:
+                match_count += 1
+        return float(match_count) / len(_alignment)
+
+    def seq_overlap_score(_alignment, _seq_indx, _threshold):
+        count_thresh = 0
+        for x in range(_alignment.get_alignment_length()):
+            if res_overlap_score(_alignment, _seq_indx, x) > _threshold:
+                count_thresh += 1
+        return float(count_thresh)/_alignment.get_alignment_length()
+
+    def remove_in_range(_alignment, indx1, indx2):
+        for _record in _alignment:
+            _record.seq = _record.seq[:indx1] + _record.seq[indx2+1:]
+
     if _threshold == "gappyout":
-        pass
+        for _alignment in _alignbuddy.alignments:
+            gap_scores = [(x, gap_score(_alignment, x)) for x in range(_alignment.get_alignment_length())]
+            gap_scores = OrderedDict(sorted(gap_scores, key=lambda tup: tup[1], reverse=True))
+            threshold_percentages = OrderedDict()
+            for x in range(1, 101):
+                count_over = 0
+                for score in gap_scores:
+                    if gap_scores[score] >= float(x)/100:
+                        count_over += 1
+                threshold_percentages[x/100] = float(count_over)/len(gap_scores)
+            max_var = [0, 0]
+            for x in range(1, 98):
+                slope1 = 0 if (threshold_percentages[(x+1)/100] - threshold_percentages[(x)/100]) == 0 \
+                    else .1/(threshold_percentages[(x+1)/100] - threshold_percentages[(x)/100])
+                slope2 = 0 if (threshold_percentages[(x+2)/100] - threshold_percentages[(x)/100]) == 0 \
+                    else .2/(threshold_percentages[(x+2)/100] - threshold_percentages[(x)/100])
+                if abs(slope2-slope1) > max_var[1]:
+                    max_var[0] = x
+                    max_var[1] = abs(slope2-slope1)
+            cutoff_point = max_var[0]/100
+            gap_index = len(gap_scores) - 1
+            while gap_index >= 0:
+                end = gap_index
+                if gap_index >= 0 and gap_scores[gap_index] <= cutoff_point:
+                    while gap_index >= 0 and gap_scores[gap_index] <= cutoff_point:
+                        gap_index -= 1
+                    start = gap_index
+                    remove_in_range(_alignment, start, end)
+                gap_index -= 1
+
     elif _threshold == "strict":
         pass
     elif _threshold == "strictplus":
@@ -561,7 +637,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Remove selected rows from alignments. Arguments: <search_pattern>")
     parser.add_argument('-pr', '--pull_rows', action='store',
                         help="Keep selected rows from alignements. Arguments: <search_pattern>")
-    parser.add_argument('-trm', '--trimal', action='store', type=float, metavar='float', nargs=1,
+    parser.add_argument('-trm', '--trimal', action='store', nargs=1,
                         help="Delete columns with a certain percentage of gaps.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
