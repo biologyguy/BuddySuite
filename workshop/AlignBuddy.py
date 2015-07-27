@@ -497,10 +497,7 @@ def pull_rows(_alignbuddy, _search):
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
-def trimal(_alignbuddy, _threshold, _window_size=1):
-    def slope(self, target):
-        return slope(target.x - self.x, target.y - self.y)
-
+def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
     if _threshold == "gappyout":
         for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
             empty_list = [0 for _ in range(len(_alignment) + 1)]
@@ -527,30 +524,32 @@ def trimal(_alignbuddy, _threshold, _window_size=1):
                     data_dict["slopes"][_indx] = slope
 
                 max_slope_variation = {"gaps": 0, "variation": 0}
-                for _indx in range(num_rows - 3):
-                    variation = abs(data_dict["slopes"][_indx] - data_dict["slopes"][_indx + 1])
+                for _indx in range(num_rows - 3):  # 2 for space between points, and 1 for variation equals 3
+                    variation = abs(data_dict["slopes"][_indx + 1] / data_dict["slopes"][_indx])
                     if variation > max_slope_variation["variation"]:
-                        max_slope_variation["gaps"] = _indx
+                        max_slope_variation["gaps"] = _indx + 1
                         max_slope_variation["variation"] = variation
 
-                del data_dict["each_column"]
+            else:
+                max_slope_variation = {"gaps": 0}
 
-            print(data_dict)
+            #del data_dict["each_column"]
+            print("%s\n%s\n%s" % (data_dict["slopes"], data_dict["gap_scores"], data_dict["cumul_perc"]))
 
             new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
+            for _col, _gaps in enumerate(data_dict["each_column"]):
                 #print("%s %s" % (_gaps, max_slope_variation["gaps"]))
                 if _gaps < max_slope_variation["gaps"]:
                     new_alignment += _alignment[:, _col:_col + 1]
-
+            """
             from matplotlib import pyplot
-            pyplot.plot(percent_alignment, gap_scores)
+            pyplot.plot(data_dict["cumul_perc"], data_dict["gap_scores"])
             pyplot.xlabel("% alignment")
             pyplot.xlim(0., 1.)
             pyplot.ylabel("Gap score")
             pyplot.ylim(0., 1.)
             pyplot.show()
-            sys.exit()
+            """
             _alignbuddy.alignments[alignment_index] = new_alignment
 
     elif _threshold == "strict":
