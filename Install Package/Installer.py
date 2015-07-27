@@ -422,14 +422,15 @@ class Installer(Frame):
         entry_button_frame.pack(side=LEFT)
         entry_frame.pack(fill=X, expand=1, side=LEFT)
 
-        click_func = partial(self.click_shortcut, shortcut_entry)
+        click_func = partial(self.click_shortcut, shortcut_entry, dropdown)
         shortcut_box.bind("<Button-1>", click_func)
 
-    def click_shortcut(self, entry, event):
+    def click_shortcut(self, entry, dropdown, event):
         event.widget.activate(event.widget.nearest(event.y))
         entry.delete(0, END)
-        text = event.widget.get(ACTIVE).split("==> ")[1]
-        entry.insert(END, text)
+        text = event.widget.get(ACTIVE).split(" ==> ")
+        dropdown.select(text[0])
+        entry.insert(END, text[1])
 
     def add_shortcut(self, buddy, listbox, entry, debug):
         addable = True
