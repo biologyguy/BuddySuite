@@ -246,7 +246,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["gb", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal"]
+        possible_formats = ["gb", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal", "pir"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -511,35 +511,53 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 data_dict["gaps"][num_gaps] += 1
                 data_dict["each_column"][_indx] = num_gaps
 
-            if num_rows > 3:
-                cumul_perc = 0.
-                for _indx, gap in enumerate(data_dict["gaps"]):
-                    data_dict["gap_scores"][_indx] = 1 - (_indx / num_rows)
-                    data_dict["cumul_perc"][_indx] = cumul_perc
-                    cumul_perc += gap / num_columns
+            cumul_perc = 0.
+            for _indx, gap in enumerate(data_dict["gaps"]):
+                data_dict["gap_scores"][_indx] = 1 - (_indx / num_rows)
+                data_dict["cumul_perc"][_indx] = cumul_perc
+                cumul_perc += gap / num_columns
 
-                for _indx in range(num_rows - 2):
-                    slope = (data_dict["gap_scores"][_indx] - data_dict["gap_scores"][_indx + 2]) / \
-                        (data_dict["cumul_perc"][_indx] - data_dict["cumul_perc"][_indx + 2])
-                    data_dict["slopes"][_indx] = slope
+            for _indx in range(num_rows - 2):
+                if data_dict["gaps"][_indx] == 0:
+                    data_dict["slopes"][_indx] = 0
+                    continue
+                sec_indx = _indx + 2
+                while sec_indx <= num_rows:
+                    if data_dict["gaps"][sec_indx] == 0 or data_dict["gaps"][sec_indx - 1] == 0:
+                        sec_indx += 1
+                        continue
+                    else:
+                        break
+                if sec_indx > num_rows:
+                    break
 
-                max_slope_variation = {"gaps": 0, "variation": 0}
-                for _indx in range(num_rows - 3):  # 2 for space between points, and 1 for variation equals 3
-                    variation = abs(data_dict["slopes"][_indx + 1] / data_dict["slopes"][_indx])
-                    if variation > max_slope_variation["variation"]:
-                        max_slope_variation["gaps"] = _indx + 1
-                        max_slope_variation["variation"] = variation
+                slope = (data_dict["gap_scores"][sec_indx] - data_dict["gap_scores"][_indx]) / \
+                    (data_dict["cumul_perc"][_indx] - data_dict["cumul_perc"][sec_indx])
+                data_dict["slopes"][_indx] = slope
 
-            else:
-                max_slope_variation = {"gaps": 0}
+            max_slope_variation = {"gaps": 0, "variation": 0}
+            for _indx in range(num_rows - 3):  # 2 for space between points, and 1 for variation equals 3
+                if data_dict["slopes"][_indx] == 0:
+                    continue
+                sec_indx = _indx + 1
+                while sec_indx < len(data_dict["slopes"]) - 1:
+                    if data_dict["slopes"][sec_indx] == 0:
+                        sec_indx += 1
+                    else:
+                        break
+
+                variation = abs(data_dict["slopes"][sec_indx] / data_dict["slopes"][_indx])
+                if variation > max_slope_variation["variation"]:
+                    max_slope_variation["gaps"] = sec_indx
+                    max_slope_variation["variation"] = variation
 
             #del data_dict["each_column"]
-            print("%s\n%s\n%s" % (data_dict["slopes"], data_dict["gap_scores"], data_dict["cumul_perc"]))
-
+            #print("%s\n" % (data_dict["slopes"]))
+            #sys.exit(max_slope_variation)
             new_alignment = _alignment[:, 0:0]
             for _col, _gaps in enumerate(data_dict["each_column"]):
                 #print("%s %s" % (_gaps, max_slope_variation["gaps"]))
-                if _gaps < max_slope_variation["gaps"]:
+                if _gaps <= max_slope_variation["gaps"]:
                     new_alignment += _alignment[:, _col:_col + 1]
             """
             from matplotlib import pyplot
