@@ -46,6 +46,7 @@ except ImportError:
     while True:
         if response.lower() in ["yes", "y"]:
             hard_install = True
+            break
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
             raise SystemExit
