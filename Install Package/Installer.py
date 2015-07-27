@@ -306,12 +306,26 @@ class Installer(Frame):
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM)
         func = partial(self.toggle_tool, self.buddy_names[num])
-        tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func, pady=20)
-        if self.buddies[self.buddy_names[num]]:
-            tool_button.select()
+        config_file = BuddyInstall.read_config_file()
+        if config_file is None or config_file[0][self.buddy_names[num]]:
+            tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func, pady=20)
+            if self.buddies[self.buddy_names[num]]:
+                tool_button.select()
+            else:
+                tool_button.deselect()
+            tool_button.pack(side=BOTTOM)
         else:
-            tool_button.deselect()
-        tool_button.pack(side=BOTTOM)
+            radio_frame = Frame(mega_frame)
+            var = StringVar()
+            if self.buddies[self.buddy_names[num]]:
+                var.set("True")
+            else:
+                var.set("False")
+            update = Radiobutton(radio_frame, text="Update/Repair", value="True", variable=var, command=func)
+            uninstall = Radiobutton(radio_frame, text="Uninstall", value="False", variable=var, command=func)
+            update.pack(side=LEFT)
+            uninstall.pack(side=RIGHT)
+            radio_frame.pack(side=BOTTOM)
         frame.pack(side=TOP)
         mega_frame.pack(side=TOP)
         self.container.append(mega_frame)
