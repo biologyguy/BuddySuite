@@ -496,83 +496,62 @@ def pull_rows(_alignbuddy, _search):
 
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
+# ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):
-    def gap_score(_alignment, _index):
-        gap_count = 0
-        for _rec in _alignment:
-            if _rec.seq[_index] == '-':
-                gap_count += 1
-        return 1 - (float(gap_count)/len(_alignment))
-
-    def res_sim_score(_alignment, _index):
-        return
-
-    def identity_score(_alignment, _index1, _index2):
-        match_count = 0
-        for x in range(_alignment.get_alignment_length()):
-            if _alignment.get(_index1).seq[x] == _alignment.get(_index2).seq[x]:
-                match_count += 1
-        return float(match_count)/_alignment.get_alignment_length()
-
-    def consistency_score(_alignments):
-        cumulative_score = 0
-        for ref in _alignments:
-            for _alignment in _alignments:
-                for ref_rec in ref:
-                    for al_rec in _alignment:
-                        if ref_rec.seq == al_rec.seq:
-                            cumulative_score += 1
-        return float(cumulative_score) / _alignments[0].get_alignment_length()
-
-    def res_overlap_score(_alignment, _seq_indx, _index):
-        _seq = _alignment[_seq_indx]
-        match_count = 0
-        for rec in _alignment:
-            if _indx is not _seq_indx and rec.seq[_index] == _seq[indx]:
-                match_count += 1
-        return float(match_count) / len(_alignment)
-
-    def seq_overlap_score(_alignment, _seq_indx, _threshold):
-        count_thresh = 0
-        for x in range(_alignment.get_alignment_length()):
-            if res_overlap_score(_alignment, _seq_indx, x) > _threshold:
-                count_thresh += 1
-        return float(count_thresh)/_alignment.get_alignment_length()
-
-    def remove_in_range(_alignment, indx1, indx2):
-        for _record in _alignment:
-            _record.seq = _record.seq[:indx1] + _record.seq[indx2+1:]
+    def slope(self, target):
+        return slope(target.x - self.x, target.y - self.y)
 
     if _threshold == "gappyout":
-        for _alignment in _alignbuddy.alignments:
-            gap_scores = [(x, gap_score(_alignment, x)) for x in range(_alignment.get_alignment_length())]
-            gap_scores = OrderedDict(sorted(gap_scores, key=lambda tup: tup[1], reverse=True))
-            num_samples = len(_alignment)
-            threshold_percentages = OrderedDict()
-            for x in range(1, num_samples+1):
-                count_over = 0
-                for score in gap_scores:
-                    if gap_scores[score] >= float(x)/num_samples:
-                        count_over += 1
-                threshold_percentages[x/num_samples] = float(count_over)/len(gap_scores)
-            #pyplot.plot(list(threshold_percentages.values()), list(threshold_percentages.keys()))
-            max_var = {'score': 0, 'slope-diff': 0}
-            for x in range(1, num_samples-1):
-                slope1 = 0 if (threshold_percentages[(x+1)/num_samples] - threshold_percentages[(x)/num_samples]) == 0 else .1/(threshold_percentages[(x+1)/num_samples] - threshold_percentages[(x)/num_samples])
-                slope2 = 0 if (threshold_percentages[(x+2)/num_samples] - threshold_percentages[(x)/num_samples]) == 0 else .2/(threshold_percentages[(x+2)/num_samples] - threshold_percentages[(x)/num_samples])
-                if abs(slope2-slope1) > max_var[1]:
-                    max_var['score'] = x
-                    max_var['slope-diff'] = abs(slope2-slope1)
-            cutoff_point = max_var['score']/num_samples
-            print(cutoff_point)
-            gap_index = len(gap_scores) - 1
-            while gap_index >= 0:
-                if gap_scores[gap_index] < cutoff_point:
-                    for _rec in _alignment:
-                        _rec.seq = _rec.seq[:gap_index] + _rec.seq[gap_index+1:]
-                gap_index -= 1
+        for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
+            empty_list = [0 for _ in range(len(_alignment) + 1)]
+            num_columns = _alignment.get_alignment_length()
+            num_rows = len(_alignment)
+            data_dict = {"gaps": copy(empty_list), "cumul_perc": copy(empty_list), "gap_scores": copy(empty_list),
+                         "each_column": [0 for _ in range(num_columns)], "slopes": [0 for _ in range(num_rows - 2)]}
 
-        #pyplot.show()
+            for _indx in range(num_columns):
+                num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
+                data_dict["gaps"][num_gaps] += 1
+                data_dict["each_column"][_indx] = num_gaps
+
+            if num_rows > 3:
+                cumul_perc = 0.
+                for _indx, gap in enumerate(data_dict["gaps"]):
+                    data_dict["gap_scores"][_indx] = 1 - (_indx / num_rows)
+                    data_dict["cumul_perc"][_indx] = cumul_perc
+                    cumul_perc += gap / num_columns
+
+                for _indx in range(num_rows - 2):
+                    slope = (data_dict["gap_scores"][_indx] - data_dict["gap_scores"][_indx + 2]) / \
+                        (data_dict["cumul_perc"][_indx] - data_dict["cumul_perc"][_indx + 2])
+                    data_dict["slopes"][_indx] = slope
+
+                max_slope_variation = {"gaps": 0, "variation": 0}
+                for _indx in range(num_rows - 3):
+                    variation = abs(data_dict["slopes"][_indx] - data_dict["slopes"][_indx + 1])
+                    if variation > max_slope_variation["variation"]:
+                        max_slope_variation["gaps"] = _indx
+                        max_slope_variation["variation"] = variation
+
+                del data_dict["each_column"]
+
+            print(data_dict)
+
+            new_alignment = _alignment[:, 0:0]
+            for _col, _gaps in enumerate(each_column):
+                #print("%s %s" % (_gaps, max_slope_variation["gaps"]))
+                if _gaps < max_slope_variation["gaps"]:
+                    new_alignment += _alignment[:, _col:_col + 1]
+
+            from matplotlib import pyplot
+            pyplot.plot(percent_alignment, gap_scores)
+            pyplot.xlabel("% alignment")
+            pyplot.xlim(0., 1.)
+            pyplot.ylabel("Gap score")
+            pyplot.ylim(0., 1.)
+            pyplot.show()
+            sys.exit()
+            _alignbuddy.alignments[alignment_index] = new_alignment
 
     elif _threshold == "strict":
         pass
