@@ -429,7 +429,7 @@ class Installer(Frame):
         event.widget.activate(event.widget.nearest(event.y))
         entry.delete(0, END)
         text = event.widget.get(ACTIVE).split(" ==> ")
-        dropdown.select(text[0])
+        dropdown.set(text[0])
         entry.insert(END, text[1])
 
     def add_shortcut(self, buddy, listbox, entry, debug):
