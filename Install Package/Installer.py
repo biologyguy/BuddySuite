@@ -219,6 +219,10 @@ class Installer(Frame):
     default = True
     shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
                  "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
+    for buddy in shortcuts:
+        for shortcut in shortcuts[buddy]:
+            if which(shortcut) is not None:
+                shortcuts[buddy].remove(shortcut)
     user_system = system()
     user_os = platform()
     print("Operating System: {0}".format(user_os))
