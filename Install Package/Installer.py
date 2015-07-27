@@ -22,6 +22,7 @@ except PermissionError:
     raise SystemExit
 
 proceed = True
+hard_install = False
 
 try:
     from tkinter import *
@@ -44,7 +45,7 @@ except ImportError:
     response = input("Do you accept these terms? ('yes/no')")
     while True:
         if response.lower() in ["yes", "y"]:
-            BuddyInstall.install_buddy_suite(system())
+            hard_install = True
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
             raise SystemExit
@@ -54,11 +55,6 @@ except ImportError:
 
 if not proceed:
     raise SystemExit
-
-root = Tk()
-sw = root.winfo_screenwidth()
-sh = root.winfo_screenheight()
-sys.path.insert(0, "./")
 
 class BuddyInstall:
 
@@ -195,6 +191,16 @@ class BuddyInstall:
                 BuddyInstall.copytree(s, d, symlinks, ignore)
             else:
                 copy2(s, d)
+
+if not hard_install:
+    root = Tk()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    sys.path.insert(0, "./")
+    root.title("BuddySuite Installer")
+else:
+    BuddyInstall.install_buddy_suite(system())
+    raise SystemExit
 
 class Installer(Frame):
     container = []
@@ -509,7 +515,6 @@ class Installer(Frame):
             textbox.config(state=DISABLED)
             self.default = True
 
-root.title("BuddySuite Installer")
 app = Installer(master=root)
 root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
 root.lift()
