@@ -16,7 +16,7 @@ import stat
 
 try:
     os.makedirs("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
-    os.remove("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
+    shutil.rmtree("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
 except PermissionError:
     print("Error: You need to run the program as a superuser/administrator.")
     raise SystemExit
