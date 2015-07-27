@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from tkinter import *
-from tkinter import filedialog
+
 import collections
 from functools import partial
 from shutil import *
@@ -15,6 +14,47 @@ import copy
 from re import sub
 import stat
 
+try:
+    os.makedirs("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
+    os.remove("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
+except PermissionError:
+    print("Error: You need to run the program as a superuser/administrator.")
+    raise SystemExit
+
+proceed = True
+
+try:
+    from tkinter import *
+    from tkinter import filedialog
+
+except ImportError:
+    proceed = False
+    print("Failed to build GUI. Package Tkinter was not found.")
+    print("Installation will proceed through the terminal. You will not be allowed to change any options.")
+    response = input("Would you like to proceed? ('yes/no')")
+    while True:
+        if response.lower() in ["yes", "y"]:
+            break
+        elif response.lower() in ["no", "n"]:
+            print("Installation aborted.")
+            raise SystemExit
+        else:
+            response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
+    print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
+    response = input("Do you accept these terms? ('yes/no')")
+    while True:
+        if response.lower() in ["yes", "y"]:
+            BuddyInstall.install_buddy_suite(, system())
+        elif response.lower() in ["no", "n"]:
+            print("Installation aborted.")
+            raise SystemExit
+        else:
+            response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
+
+
+if not proceed:
+    raise SystemExit
+
 root = Tk()
 sw = root.winfo_screenwidth()
 sh = root.winfo_screenheight()
@@ -23,10 +63,23 @@ sys.path.insert(0, "./")
 class BuddyInstall:
 
     @staticmethod
-    def install_buddy_suite(user_system, options):
-        buddies_to_install = options[0]
-        install_directory = options[1]
-        shortcuts = options[2]
+    def install_buddy_suite(user_system, options=None):
+        if options is not None:
+            buddies_to_install = options[0]
+            install_directory = options[1]
+            shortcuts = options[2]
+        else:
+            buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
+            install_directory = "/usr/local/bin/BuddySuite"
+            shortcuts = {}
+            if which("sb") is not None:
+                shortcuts["SeqBuddy"] = ["sb"]
+            if which("alb") is not None:
+                shortcuts["AlignBuddy"] = ["alb"]
+            if which("pb") is not None:
+                shortcuts["PhyloBuddy"] = ["pb"]
+            if which("db") is not None:
+                shortcuts["DatabaseBuddy"] = ["db"]
 
         paths_to_delete = ["/resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
@@ -39,8 +92,8 @@ class BuddyInstall:
 
 
         myfuncs_path = "./MyFuncs.py"
-        biopython_path = "./resources/Bio"
-        blast_path = "./resources/blast_binaries"
+        biopython_path = "./Bio"
+        blast_path = "./blast_binaries"
         resource_path = "./resources"
         print(install_directory)
         if not path.exists(install_directory):
@@ -56,7 +109,7 @@ class BuddyInstall:
                     for shortcut in shortcuts[buddy]:
                         if which(shortcut) is None:
                             os.symlink("{0}/{1}.py".format(install_directory, buddy),
-                                   "/usr/local/bin/{0}".format(shortcut))
+                                       "/usr/local/bin/{0}".format(shortcut))
             if not path.exists("/usr/local/bin/buddysuite/"):
                 os.symlink(install_directory, "/usr/local/bin/buddysuite")
 
@@ -374,9 +427,14 @@ class Installer(Frame):
             if which(text) is not None and text not in self.original_shortcuts[bud]:
                 debug.config(text='Not added: Naming Conflict')
             else:
-                listbox.insert(END, "{0} ==> {1}".format(bud, text))
                 self.shortcuts[bud].append(text)
+                listbox.delete(0, END)
+                for buddy in self.shortcuts:
+                    if self.buddies[buddy]:
+                        for shortcut in self.shortcuts[buddy]:
+                            listbox.insert(END, "{0} ==> {1}".format(buddy, shortcut))
                 debug.config(text='')
+
         else:
             debug.config(text='Not added: Already exists')
             return
