@@ -73,9 +73,9 @@ class BuddyInstall:
             if which("db") is not None:
                 shortcuts["DatabaseBuddy"] = ["db"]
             options = []
-            options[0] = buddies_to_install
-            options[1] = install_directory
-            options[2] = shortcuts
+            options.append(buddies_to_install)
+            options.append(install_directory)
+            options.append(shortcuts)
 
         paths_to_delete = ["/resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
