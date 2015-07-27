@@ -21,7 +21,6 @@ except PermissionError:
     print("Error: You need to run the program as a superuser/administrator.")
     raise SystemExit
 
-proceed = True
 hard_install = False
 
 try:
@@ -52,10 +51,6 @@ except ImportError:
             raise SystemExit
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
-
-
-if not proceed:
-    raise SystemExit
 
 class BuddyInstall:
 
