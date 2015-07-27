@@ -44,7 +44,7 @@ except ImportError:
     response = input("Do you accept these terms? ('yes/no')")
     while True:
         if response.lower() in ["yes", "y"]:
-            BuddyInstall.install_buddy_suite(, system())
+            BuddyInstall.install_buddy_suite(system())
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
             raise SystemExit
