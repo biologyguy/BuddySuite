@@ -64,13 +64,13 @@ class BuddyInstall:
             buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
             install_directory = "/usr/local/bin/BuddySuite"
             shortcuts = {"SeqBuddy": [], "AlignBuddy": [], "PhyloBuddy": [], "DatabaseBuddy": []}
-            if which("sb") is not None:
+            if which("sb") is None:
                 shortcuts["SeqBuddy"] = ["sb"]
-            if which("alb") is not None:
+            if which("alb") is  None:
                 shortcuts["AlignBuddy"] = ["alb"]
-            if which("pb") is not None:
+            if which("pb") is None:
                 shortcuts["PhyloBuddy"] = ["pb"]
-            if which("db") is not None:
+            if which("db") is None:
                 shortcuts["DatabaseBuddy"] = ["db"]
             options = []
             options.append(buddies_to_install)
