@@ -15,8 +15,8 @@ from re import sub
 import stat
 
 try:
-    os.makedirs("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
-    shutil.rmtree("/usr/bin/temp/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
+    os.makedirs("/usr/local/bin/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
+    shutil.rmtree("/usr/local/bin/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
 except PermissionError:
     print("Error: You need to run the program as a superuser/administrator.")
     raise SystemExit
@@ -85,7 +85,6 @@ class BuddyInstall:
         for loc in files_to_delete:
             if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                 os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
-
 
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
@@ -383,7 +382,7 @@ class Installer(Frame):
         for buddy in self.shortcuts:
             if self.buddies[buddy]:
                 for shortcut in self.shortcuts[buddy]:
-                    shortcut_box.insert(END,"{0} ==> {1}".format(buddy, shortcut))
+                    shortcut_box.insert(END, "{0} ==> {1}".format(buddy, shortcut))
         scrollbar.config(command=shortcut_box.yview())
         shortcut_box.pack(side=LEFT, fill=BOTH, expand=1)
         scrollbar.pack(side=RIGHT, fill=Y)
@@ -419,6 +418,14 @@ class Installer(Frame):
         entry_button_frame.pack(side=LEFT)
         entry_frame.pack(fill=X, expand=1, side=LEFT)
 
+        click_func = partial(self.click_shortcut, shortcut_entry)
+        shortcut_box.bind("<Button-1>", click_func)
+
+    def click_shortcut(self, entry, event):
+        event.widget.activate(event.widget.nearest(event.y))
+        entry.delete(0, END)
+        text = event.widget.get(ACTIVE).split("==> ")[1]
+        entry.insert(END, text)
 
     def add_shortcut(self, buddy, listbox, entry, debug):
         addable = True
@@ -468,14 +475,24 @@ class Installer(Frame):
         ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
         db_label = Label(info_frame, text="Install DatabaseBuddy: {0}".format(self.buddies["DatabaseBuddy"]))
         dir_label = Label(info_frame, text="Install Directory: {0}".format(self.install_dir))
-        cs_label = Label(info_frame, text="Console Shortcuts: {0}".format("[Placeholder]"))
+        cs_sb_label = Label(info_frame,
+                            text="SeqBuddy Shortcuts: {0}".format(str(self.shortcuts["SeqBuddy"])))
+        cs_ab_label = Label(info_frame,
+                            text="AlignBuddy Shortcuts: {0}".format(str(self.shortcuts["AlignBuddy"])))
+        cs_pb_label = Label(info_frame,
+                            text="PhyloBuddy Shortcuts: {0}".format(str(self.shortcuts["PhyloBuddy"])))
+        cs_db_label = Label(info_frame,
+                            text="DatabaseBuddy Shortcuts: {0}".format(str(self.shortcuts["DatabaseBuddy"])))
         os_label.grid(row=0, sticky=NW)
         sb_label.grid(row=1, sticky=NW)
         pb_label.grid(row=2, sticky=NW)
         ab_label.grid(row=3, sticky=NW)
         db_label.grid(row=4, sticky=NW)
         dir_label.grid(row=5, sticky=NW)
-        cs_label.grid(row=6, sticky=NW)
+        cs_sb_label.grid(row=6, sticky=NW)
+        cs_ab_label.grid(row=7, sticky=NW)
+        cs_pb_label.grid(row=8, sticky=NW)
+        cs_db_label.grid(row=9, sticky=NW)
         info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
