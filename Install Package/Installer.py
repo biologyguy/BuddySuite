@@ -243,14 +243,12 @@ class Installer(Frame):
     user_os = platform()
     print("Operating System: {0}".format(user_os))
 
+    config = None
     if BuddyInstall.read_config_file() is not None:
         config = BuddyInstall.read_config_file()
         buddies = config[0]
         install_dir = config[1]
         shortcuts = config[2]
-        for buddy in shortcuts:
-            for shortcut in shortcuts[buddy]:
-                os.remove("/usr/local/bin/{0}".format(shortcut))
 
         if which("sb") is None and not buddies["SeqBuddy"]:  # if new install of given tool, re-add default shortcuts
             shortcuts["SeqBuddy"].append("sb")
@@ -322,10 +320,13 @@ class Installer(Frame):
             self.license()
             return
         elif num > 3 and not all_false:
-            self.install_location()
-            return
-        elif num > 3 and all_false:
-            self.none_selected_page()
+            if all_false:
+                if self.config is not None:
+                    self.install_location()
+                else:
+                    self.none_selected_page()
+            else:
+                self.confirmation()
             return
 
         logo_label = Label(image=self.suite_logos[num], pady=20)
@@ -427,6 +428,13 @@ class Installer(Frame):
             toggle_default.select()
         else:
             toggle_default.deselect()
+
+        if self.config is not None:
+            browse_button.config(state=DISABLED)
+            directory_text.config(state=DISABLED)
+            toggle_default.config(state=DISABLED)
+            warning = Label(frame, text="Previous install detected. Uninstall first to install in new directory.")
+            label.pack()
 
         toggle_default.pack(side=LEFT)
         self.container.append(frame)
@@ -581,15 +589,36 @@ class Installer(Frame):
         if self.buddies["DatabaseBuddy"]:
             cs_db_label.grid(row=9, sticky=NW)
         info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
+
+        all_false = True
+        for buddy in self.buddies:
+            if self.buddies[buddy]:
+                all_false = False
+        if self.config is not None and all_false:
+            back_func = partial(self.next_tool, 3)
+        else:
+            back_func = self.install_shortcuts
+
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=self.install_shortcuts)
+        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM, pady=40)
         self.container.append(button_frame)
 
     def install(self):
+        all_false = True
+        for buddy in self.buddies:
+            if self.buddies[buddy]:
+                all_false = False
+        if all_false and self.config is not None:
+            os.remove("/usr/local/bin/buddysuite/config.ini")
+        if self.config is not None:  # Uninstall removed shortcuts
+            for buddy in self.original_shortcuts:
+                for shortcut in self.original_shortcuts[buddy]:
+                    if which(shortcut) and shortcut not in self.shortcuts[buddy]:
+                        os.remove("/usr/local/bin/{0}".format(shortcut))
         for buddy in self.buddies:
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
