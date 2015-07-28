@@ -624,7 +624,7 @@ class Installer(Frame):
         if self.config is not None:  # Uninstall removed shortcuts
             for buddy in self.original_shortcuts:
                 for shortcut in self.original_shortcuts[buddy]:
-                    if which(shortcut) and shortcut not in self.shortcuts[buddy]:
+                    if os.path.exists("/usr/local/bin/{0}".format(shortcut)) and shortcut not in self.shortcuts[buddy]:
                         os.remove("/usr/local/bin/{0}".format(shortcut))
         for buddy in self.buddies:
             if not self.buddies[buddy]:
