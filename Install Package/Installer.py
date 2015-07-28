@@ -56,27 +56,11 @@ class BuddyInstall:
 
     @staticmethod
     def install_buddy_suite(user_system, options=None):
+        print("Starting installation.")
         if options is not None:
             buddies_to_install = options[0]
             install_directory = options[1]
             shortcuts = options[2]
-
-            if which("sb") is None and not buddies_to_install["SeqBuddy"]:  # if new install, re-add default shortcuts
-                shortcuts["SeqBuddy"].append("sb")
-            if which("seqbuddy") is None and not buddies_to_install["SeqBuddy"]:
-                shortcuts["SeqBuddy"].append("seqbuddy")
-            if which("alb") is None and not buddies_to_install["AlignBuddy"]:
-                shortcuts["AlignBuddy"].append("alb")
-            if which("alignbuddy") is None and not buddies_to_install["AlignBuddy"]:
-                shortcuts["AlignBuddy"].append("alignbuddy")
-            if which("pb") is None and not buddies_to_install["PhyloBuddy"]:
-                shortcuts["PhyloBuddy"].append("pb")
-            if which("phylobuddy") is None and not buddies_to_install["PhyloBuddy"]:
-                shortcuts["PhyloBuddy"].append("phylobuddy")
-            if which("db") is None and not buddies_to_install["DatabaseBuddy"]:
-                shortcuts["DatabaseBuddy"].append("db")
-            if which("databasebuddy") is None and not buddies_to_install["DatabaseBuddy"]:
-                shortcuts["DatabaseBuddy"].append("database")
 
         else:
             buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
@@ -115,7 +99,7 @@ class BuddyInstall:
         biopython_path = "./Bio"
         blast_path = "./blast_binaries"
         resource_path = "./resources"
-        print(install_directory)
+        print("Install path: " + install_directory)
         if not path.exists(install_directory):
             mkdir(install_directory)
         if user_system in ['Darwin', 'Linux', 'Unix']:
@@ -130,6 +114,7 @@ class BuddyInstall:
                         if which(shortcut) is None:
                             os.symlink("{0}/{1}.py".format(install_directory, buddy),
                                        "/usr/local/bin/{0}".format(shortcut))
+                            print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
             if not path.exists("/usr/local/bin/buddysuite/"):
                 os.symlink(install_directory, "/usr/local/bin/buddysuite")
 
@@ -140,6 +125,7 @@ class BuddyInstall:
 
     @staticmethod
     def make_config_file(options):
+        print("Making config file.")
         writer = ConfigParser()
         writer.add_section('selected')
         writer.add_section('Install_path')
@@ -165,6 +151,8 @@ class BuddyInstall:
 
         with open("{0}/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
+        print("Config file written to "+"{0}/config.ini".format(options[1]))
+        print("Installation complete.")
 
     @staticmethod
     def read_config_file():
@@ -216,15 +204,6 @@ class BuddyInstall:
             else:
                 copy2(s, d)
 
-if not hard_install:
-    root = Tk()
-    sw = root.winfo_screenwidth()
-    sh = root.winfo_screenheight()
-    sys.path.insert(0, "./")
-    root.title("BuddySuite Installer")
-else:
-    BuddyInstall.install_buddy_suite(system())
-    raise SystemExit
 
 class Installer(Frame):
     container = []
@@ -260,6 +239,24 @@ class Installer(Frame):
         for buddy in shortcuts:
             for shortcut in shortcuts[buddy]:
                 os.remove("/usr/local/bin/{0}".format(shortcut))
+
+        if which("sb") is None and not buddies["SeqBuddy"]:  # if new install of given tool, re-add default shortcuts
+            shortcuts["SeqBuddy"].append("sb")
+        if which("seqbuddy") is None and not buddies["SeqBuddy"]:
+            shortcuts["SeqBuddy"].append("seqbuddy")
+        if which("alb") is None and not buddies["AlignBuddy"]:
+            shortcuts["AlignBuddy"].append("alb")
+        if which("alignbuddy") is None and not buddies["AlignBuddy"]:
+            shortcuts["AlignBuddy"].append("alignbuddy")
+        if which("pb") is None and not buddies["PhyloBuddy"]:
+            shortcuts["PhyloBuddy"].append("pb")
+        if which("phylobuddy") is None and not buddies["PhyloBuddy"]:
+            shortcuts["PhyloBuddy"].append("phylobuddy")
+        if which("db") is None and not buddies["DatabaseBuddy"]:
+            shortcuts["DatabaseBuddy"].append("db")
+        if which("databasebuddy") is None and not buddies["DatabaseBuddy"]:
+            shortcuts["DatabaseBuddy"].append("database")
+
     original_shortcuts = copy.deepcopy(shortcuts)
     conflict = False
 
@@ -579,10 +576,20 @@ class Installer(Frame):
             textbox.config(state=DISABLED)
             self.default = True
 
-app = Installer(master=root)
-root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
-root.lift()
-root.call('wm', 'attributes', '.', '-topmost', True)
-root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
-root.resizable(width=FALSE, height=FALSE)
-app.mainloop()
+if __name__ == "__main__":
+    if not hard_install:
+        root = Tk()
+        sw = root.winfo_screenwidth()
+        sh = root.winfo_screenheight()
+        sys.path.insert(0, "./")
+        root.title("BuddySuite Installer")
+    else:
+        BuddyInstall.install_buddy_suite(system())
+        raise SystemExit
+    app = Installer(master=root)
+    root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
+    root.lift()
+    root.call('wm', 'attributes', '.', '-topmost', True)
+    root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
+    root.resizable(width=FALSE, height=FALSE)
+    app.mainloop()
