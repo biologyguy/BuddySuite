@@ -19,7 +19,7 @@ try:
     shutil.rmtree("/usr/local/bin/asfkdsgeriugengdfsvjkdvjlirutghjdfnb")
 except PermissionError:
     print("Error: You need to run the program as a superuser/administrator.")
-    raise SystemExit
+    exit()
 
 hard_install = False
 
@@ -37,7 +37,7 @@ except ImportError:
             break
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
-            raise SystemExit
+            exit()
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
     print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
@@ -48,7 +48,7 @@ except ImportError:
             break
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
-            raise SystemExit
+            exit()
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
 
@@ -162,6 +162,7 @@ class BuddyInstall:
                         os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
 
         print("BuddySuite uninstalled.")
+        exit()
 
     @staticmethod
     def make_config_file(options):
@@ -252,7 +253,7 @@ if not hard_install:
     root.title("BuddySuite Installer")
 else:
     BuddyInstall.install_buddy_suite(system())
-    raise SystemExit
+    exit()
 
 class Installer(Frame):
     container = []
@@ -318,7 +319,7 @@ class Installer(Frame):
         self.container.append(welcome_label)
         button_container = Frame()
         next_button = Button(button_container, padx=75, pady=20, text="Install", command=self.license)
-        uninstall_button = Button(button_container, padx=75, pady=20, text="Uninstall",
+        uninstall_button = Button(button_container, padx=70, pady=20, text="Uninstall",
                                   command=BuddyInstall.uninstall_buddy_suite)
         if self.config is not None:
             uninstall_button.pack(side=BOTTOM)
@@ -679,7 +680,7 @@ class Installer(Frame):
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
         BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts])
-        raise SystemExit(0)
+        exit()(0)
 
     def clear_container(self):
         for item in self.container:
