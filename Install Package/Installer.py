@@ -204,6 +204,15 @@ class BuddyInstall:
             else:
                 copy2(s, d)
 
+if not hard_install:
+    root = Tk()
+    sw = root.winfo_screenwidth()
+    sh = root.winfo_screenheight()
+    sys.path.insert(0, "./")
+    root.title("BuddySuite Installer")
+else:
+    BuddyInstall.install_buddy_suite(system())
+    raise SystemExit
 
 class Installer(Frame):
     container = []
@@ -576,20 +585,11 @@ class Installer(Frame):
             textbox.config(state=DISABLED)
             self.default = True
 
-if __name__ == "__main__":
-    if not hard_install:
-        root = Tk()
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-        sys.path.insert(0, "./")
-        root.title("BuddySuite Installer")
-    else:
-        BuddyInstall.install_buddy_suite(system())
-        raise SystemExit
-    app = Installer(master=root)
-    root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
-    root.lift()
-    root.call('wm', 'attributes', '.', '-topmost', True)
-    root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
-    root.resizable(width=FALSE, height=FALSE)
-    app.mainloop()
+
+app = Installer(master=root)
+root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
+root.lift()
+root.call('wm', 'attributes', '.', '-topmost', True)
+root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
+root.resizable(width=FALSE, height=FALSE)
+app.mainloop()
