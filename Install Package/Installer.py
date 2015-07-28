@@ -434,7 +434,7 @@ class Installer(Frame):
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
             warning = Label(frame, text="Previous install detected. Uninstall first to install in new directory.")
-            label.pack()
+            warning.pack()
 
         toggle_default.pack(side=LEFT)
         self.container.append(frame)
