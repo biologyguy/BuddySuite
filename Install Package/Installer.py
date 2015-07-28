@@ -433,15 +433,16 @@ class Installer(Frame):
         else:
             toggle_default.deselect()
 
+
+        self.container.append(frame)
+        lower_box = Frame()
         if self.config is not None:
             browse_button.config(state=DISABLED)
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
-            warning = Label(frame, text="Previous install detected. Uninstall first to install in new directory.")
-            warning.pack()
-
-        self.container.append(frame)
-        button_frame = Frame()
+            warning = Label(lower_box, text="Previous install detected. Uninstall first to install in new directory.")
+            warning.pack(side=TOP)
+        button_frame = Frame(lower_box)
         next_func = partial(self.install_shortcuts, directory_text)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
         next_button.pack(side=RIGHT)
@@ -449,7 +450,8 @@ class Installer(Frame):
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM, pady=40)
-        self.container.append(button_frame)
+        lower_box.pack(side=BOTTOM)
+        self.container.append(lower_box)
 
     def install_shortcuts(self, in_dir=None):
         if in_dir is not None:
