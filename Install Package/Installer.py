@@ -148,18 +148,19 @@ class BuddyInstall:
                 paths_to_delete = ["resources", "blast_binaries", "Bio"]
                 files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                                    "config.ini"]
-
+                shortcuts = BuddyInstall.read_config_file()[2]
+                for buddy in shortcuts:
+                    for shortcut in shortcuts[buddy]:
+                        if path.exists("/usr/local/bin/{0}".format(shortcut)):
+                            os.remove("/usr/local/bin/{0}".format(shortcut))
+                            
                 for loc in paths_to_delete:
                     if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                         shutil.rmtree("/usr/local/bin/buddysuite/{0}".format(loc))
                 for loc in files_to_delete:
                     if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                         os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
-                shortcuts = BuddyInstall.read_config_file()[2]
-                for buddy in shortcuts:
-                    for shortcut in shortcuts[buddy]:
-                        if path.exists("/usr/local/bin/{0}".format(shortcut)):
-                            os.remove("/usr/local/bin/{0}".format(shortcut))
+
         print("BuddySuite uninstalled.")
 
     @staticmethod
