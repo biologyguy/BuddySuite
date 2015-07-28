@@ -333,8 +333,8 @@ class Installer(Frame):
         welcome_label.pack(pady=sh/8, side=TOP)
         self.container.append(welcome_label)
         button_container = Frame()
-        next_button = Button(button_container, width=50, pady=20, text="Install", command=self.license)
-        uninstall_button = Button(button_container, width=50, pady=20, text="Uninstall",
+        next_button = Button(button_container, width=20, pady=20, text="Install", command=self.license)
+        uninstall_button = Button(button_container, width=20, pady=20, text="Uninstall",
                                   command=self.uninstall_all)
         if self.config is not None:
             next_button.config(text="Modify Installation")
