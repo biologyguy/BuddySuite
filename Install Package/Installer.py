@@ -449,7 +449,7 @@ class Installer(Frame):
         back_func = partial(self.next_tool, 3, directory_text)
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=40)
+        button_frame.pack(side=BOTTOM, pady=20)
         lower_box.pack(side=BOTTOM)
         self.container.append(lower_box)
 
