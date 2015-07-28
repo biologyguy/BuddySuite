@@ -94,7 +94,7 @@ class BuddyInstall:
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                            "config.ini"]
 
-        dir_contents = os.listdir("/usr/local/bin/buddysuite")
+        dir_contents = os.listdir("/usr/local/bin/buddysuite") if path.exists("/usr/local/bin/buddysuite") else []
         other_files = False
         for file in dir_contents:
             if file not in paths_to_delete or files_to_delete:
