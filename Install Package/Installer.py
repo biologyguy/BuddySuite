@@ -370,11 +370,13 @@ class Installer(Frame):
             update = Radiobutton(radio_frame, text="Update/Repair", value="True", variable=var, command=func)
             uninstall = Radiobutton(radio_frame, text="Uninstall", value="False", variable=var, command=func)
             if self.buddies[self.buddy_names[num]]:
-                update.select()
+                self.toggle_tool(self.buddy_names[num])
+                update.invoke()
                 uninstall.deselect()
             else:
+                self.toggle_tool(self.buddy_names[num])
                 update.deselect()
-                uninstall.select()
+                uninstall.invoke()
             update.pack(side=LEFT)
             uninstall.pack(side=RIGHT)
             radio_frame.pack(side=BOTTOM)
