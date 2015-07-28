@@ -262,6 +262,8 @@ class Installer(Frame):
     for buddy in buddy_names:
         buddies[buddy] = True
 
+    uninstall = False
+
     bs_logo = PhotoImage(file="./resources/images/BuddySuite-logo.gif")
     id_logo = PhotoImage(file="./resources/images/InstallDirectory.gif")
     sc_logo = PhotoImage(file="./resources/images/ConsoleShortcuts.gif")
@@ -313,6 +315,11 @@ class Installer(Frame):
         self.welcome()
         self.pack()
 
+    def uninstall_all(self):
+        for buddy in self.buddies:
+            self.buddies[buddy] = False
+        self.confirmation()
+
     def welcome(self):
         welcome_label = Label(image=self.bs_logo)
         welcome_label.pack(pady=sh/8, side=TOP)
@@ -320,7 +327,7 @@ class Installer(Frame):
         button_container = Frame()
         next_button = Button(button_container, padx=75, pady=20, text="Install", command=self.license)
         uninstall_button = Button(button_container, padx=67, pady=20, text="Uninstall",
-                                  command=BuddyInstall.uninstall_buddy_suite)
+                                  command=self.uninstall_all)
         if self.config is not None:
             uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
@@ -328,6 +335,7 @@ class Installer(Frame):
         self.container.append(button_container)
 
     def license(self):
+        self.uninstall = False
         self.clear_container()
         frame = Frame(pady=75)
         scrollbar = Scrollbar(master=frame)
@@ -656,6 +664,8 @@ class Installer(Frame):
             next_button.config(text="Uninstall")
         next_button.pack(side=RIGHT)
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
+        if self.uninstall:
+            back_button.config(command=self.welcome)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM, pady=40)
         self.container.append(button_frame)
