@@ -498,7 +498,7 @@ def pull_rows(_alignbuddy, _search):
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
-    if _threshold == "gappyout":
+    if _threshold == "gappyouts":
         for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
             empty_list = [0 for _ in range(len(_alignment) + 1)]
             num_columns = _alignment.get_alignment_length()
@@ -552,8 +552,8 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                     max_slope_variation["variation"] = variation
 
             #del data_dict["each_column"]
-            #print("%s\n" % (data_dict["slopes"]))
-            #sys.exit(max_slope_variation)
+            print("%s\n" % (data_dict["slopes"]))
+            sys.exit(max_slope_variation)
             new_alignment = _alignment[:, 0:0]
             for _col, _gaps in enumerate(data_dict["each_column"]):
                 #print("%s %s" % (_gaps, max_slope_variation["gaps"]))
@@ -568,6 +568,78 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
             pyplot.ylim(0., 1.)
             pyplot.show()
             """
+            _alignbuddy.alignments[alignment_index] = new_alignment
+
+    elif _threshold == "gappyout":
+        for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
+            # gap_distr is the number of columns with each possible number of gaps; the index is equal to number of gaps
+            gap_distr = [0 for _ in range(len(_alignment) + 1)]
+            num_columns = _alignment.get_alignment_length()
+            each_column = [0 for _ in range(num_columns)]
+
+            for _indx in range(num_columns):
+                num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
+                gap_distr[num_gaps] += 1
+                each_column[_indx] = num_gaps
+
+            max_gaps = 0
+            for i in gap_distr:
+                if i == 0:
+                    max_gaps = i + 1
+                else:
+                    break
+
+            max_slope = -1
+            slopes = [-1 for _ in range(len(_alignment) + 1)]
+            max_iter = len(_alignment) + 1
+            active_pointer = 0
+            while active_pointer < max_iter:
+                for i in gap_distr:
+                    if i == 0:
+                        active_pointer += 1
+                    else:
+                        break
+
+                prev_pointer1 = int(active_pointer)
+                if active_pointer + 1 >= max_iter:
+                    break
+
+                while True:
+                    active_pointer += 1
+                    if active_pointer + 1 >= max_iter or gap_distr[active_pointer] != 0:
+                        break
+
+                prev_pointer2 = int(active_pointer)
+                if active_pointer + 1 >= max_iter:
+                    break
+
+                while True:
+                    active_pointer += 1
+                    if active_pointer + 1 >= max_iter or gap_distr[active_pointer] != 0:
+                        break
+
+                if active_pointer + 1 >= max_iter:
+                    break
+
+                slopes[active_pointer] = (active_pointer - prev_pointer2) / len(_alignment)
+                slopes[active_pointer] /= (gap_distr[active_pointer] + gap_distr[prev_pointer2]) / num_columns
+
+                if slopes[prev_pointer1] != -1:
+                    if slopes[active_pointer] / slopes[prev_pointer1] > max_slope:
+                        max_slope = slopes[active_pointer] / slopes[prev_pointer1]
+                        max_gaps = prev_pointer1
+                elif slopes[prev_pointer2] != -1:
+                    if slopes[active_pointer] / slopes[prev_pointer2] > max_slope:
+                        max_slope = slopes[active_pointer] / slopes[prev_pointer2]
+                        max_gaps = prev_pointer1
+
+                active_pointer = prev_pointer2
+
+            new_alignment = _alignment[:, 0:0]
+            for _col, _gaps in enumerate(each_column):
+                if _gaps <= max_gaps:
+                    new_alignment += _alignment[:, _col:_col + 1]
+
             _alignbuddy.alignments[alignment_index] = new_alignment
 
     elif _threshold == "strict":
