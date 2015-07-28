@@ -115,7 +115,7 @@ class BuddyInstall:
         if not all_false:
             print("Install path: " + install_directory)
             if not path.exists(install_directory):
-                mkdir(install_directory)
+                os.makedirs(install_directory)
             if user_system in ['Darwin', 'Linux', 'Unix']:
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
