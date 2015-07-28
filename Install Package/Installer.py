@@ -319,7 +319,7 @@ class Installer(Frame):
         self.container.append(welcome_label)
         button_container = Frame()
         next_button = Button(button_container, padx=75, pady=20, text="Install", command=self.license)
-        uninstall_button = Button(button_container, padx=70, pady=20, text="Uninstall",
+        uninstall_button = Button(button_container, padx=68, pady=20, text="Uninstall",
                                   command=BuddyInstall.uninstall_buddy_suite)
         if self.config is not None:
             uninstall_button.pack(side=BOTTOM)
