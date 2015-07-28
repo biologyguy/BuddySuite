@@ -89,11 +89,10 @@ class BuddyInstall:
 
             options = [buddies_to_install, install_directory, shortcuts]
 
-
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                            "config.ini"]
-        if path.exists("/usr/local/bin/buddysuite")
+        if path.exists("/usr/local/bin/buddysuite"):
             dir_contents = os.listdir("/usr/local/bin/buddysuite")
         else:
             dir_contents = []
