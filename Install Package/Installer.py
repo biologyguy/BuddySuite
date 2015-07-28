@@ -91,7 +91,8 @@ class BuddyInstall:
 
 
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
-        files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
+        files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
+                           "config.ini"]
 
         dir_contents = os.listdir("/usr/local/bin/buddysuite")
         other_files = False
