@@ -489,7 +489,10 @@ class Installer(Frame):
         entry_frame = Frame(selection_frame)
         buds = [x for x in self.buddies if self.buddies[x] is True]
         curr_buddy = StringVar()
-        curr_buddy.set("SeqBuddy")
+        for buddy in self.buddies:
+            if self.buddies[buddy]:
+                curr_buddy.set(buddy)
+                break
         dropdown = OptionMenu(selection_frame, curr_buddy, *buds)
         dropdown.config(width=13)
         dropdown.pack(side=RIGHT)
