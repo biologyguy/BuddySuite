@@ -200,7 +200,7 @@ class BuddyInstall:
 
         with open("{0}/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
-        print("Config file written to "+"{0}/config.ini".format(options[1])
+        print("Config file written to "+"{0}/config.ini".format(options[1]))
 
     @staticmethod
     def read_config_file():
