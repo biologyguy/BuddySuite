@@ -362,13 +362,13 @@ class Installer(Frame):
             tool_button.pack(side=BOTTOM)
         else:
             radio_frame = Frame(mega_frame)
-            var = StringVar()
+            var = IntVar()
             if self.buddies[self.buddy_names[num]]:
-                var.set("True")
+                var.set(1)
             else:
-                var.set("False")
-            update = Radiobutton(radio_frame, text="Update/Repair", value="True", variable=var, command=func)
-            uninstall = Radiobutton(radio_frame, text="Uninstall", value="False", variable=var, command=func)
+                var.set(0)
+            update = Radiobutton(radio_frame, text="Update/Repair", value=1, variable=var, command=func)
+            uninstall = Radiobutton(radio_frame, text="Uninstall", value=0, variable=var, command=func)
             if self.buddies[self.buddy_names[num]]:
                 self.toggle_tool(self.buddy_names[num])
                 uninstall.deselect()
@@ -383,7 +383,7 @@ class Installer(Frame):
 
     def toggle_tool(self, name, radiobutton=None):
         if radiobutton is not None:
-            if radiobutton.value() == "True":
+            if radiobutton.value() == 1:
                 self.buddies[name] = True
             else:
                 self.buddies[name] = False
