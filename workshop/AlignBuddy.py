@@ -477,7 +477,7 @@ def delete_rows(_alignbuddy, _search):
                 matches.append(record)
         _alignments.append(MultipleSeqAlignment(matches))
     _alignbuddy.alignments = _alignments
-    trimal(_alignbuddy, 1.0)
+    trimal(_alignbuddy, "clean")
     return _alignbuddy
 
 
@@ -491,98 +491,40 @@ def pull_rows(_alignbuddy, _search):
                 matches.append(record)
         _alignments.append(MultipleSeqAlignment(matches))
     _alignbuddy.alignments = _alignments
-    trimal(_alignbuddy, 1.0)
+    trimal(_alignbuddy, "clean")
     return _alignbuddy
 
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
-    if _threshold == "gappyouts":
-        for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
-            empty_list = [0 for _ in range(len(_alignment) + 1)]
-            num_columns = _alignment.get_alignment_length()
-            num_rows = len(_alignment)
-            data_dict = {"gaps": copy(empty_list), "cumul_perc": copy(empty_list), "gap_scores": copy(empty_list),
-                         "each_column": [0 for _ in range(num_columns)], "slopes": [0 for _ in range(num_rows - 2)]}
+    for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
+        def make_new():
+            _new_alignment = _alignment[:, 0:0]
+            for _col, _gaps in enumerate(each_column):
+                if _gaps <= max_gaps:
+                    _new_alignment += _alignment[:, _col:_col + 1]
+            return _new_alignment
 
-            for _indx in range(num_columns):
-                num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
-                data_dict["gaps"][num_gaps] += 1
-                data_dict["each_column"][_indx] = num_gaps
+        # gap_distr is the number of columns with each possible number of gaps; the index is equal to number of gaps
+        gap_distr = [0 for _ in range(len(_alignment) + 1)]
+        num_columns = _alignment.get_alignment_length()
+        each_column = [0 for _ in range(num_columns)]
 
-            cumul_perc = 0.
-            for _indx, gap in enumerate(data_dict["gaps"]):
-                data_dict["gap_scores"][_indx] = 1 - (_indx / num_rows)
-                data_dict["cumul_perc"][_indx] = cumul_perc
-                cumul_perc += gap / num_columns
+        max_gaps = 0  # This is the key variable that needs to be identified
 
-            for _indx in range(num_rows - 2):
-                if data_dict["gaps"][_indx] == 0:
-                    data_dict["slopes"][_indx] = 0
-                    continue
-                sec_indx = _indx + 2
-                while sec_indx <= num_rows:
-                    if data_dict["gaps"][sec_indx] == 0 or data_dict["gaps"][sec_indx - 1] == 0:
-                        sec_indx += 1
-                        continue
-                    else:
-                        break
-                if sec_indx > num_rows:
-                    break
+        for _indx in range(num_columns):
+            num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
+            gap_distr[num_gaps] += 1
+            each_column[_indx] = num_gaps
 
-                slope = (data_dict["gap_scores"][sec_indx] - data_dict["gap_scores"][_indx]) / \
-                    (data_dict["cumul_perc"][_indx] - data_dict["cumul_perc"][sec_indx])
-                data_dict["slopes"][_indx] = slope
+        if _threshold in ["no_gaps", "all"]:
+            _threshold = 0
 
-            max_slope_variation = {"gaps": 0, "variation": 0}
-            for _indx in range(num_rows - 3):  # 2 for space between points, and 1 for variation equals 3
-                if data_dict["slopes"][_indx] == 0:
-                    continue
-                sec_indx = _indx + 1
-                while sec_indx < len(data_dict["slopes"]) - 1:
-                    if data_dict["slopes"][sec_indx] == 0:
-                        sec_indx += 1
-                    else:
-                        break
+        if _threshold == "clean":
+            max_gaps = len(_alignment) - 1
 
-                variation = abs(data_dict["slopes"][sec_indx] / data_dict["slopes"][_indx])
-                if variation > max_slope_variation["variation"]:
-                    max_slope_variation["gaps"] = sec_indx
-                    max_slope_variation["variation"] = variation
-
-            #del data_dict["each_column"]
-            print("%s\n" % (data_dict["slopes"]))
-            sys.exit(max_slope_variation)
-            new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(data_dict["each_column"]):
-                #print("%s %s" % (_gaps, max_slope_variation["gaps"]))
-                if _gaps <= max_slope_variation["gaps"]:
-                    new_alignment += _alignment[:, _col:_col + 1]
-            """
-            from matplotlib import pyplot
-            pyplot.plot(data_dict["cumul_perc"], data_dict["gap_scores"])
-            pyplot.xlabel("% alignment")
-            pyplot.xlim(0., 1.)
-            pyplot.ylabel("Gap score")
-            pyplot.ylim(0., 1.)
-            pyplot.show()
-            """
-            _alignbuddy.alignments[alignment_index] = new_alignment
-
-    elif _threshold == "gappyout":
-        for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
-            # gap_distr is the number of columns with each possible number of gaps; the index is equal to number of gaps
-            gap_distr = [0 for _ in range(len(_alignment) + 1)]
-            num_columns = _alignment.get_alignment_length()
-            each_column = [0 for _ in range(num_columns)]
-
-            for _indx in range(num_columns):
-                num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
-                gap_distr[num_gaps] += 1
-                each_column[_indx] = num_gaps
-
-            max_gaps = 0
+        elif _threshold == "gappyout":
             for i in gap_distr:
                 if i == 0:
                     max_gaps = i + 1
@@ -635,40 +577,28 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
                 active_pointer = prev_pointer2
 
-            new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    new_alignment += _alignment[:, _col:_col + 1]
+        elif _threshold == "strict":
+            pass
+        elif _threshold == "strictplus":
+            pass
+        else:
+            try:
+                if _threshold == 1:
+                    _stderr("Warning: Ambiguous threshold of '1'. Assuming 100%, use 0.01 for 1%")
 
-            _alignbuddy.alignments[alignment_index] = new_alignment
+                _threshold = float(_threshold)
+                _threshold = 0.0001 if _threshold == 0 else _threshold
+                _threshold = (_threshold / 100) if _threshold > 1 else _threshold  # Allows percent or fraction
 
-    elif _threshold == "strict":
-        pass
-    elif _threshold == "strictplus":
-        pass
-    else:
-        try:
-            _threshold = float(_threshold)
-            _threshold = (_threshold / 100) if _threshold > 1 else _threshold  # Allows percent or fraction
+                max_gaps = round(len(_alignment) * _threshold)
 
-            for alignment in _alignbuddy.alignments:
-                _indx = 0
-                while _indx < alignment.get_alignment_length():
-                    _count = 0
-                    for record in alignment:
-                        if record.seq[_indx] == '-':
-                            _count += 1
-                    if float(_count)/len(alignment) >= _threshold:
-                        for record in alignment:
-                            record.seq = record.seq[0:_indx] + record.seq[_indx+1:]
-                    else:
-                        _indx += 1
+            except ValueError:
+                raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
 
-        except ValueError:
-            raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
+        new_alignment = make_new()
+        _alignbuddy.alignments[alignment_index] = new_alignment
 
     return _alignbuddy
-
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -707,8 +637,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Remove selected rows from alignments. Arguments: <search_pattern>")
     parser.add_argument('-pr', '--pull_rows', action='store',
                         help="Keep selected rows from alignements. Arguments: <search_pattern>")
-    parser.add_argument('-trm', '--trimal', action='store', nargs=1,
-                        help="Delete columns with a certain percentage of gaps.")
+    parser.add_argument('-trm', '--trimal', nargs='?', action='append',
+                        help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -824,4 +754,5 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Trimal
     if in_args.trimal:
-        _print_aligments(trimal(alignbuddy, in_args.trimal[0]))
+        in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
+        _print_aligments(trimal(alignbuddy, in_args.trimal))

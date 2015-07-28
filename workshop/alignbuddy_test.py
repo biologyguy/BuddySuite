@@ -379,22 +379,49 @@ def test_num_seqs():
     for i in [11, 12]:
         assert Alb.num_seqs(alb_objects[i]) == [8, 21]
 
+# ###########################################  'dr', '--delete_rows' ############################################ #
+hashes = ['23d3e0b42b6d63bcb810a5abb0a06ad7', '3458c1f790ff90f8403476af021e97e4', '3c09226535f46299ffd1132c9dd336d8',
+          '7455b360c4f1155b1aa0ba7e1219485f', 'b3bf1be13a0b75374905f89aba0302c9', '819c954cc80aaf622734a61c09d301f4',
+          'f2492c76baa277ba885e5232fa611fea', '67d81be82ffbcffe2bf0a6f78e361cc9', 'b34588123a2b0b56afdf5d719c61f677']
+hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_delete_rows(alignbuddy, next_hash):
+    Alb.delete_rows(alignbuddy, 'Mle-Panxα[567]')
+    assert align_to_hash(alignbuddy) == next_hash
+
 # ###########################################  'pr', '--pull_rows' ############################################ #
-pr_hashes = ["2c0a60cd3f534d46662ed61272481898", '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
-             'f41422a10e3b5a7e53c6ba5cc9f28875', "9a1692f1762e67ca0364de22b124dfee", '80fe4fa125e3d944f914fd0c8b923076',
+pr_hashes = ['2c0a60cd3f534d46662ed61272481898', '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
+             'f41422a10e3b5a7e53c6ba5cc9f28875', '9a1692f1762e67ca0364de22b124dfee', '80fe4fa125e3d944f914fd0c8b923076',
              '52ee82ee31e0d0f9c84a577b01580f25', '068ad86e5e017bd88678b8f5b24512c1']
 pr_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(pr_hashes)]
+
+
 @pytest.mark.parametrize("alignbuddy,next_hash", pr_hashes)
 def test_pull_rows(alignbuddy, next_hash):
     Alb.pull_rows(alignbuddy, 'Mle-Panxα[567]')
     assert align_to_hash(alignbuddy) == next_hash
 
-# ###########################################  'tm', '--trim' ############################################ #
-tm_hashes = ['909a9cca3354dd30d3459625c5027f99', '6251b6be4f8496036464be4ae10c70ed', '84f180416e52335d9c264f6617f424c7',
-             '0f97ca9bb4ef2805a238598d51f1479a', "ffc7d6a5f2b16b38aa3ab221e8ac0b9e", 'cdaf69b1210c1fa1baa6ebc52a16613f',
-             '4d5db89eb4c8629b727de9342391604b', 'fbe910fbcf9a1d7cce47b6a7dc378273']
-tm_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(tm_hashes)]
-@pytest.mark.parametrize("alignbuddy,next_hash", tm_hashes)
-def test_trim(alignbuddy, next_hash):
-    Alb.trim(alignbuddy, .9)
+# ###########################################  'tm', '--trimal' ############################################ #
+hashes = ['063e7f52f7c7f19da3a624730cd725a5', '0e2c65d9fc8d4b31cc352b3894837dc1', '4c08805a44e9a0cef08abc53c80f6b4c',
+          '9478e5441b88680470f3a4a4db537467', "b1bd83debd405431f290e2e2306a206e", '049b7f9170505ea0799004d964ef33fb',
+          '97ea3e55425894d3fe4b817deab003c3', '1f2a937d2c3b020121000822e62c4b96', '4690f58abd6d7f4f3c0d610ea25461c8',
+          'b8e65b0a00f55286d57aa76ccfcf04ab', '49a17364aa4bd086c7c432de7baabd07', '82aaad11c9496d8f7e959dd5ce06df4d',
+          '4e709de80531c358197f6e1f626c9c58']
+hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_trimal(alignbuddy, next_hash):
+    Alb.trimal(alignbuddy, .7)
     assert align_to_hash(alignbuddy) == next_hash
+
+
+def test_trimal2():
+    tester = Alb._make_copies(alb_objects[8])
+    assert align_to_hash(Alb.trimal(tester, 'clean')) == "a94edb2636a7c9cf177993549371b3e6"
+    assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2ac19a0eecb9901211c1c98a7a203cc2"
+    assert align_to_hash(Alb.trimal(tester, 'all')) == "caebb7ace4940cea1b87667e5e113acb"
+    with pytest.raises(ValueError):
+        Alb.trimal(tester, "Foo")
