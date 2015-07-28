@@ -308,17 +308,28 @@ class Installer(Frame):
     def next_tool(self, num=0, entry=None):
         if entry:
             self.install_dir = entry.get()
+
         self.clear_container()
-        if num<0:
+
+        all_false = True
+        for buddy in self.buddies:
+            if self.buddies[buddy]:
+                all_false = False
+        if num < 0:
             self.license()
             return
-        if num>3:
+        elif num > 3 and not all_false:
             self.install_location()
             return
+        elif num > 3 and all_false:
+            self.none_selected_page()
+            return
+
         logo_label = Label(image=self.suite_logos[num], pady=20)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
         mega_frame = Frame(pady=20)
+        self.container.append(mega_frame)
         frame = Frame(mega_frame, padx=50, pady=10)
         scrollbar = Scrollbar(master=frame)
         description_file = open("LICENSE")
@@ -331,6 +342,7 @@ class Installer(Frame):
         button_frame = Frame(mega_frame)
         next_func = partial(self.next_tool, num+1)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
+        self.container.append(next_button)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, num-1)
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
@@ -359,12 +371,24 @@ class Installer(Frame):
             radio_frame.pack(side=BOTTOM)
         frame.pack(side=TOP)
         mega_frame.pack(side=TOP)
-        self.container.append(mega_frame)
-        self.container.append(next_button)
 
     def toggle_tool(self, name):
         self.buddies[name] = False if self.buddies[name] else True
         print("{0}: {1}".format(name, str(self.buddies[name])))
+
+    def none_selected_page(self):
+        self.clear_container()
+        labelframe = Frame(root)
+        label1 = Label(labelframe, text="You're currently not installing anything!", pady=5, font=('Helvetica', 16))
+        label2 = Label(labelframe, text="Please go back and select at least one tool.", pady=5, font=('Helvetica', 16))
+        label1.pack(side=TOP)
+        label2.pack(side=BOTTOM)
+        labelframe.pack(side=TOP, pady=120)
+        back_func = partial(self.next_tool, 3)
+        back_button = Button(root, padx=50, pady=20, text="Back", command=back_func)
+        back_button.pack(side=BOTTOM, pady=40)
+        self.container.append(labelframe)
+        self.container.append(back_button)
 
     def install_location(self):
         self.clear_container()
