@@ -337,6 +337,7 @@ class Installer(Frame):
         uninstall_button = Button(button_container, padx=67, pady=20, text="Uninstall",
                                   command=self.uninstall_all)
         if self.config is not None:
+            next_button.config(text="Modify Installation")
             uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
         button_container.pack(side=BOTTOM, pady=40)
