@@ -89,8 +89,20 @@ class BuddyInstall:
 
             options = [buddies_to_install, install_directory, shortcuts]
 
-        paths_to_delete = ["/resources", "blast_binaries", "Bio"]
+
+        paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
+
+        dir_contents = os.listdir("/usr/local/bin/buddysuite")
+        other_files = False
+        for file in dir_contents:
+            if file not in paths_to_delete or files_to_delete:
+                other_files = True
+
+        all_false = True
+        for buddy in buddies_to_install:
+            if buddies_to_install[buddy]:
+                all_false = False
         for loc in paths_to_delete:
             if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                 shutil.rmtree("/usr/local/bin/buddysuite/{0}".format(loc))
@@ -98,33 +110,39 @@ class BuddyInstall:
             if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                 os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
 
+        if not other_files:
+            shutil.rmtree(os.path.realpath("/usr/local/bin/buddysuite"))
+            os.remove("/usr/local/bin/buddysuite")
+
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
         blast_path = "./blast_binaries"
         resource_path = "./resources"
-        print("Install path: " + install_directory)
-        if not path.exists(install_directory):
-            mkdir(install_directory)
-        if user_system in ['Darwin', 'Linux', 'Unix']:
-            shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
-            BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
-            BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
-            BuddyInstall.copytree(blast_path, "{0}/blast_binaries".format(install_directory))
-            for buddy in buddies_to_install:
-                if buddies_to_install[buddy]:
-                    shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
-                    for shortcut in shortcuts[buddy]:
-                        if which(shortcut) is None:
-                            os.symlink("{0}/{1}.py".format(install_directory, buddy),
-                                       "/usr/local/bin/{0}".format(shortcut))
-                            print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
-            if not path.exists("/usr/local/bin/buddysuite/"):
-                os.symlink(install_directory, "/usr/local/bin/buddysuite")
+        if not all_false:
+            print("Install path: " + install_directory)
+            if not path.exists(install_directory):
+                mkdir(install_directory)
+            if user_system in ['Darwin', 'Linux', 'Unix']:
+                shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
+                BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
+                BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
+                BuddyInstall.copytree(blast_path, "{0}/blast_binaries".format(install_directory))
+                for buddy in buddies_to_install:
+                    if buddies_to_install[buddy]:
+                        shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                        for shortcut in shortcuts[buddy]:
+                            if which(shortcut) is None:
+                                os.symlink("{0}/{1}.py".format(install_directory, buddy),
+                                           "/usr/local/bin/{0}".format(shortcut))
+                                print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
+                if not path.exists("/usr/local/bin/buddysuite/"):
+                    os.symlink(install_directory, "/usr/local/bin/buddysuite")
 
-        elif user_system == 'Windows':
-            return
+            elif user_system == 'Windows':
+                print("Windows not supported at the moment.")
+                return
 
-        BuddyInstall.make_config_file(options)
+            BuddyInstall.make_config_file(options)
 
     @staticmethod
     def make_config_file(options):
