@@ -355,7 +355,8 @@ class Installer(Frame):
         func = partial(self.toggle_tool, self.buddy_names[num])
         config_file = BuddyInstall.read_config_file()
         if config_file is None or config_file[0][self.buddy_names[num]] is False:
-            tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func, pady=20)
+            tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func,
+                                      pady=20)
             if self.buddies[self.buddy_names[num]]:
                 tool_button.select()
             else:
@@ -369,8 +370,10 @@ class Installer(Frame):
             else:
                 var.set(0)
             radiobutton_func = partial(self.toggle_tool, self.buddy_names[num], var)
-            update = Radiobutton(radio_frame, text="Update/Repair", value=1, variable=var, command=radiobutton_func)
-            uninstall = Radiobutton(radio_frame, text="Uninstall", value=0, variable=var, command=radiobutton_func)
+            update = Radiobutton(radio_frame, text="Update/Repair", value=1, variable=var, command=radiobutton_func,
+                                 pady=20)
+            uninstall = Radiobutton(radio_frame, text="Uninstall", value=0, variable=var, command=radiobutton_func,
+                                    pady=20)
             update.pack(side=LEFT)
             uninstall.pack(side=RIGHT)
             radio_frame.pack(side=BOTTOM)
@@ -421,6 +424,7 @@ class Installer(Frame):
 
         toggle_func = partial(self.default_directory, directory_text, browse_button)
         toggle_default = Checkbutton(frame, text="Default directory", pady=10, command=toggle_func)
+        toggle_default.pack(side=LEFT)
 
         if self.default:
             browse_button.config(state=DISABLED)
@@ -436,7 +440,6 @@ class Installer(Frame):
             warning = Label(frame, text="Previous install detected. Uninstall first to install in new directory.")
             warning.pack()
 
-        toggle_default.pack(side=LEFT)
         self.container.append(frame)
         button_frame = Frame()
         next_func = partial(self.install_shortcuts, directory_text)
