@@ -138,7 +138,8 @@ class BuddyInstall:
 
             BuddyInstall.make_config_file(options)
 
-    def uninstall_buddy_suite(self):
+    @staticmethod
+    def uninstall_buddy_suite():
         if path.exists("/usr/local/bin/buddysuite"):
             if len(os.listdir("/usr/local/bin/buddysuite")) == 0:
                 shutil.rmtree(path.realpath("/usr/local/bin/buddysuite"))
@@ -154,7 +155,7 @@ class BuddyInstall:
                 for loc in files_to_delete:
                     if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                         os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
-                shortcuts = self.read_config_file()[2]
+                shortcuts = BuddyInstall.read_config_file()[2]
                 for buddy in shortcuts:
                     for shortcut in shortcuts[buddy]:
                         if path.exists("/usr/local/bin/{0}".format(shortcut)):
@@ -315,8 +316,8 @@ class Installer(Frame):
         welcome_label.pack(pady=sh/8, side=TOP)
         self.container.append(welcome_label)
         button_container = Frame()
-        next_button = Button(button_container, padx=75, pady=30, text="Install", command=self.license)
-        uninstall_button = Button(button_container, padx=75, pady=30, text="Install",
+        next_button = Button(button_container, padx=75, pady=20, text="Install", command=self.license)
+        uninstall_button = Button(button_container, padx=75, pady=20, text="Uninstall",
                                   command=BuddyInstall.uninstall_buddy_suite)
         if self.config is not None:
             uninstall_button.pack(side=BOTTOM)
