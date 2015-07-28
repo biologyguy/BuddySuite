@@ -319,7 +319,7 @@ class Installer(Frame):
         if num < 0:
             self.license()
             return
-        elif num > 3 and not all_false:
+        elif num > 3:
             if all_false:
                 if self.config is not None:
                     self.confirmation()
