@@ -316,11 +316,13 @@ class Installer(Frame):
         self.pack()
 
     def uninstall_all(self):
+        self.uninstall = True
         for buddy in self.buddies:
             self.buddies[buddy] = False
         self.confirmation()
 
     def welcome(self):
+        self.clear_container()
         welcome_label = Label(image=self.bs_logo)
         welcome_label.pack(pady=sh/8, side=TOP)
         self.container.append(welcome_label)
