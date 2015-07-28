@@ -138,6 +138,29 @@ class BuddyInstall:
 
             BuddyInstall.make_config_file(options)
 
+    def uninstall_buddy_suite(self):
+        if path.exists("/usr/local/bin/buddysuite"):
+            if len(os.listdir("/usr/local/bin/buddysuite")) == 0:
+                shutil.rmtree(path.realpath("/usr/local/bin/buddysuite"))
+                os.remove("/usr/local/bin/buddysuite")
+            else:
+                paths_to_delete = ["resources", "blast_binaries", "Bio"]
+                files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
+                                   "config.ini"]
+
+                for loc in paths_to_delete:
+                    if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
+                        shutil.rmtree("/usr/local/bin/buddysuite/{0}".format(loc))
+                for loc in files_to_delete:
+                    if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
+                        os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
+                shortcuts = self.read_config_file()[2]
+                for buddy in shortcuts:
+                    for shortcut in shortcuts[buddy]:
+                        if path.exists("/usr/local/bin/{0}".format(shortcut)):
+                            os.remove("/usr/local/bin/{0}".format(shortcut))
+        print("BuddySuite uninstalled.")
+
     @staticmethod
     def make_config_file(options):
         print("Making config file.")
@@ -291,9 +314,15 @@ class Installer(Frame):
         welcome_label = Label(image=self.bs_logo)
         welcome_label.pack(pady=sh/8, side=TOP)
         self.container.append(welcome_label)
-        next_button = Button(padx=75, pady=30, text="Install", command=self.license)
+        button_container = Frame()
+        next_button = Button(button_container, padx=75, pady=30, text="Install", command=self.license)
+        uninstall_button = Button(button_container, padx=75, pady=30, text="Install",
+                                  command=BuddyInstall.uninstall_buddy_suite)
+        if self.config is not None:
+            uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
-        self.container.append(next_button)
+        button_container.pack(side=BOTTOM, pady=40)
+        self.container.append(button_container)
 
     def license(self):
         self.clear_container()
@@ -452,7 +481,7 @@ class Installer(Frame):
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
             warning = Label(lower_box, text="Previous install detected. Uninstall first to change install directory.")
-            warning.pack(side=TOP)
+            warning.pack(side=TOP, pady=50)
         button_frame = Frame(lower_box)
         next_func = partial(self.install_shortcuts, directory_text)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
@@ -620,6 +649,8 @@ class Installer(Frame):
 
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
+        if all_false:
+            next_button.config(text="Uninstall")
         next_button.pack(side=RIGHT)
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
         back_button.pack(side=LEFT)
