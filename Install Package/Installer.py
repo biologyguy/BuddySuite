@@ -616,9 +616,13 @@ class Installer(Frame):
 
     def install(self):
         all_false = True
+
         for buddy in self.buddies:
             if self.buddies[buddy]:
                 all_false = False
+            else:
+                self.shortcuts[buddy] = []
+
         if all_false and self.config is not None:
             os.remove("/usr/local/bin/buddysuite/config.ini")
         if self.config is not None:  # Uninstall removed shortcuts
