@@ -104,7 +104,7 @@ class BuddyInstall:
             if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                 os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
 
-        if os.listdir("/usr/local/bin/buddysuite") is []:
+        if len(os.listdir("/usr/local/bin/buddysuite")) == 0:
             shutil.rmtree(path.realpath("/usr/local/bin/buddysuite"))
             os.remove("/usr/local/bin/buddysuite")
 
