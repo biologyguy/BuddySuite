@@ -384,7 +384,7 @@ class Installer(Frame):
 
     def toggle_tool(self, name, var=None):
         if var is not None:
-            if var.value() == 1:
+            if var.get() == 1:
                 self.buddies[name] = True
             else:
                 self.buddies[name] = False
