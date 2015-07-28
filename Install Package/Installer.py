@@ -92,14 +92,6 @@ class BuddyInstall:
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                            "config.ini"]
-        if path.exists("/usr/local/bin/buddysuite"):
-            dir_contents = os.listdir("/usr/local/bin/buddysuite")
-        else:
-            dir_contents = []
-        other_files = False
-        for file in dir_contents:
-            if file not in paths_to_delete or files_to_delete:
-                other_files = True
 
         all_false = True
         for buddy in buddies_to_install:
@@ -112,8 +104,8 @@ class BuddyInstall:
             if path.exists("/usr/local/bin/buddysuite/{0}".format(loc)):
                 os.remove("/usr/local/bin/buddysuite/{0}".format(loc))
 
-        if not other_files and path.exists("/usr/local/bin/buddysuite"):
-            shutil.rmtree(os.path.realpath("/usr/local/bin/buddysuite"))
+        if os.listdir("/usr/local/bin/buddysuite") is []:
+            shutil.rmtree(path.realpath("/usr/local/bin/buddysuite"))
             os.remove("/usr/local/bin/buddysuite")
 
         myfuncs_path = "./MyFuncs.py"
