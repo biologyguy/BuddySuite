@@ -322,11 +322,11 @@ class Installer(Frame):
         elif num > 3 and not all_false:
             if all_false:
                 if self.config is not None:
-                    self.install_location()
+                    self.confirmation()
                 else:
                     self.none_selected_page()
             else:
-                self.confirmation()
+                self.install_location()
             return
 
         logo_label = Label(image=self.suite_logos[num], pady=20)
