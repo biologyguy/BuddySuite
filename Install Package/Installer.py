@@ -60,22 +60,47 @@ class BuddyInstall:
             buddies_to_install = options[0]
             install_directory = options[1]
             shortcuts = options[2]
+
+            if which("sb") is None and not buddies_to_install["SeqBuddy"]:  # if new install, re-add default shortcuts
+                shortcuts["SeqBuddy"].append("sb")
+            if which("seqbuddy") is None and not buddies_to_install["SeqBuddy"]:
+                shortcuts["SeqBuddy"].append("seqbuddy")
+            if which("alb") is None and not buddies_to_install["AlignBuddy"]:
+                shortcuts["AlignBuddy"].append("alb")
+            if which("alignbuddy") is None and not buddies_to_install["AlignBuddy"]:
+                shortcuts["AlignBuddy"].append("alignbuddy")
+            if which("pb") is None and not buddies_to_install["PhyloBuddy"]:
+                shortcuts["PhyloBuddy"].append("pb")
+            if which("phylobuddy") is None and not buddies_to_install["PhyloBuddy"]:
+                shortcuts["PhyloBuddy"].append("phylobuddy")
+            if which("db") is None and not buddies_to_install["DatabaseBuddy"]:
+                shortcuts["DatabaseBuddy"].append("db")
+            if which("databasebuddy") is None and not buddies_to_install["DatabaseBuddy"]:
+                shortcuts["DatabaseBuddy"].append("database")
+
         else:
             buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
             install_directory = "/usr/local/bin/BuddySuite"
+
             shortcuts = {"SeqBuddy": [], "AlignBuddy": [], "PhyloBuddy": [], "DatabaseBuddy": []}
-            if which("sb") is None:
-                shortcuts["SeqBuddy"] = ["sb"]
-            if which("alb") is  None:
-                shortcuts["AlignBuddy"] = ["alb"]
+            if which("sb") is None:  # if hard install, use default shortcuts
+                shortcuts["SeqBuddy"].append("sb")
+            if which("seqbuddy") is None:
+                shortcuts["SeqBuddy"].append("seqbuddy")
+            if which("alb") is None:
+                shortcuts["AlignBuddy"].append("alb")
+            if which("alignbuddy") is None:
+                shortcuts["AlignBuddy"].append("alignbuddy")
             if which("pb") is None:
-                shortcuts["PhyloBuddy"] = ["pb"]
+                shortcuts["PhyloBuddy"].append("pb")
+            if which("phylobuddy") is None:
+                shortcuts["PhyloBuddy"].append("phylobuddy")
             if which("db") is None:
-                shortcuts["DatabaseBuddy"] = ["db"]
-            options = []
-            options.append(buddies_to_install)
-            options.append(install_directory)
-            options.append(shortcuts)
+                shortcuts["DatabaseBuddy"].append("db")
+            if which("databasebuddy") is None:
+                shortcuts["DatabaseBuddy"].append("database")
+
+            options = [buddies_to_install, install_directory, shortcuts]
 
         paths_to_delete = ["/resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py"]
@@ -333,8 +358,7 @@ class Installer(Frame):
 
     def toggle_tool(self, name):
         self.buddies[name] = False if self.buddies[name] else True
-        print(name)
-        print(str(self.buddies[name]))
+        print("{0}: {1}".format(name, str(self.buddies[name])))
 
     def install_location(self):
         self.clear_container()
@@ -508,10 +532,14 @@ class Installer(Frame):
         ab_label.grid(row=3, sticky=NW)
         db_label.grid(row=4, sticky=NW)
         dir_label.grid(row=5, sticky=NW)
-        cs_sb_label.grid(row=6, sticky=NW)
-        cs_ab_label.grid(row=7, sticky=NW)
-        cs_pb_label.grid(row=8, sticky=NW)
-        cs_db_label.grid(row=9, sticky=NW)
+        if self.buddies["SeqBuddy"]:
+            cs_sb_label.grid(row=6, sticky=NW)
+        if self.buddies["AlignBuddy"]:
+            cs_ab_label.grid(row=7, sticky=NW)
+        if self.buddies["PhyloBuddy"]:
+            cs_pb_label.grid(row=8, sticky=NW)
+        if self.buddies["DatabaseBuddy"]:
+            cs_db_label.grid(row=9, sticky=NW)
         info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
         button_frame = Frame()
         next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
