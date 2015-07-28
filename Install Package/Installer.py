@@ -61,6 +61,9 @@ class BuddyInstall:
             buddies_to_install = options[0]
             install_directory = options[1]
             shortcuts = options[2]
+            for buddy in buddies_to_install:
+                if not buddies_to_install[buddy]:
+                    shortcuts[buddy] = []
 
         else:
             buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
