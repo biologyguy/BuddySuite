@@ -371,11 +371,9 @@ class Installer(Frame):
             uninstall = Radiobutton(radio_frame, text="Uninstall", value="False", variable=var, command=func)
             if self.buddies[self.buddy_names[num]]:
                 self.toggle_tool(self.buddy_names[num])
-                update.invoke()
                 uninstall.deselect()
             else:
                 self.toggle_tool(self.buddy_names[num])
-                update.deselect()
                 uninstall.invoke()
             update.pack(side=LEFT)
             uninstall.pack(side=RIGHT)
@@ -383,8 +381,14 @@ class Installer(Frame):
         frame.pack(side=TOP)
         mega_frame.pack(side=TOP)
 
-    def toggle_tool(self, name):
-        self.buddies[name] = False if self.buddies[name] else True
+    def toggle_tool(self, name, radiobutton=None):
+        if radiobutton is not None:
+            if radiobutton.value() == "True":
+                self.buddies[name] = True
+            else:
+                self.buddies[name] = False
+        else:
+            self.buddies[name] = False if self.buddies[name] else True
         print("{0}: {1}".format(name, str(self.buddies[name])))
 
     def none_selected_page(self):
