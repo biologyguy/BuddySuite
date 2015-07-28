@@ -116,14 +116,20 @@ class BuddyInstall:
             print("Install path: " + install_directory)
             if not path.exists(install_directory):
                 os.makedirs(install_directory)
+                print("Directory added: {0}".format(install_directory))
             if user_system in ['Darwin', 'Linux', 'Unix']:
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
+                print("File added: {0}/MyFuncs.py".format(install_directory))
                 BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
+                print("Directory added: {0}/resources".format(install_directory))
                 BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
+                print("Directory added: {0}/Bio".format(install_directory))
                 BuddyInstall.copytree(blast_path, "{0}/blast_binaries".format(install_directory))
+                print("Directory added: {0}/blast_binaries".format(install_directory))
                 for buddy in buddies_to_install:
                     if buddies_to_install[buddy]:
                         shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                        print("File added: {0}/{1}.py".format(install_directory, buddy))
                         for shortcut in shortcuts[buddy]:
                             if which(shortcut) is None:
                                 os.symlink("{0}/{1}.py".format(install_directory, buddy),
@@ -131,12 +137,14 @@ class BuddyInstall:
                                 print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
                 if not path.exists("/usr/local/bin/buddysuite/"):
                     os.symlink(install_directory, "/usr/local/bin/buddysuite")
+                    print("Shortcut added: {0} ==> /usr/local/bin/buddysuite".format(install_directory))
 
             elif user_system == 'Windows':
                 print("Windows not supported at the moment.")
                 return
 
             BuddyInstall.make_config_file(options)
+        print("Finished.")
 
     @staticmethod
     def uninstall_buddy_suite():
@@ -192,8 +200,7 @@ class BuddyInstall:
 
         with open("{0}/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
-        print("Config file written to "+"{0}/config.ini".format(options[1]))
-        print("Installation complete.")
+        print("Config file written to "+"{0}/config.ini".format(options[1])
 
     @staticmethod
     def read_config_file():
@@ -281,7 +288,6 @@ class Installer(Frame):
                 shortcuts[buddy].remove(shortcut)
     user_system = system()
     user_os = platform()
-    print("Operating System: {0}".format(user_os))
 
     config = None
     if BuddyInstall.read_config_file() is not None:
@@ -442,7 +448,6 @@ class Installer(Frame):
                 self.buddies[name] = False
         else:
             self.buddies[name] = False if self.buddies[name] else True
-        print("{0}: {1}".format(name, str(self.buddies[name])))
 
     def none_selected_page(self):
         self.clear_container()
