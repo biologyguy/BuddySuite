@@ -828,6 +828,15 @@ def test_split_by_taxa():
     assert output == '438cc47dd268453f38342ca276f77a73'
 
 
+# #####################  'fp', '--find_pattern' ###################### ##
+def test_find_pattern():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.pull_recs(tester, "α[67]")
+    assert Sb.find_pattern(tester, "ATGGT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+    assert Sb.find_pattern(tester, "ATggT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+    assert Sb.find_pattern(tester, "ATg{2}T") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+
+
 # #####################  'sf', '--split_file' ###################### ##
 def test_split_file():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))

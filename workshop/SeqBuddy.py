@@ -1771,15 +1771,16 @@ def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
     return [sites, print_output]
 
 
-def find_pattern(_seqbuddy, pattern):  # TODO ambiguous letters mode
+def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
     # search through sequences for regex matches. For example, to find micro-RNAs
+    _pattern = _pattern.upper()
     _output = OrderedDict()
-    for rec in _seqbuddy.records:
+    for _rec in _seqbuddy.records:
         indices = []
-        matches = re.finditer(pattern, str(rec.seq))
+        matches = re.finditer(_pattern, str(_rec.seq).upper())
         for match in matches:
             indices.append(match.start())
-        _output[rec.id] = indices
+        _output[_rec.id] = indices
     return _output
 
 
@@ -1789,7 +1790,7 @@ def find_CpG(_seqbuddy):
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         raise TypeError("DNA sequence required, not protein or RNA.")
 
-    output = OrderedDict()
+    _output = OrderedDict()
     records = []
 
     def cpg_calc(_seq):  # Returns observed/expected value of a sequence
@@ -1818,17 +1819,17 @@ def find_CpG(_seqbuddy):
     def map_cpg(_seq, island_ranges):  # Maps CpG islands onto a sequence as capital letters
         cpg_seq = _seq.lower()
         for pair in island_ranges:
-            cpg_seq = cpg_seq[:pair[0]] + cpg_seq[pair[0]:pair[1]+1].upper() + cpg_seq[pair[1]+1:]
+            cpg_seq = cpg_seq[:pair[0]] + cpg_seq[pair[0]:pair[1] + 1].upper() + cpg_seq[pair[1] + 1:]
         return cpg_seq
 
     for rec in _seqbuddy.records:
-        seq = rec.seq
+        _seq = rec.seq
 
-        oe_vals_list = [0 for _ in range(len(seq))]
-        cg_percent_list = [0 for _ in range(len(seq))]
-        window_size = len(seq) if len(seq) < 200 else 200
+        oe_vals_list = [0 for _ in range(len(_seq))]
+        cg_percent_list = [0 for _ in range(len(_seq))]
+        window_size = len(_seq) if len(_seq) < 200 else 200
 
-        for _index, window in enumerate([seq[i:i + window_size] for i in range(len(seq) - window_size + 1)]):
+        for _index, window in enumerate([_seq[i:i + window_size] for i in range(len(_seq) - window_size + 1)]):
             cpg = cpg_calc(str(window))
             for i in range(window_size):
                 oe_vals_list[_index + i] += cpg
@@ -1855,14 +1856,14 @@ def find_CpG(_seqbuddy):
                                    qualifiers={'created_by': 'SeqBuddy'}) for (start, end) in indices]
         for feature in rec.features:
             cpg_features.append(feature)
-        _rec = SeqRecord(map_cpg(seq, indices), id=rec.id, name=rec.name, description=rec.description,
+        _rec = SeqRecord(map_cpg(_seq, indices), id=rec.id, name=rec.name, description=rec.description,
                          dbxrefs=rec.dbxrefs, features=cpg_features, annotations=rec.annotations,
                          letter_annotations=rec.letter_annotations)
 
         records.append(_rec)
-        output[rec.id] = indices
+        _output[rec.id] = indices
     _seqbuddy.records = records
-    return _seqbuddy, output
+    return _seqbuddy, _output
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -1982,7 +1983,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="")
     parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
                         metavar=("<commercial>", "<num_cuts>"), help="")
-    parser.add_argument("-fp", "--find_pattern", action='store', nargs=1, metavar="<pattern>", help="")
+    parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
+                        help="Search for subsequences, returning the start positions of all matches.")
     parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
     parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
     parser.add_argument("-fcpg", "--find_CpG", action='store_true', help="")
@@ -2530,15 +2532,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Find pattern
     if in_args.find_pattern:
-        output = find_pattern(seqbuddy, in_args.find_pattern[0])
-        out_string = ""
-        num_matches = 0
-        for key in output:
-            out_string += "{0}: {1}\n".format(key, str(output[key]))
-            num_matches += len(output[key])
-        _stderr("#### {0} matches found across {1} sequences for pattern '{2}' ####\n".format(num_matches, len(output),
-                                                                                  in_args.find_pattern[0]))
-        _stdout(out_string)
+        for pattern in in_args.find_pattern:
+            output = find_pattern(seqbuddy, pattern)
+            out_string = ""
+            num_matches = 0
+            for key in output:
+                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[key]]))
+                num_matches += len(output[key])
+            _stderr("#### {0} matches found across {1} sequences for "
+                    "pattern '{2}' ####\n".format(num_matches, len(output), pattern))
+            _stdout("%s\n" % out_string)
 
     # Find CpG
     if in_args.find_CpG:
@@ -2548,3 +2551,4 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             out_string += "{0}: {1}\n".format(key, str(output[1][key]))
         print(output[0])
         _stderr('\n'+out_string, in_args.quiet)
+
