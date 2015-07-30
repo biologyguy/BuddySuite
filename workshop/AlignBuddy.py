@@ -22,10 +22,14 @@ from collections import OrderedDict
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
-# from Bio.SeqRecord import SeqRecord
+from Bio.Align.AlignInfo import SummaryInfo
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.SeqFeature import SeqFeature
+from Bio.SeqFeature import FeatureLocation
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
+from hashlib import md5
 
 # My functions
 import SeqBuddy as SB
@@ -600,6 +604,108 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
     return _alignbuddy
 
+def consensus_sequence(_alignbuddy):
+    # http://bioinformatics.oxfordjournals.org/content/18/11/1494
+    #if len(_alignbuddy.alignments) < 2:
+        #raise AttributeError("At least two a")
+    _output = []
+    for alignment in _alignbuddy.alignments:
+        _id = alignment[0].id
+        aln = SummaryInfo(alignment)
+        print(aln.gap_consensus())
+        _output.append(SeqRecord(seq=aln.gap_consensus(), id=_id))
+    return _output
+
+def concat_alignments(_alignbuddy, _pattern):
+    # collapsed multiple genes from single taxa down to one consensus seq
+    # detected mixed sequence types
+    def organism_list():
+        orgnsms = set()
+        for _alignment in _alignbuddy.alignments:
+            for record in _alignment:
+                orgnsms.add(record.id)
+        return list(orgnsms)
+
+    def add_blanks(_record, _num):
+        for x in range(_num):
+            _record.seq += '-'
+
+    missing_organisms = organism_list()
+
+    # dict[alignment_index][organism] -> gene_name
+    sequence_names = OrderedDict()
+    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+        sequence_names[al_indx] = OrderedDict()
+        for record in alignment:
+            organism = re.split(_pattern, record.id)[0]
+            gene = ''.join(re.split(_pattern, record.id)[1:])
+            if organism in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism].append(gene)
+            else:
+                sequence_names[al_indx][organism] = [gene]
+            record.id = organism
+    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+        duplicate_table = OrderedDict()
+        for record in alignment:
+            if record.id in duplicate_table.keys():
+                duplicate_table[record.id].append(record)
+            else:
+                duplicate_table[record.id] = [record]
+        _temp = []
+        for record in alignment:
+            if len(duplicate_table[record.id]) == 1:
+                _temp.append(record)
+                duplicate_table.pop(record.id)
+        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_temp, alphabet=_alignbuddy.alpha)
+        for gene in duplicate_table:
+            consensus = SummaryInfo(MultipleSeqAlignment(duplicate_table[gene]))
+            consensus = consensus.gap_consensus(consensus_alpha=_alignbuddy.alpha)
+            consensus = SeqRecord(seq=consensus, id=gene)
+            _alignbuddy.alignments[al_indx].append(consensus)
+
+    for al_indx in range(len(_alignbuddy.alignments)):
+        for _id in missing_organisms:
+            organism = re.split(_pattern, _id)[0]
+            if organism not in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism] = ['missing']
+
+    for x in range(len(missing_organisms)):
+        missing_organisms[x] = re.split(_pattern, missing_organisms[x])[0]
+
+    base_alignment = deepcopy(_alignbuddy.alignments[0])
+    for record in base_alignment:
+        while record.id in missing_organisms:
+            missing_organisms.remove(record.id)
+    for organism in missing_organisms:
+        new_record = SeqRecord(Seq('', alphabet=_alignbuddy.alpha), id=re.split(_pattern, organism)[0])
+        add_blanks(new_record, base_alignment.get_alignment_length())
+        base_alignment.append(new_record)
+
+    for record in base_alignment:
+        record.description = 'concatenated_alignments'
+        record.name = 'multiple'
+
+    curr_length = 0
+    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+        for base_indx, base_rec in enumerate(base_alignment):
+            added = False
+            for record in alignment:
+                if base_rec.id == record.id:
+                    if al_indx > 0:
+                        base_rec.seq += record.seq
+                        added = True
+            if not added and al_indx > 0:
+                add_blanks(base_rec, alignment.get_alignment_length())
+            feature_location = FeatureLocation(start=curr_length,
+                                               end=curr_length + alignment.get_alignment_length())
+            feature = SeqFeature(location=feature_location, type='alignment'+str(al_indx+1),
+                                 qualifiers={'name': sequence_names[al_indx][base_rec.id]})
+            base_alignment[base_indx].features.append(feature)
+        curr_length += alignment.get_alignment_length()
+
+    _alignbuddy.alignments = [base_alignment]
+    return _alignbuddy
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -639,6 +745,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Keep selected rows from alignements. Arguments: <search_pattern>")
     parser.add_argument('-trm', '--trimal', nargs='?', action='append',
                         help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
+    parser.add_argument('-cta', '--concat_alignments', action='store',
+                        help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -659,7 +767,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
-    # ############################################## INTERNAL FUNCTIONS ############################################## #
+     ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         try:
             _output = str(alignbuddy)
@@ -756,3 +864,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.trimal:
         in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
         _print_aligments(trimal(alignbuddy, in_args.trimal))
+
+    if in_args.concat_alignments:
+        _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))

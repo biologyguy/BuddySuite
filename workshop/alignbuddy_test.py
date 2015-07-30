@@ -425,3 +425,16 @@ def test_trimal2():
     assert align_to_hash(Alb.trimal(tester, 'all')) == "caebb7ace4940cea1b87667e5e113acb"
     with pytest.raises(ValueError):
         Alb.trimal(tester, "Foo")
+
+# ###########################################  'cta', '--concat_alignments' ######################################### #
+def test_concat_alignments_identical():
+    tester = Alb.AlignBuddy(resource("duplicate_alignment.nex"))
+    tester.alignments.append(tester.alignments[0])
+    Alb.concat_alignments(tester, '-')
+    assert align_to_hash(tester) == '1b656db96d33973fe6b1368afc974148'
+
+def test_concat_alignments_duplicate_taxa():
+    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
+    Alb.concat_alignments(tester, '-')
+    assert align_to_hash(tester) == 'd961ac6293597c91f495936fc0ea85f9'
+
