@@ -179,27 +179,48 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 class Record:
     def __init__(self, _accession, _database=None, _record=None, _type=None):
         self.accession = _accession
-        self.database = _database  # genbank, ensembl, uniprot
+        self.database = _database  # refseq, genbank, ensembl, uniprot
         self.record = _record  # SeqIO record
         self.type = _type  # protein, nucleotide
 
     def guess_database(self):
         # RefSeq
         if re.match("^[NX][MR]_[0-9]+", self.accession):
+            self.database = "refseq"
+            self.type = "nucleotide"
+
+        elif re.match("^[ANYXZ]P_[0-9]+", self.accession):
+            self.database = "refseq"
+            self.type = "protein"
+
+        # GenBank
+        elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}$", self.accession):  # Nucleotide
             self.database = "gb"
             self.type = "nucleotide"
 
-        if re.match("^[ANYXZ]P_[0-9]+", self.accession):
+        elif re.match("^[A-Z]{3}[0-9]{5}$", self.accession):  # Protein
             self.database = "gb"
             self.type = "protein"
 
-        # UniProt
-        if re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
+        elif re.match("^[A-Z]{4}[0-9]{8,10}$", self.accession):  # Whole Genome
+            self.database = "gb"
+            self.type = "nucleotide"
+
+        elif re.match("^[A-Z]{5}[0-9]{7}$", self.accession):  # MGA (Mass sequence for Genome Annotation)
+            self.database = "gb"
+            self.type = "protein"
+
+        elif re.match("^[0-9]+$", self.accession):  # GI number
+            self.database = "gb"
+            self.type = "gi_num"  # Need to check genbank accession number to figure out that this is
+
+        # UniProt/SwissProt
+        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
             self.database = "uniprot"
             self.type = "protein"
 
         # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
-        if re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
+        elif re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
             self.database = "ensembl"
             self.type = "nucleotide"
 
@@ -218,21 +239,28 @@ class UniProtRestClient:
 
     def fetch_proteins(self):
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
-        _ids = ",".join([_rec.accession for _rec in _records]).strip(",")
-        request = Request("%s?query=%s&format=txt" % (self.server, _ids))
-        response = urlopen(request)
-        data = SeqIO.to_dict(SeqIO.parse(response, "swiss"))
-        for _rec in _records:
-            if _rec.accession not in data:
-                self.dbbuddy.failures.append(_rec.accession)
-            else:
-                self.dbbuddy.records[_rec.accession].record = data[_rec.accession]
+        if len(_records) > 0:
+            _ids = ",".join([_rec.accession for _rec in _records]).strip(",")
+            request = Request("%s?query=%s&format=txt" % (self.server, _ids))
+            response = urlopen(request)
+            data = SeqIO.to_dict(SeqIO.parse(response, "swiss"))
+            for _rec in _records:
+                if _rec.accession not in data:
+                    self.dbbuddy.failures.append(_rec.accession)
+                else:
+                    self.dbbuddy.records[_rec.accession].record = data[_rec.accession]
 
 
 class NCBIClient:
     def __init__(self, _dbbuddy):
         Entrez.email = ""
         self.dbbuddy = _dbbuddy
+
+    def gi2acc(self):
+        gi_records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num"]
+        gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
+        handle = Entrez.efetch(db="nucleotide", id=gi_accessions, rettype="acc", retmode="text")
+        sys.exit(handle.read())
 
     def fetch_nucliotides(self):
         for _accession, _rec in self.dbbuddy.records.items():
@@ -339,6 +367,7 @@ def download_everything(_dbbuddy):
 
     # Get sequences from genbank
     refseq = NCBIClient(_dbbuddy)
+    refseq.gi2acc()
     refseq.fetch_nucliotides()
     refseq.fetch_proteins()
 
