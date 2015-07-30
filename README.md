@@ -1,5 +1,3 @@
-[ ![Release] [release-image] ] [releases]
-[ ![License] [license-image] ] [license]
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
@@ -26,23 +24,20 @@ Being pure Python, the BuddySuite should be cross platform. Almost all developme
   and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
 ## Standalone installation
-A graphical installer is in the works, but for now simply download the desired Buddy tool(s), and make executable.
+Download the graphical installer and run from the command line
     
-    $: wget https://raw.github.com/biologyguy/BuddySuite/master/SeqBuddy
-    $: chmod +x SeqBuddy
+    $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite
+    $: chmod +x BuddySuite
+    $: ./BuddySuite
 
-Run with the -h flag to see a list of available functions.
+By default, the installer will place short form sym-links to the main tools in your PATH (e.g., 'sb' for SeqBuddy, 'alb'
+ for AlignBuddy, etc.), so they can be accessed quickly (examples in the wiki use these short forms). The full names of
+ each tool will also be added to PATH.
 
-    $: ./SeqBuddy -h
-
-I like to sym-link the main tools to short commands somewhere in my PATH (e.g., 'sb' for SeqBuddy, 'alb' for AlignBuddy, 
-etc.), so they can be accessed quickly (examples in the wiki use these short forms).
-
-    $: ln -s /path/to/SeqBuddy.py /usr/local/bin/sb
-   
-These are the stable release versions of the BuddySuite. If bugs are found they will be fixed, but the *expected* 
+The installer bundles stable release versions of the BuddySuite. If bugs are found they will be fixed, but the *expected* 
 behavior will not be changed once the release is finalized. Likewise, new features added to the development versions
-will not become available in the standalones until the next release. Version can be displayed using the -v flag.
+will not become available in the installer until the next release. Versions of each tool or the installer can be 
+displayed using the -v flag.
 
 ## Development version installation and contribution
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the 
@@ -63,10 +58,13 @@ to contribute to the project, new features require three components:
 The BuddySuite is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
 [here](https://www.python.org/downloads/). 
 
-The blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
+The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
 [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
  
 [BioPython](http://biopython.org/) is used heavily by the suite, and the package must be installed to use the development
 version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit tests to fail. 
 This dependency is bundled into the stand alone version, however, so no extra download is required unless you are 
 developing (or want the bleeding edge).
+
+AlignBuddy and PhyloBuddy will eventually wrap a number of third party tools, but similar to the BLAST binaries, they
+ will only be necessary to use their respective functions.

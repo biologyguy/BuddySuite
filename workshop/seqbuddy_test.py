@@ -6,8 +6,8 @@ import pytest
 from hashlib import md5
 import os
 import re
-from copy import deepcopy
 from Bio.Alphabet import IUPAC
+from collections import OrderedDict
 
 try:
     import workshop.SeqBuddy as Sb
@@ -102,7 +102,7 @@ def test_alpha_arg_guess():
 
 
 def test_to_string():
-    tester = deepcopy(sb_objects[0])
+    tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(tester) == md5(str(tester).encode()).hexdigest()
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
@@ -111,18 +111,24 @@ sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 
 
 # ######################  'sh', '--shuffle' ###################### #
-@pytest.mark.parametrize("seqbuddy", [deepcopy(x) for x in sb_objects])
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copies(x) for x in sb_objects])
 def test_shuffle(seqbuddy):
-    tester = Sb.shuffle(deepcopy(seqbuddy))
+    tester = Sb.shuffle(Sb._make_copies(seqbuddy))
+    for i in range(3):  # Sometimes shuffle doesn't actually shuffle, so repeat a few times if necessary
+        if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
+            break
+        tester = Sb.shuffle(Sb._make_copies(seqbuddy))
+
     assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
     assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
+
 
 # ######################  'rs', '--raw_seq' ###################### #
 hashes = ["6f0ff2d43706380d92817e644e5b78a5", "5d00d481e586e287f32d2d29916374ca", "6f0ff2d43706380d92817e644e5b78a5",
           "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
           "cdfe71aefecc62c5f5f2f45e9800922c", "4dd913ee3f73ba4bb5dc90d612d8447f", "cdfe71aefecc62c5f5f2f45e9800922c",
           "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -142,7 +148,7 @@ lc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b25
              "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
              "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
 
-hashes = [(deepcopy(sb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,uc_hash,lc_hash", hashes)
@@ -166,7 +172,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "3b718ec3cb794bcb658d900e51711
               "14227e77440e75dd3fbec477f6fd8bdc", "c6a788d8ea916964605ac2942c459c9b",
               "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
               "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
-hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
@@ -190,7 +196,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4345a14fe27570b3c837c30a8cb55
               "14227e77440e75dd3fbec477f6fd8bdc", "9e7c2571db1386bba5983365ae235e1b",
               "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
               "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
-hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
@@ -218,31 +224,28 @@ def test_molecular_weight():
     tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))
     assert tester['masses_ss'][0] == 387371.6
     # Protein
-    tester = Sb.molecular_weight(sb_objects[6])
+    tester = Sb.molecular_weight(Sb._make_copies(sb_objects[6]))
     assert tester['masses_ss'][0] == 45692.99
 
 
 # ######################  'cs', '--clean_seq'  ###################### #
 def test_clean_seq():
     # Protein
-    tester = deepcopy(sb_objects[6])
-    tester.alpha = IUPAC.protein
+    tester = Sb._make_copies(sb_objects[6])
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "dc53f3be7a7c24425dddeea26ea0ebb5"
     tester = Sb.clean_seq(tester, ambiguous=False)
     assert seqs_to_hash(tester) == "dc53f3be7a7c24425dddeea26ea0ebb5"
 
     # DNA
-    tester = deepcopy(sb_objects[12])
-    tester.alpha = IUPAC.ambiguous_dna
+    tester = Sb._make_copies(sb_objects[12])
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "71b28ad2730a9849f2ba0f70e9e51a9f"
     tester = Sb.clean_seq(tester, ambiguous=False)
     assert seqs_to_hash(tester) == "5fd0b78e37c81e0fa727db34a37cc743"
 
     # RNA
-    tester = deepcopy(sb_objects[13])
-    tester.alpha = IUPAC.ambiguous_rna
+    tester = Sb._make_copies(sb_objects[13])
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "cdb1b963536d57efc7b7f87d2bf4ad22"
     tester = Sb.clean_seq(tester, ambiguous=False)
@@ -250,13 +253,13 @@ def test_clean_seq():
 
     # Alignment formats should raise an error because seq lengths change
     with pytest.raises(ValueError):
-        tester = Sb.clean_seq(deepcopy(sb_objects[2]))
+        tester = Sb.clean_seq(Sb._make_copies(sb_objects[2]))
         tester.write("/dev/null")
-        tester = Sb.clean_seq(deepcopy(sb_objects[3]))
+        tester = Sb.clean_seq(Sb._make_copies(sb_objects[3]))
         tester.write("/dev/null")
-        tester = Sb.clean_seq(deepcopy(sb_objects[4]))
+        tester = Sb.clean_seq(Sb._make_copies(sb_objects[4]))
         tester.write("/dev/null")
-        tester = Sb.clean_seq(deepcopy(sb_objects[5]))
+        tester = Sb.clean_seq(Sb._make_copies(sb_objects[5]))
         tester.write("/dev/null")
 
 # ######################  'dm', '--delete_metadata' ###################### #
@@ -264,7 +267,7 @@ hashes = ["aa92396a9bb736ae6a669bdeaee36038", "544ab887248a398d6dd1aab513bae5b1"
           "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "a50943ccd028b6f5fa658178fa8cf54d",
           "bac5dc724b1fee092efccd2845ff2513", "858e8475f7bc6e6a24681083a8635ef9", "17ff1b919cac899c5f918ce8d71904f6",
           "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "e224c16f6c27267b5f104c827e78df33"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -275,7 +278,7 @@ def test_delete_metadata(seqbuddy, next_hash):
 # ######################  'tr', '--translate' ###################### #
 hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", ]
 # NOTE: the first 6 sb_objects are DNA.
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -292,7 +295,7 @@ def test_translate_pep_exception():
 # Only fasta
 hashes = ["b831e901d8b6b1ba52bad797bad92d14", "a518e331fb29e8be0fdd5f3f815f5abb", "2cbe39bea876030da6d6bd45e514ae0e"]
 frame = [1, 2, 3]
-hashes = [(deepcopy(sb_objects[0]), _hash, frame[indx]) for indx, _hash in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[0]), _hash, frame[indx]) for indx, _hash in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash,shift", hashes)
@@ -308,7 +311,7 @@ def test_select_frame_pep_exception():
 # ######################  'tr6', '--translate6frames' ###################### #
 # Only fasta and genbank
 hashes = ["d5d39ae9212397f491f70d6928047341", "42bb6caf86d2d8be8ab0defabc5af477"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -327,7 +330,7 @@ hashes = ["1b14489a78bfe8255c777138877b9648", "b6bcb4e5104cb202db0ec4c9fc2eaed2"
           "859ecfb88095f51bfaee6a1d1abeb50f", "ba5c286b79a3514fba0b960ff81af25b",
           "952a91a4506afb57f27136aa1f2a8af9", "40c4a3e08c811b6bf3be8bedcb5d65a0"]
 organisms = ['human', 'human', 'yeast', 'yeast', 'ecoli', 'ecoli']
-hashes = [(deepcopy(sb_objects[sb_obj_indx]), organisms[indx], hashes[indx]) for indx, sb_obj_indx in
+hashes = [(Sb._make_copies(sb_objects[sb_obj_indx]), organisms[indx], hashes[indx]) for indx, sb_obj_indx in
           enumerate([6, 7, 6, 7, 6, 7])]
 
 
@@ -345,12 +348,11 @@ def test_back_translate_nucleotide_exception():
 
 def test_back_translate_bad_mode():
     with pytest.raises(AttributeError):
-        Sb.back_translate(deepcopy(sb_objects[6]), 'fgsdjkghjdalgsdf', 'human')
+        Sb.back_translate(Sb._make_copies(sb_objects[6]), 'fgsdjkghjdalgsdf', 'human')
 
 
 def test_back_translate_bad_organism():
-    seqbuddy = deepcopy(sb_objects[6])
-    seqbuddy.alpha = IUPAC.protein
+    seqbuddy = Sb._make_copies(sb_objects[6])
     with pytest.raises(AttributeError):
         Sb.back_translate(seqbuddy, 'OPTIMIZED', 'fgsdjkghjdalgsdf')
 
@@ -362,7 +364,7 @@ r2d_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b2
               "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
               "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
 
-hashes = [(deepcopy(sb_objects[indx]), d2r_hash, r2d_hashes[indx]) for indx, d2r_hash in enumerate(d2r_hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), d2r_hash, r2d_hashes[indx]) for indx, d2r_hash in enumerate(d2r_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,d2r_hash,r2d_hash", hashes)
@@ -387,7 +389,7 @@ def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be th
 hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
           "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
           "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -403,7 +405,7 @@ def test_complement_pep_exception():  # Asserts that a TypeError will be thrown 
 # ######################  'rc', '--reverse_complement' ###################### #
 hashes = ["e77be24b8a7067ed54f06e0db893ce27", "47941614adfcc5bd107f71abef8b3e00", "f549c8dc076f6b3b4cf5a1bc47bf269d",
           "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -450,7 +452,7 @@ hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47"
           "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
           "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
           "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -465,8 +467,8 @@ def test_concat_seqs(seqbuddy, next_hash):
 hashes = ["5216ef85afec36d5282578458a41169a", "a8f7c129cf57a746c20198bf0a6b9cf4", "0deeea532d6dcbc0486e9b74d0d6aca8",
           "d595fabb157d5c996357b6a7058af4e8", "bb06e94456f99efc2068f5a52f0e0462", "a287e0054df7f5df76e792e0e0ab6756"]
 prot_indx = [6, 7, 8, 9, 10, 11]
-hashes = [(deepcopy(sb_objects[1]), deepcopy(sb_objects[prot_indx[indx]]), value) for indx, value in enumerate(hashes)]
-hashes.append((deepcopy(sb_objects[0]), deepcopy(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
+hashes = [(Sb._make_copies(sb_objects[1]), Sb._make_copies(sb_objects[prot_indx[indx]]), value) for indx, value in enumerate(hashes)]
+hashes.append((Sb._make_copies(sb_objects[0]), Sb._make_copies(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
 
 
 @pytest.mark.parametrize("_dna,_prot,next_hash", hashes)
@@ -483,14 +485,12 @@ hashes = ["3ebc92ca11505489cab2453d2ebdfcf2", "6b4dd3fc66cb7419acaf064b589f4dd1"
           "8d403750ef83d60e31de0dee79a8f5d1", "74c6c4b5531c41f55f7349ed6c6b2f43",
           "9133ab0becbec95ce7ed31e02dc17ef5", "3ebc92ca11505489cab2453d2ebdfcf2"]
 dna_indx = [0, 1, 2, 3, 4, 5]
-hashes = [(deepcopy(sb_objects[7]), deepcopy(sb_objects[dna_indx[indx]]), value) for indx, value in enumerate(hashes)]
-hashes.append((deepcopy(sb_objects[6]), deepcopy(sb_objects[0]), "720f36544f9c11855ac2673e63282f89"))
+hashes = [(Sb._make_copies(sb_objects[7]), Sb._make_copies(sb_objects[dna_indx[indx]]), value) for indx, value in enumerate(hashes)]
+hashes.append((Sb._make_copies(sb_objects[6]), Sb._make_copies(sb_objects[0]), "720f36544f9c11855ac2673e63282f89"))
 
 
 @pytest.mark.parametrize("_prot,_dna,next_hash", hashes)
 def test_map_features_prot2dna(_prot, _dna, next_hash):
-    _prot.alpha = IUPAC.protein
-    _dna.alpha = IUPAC.ambiguous_dna
     tester = Sb.map_features_prot2dna(_prot, _dna)
     assert seqs_to_hash(tester) == next_hash
 
@@ -498,7 +498,7 @@ def test_map_features_prot2dna(_prot, _dna, next_hash):
 # ######################  'ri', '--rename_ids' ###################### #
 hashes = ["59bea136d93d30e3f11fd39d73a9adff", "78c73f97117bd937fd5cf52f4bd6c26e", "243024bfd2f686e6a6e0ef65aa963494",
           "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -523,7 +523,7 @@ rev_hashes = ["503a71fc2e8d143361cbe8f4611527fd", "dd269961d4d5301d1bf87e0093568
               "82fea6e3d3615ac75ec5022abce255da", "9d0910f3d303297283bace2718f60d61",
               "8af06c3523a1bf7cde4fc2b8c64a388c", "3b83a3c73a6cdded6635ffa10c4a16e1"]
 
-hashes = [(deepcopy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
@@ -538,7 +538,7 @@ hashes = ["201235ed91ad0ed9a7021136487fed94", "3e791c6a6683516aff9572c24f38f0b3"
           "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
           "904a188282f19599a78a9d7af4169de6", "b8413624b9e684a14fc9f398a62e3965", "6a27222d8f60ee8496cbe0c41648a116",
           "9ecc1d83eff77c61284869b088c833a1", "9c85530cd3e3aa628b0e8297c0c9f977", "38d571c9681b4fa420e3d8b54c507f9c"]
-hashes = [(deepcopy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes = [(Sb._make_copies(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -567,13 +567,12 @@ def test_empty_file():
 
 
 # ######################  'asl', '--ave_seq_length' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[0:6] if ".phy" not in x])
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copies(x) for x in sb_objects[0:6] if len(x.records) == 13])
 def test_ave_seq_length_dna(seqbuddy):
-    print(seqbuddy.in_format)
     assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 1285.15
 
 
-@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in seq_files[6:12] if ".phy" not in x])
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copies(x) for x in sb_objects[6:12] if len(x.records) == 13])
 def test_ave_seq_length_pep(seqbuddy):
     assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 427.38
 
@@ -602,9 +601,9 @@ def test_pull_recs(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 
-# ######################  'dr', '--delete_records' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb.SeqBuddy(resource(x)) for x in [seq_files[6], seq_files[7], seq_files[8],
-                                                                         seq_files[10], seq_files[11]]])
+# ######################  'ip', '--isoelectric_point' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copies(x) for x in [sb_objects[6], sb_objects[7], sb_objects[8],
+                                                                   sb_objects[10], sb_objects[11]]])
 def test_isoelectric_point(seqbuddy):
     output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
     assert output[0][1] == 6.0117797852
@@ -637,6 +636,7 @@ def test_blastn():
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_cds.n"))
     assert seqs_to_hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
 
+
 def test_blastp():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8')
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_pep.p"))
@@ -649,6 +649,7 @@ def test_bl2seq_cds():
     result = Sb.bl2seq(seqbuddy)[1]
     assert md5(result.encode()).hexdigest() == 'c860c66c9f22eb5ee7b41000b636b47e'
 
+
 def test_bl2seq_pep():
     seqbuddy = Sb.SeqBuddy(resource(seq_files[6]))
     result = Sb.bl2seq(seqbuddy)[1]
@@ -656,13 +657,49 @@ def test_bl2seq_pep():
 
 
 # ######################  'cr', '--count_residues' ###################### #
+def test_count_residues():
+    # Unambiguous DNA
+    tester = Sb._make_copies(sb_objects[0])
+    residues = Sb.count_residues(tester)
+    residues = {x[0]: x[1] for x in residues}
+    assert residues['Mle-Panxα6']['G'] == [265, 0.21703521703521703]
+    assert "% Ambiguous" not in residues['Mle-Panxα6'] and "U" not in residues['Mle-Panxα6']
 
-cr_hashes = [(Sb.SeqBuddy(resource(seq_files[0])), 'ce6c5e8132b88a8022b48a5370c63cde'),
-             (Sb.SeqBuddy(resource(seq_files[6])), 'ea9fdc93052a45ca08f853092ebc4075')]
-@pytest.mark.parametrize("seqbuddy, next_hash", cr_hashes)
-def test_count_residues(seqbuddy, next_hash):
-    result = Sb.count_residues(seqbuddy)
-    assert md5(str(result).encode()).hexdigest() == next_hash
+    # Unambiguous RNA
+    Sb.dna2rna(tester)
+    residues = Sb.count_residues(tester)
+    residues = {x[0]: x[1] for x in residues}
+    assert residues['Mle-Panxα6']['U'] == [356, 0.2915642915642916]
+    assert "% Ambiguous" not in residues['Mle-Panxα6'] and "T" not in residues['Mle-Panxα6']
+
+    # Ambiguous DNA
+    tester = Sb._make_copies(sb_objects[12])
+    residues = Sb.count_residues(tester)
+    residues = {x[0]: x[1] for x in residues}
+    assert "U" not in residues['Mle-Panxα6']
+    assert residues['Mle-Panxα6']['Y'] == [1, 0.000819000819000819]
+    assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
+
+    # Ambiguous RNA
+    tester = Sb._make_copies(sb_objects[13])
+    residues = Sb.count_residues(tester)
+    residues = {x[0]: x[1] for x in residues}
+    assert "T" not in residues['Mle-Panxα6']
+    assert residues['Mle-Panxα6']['U'] == [353, 0.2891072891072891]
+    assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
+
+    # Protein
+    tester = Sb._make_copies(sb_objects[6])
+    residues = Sb.count_residues(tester)
+    residues = {x[0]: x[1] for x in residues}
+    assert residues['Mle-Panxα6']['P'] == [17, 0.04176904176904177]
+    assert "% Ambiguous" not in residues['Mle-Panxα6']
+    assert residues['Mle-Panxα8']["% Ambiguous"] == 1.2
+    assert residues['Mle-Panxα8']["% Positive"] == 12.23
+    assert residues['Mle-Panxα8']["% Negative"] == 12.71
+    assert residues['Mle-Panxα8']["% Uncharged"] == 73.62
+    assert residues['Mle-Panxα8']["% Hyrdophilic"] == 36.93
+    assert residues['Mle-Panxα8']["% Hyrdophobic"] == 55.4
 
 
 # ######################  'stdout and stderr' ###################### #
@@ -674,6 +711,7 @@ def test_stdout(capsys):
     Sb._stdout("Hello std_out", quiet=True)
     out, err = capsys.readouterr()
     assert out == ""
+
 
 def test_stderr(capsys):
     Sb._stderr("Hello std_err", quiet=False)
@@ -691,16 +729,19 @@ def test_hash_seq_ids_zero():
     tester = Sb.hash_sequence_ids(tester, 0)
     assert len(tester[0].records[0].id) == 10
 
+
 def test_hash_seq_ids_too_short():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester.records *= 10
     tester = Sb.hash_sequence_ids(tester, 1)
     assert len(tester[0].records[0].id) == 2
 
+
 def test_hash_seq_ids_default():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.hash_sequence_ids(tester)
     assert len(tester[0].records[0].id) == 10
+
 
 def test_hash_seq_ids_25():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
@@ -742,31 +783,35 @@ def test_pull_record_ends_front():
     tester = Sb.pull_record_ends(tester, 10, 'front')
     assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
 
+
 def test_pull_record_ends_back():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.pull_record_ends(tester, 10, 'rear')
     assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
 
+
 def test_pull_record_ends_zero():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(deepcopy(seqbuddy), 0, 'rear')
+    tester = Sb.pull_record_ends(Sb._make_copies(seqbuddy), 0, 'rear')
     assert seqs_to_hash(tester) == seqs_to_hash(seqbuddy)
+
 
 def test_pull_record_ends_neg():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(ValueError):
-        Sb.pull_record_ends(deepcopy(seqbuddy), -1, 'rear')
+        Sb.pull_record_ends(Sb._make_copies(seqbuddy), -1, 'rear')
+
 
 def test_pull_record_ends_wrong_end():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(AttributeError):
-        Sb.pull_record_ends(deepcopy(seqbuddy), 100, 'fghhgj')
+        Sb.pull_record_ends(Sb._make_copies(seqbuddy), 100, 'fghhgj')
 
 
 # #####################  'prr', '--pull_random_recs' ###################### ##
 @pytest.mark.parametrize("seqbuddy", sb_objects)
 def test_pull_random_recs(seqbuddy):
-    tester = Sb.pull_random_recs(deepcopy(seqbuddy))
+    tester = Sb.pull_random_recs(Sb._make_copies(seqbuddy))
     assert len(tester.records) == 1
     assert tester.records[0].id in Sb.list_ids(seqbuddy)
 
@@ -776,12 +821,14 @@ def test_find_repeats_ids():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa"))
     assert 'Mle-Panxα12' in Sb.find_repeats(tester)[1]
 
+
 def test_find_repeats_seqs():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
     result = Sb.find_repeats(tester)[2]
     for key in result:
         assert 'Mle-Panxα1' in result[key]
         assert 'Mle-Dupα' in result[key]
+
 
 def test_find_repeats_none():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
@@ -797,6 +844,7 @@ def test_delete_repeats_ids():
     tester = Sb.find_repeats(tester)
     assert len(tester[1]) == 0
     assert len(tester[2]) == 0
+
 
 def test_delete_repeats_seqs():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
@@ -828,6 +876,15 @@ def test_split_by_taxa():
     assert output == '438cc47dd268453f38342ca276f77a73'
 
 
+# #####################  'fp', '--find_pattern' ###################### ##
+def test_find_pattern():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.pull_recs(tester, "α[67]")
+    assert Sb.find_pattern(tester, "ATGGT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+    assert Sb.find_pattern(tester, "ATggT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+    assert Sb.find_pattern(tester, "ATg{2}T") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+
+
 # #####################  'sf', '--split_file' ###################### ##
 def test_split_file():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
@@ -841,6 +898,7 @@ def test_find_CpG():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
     tester = Sb.find_CpG(tester)[0]
     assert seqs_to_hash(tester) == "ce6aff066c03651401db627951862154"
+
 
 # ##################### 'to_dict' ###################### ##
 def test_to_dict():
