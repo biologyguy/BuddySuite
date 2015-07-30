@@ -40,8 +40,6 @@ from math import floor, ceil, log
 from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
-from multiprocessing import Manager
-import ctypes
 from hashlib import md5
 from io import StringIO
 from collections import OrderedDict
@@ -56,7 +54,6 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
-from Bio.SeqUtils import GC
 
 # My functions
 from MyFuncs import run_multicore_function
@@ -222,6 +219,15 @@ def _format_to_extension(_format):
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                            'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
+
+
+def _make_copies(_seqbuddy):
+    alphabet_list = [_rec.seq.alphabet for _rec in _seqbuddy.records]
+    copies = deepcopy(_seqbuddy)
+    copies.alpha = _seqbuddy.alpha
+    for _indx, _rec in enumerate(copies.records):
+        _rec.seq.alphabet = alphabet_list[_indx]
+    return copies
 # ##################################################### SEQ BUDDY #################################################### #
 
 
@@ -1206,7 +1212,9 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
     return [_seqbuddy, _hash_map, _hash_table]
 
 
-def pull_recs(_seqbuddy, _search):
+def pull_recs(_seqbuddy, _search):  # _search can be a list of regex expressions or single string
+    _search = "|".join(_search) if type(_search) == list else _search
+    print(_search)
     matched_records = []
     for _rec in _seqbuddy.records:
         if re.search(_search, _rec.description) or re.search(_search, _rec.id) or re.search(_search, _rec.name):
@@ -1669,33 +1677,53 @@ def isoelectric_point(_seqbuddy):
 
 
 def count_residues(_seqbuddy):
-    # TODO add % Neutral
-    # TODO distinguish between ambiguous and unambiguous DNA
     _output = []
     for _rec in _seqbuddy.records:
+        resid_count = {}
+        _seq = str(_rec.seq).upper()
+        for char in _seq:
+            resid_count.setdefault(char, 0)
+            resid_count[char] += 1
+
+        seq_len = len(_rec)
+        for _residue, _count in resid_count.items():
+            resid_count[_residue] = [_count, _count / seq_len]
+
         if _seqbuddy.alpha is IUPAC.protein:
-            resid_count = OrderedDict.fromkeys(('A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F',
-                                                'P', 'S', 'T', 'W', 'Y', 'V', 'X', '% Ambiguous', '% Positive', 
-                                                '% Negative'), 0)
-            
+            ambig = len(re.findall("X", _seq))
+            if ambig > 0:
+                resid_count['% Ambiguous'] = round(100 * ambig / seq_len, 2)
+
+            pos = len(re.findall("[HKR]", _seq))
+            resid_count['% Positive'] = round(100 * pos / seq_len, 2)
+
+            neg = len(re.findall("[DEC]", _seq))
+            resid_count['% Negative'] = round(100 * neg / seq_len, 2)
+
+            neut = len(re.findall("[GAVLIPFYWSTNQM]", _seq))
+            resid_count['% Uncharged'] = round(100 * neut / seq_len, 2)
+
+            hyrdophobic = len(re.findall("[AVLIPYFWMC]", _seq))
+            resid_count['% Hyrdophobic'] = round(100 * hyrdophobic / seq_len, 2)
+
+            hyrdophilic = len(re.findall("[NQSTKRHDE]", _seq))
+            resid_count['% Hyrdophilic'] = round(100 * hyrdophilic / seq_len, 2)
+
+            for _residue in ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M",
+                             "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]:
+                resid_count.setdefault(_residue, [0, 0])
+
         else:
-            resid_count = OrderedDict.fromkeys(('A', 'G', 'C', 'T', 'Y', 'R', 'W', 'S', 'K', 'M', 'D', 'V', 'H', 'B',
-                                                'X', 'N', 'U'), 0)
-        num_acids = 0
-        for char in str(_rec.seq).upper():
-            if char in resid_count:
-                resid_count[char] += 1
-                num_acids += 1
-        if _seqbuddy.alpha is IUPAC.protein:
-            resid_count['% Ambiguous'] = round(100 * (resid_count['X']) / num_acids, 2)
-            resid_count['% Positive'] = round(100 * (resid_count['H'] + resid_count['K'] +
-                                                     resid_count['R']) / num_acids, 2)
-            resid_count['% Negative'] = round(100 * (resid_count['D'] + resid_count['E'] +
-                                                     resid_count['C'] + resid_count['Y']) / num_acids, 2)
-        else:
-            resid_count['% Ambiguous'] = round(100 * ((num_acids - (resid_count['A'] + resid_count['T'] +
-                                                                    resid_count['C'] + resid_count['G'] +
-                                                                    resid_count['U'])) / num_acids), 2)
+            ambig = len(re.findall("[^ATCGU]", _seq))
+            if ambig > 0:
+                resid_count['% Ambiguous'] = round(100 * ambig / seq_len, 2)
+
+            for _residue in ["A", "G", "C"]:
+                resid_count.setdefault(_residue, [0, 0])
+
+            if not "T" in resid_count and not "U" in resid_count:
+                resid_count["T"] = [0, 0]
+
         _output.append((_rec.id, resid_count))
     return sorted(_output, key=lambda x: x[0])
 
@@ -1948,7 +1976,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-hsi', '--hash_seq_ids', action='append', nargs="?", type=int,
                         help="Rename all the identifiers in a sequence list to a fixed length hash. Default 10; "
                              "override by passing in an integer.")
-    parser.add_argument('-pr', '--pull_records', action='store', metavar="<regex pattern>",
+    parser.add_argument('-pr', '--pull_records', action='store', nargs="+", metavar="<regex pattern(s)>",
                         help="Get all the records with ids containing a given string")
     parser.add_argument('-prr', '--pull_random_record', nargs='?', action='append', type=int, metavar='int (optional)',
                         help="Extract random sequences. Optionally, pass in an integer to increase the number of "
@@ -1963,7 +1991,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         metavar='<threshold (int)>', action='store')
     parser.add_argument('-dlg', '--delete_large', help='Delete sequences with length above threshold', type=int,
                         metavar='<threshold (int)>', action='store')
-    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
+    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern(s)>",  # ToDo: update wiki to show multiple regex inputs
                         help="Remove specified features from all records.")
     parser.add_argument('-drp', '--delete_repeats', action='append', nargs="?", type=int,
                         help="Strip repeat records (ids and/or identical sequences. Optional, pass in an integer to "
@@ -2488,12 +2516,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         output = count_residues(seqbuddy)
         for sequence in output:
             print(sequence[0])
-            if seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
-                                  IUPAC.unambiguous_rna]:
-                for residue in ['% Ambiguous', 'A', 'T', 'C', 'G', 'U']:
-                    print("{0}: {1}".format(residue, sequence[1].pop(residue, None)))
-            for residue in (sequence[1]):
-                print("{0}: {1}".format(residue, sequence[1][residue]))
+            sorted_residues = OrderedDict(sorted(sequence[1].items()))
+            for residue in sorted_residues:
+                try:
+                    print("{0}:\t{1}\t{2} %".format(residue, sequence[1][residue][0],
+                                                   round(sequence[1][residue][1] * 100, 2)))
+                except TypeError:
+                    print("{0}:\t{1}".format(residue, sequence[1][residue]))
             print()
 
     # Split file
