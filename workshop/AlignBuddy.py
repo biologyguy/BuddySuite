@@ -633,16 +633,16 @@ def concat_alignments(_alignbuddy, _pattern):
     missing_organisms = organism_list()
 
     # dict[alignment_index][organism] -> gene_name
-    subs = OrderedDict()
+    sequence_names = OrderedDict()
     for al_indx, alignment in enumerate(_alignbuddy.alignments):
-        subs[al_indx] = OrderedDict()
-        for record in sorted(alignment, key=lambda x: re.split(_pattern, x.id)[0]):
+        sequence_names[al_indx] = OrderedDict()
+        for record in alignment:
             organism = re.split(_pattern, record.id)[0]
             gene = ''.join(re.split(_pattern, record.id)[1:])
-            if organism in subs[al_indx].keys():
-                subs[al_indx][organism].append(gene)
+            if organism in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism].append(gene)
             else:
-                subs[al_indx][organism] = [gene]
+                sequence_names[al_indx][organism] = [gene]
             record.id = organism
     for al_indx, alignment in enumerate(_alignbuddy.alignments):
         duplicate_table = OrderedDict()
@@ -663,12 +663,11 @@ def concat_alignments(_alignbuddy, _pattern):
             consensus = SeqRecord(seq=consensus, id=gene)
             _alignbuddy.alignments[al_indx].append(consensus)
 
-    print(_alignbuddy.alignments[0])
     for al_indx in range(len(_alignbuddy.alignments)):
         for _id in missing_organisms:
             organism = re.split(_pattern, _id)[0]
-            if organism not in subs[al_indx].keys():
-                subs[al_indx][organism] = []
+            if organism not in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism] = ['missing']
 
     for x in range(len(missing_organisms)):
         missing_organisms[x] = re.split(_pattern, missing_organisms[x])[0]
@@ -682,8 +681,11 @@ def concat_alignments(_alignbuddy, _pattern):
         add_blanks(new_record, base_alignment.get_alignment_length())
         base_alignment.append(new_record)
 
+    for record in base_alignment:
+        record.description = 'concatenated_alignments'
+        record.name = 'multiple'
+
     curr_length = 0
-    print(_alignbuddy.alignments[1])
     for al_indx, alignment in enumerate(_alignbuddy.alignments):
         for base_indx, base_rec in enumerate(base_alignment):
             added = False
@@ -696,12 +698,11 @@ def concat_alignments(_alignbuddy, _pattern):
                 add_blanks(base_rec, alignment.get_alignment_length())
             feature_location = FeatureLocation(start=curr_length,
                                                end=curr_length + alignment.get_alignment_length())
-            feature = SeqFeature(location=feature_location, type='gene'+str(al_indx+1),
-                                 qualifiers={'sub_gene': subs[al_indx][base_rec.id]})
+            feature = SeqFeature(location=feature_location, type='alignment'+str(al_indx+1),
+                                 qualifiers={'name': sequence_names[al_indx][base_rec.id]})
             base_alignment[base_indx].features.append(feature)
         curr_length += alignment.get_alignment_length()
 
-    print(base_alignment)
     _alignbuddy.alignments = [base_alignment]
     return _alignbuddy
 
