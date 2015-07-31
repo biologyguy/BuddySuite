@@ -110,10 +110,15 @@ def divergence_value():
     # http://bioinformatics.org/sms/uneven.html
     return
 
+
+def degenerate_dna():
+    # https://github.com/carlosp420/degenerate-dna
+    # Degen: http://www.phylotools.com/ptdegenoverview.htm
+    return
+
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
-# - Make an 'installer' that puts SeqBuddy into path and adds `sb` sym link
 # - Get BuddySuite into PyPi
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
@@ -122,13 +127,18 @@ def divergence_value():
 
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
-# - New function split_by_taxa(). Writes individual files for groups of sequences based on an identifier in their ids
 # - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
 # - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, -frp, -drp, -ofa, -ofp, and -oi
 # - Add print method to SeqBuddy class that outputs all sequences to string
-# - Add molecular_weight() method that calculates molecular weight
-# - Add isoelectric_point() method that calculates isoelectric point
+# - Add molecular_weight() function that calculates molecular weight
+# - Add isoelectric_point() function that calculates isoelectric point
+# - Add find_CpG() function to predict CpG islands
+# - Add find_pattern() function to search sequences for specific pattern
+# - Add find_restriction_sites() function to find restriction sites
+# - Add split_file() function to separate all seq records into their own SeqBuddy object
+# - Add split_by_taxa() function. Writes individual files for groups of sequences based on an identifier in their ids
 # - Unit tests
+# - New graphical installer
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -942,7 +952,8 @@ def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
                            alphabet=_seqbuddy.alpha)
         else:
             if ambiguous:
-                _rec.seq = Seq(re.sub("[^ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
+                _rec.seq = Seq(re.sub("[^ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s]" % skip_list, "", str(_rec.seq)),
+                               alphabet=_seqbuddy.alpha)
             else:
                 _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_seqbuddy.alpha)
 
@@ -1721,7 +1732,7 @@ def count_residues(_seqbuddy):
             for _residue in ["A", "G", "C"]:
                 resid_count.setdefault(_residue, [0, 0])
 
-            if not "T" in resid_count and not "U" in resid_count:
+            if "T" not in resid_count and "U" not in resid_count:
                 resid_count["T"] = [0, 0]
 
         _output.append((_rec.id, resid_count))
@@ -1916,7 +1927,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
                              "'strict' to remove all characters except the unambiguous letter codes.")
     parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')  # TODO Fix for genbank
+                        help='Convert all sequences to uppercase')
     parser.add_argument('-lc', '--lowercase', action='store_true',
                         help='Convert all sequences to lowercase')
     parser.add_argument('-dm', '--delete_metadata', action='store_true',
@@ -2009,25 +2020,28 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
                         help="")
-    parser.add_argument("-frs", "--find_restriction_sites", action='store', nargs=2,
-                        metavar=("<commercial>", "<num_cuts>"), help="")
+    parser.add_argument("-frs", "--find_restriction_sites", action='store', metavar=("<commercial>", "<num_cuts>"),
+                        nargs=2, help="Identify restriction sites")
     parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
-                        help="Search for subsequences, returning the start positions of all matches.")
-    parser.add_argument("-mw", "--molecular_weight", action='store_true', help="")
-    parser.add_argument("-ip", "--isoelectric_point", action='store_true', help="")
-    parser.add_argument("-fcpg", "--find_CpG", action='store_true', help="")
-    parser.add_argument("-cr", "--count_residues", action='store_true', help="")
-    parser.add_argument("-spf", "--split_file", action='store', help="")
+                        help="Search for subsequences, returning the start positions of all matches")
+    parser.add_argument("-mw", "--molecular_weight", action='store_true',
+                        help="Computes the molecular weight of all of the sequences found in the input file")
+    parser.add_argument("-ip", "--isoelectric_point", action='store_true',
+                        help="Returns a list of isoelectric points for each protein sequence in the file")
+    parser.add_argument("-fcpg", "--find_CpG", action='store_true',
+                        help="Predict regions under strong purifying selection based on high CpG content")
+    parser.add_argument("-cr", "--count_residues", action='store_true', help="Generate a table of sequence compositions")
+    parser.add_argument("-stf", "--split_to_files", action='store', metavar="<out dir>",
+                        help="Write individual files for each sequence")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
-    parser.add_argument('-ho', '--hash_output', help="For ")
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences.")
+                        help="Run the function and return any stderr/stdout other than sequences")
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly.",
+    parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly",
                         action='store')
     parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
 
@@ -2525,12 +2539,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     print("{0}:\t{1}".format(residue, sequence[1][residue]))
             print()
 
-    # Split file
-    if in_args.split_file:
+    # Split sequences into files
+    if in_args.split_to_files:
         in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_file)
+        out_dir = os.path.abspath(in_args.split_to_files)
         os.makedirs(out_dir, exist_ok=True)
-        taxa_groups = split_by_taxa(seqbuddy, in_args.split_file)
         check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
         in_args.quiet = True
         for buddy in split_file(seqbuddy):
