@@ -50,7 +50,7 @@ class BuddyInstall:
 
     @staticmethod
     def install_buddy_suite(user_system, options=None):
-        print("Starting installation.")
+        print("Starting.")
         BuddyInstall.edit_profile()
         if options is not None:
             buddies_to_install = options[0]
@@ -87,6 +87,9 @@ class BuddyInstall:
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                            "config.ini"]
+
+        if path.exists("{0}/buddysuite/__pycache__".format(home_dir)):
+            shutil.rmtree("{0}/buddysuite/__pycache__".format(home_dir))
 
         all_false = True
         for buddy in buddies_to_install:
@@ -140,7 +143,7 @@ class BuddyInstall:
                 return
 
             BuddyInstall.make_config_file(options)
-        print("Finished.")
+        print("Finished. Please restart terminal for changes to take effect.")
 
     @staticmethod
     def uninstall_buddy_suite():
