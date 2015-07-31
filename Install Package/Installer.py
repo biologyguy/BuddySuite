@@ -130,8 +130,8 @@ class BuddyInstall:
                         print("File added: {0}/{1}.py".format(install_directory, buddy))
                         for shortcut in shortcuts[buddy]:
                             if which(shortcut) is None:
-                                os.symlink("{0}/buddysuite/{1}.py".format(install_directory, buddy),
-                                           "{0}/buddysuite/{1}".format(home_dir, shortcut))
+                                os.symlink("{0}/{1}.py".format(install_directory, buddy),
+                                           "{0}/{1}".format(install_directory, shortcut))
                                 print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
 
             elif user_system == 'Windows':
