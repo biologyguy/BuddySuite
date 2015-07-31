@@ -257,7 +257,7 @@ class BuddyInstall:
                 file.close()
                 with open("{0}/.profile".format(home_dir), 'a') as file_write:
                     file_write.write("# added by BuddySuite installer\n")
-                    file_write.write('export PATH=$PATH:{0}/buddysuite/\n'.format(home_dir))
+                    file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
 
 
 
