@@ -827,8 +827,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Convert DNA alignments to RNA")
     parser.add_argument('-r2d', '--back_transcribe', action='store_true',
                         help="Convert RNA alignments to DNA")
-    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
-                        type=int, help="Pull out sub-alignments.")
+    parser.add_argument('-er', '--extract_range', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
+                        type=int, help="Pull out sub-alignments in a given range.")
     parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -989,8 +989,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         _print_aligments(rna2dna(alignbuddy))
 
     # Extract range
-    if in_args.extract_region:
-        _print_aligments(extract_range(alignbuddy, *in_args.extract_region))
+    if in_args.extract_range:
+        _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
 
     # Alignment lengths
     if in_args.alignment_lengths:
