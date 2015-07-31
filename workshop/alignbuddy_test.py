@@ -121,8 +121,8 @@ def test_guess_error():
     try:
         Alb.AlignBuddy(resource("unrecognizable.txt"))
     except Alb.GuessError as e:
-        assert str(e) == "Could not determine format from _input file '/Users/bondsr/Documents/BuddySuite/workshop/" \
-                         "unit_test_resources/unrecognizable.txt'.\nTry explicitly setting with -f flag."
+        assert "Could not determine format from _input file" in str(e.value) and \
+               "\nTry explicitly setting with -f flag." in str(e.value)
 
 
 def test_stderr(capsys):
