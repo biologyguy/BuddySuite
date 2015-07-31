@@ -288,19 +288,13 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
 
 
 # #################################################################################################################### #
-def list_ids(_alignbuddy, _columns=1):
-    _columns = 1 if _columns == 0 else abs(_columns)
-    _output = ""
-    for _indx, alignment in enumerate(_alignbuddy.alignments):
-        _output += "# Alignment %s\n" % (_indx + 1) if len(_alignbuddy.alignments) > 1 else ""
-        _counter = 1
+def list_ids(_alignbuddy):
+    _output = []
+    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+        _output.append([])
         for _rec in alignment:
-            _output += "%s\t" % _rec.id
-            if _counter % _columns == 0:
-                _output = "%s\n" % _output.strip()
-            _counter += 1
-        _output += "\n"
-    return "%s\n" % _output.strip()
+            _output[al_indx].append(_rec.id)
+    return _output
 
 
 def num_seqs(_alignbuddy):
@@ -619,6 +613,9 @@ def consensus_sequence(_alignbuddy):
 def concat_alignments(_alignbuddy, _pattern):
     # collapsed multiple genes from single taxa down to one consensus seq
     # detected mixed sequence types
+    if len(_alignbuddy.alignments) < 2:
+        raise AttributeError("Please provide ")
+
     def organism_list():
         orgnsms = set()
         for _alignment in _alignbuddy.alignments:
@@ -706,6 +703,79 @@ def concat_alignments(_alignbuddy, _pattern):
     _alignbuddy.alignments = [base_alignment]
     return _alignbuddy
 
+def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
+    for alignment in _alignbuddy.alignments:
+        for _rec in alignment:
+            new_name = re.sub(query, replace, _rec.id, _num)
+            _rec.id = new_name
+            _rec.name = new_name
+    return _alignbuddy
+
+def order_ids(_alignbuddy, _reverse=False):
+    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+        _output = [(_rec.id, _rec) for _rec in alignment]
+        _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
+        _output = [_rec[1] for _rec in _output]
+        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_output)
+    return _alignbuddy
+
+def rna2dna(_alignbuddy):
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+    for alignment in _alignbuddy.alignments:
+        for _rec in alignment:
+            _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
+    _alignbuddy.alpha = IUPAC.ambiguous_dna
+    return _alignbuddy
+
+
+def dna2rna(_alignbuddy):
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+    for alignment in _alignbuddy.alignments:
+        for _rec in alignment:
+            _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
+    _alignbuddy.alpha = IUPAC.ambiguous_rna
+    return _alignbuddy
+
+def extract_range(_alignbuddy, _start, _end):
+    _start = 1 if int(_start) < 1 else _start
+    # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
+    _start, _end = int(_start) - 1, int(_end)
+    if _end < _start:
+        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
+                         "of range.")
+    for alignment in _alignbuddy.alignments:
+        for _rec in alignment:
+            _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
+            _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start + 1, _end)
+            _features = []
+            for _feature in _rec.features:
+                if _feature.location.end < _start:
+                    continue
+                if _feature.location.start > _end:
+                    continue
+
+                feat_start = _feature.location.start - _start
+                if feat_start < 0:
+                    feat_start = 0
+
+                feat_end = _feature.location.end - _start
+                if feat_end > len(str(_rec.seq)):
+                    feat_end = len(str(_rec.seq))
+
+                new_location = FeatureLocation(feat_start, feat_end)
+                _feature.location = new_location
+                _features.append(_feature)
+            _rec.features = _features
+    return _alignbuddy
+
+def alignment_lengths(_alignbuddy):
+    _output = []
+    for alignment in _alignbuddy.alignments:
+        _output.append(alignment.get_alignment_length())
+    return _output
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -746,7 +816,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-trm', '--trimal', nargs='?', action='append',
                         help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
     parser.add_argument('-cta', '--concat_alignments', action='store',
-                        help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
+                        help="Concatenates two or more alignments by splitting and matching the sequence identifiers."
+                             " Arguments: <split_pattern>")
+    parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
+                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
+    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
+                        help="Sort all sequences in an alignment by id in alpha-numeric order. "
+                             "Pass in the word 'rev' to reverse order")
+    parser.add_argument('-d2r', '--transcribe', action='store_true',
+                        help="Convert DNA alignments to RNA")
+    parser.add_argument('-r2d', '--back_transcribe', action='store_true',
+                        help="Convert RNA alignments to DNA")
+    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
+                        type=int, help="Pull out sub-alignments.")
+    parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -808,8 +891,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # List identifiers
     if in_args.list_ids:
-        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        _stdout(list_ids(alignbuddy, columns))
+        columns = 1 if not in_args.list_ids[0] or in_args.list_ids == 0 else abs(in_args.list_ids[0])
+        listed_ids = list_ids(alignbuddy)
+        output = ""
+        for indx, alignment in enumerate(listed_ids):
+            output += "# Alignment %s\n" % str(indx + 1)
+            for identifier in alignment:
+                output += "%s\n" % identifier
+            output += "\n"
+        _stdout(output)
+
 
     # Number sequences per alignment
     if in_args.num_seqs:
@@ -856,7 +947,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.pull_rows:
         _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
 
-    # Pull rows
+    # Delete rows
     if in_args.delete_rows:
         _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
 
@@ -865,5 +956,41 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
         _print_aligments(trimal(alignbuddy, in_args.trimal))
 
+    # Concatenate Alignments
     if in_args.concat_alignments:
         _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
+
+    # Rename IDs
+    if in_args.rename_ids:
+        num = 0 if not in_args.params else int(in_args.params[0])
+        _print_aligments(rename(alignbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+
+    # Order IDs
+    if in_args.order_ids:
+        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
+        _print_aligments(order_ids(alignbuddy, _reverse=reverse))
+
+    # Transcribe
+    if in_args.transcribe:
+        if alignbuddy.alpha != IUPAC.ambiguous_dna:
+            raise ValueError("You need to provide a DNA sequence.")
+        _print_aligments(dna2rna(alignbuddy))
+
+    # Back Transcribe
+    if in_args.back_transcribe:
+        if alignbuddy.alpha != IUPAC.ambiguous_rna:
+            raise ValueError("You need to provide an RNA sequence.")
+        _print_aligments(rna2dna(alignbuddy))
+
+    # Extract range
+    if in_args.extract_region:
+        _print_aligments(extract_range(alignbuddy, *in_args.extract_region))
+
+    # Alignment lengths
+    if in_args.alignment_lengths:
+        counts = alignment_lengths(alignbuddy)
+        output = ""
+        for indx, count in enumerate(counts):
+            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
+
+        _stdout("%s\n" % output.strip())
