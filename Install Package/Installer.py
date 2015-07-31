@@ -250,6 +250,8 @@ class BuddyInstall:
 
     @staticmethod
     def edit_profile():
+        make_file = open("{0}/.profile".format(home_dir), 'w')
+        make_file.close()
         with open("{0}/.profile".format(home_dir)) as file:
             if 'export PATH="{0}/buddysuite/"'.format(home_dir) not in file.read():
                 file.close()
