@@ -895,9 +895,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         listed_ids = list_ids(alignbuddy)
         output = ""
         for indx, alignment in enumerate(listed_ids):
+            count = 1
             output += "# Alignment %s\n" % str(indx + 1)
             for identifier in alignment:
-                output += "%s\n" % identifier
+                if count < columns:
+                    output += "%s\t" % identifier
+                    count += 1
+                else:
+                    output += "%s\n" % identifier
+                    count = 1
             output += "\n"
         _stdout(output)
 
