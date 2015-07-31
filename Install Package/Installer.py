@@ -128,7 +128,7 @@ class BuddyInstall:
                         for shortcut in shortcuts[buddy]:
                             if which(shortcut) is None:
                                 os.symlink("{0}/buddysuite/{1}.py".format(install_directory, buddy),
-                                           "{0}/buddysuite/{0}".format(shortcut))
+                                           "{0}/buddysuite/{1}".format(home_dir, shortcut))
                                 print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
                 if not path.exists("{0}/buddysuite/"):
                     os.symlink(install_directory, "{0}/buddysuite")
