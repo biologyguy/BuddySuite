@@ -112,6 +112,9 @@ class BuddyInstall:
             if not path.exists(install_directory):
                 os.makedirs(install_directory)
                 print("Directory added: {0}".format(install_directory))
+                if not path.exists("{0}/buddysuite/"):
+                    os.symlink(install_directory, "{0}/buddysuite".format(home_dir))
+                    print("Shortcut added: {0} ==> {1}/buddysuite".format(install_directory, home_dir))
             if user_system in ['Darwin', 'Linux', 'Unix']:
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 print("File added: {0}/MyFuncs.py".format(install_directory))
@@ -130,9 +133,6 @@ class BuddyInstall:
                                 os.symlink("{0}/buddysuite/{1}.py".format(install_directory, buddy),
                                            "{0}/buddysuite/{1}".format(home_dir, shortcut))
                                 print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
-                if not path.exists("{0}/buddysuite/"):
-                    os.symlink(install_directory, "{0}/buddysuite".format(home_dir))
-                    print("Shortcut added: {0} ==> {1}/buddysuite".format(install_directory, home_dir))
 
             elif user_system == 'Windows':
                 print("Windows not supported at the moment.")
