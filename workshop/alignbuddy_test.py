@@ -240,20 +240,12 @@ def test_guess_alphabet():
 
 def test_list_ids():
     tester = Alb.list_ids(alb_objects[0])
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "1c4a395d8aa3496d990c611c3b6c4d0a"
-
-    tester = Alb.list_ids(alb_objects[0], _columns=4)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "26fa56b979d009015612647c87a47a51"
+    tester = md5(str(tester).encode()).hexdigest()
+    assert tester == "bdb865d00bef4eb3becaaae8f7bb94cd"
 
     tester = Alb.list_ids(alb_objects[8])
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "7f7cc5d09164cb2f5deb915193b06639"
-
-    tester = Alb.list_ids(alb_objects[8], _columns=4)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "74bd0e70fd325d59c0399c4f8a0ea7c9"
+    tester = md5(str(tester).encode()).hexdigest()
+    assert tester == "0f398f3ef5b73804d03b550d66b5462c"
 
 
 # ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
@@ -438,3 +430,73 @@ def test_concat_alignments_duplicate_taxa():
     Alb.concat_alignments(tester, '-')
     assert align_to_hash(tester) == 'd961ac6293597c91f495936fc0ea85f9'
 
+
+# ###########################################  'ri', '--rename_ids' ############################################ #
+def test_rename_ids_several():
+    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
+    Alb.rename(tester, 'Mle', 'Xle')
+    assert align_to_hash(tester) == '61d03559088c5bdd0fdebd7a8a2061fd'
+
+def test_rename_ids_all_same():
+    tester = Alb._make_copies(alb_objects[0])
+    Alb.rename(tester, 'Mle', 'Xle')
+    assert align_to_hash(tester) == '5a0c20a41fea9054f5476e6fad7c81f6'
+
+
+# ###########################################  'oi', '--order_ids' ############################################ #
+@pytest.mark.parametrize("alignbuddy", deepcopy(alb_objects))
+def test_order_ids(alignbuddy):
+    expected = Alb.list_ids(alignbuddy)
+    for _id, align in enumerate(expected):
+        expected[_id] = sorted(align)
+    actual = Alb.list_ids(Alb.order_ids(alignbuddy))
+    assert expected == actual
+
+
+# ###########################################  'd2r', '--transcribe' ############################################ #
+d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
+              'a083e03b4e0242fa3c23afa80424d670', '45b511f34653e3b984e412182edee3ca']
+d2r_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(d2r_hashes)]
+@pytest.mark.parametrize("alignbuddy, next_hash", d2r_hashes)
+def test_transcribe(alignbuddy, next_hash):
+    assert align_to_hash(Alb.dna2rna(alignbuddy)) == next_hash
+
+def test_transcribe_pep_exception():
+    with pytest.raises(ValueError):
+        Alb.dna2rna(deepcopy(alb_objects[4]))
+
+
+# ###########################################  'r2d', '--back_transcribe' ############################################ #
+@pytest.mark.parametrize("alignbuddy", deepcopy(alb_objects[0:4]))
+def test_back_transcribe(alignbuddy):
+    print(alignbuddy)
+    original = align_to_hash(alignbuddy)
+    final = align_to_hash(Alb.rna2dna(Alb.dna2rna(alignbuddy)))
+    assert original == final
+
+def test_back_transcribe_pep_exception():
+    with pytest.raises(ValueError):
+        Alb.rna2dna(deepcopy(alb_objects[4]))
+
+
+# ###########################################  'er', '--extract_range' ############################################ #
+er_hashes = ['10ca718b74f3b137c083a766cb737f31', '637582d17b5701896d80f0380fa00c12', '1bf71754ad8b1e157a9541e27ddd72e6',
+             '8873381a66add6c680f54e379ef98c95', '5f400edc6f0990c0cd6eb52ae7687e39', '240a56a273b5049901177284a9240ac3',
+             'f0817e10ba740992409193f1bc6600b2', '29a1d24a36d0f26b17aab7faa5b9ad9b', '06fde20b8bcb8bbe6ce5217324096911',
+             '146d0550bb24f4f19f31c294c48c7e49', '64a848cc73d909ca6424ce049e2700cd', '9d9bbdf6f20274f26be802fa2361d459',
+             '78ceb2e63d8c9d8800b5fa9335a87a30']
+er_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(er_hashes)]
+@pytest.mark.parametrize("alignbuddy, next_hash", er_hashes)
+def test_extract_range(alignbuddy, next_hash):
+    tester = Alb.extract_range(alignbuddy, 0, 50)
+    assert align_to_hash(tester) == next_hash
+
+# ###########################################  'er', '--extract_range' ############################################ #
+def test_alignment_lengths():
+    tester_100 = Alb.alignment_lengths(Alb.AlignBuddy(resource('concat_alignment_file.phyr')))
+    assert tester_100[0] == 100
+    assert tester_100[1] == 100
+
+    tester_variable = Alb.alignment_lengths(Alb.AlignBuddy(resource('Alignments_cds.phyr')))
+    assert tester_variable[0] == 2043
+    assert tester_variable[1] == 1440
