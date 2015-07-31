@@ -253,11 +253,11 @@ class BuddyInstall:
         make_file = open("{0}/.profile".format(home_dir), 'w')
         make_file.close()
         with open("{0}/.profile".format(home_dir)) as file:
-            if 'export PATH="{0}/buddysuite/"'.format(home_dir) not in file.read():
+            if 'export PATH=$PATH:{0}/buddysuite/'.format(home_dir) not in file.read():
                 file.close()
                 with open("{0}/.profile".format(home_dir), 'a') as file_write:
                     file_write.write("# added by BuddySuite installer\n")
-                    file_write.write('export PATH="{0}/buddysuite/"'.format(home_dir))
+                    file_write.write('export PATH=$PATH:{0}/buddysuite/\n'.format(home_dir))
 
 
 
