@@ -256,7 +256,7 @@ class BuddyInstall:
             if 'export PATH="{0}/buddysuite/"'.format(home_dir) not in file.read():
                 file.close()
                 with open("{0}/.profile".format(home_dir), 'a') as file_write:
-                    file_write.write("# added by BuddySuite installer")
+                    file_write.write("# added by BuddySuite installer\n")
                     file_write.write('export PATH="{0}/buddysuite/"'.format(home_dir))
 
 
