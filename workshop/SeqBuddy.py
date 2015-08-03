@@ -49,7 +49,7 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
-from Bio import Restriction
+from Bio.Restriction import *
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -1782,31 +1782,56 @@ def split_file(_seqbuddy):
     return sb_objs_list
 
 
-def find_restriction_sites(_seqbuddy, _commercial=True, _single_cut=True):
+# _order in ['alpha', 'position']
+def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None, _order="position"):
+    if _max_cuts and _min_cuts > _max_cuts:
+        raise ValueError("min_cuts parameter has been set higher than max_cuts.")
+    _max_cuts = 1000000000 if not _max_cuts else _max_cuts
+
+    _enzymes = _enzymes if type(_enzymes) == list else [_enzymes]
+
+    blacklist = ["AbaSI", "FspEI", "MspJI", "SgeI", "AspBHI", "SgrTI", "YkrI", "BmeDI"]
+    batch = RestrictionBatch([])
+    for enzyme in _enzymes:
+        if enzyme == "commercial":
+            for res in CommOnly:
+                if str(res) not in blacklist:
+                    batch.add(res)
+
+        elif enzyme == "all":
+            for res in AllEnzymes:
+                if str(res) not in blacklist:
+                    batch.add(res)
+
+        else:
+            try:
+                batch.add(enzyme)
+            except ValueError:
+                _stderr("Warning: %s not a known enzyme\n" % enzyme)
+
     sites = []
-    blacklist = [Restriction.AbaSI, Restriction.FspEI, Restriction.MspJI, Restriction.SgeI, Restriction.AspBHI,
-                 Restriction.SgrTI, Restriction.YkrI, Restriction.BmeDI]
     for rec in _seqbuddy.records:
-        if _commercial:
-            analysis = Restriction.Restriction.Analysis(Restriction.CommOnly, rec.seq)
-        else:
-            analysis = Restriction.Restriction.Analysis(Restriction.AllEnzymes, rec.seq)
-        if _single_cut:
-            cut_keys = set(analysis.blunt().keys())
-        else:
-            cut_keys = set(analysis.overhang5()).union(set(analysis.overhang3()))
-        comm_keys = set(analysis.with_sites().keys())
-        keys = cut_keys & comm_keys
-        for _key in blacklist:
-            keys.discard(_key)
-        result = {_key: analysis.with_sites()[_key] for _key in keys}
-        sites.append((rec.id, result))
+        rec.res_sites = {}
+        analysis = Analysis(batch, rec.seq)
+        result = analysis.with_sites()
+        for _key, _value in result.items():
+            if _min_cuts <= len(_value) <= _max_cuts:
+                rec.res_sites[_key] = _value
+        sites.append((rec.id, rec.res_sites))
+
     print_output = ''
     for tup in sites:
         print_output += "{0}\n".format(tup[0])
-        for _key in sorted(tup[1]):
-            print_output += "{0}:\t{1}\n".format(_key, str(tup[1][_key]))
+        restriction_list = tup[1]
+        restriction_list = [[_key, _value] for _key, _value in restriction_list.items()]
+        restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if _order == 'alpha' else \
+            sorted(restriction_list, key=lambda l: l[1])
+
+        for _enzyme in restriction_list:
+            cut_sites = [str(x) for x in _enzyme[1]]
+            print_output += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
         print_output += "\n"
+
     return [sites, print_output]
 
 
@@ -2020,8 +2045,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
                         help="")
-    parser.add_argument("-frs", "--find_restriction_sites", action='store', metavar=("<commercial>", "<num_cuts>"),
-                        nargs=2, help="Identify restriction sites")
+    parser.add_argument("-frs", "--find_restriction_sites", action='append', help="Identify restriction sites",
+                        metavar="enzymes [specific enzymes, commercial, all], max cuts, min cuts", nargs="*")
     parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
                         help="Search for subsequences, returning the start positions of all matches")
     parser.add_argument("-mw", "--molecular_weight", action='store_true',
@@ -2108,7 +2133,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
 
     def _raise_error(_err):
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+        sys.exit("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
 
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
@@ -2556,20 +2581,35 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Find restriction sites
     if in_args.find_restriction_sites:
-        if in_args.find_restriction_sites[0] in ['commercial', 'com', 'c']:
-            commercial = True
-        elif in_args.find_restriction_sites[0] in ['all', 'a', 'noncommercial', 'nc', 'noncom']:
-            commercial = False
-        else:
-            commercial = True
-        if in_args.find_restriction_sites[1] in ['1', 'single', 's']:
-            single_cut = True
-        elif in_args.find_restriction_sites[1] in ['2', 'double', 'd']:
-            single_cut = False
-        else:
-            single_cut = True
-        sb = clean_seq(seqbuddy)
-        output = find_restriction_sites(sb, commercial, single_cut)
+        min_cuts, max_cuts, enzymes, order = None, None, [], 'position'
+        in_args.find_restriction_sites = in_args.find_restriction_sites[0]
+        for param in in_args.find_restriction_sites:
+            try:
+                param = int(param)
+            except ValueError:
+                pass
+            if type(param) == int:
+                if not min_cuts:
+                    min_cuts = param
+                elif not max_cuts:
+                    max_cuts = param
+                else:
+                    _raise_error(ValueError("To many integers in parameter list for find_restriction_sites."))
+            elif param in ['alpha', 'position']:
+                order = param
+            else:
+                enzymes.append(param)
+
+        enzymes = ["commercial"] if len(enzymes) == 0 else enzymes
+        max_cuts = int(min_cuts) if min_cuts and not max_cuts else max_cuts
+        min_cuts = 1 if not min_cuts else min_cuts
+        if max_cuts and min_cuts > max_cuts:
+            temp = int(max_cuts)
+            max_cuts = int(min_cuts)
+            min_cuts = temp
+
+        clean_seq(seqbuddy)
+        output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts, order)
         _stdout(output[1])
 
     # Find pattern
