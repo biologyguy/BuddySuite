@@ -1941,20 +1941,12 @@ def insert_sequence(_seqbuddy, _sequence, _location):
             new_seq = _rec.seq[:_location] + _sequence + _rec.seq[_location:]
             _rec.seq = new_seq
     elif 'start' in _location:
-        try:
-            modifier = int(re.sub('start', '', _location))
-        except ValueError:
-            modifier = 0
         for _rec in _seqbuddy.records:
-            new_seq = _rec.seq[:modifier] + _sequence + _rec.seq[modifier:]
+            new_seq = _sequence + _rec.seq
             _rec.seq = new_seq
     elif 'end' in _location:
-        try:
-            modifier = int(re.sub('end', '', _location))
-        except ValueError:
-            modifier = 0
         for _rec in _seqbuddy.records:
-            new_seq = _rec.seq[:len(_rec.seq)+modifier] + _sequence + _rec.seq[len(_rec.seq)+modifier:]
+            new_seq = _rec.seq + _sequence
             _rec.seq = new_seq
     else:
         raise TypeError("Location must be 'start', 'end', or int.")
@@ -2677,8 +2669,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Insert Seq
     if in_args.insert_seq:
-        location = in_args.insert_seq[1].lower()
-        if re.match('start', location) is None and re.match('end', location) is None:
+        location = in_args.insert_seq[1]
+        if location not in ['start', 'end']:
             try:
                 location = int(location)
             except ValueError("Location must be start, end, or integer index") as e:
