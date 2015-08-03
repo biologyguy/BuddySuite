@@ -74,18 +74,8 @@ def predict_orfs():
     return
 
 
-def shuffle_seqs():
-    # randomly reorder the residues in each sequence
-    return
-
-
 def delete_pattern():
     # remove residues that match a given pattern from all records
-    return
-
-
-def insert_sequence():
-    # Add a specific sequence at a defined location in all records. E.g., adding a barcode
     return
 
 
@@ -1929,6 +1919,40 @@ def find_CpG(_seqbuddy):
     _seqbuddy.records = records
     return _seqbuddy, _output
 
+
+def shuffle_seqs(_seqbuddy):
+    # randomly reorder the residues in each sequence
+    for _rec in _seqbuddy.records:
+        tokens = []
+        for letter in _rec.seq:
+            tokens.append(letter)
+        new_seq = ''
+        while len(tokens) > 0:
+            rand_indx = randint(0, len(tokens)-1)
+            new_seq += tokens.pop(rand_indx)
+        _rec.seq = Seq(data=new_seq, alphabet=_seqbuddy.alpha)
+    return _seqbuddy
+
+
+def insert_sequence(_seqbuddy, _sequence, _location):
+    # Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
+    if _location == 'start':
+        for _rec in _seqbuddy.records:
+            new_seq = _sequence + _rec.seq
+            _rec.seq = new_seq
+    elif _location == 'end':
+        for _rec in _seqbuddy.records:
+            new_seq = _rec.seq + _sequence
+            _rec.seq = new_seq
+    elif type(_location) is int:
+        for _rec in _seqbuddy.records:
+            new_seq = _rec.seq[:_location] + _sequence + _rec.seq[_location:]
+            _rec.seq = new_seq
+    else:
+        raise TypeError("Location must be 'start', 'end', or int.")
+    return _seqbuddy
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -2058,6 +2082,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-cr", "--count_residues", action='store_true', help="Generate a table of sequence compositions")
     parser.add_argument("-stf", "--split_to_files", action='store', metavar="<out dir>",
                         help="Write individual files for each sequence")
+    parser.add_argument("-ss", "--shuffle_seqs", action='store_true', help='Shuffles the letters in all the sequences.')
+    parser.add_argument("-is", "--insert_seq", action='store', nargs=2,
+                        metavar=('<sequence>', '<start|end|index(int)>'),
+                        help='Insert a sequence at the desired location')
+
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -2634,3 +2663,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         print(output[0])
         _stderr('\n'+out_string, in_args.quiet)
 
+    # Shuffle Seqs
+    if in_args.shuffle_seqs:
+        _print_recs(shuffle_seqs(seqbuddy))
+
+    # Insert Seq
+    if in_args.insert_seq:
+        location = in_args.insert_seq[1]
+        if location not in ['start', 'end']:
+            try:
+                location = int(location)
+            except ValueError("Location must be start, end, or integer index") as e:
+                _raise_error(e)
+        _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
