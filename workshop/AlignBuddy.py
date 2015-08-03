@@ -37,17 +37,17 @@ import SeqBuddy as SB
 # ##################################################### WISH LIST #################################################### #
 # - 'Clean' an alignment by removing gaps (like phyutility -clean, or trimal -gt). Default removes cols with 100% gap
 # - Map features from a sequence file over to the alignment
-# - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html)
-# - number of seqs in each alignment
-# - Concatenate sequences from multiple alignments by id, taxa, or position in alignment (return new AlignBuddy)
-# - Transcribe
-# - Back-transcribe
+# - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html) X
+# - number of seqs in each alignment X
+# - Concatenate sequences from multiple alignments by id, taxa, or position in alignment (return new AlignBuddy) X
+# - Transcribe X
+# - Back-transcribe X
 # - Back-translate
-# - Order ids
-# - Alignment lengths
-# - Pull out specific rows from the alignment
-# - Delete specific rows from alignment
-# - Rename ids
+# - Order ids X
+# - Alignment lengths X
+# - Pull out specific rows from the alignment X
+# - Delete specific rows from alignment X
+# - Rename ids X
 # - Separate multiple alignments into individual files
 
 
@@ -88,6 +88,12 @@ def _make_copies(_alignbuddy):
     for _indx, _rec in enumerate(_get_seq_recs(copies)):
         _rec.seq.alphabet = alphabet_list[_indx]
     return copies
+
+def _format_to_extension(_format):
+    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
+                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
+                           'stockholm': 'stklm', 'stklm': 'stklm'}
+    return format_to_extension[_format]
 
 # ##################################################### Globals ###################################################### #
 gap_characters = ["-", ".", " "]
@@ -776,6 +782,15 @@ def alignment_lengths(_alignbuddy):
         _output.append(alignment.get_alignment_length())
     return _output
 
+def split_alignbuddy(_alignbuddy):
+    ab_objs_list = []
+    for alignment in _alignbuddy.alignments:
+        _ab = AlignBuddy([alignment])
+        _ab.in_format = _alignbuddy.in_format
+        _ab.out_format = _alignbuddy.out_format
+        ab_objs_list.append(_ab)
+    return ab_objs_list
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -830,6 +845,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-er', '--extract_range', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
                         type=int, help="Pull out sub-alignments in a given range.")
     parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
+    parser.add_argument("-stf", "--split_to_files", action='store', nargs=2, metavar=("<out dir>", "<out file>"),
+                        help="Write individual files for each alignment")
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
@@ -1000,3 +1017,19 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
 
         _stdout("%s\n" % output.strip())
+
+    # Split alignments into files
+    if in_args.split_to_files:
+        in_args.in_place = True
+        out_dir = os.path.abspath(in_args.split_to_files[0])
+        filename = in_args.split_to_files[1]
+        os.makedirs(out_dir, exist_ok=True)
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        in_args.quiet = True
+        for indx, buddy in enumerate(split_alignbuddy(alignbuddy)):
+            alignbuddy.alignments = buddy.alignments
+            ext = _format_to_extension(alignbuddy.out_format)
+            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(indx+1), ext)
+            _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
+            open(in_args.alignment[0], "w").close()
+            _print_aligments(alignbuddy)
