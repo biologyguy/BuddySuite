@@ -553,7 +553,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     return _new_seqs
 
 
-def shuffle(_seqbuddy):
+def order_ids_randomly(_seqbuddy):
     _output = []
     for _ in range(len(_seqbuddy.records)):
         random_index = randint(1, len(_seqbuddy.records)) - 1
@@ -2021,7 +2021,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
     parser.add_argument('-cf', '--combine_features', action='store_true',
                         help="Takes the features in two files and combines them for each sequence")
-    parser.add_argument('-sh', '--shuffle', action='store_true',
+    parser.add_argument('-oir', '--order_ids_randomly', action='store_true',
                         help="Randomly reorder the position of records in the file.")
     parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
                         help="Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order")
@@ -2192,9 +2192,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if blast_res:
             _print_recs(blast_res)
 
-    # Shuffle
-    if in_args.shuffle:
-        _print_recs(shuffle(seqbuddy))
+    # Order ids randomly
+    if in_args.order_ids_randomly:
+        _print_recs(order_ids_randomly(seqbuddy))
 
     # Order ids
     if in_args.order_ids:
