@@ -54,6 +54,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
+from Bio.Data import CodonTable
 
 # My functions
 from MyFuncs import run_multicore_function
@@ -63,11 +64,6 @@ from MyFuncs import run_multicore_function
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     x = matrix
     return x
-
-
-def codon_counter():
-    # generate frequency statistics for codon composition
-    return
 
 
 def predict_orfs():
@@ -1951,6 +1947,38 @@ def insert_sequence(_seqbuddy, _sequence, _location):
     else:
         raise TypeError("Location must be 'start', 'end', or int.")
     return _seqbuddy
+
+
+def codon_counter(_seqbuddy):
+    # generate frequency statistics for codon composition
+    codontable = CodonTable.ambiguous_dna_by_name['Standard'].forward_table
+    _output = OrderedDict()
+    for _rec in _seqbuddy.records:
+        _sequence = _rec.seq
+        if len(_sequence) % 3 != 0:
+            _stderr("Warning: {0} length not a multiple of 3. Sequence will be truncated.".format(_rec.id))
+            while len(_sequence) % 3 != 0:
+                _sequence = _sequence[:-1]
+        data_table = OrderedDict()
+        num_codons = len(_sequence) / 3
+        while len(_sequence) > 0:
+            codon = str(_sequence[:3])
+            if _sequence[:3] in data_table.keys():
+                data_table[codon][1] += 1
+            else:
+                if codon.upper() == 'ATG':
+                    data_table[codon] = ['M (START)', 1, 0.0]
+                elif codon.upper() == 'NNN':
+                    data_table[codon] = ['X', 1, 0.0]
+                elif codon.upper() in ['TAA', 'TAG', 'TGA']:
+                    data_table[codon] = ['STOP', 1, 0.0]
+                else:
+                    data_table[codon] = [codontable[codon.upper()], 1, 0.0]
+            _sequence = _sequence[3:]
+        for codon in data_table:
+            data_table[codon][2] = round(data_table[codon][1]/float(num_codons), 3)
+        _output[_rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
+    return _output
 
 
 # ################################################# COMMAND LINE UI ################################################## #
