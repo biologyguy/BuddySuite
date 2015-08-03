@@ -893,7 +893,7 @@ def test_split_file():
         assert buddy.records[0] in tester.records
 
 
-# #####################  'sf', '--find_CpG' ###################### ##
+# #####################  'fcpg', '--find_CpG' ###################### ##
 def test_find_CpG():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
     tester = Sb.find_CpG(tester)[0]
@@ -906,6 +906,30 @@ def test_to_dict():
     tester = ''.join(sorted(tester))
     tester = md5(tester.encode()).hexdigest()
     assert tester == '06f50839f94e8f917311b682837461fd'
+
+
+# ##################### 'ss', 'shuffle_seqs' ###################### ##
+def test_shuffle_seqs():
+    tester1 = Sb._make_copies(sb_objects[0])
+    tester2 = Sb._make_copies(tester1)
+    Sb.shuffle_seqs(tester2)
+    assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
+    for indx, record in enumerate(tester1.records):
+        assert sorted(record.seq) == sorted(tester2.records[indx].seq)
+
+
+# ##################### 'is', 'insert_seqs' ###################### ##
+def test_insert_seqs_start():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'start')) == 'f65fee08b892af5ef93caa1bf3cb3980'
+
+def test_insert_seqs_end():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'end')) == '792397e2e32e95b56ddc15b8b2310ec0'
+
+def test_insert_seqs_index():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100)) == 'da2b2e0efb5807a51e925076857b189d'
 
 
 # ######################  'phylipi' ###################### #
