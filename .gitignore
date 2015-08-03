@@ -14,6 +14,7 @@
 
 # Unit test html coverage files
 workshop/htmlcov/*
+.coverage
 
 # Test/build files
 workshop/test_files/*
