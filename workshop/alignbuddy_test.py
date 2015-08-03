@@ -491,6 +491,7 @@ def test_extract_range(alignbuddy, next_hash):
     tester = Alb.extract_range(alignbuddy, 0, 50)
     assert align_to_hash(tester) == next_hash
 
+
 # ###########################################  'er', '--extract_range' ############################################ #
 def test_alignment_lengths():
     tester_100 = Alb.alignment_lengths(Alb.AlignBuddy(resource('concat_alignment_file.phyr')))
@@ -500,3 +501,11 @@ def test_alignment_lengths():
     tester_variable = Alb.alignment_lengths(Alb.AlignBuddy(resource('Alignments_cds.phyr')))
     assert tester_variable[0] == 2043
     assert tester_variable[1] == 1440
+
+
+# ###########################################  'stf', '--split_alignbuddy' ########################################### #
+def test_split_alignment():
+    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
+    output = Alb.split_alignbuddy(tester)
+    for buddy in output:
+        assert buddy.alignments[0] in tester.alignments
