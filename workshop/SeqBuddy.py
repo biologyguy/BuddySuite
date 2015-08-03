@@ -1936,13 +1936,21 @@ def shuffle_seqs(_seqbuddy):
 
 def insert_sequence(_seqbuddy, _sequence, _location):
     # Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
-    if _location == 'start':
+    if 'start' in _location:
+        try:
+            modifier = int(re.sub('start', '', _location))
+        except ValueError:
+            modifier = 0
         for _rec in _seqbuddy.records:
-            new_seq = _sequence + _rec.seq
+            new_seq = _rec.seq[:modifier] + _sequence + _rec.seq[modifier:]
             _rec.seq = new_seq
-    elif _location == 'end':
+    elif 'end' in _location:
+        try:
+            modifier = int(re.sub('end', '', _location))
+        except ValueError:
+            modifier = 0
         for _rec in _seqbuddy.records:
-            new_seq = _rec.seq + _sequence
+            new_seq = _rec.seq[:len(_rec.seq)+modifier] + _sequence + _rec.seq[len(_rec.seq)+modifier:]
             _rec.seq = new_seq
     elif type(_location) is int:
         for _rec in _seqbuddy.records:
@@ -2669,8 +2677,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Insert Seq
     if in_args.insert_seq:
-        location = in_args.insert_seq[1]
-        if location not in ['start', 'end']:
+        location = in_args.insert_seq[1].lower()
+        if re.match('start', location) is None and re.match('end', location) is None:
             try:
                 location = int(location)
             except ValueError("Location must be start, end, or integer index") as e:
