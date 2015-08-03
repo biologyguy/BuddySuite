@@ -113,11 +113,11 @@ sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 # ######################  'sh', '--shuffle' ###################### #
 @pytest.mark.parametrize("seqbuddy", [Sb._make_copies(x) for x in sb_objects])
 def test_shuffle(seqbuddy):
-    tester = Sb.shuffle(Sb._make_copies(seqbuddy))
+    tester = Sb.order_ids_randomly(Sb._make_copies(seqbuddy))
     for i in range(3):  # Sometimes shuffle doesn't actually shuffle, so repeat a few times if necessary
         if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
             break
-        tester = Sb.shuffle(Sb._make_copies(seqbuddy))
+        tester = Sb.order_ids_randomly(Sb._make_copies(seqbuddy))
 
     assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
     assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
@@ -930,6 +930,22 @@ def test_insert_seqs_end():
 def test_insert_seqs_index():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100)) == 'da2b2e0efb5807a51e925076857b189d'
+
+def test_insert_seqs_endminus():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'end-25')) == '0f4115d81cc5fa2cc381f17bada0f0ce'
+
+def test_insert_seqs_startplus():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'start+25')) == 'cb37efd3069227476306f9129efd4d05'
+
+def test_insert_seqs_endminus_extreme():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'end-9000')) == 'f65fee08b892af5ef93caa1bf3cb3980'
+
+def test_insert_seqs_startplus_extreme():
+    tester = Sb._make_copies(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'start+9000')) == '792397e2e32e95b56ddc15b8b2310ec0'
 
 
 # ######################  'phylipi' ###################### #
