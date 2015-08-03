@@ -13,6 +13,7 @@ from configparser import *
 import copy
 from re import sub
 import stat
+from distutils.dir_util import copy_tree
 
 home_dir = path.expanduser('~')
 hard_install = False
@@ -46,8 +47,8 @@ except ImportError:
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
 
-class BuddyInstall:
 
+class BuddyInstall:
     @staticmethod
     def install_buddy_suite(user_system, options=None):
         print("Starting.")
@@ -121,11 +122,11 @@ class BuddyInstall:
             if user_system in ['Darwin', 'Linux', 'Unix']:
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 print("File added: {0}/MyFuncs.py".format(install_directory))
-                BuddyInstall.copytree(resource_path, "{0}/resources".format(install_directory))
+                copy_tree(resource_path, "{0}/resources".format(install_directory))
                 print("Directory added: {0}/resources".format(install_directory))
-                BuddyInstall.copytree(biopython_path, "{0}/Bio".format(install_directory))
+                copy_tree(biopython_path, "{0}/Bio".format(install_directory))
                 print("Directory added: {0}/Bio".format(install_directory))
-                BuddyInstall.copytree(blast_path, "{0}/blast_binaries".format(install_directory))
+                copy_tree(blast_path, "{0}/blast_binaries".format(install_directory))
                 print("Directory added: {0}/blast_binaries".format(install_directory))
                 for buddy in buddies_to_install:
                     if buddies_to_install[buddy]:
@@ -199,7 +200,7 @@ class BuddyInstall:
 
         with open("{0}/config.ini".format(options[1]), 'w') as configfile:
             writer.write(configfile)
-        print("Config file written to "+"{0}/config.ini".format(options[1]))
+        print("Config file written to {0}/config.ini".format(options[1]))
 
     @staticmethod
     def read_config_file():
@@ -223,33 +224,6 @@ class BuddyInstall:
 
         else:
             return None
-
-    @staticmethod
-    def copytree(src, dst, symlinks = False, ignore=None):
-        if not os.path.exists(dst):
-            os.makedirs(dst)
-            copystat(src, dst)
-        lst = os.listdir(src)
-        if ignore:
-            excl = ignore(src, lst)
-            lst = [x for x in lst if x not in excl]
-        for item in lst:
-            s = os.path.join(src, item)
-            d = os.path.join(dst, item)
-            if symlinks and os.path.islink(s):
-                if os.path.exists(d):
-                    os.remove(d)
-                os.symlink(os.readlink(s), d)
-                try:
-                    st = os.lstat(s)
-                    mode = stat.S_IMODE(st.st_mode)
-                    os.lchmod(d, mode)
-                except:
-                    pass
-            elif os.path.isdir(s):
-                BuddyInstall.copytree(s, d, symlinks, ignore)
-            else:
-                copy2(s, d)
 
     @staticmethod
     def edit_profile():
@@ -279,8 +253,6 @@ class BuddyInstall:
                         file_write.write("\n# added by BuddySuite installer\n")
                         file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
 
-
-
 if not hard_install:
     root = Tk()
     sw = root.winfo_screenwidth()
@@ -290,6 +262,7 @@ if not hard_install:
 else:
     BuddyInstall.install_buddy_suite(system())
     exit()
+
 
 class Installer(Frame):
     container = []
@@ -359,7 +332,7 @@ class Installer(Frame):
     def welcome(self):
         self.clear_container()
         welcome_label = Label(image=self.bs_logo)
-        welcome_label.pack(pady=sh/8, side=TOP)
+        welcome_label.pack(pady=sh / 8, side=TOP)
         self.container.append(welcome_label)
         button_container = Frame()
         next_button = Button(button_container, width=20, pady=20, text="Install", command=self.license)
@@ -434,11 +407,11 @@ class Installer(Frame):
         description_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame(mega_frame)
-        next_func = partial(self.next_tool, num+1)
+        next_func = partial(self.next_tool, num + 1)
         next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
         self.container.append(next_button)
         next_button.pack(side=RIGHT)
-        back_func = partial(self.next_tool, num-1)
+        back_func = partial(self.next_tool, num - 1)
         back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM)
@@ -607,7 +580,8 @@ class Installer(Frame):
         click_func = partial(self.click_shortcut, shortcut_entry, curr_buddy)
         shortcut_box.bind("<Button-1>", click_func)
 
-    def click_shortcut(self, entry, var, event):
+    @staticmethod
+    def click_shortcut(entry, var, event):
         event.widget.activate(event.widget.nearest(event.y))
         entry.delete(0, END)
         text = event.widget.get(ACTIVE).split(" ==> ")
@@ -639,7 +613,7 @@ class Installer(Frame):
             debug.config(text='Not added: Already exists')
             return
 
-    def remove_shortcut(self, buddy, listbox, entry, debug):
+    def remove_shortcut(self, buddy, listbox, entry):
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
         entry.delete(0, END)
         entry.insert(END, text)
@@ -733,7 +707,8 @@ class Installer(Frame):
         for item in self.container:
             item.destroy()
 
-    def choose_directory(self, textbox):
+    @staticmethod
+    def choose_directory(textbox):
         name = filedialog.askdirectory(parent=root, title="Select Directory", initialdir=textbox.get())
         if name is not "":
             textbox.delete(0, len(textbox.get()))
@@ -753,10 +728,11 @@ class Installer(Frame):
             self.default = True
 
 
-app = Installer(master=root)
-root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
-root.lift()
-root.call('wm', 'attributes', '.', '-topmost', True)
-root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
-root.resizable(width=FALSE, height=FALSE)
-app.mainloop()
+if __name__ == '__main__':
+    app = Installer(master=root)
+    root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
+    root.lift()
+    root.call('wm', 'attributes', '.', '-topmost', True)
+    root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
+    root.resizable(width=FALSE, height=FALSE)
+    app.mainloop()
