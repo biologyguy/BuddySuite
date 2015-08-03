@@ -253,25 +253,31 @@ class BuddyInstall:
 
     @staticmethod
     def edit_profile():
-        if not path.exists("{0}/.profile".format(home_dir)):
-            make_file = open("{0}/.profile".format(home_dir), 'w')
-            make_file.close()
-        with open("{0}/.profile".format(home_dir)) as file:
-            if 'export PATH=$PATH:{0}/buddysuite/'.format(home_dir) not in file.read():
-                file.close()
-                with open("{0}/.profile".format(home_dir), 'a') as file_write:
-                    file_write.write("\n\n# added by BuddySuite installer\n")
-                    file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
+        regex = 'export PATH=.PATH:%s/buddysuite' % home_dir
 
-        if not path.exists("{0}/.bashrc".format(home_dir)):
-            make_file = open("{0}/.bashrc".format(home_dir), 'w')
-            make_file.close()
-        with open("{0}/.profile".format(home_dir)) as file:
-            if 'export PATH=$PATH:{0}/buddysuite/'.format(home_dir) not in file.read():
-                file.close()
-                with open("{0}/.bashrc".format(home_dir), 'a') as file_write:
-                    file_write.write("\n\n# added by BuddySuite installer\n")
-                    file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
+        if system() == 'Darwin':
+            if not path.exists("{0}/.profile".format(home_dir)):
+                make_file = open("{0}/.profile".format(home_dir), 'w')
+                make_file.close()
+            with open("{0}/.profile".format(home_dir)) as file:
+                contents = file.read()
+                if re.search(regex, contents) is None:
+                    file.close()
+                    with open("{0}/.profile".format(home_dir), 'a') as file_write:
+                        file_write.write("\n# added by BuddySuite installer\n")
+                        file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
+
+        if system() == 'Linux':
+            if not path.exists("{0}/.bashrc".format(home_dir)):
+                make_file = open("{0}/.bashrc".format(home_dir), 'w')
+                make_file.close()
+            with open("{0}/.profile".format(home_dir)) as file:
+                contents = file.read()
+                if re.search(regex, contents) is None:
+                    file.close()
+                    with open("{0}/.bashrc".format(home_dir), 'a') as file_write:
+                        file_write.write("\n# added by BuddySuite installer\n")
+                        file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
 
 
 
