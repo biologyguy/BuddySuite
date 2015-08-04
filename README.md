@@ -23,7 +23,7 @@ Being pure Python, the BuddySuite should be cross platform. Almost all developme
   and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
 ## Standalone installation 
-### This is still an Alpha version, but it seems to be working for Mac and Linux
+#### This is still an Alpha version, but it seems to be working for Mac and Linux
 Download the graphical installer and run from the command line
     
     $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py
@@ -56,7 +56,7 @@ to contribute to the project, new features require three components:
 
 ## Dependencies
 The BuddySuite is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
-[here](https://www.python.org/downloads/), or use (Anaconda)[http://continuum.io/downloads#py34] as a more comprehensive 
+[here](https://www.python.org/downloads/), or use [Anaconda](http://continuum.io/downloads#py34) as a more comprehensive 
 solution. 
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
