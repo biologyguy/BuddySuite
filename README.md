@@ -22,7 +22,8 @@ development using the same general architecture
 Being pure Python, the BuddySuite should be cross platform. Almost all development and testing has been done on Linux
   and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
-## Standalone installation (This is still an Alpha version, but it seems to be working for Mac and Linux)
+## Standalone installation 
+### This is still an Alpha version, but it seems to be working for Mac and Linux
 Download the graphical installer and run from the command line
     
     $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py
