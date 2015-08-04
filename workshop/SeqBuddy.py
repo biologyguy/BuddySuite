@@ -1949,7 +1949,7 @@ def insert_sequence(_seqbuddy, _sequence, _location):
     return _seqbuddy
 
 
-def codon_counter(_seqbuddy):
+def count_codons(_seqbuddy):
     # generate frequency statistics for codon composition
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
         raise TypeError("Nucleic acid sequence required, not protein or other.")
@@ -1972,11 +1972,11 @@ def codon_counter(_seqbuddy):
                 data_table[_codon][1] += 1
             else:
                 if _codon.upper() in ['ATG', 'AUG']:
-                    data_table[_codon] = ['M (START)', 1, 0.0]
+                    data_table[_codon] = ['M', 1, 0.0]
                 elif _codon.upper() == 'NNN':
                     data_table[_codon] = ['X', 1, 0.0]
                 elif _codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
-                    data_table[_codon] = ['STOP', 1, 0.0]
+                    data_table[_codon] = ['*', 1, 0.0]
                 else:
                     try:
                         data_table[_codon] = [codontable[_codon.upper()], 1, 0.0]
@@ -2716,11 +2716,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Codon counter
     if in_args.count_codons:
-        codon_table = codon_counter(seqbuddy)
-        for sequence_id in codon_table:
-            _stderr('#### {0} ####\n'.format(sequence_id))
-            _stderr('Codon\tAmino Acid\tNum\tPercent\n')
-            for codon in codon_table[sequence_id]:
-                data = codon_table[sequence_id][codon]
-                _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
-            _stderr('\n')
+        try:
+            codon_table = count_codons(seqbuddy)
+            for sequence_id in codon_table:
+                _stderr('#### {0} ####\n'.format(sequence_id))
+                _stderr('Codon\tAmino Acid\tNum\tPercent\n')
+                for codon in codon_table[sequence_id]:
+                    data = codon_table[sequence_id][codon]
+                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
+                _stderr('\n')
+        except TypeError as e:
+            _raise_error(e)
