@@ -54,6 +54,7 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
+from Bio.Data import CodonTable
 
 # My functions
 from MyFuncs import run_multicore_function
@@ -63,11 +64,6 @@ from MyFuncs import run_multicore_function
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     x = matrix
     return x
-
-
-def codon_counter():
-    # generate frequency statistics for codon composition
-    return
 
 
 def predict_orfs():
@@ -1953,6 +1949,46 @@ def insert_sequence(_seqbuddy, _sequence, _location):
     return _seqbuddy
 
 
+def codon_counter(_seqbuddy):
+    # generate frequency statistics for codon composition
+    if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        raise TypeError("Nucleic acid sequence required, not protein or other.")
+    if _seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
+        codontable = CodonTable.ambiguous_dna_by_name['Standard'].forward_table
+    else:
+        codontable = CodonTable.ambiguous_rna_by_name['Standard'].forward_table
+    _output = OrderedDict()
+    for _rec in _seqbuddy.records:
+        _sequence = _rec.seq
+        if len(_sequence) % 3 != 0:
+            _stderr("Warning: {0} length not a multiple of 3. Sequence will be truncated.\n".format(_rec.id))
+            while len(_sequence) % 3 != 0:
+                _sequence = _sequence[:-1]
+        data_table = OrderedDict()
+        num_codons = len(_sequence) / 3
+        while len(_sequence) > 0:
+            _codon = str(_sequence[:3]).upper()
+            if _codon in data_table.keys():
+                data_table[_codon][1] += 1
+            else:
+                if _codon.upper() in ['ATG', 'AUG']:
+                    data_table[_codon] = ['M (START)', 1, 0.0]
+                elif _codon.upper() == 'NNN':
+                    data_table[_codon] = ['X', 1, 0.0]
+                elif _codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
+                    data_table[_codon] = ['STOP', 1, 0.0]
+                else:
+                    try:
+                        data_table[_codon] = [codontable[_codon.upper()], 1, 0.0]
+                    except KeyError:
+                        _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(_codon))
+            _sequence = _sequence[3:]
+        for _codon in data_table:
+            data_table[_codon][2] = round(data_table[_codon][1]/float(num_codons) * 100, 3)
+        _output[_rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
+    return _output
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -2086,7 +2122,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument("-is", "--insert_seq", action='store', nargs=2,
                         metavar=('<sequence>', '<start|end|index(int)>'),
                         help='Insert a sequence at the desired location')
-
+    parser.add_argument('-cc', '--count_codons', action='store_true',
+                        help="Return codon frequency statistics.")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -2676,3 +2713,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             except ValueError("Location must be start, end, or integer index") as e:
                 _raise_error(e)
         _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
+
+    # Codon counter
+    if in_args.count_codons:
+        codon_table = codon_counter(seqbuddy)
+        for sequence_id in codon_table:
+            _stderr('#### {0} ####\n'.format(sequence_id))
+            _stderr('Codon\tAmino Acid\tNum\tPercent\n')
+            for codon in codon_table[sequence_id]:
+                data = codon_table[sequence_id][codon]
+                _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
+            _stderr('\n')
