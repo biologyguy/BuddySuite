@@ -1,51 +1,81 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
-import collections
 from functools import partial
-from shutil import *
 import shutil
-from shutil import copy, which, copy2, copystat
+from shutil import which, rmtree, copytree
 from platform import *
-from os import path, mkdir
+from os import path
 from configparser import *
 import copy
-from re import sub
-import stat
-from distutils.dir_util import copy_tree
+from tempfile import TemporaryDirectory
+import zipfile
+from inspect import getsourcefile
+import argparse
+parser = argparse.ArgumentParser(prog="BuddySuite", description="The BuddySuite installer")
 
+parser.add_argument('-v', '--version', action='version',
+                    version='''\
+BuddySuite 1.alpha (2015)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+
+parser.add_argument('-cmd', '--cmd_line', help="Force the installer to use command line version.",
+                    action='store_true')
+
+in_args = parser.parse_args()
 home_dir = path.expanduser('~')
 hard_install = False
 
-try:
-    from tkinter import *
-    from tkinter import filedialog
+# Prepare working space
+temp_dir = TemporaryDirectory()
 
-except ImportError:
-    proceed = False
-    print("Failed to build GUI. Package Tkinter was not found.")
-    print("Installation will proceed through the terminal. You will not be allowed to change any options.")
+source_file = path.abspath(getsourcefile(lambda: 0)).split("/")
+source_file = "/".join(source_file[:-1])
+with zipfile.ZipFile(source_file) as ifile:
+    ifile.extractall(temp_dir.name)
+
+os.chdir(temp_dir.name)
+
+
+def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as the graphical installer
+    print("Basic terminal installer called, all options will be set to default values.")
     response = input("Would you like to proceed? ('yes/no')")
     while True:
         if response.lower() in ["yes", "y"]:
             break
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
-            exit()
+            sys.exit()
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
     print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
     response = input("Do you accept these terms? ('yes/no')")
     while True:
         if response.lower() in ["yes", "y"]:
-            hard_install = True
-            break
+            return True
+
         elif response.lower() in ["no", "n"]:
             print("Installation aborted.")
-            exit()
+            sys.exit()
         else:
             response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
+
+if in_args.cmd_line:
+    hard_install = cmd_install()
+else:
+    try:
+        from tkinter import *
+        from tkinter import filedialog
+
+    except ImportError:
+        proceed = False
+        print("Failed to build GUI. Package Tkinter was not found.")
+        hard_install = cmd_install()
 
 
 class BuddyInstall:
@@ -62,8 +92,11 @@ class BuddyInstall:
                     shortcuts[buddy] = []
 
         else:
-            buddies_to_install = {"SeqBuddy": True, "AlignBuddy": True, "PhyloBuddy": True, "DatabaseBuddy": True}
-            install_directory = "{0}/BuddySuite".format(home_dir)
+            # This is for the hard install
+            buddies_to_install = collections.OrderedDict([("SeqBuddy", True), ("PhyloBuddy", True),
+                                                          ("AlignBuddy", True), ("DatabaseBuddy", True)])
+
+            install_directory = "{0}/.BuddySuite".format(home_dir)
 
             shortcuts = {"SeqBuddy": [], "AlignBuddy": [], "PhyloBuddy": [], "DatabaseBuddy": []}
             if which("sb") is None:  # if hard install, use default shortcuts
@@ -89,55 +122,68 @@ class BuddyInstall:
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                            "config.ini"]
 
-        if path.exists("{0}/buddysuite/__pycache__".format(home_dir)):
-            shutil.rmtree("{0}/buddysuite/__pycache__".format(home_dir))
+        if path.exists("{0}/.BuddySuite/__pycache__".format(home_dir)):
+            rmtree("{0}/.BuddySuite/__pycache__".format(home_dir))
 
         all_false = True
         for buddy in buddies_to_install:
             if buddies_to_install[buddy]:
                 all_false = False
         for loc in paths_to_delete:
-            if path.exists("{0}/buddysuite/{1}".format(home_dir, loc)):
-                shutil.rmtree("{0}/buddysuite/{1}".format(home_dir, loc))
+            if path.exists("{0}/.BuddySuite/{1}".format(home_dir, loc)):
+                rmtree("{0}/.BuddySuite/{1}".format(home_dir, loc))
         for loc in files_to_delete:
-            if path.exists("{0}/buddysuite/{1}".format(home_dir, loc)):
-                os.remove("{0}/buddysuite/{1}".format(home_dir, loc))
+            if path.exists("{0}/.BuddySuite/{1}".format(home_dir, loc)):
+                os.remove("{0}/.BuddySuite/{1}".format(home_dir, loc))
 
-        if path.exists("{0}/buddysuite".format(home_dir)) and len(os.listdir("{0}/buddysuite".format(home_dir))) == 0:
-            shutil.rmtree(path.realpath("{0}/buddysuite".format(home_dir)))
-            os.remove("{0}/buddysuite".format(home_dir))
+        if path.exists("{0}/.BuddySuite".format(home_dir)) and len(os.listdir("{0}/.BuddySuite".format(home_dir))) == 0:
+            rmtree(path.realpath("{0}/.BuddySuite".format(home_dir)))
 
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
-        blast_path = "./blast_binaries"
-        resource_path = "./resources"
         if not all_false:
             print("Install path: " + install_directory)
             if not path.exists(install_directory):
                 os.makedirs(install_directory)
                 print("Directory added: {0}".format(install_directory))
-                if not path.exists("{0}/buddysuite/"):
-                    os.symlink(install_directory, "{0}/buddysuite".format(home_dir))
-                    print("Shortcut added: {0} ==> {1}/buddysuite".format(install_directory, home_dir))
+                if not path.exists("{0}/.BuddySuite/".format(home_dir)):
+                    os.symlink(install_directory, "{0}/.BuddySuite".format(home_dir))
+                    print("Shortcut added: {0} ==> {1}/.BuddySuite".format(install_directory, home_dir))
             if user_system in ['Darwin', 'Linux', 'Unix']:
+                user_system = 'Linux' if user_system == "Unix" else user_system
+                user_system = 'Win32' if user_system == "Windows" else user_system
+
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 print("File added: {0}/MyFuncs.py".format(install_directory))
-                copy_tree(resource_path, "{0}/resources".format(install_directory))
-                print("Directory added: {0}/resources".format(install_directory))
-                copy_tree(biopython_path, "{0}/Bio".format(install_directory))
+                copytree(biopython_path, "{0}/Bio".format(install_directory))
                 print("Directory added: {0}/Bio".format(install_directory))
-                copy_tree(blast_path, "{0}/blast_binaries".format(install_directory))
-                print("Directory added: {0}/blast_binaries".format(install_directory))
+
+                binaries = ["blastn", "blastp", "blastdbcmd"] if user_system != "Win32" else \
+                    ["blastn.exe", "blastp.exe", "blastdbcmd.exe"]
+                for binary in binaries:
+                    if not which(binary):
+                        shutil.copy("blast_binaries/{0}_{1}".format(user_system, binary),
+                                    "{0}/{1}".format(install_directory, binary))
+                        os.chmod("{0}/{1}".format(install_directory, binary), 0o755)
+                        print("{0} ==> Installed".format(binary))
+                    else:
+                        print("{0} ==> Local version detected".format(binary))
+
                 for buddy in buddies_to_install:
                     if buddies_to_install[buddy]:
                         shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                        os.chmod("{0}/{1}.py".format(install_directory, buddy), 0o755)
                         print("File added: {0}/{1}.py".format(install_directory, buddy))
                         for shortcut in shortcuts[buddy]:
                             if which(shortcut) is None:
-                                os.symlink("{0}/{1}.py".format(install_directory, buddy),
-                                           "{0}/{1}".format(install_directory, shortcut))
-                                print("{0}/{1}".format(install_directory, shortcut))
-                                print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
+                                try:
+                                    os.symlink("{0}/{1}.py".format(install_directory, buddy),
+                                               "{0}/{1}".format(install_directory, shortcut))
+                                    print("{0}/{1}".format(install_directory, shortcut))
+                                    print("Shortcut added: {0} ==> {1}".format(buddy, shortcut))
+                                except FileExistsError:
+                                    print("{0}/{1}".format(install_directory, shortcut))
+                                    print("Shortcut retained: {0} ==> {1}".format(buddy, shortcut))
 
             elif user_system == 'Windows':
                 print("Windows not supported at the moment.")
@@ -148,8 +194,8 @@ class BuddyInstall:
 
     @staticmethod
     def uninstall_buddy_suite():
-        if path.exists("{0}/buddysuite".format(home_dir)):
-            paths_to_delete = ["resources", "blast_binaries", "Bio"]
+        if path.exists("{0}/.BuddySuite".format(home_dir)):
+            paths_to_delete = ["blast_binaries", "Bio"]
             files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                                "config.ini"]
             shortcuts = BuddyInstall.read_config_file()[2]
@@ -159,15 +205,15 @@ class BuddyInstall:
                         os.remove("{0}/{1}".format(home_dir, shortcut))
 
             for loc in paths_to_delete:
-                if path.exists("{0}/buddysuite/{1}".format(home_dir, loc)):
-                    shutil.rmtree("{0}/buddysuite/{1}".format(home_dir, loc))
+                if path.exists("{0}/.BuddySuite/{1}".format(home_dir, loc)):
+                    rmtree("{0}/.BuddySuite/{1}".format(home_dir, loc))
             for loc in files_to_delete:
-                if path.exists("{0}/buddysuite/{1}".format(home_dir, loc)):
-                    os.remove("{0}/buddysuite/{1}".format(home_dir, loc))
+                if path.exists("{0}/.BuddySuite/{1}".format(home_dir, loc)):
+                    os.remove("{0}/.BuddySuite/{1}".format(home_dir, loc))
 
-            if len(os.listdir("{0}/buddysuite".format(home_dir))) == 0:
-                shutil.rmtree(path.realpath("{0}/buddysuite".format(home_dir)))
-                os.remove("{0}/buddysuite".format(home_dir))
+            if len(os.listdir("{0}/.BuddySuite".format(home_dir))) == 0:
+                rmtree(path.realpath("{0}/.BuddySuite".format(home_dir)))
+                os.remove("{0}/.BuddySuite".format(home_dir))
 
         print("BuddySuite uninstalled.")
         exit()
@@ -204,9 +250,9 @@ class BuddyInstall:
 
     @staticmethod
     def read_config_file():
-        if path.exists("{0}/buddysuite/config.ini".format(home_dir)):
+        if path.exists("{0}/.BuddySuite/config.ini".format(home_dir)):
             reader = ConfigParser()
-            reader.read("{0}/buddysuite/config.ini".format(home_dir))
+            reader.read("{0}/.BuddySuite/config.ini".format(home_dir))
 
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
                        reader.get('Install_path', 'path'), {}]
@@ -227,7 +273,7 @@ class BuddyInstall:
 
     @staticmethod
     def edit_profile():
-        regex = 'export PATH=.PATH:%s/buddysuite' % home_dir
+        regex = 'export PATH=.PATH:%s/.BuddySuite' % home_dir
 
         if system() == 'Darwin':
             if not path.exists("{0}/.profile".format(home_dir)):
@@ -239,7 +285,7 @@ class BuddyInstall:
                     file.close()
                     with open("{0}/.profile".format(home_dir), 'a') as file_write:
                         file_write.write("\n# added by BuddySuite installer\n")
-                        file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
+                        file_write.write('export PATH=$PATH:{0}/.BuddySuite\n'.format(home_dir))
 
         if system() == 'Linux':
             if not path.exists("{0}/.bashrc".format(home_dir)):
@@ -251,7 +297,7 @@ class BuddyInstall:
                     file.close()
                     with open("{0}/.bashrc".format(home_dir), 'a') as file_write:
                         file_write.write("\n# added by BuddySuite installer\n")
-                        file_write.write('export PATH=$PATH:{0}/buddysuite\n'.format(home_dir))
+                        file_write.write('export PATH=$PATH:{0}/.BuddySuite\n'.format(home_dir))
 
 if not hard_install:
     root = Tk()
@@ -273,11 +319,17 @@ class Installer(Frame):
 
     uninstall = False
 
-    bs_logo = PhotoImage(file="./resources/images/BuddySuite-logo.gif")
-    id_logo = PhotoImage(file="./resources/images/InstallDirectory.gif")
-    sc_logo = PhotoImage(file="./resources/images/ConsoleShortcuts.gif")
-    cs_logo = PhotoImage(file="./resources/images/ConfirmSelection.gif")
-    suite_logos = [PhotoImage(file="./resources/images/{0}-logo.gif".format(buddy)) for buddy in buddy_names]
+    bs_logo = PhotoImage(file="{0}/BuddySuite-logo.gif".format(temp_dir.name))
+    id_logo = PhotoImage(file="{0}/InstallDirectory.gif".format(temp_dir.name))
+    sc_logo = PhotoImage(file="{0}/ConsoleShortcuts.gif".format(temp_dir.name))
+    cs_logo = PhotoImage(file="{0}/ConfirmSelection.gif".format(temp_dir.name))
+
+    alb_logo = PhotoImage(file="{0}/AlignBuddy-logo.gif".format(temp_dir.name))
+    sb_logo = PhotoImage(file="{0}/SeqBuddy-logo.gif".format(temp_dir.name))
+    pb_logo = PhotoImage(file="{0}/PhyloBuddy-logo.gif".format(temp_dir.name))
+    db_logo = PhotoImage(file="{0}/DBBuddy-logo.gif".format(temp_dir.name))
+
+    suite_logos = [sb_logo, pb_logo, alb_logo, db_logo]
 
     install_dir = "{0}/.BuddySuite".format(home_dir)
     default_dir = "{0}/.BuddySuite".format(home_dir)
@@ -292,7 +344,7 @@ class Installer(Frame):
     user_os = platform()
 
     config = None
-    if BuddyInstall.read_config_file() is not None:
+    if BuddyInstall.read_config_file():
         config = BuddyInstall.read_config_file()
         buddies = config[0]
         install_dir = config[1]
@@ -350,7 +402,7 @@ class Installer(Frame):
         self.clear_container()
         frame = Frame(pady=75)
         scrollbar = Scrollbar(master=frame)
-        license_file = open("LICENSE")
+        license_file = open("{0}/LICENSE".format(temp_dir.name))
         license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
         license_box.insert(END, license_file.read())
         license_box.config(state=DISABLED)
@@ -399,7 +451,7 @@ class Installer(Frame):
         self.container.append(mega_frame)
         frame = Frame(mega_frame, padx=50, pady=10)
         scrollbar = Scrollbar(master=frame)
-        description_file = open("LICENSE")
+        description_file = open("{0}/LICENSE".format(temp_dir.name))
         description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
         description_box.insert(END, description_file.read())
         description_box.config(state=DISABLED)
@@ -630,26 +682,37 @@ class Installer(Frame):
         self.container.append(logo_label)
         info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10, pady=10)
         self.container.append(info_frame)
-        os_label = Label(info_frame, text="Operating System: {0}".format(self.user_os))
-        sb_label = Label(info_frame, text="Install SeqBuddy: {0}".format(self.buddies["SeqBuddy"]))
-        pb_label = Label(info_frame, text="Install PhyloBuddy: {0}".format(self.buddies["PhyloBuddy"]))
-        ab_label = Label(info_frame, text="Install AlignBuddy: {0}".format(self.buddies["AlignBuddy"]))
-        db_label = Label(info_frame, text="Install DatabaseBuddy: {0}".format(self.buddies["DatabaseBuddy"]))
-        dir_label = Label(info_frame, text="Install Directory: {0}".format(self.install_dir))
-        cs_sb_label = Label(info_frame,
-                            text="SeqBuddy Shortcuts: {0}".format(str(self.shortcuts["SeqBuddy"])))
-        cs_ab_label = Label(info_frame,
-                            text="AlignBuddy Shortcuts: {0}".format(str(self.shortcuts["AlignBuddy"])))
-        cs_pb_label = Label(info_frame,
-                            text="PhyloBuddy Shortcuts: {0}".format(str(self.shortcuts["PhyloBuddy"])))
-        cs_db_label = Label(info_frame,
-                            text="DatabaseBuddy Shortcuts: {0}".format(str(self.shortcuts["DatabaseBuddy"])))
+        os_label = Label(info_frame, text="{:<28}{}".format("Operating System:", self.user_os), font=('Courier', 13))
+        dir_label = Label(info_frame, text="{:<28}{}".format("Install Directory:", self.install_dir), font=('Courier', 13))
+
+        install_state = "Install" if self.buddies["SeqBuddy"] else "Skip"
+        sb_label = Label(info_frame, text="{:<28}{}".format("SeqBuddy:", install_state), font=('Courier', 13))
+
+        install_state = "Install" if self.buddies["PhyloBuddy"] else "Skip"
+        pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state), font=('Courier', 13))
+
+        install_state = "Install" if self.buddies["AlignBuddy"] else "Skip"
+        ab_label = Label(info_frame, text="{:<28}{}".format("AlignBuddy:", install_state), font=('Courier', 13))
+
+        install_state = "Install" if self.buddies["DatabaseBuddy"] else "Skip"
+        db_label = Label(info_frame, text="{:<28}{}".format("DatabaseBuddy:", install_state), font=('Courier', 13))
+
+        cs_sb_label = Label(info_frame, font=('Courier', 13),
+                            text="{:<28}{}".format("SeqBuddy Shortcut(s):", ", ".join(self.shortcuts["SeqBuddy"])))
+        cs_ab_label = Label(info_frame, font=('Courier', 13),
+                            text="{:<28}{}".format("AlignBuddy Shortcut(s):", ", ".join(self.shortcuts["AlignBuddy"])))
+        cs_pb_label = Label(info_frame, font=('Courier', 13),
+                            text="{:<28}{}".format("PhyloBuddy Shortcut(s):", ", ".join(self.shortcuts["PhyloBuddy"])))
+        cs_db_label = Label(info_frame, font=('Courier', 13),
+                            text="{:<28}{}".format("DatabaseBuddy Shortcut(s):", ", ".join(self.shortcuts["DatabaseBuddy"])))
+
         os_label.grid(row=0, sticky=NW)
-        sb_label.grid(row=1, sticky=NW)
-        pb_label.grid(row=2, sticky=NW)
-        ab_label.grid(row=3, sticky=NW)
-        db_label.grid(row=4, sticky=NW)
-        dir_label.grid(row=5, sticky=NW)
+        dir_label.grid(row=1, sticky=NW)
+        sb_label.grid(row=2, sticky=NW)
+        pb_label.grid(row=3, sticky=NW)
+        ab_label.grid(row=4, sticky=NW)
+        db_label.grid(row=5, sticky=NW)
+
         if self.buddies["SeqBuddy"]:
             cs_sb_label.grid(row=6, sticky=NW)
         if self.buddies["AlignBuddy"]:
@@ -691,12 +754,12 @@ class Installer(Frame):
                 self.shortcuts[buddy] = []
 
         if all_false and self.config is not None:
-            os.remove("{0}/buddysuite/config.ini".format(home_dir))
+            os.remove("{0}/.BuddySuite/config.ini".format(home_dir))
         if self.config is not None:  # Uninstall removed shortcuts
             for buddy in self.original_shortcuts:
                 for shortcut in self.original_shortcuts[buddy]:
-                    if os.path.exists("{0}/buddysuite/{1}".format(home_dir, shortcut)) and shortcut not in self.shortcuts[buddy]:
-                        os.remove("{0}/buddysuite/{1}".format(home_dir, shortcut))
+                    if os.path.exists("{0}/.BuddySuite/{1}".format(home_dir, shortcut)) and shortcut not in self.shortcuts[buddy]:
+                        os.remove("{0}/.BuddySuite/{1}".format(home_dir, shortcut))
         for buddy in self.buddies:
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
