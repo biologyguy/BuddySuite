@@ -12,17 +12,20 @@ from tempfile import TemporaryDirectory
 import zipfile
 from inspect import getsourcefile
 import argparse
+
+buddysuite_version = '1.alpha'
+
 parser = argparse.ArgumentParser(prog="BuddySuite", description="The BuddySuite installer")
 
 parser.add_argument('-v', '--version', action='version',
                     version='''\
-BuddySuite 1.alpha (2015)
+BuddySuite {0} (2015)
 
 Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
 This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''.format(buddysuite_version))
 
 parser.add_argument('-cmd', '--cmd_line', help="Force the installer to use command line version.",
                     action='store_true')
@@ -343,12 +346,15 @@ class Installer(Frame):
     user_system = system()
     user_os = platform()
 
+    modifying = False
     config = None
+
     if BuddyInstall.read_config_file():
+        modifying = True
         config = BuddyInstall.read_config_file()
-        buddies = config[0]
-        install_dir = config[1]
-        shortcuts = config[2]
+        buddies = copy.deepcopy(config[0])
+        install_dir = copy.deepcopy(config[1])
+        shortcuts = copy.deepcopy(config[2])
 
         if which("sb") is None and not buddies["SeqBuddy"]:  # if new install of given tool, re-add default shortcuts
             shortcuts["SeqBuddy"].append("sb")
@@ -381,16 +387,20 @@ class Installer(Frame):
             self.buddies[buddy] = False
         self.confirmation()
 
-    def welcome(self):
+    def welcome(self, debug=None):
         self.clear_container()
-        welcome_label = Label(image=self.bs_logo)
-        welcome_label.pack(pady=sh / 8, side=TOP)
-        self.container.append(welcome_label)
+        title_frame = Frame()
+        welcome_label = Label(title_frame, image=self.bs_logo)
+        welcome_label.pack(side=TOP)
+        version_label = Label(title_frame, text="Version {0}".format(buddysuite_version))
+        version_label.pack(side=RIGHT)
+        title_frame.pack(pady=sh / 8)
+        self.container.append(title_frame)
         button_container = Frame()
         next_button = Button(button_container, width=20, pady=20, text="Install", command=self.license)
         uninstall_button = Button(button_container, width=20, pady=20, text="Uninstall",
                                   command=self.uninstall_all)
-        if self.config is not None:
+        if self.modifying:
             next_button.config(text="Modify Installation")
             uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
@@ -415,7 +425,7 @@ class Installer(Frame):
         next_button.pack(side=TOP)
         back_button = Label(button_frame, padx=50, pady=20, text="Cancel", fg='blue', font=('Helvetica', 12,
                                                                                             'underline'))
-        back_button.bind("<Button-1>", exit)
+        back_button.bind("<Button-1>", self.welcome)
         back_button.pack(side=BOTTOM)
         button_frame.pack(side=BOTTOM, pady=20)
         self.container.append(frame)
@@ -436,7 +446,7 @@ class Installer(Frame):
             return
         elif num > 3:
             if all_false:
-                if self.config is not None:
+                if self.modifying:
                     self.confirmation()
                 else:
                     self.none_selected_page()
@@ -468,8 +478,7 @@ class Installer(Frame):
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM)
         func = partial(self.toggle_tool, self.buddy_names[num])
-        config_file = BuddyInstall.read_config_file()
-        if config_file is None or config_file[0][self.buddy_names[num]] is False:
+        if not self.modifying or self.config[0][self.buddy_names[num]] is False:
             tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func,
                                       pady=20)
             if self.buddies[self.buddy_names[num]]:
@@ -549,7 +558,7 @@ class Installer(Frame):
 
         self.container.append(frame)
         lower_box = Frame()
-        if self.config is not None:
+        if self.modifying:
             browse_button.config(state=DISABLED)
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
@@ -640,7 +649,8 @@ class Installer(Frame):
         var.set(text[0])
         entry.insert(END, text[1])
 
-    def add_shortcut(self, buddy, listbox, entry, debug):
+    def add_shortcut(self, buddy, listbox, entry, debug, event=None):
+        debug.config(text='')
         addable = True
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
         entry.delete(0, END)
@@ -665,7 +675,8 @@ class Installer(Frame):
             debug.config(text='Not added: Already exists')
             return
 
-    def remove_shortcut(self, buddy, listbox, entry):
+    def remove_shortcut(self, buddy, listbox, entry, debug, event=None):
+        debug.config(text='')
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
         entry.delete(0, END)
         entry.insert(END, text)
@@ -685,16 +696,28 @@ class Installer(Frame):
         os_label = Label(info_frame, text="{:<28}{}".format("Operating System:", self.user_os), font=('Courier', 13))
         dir_label = Label(info_frame, text="{:<28}{}".format("Install Directory:", self.install_dir), font=('Courier', 13))
 
-        install_state = "Install" if self.buddies["SeqBuddy"] else "Skip"
+        if not self.modifying or self.config[0]["SeqBuddy"] is False:
+            install_state = "Install" if self.buddies["SeqBuddy"] else "Skip"
+        else:
+            install_state = "Modify" if self.buddies["SeqBuddy"] else "Uninstall"
         sb_label = Label(info_frame, text="{:<28}{}".format("SeqBuddy:", install_state), font=('Courier', 13))
 
-        install_state = "Install" if self.buddies["PhyloBuddy"] else "Skip"
+        if not self.modifying or self.config[0]["PhyloBuddy"] is False:
+            install_state = "Install" if self.buddies["PhyloBuddy"] else "Skip"
+        else:
+            install_state = "Modify" if self.buddies["PhyloBuddy"] else "Uninstall"
         pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state), font=('Courier', 13))
 
-        install_state = "Install" if self.buddies["AlignBuddy"] else "Skip"
+        if not self.modifying or self.config[0]["AlignBuddy"] is False:
+            install_state = "Install" if self.buddies["AlignBuddy"] else "Skip"
+        else:
+            install_state = "Modify" if self.buddies["AlignBuddy"] else "Uninstall"
         ab_label = Label(info_frame, text="{:<28}{}".format("AlignBuddy:", install_state), font=('Courier', 13))
 
-        install_state = "Install" if self.buddies["DatabaseBuddy"] else "Skip"
+        if not self.modifying or self.config[0]["DatabaseBuddy"] is False:
+            install_state = "Install" if self.buddies["DatabaseBuddy"] else "Skip"
+        else:
+            install_state = "Modify" if self.buddies["DatabaseBuddy"] else "Uninstall"
         db_label = Label(info_frame, text="{:<28}{}".format("DatabaseBuddy:", install_state), font=('Courier', 13))
 
         cs_sb_label = Label(info_frame, font=('Courier', 13),
