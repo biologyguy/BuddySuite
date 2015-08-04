@@ -216,6 +216,9 @@ if __name__ == '__main__':
     phylobuddy = []
     tree_set = ""
 
+    sys.exit("PhyloBuddy is still in the early phase of development and is not currently functional. "
+             "This message is a place holder.\n")
+
     for tree_set in in_args.trees:
         tree_set = PhyloBuddy(tree_set, in_args.in_format)
         phylobuddy += tree_set.trees
