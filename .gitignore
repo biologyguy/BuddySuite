@@ -18,3 +18,4 @@ workshop/htmlcov/*
 
 # Test/build files
 workshop/test_files/*
+workshop/build_dir/dependencies*
