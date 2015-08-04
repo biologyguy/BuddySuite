@@ -12,23 +12,22 @@ ___
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file 
 manipulations.
 
-Currently the Buddy 'Suite' only consists of one stable module, 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy), although three more modules are currently under 
-development using the same general architecture:
-
-- [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
-- [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy)
-- [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
+Currently the Buddy 'Suite' only consists of two relatively mature modules, 
+[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) and 
+[AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy), although two more modules are currently under 
+development using the same general architecture 
+([DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) and 
+[PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy))
 
 Being pure Python, the BuddySuite should be cross platform. Almost all development and testing has been done on Linux
   and Mac OS X, however, so if you are a Windows user experiencing weird behavior, please let me know.
 
-## Standalone installation (Not quite working as of July 31, but soon!)
+## Standalone installation (This is still an Alpha version, but it seems to be working for Mac and Linux)
 Download the graphical installer and run from the command line
     
-    $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite
-    $: chmod +x BuddySuite
-    $: ./BuddySuite
+    $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py
+    $: chmod +x BuddySuite.py
+    $: ./BuddySuite.py
 
 By default, the installer will place short form sym-links to the main tools in your PATH (e.g., 'sb' for SeqBuddy, 'alb'
  for AlignBuddy, etc.), so they can be accessed quickly (examples in the wiki use these short forms). The full names of
@@ -56,7 +55,8 @@ to contribute to the project, new features require three components:
 
 ## Dependencies
 The BuddySuite is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from 
-[here](https://www.python.org/downloads/). 
+[here](https://www.python.org/downloads/), or use (Anaconda)[http://continuum.io/downloads#py34] as a more comprehensive 
+solution. 
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
 [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
