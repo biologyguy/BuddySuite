@@ -5,7 +5,7 @@
 """
 DESCRIPTION OF PROGRAM
 AlignmentBuddy is a general wrapper for popular DNA and protein alignment programs that handles format conversion
-and allows maintencance of rich feature annotation following alignment.
+and allows maintenance of rich feature annotation following alignment.
 """
 
 # Standard library imports
@@ -29,33 +29,19 @@ from Bio.SeqFeature import SeqFeature
 from Bio.SeqFeature import FeatureLocation
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
-from hashlib import md5
 
 # My functions
-import SeqBuddy as SB
 
 # ##################################################### WISH LIST #################################################### #
-# - 'Clean' an alignment by removing gaps (like phyutility -clean, or trimal -gt). Default removes cols with 100% gap
 # - Map features from a sequence file over to the alignment
-# - Extract range (http://biopython.org/DIST/docs/api/Bio.Align.MultipleSeqAlignment-class.html) X
-# - number of seqs in each alignment X
-# - Concatenate sequences from multiple alignments by id, taxa, or position in alignment (return new AlignBuddy) X
-# - Transcribe X
-# - Back-transcribe X
 # - Back-translate
-# - Order ids X
-# - Alignment lengths X
-# - Pull out specific rows from the alignment X
-# - Delete specific rows from alignment X
-# - Rename ids X
-# - Separate multiple alignments into individual files
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, _value):
+        self.value = _value
 
     def __str__(self):
         return self.value
@@ -88,6 +74,7 @@ def _make_copies(_alignbuddy):
     for _indx, _rec in enumerate(_get_seq_recs(copies)):
         _rec.seq.alphabet = alphabet_list[_indx]
     return copies
+
 
 def _format_to_extension(_format):
     format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
@@ -296,9 +283,9 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
     _output = []
-    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         _output.append([])
-        for _rec in alignment:
+        for _rec in _alignment:
             _output[al_indx].append(_rec.id)
     return _output
 
@@ -408,8 +395,8 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
     codon_alignment(_alignbuddy)
     copy_alignbuddy = _make_copies(_alignbuddy)
     clean_seq(copy_alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
-    for align_indx, alignment in enumerate(copy_alignbuddy.alignments):
-        for rec_indx, _rec in enumerate(alignment):
+    for align_indx, _alignment in enumerate(copy_alignbuddy.alignments):
+        for rec_indx, _rec in enumerate(_alignment):
             _rec.features = []
             while True:
                 test_trans = trans(copy(_rec))
@@ -473,9 +460,9 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
 
 def delete_rows(_alignbuddy, _search):
     _alignments = []
-    for alignment in _alignbuddy.alignments:
+    for _alignment in _alignbuddy.alignments:
         matches = []
-        for record in alignment:
+        for record in _alignment:
             if not re.search(_search, record.id) and not re.search(_search, record.description) \
                     and not re.search(_search, record.name):
                 matches.append(record)
@@ -487,9 +474,9 @@ def delete_rows(_alignbuddy, _search):
 
 def pull_rows(_alignbuddy, _search):
     _alignments = []
-    for alignment in _alignbuddy.alignments:
+    for _alignment in _alignbuddy.alignments:
         matches = []
-        for record in alignment:
+        for record in _alignment:
             if re.search(_search, record.id) or re.search(_search, record.description) \
                     or re.search(_search, record.name):
                 matches.append(record)
@@ -604,17 +591,17 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
     return _alignbuddy
 
+
 def consensus_sequence(_alignbuddy):
     # http://bioinformatics.oxfordjournals.org/content/18/11/1494
-    #if len(_alignbuddy.alignments) < 2:
-        #raise AttributeError("At least two a")
     _output = []
-    for alignment in _alignbuddy.alignments:
-        _id = alignment[0].id
-        aln = SummaryInfo(alignment)
+    for _alignment in _alignbuddy.alignments:
+        _id = _alignment[0].id
+        aln = SummaryInfo(_alignment)
         print(aln.gap_consensus())
         _output.append(SeqRecord(seq=aln.gap_consensus(), id=_id))
     return _output
+
 
 def concat_alignments(_alignbuddy, _pattern):
     # collapsed multiple genes from single taxa down to one consensus seq
@@ -624,22 +611,22 @@ def concat_alignments(_alignbuddy, _pattern):
 
     def organism_list():
         orgnsms = set()
-        for _alignment in _alignbuddy.alignments:
-            for record in _alignment:
-                orgnsms.add(record.id)
+        for _align in _alignbuddy.alignments:
+            for _record in _align:
+                orgnsms.add(_record.id)
         return list(orgnsms)
 
     def add_blanks(_record, _num):
-        for x in range(_num):
+        for _ in range(_num):
             _record.seq += '-'
 
     missing_organisms = organism_list()
 
     # dict[alignment_index][organism] -> gene_name
     sequence_names = OrderedDict()
-    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         sequence_names[al_indx] = OrderedDict()
-        for record in alignment:
+        for record in _alignment:
             organism = re.split(_pattern, record.id)[0]
             gene = ''.join(re.split(_pattern, record.id)[1:])
             if organism in sequence_names[al_indx].keys():
@@ -647,15 +634,15 @@ def concat_alignments(_alignbuddy, _pattern):
             else:
                 sequence_names[al_indx][organism] = [gene]
             record.id = organism
-    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         duplicate_table = OrderedDict()
-        for record in alignment:
+        for record in _alignment:
             if record.id in duplicate_table.keys():
                 duplicate_table[record.id].append(record)
             else:
                 duplicate_table[record.id] = [record]
         _temp = []
-        for record in alignment:
+        for record in _alignment:
             if len(duplicate_table[record.id]) == 1:
                 _temp.append(record)
                 duplicate_table.pop(record.id)
@@ -689,47 +676,50 @@ def concat_alignments(_alignbuddy, _pattern):
         record.name = 'multiple'
 
     curr_length = 0
-    for al_indx, alignment in enumerate(_alignbuddy.alignments):
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         for base_indx, base_rec in enumerate(base_alignment):
             added = False
-            for record in alignment:
+            for record in _alignment:
                 if base_rec.id == record.id:
                     if al_indx > 0:
                         base_rec.seq += record.seq
                         added = True
             if not added and al_indx > 0:
-                add_blanks(base_rec, alignment.get_alignment_length())
+                add_blanks(base_rec, _alignment.get_alignment_length())
             feature_location = FeatureLocation(start=curr_length,
-                                               end=curr_length + alignment.get_alignment_length())
-            feature = SeqFeature(location=feature_location, type='alignment'+str(al_indx+1),
+                                               end=curr_length + _alignment.get_alignment_length())
+            feature = SeqFeature(location=feature_location, type='alignment' + str(al_indx + 1),
                                  qualifiers={'name': sequence_names[al_indx][base_rec.id]})
             base_alignment[base_indx].features.append(feature)
-        curr_length += alignment.get_alignment_length()
+        curr_length += _alignment.get_alignment_length()
 
     _alignbuddy.alignments = [base_alignment]
     return _alignbuddy
 
+
 def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
-    for alignment in _alignbuddy.alignments:
-        for _rec in alignment:
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
             new_name = re.sub(query, replace, _rec.id, _num)
             _rec.id = new_name
             _rec.name = new_name
     return _alignbuddy
 
+
 def order_ids(_alignbuddy, _reverse=False):
-    for al_indx, alignment in enumerate(_alignbuddy.alignments):
-        _output = [(_rec.id, _rec) for _rec in alignment]
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        _output = [(_rec.id, _rec) for _rec in _alignment]
         _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
         _output = [_rec[1] for _rec in _output]
         _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_output)
     return _alignbuddy
 
+
 def rna2dna(_alignbuddy):
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
-    for alignment in _alignbuddy.alignments:
-        for _rec in alignment:
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
             _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
     _alignbuddy.alpha = IUPAC.ambiguous_dna
     return _alignbuddy
@@ -738,11 +728,12 @@ def rna2dna(_alignbuddy):
 def dna2rna(_alignbuddy):
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
-    for alignment in _alignbuddy.alignments:
-        for _rec in alignment:
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
             _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
     _alignbuddy.alpha = IUPAC.ambiguous_rna
     return _alignbuddy
+
 
 def extract_range(_alignbuddy, _start, _end):
     _start = 1 if int(_start) < 1 else _start
@@ -751,8 +742,8 @@ def extract_range(_alignbuddy, _start, _end):
     if _end < _start:
         raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
                          "of range.")
-    for alignment in _alignbuddy.alignments:
-        for _rec in alignment:
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
             _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
             _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start + 1, _end)
             _features = []
@@ -776,16 +767,18 @@ def extract_range(_alignbuddy, _start, _end):
             _rec.features = _features
     return _alignbuddy
 
+
 def alignment_lengths(_alignbuddy):
     _output = []
-    for alignment in _alignbuddy.alignments:
-        _output.append(alignment.get_alignment_length())
+    for _alignment in _alignbuddy.alignments:
+        _output.append(_alignment.get_alignment_length())
     return _output
+
 
 def split_alignbuddy(_alignbuddy):
     ab_objs_list = []
-    for alignment in _alignbuddy.alignments:
-        _ab = AlignBuddy([alignment])
+    for _alignment in _alignbuddy.alignments:
+        _ab = AlignBuddy([_alignment])
         _ab.in_format = _alignbuddy.in_format
         _ab.out_format = _alignbuddy.out_format
         ab_objs_list.append(_ab)
@@ -867,10 +860,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
-     ############################################## INTERNAL FUNCTIONS ############################################## #
+    # ############################################# INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         try:
-            _output = str(alignbuddy)
+            _output = str(_alignbuddy)
         except ValueError as e:
             _stderr("Error: %s\n" % str(e))
             return False
@@ -923,7 +916,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     count = 1
             output += "\n"
         _stdout(output)
-
 
     # Number sequences per alignment
     if in_args.num_seqs:
@@ -1029,7 +1021,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         for indx, buddy in enumerate(split_alignbuddy(alignbuddy)):
             alignbuddy.alignments = buddy.alignments
             ext = _format_to_extension(alignbuddy.out_format)
-            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(indx+1), ext)
+            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(indx + 1), ext)
             _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
             open(in_args.alignment[0], "w").close()
             _print_aligments(alignbuddy)

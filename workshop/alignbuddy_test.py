@@ -10,6 +10,7 @@ import re
 from copy import deepcopy
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
+from MyFuncs import TempFile
 
 try:
     import workshop.AlignBuddy as Alb
@@ -177,9 +178,9 @@ def test_str(alignbuddy, next_hash):
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_write1(alignbuddy, next_hash):
-    alignbuddy.write("/tmp/alignbuddywritetest")
-    with open("/tmp/alignbuddywritetest", "r") as ifile:
-        out = "{0}\n".format(ifile.read().rstrip())
+    temp_file = TempFile()
+    alignbuddy.write(temp_file.path)
+    out = "{0}\n".format(temp_file.read().rstrip())
     tester = md5(out.encode()).hexdigest()
     assert tester == next_hash
 
@@ -199,7 +200,6 @@ def test_write2():  # Unloopable components
 
     tester.out_format = "phylipis"
     assert md5(str(tester).encode()).hexdigest() == "729a3de75d70179a27a802bc0437f4ee"
-
 
 
 def test_get_seq_recs():
@@ -418,12 +418,14 @@ def test_trimal2():
     with pytest.raises(ValueError):
         Alb.trimal(tester, "Foo")
 
+
 # ###########################################  'cta', '--concat_alignments' ######################################### #
 def test_concat_alignments_identical():
     tester = Alb.AlignBuddy(resource("duplicate_alignment.nex"))
     tester.alignments.append(tester.alignments[0])
     Alb.concat_alignments(tester, '-')
     assert align_to_hash(tester) == '1b656db96d33973fe6b1368afc974148'
+
 
 def test_concat_alignments_duplicate_taxa():
     tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
@@ -436,6 +438,7 @@ def test_rename_ids_several():
     tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
     Alb.rename(tester, 'Mle', 'Xle')
     assert align_to_hash(tester) == '61d03559088c5bdd0fdebd7a8a2061fd'
+
 
 def test_rename_ids_all_same():
     tester = Alb._make_copies(alb_objects[0])
@@ -457,9 +460,12 @@ def test_order_ids(alignbuddy):
 d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
               'a083e03b4e0242fa3c23afa80424d670', '45b511f34653e3b984e412182edee3ca']
 d2r_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(d2r_hashes)]
+
+
 @pytest.mark.parametrize("alignbuddy, next_hash", d2r_hashes)
 def test_transcribe(alignbuddy, next_hash):
     assert align_to_hash(Alb.dna2rna(alignbuddy)) == next_hash
+
 
 def test_transcribe_pep_exception():
     with pytest.raises(ValueError):
@@ -474,6 +480,7 @@ def test_back_transcribe(alignbuddy):
     final = align_to_hash(Alb.rna2dna(Alb.dna2rna(alignbuddy)))
     assert original == final
 
+
 def test_back_transcribe_pep_exception():
     with pytest.raises(ValueError):
         Alb.rna2dna(deepcopy(alb_objects[4]))
@@ -486,6 +493,8 @@ er_hashes = ['10ca718b74f3b137c083a766cb737f31', '637582d17b5701896d80f0380fa00c
              '146d0550bb24f4f19f31c294c48c7e49', '64a848cc73d909ca6424ce049e2700cd', '9d9bbdf6f20274f26be802fa2361d459',
              '78ceb2e63d8c9d8800b5fa9335a87a30']
 er_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(er_hashes)]
+
+
 @pytest.mark.parametrize("alignbuddy, next_hash", er_hashes)
 def test_extract_range(alignbuddy, next_hash):
     tester = Alb.extract_range(alignbuddy, 0, 50)
