@@ -29,7 +29,6 @@ Collection of functions that interact with public sequence databases. Pull them 
 # import pdb
 # import timeit
 import sys
-import requests
 from io import StringIO
 import re
 from urllib.parse import urlencode
@@ -37,6 +36,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from time import time, sleep
 import json
+from multiprocessing import Lock
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -73,12 +73,14 @@ class DatabaseError(Exception):
 def _stderr(message, quiet=False):
     if not quiet:
         sys.stderr.write(message)
+        sys.stderr.flush()
     return
 
 
 def _stdout(message, quiet=False):
     if not quiet:
         sys.stdout.write(message)
+        sys.stdout.flush()
     return
 
 
@@ -94,7 +96,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         self.search_terms = []
         self.records = {}
         self.out_format = _out_format.lower()
-        self.failures = []
+        self.failures = {}
+        self.databases = [_database] if _database else []
 
         # DbBuddy objects
         if type(_input) == list:
@@ -135,6 +138,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     if _database:
                         _record.database = _database.lower()
                     self.records[_accession] = _record
+                    if _record.database not in self.databases:
+                        self.databases.append(_record.database)
 
             # If accessions not identified, assume search terms
             if len(self.records) != len(accessions_check):
@@ -146,9 +151,18 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
     def __str__(self):
         _output = ""
-        if self.out_format == "summary":
+        if self.out_format in ["ids", "accessions"]:
+            for _accession in self.records:
+                _output += "%s\n" % _accession
+
+        elif self.out_format == "summary":
             for _accession, _rec in self.records.items():
-                _output += "%s\t%s\n" % (_accession, _rec.database)
+                _output += _accession
+                if _rec.database:
+                    _output += "\t%s" % _rec.database
+                for attrib, _value in _rec.summary.items():
+                    _output += "\t%s" % _value
+                _output += "\n"
             _output = "%s\n" % _output.strip()
 
         else:
@@ -177,11 +191,13 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 
 class Record:
-    def __init__(self, _accession, _database=None, _record=None, _type=None):
+    def __init__(self, _accession, _record=None, summary=None, _database=None, _type=None, _search_term=None):
         self.accession = _accession
-        self.database = _database  # refseq, genbank, ensembl, uniprot
         self.record = _record  # SeqIO record
-        self.type = _type  # protein, nucleotide
+        self.summary = summary if summary else {}  # Dictionary of attributes
+        self.database = _database  # refseq, genbank, ensembl, uniprot
+        self.type = _type  # protein, nucleotide, gi_num
+        self.search_term = _search_term  # In case the record was the result of a particular search
 
     def guess_database(self):
         # RefSeq
@@ -231,11 +247,103 @@ class Record:
                                                                                     self.record, self.type)
 
 
+class Failure:
+    def __init__(self, query, error_message):
+        self.query = query
+        self.error_msg = error_message
+
+    def __str__(self):
+        _output = "%s\n" % self.query
+        _output += "%s\n" % self.error_msg
+
+
 # ################################################# Database Clients ################################################# #
 class UniProtRestClient:
+    # http://www.uniprot.org/help/uniprotkb_column_names
+    # Limit URLs to 2,083 characters
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
         self.server = server
+        self.lock = Lock()
+
+    def mc_rest_query(self, _term, args):
+        http_errors_file, results_file, request_params = args
+        _term = re.sub(" ", "+", _term)
+        request_string = ""
+        for _param, _value in request_params.items():
+            _value = re.sub(" ", "+", _value)
+            request_string += "&{0}={1}".format(_param, _value)
+
+        try:
+            request = Request("{0}?query={1}{2}".format(self.server, _term, request_string))
+            response = urlopen(request)
+            response = response.read().decode()
+            response = re.sub("^Entry.*\n", "", response, count=1)
+            with self.lock:
+                with open(results_file, "a") as ofile:
+
+                    ofile.write("%s\n%s//\n" % (_term, response))
+            return
+
+        except HTTPError as e:
+            with self.lock:
+                with open(http_errors_file, "a") as ofile:
+                    ofile.write("%s\n%s//\n" % (_term, e))
+            return
+
+    def search_proteins(self, force=False):
+        temp_dir = TempDir()
+        http_errors_file = "%s/errors.txt" % temp_dir.path
+        open(http_errors_file, "w").close()
+        results_file = "%s/results.txt" % temp_dir.path
+        open(results_file, "w").close()
+
+        # start by determining how many results we would get from all searches.
+        search_terms = "+OR+".join(self.dbbuddy.search_terms)  # ToDo: make sure there isn't a size limit
+        search_terms = re.sub(" ", "+", search_terms)
+        _stderr("Retrieving UniProt hit count... ")
+        self.mc_rest_query(search_terms, [http_errors_file, results_file, {"format": "list"}])
+        with open(results_file, "r") as ifile:
+            _count = len(ifile.read().strip().split("\n"))
+
+        if _count == 0:
+            _stderr("No hits\n")
+            return
+
+        else:
+            _stderr("%s\n" % _count)
+            open(http_errors_file, "w").close()
+            open(results_file, "w").close()
+
+        # download the tab info on all or subset
+        params = {"format": "tab", "sort": "length", "columns": "id,entry name,protein names,organism,length"}
+        if len(self.dbbuddy.search_terms) > 1:
+            _stderr("Querying UniProt with %s search terms...\n" % len(self.dbbuddy.search_terms))
+            run_multicore_function(self.dbbuddy.search_terms, self.mc_rest_query, max_processes=10,
+                                   func_args=[http_errors_file, results_file, params])
+        else:
+            _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
+            self.mc_rest_query(self.dbbuddy.search_terms[0], [http_errors_file, results_file, params])
+
+        with open(http_errors_file, "r") as ifile:
+            http_errors_file = ifile.read().strip("//\n")
+            if http_errors_file != "":
+                http_errors_file = http_errors_file.split("//")
+                for error in http_errors_file:
+                    error = error.split("\n")
+                    error = (error[0], "\n".join(error[1:]) if len(error) > 2 else (error[0], error[1]))
+                    self.dbbuddy.failures.append(Failure(*error))
+
+        with open(results_file, "r") as ifile:
+            results = ifile.read().strip("//\n").split("//")
+
+        for result in results:
+            result = result.strip().split("\n")
+            for hit in result[1:]:
+                hit = hit.split("\t")
+                raw = {"entry_name": hit[1], "protein_names": hit[2], "organism": hit[3], "length": int(hit[4])}
+                self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
+                                                      _search_term=result[0], summary=raw)
 
     def fetch_proteins(self):
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
@@ -259,7 +367,10 @@ class NCBIClient:
     def gi2acc(self):
         gi_records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num"]
         gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
-        handle = Entrez.efetch(db="nucleotide", id=gi_accessions, rettype="acc", retmode="text")
+        #record = Entrez.read(Entrez.fetch())
+        #handle = Entrez.efetch(db="nucleotide", id=gi_accessions[:2], rettype="acc", retmode="text")
+        print("Hello")
+        handle = Entrez.esummary(db="nucleotide", id=["28864546", "28800981"])
         sys.exit(handle.read())
 
     def fetch_nucliotides(self):
@@ -281,6 +392,27 @@ class NCBIClient:
                 except HTTPError as e:
                     if e.getcode() == 400:
                         self.dbbuddy.failures.append(_rec.accession)
+
+    def search_nucliotides(self):
+        for _term in self.dbbuddy.search_terms:
+            try:
+                count = Entrez.read(Entrez.esearch(db='nucleotide', term=_term, rettype="count"))["Count"]
+                handle = Entrez.esearch(db='nucleotide', term=_term, retmax=count)
+                result = Entrez.read(handle)
+                for _id in result["IdList"]:
+                    if _id not in self.dbbuddy.records:
+                        self.dbbuddy.records[_id] = Record(_id, _database="genbank", _type="gi_num")
+                self.gi2acc()
+                print(self.dbbuddy)
+                sys.exit()
+            except HTTPError as e:
+                if e.getcode() == 400:
+                    self.dbbuddy.failures.append(_term)
+                elif e.getcode() == 503:
+                    print("503 'Service unavailable': NCBI is either blocking you or they are "
+                          "experiencing some technical issues.")
+                else:
+                    sys.exit("Error connecting with NCBI. Returned code %s" % e.getcode())
 
 
 class EnsemblRestClient:
@@ -373,6 +505,24 @@ def download_everything(_dbbuddy):
 
     return _dbbuddy
 
+
+def retrieve_accessions(_dbbuddy):
+    check_all = True if len(_dbbuddy.databases) == 0 else False
+
+    if "gb" in _dbbuddy.databases or check_all:
+        refseq = NCBIClient(_dbbuddy)
+        refseq.gi2acc()
+        #refseq.search_nucliotides()
+
+    elif "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = UniProtRestClient(_dbbuddy)
+        uniprot.search_proteins()
+
+    return _dbbuddy
+
+def retrieve_sequences(_dbbuddy):
+    pass
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -395,15 +545,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     parser.add_argument('-de', '--download_everything', action="store_true",
                         help="Retrieve full records for all search terms and accessions")
+    parser.add_argument('-ra', '--retrieve_accessions', action="store_true",
+                        help="Use search terms to find a list of sequence accession numbers")
+    parser.add_argument('-rs', '--retrieve_sequences', action="store_true",
+                        help="Get sequences for every included accession")
     parser.add_argument('-gd', '--guess_database', action="store_true",
                         help="List the database that each provided accession belongs to.")
 
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', action='store',
-                        help="If DbBuddy can't guess the accession format, try specifying it directly.")
+    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')  # accessions/ids, summary, SeqIO formats
     parser.add_argument('-d', '--database', choices=["all", "ensembl", "genbank", "uniprot", "dna", "protein"],
                         help='Specify a specific database or database class to search', action='store')
     in_args = parser.parse_args()
@@ -432,18 +584,29 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             pass
 
         else:
-            if _dbbuddy.out_format != "summary":
+            if _dbbuddy.out_format not in ["summary", "ids", "accessions"]:
                 accession_only = [_accession for _accession, _rec in _dbbuddy.records.items() if not _rec.record]
+
+                # First deal with anything that broke or wasn't downloaded
+                errors_etc = ""
+                if len(_dbbuddy.failures):
+                    errors_etc += "# ########################## Failures ########################### #\n"
+                    for failure in _dbbuddy.failures:
+                        errors_etc += str(failure)
+
                 if len(accession_only) > 0:
-                    _output = "# ################## Accessions without Records ################## #\n"
+                    errors_etc = "# ################## Accessions without Records ################## #\n"
                     _counter = 1
                     for _next_acc in accession_only:
-                        _output += "%s\t" % _next_acc
+                        errors_etc += "%s\t" % _next_acc
                         if _counter % 4 == 0:
-                            _output = "%s\n" % _output.strip()
+                            errors_etc = "%s\n" % errors_etc.strip()
                         _counter += 1
-                    _output = "%s\n# ################################################################ #\n\n" % _output.strip()
-                    _stderr(_output, in_args.quiet)
+                    errors_etc += "\n"
+
+                if errors_etc != "":
+                    errors_etc = "%s\n# ################################################################ #\n\n" % errors_etc.strip()
+                    _stderr(errors_etc, in_args.quiet)
 
             _stdout("{0}\n".format(str(_dbbuddy).rstrip()))
 
@@ -464,6 +627,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("%s\n# ################################################################ #\n\n" % output.strip())
 
         _print_recs(dbbuddy)
+
+    # Retrieve Accessions
+    if in_args.retrieve_accessions:
+        if not in_args.out_format:
+            dbbuddy.out_format = "ids"
+        _print_recs(retrieve_accessions(dbbuddy))
+
+    if in_args.retrieve_sequences:
+        pass
 
     # Guess database  ToDo: Sort by database
     if in_args.guess_database:
