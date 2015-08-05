@@ -226,9 +226,9 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     def ask(_prompt):
         _response = input(_prompt)
         while True:
-            if _response.lower() in ["yes", "y"]:
+            if _response.lower() in ["yes", "y", '']:
                 return True
-            elif _response.lower() in ["no", "n"]:
+            elif _response.lower() in ["no", "n", "abort"]:
                 return False
             else:
                 print("Response not understood. Try again.")
@@ -239,6 +239,7 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     already_installed = None
     old_shortcuts = None
     if config is not None:
+        print("We have detected a previous installation. Some settings will be imported.")
         already_installed = copy.deepcopy(config[0])
         old_install_dir = copy.deepcopy(config[1])
         install_dir = old_install_dir
@@ -247,25 +248,25 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
 
     def print_shortcuts():
-        print("Shortcuts: ")
+        print("\tShortcuts: ")
         for buddy in shortcuts:
             if buddies_to_install[buddy]:
                 print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy])))
 
     def add_shortcut(_buddy, _shortcut):
         if buddies_to_install[_buddy] is False:
-            print("Error: {0} is not being installed. Shortcut '{1}' could not be added.".format(_buddy, _shortcut))
+            print("Warning: {0} is not being installed. Shortcut '{1}' could not be added.".format(_buddy, _shortcut))
             return
         if which(_shortcut) is None:
             for buddy in shortcuts:
                 for shortcut in shortcuts[buddy]:
                     if _shortcut == shortcut:
-                        print("Error: '{0}' is already a shortcut!".format(_shortcut))
+                        print("Warning: '{0}' is already a shortcut!".format(_shortcut))
                         return
             shortcuts[_buddy].append(_shortcut)
             print("Shortcut added: {0}\t==>\t'{1}'".format(_buddy, _shortcut))
         else:
-            print("Error: '{0}' is already in use by another program.".format(_shortcut))
+            print("Warning: '{0}' is already in use by another program.".format(_shortcut))
 
     def remove_shortcut(_shortcut):
         for _buddy in shortcuts:
@@ -275,19 +276,19 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
         return False
 
     print("Basic terminal installer called.")
-    if not ask("Would you like to proceed? ('yes/no') "):
+    if not ask("Would you like to proceed? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
     print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
-    if not ask("Do you accept these terms? ('yes/no') "):
+    if not ask("Do you accept these terms? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
     for buddy in buddies_to_install:
         operation = ' install' if already_installed is None or not already_installed[buddy] else ' keep'
         optional = '' if already_installed is None or not already_installed[buddy] else ' installed'
-        if ask("Would you like to{0} {1}{2}? ('yes/no') ".format(operation, buddy, optional)):
+        if ask("Would you like to{0} {1}{2}? ('[yes]/no') ".format(operation, buddy, optional)):
             buddies_to_install[buddy] = True
         else:
             buddies_to_install[buddy] = False
@@ -299,15 +300,19 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
 
     if not all_false:
         if old_shortcuts is not None:
-            print("We have detected a previous installation.")
-            if ask("Would you like to keep your old shortcuts? ('yes/no') "):
+            if ask("Would you like to keep your old shortcuts? ('[yes]/no') "):
                 shortcuts = old_shortcuts
             print_shortcuts()
 
         default_shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
                              "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
 
-        if ask("Would you like to add the default shortcuts? ('yes/no') "):
+        print("\tDefault Shortcuts:")
+        for buddy in default_shortcuts:
+            if buddies_to_install[buddy]:
+                print("\t{0}:\t{1}".format(buddy, str(default_shortcuts[buddy])))
+
+        if ask("Would you like to add the default shortcuts? ('[yes]/no') "):
             for buddy in default_shortcuts:
                 if buddies_to_install[buddy]:
                     for shortcut in default_shortcuts[buddy]:
@@ -315,12 +320,12 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
 
         print_shortcuts()
 
-        if ask("Would you like to add or remove shortcuts? ('yes/no') "):
+        if ask("Would you like to add or remove shortcuts? ('[yes]/no') "):
             prompt = True
             while prompt:
-                add_or_remove = input("Would you like to add or remove? ('add/remove/cancel') ")
+                add_or_remove = input("Would you like to add or remove? ('add/remove/[cancel]') ")
                 while True:
-                    if add_or_remove.lower() == 'cancel':
+                    if add_or_remove.lower() in ['cancel', '']:
                         print("Cancelled.")
                         add_or_remove = None
                         break
@@ -337,10 +342,16 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
                 if add_or_remove == 'add':
                     response = input("What would you like to add? (shortcut name) ")
                     response = re.sub("[^a-zA-Z0-9]", '', response)
-                    buddy = input("What are you linking to? ('SeqBuddy/PhyloBuddy/AlignBuddy/DatabaseBuddy/cancel') ")
-                    while buddy.lower() != 'cancel':
-                        if buddy.lower() == 'cancel':
+                    buddy_string = ''
+                    for buddy in buddies_to_install:
+                        if buddies_to_install[buddy]:
+                            buddy_string += "{0}/".format(buddy)
+                    buddy_string += '[cancel]'
+                    buddy = input("What are you linking to? ('{0}') ".format(buddy_string))
+                    while True:
+                        if buddy.lower() in ['cancel', '']:
                             print("Shortcut not added: {0}".format(response))
+                            break
                         elif (len(buddy) >= 2 and buddy in 'seq') or buddy.lower() == 'seqbuddy':
                             add_shortcut("SeqBuddy", response)
                             break
@@ -356,16 +367,16 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
                         else:
                             print("Response not understood. Try again.")
                             buddy = input("What are you linking to? "
-                                          "('SeqBuddy/PhyloBuddy/AlignBuddy/DatabaseBuddy/cancel') ")
+                                          "('{0}') ".format(buddy_string))
                 elif add_or_remove == 'remove':
                     response = input("What would you like to remove? (shortcut name) ")
                     if remove_shortcut(response):
                         print("Shortcut removed: '{0}'".format(response))
                     else:
-                        print("Error: Shortcut already does not exist.")
+                        print("Warning: Shortcut already does not exist.")
 
                 print_shortcuts()
-                prompt = ask("Would you like to add/remove another shortcut? ('yes/no') ")
+                prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
 
         if old_install_dir is None:
             install_dir = input("Please specify an installation directory ('/BuddySuite' will automatically be appended) ")
@@ -403,7 +414,7 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     if not all_false:
         print_shortcuts()
         print("Installation directory: {0}".format(install_dir))
-    if ask("Are these settings okay? ('yes/no') "):
+    if ask("Are these settings okay? ('[yes]/abort') "):
         if all_false and config is not None:
             os.remove("{0}/.buddysuite/config.ini".format(home_dir))
         if config is not None:  # Uninstall removed shortcuts
