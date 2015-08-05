@@ -239,7 +239,6 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     already_installed = None
     old_shortcuts = None
     if config is not None:
-        print("We have detected a previous installation. Some settings will be imported.")
         already_installed = copy.deepcopy(config[0])
         old_install_dir = copy.deepcopy(config[1])
         install_dir = old_install_dir
@@ -284,6 +283,9 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     if not ask("Do you accept these terms? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
+
+    if config is not None:
+        print("We have detected a previous installation. Some settings will be imported.")
 
     for buddy in buddies_to_install:
         operation = ' install' if already_installed is None or not already_installed[buddy] else ' keep'
