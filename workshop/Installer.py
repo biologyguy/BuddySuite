@@ -247,10 +247,10 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
     shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
 
     def print_shortcuts():
-        print("\tShortcuts: ")
+        print("\tSelected Shortcuts: ")
         for buddy in shortcuts:
             if buddies_to_install[buddy]:
-                print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy])))
+                print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy]).strip('[]')))
 
     def add_shortcut(_buddy, _shortcut):
         if buddies_to_install[_buddy] is False:
@@ -304,21 +304,40 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
         if old_shortcuts is not None:
             if ask("Would you like to keep your old shortcuts? ('[yes]/no') "):
                 shortcuts = old_shortcuts
-            print_shortcuts()
+            print("\tImported Shortcuts: ")
+            for buddy in shortcuts:
+                if buddies_to_install[buddy]:
+                    print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy]).strip('[]')))
 
         default_shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
                              "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
 
-        print("\tDefault Shortcuts:")
         for buddy in default_shortcuts:
-            if buddies_to_install[buddy]:
-                print("\t{0}:\t{1}".format(buddy, str(default_shortcuts[buddy])))
+            for shortcut in default_shortcuts[buddy]:
+                if which(shortcut) is not None:
+                    default_shortcuts[buddy].remove(shortcut)
 
-        if ask("Would you like to add the default shortcuts? ('[yes]/no') "):
+        for _buddy in shortcuts:
+            for _shortcut in shortcuts[_buddy]:
+                for buddy in default_shortcuts:
+                    for shortcut in default_shortcuts[buddy]:
+                        if shortcut == _shortcut:
+                            default_shortcuts[buddy].remove(shortcut)
+        empty = True
+        for buddy in default_shortcuts:
+            if buddies_to_install[buddy] and len(default_shortcuts[buddy]) > 0:
+                empty = False
+        if not empty:
+            print("\tDefault Shortcuts:")
             for buddy in default_shortcuts:
                 if buddies_to_install[buddy]:
-                    for shortcut in default_shortcuts[buddy]:
-                        add_shortcut(buddy, shortcut)
+                    print("\t{0}:\t{1}".format(buddy, str(default_shortcuts[buddy]).strip('[]')))
+
+            if ask("Would you like to add the default shortcuts? ('[yes]/no') "):
+                for buddy in default_shortcuts:
+                    if buddies_to_install[buddy]:
+                        for shortcut in default_shortcuts[buddy]:
+                            add_shortcut(buddy, shortcut)
 
         print_shortcuts()
 
@@ -401,21 +420,22 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
         else:
             install_dir = old_install_dir
 
-    print("Please verify your settings.")
+    print("Please verify your settings.\n")
     for buddy in buddies_to_install:
         if already_installed is not None and already_installed[buddy]:
             if buddies_to_install[buddy]:
-                print("{0}: Modify".format(buddy))
+                print("\t{0}: Modify".format(buddy))
             else:
-                print("{0}: Uninstall".format(buddy))
+                print("\t{0}: Uninstall".format(buddy))
         else:
             if buddies_to_install[buddy]:
-                print("{0}: Install".format(buddy))
+                print("\t{0}: Install".format(buddy))
             else:
-                print("{0}: Skip".format(buddy))
+                print("\t{0}: Skip".format(buddy))
     if not all_false:
+        print()
         print_shortcuts()
-        print("Installation directory: {0}".format(install_dir))
+        print("\tInstallation directory: {0}\n".format(install_dir))
     if ask("Are these settings okay? ('[yes]/abort') "):
         if all_false and config is not None:
             os.remove("{0}/.buddysuite/config.ini".format(home_dir))
