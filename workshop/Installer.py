@@ -45,41 +45,14 @@ with zipfile.ZipFile(source_file) as ifile:
 os.chdir(temp_dir.name)
 
 
-def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as the graphical installer
-    print("Basic terminal installer called, all options will be set to default values.")
-    response = input("Would you like to proceed? ('yes/no')")
-    while True:
-        if response.lower() in ["yes", "y"]:
-            break
-        elif response.lower() in ["no", "n"]:
-            print("Installation aborted.")
-            sys.exit()
-        else:
-            response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
-    print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
-    response = input("Do you accept these terms? ('yes/no')")
-    while True:
-        if response.lower() in ["yes", "y"]:
-            return True
-
-        elif response.lower() in ["no", "n"]:
-            print("Installation aborted.")
-            sys.exit()
-        else:
-            response = input("Response not understood. Try again. \nWould you like to proceed? ('yes/no')")
-
-if in_args.cmd_line:
-    hard_install = cmd_install()
-else:
+if not in_args.cmd_line:
     try:
         from tkinter import *
         from tkinter import filedialog
-
     except ImportError:
         proceed = False
         print("Failed to build GUI. Package Tkinter was not found.")
-        hard_install = cmd_install()
-
+        in_args.cmd_line = True
 
 class BuddyInstall:
     @staticmethod
@@ -147,7 +120,7 @@ class BuddyInstall:
         if not all_false:
             print("Install path: " + install_directory)
             if not path.exists(install_directory):
-                os.makedirs(install_directory)
+                os.makedirs(install_directory, exist_ok=True)
                 print("Directory added: {0}".format(install_directory))
                 if not path.exists("{0}/.BuddySuite/".format(home_dir)):
                     os.symlink(install_directory, "{0}/.BuddySuite".format(home_dir))
@@ -302,15 +275,196 @@ class BuddyInstall:
                         file_write.write("\n# added by BuddySuite installer\n")
                         file_write.write('export PATH=$PATH:{0}/.BuddySuite\n'.format(home_dir))
 
-if not hard_install:
+
+def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as the graphical installer
+    def ask(_prompt):
+        _response = input(_prompt)
+        while True:
+            if _response.lower() in ["yes", "y"]:
+                return True
+            elif _response.lower() in ["no", "n"]:
+                return False
+            else:
+                print("Response not understood. Try again.")
+                _response = input(_prompt)
+
+    config = BuddyInstall.read_config_file()
+    old_install_dir = None
+    already_installed = None
+    old_shortcuts = None
+    if config is not None:
+        already_installed = copy.deepcopy(config[0])
+        old_install_dir = copy.deepcopy(config[1])
+        old_shortcuts = copy.deepcopy(config[2])
+    buddies_to_install = {"SeqBuddy": False, "PhyloBuddy": False, "AlignBuddy": False, "DatabaseBuddy": False}
+    shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
+
+    def print_shortcuts():
+        print("Shortcuts: ")
+        for buddy in shortcuts:
+            if buddies_to_install[buddy]:
+                print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy])))
+
+    def add_shortcut(_buddy, _shortcut):
+        if which(_shortcut) is None:
+            for buddy in shortcuts:
+                for shortcut in shortcuts[buddy]:
+                    if _shortcut == shortcut:
+                        print("Error: '{0}' is already a shortcut!".format(_shortcut))
+                        return
+            shortcuts[_buddy].append(_shortcut)
+            print("Shortcut added: {0}\t==>\t'{0}'".format(_buddy, _shortcut))
+        else:
+            print("Error: '{0}' is already in use by another program.".format(_shortcut))
+
+    def remove_shortcut(_shortcut):
+        for _buddy in shortcuts:
+            if _shortcut in shortcuts[_buddy]:
+                shortcuts[_buddy].remove(_shortcut)
+                return True
+        return False
+
+    print("Basic terminal installer called.")
+    if not ask("Would you like to proceed? ('yes/no') "):
+        print("Installation aborted.")
+        exit()
+
+    print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
+    if not ask("Do you accept these terms? ('yes/no') "):
+        print("Installation aborted.")
+        exit()
+
+    for buddy in buddies_to_install:
+        operation = 'install' if already_installed is None or not already_installed[buddy] else ' keep'
+        optional = '' if already_installed is None or not already_installed[buddy] else ' installed'
+        if ask("Would you like to {0} {1}{2}? ('yes/no') ".format(operation, buddy, optional)):
+            buddies_to_install[buddy] = True
+        else:
+            buddies_to_install[buddy] = False
+
+    all_false = True
+    for buddy in buddies_to_install:
+        if buddies_to_install[buddy]:
+            all_false = False
+
+    if not all_false:
+        if old_shortcuts is not None:
+            print("We have detected a previous installation.")
+            if ask("Would you like to keep your old shortcuts? ('yes/no') "):
+                shortcuts = old_shortcuts
+
+        print_shortcuts()
+
+        default_shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
+                             "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'databasebuddy']}
+
+        if ask("Would you like to add the default shortcuts? ('yes/no') "):
+            for buddy in default_shortcuts:
+                if buddies_to_install[buddy]:
+                    for shortcut in default_shortcuts[buddy]:
+                        add_shortcut(buddy, shortcut)
+
+        print_shortcuts()
+
+        if ask("Would you like to add or remove shortcuts? ('yes/no') "):
+            prompt = True
+            while prompt:
+                add_or_remove = input("Would you like to add or remove? ('add/remove/cancel') ")
+                while True:
+                    if add_or_remove.lower() == 'cancel':
+                        print("Cancelled.")
+                        add_or_remove = None
+                        break
+                    elif add_or_remove.lower() == 'add':
+                        add_or_remove = 'add'
+                        break
+                    elif add_or_remove.lower() == 'remove':
+                        add_or_remove = 'remove'
+                        break
+                    else:
+                        print("Response not understood. Try again.")
+                        add_or_remove = input("Would you like to add or remove? ('add/remove/cancel') ")
+
+                if add_or_remove == 'add':
+                    response = input("What would you like to add? (shortcut name) ")
+                    response = re.sub("[^a-zA-Z0-9]", '', response)
+                    buddy = input("What are you linking to? ('SeqBuddy/PhyloBuddy/AlignBuddy/DatabaseBuddy/cancel') ")
+                    while buddy.lower() != 'cancel':
+                        if buddy.lower() == 'cancel':
+                            print("Shortcut not added: {0}".format(response))
+                        elif buddy.lower() == 'seqbuddy':
+                            add_shortcut("SeqBuddy", response)
+                            break
+                        elif buddy.lower() == 'phylobuddy':
+                            add_shortcut("PhyloBuddy", response)
+                            break
+                        elif buddy.lower() == 'alignbuddy':
+                            add_shortcut("AlignBuddy", response)
+                            break
+                        elif buddy.lower() == 'databasebuddy':
+                            add_shortcut("DatabaseBuddy", response)
+                        else:
+                            print("Response not understood. Try again.")
+                            buddy = input("What are you linking to? "
+                                          "('SeqBuddy/PhyloBuddy/AlignBuddy/DatabaseBuddy/cancel') ")
+                elif add_or_remove == 'remove':
+                    response = input("What would you like to remove? (shortcut name) ")
+                    if remove_shortcut(response):
+                        print("Shortcut removed: '{0}'".format(response))
+                    else:
+                        print("Error: Shortcut already does not exist.")
+
+                print_shortcuts()
+                prompt = ask("Would you like to add/remove another shortcut? ('yes/no') ")
+
+        if old_install_dir is None:
+            install_dir = input("Please specify an installation directory ('/.BuddySuite' will automatically be appended) ")
+            while True:
+                if install_dir.lower() == 'abort':
+                    print('Installation aborted.')
+                    exit()
+                try:
+                    os.makedirs("{0}/.BuddySuite".format(install_dir), exist_ok=True)
+                    install_dir = "{0}/.BuddySuite".format(install_dir)
+                    break
+                except PermissionError:
+                    print('Insufficient privileges to write here.')
+                except:
+                    print('Unknown error.')
+                install_dir = input("Please specify a different installation directory (or say 'abort') ")
+        else:
+            install_dir = old_install_dir
+
+    print("Please verify your settings.")
+    for buddy in buddies_to_install:
+        if already_installed[buddy]:
+            if buddies_to_install[buddy]:
+                print("{0}: Modify".format(buddy))
+            else:
+                print("{0}: Uninstall".format(buddy))
+        else:
+            if buddies_to_install[buddy]:
+                print("{0}: Install".format(buddy))
+            else:
+                print("{0}: Skip".format(buddy))
+    if not all_false:
+        print_shortcuts()
+        print("Installation directory: {0}".format(install_dir))
+    if ask("Are these settings okay? ('yes/no') "):
+        BuddyInstall.install_buddy_suite([buddies_to_install, install_dir, shortcuts])
+        exit()
+    else:
+        print("Installation aborted.")
+        exit()
+
+if in_args.cmd_line:
+    cmd_install()
+else:
     root = Tk()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
     sys.path.insert(0, "./")
     root.title("BuddySuite Installer")
-else:
-    BuddyInstall.install_buddy_suite(system())
-    exit()
 
 
 class Installer(Frame):
@@ -371,7 +525,7 @@ class Installer(Frame):
         if which("db") is None and not buddies["DatabaseBuddy"]:
             shortcuts["DatabaseBuddy"].append("db")
         if which("databasebuddy") is None and not buddies["DatabaseBuddy"]:
-            shortcuts["DatabaseBuddy"].append("database")
+            shortcuts["DatabaseBuddy"].append("dbbuddy")
 
     original_shortcuts = copy.deepcopy(shortcuts)
     conflict = False
