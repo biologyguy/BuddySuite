@@ -490,32 +490,29 @@ def pull_rows(_alignbuddy, _search):
 # ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
     for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
-        def make_new():
-            _new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    _new_alignment += _alignment[:, _col:_col + 1]
-            return _new_alignment
 
-        # gap_distr is the number of columns with each possible number of gaps; the index is equal to number of gaps
+        # gap_distr is the number of columns w/ each possible number of gaps; the index is == to number of gaps
         gap_distr = [0 for _ in range(len(_alignment) + 1)]
         num_columns = _alignment.get_alignment_length()
         each_column = [0 for _ in range(num_columns)]
 
-        max_gaps = 0  # This is the key variable that needs to be identified
+        max_gaps = 0
 
         for _indx in range(num_columns):
-            num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
-            gap_distr[num_gaps] += 1
-            each_column[_indx] = num_gaps
+                num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
+                gap_distr[num_gaps] += 1
+                each_column[_indx] = num_gaps
 
-        if _threshold in ["no_gaps", "all"]:
-            _threshold = 0
+        def res_sim_score():
+            return
 
-        if _threshold == "clean":
-            max_gaps = len(_alignment) - 1
+        def remove_cols(cuts):
+            _new_alignment = _alignment[:, 0:0]
+            for _col in cuts:
+                _new_alignment += _alignment[:, _col:_col + 1]
+            return _new_alignment
 
-        elif _threshold == "gappyout":
+        def gappyout():
             for i in gap_distr:
                 if i == 0:
                     max_gaps = i + 1
@@ -568,7 +565,37 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
                 active_pointer = prev_pointer2
 
+            def mark_cuts():
+                cuts = []
+                for _col, _gaps in enumerate(each_column):
+                    if _gaps <= max_gaps:
+                        cuts.append(_col)
+                return cuts
+
+            return remove_cols(mark_cuts())
+
+        def strict():
+            return
+
+        if _threshold in ["no_gaps", "all"]:
+            _threshold = 0
+            new_alignment = _alignment[:, 0:0]
+            for _col, _gaps in enumerate(each_column):
+                if _gaps <= max_gaps:
+                    new_alignment += _alignment[:, _col:_col + 1]
+
+        if _threshold == "clean":
+            max_gaps = len(_alignment) - 1
+            new_alignment = _alignment[:, 0:0]
+            for _col, _gaps in enumerate(each_column):
+                if _gaps <= max_gaps:
+                    new_alignment += _alignment[:, _col:_col + 1]
+
+        elif _threshold == "gappyout":
+            new_alignment = gappyout()
+
         elif _threshold == "strict":
+
             pass
         elif _threshold == "strictplus":
             pass
@@ -583,10 +610,14 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
                 max_gaps = round(len(_alignment) * _threshold)
 
+                new_alignment = _alignment[:, 0:0]
+                for _col, _gaps in enumerate(each_column):
+                    if _gaps <= max_gaps:
+                        new_alignment += _alignment[:, _col:_col + 1]
+
             except ValueError:
                 raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
 
-        new_alignment = make_new()
         _alignbuddy.alignments[alignment_index] = new_alignment
 
     return _alignbuddy
