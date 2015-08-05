@@ -60,7 +60,8 @@ The BuddySuite is written in Python3 and is not backwards compatible with Python
 solution. 
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the 
-[NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
+[NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). These are bundled with the installer and can be 
+found in workshop/build_dir/blast_binaries/ if cloning the whole repo.
  
 [BioPython](http://biopython.org/) is used heavily by the suite, and the package must be installed to use the development
 version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit tests to fail. 
