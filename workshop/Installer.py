@@ -629,7 +629,7 @@ class Installer(Frame):
         frame = Frame(mega_frame, padx=50*scale_factor, pady=10*scale_factor)
         scrollbar = Scrollbar(master=frame)
         description_file = open("{0}/LICENSE".format(temp_dir.name))
-        description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
+        description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75*scale_factor))
         description_box.insert(END, description_file.read())
         description_box.config(state=DISABLED)
         scrollbar.config(command=description_box.yview())
@@ -766,7 +766,8 @@ class Installer(Frame):
         self.container.append(frame)
         scrollbox_frame = Frame(frame)
         scrollbar = Scrollbar(master=scrollbox_frame)
-        shortcut_box = Listbox(master=scrollbox_frame, yscrollcommand=scrollbar.set, bd=2, relief=SUNKEN)
+        shortcut_box = Listbox(master=scrollbox_frame, yscrollcommand=scrollbar.set, bd=2, relief=SUNKEN,
+                               height=int(12*scale_factor))
         for buddy in self.shortcuts:
             if self.buddies[buddy]:
                 for shortcut in self.shortcuts[buddy]:
@@ -777,7 +778,7 @@ class Installer(Frame):
         scrollbox_frame.pack(side=TOP, fill=BOTH, expand=1)
         space = Frame()
         space.pack(pady=25*scale_factor)
-        frame.pack(padx=100*scale_factor, expand=1, fill=BOTH, side=BOTTOM)
+
         self.container.append(space)
 
         debug_frame = Frame(frame)
@@ -798,15 +799,16 @@ class Installer(Frame):
         debug_frame.pack(fill=X, expand=1, side=BOTTOM, anchor=NW)
         self.container.append(entry_frame)
         entry_button_frame = Frame(entry_frame)
-        shortcut_entry = Entry(entry_frame)
+        shortcut_entry = Entry(entry_frame, width=int(20*scale_factor))
         add_func = partial(self.add_shortcut, curr_buddy, shortcut_box, shortcut_entry, debug)
-        add_button = Button(entry_button_frame, text="Add", command=add_func)
+        add_button = Button(entry_button_frame, text="Add", command=add_func, padx=1)
         add_button.pack(side=LEFT)
         rmv_func = partial(self.remove_shortcut, curr_buddy, shortcut_box, shortcut_entry, debug)
-        rmv_button = Button(entry_button_frame, text="Remove", command=rmv_func)
+        rmv_button = Button(entry_button_frame, text="Remove", command=rmv_func, padx=1)
         rmv_button.pack(side=RIGHT)
         shortcut_entry.pack(side=LEFT, fill=X, expand=1)
         entry_button_frame.pack(side=LEFT)
+        frame.pack(padx=100*scale_factor, expand=1, fill=BOTH, side=BOTTOM)
         entry_frame.pack(fill=X, expand=1, side=LEFT)
 
         click_func = partial(self.click_shortcut, shortcut_entry, curr_buddy)
@@ -858,9 +860,9 @@ class Installer(Frame):
             self.shortcuts[buddy.get()].remove(text)
 
     def confirmation(self):
-        confirmation_font = ('Courier', int(13*scale_factor + 1))
+        confirmation_font = ('Courier', int(15*scale_factor))
         self.clear_container()
-        logo_label = Label(image=self.cs_logo, pady=20*scale_factor)
+        logo_label = Label(image=self.cs_logo, pady=18*scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
         info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10*scale_factor, pady=10*scale_factor)
