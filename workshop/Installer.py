@@ -11,6 +11,7 @@ import copy
 from tempfile import TemporaryDirectory
 import zipfile
 from inspect import getsourcefile
+
 import argparse
 
 buddysuite_version = '1.alpha'
@@ -459,11 +460,14 @@ else:
     root = Tk()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
+    scale_factor = sh/1440
+    print(scale_factor)
     sys.path.insert(0, "./")
     root.title("BuddySuite Installer")
 
 
 class Installer(Frame):
+    from PIL import Image
     container = []
     buddies = collections.OrderedDict()
     buddy_names = ["SeqBuddy", "PhyloBuddy", "AlignBuddy", "DatabaseBuddy"]
@@ -471,6 +475,18 @@ class Installer(Frame):
         buddies[buddy] = True
 
     uninstall = False
+    image_paths = ["{0}/BuddySuite-logo.gif".format(temp_dir.name), "{0}/InstallDirectory.gif".format(temp_dir.name),
+              "{0}/ConsoleShortcuts.gif".format(temp_dir.name), "{0}/ConfirmSelection.gif".format(temp_dir.name),
+              "{0}/AlignBuddy-logo.gif".format(temp_dir.name), "{0}/SeqBuddy-logo.gif".format(temp_dir.name),
+              "{0}/PhyloBuddy-logo.gif".format(temp_dir.name), "{0}/DBBuddy-logo.gif".format(temp_dir.name)]
+
+    for _path in image_paths:
+        image = Image.open(_path)
+        new_width = image.size[0] * scale_factor
+        new_height = image.size[1] * scale_factor
+        new_size = new_width, new_height
+        image.thumbnail(new_size, Image.ANTIALIAS)
+        image.save(_path, "gif")
 
     bs_logo = PhotoImage(file="{0}/BuddySuite-logo.gif".format(temp_dir.name))
     id_logo = PhotoImage(file="{0}/InstallDirectory.gif".format(temp_dir.name))
@@ -544,26 +560,27 @@ class Installer(Frame):
         welcome_label.pack(side=TOP)
         version_label = Label(title_frame, text="Version {0}".format(buddysuite_version))
         version_label.pack(side=RIGHT)
-        title_frame.pack(pady=sh / 8)
+        title_frame.pack(pady=sh/10)
         self.container.append(title_frame)
         button_container = Frame()
-        next_button = Button(button_container, width=20, pady=20, text="Install", command=self.license)
-        uninstall_button = Button(button_container, width=20, pady=20, text="Uninstall",
-                                  command=self.uninstall_all)
+        next_button = Button(button_container, width=20, pady=int(20*scale_factor), text="Install", command=self.license)
+        uninstall_button = Button(button_container, width=20, pady=int(20*scale_factor),
+                                  text="Uninstall", command=self.uninstall_all)
         if self.modifying:
             next_button.config(text="Modify Installation")
             uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
-        button_container.pack(side=BOTTOM, pady=40)
+        button_container.pack(side=BOTTOM, pady=40*scale_factor)
         self.container.append(button_container)
 
     def license(self):
         self.uninstall = False
         self.clear_container()
-        frame = Frame(pady=75)
+        frame = Frame(pady=75*scale_factor)
         scrollbar = Scrollbar(master=frame)
         license_file = open("{0}/LICENSE".format(temp_dir.name))
-        license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
+        license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75*scale_factor),
+                           height=int(25*scale_factor))
         license_box.insert(END, license_file.read())
         license_box.config(state=DISABLED)
         scrollbar.config(command=license_box.yview())
@@ -571,13 +588,13 @@ class Installer(Frame):
         license_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50, pady=20, text="I agree", command=self.next_tool)
+        next_button = Button(button_frame, padx=50, pady=20*scale_factor, text="I agree", command=self.next_tool)
         next_button.pack(side=TOP)
-        back_button = Label(button_frame, padx=50, pady=20, text="Cancel", fg='blue', font=('Helvetica', 12,
-                                                                                            'underline'))
+        back_button = Label(button_frame, padx=50, pady=20*scale_factor, text="Cancel", fg='blue',
+                            font=('Helvetica', 12, 'underline'))
         back_button.bind("<Button-1>", self.welcome)
         back_button.pack(side=BOTTOM)
-        button_frame.pack(side=BOTTOM, pady=20)
+        button_frame.pack(side=BOTTOM, pady=20*scale_factor)
         self.container.append(frame)
         self.container.append(button_frame)
 
@@ -604,12 +621,12 @@ class Installer(Frame):
                 self.install_location()
             return
 
-        logo_label = Label(image=self.suite_logos[num], pady=20)
+        logo_label = Label(image=self.suite_logos[num], pady=20*scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        mega_frame = Frame(pady=20)
+        mega_frame = Frame(pady=20*scale_factor)
         self.container.append(mega_frame)
-        frame = Frame(mega_frame, padx=50, pady=10)
+        frame = Frame(mega_frame, padx=50*scale_factor, pady=10*scale_factor)
         scrollbar = Scrollbar(master=frame)
         description_file = open("{0}/LICENSE".format(temp_dir.name))
         description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set)
@@ -620,17 +637,17 @@ class Installer(Frame):
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame(mega_frame)
         next_func = partial(self.next_tool, num + 1)
-        next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
+        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next", command=next_func)
         self.container.append(next_button)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, num - 1)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM)
         func = partial(self.toggle_tool, self.buddy_names[num])
         if not self.modifying or self.config[0][self.buddy_names[num]] is False:
             tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func,
-                                      pady=20)
+                                      pady=20*scale_factor)
             if self.buddies[self.buddy_names[num]]:
                 tool_button.select()
             else:
@@ -645,9 +662,9 @@ class Installer(Frame):
                 var.set(0)
             radiobutton_func = partial(self.toggle_tool, self.buddy_names[num], var)
             update = Radiobutton(radio_frame, text="Update/Repair", value=1, variable=var, command=radiobutton_func,
-                                 pady=20)
+                                 pady=20*scale_factor)
             uninstall = Radiobutton(radio_frame, text="Uninstall", value=0, variable=var, command=radiobutton_func,
-                                    pady=20)
+                                    pady=20*scale_factor)
             update.pack(side=LEFT)
             uninstall.pack(side=RIGHT)
             radio_frame.pack(side=BOTTOM)
@@ -666,23 +683,25 @@ class Installer(Frame):
     def none_selected_page(self):
         self.clear_container()
         labelframe = Frame(root)
-        label1 = Label(labelframe, text="You're currently not installing anything!", pady=5, font=('Helvetica', 16))
-        label2 = Label(labelframe, text="Please go back and select at least one tool.", pady=5, font=('Helvetica', 16))
+        label1 = Label(labelframe, text="You're currently not installing anything!", pady=5*scale_factor,
+                       font=('Helvetica', int(16*scale_factor)))
+        label2 = Label(labelframe, text="Please go back and select at least one tool.", pady=5*scale_factor,
+                       font=('Helvetica', int(16*scale_factor)))
         label1.pack(side=TOP)
         label2.pack(side=BOTTOM)
-        labelframe.pack(side=TOP, pady=120)
+        labelframe.pack(side=TOP, pady=120*scale_factor)
         back_func = partial(self.next_tool, 3)
-        back_button = Button(root, padx=50, pady=20, text="Back", command=back_func)
-        back_button.pack(side=BOTTOM, pady=40)
+        back_button = Button(root, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
+        back_button.pack(side=BOTTOM, pady=40*scale_factor)
         self.container.append(labelframe)
         self.container.append(back_button)
 
     def install_location(self):
         self.clear_container()
-        logo_label = Label(image=self.id_logo, pady=20)
+        logo_label = Label(image=self.id_logo, pady=20*scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        frame = Frame(root, padx=50, pady=50)
+        frame = Frame(root, padx=50*scale_factor, pady=50*scale_factor)
         label = Label(frame, text="Directory:")
         label.pack(side=TOP, anchor=NW)
         directory_frame = Frame(frame)
@@ -693,10 +712,10 @@ class Installer(Frame):
         browse_button.pack(side=RIGHT)
         directory_text.pack(side=TOP, anchor=NW, fill=X)
         directory_frame.pack(side=TOP, anchor=NW, fill=X)
-        frame.pack(side=TOP, padx=10, pady=10, fill=BOTH)
+        frame.pack(side=TOP, padx=10*scale_factor, pady=10*scale_factor, fill=BOTH)
 
         toggle_func = partial(self.default_directory, directory_text, browse_button)
-        toggle_default = Checkbutton(frame, text="Default directory", pady=10, command=toggle_func)
+        toggle_default = Checkbutton(frame, text="Default directory", pady=10*scale_factor, command=toggle_func)
         toggle_default.pack(side=LEFT)
 
         if self.default:
@@ -713,15 +732,15 @@ class Installer(Frame):
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
             warning = Label(lower_box, text="Previous install detected. Uninstall first to change install directory.")
-            warning.pack(side=TOP, pady=50)
+            warning.pack(side=TOP, pady=50*scale_factor)
         button_frame = Frame(lower_box)
         next_func = partial(self.install_shortcuts, directory_text)
-        next_button = Button(button_frame, padx=50, pady=20, text="Next", command=next_func)
+        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next", command=next_func)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, 3, directory_text)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=20)
+        button_frame.pack(side=BOTTOM, pady=20*scale_factor)
         lower_box.pack(side=BOTTOM)
         self.container.append(lower_box)
 
@@ -734,11 +753,13 @@ class Installer(Frame):
         self.container.append(logo_label)
 
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50, pady=20, text="Next", command=self.confirmation)
+        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next",
+                             command=self.confirmation)
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=self.install_location)
+        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back",
+                             command=self.install_location)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=40)
+        button_frame.pack(side=BOTTOM, pady=40*scale_factor)
         self.container.append(button_frame)
 
         frame = Frame()
@@ -755,8 +776,8 @@ class Installer(Frame):
         scrollbar.pack(side=RIGHT, fill=Y)
         scrollbox_frame.pack(side=TOP, fill=BOTH, expand=1)
         space = Frame()
-        space.pack(pady=25)
-        frame.pack(padx=100, expand=1, fill=BOTH, side=BOTTOM)
+        space.pack(pady=25*scale_factor)
+        frame.pack(padx=100*scale_factor, expand=1, fill=BOTH, side=BOTTOM)
         self.container.append(space)
 
         debug_frame = Frame(frame)
@@ -837,46 +858,53 @@ class Installer(Frame):
             self.shortcuts[buddy.get()].remove(text)
 
     def confirmation(self):
+        confirmation_font = ('Courier', int(13*scale_factor + 1))
         self.clear_container()
-        logo_label = Label(image=self.cs_logo, pady=20)
+        logo_label = Label(image=self.cs_logo, pady=20*scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10, pady=10)
+        info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10*scale_factor, pady=10*scale_factor)
         self.container.append(info_frame)
-        os_label = Label(info_frame, text="{:<28}{}".format("Operating System:", self.user_os), font=('Courier', 13))
-        dir_label = Label(info_frame, text="{:<28}{}".format("Install Directory:", self.install_dir), font=('Courier', 13))
+        os_label = Label(info_frame, text="{:<28}{}".format("Operating System:", self.user_os),
+                         font=confirmation_font)
+        dir_label = Label(info_frame, text="{:<28}{}".format("Install Directory:", self.install_dir),
+                          font=confirmation_font)
 
         if not self.modifying or self.config[0]["SeqBuddy"] is False:
             install_state = "Install" if self.buddies["SeqBuddy"] else "Skip"
         else:
             install_state = "Modify" if self.buddies["SeqBuddy"] else "Uninstall"
-        sb_label = Label(info_frame, text="{:<28}{}".format("SeqBuddy:", install_state), font=('Courier', 13))
+        sb_label = Label(info_frame, text="{:<28}{}".format("SeqBuddy:", install_state),
+                         font=confirmation_font)
 
         if not self.modifying or self.config[0]["PhyloBuddy"] is False:
             install_state = "Install" if self.buddies["PhyloBuddy"] else "Skip"
         else:
             install_state = "Modify" if self.buddies["PhyloBuddy"] else "Uninstall"
-        pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state), font=('Courier', 13))
+        pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state),
+                         font=confirmation_font)
 
         if not self.modifying or self.config[0]["AlignBuddy"] is False:
             install_state = "Install" if self.buddies["AlignBuddy"] else "Skip"
         else:
             install_state = "Modify" if self.buddies["AlignBuddy"] else "Uninstall"
-        ab_label = Label(info_frame, text="{:<28}{}".format("AlignBuddy:", install_state), font=('Courier', 13))
+        ab_label = Label(info_frame, text="{:<28}{}".format("AlignBuddy:", install_state),
+                         font=confirmation_font)
 
         if not self.modifying or self.config[0]["DatabaseBuddy"] is False:
             install_state = "Install" if self.buddies["DatabaseBuddy"] else "Skip"
         else:
             install_state = "Modify" if self.buddies["DatabaseBuddy"] else "Uninstall"
-        db_label = Label(info_frame, text="{:<28}{}".format("DatabaseBuddy:", install_state), font=('Courier', 13))
+        db_label = Label(info_frame, text="{:<28}{}".format("DatabaseBuddy:", install_state),
+                         font=confirmation_font)
 
-        cs_sb_label = Label(info_frame, font=('Courier', 13),
+        cs_sb_label = Label(info_frame, font=confirmation_font,
                             text="{:<28}{}".format("SeqBuddy Shortcut(s):", ", ".join(self.shortcuts["SeqBuddy"])))
-        cs_ab_label = Label(info_frame, font=('Courier', 13),
+        cs_ab_label = Label(info_frame, font=confirmation_font,
                             text="{:<28}{}".format("AlignBuddy Shortcut(s):", ", ".join(self.shortcuts["AlignBuddy"])))
-        cs_pb_label = Label(info_frame, font=('Courier', 13),
+        cs_pb_label = Label(info_frame, font=confirmation_font,
                             text="{:<28}{}".format("PhyloBuddy Shortcut(s):", ", ".join(self.shortcuts["PhyloBuddy"])))
-        cs_db_label = Label(info_frame, font=('Courier', 13),
+        cs_db_label = Label(info_frame, font=confirmation_font,
                             text="{:<28}{}".format("DatabaseBuddy Shortcut(s):", ", ".join(self.shortcuts["DatabaseBuddy"])))
 
         os_label.grid(row=0, sticky=NW)
@@ -894,7 +922,7 @@ class Installer(Frame):
             cs_pb_label.grid(row=8, sticky=NW)
         if self.buddies["DatabaseBuddy"]:
             cs_db_label.grid(row=9, sticky=NW)
-        info_frame.pack(side=TOP, anchor=NW, padx=50, pady=50, fill=BOTH)
+        info_frame.pack(side=TOP, anchor=NW, padx=50*scale_factor, pady=50*scale_factor, fill=BOTH)
 
         all_false = True
         for buddy in self.buddies:
@@ -906,15 +934,16 @@ class Installer(Frame):
             back_func = self.install_shortcuts
 
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50, pady=20, text="Install", command=self.install)
+        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Install",
+                             command=self.install)
         if all_false:
             next_button.config(text="Uninstall")
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50, pady=20, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
         if self.uninstall:
             back_button.config(command=self.welcome)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=40)
+        button_frame.pack(side=BOTTOM, pady=40*scale_factor)
         self.container.append(button_frame)
 
     def install(self):
