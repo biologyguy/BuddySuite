@@ -1988,6 +1988,12 @@ def count_codons(_seqbuddy):
         _output[_rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
     return _output
 
+def list_features(_seqbuddy):
+    _output = {}
+    for _rec in _seqbuddy.records:
+        _output[_rec.id] = _rec.features
+    return _output
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -2124,6 +2130,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help='Insert a sequence at the desired location')
     parser.add_argument('-cc', '--count_codons', action='store_true',
                         help="Return codon frequency statistics.")
+    parser.add_argument('-lf', '--list_features', action='store_true',
+                        help="Return a dictionary mapping sequence IDs to features.")
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -2727,3 +2735,22 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _stderr('\n')
         except TypeError as e:
             _raise_error(e)
+
+    # List features
+    if in_args.list_features:
+        feature_table = list_features(seqbuddy)
+        for rec_id in feature_table:
+            print(rec_id)
+            out_string = ''
+            for feat in feature_table[rec_id]:
+                out_string += '{0}\n'.format(feat.type)
+                out_string += '\tLocation: {0}\n'.format(str(feat.location))
+                if feat.id is not '<unknown id>':
+                    out_string += '\tID:{0}\n'.format(feat.id)
+                if len(feat.qualifiers) > 0:
+                    out_string += '\tQualifiers:\n'
+                    for key in feat.qualifiers:
+                        out_string += '\t\t{0}={1}\n'.format(key, feat.qualifiers[key]).strip("[]'")
+                if feat.ref is not None:
+                    out_string += '\ref: {0}'.format(feat.ref)
+            print(out_string)
