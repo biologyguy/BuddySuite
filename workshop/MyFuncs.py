@@ -123,6 +123,8 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             elif max_processes < 1:
                 max_processes = 1
 
+        max_processes = max_processes if max_processes < len(iterable) else len(iterable)
+
         running_processes = 0
         child_list = []
         start_time = round(time())
@@ -317,6 +319,7 @@ class SafetyValve:  # Use this class if you're afraid of an infinit loop
         if self.state_reps == 0:
             exit("Error: You just popped your state_reps safety valve. %s" % message)
 
+
 # Pulled this function off of Stack Overflow -- posted by nosklo
 # Note that this is a generator, so need to use next() or `with` to get a result
 def walklevel(some_dir, level=1):
@@ -361,4 +364,3 @@ def normalize(data, trim_ends=1.0):
             data[i] = 0. if data[i] < 0. else data[i]
 
     return data
-
