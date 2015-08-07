@@ -1991,7 +1991,7 @@ def count_codons(_seqbuddy):
 def list_features(_seqbuddy):
     _output = {}
     for _rec in _seqbuddy.records:
-        _output[_rec.id] = _rec.features
+        _output[_rec.id] = _rec.features if len(_rec.features) > 0 else None
     return _output
 
 
@@ -2746,17 +2746,30 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.list_features:
         feature_table = list_features(seqbuddy)
         for rec_id in feature_table:
-            print(rec_id)
+            _stdout('#### {0} ####\n'.format(rec_id))
             out_string = ''
-            for feat in feature_table[rec_id]:
-                out_string += '{0}\n'.format(feat.type)
-                out_string += '\tLocation: {0}\n'.format(str(feat.location))
-                if feat.id is not '<unknown id>':
-                    out_string += '\tID:{0}\n'.format(feat.id)
-                if len(feat.qualifiers) > 0:
-                    out_string += '\tQualifiers:\n'
-                    for key in feat.qualifiers:
-                        out_string += '\t\t{0}={1}\n'.format(key, feat.qualifiers[key]).strip("[]'")
-                if feat.ref is not None:
-                    out_string += '\ref: {0}'.format(feat.ref)
-            print(out_string)
+            if feature_table[rec_id] is not None:
+                for feat in feature_table[rec_id]:
+                    out_string += '{0}\n'.format(feat.type)
+                    if isinstance(feat.location, CompoundLocation):
+                        out_string += '\tLocations:\n'
+                        for part in feat.location.parts:
+                            out_string += '\t\t{0}-{1}\n'.format(part.start, part.end)
+                    elif isinstance(feat.location, FeatureLocation):
+                        out_string += '\tLocation:\n'
+                        out_string += '\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end)
+                    if feat.strand == 1:
+                        out_string += '\tStrand: Sense(+)\n'
+                    elif feat.strand == -1:
+                        out_string += '\tStrand: Antisense(-)\n'
+                    if str(feat.id) != '<unknown id>':
+                        out_string += '\tID: {0}\n'.format(feat.id)
+                    if len(feat.qualifiers) > 0:
+                        out_string += '\tQualifiers:\n'
+                        for key in feat.qualifiers:
+                            out_string += '\t\t{0}: {1}\n'.format(key, str(feat.qualifiers[key]).strip("[]'"))
+                    if feat.ref is not None:
+                        out_string += '\ref: {0}'.format(feat.ref)
+            else:
+                out_string = 'None\n'
+            _stdout(out_string+'\n')
