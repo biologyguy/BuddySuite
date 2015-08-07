@@ -1989,10 +1989,81 @@ def count_codons(_seqbuddy):
     return _output
 
 def list_features(_seqbuddy):
-    _output = {}
+    _output = OrderedDict()
     for _rec in _seqbuddy.records:
         _output[_rec.id] = _rec.features if len(_rec.features) > 0 else None
     return _output
+
+def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pattern=None):
+    # http://www.insdc.org/files/feature_table.html
+    old = _make_copies(_seqbuddy)
+    if _pattern is not None:
+        recs = pull_recs(_seqbuddy, _pattern).records
+    else:
+        recs = _seqbuddy.records
+
+    for _rec1 in recs:
+        for _rec2 in old.records:
+            if _rec1.id == _rec2.id:
+                old.records.remove(_rec2)
+
+    if isinstance(_location, FeatureLocation):
+        pass
+    elif isinstance(_location, CompoundLocation):
+        pass
+    elif isinstance(_location, list) or isinstance(_location, tuple):
+        _locations = []
+        if isinstance(_location[0], tuple):
+            for tup in _location:
+                _locations.append(FeatureLocation(start=tup[0], end=tup[1]))
+        elif isinstance(_location[0], str):
+            for substr in _location:
+                substr = re.sub('[ ()]', '', substr)
+                substr = re.sub('-|\.\.', ',', substr)
+                _locations.append(FeatureLocation(start=int(re.split(',', substr)[0]),
+                                                  end=int(re.split(',', substr)[1])))
+        _location = CompoundLocation(_locations, operator='order') \
+            if len(_locations) > 1 else _locations[0]
+    elif isinstance(_location, str):
+        _location = re.sub('[ ()]', '', _location)
+        _location = re.split(',', _location)
+        _locations = []
+        for substr in _location:
+            _locations.append(FeatureLocation(start=int(substr.split('-')[0]), end=int(substr.split('-')[1])))
+        _location = CompoundLocation(_locations, operator='order') \
+            if len(_locations) > 1 else _locations[0]
+    else:
+        raise TypeError("Input must be list, tuple, or string. Not {0}.".format(type(_location)))
+
+    if _strand in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1]:
+        _strand = 1
+    elif _strand in ['-', 'minus', 'anti', 'antisense', 'anti-sense', 'neg', 'negative', '-1', -1]:
+        _strand = -1
+    elif _strand in ['0', 0]:
+        _strand = 0
+    elif _strand is None:
+        pass
+    else:
+        _strand = None
+        _stderr("Warning: _strand input not recognized. Value set to None.")
+
+    if isinstance(_qualifiers, dict):
+        pass
+    elif isinstance(_qualifiers, str):
+        _qualifiers = re.sub(' ', '', _qualifiers)
+        _qualifiers = re.sub('=', ':', _qualifiers)
+        _qualifiers = re.split(',', _qualifiers)
+        qual_dict = {}
+        for substr in _qualifiers:
+            qual_dict[re.split(':', substr)[0]] = [re.split(':', substr)[1]]
+        _qualifiers = qual_dict
+
+    for _rec in recs:
+        _rec.features.append(SeqFeature(location=_location, type=_type, strand=_strand, qualifiers=_qualifiers))
+
+    _seqbuddy.records = recs
+    _seqbuddy = merge([old, _seqbuddy])
+    return _seqbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -2111,8 +2182,9 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Delete sequences with high similarity")
     parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
                         help="")
-    parser.add_argument("-frs", "--find_restriction_sites", action='append', help="Identify restriction sites",
-                        metavar="enzymes [specific enzymes, commercial, all], max cuts, min cuts", nargs="*")
+    parser.add_argument("-frs", "--find_restriction_sites", action='append', nargs="*",
+                        help="Identify restriction sites. Args: enzymes [specific enzymes, commercial, all], max cuts, "
+                             "min cuts")
     parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
                         help="Search for subsequences, returning the start positions of all matches")
     parser.add_argument("-mw", "--molecular_weight", action='store_true',
@@ -2132,6 +2204,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         help="Return codon frequency statistics.")
     parser.add_argument('-lf', '--list_features', action='store_true',
                         help="Return a dictionary mapping sequence IDs to features.")
+    parser.add_argument("-af", "--add_feature", nargs='*',
+                        help='Add a feature (annotation) to selected sequences Args: <name>, '
+                             '<location (start1-end1,start2-end2...)>, <strand (+|-)>, '
+                             '<qualifiers (foo=bar,hello=world...)>, <regex_pattern>')
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
     parser.add_argument('-gf', '--guess_format', action='store_true')
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
@@ -2773,3 +2849,44 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             else:
                 out_string = 'None\n'
             _stdout(out_string+'\n')
+
+    # Add feature
+    if in_args.add_feature:
+        # _type, _location, _strand=None, _qualifiers=None, _pattern=None
+        strand = None
+        qualifiers = None
+        pattern = None
+        if len(in_args.add_feature) < 2:
+            raise AttributeError("Too few parameters provided. Must provide at least a feature type and location.")
+        elif len(in_args.add_feature) == 5:
+            strand = in_args.add_feature[2]
+            qualifiers = in_args.add_feature[3]
+            pattern = in_args.add_feature[4]
+        elif len(in_args.add_feature) == 4:
+            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+                strand=in_args.add_feature[2]
+                if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
+                    qualifiers = in_args.add_feature[3]
+                else:
+                    patterns = in_args.add_feature[3]
+            else:
+                qualifiers = in_args.add_feature[3]
+                patterns = in_args.add_feature[3]
+
+        elif len(in_args.add_feature) == 3:
+            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+                strand = in_args.add_feature[2]
+            elif '=' in in_args.add_feature[2] or ':' in in_args.add_feature[2]:
+                qualifiers = in_args.add_feature[2]
+            else:
+                pattern = in_args.add_feature[2]
+        elif len(in_args.add_feature) == 2:
+            pass
+        else:
+            raise AttributeError("Invalid parameters were provided.")
+        ftype = in_args.add_feature[0]
+        flocation = in_args.add_feature[1]
+
+        _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
