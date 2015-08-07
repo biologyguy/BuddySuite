@@ -966,6 +966,14 @@ def test_pep_exception():
     with pytest.raises(TypeError):
         Sb.count_codons(tester)
 
+# ##################### 'lf', 'list_features' ###################### ##
+def test_list_features():
+    tester = Sb._make_copies(sb_objects[2])
+    output = Sb.list_features(tester)
+    for record in tester.records:
+        assert record.id in output
+        if output[record.id] is not None:
+            assert output[record.id] == record.features
 
 
 # ######################  'phylipi' ###################### #
