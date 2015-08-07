@@ -2022,7 +2022,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
                 substr = re.sub('-|\.\.', ',', substr)
                 _locations.append(FeatureLocation(start=int(re.split(',', substr)[0]),
                                                   end=int(re.split(',', substr)[1])))
-        _location = CompoundLocation(_locations, operator='order') \
+        _location = CompoundLocation(sorted(_locations, key=lambda x: x.start), operator='order') \
             if len(_locations) > 1 else _locations[0]
     elif isinstance(_location, str):
         _location = re.sub('[ ()]', '', _location)
@@ -2030,7 +2030,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
         _locations = []
         for substr in _location:
             _locations.append(FeatureLocation(start=int(substr.split('-')[0]), end=int(substr.split('-')[1])))
-        _location = CompoundLocation(_locations, operator='order') \
+        _location = CompoundLocation(sorted(_locations, key=lambda x: x.start), operator='order') \
             if len(_locations) > 1 else _locations[0]
     else:
         raise TypeError("Input must be list, tuple, or string. Not {0}.".format(type(_location)))
@@ -2205,7 +2205,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-lf', '--list_features', action='store_true',
                         help="Return a dictionary mapping sequence IDs to features.")
     parser.add_argument("-af", "--add_feature", nargs='*',
-                        help='Add a feature (annotation) to selected sequences Args: <name>, '
+                        help='Add a feature (annotation) to selected sequence.s Args: <name>, '
                              '<location (start1-end1,start2-end2...)>, <strand (+|-)>, '
                              '<qualifiers (foo=bar,hello=world...)>, <regex_pattern>')
     parser.add_argument('-ga', '--guess_alphabet', action='store_true')
