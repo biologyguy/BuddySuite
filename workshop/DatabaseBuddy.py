@@ -87,7 +87,7 @@ def _stdout(message, quiet=False):
 
 
 def terminal_colors():
-    colors = ['\033[95m', '\033[94m', '\033[92m', '\033[93m', '\033[91m', '\033[90m']
+    colors = ['\033[95m', '\033[94m', '\033[92m', '\033[91m', '\033[93m', '\033[90m']
     _counter = 0
     while True:
         try:
@@ -272,7 +272,7 @@ class UniProtRestClient:
         self.results_file = "%s/results.txt" % self.temp_dir.path
         open(self.results_file, "w").close()
 
-    def mc_rest_query(self, _term, args):
+    def mc_rest_query(self, _term, args):  # Multicore ready
         http_errors_file, results_file, request_params = args
         _term = re.sub(" ", "+", _term)
         request_string = ""
@@ -321,14 +321,16 @@ class UniProtRestClient:
         return
 
     def count_hits(self):
-        search_terms = "+OR+".join(self.dbbuddy.search_terms)  # ToDo: make sure there isn't a size limit
+        search_terms = "("
+        search_terms += "+)OR(+".join(self.dbbuddy.search_terms)  # ToDo: make sure there isn't a size limit
+        search_terms += ")"
         search_terms = re.sub(" ", "+", search_terms)
         self.mc_rest_query(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}])
         with open(self.results_file, "r") as ifile:
-            _count = len(ifile.read().strip().split("\n"))
+            _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
+        open(self.results_file, "w").close()
 
         self._parse_error_file()
-        open(self.results_file, "w").close()
         return _count
 
     def search_proteins(self, force=False):
@@ -512,8 +514,68 @@ class EnsemblRestClient:
 
 
 # #################################################################################################################### #
-def live_search(_dbbuddy):
-    retrieve_accessions(_dbbuddy)
+class LiveSearch:
+    def __init__(self, _dbbuddy):
+        self.dbbuddy = _dbbuddy
+        self.commands = ["exit", "quit", "search", "filter", "download", "write", "database", "type", "help"]
+        if self.dbbuddy.records:
+            retrieve_sequences(self.dbbuddy)
+
+        if self.dbbuddy.search_terms:
+            retrieve_accessions(self.dbbuddy)
+        _stdout("Welcome to the DatabaseBuddy live shell. Type 'help' at any time for a list of available commands "
+                "of 'help <command>' for more detailed explaination of a given command.\n")
+        self.live_loop()
+
+    def command(self, cmd):
+        cmd = cmd.lower().split(" ")
+        cmd = (cmd[0], None) if len(cmd) < 2 else (cmd[0], cmd[1:])
+
+        if cmd[0] in self.commands:
+            return cmd
+
+        if len(set([x[:len(cmd[0])] for x in self.commands])) != len(self.commands):
+            cmd[0] = "ambiguous"
+
+        else:
+            for available_command in self.commands:
+                if re.search("^%s" % cmd[0], available_command):
+                    cmd[0] = available_command
+
+        return cmd
+
+    def live_loop(self):
+        while True:
+            user_input = self.command(input(">>> "))
+            if user_input[0] in ["exit", "quit"]:
+                break
+
+        return
+
+    def blahh(self):
+        while True:
+            if len(dbbuddy.records) > 100:
+                continue_prompt = input("%s items returned, show all? (y/[n]/<int>)  " % len(dbbuddy.records))
+                if continue_prompt.lower() in ["yes", "y", "true", "all"]:
+                    _print_recs(dbbuddy)
+                else:
+                    try:
+                        continue_prompt = int(continue_prompt)
+                        _print_recs(dbbuddy, continue_prompt)
+
+                    except ValueError:
+                        pass
+                break
+            else:
+                _print_recs(retrieve_accessions(dbbuddy))
+                break
+
+    def help(self):
+        _output = ""
+
+        return _output
+
+
 
 
 def download_everything(_dbbuddy):
@@ -535,6 +597,21 @@ def download_everything(_dbbuddy):
 
 
 def retrieve_accessions(_dbbuddy):
+    check_all = True if len(_dbbuddy.databases) == 0 else False
+
+    if "gb" in _dbbuddy.databases or check_all:
+        refseq = NCBIClient(_dbbuddy)
+        refseq.gi2acc()
+        # refseq.search_nucliotides()
+
+    elif "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = UniProtRestClient(_dbbuddy)
+        uniprot.search_proteins()
+
+    return _dbbuddy
+
+
+def retrieve_summary(_dbbuddy):
     check_all = True if len(_dbbuddy.databases) == 0 else False
 
     if "gb" in _dbbuddy.databases or check_all:
@@ -695,7 +772,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Live Search
     if in_args.live_search:
-        live_search(dbbuddy)
+        live_search = LiveSearch(dbbuddy)
         sys.exit()
 
     # Download everything
@@ -721,27 +798,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if not in_args.out_format:
             dbbuddy.out_format = "ids"
         retrieve_accessions(dbbuddy)
-        while True:
-            if len(dbbuddy.records) > 100:
-                continue_prompt = input("%s items returned, show all? (y/[n]/<int>)  " % len(dbbuddy.records))
-                if continue_prompt.lower() in ["yes", "y", "true", "all"]:
-                    _print_recs(dbbuddy)
-                else:
-                    try:
-                        continue_prompt = int(continue_prompt)
-                        _print_recs(dbbuddy, continue_prompt)
-
-                    except ValueError:
-                        pass
-                break
-            else:
-                _print_recs(retrieve_accessions(dbbuddy))
-                break
+        _print_recs(dbbuddy)
         sys.exit()
 
     if in_args.retrieve_sequences:
         sys.exit()
-
 
     # Guess database  ToDo: Sort by database
     if in_args.guess_database:
