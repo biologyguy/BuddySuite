@@ -37,6 +37,7 @@ from urllib.request import Request, urlopen
 from time import time, sleep
 import json
 from multiprocessing import Lock
+from collections import OrderedDict
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -84,6 +85,18 @@ def _stdout(message, quiet=False):
     return
 
 
+def terminal_colors():
+    colors = ['\033[95m', '\033[94m', '\033[92m', '\033[93m', '\033[91m', '\033[90m']
+    _counter = 0
+    while True:
+        try:
+            yield colors[_counter]
+        except IndexError:
+            _counter = 0
+            yield colors[_counter]
+        _counter += 1
+
+
 # ##################################################### DB BUDDY ##################################################### #
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _database=None, _out_format="summary"):
@@ -94,7 +107,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             _database = "gb"
 
         self.search_terms = []
-        self.records = {}
+        self.records = OrderedDict()
+        self.recycle_bin = {}  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
         self.failures = {}
         self.databases = [_database] if _database else []
@@ -151,38 +165,6 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
     def __str__(self):
         _output = ""
-        if self.out_format in ["ids", "accessions"]:
-            for _accession in self.records:
-                _output += "%s\n" % _accession
-
-        elif self.out_format == "summary":
-            for _accession, _rec in self.records.items():
-                _output += _accession
-                if _rec.database:
-                    _output += "\t%s" % _rec.database
-                for attrib, _value in _rec.summary.items():
-                    _output += "\t%s" % _value
-                _output += "\n"
-            _output = "%s\n" % _output.strip()
-
-        else:
-            nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide" and _rec.record]
-            prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein" and _rec.record]
-            tmp_dir = TemporaryDirectory()
-
-            if len(nuc_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                    SeqIO.write(nuc_recs, _ofile, self.out_format)
-
-                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
-                    _output = "%s\n" % ifile.read()
-
-            if len(prot_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                    SeqIO.write(prot_recs, _ofile, self.out_format)
-
-                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
-                    _output += "%s\n" % ifile.read()
 
         if _output == "":
             _output = "No records returned\n"
@@ -194,7 +176,7 @@ class Record:
     def __init__(self, _accession, _record=None, summary=None, _database=None, _type=None, _search_term=None):
         self.accession = _accession
         self.record = _record  # SeqIO record
-        self.summary = summary if summary else {}  # Dictionary of attributes
+        self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
         self.database = _database  # refseq, genbank, ensembl, uniprot
         self.type = _type  # protein, nucleotide, gi_num
         self.search_term = _search_term  # In case the record was the result of a particular search
@@ -241,6 +223,19 @@ class Record:
             self.type = "nucleotide"
 
         return
+
+    def search(self, regex):
+        for param in [self.accession, self.database, self.type, self.search_term]:
+            if re.search(regex, param):
+                return True
+        for _key, _value in self.summary.items():
+            if re.search(regex, _key) or re.search(regex, _value):
+                return True
+        if self.record:
+            if re.search(regex, self.record.format("gb")):
+                return True
+        # If nothing hits, default to False
+        return False
 
     def __str__(self):
         return "Accession:\t{0}\nDatabase:\t{1}\nRecord:\t{2}\nType:\t{3}\n".format(self.accession, self.database,
@@ -291,6 +286,15 @@ class UniProtRestClient:
                     ofile.write("%s\n%s//\n" % (_term, e))
             return
 
+    def filter_records(self, regex):
+        for _id, _rec in self.dbbuddy.records.items():
+            if not _rec.search(regex):
+                self.dbbuddy.recycle_bin[_id] = _rec
+        for _id in self.dbbuddy.records:
+            if _id in self.dbbuddy.records:
+                del self.dbbuddy.records[_id]
+        return
+
     def search_proteins(self, force=False):
         temp_dir = TempDir()
         http_errors_file = "%s/errors.txt" % temp_dir.path
@@ -316,7 +320,7 @@ class UniProtRestClient:
             open(results_file, "w").close()
 
         # download the tab info on all or subset
-        params = {"format": "tab", "sort": "length", "columns": "id,entry name,protein names,organism,length"}
+        params = {"format": "tab", "columns": "id,entry name,length,protein names,organism-id,organism,comments"}
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms...\n" % len(self.dbbuddy.search_terms))
             run_multicore_function(self.dbbuddy.search_terms, self.mc_rest_query, max_processes=10,
@@ -341,7 +345,13 @@ class UniProtRestClient:
             result = result.strip().split("\n")
             for hit in result[1:]:
                 hit = hit.split("\t")
-                raw = {"entry_name": hit[1], "protein_names": hit[2], "organism": hit[3], "length": int(hit[4])}
+                if len(hit) == 6:  # If there isn't a comment returned, then the list isn't constructed properly
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("protein_names", hit[3]),
+                                       ("organism-id", hit[4]), ("organism", hit[5]), ("comments", "")])
+                else:
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("protein_names", hit[3]),
+                                       ("organism-id", hit[4]), ("organism", hit[5]), ("comments", hit[6])])
+
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw)
 
@@ -367,8 +377,8 @@ class NCBIClient:
     def gi2acc(self):
         gi_records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num"]
         gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
-        #record = Entrez.read(Entrez.fetch())
-        #handle = Entrez.efetch(db="nucleotide", id=gi_accessions[:2], rettype="acc", retmode="text")
+        # record = Entrez.read(Entrez.fetch())
+        # handle = Entrez.efetch(db="nucleotide", id=gi_accessions[:2], rettype="acc", retmode="text")
         print("Hello")
         handle = Entrez.esummary(db="nucleotide", id=["28864546", "28800981"])
         sys.exit(handle.read())
@@ -464,7 +474,7 @@ class EnsemblRestClient:
                     self.perform_rest_action(endpoint, headers, params)
             else:
                 self.dbbuddy.failures.append(_id)
-                #sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
+                # sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
 
         return data
 
@@ -512,7 +522,7 @@ def retrieve_accessions(_dbbuddy):
     if "gb" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
-        #refseq.search_nucliotides()
+        # refseq.search_nucliotides()
 
     elif "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
@@ -520,8 +530,9 @@ def retrieve_accessions(_dbbuddy):
 
     return _dbbuddy
 
+
 def retrieve_sequences(_dbbuddy):
-    pass
+    return _dbbuddy
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -578,37 +589,88 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                  "Check the file path or try specifying an input type with -f")
 
     # ############################################# INTERNAL FUNCTION ################################################ #
-    def _print_recs(_dbbuddy):
+    def _print_recs(_dbbuddy, _num=0):
+        _num = _num if _num > 0 else len(_dbbuddy.records)
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         else:
+            # First deal with anything that broke or wasn't downloaded
+            errors_etc = ""
+            if len(_dbbuddy.failures):
+                errors_etc += "# ########################## Failures ########################### #\n"
+                for failure in _dbbuddy.failures:
+                    errors_etc += str(failure)
+
+            accession_only = [_accession for _accession, _rec in _dbbuddy.records.items()
+                              if not _rec.record and not _rec.summary]
+
+            if len(accession_only) > 0:
+                errors_etc = "# ################## Accessions without Records ################## #\n"
+                _counter = 1
+                for _next_acc in accession_only:
+                    errors_etc += "%s\t" % _next_acc
+                    if _counter % 4 == 0:
+                        errors_etc = "%s\n" % errors_etc.strip()
+                    _counter += 1
+                errors_etc += "\n"
+
+            if errors_etc != "":
+                errors_etc = "%s\n# ################################################################ #\n\n" % errors_etc.strip()
+                _stderr(errors_etc, in_args.quiet)
+
+            _output = ""
+            # Full records
             if _dbbuddy.out_format not in ["summary", "ids", "accessions"]:
-                accession_only = [_accession for _accession, _rec in _dbbuddy.records.items() if not _rec.record]
+                nuc_recs = [_rec.record for _accession, _rec in _dbbuddy.records.items() if _rec.type == "nucleotide" and _rec.record]
+                prot_recs = [_rec.record for _accession, _rec in _dbbuddy.records.items() if _rec.type == "protein" and _rec.record]
+                tmp_dir = TemporaryDirectory()
+                if len(nuc_recs) > 0:
+                    with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                        SeqIO.write(nuc_recs[:_num], _ofile, _dbbuddy.out_format)
 
-                # First deal with anything that broke or wasn't downloaded
-                errors_etc = ""
-                if len(_dbbuddy.failures):
-                    errors_etc += "# ########################## Failures ########################### #\n"
-                    for failure in _dbbuddy.failures:
-                        errors_etc += str(failure)
+                    with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                        _output += "%s\n" % ifile.read()
 
-                if len(accession_only) > 0:
-                    errors_etc = "# ################## Accessions without Records ################## #\n"
-                    _counter = 1
-                    for _next_acc in accession_only:
-                        errors_etc += "%s\t" % _next_acc
-                        if _counter % 4 == 0:
-                            errors_etc = "%s\n" % errors_etc.strip()
-                        _counter += 1
-                    errors_etc += "\n"
+                if len(prot_recs) > 0:
+                    with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                        SeqIO.write(prot_recs[:_num], _ofile, _dbbuddy.out_format)
 
-                if errors_etc != "":
-                    errors_etc = "%s\n# ################################################################ #\n\n" % errors_etc.strip()
-                    _stderr(errors_etc, in_args.quiet)
+                    with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                        _output += "%s\n" % ifile.read()
+            # Summary outputs
+            else:
+                saved_headings = []
+                for _accession, _rec in list(_dbbuddy.records.items())[:_num]:
+                    colors = terminal_colors()
+                    if _dbbuddy.out_format in ["ids", "accessions"]:
+                        _output += "%s\n" % _accession
 
-            _stdout("{0}\n".format(str(_dbbuddy).rstrip()))
+                    elif _dbbuddy.out_format == "summary":
+                        headings = [heading for heading, _value in _rec.summary.items()]
+                        if saved_headings != headings:
+                            _output += "%saccession\t%sdatabase" % (next(colors), next(colors))
+                            for heading in headings:
+                                _output += "\t%s%s" % (next(colors), heading)
+                            _output += "\n"
+                            saved_headings = list(headings)
+                            colors = terminal_colors()
+
+                        _output += "%s%s" % (next(colors), _accession)
+                        if _rec.database:
+                            _output += "\t%s%s" % (next(colors), _rec.database)
+                        else:
+                            next(colors)
+
+                        for attrib, _value in _rec.summary.items():
+                            if len(str(_value)) > 50:
+                                _output += "\t%s%s..." % (next(colors), str(_value[:47]))
+                            else:
+                                _output += "\t%s%s" % (next(colors), _value)
+                        _output += "\n"
+
+            _stdout("{0}\n".format(_output.rstrip()))
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Download everything
@@ -632,7 +694,23 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.retrieve_accessions:
         if not in_args.out_format:
             dbbuddy.out_format = "ids"
-        _print_recs(retrieve_accessions(dbbuddy))
+        retrieve_accessions(dbbuddy)
+        while True:
+            if len(dbbuddy.records) > 100:
+                continue_prompt = input("%s items returned, show all? (y/[n]/<int>)  " % len(dbbuddy.records))
+                if continue_prompt.lower() in ["yes", "y", "true", "all"]:
+                    _print_recs(dbbuddy)
+                else:
+                    try:
+                        continue_prompt = int(continue_prompt)
+                        _print_recs(dbbuddy, continue_prompt)
+
+                    except ValueError:
+                        pass
+                break
+            else:
+                _print_recs(retrieve_accessions(dbbuddy))
+                break
 
     if in_args.retrieve_sequences:
         pass

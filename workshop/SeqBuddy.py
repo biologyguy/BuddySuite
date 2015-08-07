@@ -1913,7 +1913,7 @@ def find_CpG(_seqbuddy):
         records.append(_rec)
         _output[rec.id] = indices
     _seqbuddy.records = records
-    return _seqbuddy, _output
+    return [_seqbuddy, _output]
 
 
 def shuffle_seqs(_seqbuddy):
@@ -2702,11 +2702,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Find CpG
     if in_args.find_CpG:
         output = find_CpG(seqbuddy)
-        out_string = ""
-        for key in output[1]:
-            out_string += "{0}: {1}\n".format(key, str(output[1][key]))
-        print(output[0])
-        _stderr('\n'+out_string, in_args.quiet)
+        if output[1]:
+            out_string = ""
+            for key, _value in output[1].items():
+                if _value:
+                    _value = ["%s-%s" % (x[0], x[1]) for x in _value]
+                    out_string += "{0}: {1}\n".format(key, ", ".join(_value))
+            _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
+                    out_string.strip(), in_args.quiet)
+        else:
+            _stderr("# No Islands identified\n\n", in_args.quiet)
+        _print_recs(seqbuddy)
 
     # Shuffle Seqs
     if in_args.shuffle_seqs:
