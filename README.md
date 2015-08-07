@@ -70,3 +70,8 @@ developing (or want the bleeding edge).
 
 AlignBuddy and PhyloBuddy will eventually wrap a number of third party tools, but similar to the BLAST binaries, they
  will only be necessary to use their respective functions.
+ 
+ 
+## Contact
+Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or 
+contact me directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)
