@@ -38,6 +38,7 @@ from time import time, sleep
 import json
 from multiprocessing import Lock
 from collections import OrderedDict
+from hashlib import md5
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -247,9 +248,14 @@ class Failure:
         self.query = query
         self.error_msg = error_message
 
+        # Create a unique identifier for identification purposes
+        self.hash = "%s%s" % (query, error_message)
+        self.hash = md5(self.hash.encode()).hexdigest()
+
     def __str__(self):
         _output = "%s\n" % self.query
         _output += "%s\n" % self.error_msg
+        return _output
 
 
 # ################################################# Database Clients ################################################# #
@@ -260,6 +266,11 @@ class UniProtRestClient:
         self.dbbuddy = _dbbuddy
         self.server = server
         self.lock = Lock()
+        self.temp_dir = TempDir()
+        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
+        open(self.http_errors_file, "w").close()
+        self.results_file = "%s/results.txt" % self.temp_dir.path
+        open(self.results_file, "w").close()
 
     def mc_rest_query(self, _term, args):
         http_errors_file, results_file, request_params = args
@@ -295,20 +306,35 @@ class UniProtRestClient:
                 del self.dbbuddy.records[_id]
         return
 
-    def search_proteins(self, force=False):
-        temp_dir = TempDir()
-        http_errors_file = "%s/errors.txt" % temp_dir.path
-        open(http_errors_file, "w").close()
-        results_file = "%s/results.txt" % temp_dir.path
-        open(results_file, "w").close()
+    def _parse_error_file(self):
+        with open(self.http_errors_file, "r") as ifile:
+            http_errors_file = ifile.read().strip("//\n")
+            if http_errors_file != "":
+                http_errors_file = http_errors_file.split("//")
+                for error in http_errors_file:
+                    error = error.split("\n")
+                    error = (error[0], "\n".join(error[1:]) if len(error) > 2 else (error[0], error[1]))
+                    error = Failure(*error)
+                    if error.hash not in self.dbbuddy.failures:
+                        self.dbbuddy.failures[error.hash] = error
+                open(self.http_errors_file, "w").close()
+        return
 
-        # start by determining how many results we would get from all searches.
+    def count_hits(self):
         search_terms = "+OR+".join(self.dbbuddy.search_terms)  # ToDo: make sure there isn't a size limit
         search_terms = re.sub(" ", "+", search_terms)
-        _stderr("Retrieving UniProt hit count... ")
-        self.mc_rest_query(search_terms, [http_errors_file, results_file, {"format": "list"}])
-        with open(results_file, "r") as ifile:
+        self.mc_rest_query(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}])
+        with open(self.results_file, "r") as ifile:
             _count = len(ifile.read().strip().split("\n"))
+
+        self._parse_error_file()
+        open(self.results_file, "w").close()
+        return _count
+
+    def search_proteins(self, force=False):
+        # start by determining how many results we would get from all searches.
+        _stderr("Retrieving UniProt hit count... ")
+        _count = self.count_hits()
 
         if _count == 0:
             _stderr("No hits\n")
@@ -316,41 +342,30 @@ class UniProtRestClient:
 
         else:
             _stderr("%s\n" % _count)
-            open(http_errors_file, "w").close()
-            open(results_file, "w").close()
 
         # download the tab info on all or subset
-        params = {"format": "tab", "columns": "id,entry name,length,protein names,organism-id,organism,comments"}
+        params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms...\n" % len(self.dbbuddy.search_terms))
             run_multicore_function(self.dbbuddy.search_terms, self.mc_rest_query, max_processes=10,
-                                   func_args=[http_errors_file, results_file, params])
+                                   func_args=[self.http_errors_file, self.results_file, params])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
-            self.mc_rest_query(self.dbbuddy.search_terms[0], [http_errors_file, results_file, params])
+            self.mc_rest_query(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params])
 
-        with open(http_errors_file, "r") as ifile:
-            http_errors_file = ifile.read().strip("//\n")
-            if http_errors_file != "":
-                http_errors_file = http_errors_file.split("//")
-                for error in http_errors_file:
-                    error = error.split("\n")
-                    error = (error[0], "\n".join(error[1:]) if len(error) > 2 else (error[0], error[1]))
-                    self.dbbuddy.failures.append(Failure(*error))
-
-        with open(results_file, "r") as ifile:
+        with open(self.results_file, "r") as ifile:
             results = ifile.read().strip("//\n").split("//")
 
         for result in results:
             result = result.strip().split("\n")
             for hit in result[1:]:
                 hit = hit.split("\t")
-                if len(hit) == 6:  # If there isn't a comment returned, then the list isn't constructed properly
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("protein_names", hit[3]),
-                                       ("organism-id", hit[4]), ("organism", hit[5]), ("comments", "")])
+                if len(hit) == 6:  # In case 'comments' isn't returned
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                                       ("organism", hit[4]), ("protein_names", hit[5]), ("comments", "")])
                 else:
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("protein_names", hit[3]),
-                                       ("organism-id", hit[4]), ("organism", hit[5]), ("comments", hit[6])])
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                                       ("organism", hit[4]), ("protein_names", hit[5]), ("comments", hit[6])])
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw)
@@ -497,6 +512,9 @@ class EnsemblRestClient:
 
 
 # #################################################################################################################### #
+def live_search(_dbbuddy):
+    retrieve_accessions(_dbbuddy)
+
 
 def download_everything(_dbbuddy):
     # Get sequences from UniProt
@@ -556,6 +574,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     parser.add_argument('-de', '--download_everything', action="store_true",
                         help="Retrieve full records for all search terms and accessions")
+    parser.add_argument('-ls', '--live_search', action="store_true",
+                        help="Interactive database searching. The best tool for sequence discovery.")
     parser.add_argument('-ra', '--retrieve_accessions', action="store_true",
                         help="Use search terms to find a list of sequence accession numbers")
     parser.add_argument('-rs', '--retrieve_sequences', action="store_true",
@@ -650,7 +670,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     elif _dbbuddy.out_format == "summary":
                         headings = [heading for heading, _value in _rec.summary.items()]
                         if saved_headings != headings:
-                            _output += "%saccession\t%sdatabase" % (next(colors), next(colors))
+                            _output += "%sACCN\t%sDB" % (next(colors), next(colors))
                             for heading in headings:
                                 _output += "\t%s%s" % (next(colors), heading)
                             _output += "\n"
@@ -673,6 +693,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stdout("{0}\n".format(_output.rstrip()))
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Live Search
+    if in_args.live_search:
+        live_search(dbbuddy)
+        sys.exit()
+
     # Download everything
     if in_args.download_everything:
         dbbuddy.out_format = "gb" if not in_args.out_format else in_args.out_format
@@ -689,6 +714,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("%s\n# ################################################################ #\n\n" % output.strip())
 
         _print_recs(dbbuddy)
+        sys.exit()
 
     # Retrieve Accessions
     if in_args.retrieve_accessions:
@@ -711,9 +737,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             else:
                 _print_recs(retrieve_accessions(dbbuddy))
                 break
+        sys.exit()
 
     if in_args.retrieve_sequences:
-        pass
+        sys.exit()
+
 
     # Guess database  ToDo: Sort by database
     if in_args.guess_database:
@@ -733,3 +761,4 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             output += "Nothing to return\n"
 
         _stdout(output)
+        sys.exit()
