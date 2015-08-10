@@ -304,10 +304,11 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 
 class Record:
-    def __init__(self, _accession, _record=None, summary=None, _database=None, _type=None, _search_term=None):
+    def __init__(self, _accession, _record=None, summary=None, _size=None, _database=None, _type=None, _search_term=None):
         self.accession = _accession
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
+        self.size = _size
         self.database = _database  # refseq, genbank, ensembl, uniprot
         self.type = _type  # protein, nucleotide, gi_num
         self.search_term = _search_term  # In case the record was the result of a particular search
@@ -493,7 +494,7 @@ class UniProtRestClient:
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", hit[6])])
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
-                                                      _search_term=result[0], summary=raw)
+                                                      _search_term=result[0], summary=raw, _size=int(hit[2]))
 
     def fetch_proteins(self):
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
@@ -696,7 +697,7 @@ class LiveSearch(cmd.Cmd):
             retrieve_sequences(temp_buddy)
 
         if len(temp_buddy.search_terms):
-            retrieve_accessions(temp_buddy)
+            retrieve_summary(temp_buddy)
 
         for _term in temp_buddy.search_terms:
             if _term not in self.dbbuddy.search_terms:
@@ -761,6 +762,21 @@ class LiveSearch(cmd.Cmd):
             _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.recycle_bin)))
             current_count = len(self.dbbuddy.recycle_bin)
         _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin))
+
+    def do_download(self, line=None):
+        retrieve_summary(self.dbbuddy)
+        amount_seq_requested = 0
+        for _accn, _rec in self.dbbuddy.records.items():
+            amount_seq_requested += _rec.size
+
+        if amount_seq_requested > 500:
+            confirm = input("You are requesting %s Mb of data. Continue (y/[n])?" %
+                            round(amount_seq_requested / 1000, 1))
+            if confirm.lower() not in ["yes", "y"]:
+                _stdout("Aborted...\n", color="\033[91")
+                return
+        retrieve_sequences(self.dbbuddy)
+        _stdout("Retrieved %s Mbs of sequence data\n" % amount_seq_requested)
 
     @staticmethod
     def help_exit(self):
@@ -832,14 +848,14 @@ Return a subset of filtered records back into the main list (use the 'reset' com
     - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
 ''', color="\033[92m")
 
+    @staticmethod
+    def help_download():
+        _stdout('''\
+Retrieve full records for all accessions in the main record list.
+If requesting more than 50 Mb of sequence data, you will be prompted to confirm the command.
+''', color="\033[92m")
+
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-    def do_download(self):
-        pass
-
-    def help_download(self):
-        pass
 
     def do_write(self):
         pass
@@ -865,7 +881,7 @@ def download_everything(_dbbuddy):
     # Get sequences from UniProt
     uniprot = UniProtRestClient(_dbbuddy)
     uniprot.fetch_proteins()
-
+    return
     # Get sequences from Ensembl
     ensembl = EnsemblRestClient(_dbbuddy)
     ensembl.fetch_nucleotides()
