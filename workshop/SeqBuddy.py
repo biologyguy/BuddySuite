@@ -1857,8 +1857,10 @@ def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
         matches = re.finditer(_pattern, str(_rec.seq).upper())
         for match in matches:
             indices.append(match.start())
+            _rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
+                                            type='match', qualifiers={'regex': match.re, 'added_by': 'SeqBuddy'}))
         _output[_rec.id] = indices
-    return _output
+    return _seqbuddy, _output
 
 
 def find_CpG(_seqbuddy):
@@ -2817,12 +2819,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             output = find_pattern(seqbuddy, pattern)
             out_string = ""
             num_matches = 0
-            for key in output:
-                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[key]]))
-                num_matches += len(output[key])
+            for key in output[1]:
+                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[1][key]]))
+                num_matches += len(output[1][key])
             _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(output), pattern))
-            _stdout("%s\n" % out_string)
+                    "pattern '{2}' ####\n".format(num_matches, len(output[1]), pattern), in_args.quiet)
+            _stderr("%s\n" % out_string, in_args.quiet)
+        _print_recs(seqbuddy)
 
     # Find CpG
     if in_args.find_CpG:
