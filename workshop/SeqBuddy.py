@@ -1858,7 +1858,7 @@ def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
         for match in matches:
             indices.append(match.start())
             _rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                            type='match', qualifiers={'regex': match.re, 'added_by': 'SeqBuddy'}))
+                                            type='match', qualifiers={'regex': _pattern, 'added_by': 'SeqBuddy'}))
         _output[_rec.id] = indices
     return _seqbuddy, _output
 
