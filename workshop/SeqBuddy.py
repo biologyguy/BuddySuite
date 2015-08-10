@@ -34,6 +34,7 @@ import sys
 import os
 import re
 import string
+import json
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
 from math import floor, ceil, log
@@ -1635,10 +1636,10 @@ def molecular_weight(_seqbuddy):
     _dict = amino_acid_weights
     if _seqbuddy.alpha == IUPAC.protein:
         _dict = amino_acid_weights
-    elif _seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+    elif _seqbuddy.alpha in [IUPAC.ambiguous_dna or IUPAC.unambiguous_dna]:
         _dict = deoxynucleotide_weights
         _dna = True
-    elif _seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+    elif _seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
         _dict = deoxyribonucleotide_weights
     for _rec in _seqbuddy.records:
         _rec.mass_ds = 0
@@ -1656,25 +1657,37 @@ def molecular_weight(_seqbuddy):
             if _dna:
                 _rec.mass_ds += _dict[_value] + deoxynucleotide_weights[deoxynucleotide_compliments[_value]]
         _output['masses_ss'].append(round(_rec.mass_ss, 3))
-        if _dna:
+
+        qualifiers = {}
+        if _seqbuddy.alpha == IUPAC.protein:
+            qualifiers["peptide_value"] = round(_rec.mass_ss, 3)
+        elif _dna:
+            qualifiers["ssDNA_value"] = round(_rec.mass_ss, 3)
+            qualifiers["dsDNA_value"] = round(_rec.mass_ds, 3)
             _output['masses_ds'].append(round(_rec.mass_ds, 3))
+        elif _seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
+            qualifiers["ssRNA_value"] = round(_rec.mass_ss, 3)
         _output['ids'].append(_rec.id)
-    return _output
+        mw_feature = SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='mw', qualifiers=qualifiers)
+        _rec.features.append(mw_feature)
+    return _seqbuddy, _output
 
 
 def isoelectric_point(_seqbuddy):
     if _seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
-    _isoelectric_points = []
+    _isoelectric_points = OrderedDict()
     for _rec in _seqbuddy.records:
         _pI = ProteinAnalysis(str(_rec.seq))
         _pI = round(_pI.isoelectric_point(), 10)
-        _isoelectric_points.append((_rec.id, _pI))
-    return _isoelectric_points
+        _isoelectric_points[_rec.id] = _pI
+        _rec.features.append(SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='pI',
+                                        qualifiers={'value': _pI}))
+    return _seqbuddy, _isoelectric_points
 
 
 def count_residues(_seqbuddy):
-    _output = []
+    _output = OrderedDict()
     for _rec in _seqbuddy.records:
         resid_count = {}
         _seq = str(_rec.seq).upper()
@@ -1720,9 +1733,15 @@ def count_residues(_seqbuddy):
 
             if "T" not in resid_count and "U" not in resid_count:
                 resid_count["T"] = [0, 0]
-
-        _output.append((_rec.id, resid_count))
-    return sorted(_output, key=lambda x: x[0])
+                
+        cr_json = json.dumps(resid_count)
+        try:
+            _rec.buddy_data['Residue_frequency'] = cr_json
+        except AttributeError:
+            _rec.buddy_data = {'Residue_frequency': cr_json}
+        
+        _output[_rec.id] = resid_count
+    return _seqbuddy, _output
 
 
 def raw_seq(_seqbuddy):
@@ -1769,14 +1788,23 @@ def split_file(_seqbuddy):
 
 
 # _order in ['alpha', 'position']
-def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None, _order="position"):
+def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):
     if _max_cuts and _min_cuts > _max_cuts:
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     _max_cuts = 1000000000 if not _max_cuts else _max_cuts
 
     _enzymes = _enzymes if type(_enzymes) == list else [_enzymes]
 
-    blacklist = ["AbaSI", "FspEI", "MspJI", "SgeI", "AspBHI", "SgrTI", "YkrI", "BmeDI"]
+    blacklist = ["AbaSI", "FspEI", "MspJI", "SgeI", "AspBHI", "SgrTI", "YkrI", "BmeDI"]  # highly nonspecific
+    blacklist += ["AjuI", "AlfI", "AloI", "ArsI", "BaeI", "BarI", "BcgI", "BdaI", "BplI", "BsaXI", "Bsp24I", "CjeI",
+                  "CjePI", "CspCI", "FalI", "Hin4I", "NgoAVIII", "NmeDI", "PpiI", "PsrI", "R2_BceSIV", "RdeGBIII",
+                  "SdeOSI", "TstI", "UcoMSI"]  # two-cutting
+    blacklist += ["AlwFI", "AvaIII", "BmgI", "BscGI", "BspGI", "BspNCI", "Cdi630V", "Cgl13032I", "Cgl13032II",
+                  "CjeFIII", "CjeFV", "CjeNII", "CjeP659IV", "CjuI", "CjuII", "DrdII", "EsaSSI", "FinI", "GauT27I",
+                  "HgiEII", "Hpy99XIII", "Hpy99XIV", "Jma19592I", "MjaIV", "MkaDII", "NhaXI", "PenI", "Pfl1108I",
+                  "RdeGBI", "RflFIII", "RlaI", "RpaTI", "SnaI", "Sno506I", "SpoDI", "TssI", "TsuI", "UbaF11I",
+                  "UbaF12I", "UbaF13I", "UbaF14I", "UbaF9I", "UbaPI"]  # non-cutters
+
     batch = RestrictionBatch([])
     for enzyme in _enzymes:
         if enzyme == "commercial":
@@ -1801,24 +1829,23 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
         analysis = Analysis(batch, rec.seq)
         result = analysis.with_sites()
         for _key, _value in result.items():
-            if _min_cuts <= len(_value) <= _max_cuts:
+            if _key.cut_twice():
+                _stderr("Warning: Double-cutters not supported.\n")
+                pass
+            elif _min_cuts <= len(_value) <= _max_cuts:
+                try:
+                    for zyme in _value:
+                        cut_start = zyme + _key.fst3 - 1
+                        cut_end = zyme + _key.fst5 + abs(_key.ovhg) - 1
+                        rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(_key)))
+                except TypeError:
+                    _stderr("Warning: No-cutters not supported.\n")
+                    pass
                 rec.res_sites[_key] = _value
         sites.append((rec.id, rec.res_sites))
+    order_features_alphabetically(_seqbuddy)
 
-    print_output = ''
-    for tup in sites:
-        print_output += "{0}\n".format(tup[0])
-        restriction_list = tup[1]
-        restriction_list = [[_key, _value] for _key, _value in restriction_list.items()]
-        restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if _order == 'alpha' else \
-            sorted(restriction_list, key=lambda l: l[1])
-
-        for _enzyme in restriction_list:
-            cut_sites = [str(x) for x in _enzyme[1]]
-            print_output += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
-        print_output += "\n"
-
-    return [sites, print_output]
+    return [_seqbuddy, sites]
 
 
 def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
@@ -1986,7 +2013,13 @@ def count_codons(_seqbuddy):
         for _codon in data_table:
             data_table[_codon][2] = round(data_table[_codon][1]/float(num_codons) * 100, 3)
         _output[_rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
-    return _output
+    for _rec in _seqbuddy.records:
+        jsond_table = json.dumps(_output[_rec.id])
+        try:
+            _rec.buddy_data['Codon_frequency'] = jsond_table
+        except AttributeError:
+            _rec.buddy_data = {'Codon_frequency': jsond_table}
+    return _seqbuddy, _output
 
 def list_features(_seqbuddy):
     _output = OrderedDict()
@@ -2679,7 +2712,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Calculate Molecular Weight
     if in_args.molecular_weight:
-        lists = molecular_weight(seqbuddy)
+        lists = molecular_weight(seqbuddy)[1]
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
             _stderr("ID\tssDNA\tdsDNA\n")
         elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
@@ -2695,25 +2728,25 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Calculate Isoelectric Point
     if in_args.isoelectric_point:
         try:
-            isoelectric_points = isoelectric_point(seqbuddy)
+            isoelectric_points = isoelectric_point(seqbuddy)[1]
             _stderr("ID\tpI\n")
-            for pI in isoelectric_points:
-                print("{0}\t{1}".format(pI[0], pI[1]))
+            for rec_id in isoelectric_points:
+                print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
         except ValueError as e:
             _raise_error(e)
 
     # Count residues
     if in_args.count_residues:
-        output = count_residues(seqbuddy)
+        output = count_residues(seqbuddy)[1]
         for sequence in output:
-            print(sequence[0])
-            sorted_residues = OrderedDict(sorted(sequence[1].items()))
+            print(sequence)
+            sorted_residues = OrderedDict(sorted(output[sequence].items()))
             for residue in sorted_residues:
                 try:
-                    print("{0}:\t{1}\t{2} %".format(residue, sequence[1][residue][0],
-                                                   round(sequence[1][residue][1] * 100, 2)))
+                    print("{0}:\t{1}\t{2} %".format(residue, output[sequence][residue][0],
+                                                   round(output[sequence][residue][1] * 100, 2)))
                 except TypeError:
-                    print("{0}:\t{1}".format(residue, sequence[1][residue]))
+                    print("{0}:\t{1}".format(residue, output[sequence][residue]))
             print()
 
     # Split sequences into files
@@ -2761,8 +2794,22 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             min_cuts = temp
 
         clean_seq(seqbuddy)
-        output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts, order)
-        _stdout(output[1])
+        output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts)
+
+        out_string = ''
+        for tup in output[1]:
+            out_string += "{0}\n".format(tup[0])
+            restriction_list = tup[1]
+            restriction_list = [[_key, _value] for _key, _value in restriction_list.items()]
+            restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
+                sorted(restriction_list, key=lambda l: l[1])
+
+            for _enzyme in restriction_list:
+                cut_sites = [str(x) for x in _enzyme[1]]
+                out_string += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
+            out_string += "\n"
+
+        _stdout(out_string)
 
     # Find pattern
     if in_args.find_pattern:
@@ -2809,14 +2856,14 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Codon counter
     if in_args.count_codons:
         try:
-            codon_table = count_codons(seqbuddy)
+            codon_table = count_codons(seqbuddy)[1]
             for sequence_id in codon_table:
-                _stderr('#### {0} ####\n'.format(sequence_id))
-                _stderr('Codon\tAmino Acid\tNum\tPercent\n')
+                _stdout('#### {0} ####\n'.format(sequence_id))
+                _stdout('Codon\tAmino Acid\tNum\tPercent\n')
                 for codon in codon_table[sequence_id]:
                     data = codon_table[sequence_id][codon]
                     _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
-                _stderr('\n')
+                _stdout('\n')
         except TypeError as e:
             _raise_error(e)
 
@@ -2892,3 +2939,4 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         flocation = in_args.add_feature[1]
 
         _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
+
