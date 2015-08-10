@@ -55,6 +55,10 @@ from MyFuncs import *
 # ##################################################### WISH LIST #################################################### #
 
 
+# ###################################################### GLOBALS ##################################################### #
+DATABASES = ["all", "gb", "genbank", "uniprot", "ensembl"]
+
+
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
@@ -104,7 +108,7 @@ def terminal_colors():
 # ##################################################### DB BUDDY ##################################################### #
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _database=None, _out_format="summary"):
-        if _database and _database.lower() not in ["gb", "genbank", "uniprot", "ensembl"]:
+        if _database and _database.lower() not in DATABASES:
             raise DatabaseError("%s is not currently supported." % _database)
 
         if _database and _database.lower() == "genbank":
@@ -176,6 +180,26 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         _output["accession"] = [_accession for _accession, _rec in self.records.items()
                                 if not _rec.record and not _rec.summary]
         return _output
+
+    def filter_records(self, regex):
+        for _id, _rec in self.records.items():
+            if not _rec.search(regex):
+                self.recycle_bin[_id] = _rec
+
+        for _id in self.recycle_bin:
+            if _id in self.records:
+                del self.records[_id]
+        return
+
+    def restore_records(self, regex):
+        for _id, _rec in self.recycle_bin.items():
+            if _rec.search(regex):
+                self.records[_id] = _rec
+
+        for _id in self.records:
+            if _id in self.recycle_bin:
+                del self.recycle_bin[_id]
+        return
 
     def print_recs(self, _num=0):
         _num = _num if _num > 0 else len(self.records)
@@ -261,7 +285,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             _stdout("{0}\n".format(_output.rstrip()))
 
     def __str__(self):
-        _output = "### DatabaseBuddy object ###\n"
+        _output = "\033[91m############################\n"
+        _output += "### \033[mDatabaseBuddy object \033[91m###\033[m\n"
         _output += "DBs searched: %s\n" % " ,".join(self.databases)
         _output += "Out format: %s\n" % self.out_format
         _output += "Search term(s): "
@@ -273,6 +298,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         _output += "ACCN only: %s\n" % len(breakdown["accession"])
         _output += "Filtered out: %s\n" % len(self.recycle_bin)
         _output += "Failures: %s\n" % len(self.failures)
+        _output += "\033[91m############################\033[m\n"
 
         return _output
 
@@ -296,6 +322,16 @@ class Record:
             self.database = "refseq"
             self.type = "protein"
 
+        # UniProt/SwissProt
+        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
+            self.database = "uniprot"
+            self.type = "protein"
+
+        # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
+        elif re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
+            self.database = "ensembl"
+            self.type = "nucleotide"
+
         # GenBank
         elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}$", self.accession):  # Nucleotide
             self.database = "gb"
@@ -317,25 +353,17 @@ class Record:
             self.database = "gb"
             self.type = "gi_num"  # Need to check genbank accession number to figure out that this is
 
-        # UniProt/SwissProt
-        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
-            self.database = "uniprot"
-            self.type = "protein"
-
-        # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
-        elif re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
-            self.database = "ensembl"
-            self.type = "nucleotide"
-
         return
 
     def search(self, regex):
         for param in [self.accession, self.database, self.type, self.search_term]:
-            if re.search(regex, param):
+            if re.search(regex, str(param)):
                 return True
+
         for _key, _value in self.summary.items():
-            if re.search(regex, _key) or re.search(regex, _value):
+            if re.search(regex, _key) or re.search(regex, str(_value)):
                 return True
+
         if self.record:
             if re.search(regex, self.record.format("gb")):
                 return True
@@ -400,15 +428,6 @@ class UniProtRestClient:
                 with open(http_errors_file, "a") as ofile:
                     ofile.write("%s\n%s//\n" % (_term, e))
             return
-
-    def filter_records(self, regex):
-        for _id, _rec in self.dbbuddy.records.items():
-            if not _rec.search(regex):
-                self.dbbuddy.recycle_bin[_id] = _rec
-        for _id in self.dbbuddy.records:
-            if _id in self.dbbuddy.records:
-                del self.dbbuddy.records[_id]
-        return
 
     def _parse_error_file(self):
         with open(self.http_errors_file, "r") as ifile:
@@ -479,6 +498,7 @@ class UniProtRestClient:
     def fetch_proteins(self):
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
         if len(_records) > 0:
+            _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
             _ids = ",".join([_rec.accession for _rec in _records]).strip(",")
             request = Request("%s?query=%s&format=txt" % (self.server, _ids))
             response = urlopen(request)
@@ -620,11 +640,21 @@ class EnsemblRestClient:
 
 # #################################################################################################################### #
 class LiveSearch(cmd.Cmd):
-    intro = "Welcome to the DatabaseBuddy live shell. Type 'help' at any time for a list of available commands " \
-            "or 'help <command>' for more detailed explaination of a given command.\n"
-    prompt = 'DbBuddy> '
-    file = None
-    dbbuddy = None
+    def __init__(self, _dbbuddy):
+        cmd.Cmd.__init__(self)
+        _stdout("Welcome to the DatabaseBuddy live shell. Type 'help' at any time for a list of available commands "
+                "or 'help <command>' for more detailed explaination of a given command.\n")
+        self.prompt = 'DbBuddy> '
+        self.dbbuddy = _dbbuddy
+        self.file = None
+
+        if self.dbbuddy.records:
+            retrieve_sequences(dbbuddy)
+
+        if self.dbbuddy.search_terms:
+            retrieve_accessions(dbbuddy)
+
+        self.cmdloop()
 
     @staticmethod
     def do_exit(self, line=None):
@@ -656,11 +686,81 @@ class LiveSearch(cmd.Cmd):
 
     def do_format(self, line):
         self.dbbuddy.out_format = line
+        _stdout("Output format changed to \033[95%s\n" % line, color="\033[91m")
 
     def do_search(self, line):
-        if line not in self.dbbuddy.search_terms:
-            self.dbbuddy.search_terms.append(line)
-            retrieve_accessions(self.dbbuddy)
+        temp_buddy = DbBuddy(line)
+        temp_buddy.databases = dbbuddy.databases
+
+        if len(temp_buddy.records):
+            retrieve_sequences(temp_buddy)
+
+        if len(temp_buddy.search_terms):
+            retrieve_accessions(temp_buddy)
+
+        for _term in temp_buddy.search_terms:
+            if _term not in self.dbbuddy.search_terms:
+                self.dbbuddy.search_terms.append(line)
+
+        for _accn, _rec in temp_buddy.records.items():
+            if _accn not in self.dbbuddy.records:
+                self.dbbuddy.records[_accn] = _rec
+
+    def do_database(self, line):
+        line = line.split(" ")
+        new_database_list = []
+        for l in line:
+            if l not in DATABASES:
+                _stdout("Waring: %s is not a valid database choice.\n", color="\033[91m")
+            else:
+                new_database_list.append(l)
+        if new_database_list:
+            self.dbbuddy.databases = new_database_list
+            _stdout("Database search list updated to %s\n" % new_database_list, color="\033[92m")
+        else:
+            _stdout("Database seach list not changed.\n", color="\033[91m")
+
+    def do_filter(self, line):
+        if line[0] == "'":
+            line = line.strip("'").split("' '")
+        else:
+            line = line.strip('"').split('" "')
+        max_regex_len = 0
+        for _filter in line:
+            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
+        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
+        _stdout(tabbed.format("Filter", "# Recs removed"))
+        current_count = len(self.dbbuddy.records)
+        for _filter in line:
+            self.dbbuddy.filter_records(_filter)
+            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)))
+            current_count = len(self.dbbuddy.records)
+        _stdout("\n%s records remain.\n" % len(self.dbbuddy.records))
+
+    def do_reset(self, line=None):
+        current_count = len(self.dbbuddy.records)
+        for _accn, _rec in self.dbbuddy.recycle_bin.items():
+            if _accn not in self.dbbuddy.records:
+                self.dbbuddy.records[_accn] = _rec
+        self.dbbuddy.recycle_bin = {}
+        _stdout("%s records recovered\n" % (len(self.dbbuddy.records) - current_count), color='\033[94m')
+
+    def do_restore(self, line):
+        if line[0] == "'":
+            line = line.strip("'").split("' '")
+        else:
+            line = line.strip('"').split('" "')
+        max_regex_len = 0
+        for _filter in line:
+            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
+        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
+        _stdout(tabbed.format("Filter", "# Recs returned"))
+        current_count = len(self.dbbuddy.recycle_bin)
+        for _filter in line:
+            self.dbbuddy.restore_records(_filter)
+            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.recycle_bin)))
+            current_count = len(self.dbbuddy.recycle_bin)
+        _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin))
 
     @staticmethod
     def help_exit(self):
@@ -690,15 +790,50 @@ Set the output format:
 ''', color="\033[92m")
 
     def help_search(self):
-        pass
+        _stdout('''\
+Search databases (currently set to %s). If search terms are supplied summary info will be downloaded,
+if accession numbers are supplied then full sequence records will be downloaded.
+''' % self.dbbuddy.databases, color="\033[92m")
+
+    def help_database(self):
+        _stdout('''\
+Reset the database(s) to be searched. Separate multiple databases with spaces.
+Currently set to: %s
+Valid choices: %s
+''' % (", ".join(self.dbbuddy.databases), ", ".join(DATABASES)), color="\033[92m")
+
+    @staticmethod
+    def help_filter():
+        _stdout('''\
+Further refine your search:
+    - All summary fields are searched
+    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
+    - Enclose filters in quotes
+    - Regular expressions are understood (https://docs.python.org/2/library/re.html)
+    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
+    - Records that do not match your filters are relegated to the 'recycle bin'; return them to the main list
+      with the 'reset' or 'restore' commands
+''', color="\033[92m")
+
+    @staticmethod
+    def help_reset():
+        _stdout('''\
+Return all filtered records back into the main list (use the 'restore' command to only return a subset)
+''', color="\033[92m")
+
+    @staticmethod
+    def help_restore():
+        _stdout('''\
+Return a subset of filtered records back into the main list (use the 'reset' command to return all records)
+    - All summary fields are searched
+    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
+    - Enclose filters in quotes
+    - Regular expressions are understood (https://docs.python.org/2/library/re.html)
+    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
+''', color="\033[92m")
 
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    def do_filter(self):
-        pass
-
-    def help_filter(self):
-        pass
 
     def do_download(self):
         pass
@@ -712,22 +847,17 @@ Set the output format:
     def help_write(self):
         pass
 
-    def do_database(self):
-        pass
-
-    def help_database(self):
-        pass
-
     def do_type(self):
         pass
 
     def help_type(self):
         pass
 
-    def do_reset(self):
+    def do_clear_all(self):
+        # Purge all stored records
         pass
 
-    def help_reset(self):
+    def help_clear_all(self):
         pass
 
 
@@ -757,7 +887,7 @@ def retrieve_accessions(_dbbuddy):
         refseq.gi2acc()
         # refseq.search_nucliotides()
 
-    elif "uniprot" in _dbbuddy.databases or check_all:
+    if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.search_proteins()
 
@@ -772,14 +902,28 @@ def retrieve_summary(_dbbuddy):
         refseq.gi2acc()
         # refseq.search_nucliotides()
 
-    elif "uniprot" in _dbbuddy.databases or check_all:
+    if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.search_proteins()
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        pass
 
     return _dbbuddy
 
 
 def retrieve_sequences(_dbbuddy):
+    check_all = True if len(_dbbuddy.databases) == 0 else False
+    if "gb" in _dbbuddy.databases or check_all:
+        pass
+
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = UniProtRestClient(_dbbuddy)
+        uniprot.fetch_proteins()
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        pass
+
     return _dbbuddy
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -841,15 +985,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Live Search
     if in_args.live_search:
-        if dbbuddy.records:
-            retrieve_sequences(dbbuddy)
-
-        if dbbuddy.search_terms:
-            retrieve_accessions(dbbuddy)
-
-        live_search = LiveSearch()
-        live_search.dbbuddy = dbbuddy
-        live_search.cmdloop()
+        live_search = LiveSearch(dbbuddy)
         sys.exit()
 
     # Download everything
