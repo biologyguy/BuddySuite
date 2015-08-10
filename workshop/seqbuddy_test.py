@@ -7,6 +7,7 @@ from hashlib import md5
 import os
 import re
 from Bio.Alphabet import IUPAC
+from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from collections import OrderedDict
 
 try:
@@ -968,13 +969,84 @@ def test_pep_exception():
 
 # ##################### 'lf', 'list_features' ###################### ##
 def test_list_features():
-    tester = Sb._make_copies(sb_objects[2])
+    tester = Sb._make_copies(sb_objects[1])
     output = Sb.list_features(tester)
     for record in tester.records:
         assert record.id in output
         if output[record.id] is not None:
             assert output[record.id] == record.features
 
+# ##################### 'af', 'add_feaure' ###################### ##
+def test_add_feature_pattern():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _pattern='α4')
+    assert seqs_to_hash(tester) == '7330c5905e216575b8bb8f54db3a0610'
+
+def test_add_feature_no_pattern():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100))
+    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
+def test_add_feature_compoundlocation():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', [(1, 100), (200, 250)])
+    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
+def test_add_feature_nested_tuples():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', ((1, 100), (200, 250)))
+    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
+def test_add_feature_list_str():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', ['1-100', '(200-250)'])
+    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
+def test_add_feature_str():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', '1-100, (200-250)')
+    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
+def test_add_feature_fl_obj():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', FeatureLocation(start=1, end=100))
+    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
+def test_add_feature_cl_obj():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', CompoundLocation([FeatureLocation(start=1, end=100),
+                                                              FeatureLocation(start=200, end=250)], operator='order'))
+    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
+def test_add_feature_typerror():
+    with pytest.raises(TypeError):
+        tester = Sb._make_copies(sb_objects[1])
+        tester = Sb.add_feature(tester, 'test', 5)
+
+def test_add_feature_pos_strand():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _strand='+')
+    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
+def test_add_feature_neg_strand():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _strand='-')
+    assert seqs_to_hash(tester) == 'a6c4bb6b402fa69f60229832af2bf354'
+
+def test_add_feature_no_strand():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _strand=0)
+    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
+def test_add_feature_qualifier_dict():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers={'foo': 'bar', 'hello': 'world'})
+    assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
+
+def test_add_feature_qualifier_str():
+    tester = Sb._make_copies(sb_objects[1])
+    tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers='foo=bar, hello:world')
+    assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
 
 # ######################  'phylipi' ###################### #
 def test_phylipi():

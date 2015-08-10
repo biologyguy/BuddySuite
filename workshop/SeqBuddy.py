@@ -2013,7 +2013,9 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
         pass
     elif isinstance(_location, list) or isinstance(_location, tuple):
         _locations = []
-        if isinstance(_location[0], tuple):
+        if isinstance(_location[0], int):
+            _locations.append(FeatureLocation(start=_location[0], end=_location[1]))
+        elif isinstance(_location[0], tuple) or isinstance(_location[0], list):
             for tup in _location:
                 _locations.append(FeatureLocation(start=tup[0], end=tup[1]))
         elif isinstance(_location[0], str):
