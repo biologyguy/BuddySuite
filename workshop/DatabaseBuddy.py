@@ -124,7 +124,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     raise TypeError("List of non-DbBuddy objects passed into DbBuddy as _input. %s" % _dbbuddy)
 
                 self.search_terms += _dbbuddy.search_terms
-                # ToDo: update() will overwrite any common records between the two dicts, should check whether values are already set first
+                # ToDo: update() will overwrite any common records between the two dicts,
+                # should check whether values are already set first
                 self.records.update(_dbbuddy.records)
             _input = None
 
@@ -170,11 +171,13 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
     def record_breakdown(self):
         _output = {x: [] for x in ["full", "partial", "accession"]}
         _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
-        _output["partial"] = [_accession for _accession, _rec in self.records.items() if not _rec.record and _rec.summary]
-        _output["accession"] = [_accession for _accession, _rec in self.records.items() if not _rec.record and not _rec.summary]
+        _output["partial"] = [_accession for _accession, _rec in self.records.items()
+                              if not _rec.record and _rec.summary]
+        _output["accession"] = [_accession for _accession, _rec in self.records.items()
+                                if not _rec.record and not _rec.summary]
         return _output
 
-    def _print_recs(self, _num=0):
+    def print_recs(self, _num=0):
         _num = _num if _num > 0 else len(self.records)
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
@@ -199,14 +202,17 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 errors_etc += "\n"
 
             if errors_etc != "":
-                errors_etc = "%s\n# ################################################################ #\n\n" % errors_etc.strip()
+                errors_etc = "%s\n# ################################################################ #\n\n" \
+                             % errors_etc.strip()
                 _stderr(errors_etc, in_args.quiet)
 
             _output = ""
             # Full records
             if self.out_format not in ["summary", "ids", "accessions"]:
-                nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide" and _rec.record]
-                prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein" and _rec.record]
+                nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide"
+                            and _rec.record]
+                prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein"
+                             and _rec.record]
                 tmp_dir = TemporaryDirectory()
                 if len(nuc_recs) > 0:
                     with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
@@ -599,7 +605,8 @@ class EnsemblRestClient:
                 _rec.record = self.perform_rest_action("/sequence/id", _rec.accession)
 
                 if _rec.record:
-                    rec_info = self.perform_rest_action("/lookup/id", _rec.accession, headers={"Content-Type": "application/json"})
+                    rec_info = self.perform_rest_action("/lookup/id", _rec.accession,
+                                                        headers={"Content-Type": "application/json"})
 
                 if _rec.record and rec_info:
                     _rec.record.name = rec_info["display_name"]
@@ -619,33 +626,54 @@ class LiveSearch(cmd.Cmd):
     file = None
     dbbuddy = None
 
-    def do_status(self, line):
+    @staticmethod
+    def do_exit(self, line=None):
+        return True
+
+    @staticmethod
+    def do_quit(self, line=None):
+        return True
+
+    def do_status(self, line=None):
         _stdout(str(self.dbbuddy))
 
-    def do_show(self, line):
+    def do_show(self, line=None):
         if line:
             try:
                 line = int(line)
-                self.dbbuddy._print_recs(_num=line)
+                self.dbbuddy.print_recs(_num=line)
             except ValueError:
                 _stdout("'%s' is not an integer, nothing displayed\n" % line)
         else:
             if len(self.dbbuddy.records) > 100:
                 confirm = input("%s records currently in buffer, show them all (y/[n])?")
                 if confirm.lower() in ["yes", "y"]:
-                    self.dbbuddy._print_recs()
+                    self.dbbuddy.print_recs()
                 else:
                     _stdout("Include an integer value with 'show' to return a specific number of records.\n")
             else:
-                self.dbbuddy._print_recs()
+                self.dbbuddy.print_recs()
+
+    def do_format(self, line):
+        self.dbbuddy.out_format = line
+
+    def do_search(self, line):
+        if line not in self.dbbuddy.search_terms:
+            self.dbbuddy.search_terms.append(line)
+            retrieve_accessions(self.dbbuddy)
+
+    @staticmethod
+    def help_exit(self):
+        _stdout("End the live session.\n\n")
+
+    @staticmethod
+    def help_quit(self):
+        _stdout("End the live session.\n\n")
 
     @staticmethod
     def help_status():
         _stdout("Display the current state of your buffer, including how many accessions and full records have been "
                 "downloaded.\n\n", color="\033[92m")
-
-    def do_format(self, line):
-        self.dbbuddy.out_format = line
 
     def help_show(self):
         _stdout('''\
@@ -661,24 +689,10 @@ Set the output format:
                           See http://biopython.org/wiki/SeqIO for details
 ''', color="\033[92m")
 
-    def do_exit(self, line):
-        return True
-
-    def help_exit(self):
-        _stdout("End the live session.\n\n")
-
-    def do_quit(self, line):
-        return True
-
-    def help_quit(self):
-        _stdout("End the live session.\n\n")
-
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    def do_search(self):
-        pass
-
     def help_search(self):
         pass
+
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def do_filter(self):
         pass
@@ -853,7 +867,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 counter += 1
             _stderr("%s\n# ################################################################ #\n\n" % output.strip())
 
-        dbbuddy._print_recs()
+        dbbuddy.print_recs()
         sys.exit()
 
     # Retrieve Accessions
@@ -861,7 +875,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if not in_args.out_format:
             dbbuddy.out_format = "ids"
         retrieve_accessions(dbbuddy)
-        dbbuddy._print_recs()
+        dbbuddy.print_recs()
         sys.exit()
 
     if in_args.retrieve_sequences:
