@@ -771,12 +771,21 @@ class LiveSearch(cmd.Cmd):
 
         if amount_seq_requested > 500:
             confirm = input("You are requesting %s Mb of data. Continue (y/[n])?" %
-                            round(amount_seq_requested / 1000, 1))
+                            round(amount_seq_requested / 1000000, 1))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n", color="\033[91")
                 return
         retrieve_sequences(self.dbbuddy)
         _stdout("Retrieved %s Mbs of sequence data\n" % amount_seq_requested)
+
+    def do_clear_all(self, line=None):
+        confirm = input("\033[91mAre you sure you want to delete ALL %s records from your live session (y/[n])?\033[m" %
+                        (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)))
+        if confirm.lower() not in ["yes", "y"]:
+            return
+        self.dbbuddy.recycle_bin = {}
+        self.dbbuddy.records = {}
+        self.dbbuddy.search_terms = []
 
     @staticmethod
     def help_exit(self):
@@ -796,7 +805,8 @@ class LiveSearch(cmd.Cmd):
 Output the records currently held in your buffer (out_format currently set to '\033[94m%s\033[92m')
 Optionally include an integer value to limit how many will be shown.''' % self.dbbuddy.out_format, color="\033[92m")
 
-    def help_format(self):
+    @staticmethod
+    def help_format():
         _stdout('''\
 Set the output format:
     ids or accessions ->  Simple list of all accessions in the buffer
@@ -855,6 +865,11 @@ Retrieve full records for all accessions in the main record list.
 If requesting more than 50 Mb of sequence data, you will be prompted to confirm the command.
 ''', color="\033[92m")
 
+    def help_clear_all(self):
+        _stdout('''\
+Delete all %s records currently stored in your Live Session (including recycle bin).
+''' % (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)), color="\033[92m")
+
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def do_write(self):
@@ -869,12 +884,7 @@ If requesting more than 50 Mb of sequence data, you will be prompted to confirm 
     def help_type(self):
         pass
 
-    def do_clear_all(self):
-        # Purge all stored records
-        pass
 
-    def help_clear_all(self):
-        pass
 
 
 def download_everything(_dbbuddy):
