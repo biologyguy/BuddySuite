@@ -40,6 +40,7 @@ from multiprocessing import Lock
 from collections import OrderedDict
 from hashlib import md5
 import cmd
+from subprocess import Popen, PIPE
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -650,15 +651,19 @@ class EnsemblRestClient:
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
         cmd.Cmd.__init__(self)
+        hash_heading = ""
+        colors = terminal_colors()
+        for _ in range(22):
+            hash_heading += "%s#" % next(colors)
         _stdout('''\
 
-###################### Welcome to the DatabaseBuddy live shell ######################
+{0} \033[m\033[4m\033[1mWelcome to the DatabaseBuddy live shell\033[m {0}\033[m
 
-Type 'help' for a list of available commands or 'help <command>' for further details.
-To end the session, use the commands 'quit' or 'exit'.
+\033[1mType 'help' for a list of available commands or 'help <command>' for further details.
+                    To end the session, use the quit command.\033[m
 
-''')
-        self.prompt = 'DbBuddy> '
+'''.format(hash_heading))
+        self.prompt = '\033[1mDbBuddy> \033[m'
         self.dbbuddy = _dbbuddy
         self.file = None
 
@@ -829,6 +834,22 @@ To end the session, use the commands 'quit' or 'exit'.
         pass
 
     @staticmethod
+    def do_bash(line):
+        line = re.sub('^["](.*)["]$', r"\1", line)
+        line = re.sub("^['](.*)[']$", r"\1", line)
+        if line[:2] == "cd":
+            line = line.lstrip("cd ")
+            try:
+                os.chdir(os.path.abspath(line))
+            except FileNotFoundError:
+                _stdout("-sh: cd: %s: No such file or directory\n" % line, color="\033[91m")
+        else:
+            Popen(line, shell=True).wait()
+
+    def do_save(self, line=None):
+        self.do_write()
+
+    @staticmethod
     def help_exit(self):
         _stdout("End the live session.\n\n")
 
@@ -910,6 +931,14 @@ If requesting more than 50 Mb of sequence data, you will be prompted to confirm 
         _stdout('''\
 Delete all %s records currently stored in your Live Session (including recycle bin).
 ''' % (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)), color="\033[92m")
+
+    @staticmethod
+    def help_bash():
+        _stdout('''\
+Run bash commands from the DbBuddy Live Session.
+Be careful!! This is not sand-boxed in any way, so give the 'bash' command
+all the respect you would afford the normal terminal window.
+''', color="\033[92m")
 
     def help_write(self):
         pass
