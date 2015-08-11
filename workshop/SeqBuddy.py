@@ -482,7 +482,8 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     # Check to make sure blast is in $PATH and ensure that the blast_db is present
     if blast_check == "blastp":
         if not which(blast_path):
-            prompt = input("Blastp binary not found. Would you like to download it? [yes]/no")
+            _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
+            prompt = input()
             while True:
                 if prompt.lower() in ['yes', '']:
                     if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
@@ -493,17 +494,20 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
                 elif prompt.lower() in ['no']:
                     break
                 else:
-                    _stdout("Input not understood.\n")
-                    prompt = input("Would you like to download blastp? [yes]/no")
+                    _stderr("Input not understood.\n")
+                    _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
+                    prompt = input()
             if not which("blastp"):
                 raise FileNotFoundError("blastp binary not found")
+            return
 
         if not os.path.isfile("%s.pin" % blast_db) or not os.path.isfile("%s.phr" % blast_db) \
                 or not os.path.isfile("%s.psq" % blast_db):
             raise RuntimeError("Blastp database not found at '%s'" % blast_db)
     elif blast_check == "blastn":
         if not which(blast_path):
-            prompt = input("Blastn binary not found. Would you like to download it? [yes]/no")
+            _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
+            prompt = input()
             while True:
                 if prompt.lower() in ['yes', '']:
                     if _download_blast_binaries(_blastdcmd=False, _blastn=True, _blastp=False):
@@ -514,10 +518,12 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
                 elif prompt.lower() in ['no']:
                     break
                 else:
-                    _stdout("Input not understood.\n")
-                    prompt = input("Would you like to download blastn? [yes]/no")
+                    _stderr("Input not understood.\n")
+                    _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
+                    prompt = input()
             if not which("blastn"):
                 raise FileNotFoundError("blastn binary not found")
+            return
 
         if not os.path.isfile("%s.nin" % blast_db) or not os.path.isfile("%s.nhr" % blast_db) \
                 or not os.path.isfile("%s.nsq" % blast_db):
@@ -529,7 +535,8 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         blastdbcmd = "blastdbcmd"
 
     if not which(blastdbcmd):
-        prompt = input("Blastdbcmd binary not found. Would you like to download it? [yes]/no")
+        _stderr("Blastdbcmd binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
+        prompt = input()
         while True:
             if prompt.lower() in ['yes', '']:
                 if _download_blast_binaries(_blastdcmd=True, _blastn=False, _blastp=False):
@@ -540,10 +547,12 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
             elif prompt.lower() in ['no']:
                 break
             else:
-                _stdout("Input not understood.\n")
-                prompt = input("Would you like to download blastdbcmd? [yes]/no")
+                _stderr("Input not understood.\n")
+                _stderr("Would you like to download blastdbcmd? (program will be aborted) [yes]/no\n")
+                prompt = input()
         if not which("blastdbcmd"):
             raise FileNotFoundError("blastdbcmd")
+        return
 
     # Check that compelte blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_check]:
@@ -1553,6 +1562,47 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     threshold may need to be increased quite a bit to return short alignments
     """
+    if not which("blastp") and _seqbuddy.alpha not in [IUPAC.protein]:
+        _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
+        prompt = input()
+        while True:
+            if prompt.lower() in ['yes', '']:
+                if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
+                    _stderr("Blastp downloaded.\n")
+                else:
+                    _stderr("Failed to download blastp.\n")
+                break
+            elif prompt.lower() in ['no']:
+                break
+            else:
+                _stderr("Input not understood.\n")
+                _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
+                prompt = input()
+        if not which("blastp"):
+            raise RuntimeError("Blastp not present in $PATH or working directory.")
+        sys.exit()
+
+    elif not which("blastn") and _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
+                                                         IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
+        prompt = input()
+        while True:
+            if prompt.lower() in ['yes', '']:
+                if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
+                    _stderr("Blastn downloaded.\n")
+                else:
+                    _stderr("Failed to download blastn.\n")
+                break
+            elif prompt.lower() in ['no']:
+                break
+            else:
+                _stderr("Input not understood.\n")
+                _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
+                prompt = input()
+        if not which("blastn"):
+            raise RuntimeError("Blastn not present in $PATH or working directory.")
+        sys.exit()
+
     def mc_blast(_query, args):
         _subject_file = args[0]
 
@@ -1583,7 +1633,7 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
 
     blast_bin = "blastp" if _seqbuddy.alpha == IUPAC.protein else "blastn"
     if not which(blast_bin):
-        raise RuntimeError("%s not present in $PATH." % blast_bin)  # ToDo: Implement -p flag
+        raise RuntimeError("%s not present in $PATH or working directory." % blast_bin)  # ToDo: Implement -p flag
 
     from multiprocessing import Lock
     lock = Lock()
