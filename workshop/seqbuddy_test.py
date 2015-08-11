@@ -951,15 +951,15 @@ def test_insert_seqs_startplus_extreme():
 
 # ##################### 'cc', 'count_codons' ###################### ##
 def test_count_codons_dna():
-    tester = Sb.count_codons(Sb._make_copies(sb_objects[0]))
+    tester = Sb.count_codons(Sb._make_copies(sb_objects[0]))[1]
     assert md5(str(tester).encode()).hexdigest() == '829c9cf42887880767548eb39d747d35'
 
 def test_count_codons_rna():
-    tester = Sb.count_codons(Sb.dna2rna(Sb._make_copies(sb_objects[0])))
+    tester = Sb.count_codons(Sb.dna2rna(Sb._make_copies(sb_objects[0])))[1]
     assert md5(str(tester).encode()).hexdigest() == 'b91daa8905533b5885d2067d9d6ffe36'
 
 def test_count_codons_dna_badchar():
-    tester = Sb.count_codons(Sb.insert_sequence(Sb._make_copies(sb_objects[0]), 'PPP', 'end'))
+    tester = Sb.count_codons(Sb.insert_sequence(Sb._make_copies(sb_objects[0]), 'PPP', 'end'))[1]
     assert md5(str(tester).encode()).hexdigest() == '9aba116675fe0e9eaaf43e5c6e0ba99d'
 
 def test_pep_exception():
