@@ -4,6 +4,7 @@
 from functools import partial
 import shutil
 from shutil import which, rmtree, copytree
+from urllib import request
 from platform import *
 from os import path
 from configparser import *
@@ -52,7 +53,6 @@ if not in_args.cmd_line:
         from PIL import Image
 
     except ImportError:
-        from subprocess import Popen
         if which("conda"):
             print("The image processing package 'Pillow' is needed for the graphical installer, "
                   "attempting to install with 'conda'.")
@@ -84,9 +84,8 @@ if not in_args.cmd_line:
 class BuddyInstall:
 
     @staticmethod
-    def download_blast_binaries(current_path, _blastn=True, _blastp=True, _blastdcmd=True):
-        binary_source = 'wget --no-check-certificate https://github.com/biologyguy/BuddySuite/blob/master/workshop/' \
-                        'build_dir/blast_binaries/'
+    def download_blast_binaries(install_dir, current_path, _blastn=True, _blastp=True, _blastdcmd=True):
+        binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
         bins_to_dl = []
         current_os = sys.platform
         if current_os.startswith('darwin'):
@@ -113,11 +112,15 @@ class BuddyInstall:
         else:
             return False
 
+        os.makedirs("{0}/temp".format(current_path), exist_ok=True)
         for blast_bin in bins_to_dl:
-            zip_file = Popen('{0}{1}'.format(binary_source, blast_bin))
-            with zipfile.ZipFile(zip_file) as zip_file:
-                zip_file.extractall(path=current_path)
-            sys.stderr("File added: {0}{1}".format(current_path, blast_bin))
+            with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
+                    open("{0}/temp/{1}".format(current_path, blast_bin), mode='wb') as writer:
+                shutil.copyfileobj(reader, writer)
+            zip_file = zipfile.ZipFile("{0}/temp/{1}".format(current_path, blast_bin))
+            zip_file.extractall(path="{0}/blast_binaries".format(install_dir))
+            print("File added: {0}/{1}".format(current_path, blast_bin))
+        shutil.rmtree("{0}/temp".format(current_path))
 
         return True
 
@@ -174,20 +177,22 @@ class BuddyInstall:
 
                 binaries = ["blastn", "blastp", "blastdbcmd"] if user_system != "Win32" else \
                     ["blastn.exe", "blastp.exe", "blastdbcmd.exe"]
+
+                os.makedirs('{0}/blast_binaries'.format(install_directory), exist_ok=True)
                 for binary in binaries:
                     if not which(binary):
                         if binary.startswith('blastn'):
-                            if BuddyInstall.download_blast_binaries(install_directory, _blastp=False, _blastdcmd=False):
+                            if BuddyInstall.download_blast_binaries(install_directory, start_dir, _blastp=False, _blastdcmd=False):
                                 print("{0} ==> Installed".format(binary))
                             else:
                                 print("Failed to install {0}.".format(binary))
                         elif binary.startswith('blastp'):
-                            if BuddyInstall.download_blast_binaries(install_directory, _blastn=False, _blastdcmd=False):
+                            if BuddyInstall.download_blast_binaries(install_directory, start_dir, _blastn=False, _blastdcmd=False):
                                 print("{0} ==> Installed".format(binary))
                             else:
                                 print("Failed to install {0}.".format(binary))
                         else:
-                            if BuddyInstall.download_blast_binaries(install_directory, _blastn=False, _blastp=False):
+                            if BuddyInstall.download_blast_binaries(install_directory, start_dir, _blastn=False, _blastp=False):
                                 print("{0} ==> Installed".format(binary))
                             else:
                                 print("Failed to install {0}.".format(binary))
