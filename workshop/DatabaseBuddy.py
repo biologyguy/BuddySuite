@@ -29,25 +29,22 @@ Collection of functions that interact with public sequence databases. Pull them 
 # import pdb
 # import timeit
 import sys
-from io import StringIO
 import re
 from urllib.parse import urlencode
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
-from time import time, sleep
+from time import sleep
 import json
 from multiprocessing import Lock
 from collections import OrderedDict
 from hashlib import md5
 import cmd
-from subprocess import Popen, PIPE
+from subprocess import Popen
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-from Bio.Seq import Seq
 
 # My functions
 from MyFuncs import *
@@ -657,7 +654,7 @@ class EnsemblRestClient:
                     _rec.record.annotations["sequence_version"] = int(rec_info["version"])
 
 
-# #################################################################################################################### #
+# ################################################## API FUNCTIONS ################################################### #
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
         cmd.Cmd.__init__(self)
@@ -947,7 +944,7 @@ Set the output format:
     Valid choices            ->  ["ids", "accessions", "summary", "full-summary", <SeqIO formats>]
     ids or accessions        ->  Simple list of all accessions in the buffer
     summary or full-summary  ->  Information about each record
-    <SeqIO format>           ->  Full sequence record, in any sequence file format
+    <SeqIO format>           ->  Full sequence records, in any sequence file format
                                  supported by BioPython (e.g. gb, fasta, clustal)
                                  See http://biopython.org/wiki/SeqIO for details\n
 ''', color="\033[92m")
@@ -1003,7 +1000,8 @@ Send records to a file (format currently set to '\033[94m%s\033[92m').
 Supply the file name to be written to.\n
 ''' % self.dbbuddy.out_format, color="\033[92m")
 
-
+# DL everything
+"""
 def download_everything(_dbbuddy):
     # Get sequences from UniProt
     uniprot = UniProtRestClient(_dbbuddy)
@@ -1020,19 +1018,22 @@ def download_everything(_dbbuddy):
     refseq.fetch_proteins()
 
     return _dbbuddy
+"""
 
 
 def retrieve_accessions(_dbbuddy):
     check_all = True if len(_dbbuddy.databases) == 0 else False
 
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = UniProtRestClient(_dbbuddy)
+        uniprot.search_proteins()
+
+    return _dbbuddy  # TEMPORARY
+
     if "gb" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
         # refseq.search_nucliotides()
-
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = UniProtRestClient(_dbbuddy)
-        uniprot.search_proteins()
 
     return _dbbuddy
 
@@ -1040,14 +1041,15 @@ def retrieve_accessions(_dbbuddy):
 def retrieve_summary(_dbbuddy):
     check_all = True if len(_dbbuddy.databases) == 0 else False
 
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = UniProtRestClient(_dbbuddy)
+        uniprot.search_proteins()
+
+    return _dbbuddy  # TEMPORARY
     if "gb" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
         # refseq.search_nucliotides()
-
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = UniProtRestClient(_dbbuddy)
-        uniprot.search_proteins()
 
     if "ensembl" in _dbbuddy.databases or check_all:
         pass
@@ -1057,12 +1059,13 @@ def retrieve_summary(_dbbuddy):
 
 def retrieve_sequences(_dbbuddy):
     check_all = True if len(_dbbuddy.databases) == 0 else False
-    if "gb" in _dbbuddy.databases or check_all:
-        pass
-
     if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.fetch_proteins()
+
+    return _dbbuddy  # TEMPORARY
+    if "gb" in _dbbuddy.databases or check_all:
+        pass
 
     if "ensembl" in _dbbuddy.databases or check_all:
         pass
@@ -1089,8 +1092,8 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
-    parser.add_argument('-de', '--download_everything', action="store_true",
-                        help="Retrieve full records for all search terms and accessions")
+    # parser.add_argument('-de', '--download_everything', action="store_true",
+    #                    help="Retrieve full records for all search terms and accessions")
     parser.add_argument('-ls', '--live_search', action="store_true",
                         help="Interactive database searching. The best tool for sequence discovery.")
     parser.add_argument('-ra', '--retrieve_accessions', action="store_true",
@@ -1131,6 +1134,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         live_search = LiveSearch(dbbuddy)
         sys.exit()
 
+    """
     # Download everything
     if in_args.download_everything:
         dbbuddy.out_format = "gb" if not in_args.out_format else in_args.out_format
@@ -1148,7 +1152,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         dbbuddy.print_recs()
         sys.exit()
-
+    """
     # Retrieve Accessions
     if in_args.retrieve_accessions:
         if not in_args.out_format:
