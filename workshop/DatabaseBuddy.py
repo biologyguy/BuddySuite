@@ -681,68 +681,29 @@ class LiveSearch(cmd.Cmd):
         self.hash = None
         self.cmdloop()
 
-    def do_exit(self, line=None):
-        if self.hash != hash(self.dbbuddy):
-            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
-            if confirm.lower() in ["yes", "y"]:
-                _stdout("Goodbye\n")
-                sys.exit()
-            else:
-                _stdout("Aborted...\n", color="\033[91m")
-                return
-        _stdout("Goodbye\n")
-        sys.exit()
-
-    def do_quit(self, line=None):
-        self.do_exit()
-
-    def do_status(self, line=None):
-        _stdout(str(self.dbbuddy))
-
-    def do_show(self, line=None):
-        if line:
+    @staticmethod
+    def do_bash(line):
+        # Need to strip out leading/trailing quotes for this to work
+        line = re.sub('^["](.*)["]$', r"\1", line)
+        line = re.sub("^['](.*)[']$", r"\1", line)
+        if line[:2] == "cd":
+            line = line.lstrip("cd ")
             try:
-                line = int(line)
-                self.dbbuddy.print_recs(_num=line)
-            except ValueError:
-                _stdout("'%s' is not an integer, nothing displayed\n" % line)
+                os.chdir(os.path.abspath(line))
+            except FileNotFoundError:
+                _stdout("-sh: cd: %s: No such file or directory\n" % line, color="\033[91m")
         else:
-            if len(self.dbbuddy.records) > 100:
-                confirm = input("%s records currently in buffer, show them all (y/[n])?")
-                if confirm.lower() in ["yes", "y"]:
-                    self.dbbuddy.print_recs()
-                else:
-                    _stdout("Include an integer value with 'show' to return a specific number of records.\n")
-            else:
-                self.dbbuddy.print_recs()
+            Popen(line, shell=True).wait()
 
-    def do_format(self, line):
-        if not line:
-            line = input("\033[91mWhich format would you like set? \033[m")
-
-        self.dbbuddy.out_format = line
-        _stdout("Output format changed to \033[92m%s\n" % line, color="\033[91m")
-
-    def do_search(self, line):
-        if not line:
-            line = input("\033[91mSpecify search string: \033[m")
-
-        temp_buddy = DbBuddy(line)
-        temp_buddy.databases = dbbuddy.databases
-
-        if len(temp_buddy.records):
-            retrieve_sequences(temp_buddy)
-
-        if len(temp_buddy.search_terms):
-            retrieve_summary(temp_buddy)
-
-        for _term in temp_buddy.search_terms:
-            if _term not in self.dbbuddy.search_terms:
-                self.dbbuddy.search_terms.append(line)
-
-        for _accn, _rec in temp_buddy.records.items():
-            if _accn not in self.dbbuddy.records:
-                self.dbbuddy.records[_accn] = _rec
+    def do_clear_all(self, line=None):
+        confirm = input("\033[91mAre you sure you want to delete ALL %s records from your live session (y/[n])?\033[m" %
+                        (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)))
+        if confirm.lower() not in ["yes", "y"]:
+            _stdout("Aborted...\n", color="\033[91m")
+            return
+        self.dbbuddy.recycle_bin = {}
+        self.dbbuddy.records = {}
+        self.dbbuddy.search_terms = []
 
     def do_database(self, line):
         if not line:
@@ -761,6 +722,33 @@ class LiveSearch(cmd.Cmd):
             _stdout("Database search list updated to %s\n" % new_database_list, color="\033[92m")
         else:
             _stdout("Database seach list not changed.\n", color="\033[91m")
+
+    def do_download(self, line=None):
+        retrieve_summary(self.dbbuddy)
+        amount_seq_requested = 0
+        for _accn, _rec in self.dbbuddy.records.items():
+            amount_seq_requested += _rec.size
+
+        if amount_seq_requested > 5000000:
+            confirm = input("\033[92mYou are requesting \033[94m%s\033[92m Mbp of sequence data. "
+                            "Continue (y/[n])?\033[m" % round(amount_seq_requested / 1000000, 1))
+            if confirm.lower() not in ["yes", "y"]:
+                _stdout("Aborted...\n", color="\033[91m")
+                return
+        retrieve_sequences(self.dbbuddy)
+        _stdout("Retrieved %s Mbp of sequence data\n" % amount_seq_requested)
+
+    def do_exit(self, line=None):
+        if self.hash != hash(self.dbbuddy):
+            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
+            if confirm.lower() in ["yes", "y"]:
+                _stdout("Goodbye\n")
+                sys.exit()
+            else:
+                _stdout("Aborted...\n", color="\033[91m")
+                return
+        _stdout("Goodbye\n")
+        sys.exit()
 
     def do_filter(self, line):
         if not line:
@@ -781,6 +769,16 @@ class LiveSearch(cmd.Cmd):
             _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)))
             current_count = len(self.dbbuddy.records)
         _stdout("\n%s records remain.\n" % len(self.dbbuddy.records))
+
+    def do_format(self, line):
+        if not line:
+            line = input("\033[91mWhich format would you like set? \033[m")
+
+        self.dbbuddy.out_format = line
+        _stdout("Output format changed to \033[92m%s\n" % line, color="\033[91m")
+
+    def do_quit(self, line=None):
+        self.do_exit()
 
     def do_reset(self, line=None):
         current_count = len(self.dbbuddy.records)
@@ -810,30 +808,49 @@ class LiveSearch(cmd.Cmd):
             current_count = len(self.dbbuddy.recycle_bin)
         _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin))
 
-    def do_download(self, line=None):
-        retrieve_summary(self.dbbuddy)
-        amount_seq_requested = 0
-        for _accn, _rec in self.dbbuddy.records.items():
-            amount_seq_requested += _rec.size
+    def do_save(self, line=None):
+        self.do_write(line)
 
-        if amount_seq_requested > 5000000:
-            confirm = input("\033[92mYou are requesting \033[94m%s\033[92m Mbp of sequence data. "
-                            "Continue (y/[n])?\033[m" % round(amount_seq_requested / 1000000, 1))
-            if confirm.lower() not in ["yes", "y"]:
-                _stdout("Aborted...\n", color="\033[91m")
-                return
-        retrieve_sequences(self.dbbuddy)
-        _stdout("Retrieved %s Mbp of sequence data\n" % amount_seq_requested)
+    def do_search(self, line):
+        if not line:
+            line = input("\033[91mSpecify search string: \033[m")
 
-    def do_clear_all(self, line=None):
-        confirm = input("\033[91mAre you sure you want to delete ALL %s records from your live session (y/[n])?\033[m" %
-                        (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)))
-        if confirm.lower() not in ["yes", "y"]:
-            _stdout("Aborted...\n", color="\033[91m")
-            return
-        self.dbbuddy.recycle_bin = {}
-        self.dbbuddy.records = {}
-        self.dbbuddy.search_terms = []
+        temp_buddy = DbBuddy(line)
+        temp_buddy.databases = dbbuddy.databases
+
+        if len(temp_buddy.records):
+            retrieve_sequences(temp_buddy)
+
+        if len(temp_buddy.search_terms):
+            retrieve_summary(temp_buddy)
+
+        for _term in temp_buddy.search_terms:
+            if _term not in self.dbbuddy.search_terms:
+                self.dbbuddy.search_terms.append(line)
+
+        for _accn, _rec in temp_buddy.records.items():
+            if _accn not in self.dbbuddy.records:
+                self.dbbuddy.records[_accn] = _rec
+
+    def do_show(self, line=None):
+        if line:
+            try:
+                line = int(line)
+                self.dbbuddy.print_recs(_num=line)
+            except ValueError:
+                _stdout("'%s' is not an integer, nothing displayed\n" % line)
+        else:
+            if len(self.dbbuddy.records) > 100:
+                confirm = input("%s records currently in buffer, show them all (y/[n])?")
+                if confirm.lower() in ["yes", "y"]:
+                    self.dbbuddy.print_recs()
+                else:
+                    _stdout("Include an integer value with 'show' to return a specific number of records.\n")
+            else:
+                self.dbbuddy.print_recs()
+
+    def do_status(self, line=None):
+        _stdout(str(self.dbbuddy))
 
     def do_write(self, line=None):
         if not line and not self.file:
@@ -872,59 +889,18 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             _stdout("written to %s.\n" % line, color="\033[92m")
             self.hash = hash(self.dbbuddy)
 
-    def do_save(self, line=None):
-        self.do_write(line)
-
     @staticmethod
-    def do_bash(line):
-        # Need to strip out leading/trailing quotes for this to work
-        line = re.sub('^["](.*)["]$', r"\1", line)
-        line = re.sub("^['](.*)[']$", r"\1", line)
-        if line[:2] == "cd":
-            line = line.lstrip("cd ")
-            try:
-                os.chdir(os.path.abspath(line))
-            except FileNotFoundError:
-                _stdout("-sh: cd: %s: No such file or directory\n" % line, color="\033[91m")
-        else:
-            Popen(line, shell=True).wait()
-
-    @staticmethod
-    def help_exit():
-        _stdout("End the live session.\n\n", color="\033[94m")
-
-    @staticmethod
-    def help_quit():
-        _stdout("End the live session.\n\n", color="\033[94m")
-
-    @staticmethod
-    def help_status():
-        _stdout("Display the current state of your Live Session, including how many accessions and full records "
-                "have been downloaded.\n\n", color="\033[92m")
-
-    def help_show(self):
+    def help_bash():
         _stdout('''\
-Output the records currently held in the Live Session (out_format currently set to '\033[94m%s\033[92m')
-Optionally include an integer value to limit how many will be shown.\n
-''' % self.dbbuddy.out_format, color="\033[92m")
-
-    @staticmethod
-    def help_format():
-        _stdout('''\
-Set the output format:
-    Valid choices            ->  ["ids", "accessions", "summary", "full-summary", <SeqIO formats>]
-    ids or accessions        ->  Simple list of all accessions in the buffer
-    summary or full-summary  ->  Information about each record
-    <SeqIO format>           ->  Full sequence record, in any sequence file format
-                                 supported by BioPython (e.g. gb, fasta, clustal)
-                                 See http://biopython.org/wiki/SeqIO for details\n
+Run bash commands from the DbBuddy Live Session.
+Be careful!! This is not sand-boxed in any way, so give the 'bash' command
+all the respect you would afford the normal terminal window.\n
 ''', color="\033[92m")
 
-    def help_search(self):
+    def help_clear_all(self):
         _stdout('''\
-Search databases (currently set to \033[94m%s\033[92m). If search terms are supplied summary info will be downloaded,
-if accession numbers are supplied then full sequence records will be downloaded.\n
-''' % self.dbbuddy.databases, color="\033[92m")
+Delete all \033[94m%s\033[92m records currently stored in your Live Session (including recycle bin).\n
+''' % (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)), color="\033[92m")
 
     def help_database(self):
         _stdout('''\
@@ -932,6 +908,17 @@ Reset the database(s) to be searched. Separate multiple databases with spaces.
 Currently set to: \033[94m%s\033[92m
 Valid choices: \033[94m%s\033[92m\n
 ''' % (", ".join(self.dbbuddy.databases), ", ".join(DATABASES)), color="\033[92m")
+
+    @staticmethod
+    def help_download():
+        _stdout('''\
+Retrieve full records for all accessions in the main record list.
+If requesting more than 50 Mbp of sequence data, you will be prompted to confirm the command.\n
+''', color="\033[92m")
+
+    @staticmethod
+    def help_exit():
+        _stdout("End the live session.\n\n", color="\033[94m")
 
     @staticmethod
     def help_filter():
@@ -945,6 +932,22 @@ Further refine your results with search terms:
     - Records that do not match your filters are relegated to the 'recycle bin'; return them to the main list
       with the 'reset' or 'restore' commands\n
 ''', color="\033[92m")
+
+    @staticmethod
+    def help_format():
+        _stdout('''\
+Set the output format:
+    Valid choices            ->  ["ids", "accessions", "summary", "full-summary", <SeqIO formats>]
+    ids or accessions        ->  Simple list of all accessions in the buffer
+    summary or full-summary  ->  Information about each record
+    <SeqIO format>           ->  Full sequence record, in any sequence file format
+                                 supported by BioPython (e.g. gb, fasta, clustal)
+                                 See http://biopython.org/wiki/SeqIO for details\n
+''', color="\033[92m")
+
+    @staticmethod
+    def help_quit():
+        _stdout("End the live session.\n\n", color="\033[94m")
 
     @staticmethod
     def help_reset():
@@ -963,33 +966,30 @@ Return a subset of filtered records back into the main list (use the 'reset' com
     - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).\n
 ''', color="\033[92m")
 
-    @staticmethod
-    def help_download():
-        _stdout('''\
-Retrieve full records for all accessions in the main record list.
-If requesting more than 50 Mbp of sequence data, you will be prompted to confirm the command.\n
-''', color="\033[92m")
-
-    def help_clear_all(self):
-        _stdout('''\
-Delete all \033[94m%s\033[92m records currently stored in your Live Session (including recycle bin).\n
-''' % (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)), color="\033[92m")
-
-    @staticmethod
-    def help_bash():
-        _stdout('''\
-Run bash commands from the DbBuddy Live Session.
-Be careful!! This is not sand-boxed in any way, so give the 'bash' command
-all the respect you would afford the normal terminal window.\n
-''', color="\033[92m")
-
-    def help_write(self):
+    def help_save(self):
         _stdout('''\
 Send records to a file (format currently set to '\033[94m%s\033[92m').
 Supply the file name to be written to.\n
 ''' % self.dbbuddy.out_format, color="\033[92m")
 
-    def help_save(self):
+    def help_search(self):
+        _stdout('''\
+Search databases (currently set to \033[94m%s\033[92m). If search terms are supplied summary info will be downloaded,
+if accession numbers are supplied then full sequence records will be downloaded.\n
+''' % self.dbbuddy.databases, color="\033[92m")
+
+    def help_show(self):
+        _stdout('''\
+Output the records currently held in the Live Session (out_format currently set to '\033[94m%s\033[92m')
+Optionally include an integer value to limit how many will be shown.\n
+''' % self.dbbuddy.out_format, color="\033[92m")
+
+    @staticmethod
+    def help_status():
+        _stdout("Display the current state of your Live Session, including how many accessions and full records "
+                "have been downloaded.\n\n", color="\033[92m")
+
+    def help_write(self):
         _stdout('''\
 Send records to a file (format currently set to '\033[94m%s\033[92m').
 Supply the file name to be written to.\n
