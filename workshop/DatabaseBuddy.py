@@ -202,7 +202,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 del self.recycle_bin[_id]
         return
 
-    def print_recs(self, _num=0, quiet=False, destination=None):  # destination can be a file handle to write
+    def print_recs(self, _num=0, quiet=False, columns=None, destination=None):  # destination can be a file handle to write
         _num = _num if _num > 0 else len(self.records)
         if in_args.test:
             _stderr("*** Test passed ***\n", quiet)
@@ -260,27 +260,32 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     if self.out_format in ["ids", "accessions"]:
                         _output += "%s\n" % _accession
 
-                    elif self.out_format == "summary":
-                        headings = [heading for heading, _value in _rec.summary.items()]
+                    elif self.out_format in ["summary", "full_summary"]:
+                        headings = ["ACCN", "DB"]
+                        headings += [heading for heading, _value in _rec.summary.items()]
+                        if columns:
+                            headings = [heading for heading in headings if heading in columns]
                         if saved_headings != headings:
-                            _output += "%sACCN\t%sDB" % (next(colors), next(colors))
                             for heading in headings:
                                 _output += "\t%s%s" % (next(colors), heading)
-                            _output += "\n"
+                            _output = "%s\n" % _output.strip()
                             saved_headings = list(headings)
                             colors = terminal_colors()
 
-                        _output += "%s%s" % (next(colors), _accession)
-                        if _rec.database:
-                            _output += "\t%s%s" % (next(colors), _rec.database)
-                        else:
-                            next(colors)
-
-                        for attrib, _value in _rec.summary.items():
-                            if len(str(_value)) > 50:
-                                _output += "\t%s%s..." % (next(colors), str(_value[:47]))
+                        if "ACCN" in headings:
+                            _output += "%s%s\t" % (next(colors), _accession)
+                        if "DB" in headings:
+                            if _rec.database:
+                                _output += "%s%s" % (next(colors), _rec.database)
                             else:
-                                _output += "\t%s%s" % (next(colors), _value)
+                                next(colors)
+                        _output = _output.strip()
+                        for attrib, _value in _rec.summary.items():
+                            if attrib in headings:
+                                if len(str(_value)) > 50 and self.out_format != "full_summary":
+                                    _output += "\t%s%s..." % (next(colors), str(_value[:47]))
+                                else:
+                                    _output += "\t%s%s" % (next(colors), _value)
                         _output += "\033[m\n"
 
             if not destination:
@@ -418,7 +423,7 @@ class UniProtRestClient:
         self.results_file = "%s/results.txt" % self.temp_dir.path
         open(self.results_file, "w").close()
 
-    def mc_rest_query(self, _term, args):  # Multicore ready
+    def query_uniprot(self, _term, args):  # Multicore ready
         http_errors_file, results_file, request_params = args
         _term = re.sub(" ", "+", _term)
         request_string = ""
@@ -462,7 +467,7 @@ class UniProtRestClient:
         search_terms += "+)OR(+".join(self.dbbuddy.search_terms)  # ToDo: make sure there isn't a size limit
         search_terms += ")"
         search_terms = re.sub(" ", "+", search_terms)
-        self.mc_rest_query(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}])
+        self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}])
         with open(self.results_file, "r") as ifile:
             _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
         open(self.results_file, "w").close()
@@ -486,11 +491,11 @@ class UniProtRestClient:
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms...\n" % len(self.dbbuddy.search_terms))
-            run_multicore_function(self.dbbuddy.search_terms, self.mc_rest_query, max_processes=10,
+            run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
                                    func_args=[self.http_errors_file, self.results_file, params])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
-            self.mc_rest_query(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params])
+            self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params])
 
         with open(self.results_file, "r") as ifile:
             results = ifile.read().strip("//\n").split("//")
@@ -833,21 +838,23 @@ class LiveSearch(cmd.Cmd):
                 self.dbbuddy.records[_accn] = _rec
 
     def do_show(self, line=None):
-        if line:
+        line = line.split(" ")
+        num_returned = len(self.dbbuddy.records)
+        columns = []
+        for _next in line:
             try:
-                line = int(line)
-                self.dbbuddy.print_recs(_num=line)
+                num_returned = int(_next)
             except ValueError:
-                _stdout("'%s' is not an integer, nothing displayed\n" % line)
-        else:
-            if len(self.dbbuddy.records) > 100:
-                confirm = input("%s records currently in buffer, show them all (y/[n])?")
-                if confirm.lower() in ["yes", "y"]:
-                    self.dbbuddy.print_recs()
-                else:
-                    _stdout("Include an integer value with 'show' to return a specific number of records.\n")
-            else:
-                self.dbbuddy.print_recs()
+                columns.append(_next)
+
+        columns = None if not columns else columns
+
+        if num_returned > 100:
+            confirm = input("\033[91m%s records currently in buffer, show them all (y/[n])? \033[m" % len(self.dbbuddy.records))
+            if confirm.lower() not in ["yes", "y"]:
+                _stdout("Include an integer value with 'show' to return a specific number of records.\n")
+                return
+        self.dbbuddy.print_recs(_num=num_returned, columns=columns)
 
     def do_status(self, line=None):
         _stdout(str(self.dbbuddy))
@@ -981,7 +988,8 @@ if accession numbers are supplied then full sequence records will be downloaded.
     def help_show(self):
         _stdout('''\
 Output the records currently held in the Live Session (out_format currently set to '\033[94m%s\033[92m')
-Optionally include an integer value to limit how many will be shown.\n
+Optionally include an integer value and/or column name(s) to limit the number records and amount of information
+per record displayed.\n
 ''' % self.dbbuddy.out_format, color="\033[92m")
 
     @staticmethod
@@ -1171,3 +1179,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         _stdout(output)
         sys.exit()
+
+    # Default to LiveSearch
+    live_search = LiveSearch(dbbuddy)
