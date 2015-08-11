@@ -82,6 +82,45 @@ if not in_args.cmd_line:
         in_args.cmd_line = True
 
 class BuddyInstall:
+
+    @staticmethod
+    def download_blast_binaries(current_path, _blastn=True, _blastp=True, _blastdcmd=True):
+        binary_source = 'wget --no-check-certificate https://github.com/biologyguy/BuddySuite/blob/master/workshop/' \
+                        'build_dir/blast_binaries/'
+        bins_to_dl = []
+        current_os = sys.platform
+        if current_os.startswith('darwin'):
+            if _blastdcmd:
+                bins_to_dl.append('Darwin_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Darwin_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Darwin_blastp.zip')
+        elif current_os.startswith('linux'):
+            if _blastdcmd:
+                bins_to_dl.append('Linux_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Linux_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Linux_blastp.zip')
+        elif current_os.startswith('win'):
+            if _blastdcmd:
+                bins_to_dl.append('Win32_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Win32_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Win32_blastp.zip')
+        else:
+            return False
+
+        for blast_bin in bins_to_dl:
+            zip_file = Popen('{0}{1}'.format(binary_source, blast_bin))
+            with zipfile.ZipFile(zip_file) as zip_file:
+                zip_file.extractall(path=current_path)
+            sys.stderr("File added: {0}{1}".format(current_path, blast_bin))
+
+        return True
+
     @staticmethod
     def install_buddy_suite(user_system, options):
         print("Starting.")
@@ -137,10 +176,21 @@ class BuddyInstall:
                     ["blastn.exe", "blastp.exe", "blastdbcmd.exe"]
                 for binary in binaries:
                     if not which(binary):
-                        shutil.copy("blast_binaries/{0}_{1}".format(user_system, binary),
-                                    "{0}/{1}".format(install_directory, binary))
-                        os.chmod("{0}/{1}".format(install_directory, binary), 0o755)
-                        print("{0} ==> Installed".format(binary))
+                        if binary.startswith('blastn'):
+                            if BuddyInstall.download_blast_binaries(install_directory, _blastp=False, _blastdcmd=False):
+                                print("{0} ==> Installed".format(binary))
+                            else:
+                                print("Failed to install {0}.".format(binary))
+                        elif binary.startswith('blastp'):
+                            if BuddyInstall.download_blast_binaries(install_directory, _blastn=False, _blastdcmd=False):
+                                print("{0} ==> Installed".format(binary))
+                            else:
+                                print("Failed to install {0}.".format(binary))
+                        else:
+                            if BuddyInstall.download_blast_binaries(install_directory, _blastn=False, _blastp=False):
+                                print("{0} ==> Installed".format(binary))
+                            else:
+                                print("Failed to install {0}.".format(binary))
                     else:
                         print("{0} ==> Local version detected".format(binary))
 
