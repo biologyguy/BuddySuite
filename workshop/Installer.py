@@ -47,28 +47,29 @@ os.chdir(temp_dir.name)
 sys.path.insert(0, "./")
 
 # Check for pillow dependency
-try:
-    from PIL import Image
+if not in_args.cmd_line:
+    try:
+        from PIL import Image
 
-except ImportError:
-    from subprocess import Popen
-    if which("conda"):
-        print("The image processing package 'Pillow' is needed for the graphical installer, "
-              "attempting to install with 'conda'.")
-        Popen("conda install pillow", shell=True).wait()
+    except ImportError:
+        from subprocess import Popen
+        if which("conda"):
+            print("The image processing package 'Pillow' is needed for the graphical installer, "
+                  "attempting to install with 'conda'.")
+            Popen("conda install pillow", shell=True).wait()
 
-    elif which("pip"):
-        print("The image processing package 'Pillow' is needed for the graphical installer, "
-              "attempting to install a temporary copy.")
-        Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" % temp_dir.name, shell=True).wait()
-        if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
-            shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
+        elif which("pip"):
+            print("The image processing package 'Pillow' is needed for the graphical installer, "
+                  "attempting to install a temporary copy.")
+            Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" % temp_dir.name, shell=True).wait()
+            if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
+                shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
 
-try:
-    from PIL import Image
-except ImportError:
-    print("Failed to build GUI. Package Pillow was not found.")
-    in_args.cmd_line = True
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Failed to build GUI. Package Pillow was not found.")
+        in_args.cmd_line = True
 
 # Check for Tkinter
 if not in_args.cmd_line:
@@ -427,6 +428,7 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
 
         if old_install_dir is None:
             install_dir = input("Please specify an installation directory ('/BuddySuite' will automatically be appended) ")
+            install_dir = install_dir.rstrip("/")
             while True:
                 if install_dir.lower() == 'abort':
                     print('Installation aborted.')
