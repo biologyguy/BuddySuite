@@ -35,6 +35,7 @@ import os
 import re
 import string
 import json
+import zipfile
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
 from math import floor, ceil, log
@@ -42,8 +43,9 @@ from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
 from hashlib import md5
-from io import StringIO
+from io import StringIO, TextIOWrapper
 from collections import OrderedDict
+
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -480,14 +482,42 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     # Check to make sure blast is in $PATH and ensure that the blast_db is present
     if blast_check == "blastp":
         if not which(blast_path):
-            raise FileNotFoundError("blastp binary not found")
+            prompt = input("Blastp binary not found. Would you like to download it? [yes]/no")
+            while True:
+                if prompt.lower() in ['yes', '']:
+                    if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
+                        _stderr("Blastp downloaded.\n")
+                    else:
+                        _stderr("Failed to download blastp.\n")
+                    break
+                elif prompt.lower() in ['no']:
+                    break
+                else:
+                    _stdout("Input not understood.\n")
+                    prompt = input("Would you like to download blastp? [yes]/no")
+            if not which("blastp"):
+                raise FileNotFoundError("blastp binary not found")
 
         if not os.path.isfile("%s.pin" % blast_db) or not os.path.isfile("%s.phr" % blast_db) \
                 or not os.path.isfile("%s.psq" % blast_db):
             raise RuntimeError("Blastp database not found at '%s'" % blast_db)
     elif blast_check == "blastn":
         if not which(blast_path):
-            raise FileNotFoundError("blastn binary not found")
+            prompt = input("Blastn binary not found. Would you like to download it? [yes]/no")
+            while True:
+                if prompt.lower() in ['yes', '']:
+                    if _download_blast_binaries(_blastdcmd=False, _blastn=True, _blastp=False):
+                        _stderr("Blastn downloaded.\n")
+                    else:
+                        _stderr("Failed to download blastn.\n")
+                    break
+                elif prompt.lower() in ['no']:
+                    break
+                else:
+                    _stdout("Input not understood.\n")
+                    prompt = input("Would you like to download blastn? [yes]/no")
+            if not which("blastn"):
+                raise FileNotFoundError("blastn binary not found")
 
         if not os.path.isfile("%s.nin" % blast_db) or not os.path.isfile("%s.nhr" % blast_db) \
                 or not os.path.isfile("%s.nsq" % blast_db):
@@ -499,7 +529,21 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         blastdbcmd = "blastdbcmd"
 
     if not which(blastdbcmd):
-        raise FileNotFoundError("blastdbcmd")
+        prompt = input("Blastdbcmd binary not found. Would you like to download it? [yes]/no")
+        while True:
+            if prompt.lower() in ['yes', '']:
+                if _download_blast_binaries(_blastdcmd=True, _blastn=False, _blastp=False):
+                    _stderr("Blastdbcmd downloaded.\n")
+                else:
+                    _stderr("Failed to download blastdbcmd.\n")
+                break
+            elif prompt.lower() in ['no']:
+                break
+            else:
+                _stdout("Input not understood.\n")
+                prompt = input("Would you like to download blastdbcmd? [yes]/no")
+        if not which("blastdbcmd"):
+            raise FileNotFoundError("blastdbcmd")
 
     # Check that compelte blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_check]:
@@ -2264,6 +2308,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     try:
         for seq_set in in_args.sequence:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records
 
@@ -2295,6 +2341,43 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
+    def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
+        current_path = os.path.abspath('./')
+        binary_source = 'wget --no-check-certificate https://github.com/biologyguy/BuddySuite/blob/master/workshop/' \
+                        'build_dir/blast_binaries/'
+        bins_to_dl = []
+        current_os = sys.platform
+        if current_os.startswith('darwin'):
+            if _blastdcmd:
+                bins_to_dl.append('Darwin_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Darwin_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Darwin_blastp.zip')
+        elif current_os.startswith('linux'):
+            if _blastdcmd:
+                bins_to_dl.append('Linux_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Linux_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Linux_blastp.zip')
+        elif current_os.startswith('win'):
+            if _blastdcmd:
+                bins_to_dl.append('Win32_blastdbcmd.zip')
+            if _blastn:
+                bins_to_dl.append('Win32_blastn.zip')
+            if _blastp:
+                bins_to_dl.append('Win32_blastp.zip')
+        else:
+            return False
+
+        for blast_bin in bins_to_dl:
+            zip_file = Popen('{0}{1}'.format(binary_source, blast_bin))
+            with zipfile.ZipFile(zip_file) as zip_file:
+                zip_file.extractall(path=current_path)
+            _stderr("File added: {0}{1}".format(current_path, blast_bin))
+
+        return True
 
     def _get_blast_binaries():
         blastp = None
