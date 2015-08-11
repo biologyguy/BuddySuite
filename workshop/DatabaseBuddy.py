@@ -284,6 +284,13 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
             _stdout("{0}\n".format(_output.rstrip()))
 
+    def __hash__(self):
+        _records = tuple([(_key, _value) for _key, _value in self.records.items()])
+        return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and ((self.records, self.out_format) == (other.records, other.out_format))
+
     def __str__(self):
         _output = "\033[91m############################\n"
         _output += "### \033[mDatabaseBuddy object \033[91m###\033[m\n"
@@ -643,8 +650,14 @@ class EnsemblRestClient:
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
         cmd.Cmd.__init__(self)
-        _stdout("Welcome to the DatabaseBuddy live shell. Type 'help' at any time for a list of available commands "
-                "or 'help <command>' for more detailed explaination of a given command.\n")
+        _stdout('''\
+
+###################### Welcome to the DatabaseBuddy live shell ######################
+
+Type 'help' for a list of available commands or 'help <command>' for further details.
+To end the session, use the commands 'quit' or 'exit'.
+
+''')
         self.prompt = 'DbBuddy> '
         self.dbbuddy = _dbbuddy
         self.file = None
@@ -655,15 +668,23 @@ class LiveSearch(cmd.Cmd):
         if self.dbbuddy.search_terms:
             retrieve_accessions(dbbuddy)
 
+        self.hash = None
         self.cmdloop()
 
-    @staticmethod
     def do_exit(self, line=None):
-        return True
+        if self.hash != hash(self.dbbuddy):
+            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
+            if confirm.lower() in ["yes", "y"]:
+                _stdout("Goodbye\n")
+                sys.exit()
+            else:
+                _stdout("Aborted...\n", color="\033[91m")
+                return
+        _stdout("Goodbye\n")
+        sys.exit()
 
-    @staticmethod
     def do_quit(self, line=None):
-        return True
+        self.do_exit()
 
     def do_status(self, line=None):
         _stdout(str(self.dbbuddy))
@@ -686,10 +707,16 @@ class LiveSearch(cmd.Cmd):
                 self.dbbuddy.print_recs()
 
     def do_format(self, line):
+        if not line:
+            line = input("\033[91mWhich format would you like set? \033[m")
+
         self.dbbuddy.out_format = line
         _stdout("Output format changed to \033[95%s\n" % line, color="\033[91m")
 
     def do_search(self, line):
+        if not line:
+            line = input("\033[91mSpecify search string: \033[m")
+
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = dbbuddy.databases
 
@@ -708,11 +735,15 @@ class LiveSearch(cmd.Cmd):
                 self.dbbuddy.records[_accn] = _rec
 
     def do_database(self, line):
+        if not line:
+            line = input("\033[91mSpecify database: \033[m")
+
         line = line.split(" ")
         new_database_list = []
         for l in line:
             if l not in DATABASES:
-                _stdout("Waring: %s is not a valid database choice.\n", color="\033[91m")
+                _stdout("Error: %s is not a valid database choice.\n"
+                        "Please select from %s\n" % (l, DATABASES), color="\033[91m")
             else:
                 new_database_list.append(l)
         if new_database_list:
@@ -722,6 +753,9 @@ class LiveSearch(cmd.Cmd):
             _stdout("Database seach list not changed.\n", color="\033[91m")
 
     def do_filter(self, line):
+        if not line:
+            line = input("\033[91mSpecify a search string to be used as a filter: \033[m")
+
         if line[0] == "'":
             line = line.strip("'").split("' '")
         else:
@@ -747,6 +781,9 @@ class LiveSearch(cmd.Cmd):
         _stdout("%s records recovered\n" % (len(self.dbbuddy.records) - current_count), color='\033[94m')
 
     def do_restore(self, line):
+        if not line:
+            line = input("\033[91mSpecify a string to search the recycle bin with: \033[m")
+
         if line[0] == "'":
             line = line.strip("'").split("' '")
         else:
@@ -773,7 +810,7 @@ class LiveSearch(cmd.Cmd):
             confirm = input("You are requesting %s Mb of data. Continue (y/[n])?" %
                             round(amount_seq_requested / 1000000, 1))
             if confirm.lower() not in ["yes", "y"]:
-                _stdout("Aborted...\n", color="\033[91")
+                _stdout("Aborted...\n", color="\033[91m")
                 return
         retrieve_sequences(self.dbbuddy)
         _stdout("Retrieved %s Mbs of sequence data\n" % amount_seq_requested)
@@ -782,10 +819,14 @@ class LiveSearch(cmd.Cmd):
         confirm = input("\033[91mAre you sure you want to delete ALL %s records from your live session (y/[n])?\033[m" %
                         (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)))
         if confirm.lower() not in ["yes", "y"]:
+            _stdout("Aborted...\n", color="\033[91m")
             return
         self.dbbuddy.recycle_bin = {}
         self.dbbuddy.records = {}
         self.dbbuddy.search_terms = []
+
+    def do_write(self, line=None):
+        pass
 
     @staticmethod
     def help_exit(self):
@@ -870,13 +911,10 @@ If requesting more than 50 Mb of sequence data, you will be prompted to confirm 
 Delete all %s records currently stored in your Live Session (including recycle bin).
 ''' % (len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin)), color="\033[92m")
 
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    def do_write(self):
-        pass
-
     def help_write(self):
         pass
+
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def do_type(self):
         pass
