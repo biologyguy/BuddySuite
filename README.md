@@ -61,7 +61,7 @@ Once out of alpha, the installer will only bundle stable release versions of the
 
 ## Development version installation and contribution
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
- official release versions, and may have extra dependencies (see below). The easiest way to get the development version
+ official release versions, and may have extra dependencies. The easiest way to get the development version
  up and running is to [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
 
     $: git clone https://github.com/biologyguy/BuddySuite.git
@@ -84,7 +84,7 @@ The Buddy classes (i.e., SeqBuddy, AlignBuddy, etc) contain a number of core att
 *Attribute* | *Description*
 ----------- | -------------
 alpha | An IUPAC object from Bio.Alphabet (one of: IUPAC.protein, IUPAC.ambiguous_dna, or IUPAC.ambiguous_rna). Plain text representatives of each (e.g., 'dna', 'prot', 'protein', 'r') will be understood by the SeqBuddy \__init\__() method, or the alphabet will be guessed if not explicitly set.
-in_format | The flat file format sequences are read from. If explicitly set, SeqBuddy will only attempt to read the file in the given format (returning no sequences if the wrong format is specified), otherwise it will guess the format.
+in_format | The [flat file format](http://biopython.org/wiki/SeqIO#File_Formats) sequences are read from. If explicitly set, SeqBuddy will only attempt to read the file in the given format (returning no sequences if the wrong format is specified), otherwise it will guess the format.
 out_format | Controls the format used when SeqBuddy objects are written. By default, this will be the same as in_format.
 records | A list of Bio.SeqRecord objects.
  
@@ -100,7 +100,7 @@ write(_file_path) | Write all records to file using out_format
 *Attribute* | *Description*
 ----------- | -------------
 alpha | An IUPAC object from Bio.Alphabet, same as in SeqBuddy. The constructor does not accept this explicitly, it is guessed from the sequences in the alignment(s).
-in_format | The flat file format sequences are read from. If explicitly set, AlignBuddy will only attempt to read the file in the given format (returning no alignments if the wrong format is specified), otherwise it will guess the format.
+in_format | The [flat file format](http://biopython.org/wiki/AlignIO#File_Formats) sequences are read from. If explicitly set, AlignBuddy will only attempt to read the file in the given format (returning no alignments if the wrong format is specified), otherwise it will guess the format.
 out_format | Controls the format used when AlignBuddy objects are written. By default, this will be the same as in_format.
 alignments | A list of Bio.Align objects.
  
