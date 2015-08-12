@@ -211,22 +211,24 @@ def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
 # ######################  '-mw', '--molecular_weight' ###################### #
 def test_molecular_weight():
     # Unambiguous DNA
-    tester = Sb.molecular_weight(sb_objects[0])
-    assert tester['masses_ds'][0] == 743477.1
-    assert tester['masses_ss'][0] == 371242.6
+    tester = Sb.molecular_weight(Sb._make_copies(sb_objects[1]))
+    assert tester[1]['masses_ds'][0] == 743477.1
+    assert tester[1]['masses_ss'][0] == 371242.6
+    assert seqs_to_hash(tester[0]) == "49479b48bdc58852072c6415856a9a47"
     # Ambiguous DNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))[1]
     assert tester['masses_ds'][0] == 743477.08
     assert tester['masses_ss'][0] == 371202.59
     # Unambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))[1]
     assert tester['masses_ss'][0] == 387372.6
     # Ambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))[1]
     assert tester['masses_ss'][0] == 387371.6
     # Protein
-    tester = Sb.molecular_weight(Sb._make_copies(sb_objects[6]))
-    assert tester['masses_ss'][0] == 45692.99
+    tester = Sb.molecular_weight(Sb._make_copies(sb_objects[7]))
+    assert tester[1]['masses_ss'][0] == 45692.99
+    assert seqs_to_hash(tester[0]) == "1a0e0bc8d8041df9a8e45731cabd8155"
 
 
 # ######################  'cs', '--clean_seq'  ###################### #
@@ -607,7 +609,9 @@ def test_pull_recs(seqbuddy, next_hash):
                                                                    sb_objects[10], sb_objects[11]]])
 def test_isoelectric_point(seqbuddy):
     output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
-    assert output[0][1] == 6.0117797852
+    assert output[1]["Mle-Panxα12"] == 6.0117797852
+    if seqbuddy.out_format == "gb":
+        assert seqs_to_hash(seqbuddy) == "00fd1bde906933c479bb8fefb4b9fe9d"
 
 
 def test_isoelectric_point_type_error():
@@ -616,19 +620,20 @@ def test_isoelectric_point_type_error():
 
 
 # ######################  'frs', '--find_restriction_sites' ###################### #
-def test_restriction_sites_comm():
-    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))[1]
-    assert md5(output.encode()).hexdigest() == '2fd5ab2723b3377a16a3d692e5f32dad'
+def test_restriction_sites():
+    # No arguments passed in = commercial REs and any number of cut sites
+    tester = Sb.find_restriction_sites(Sb._make_copies(sb_objects[1]))
+    assert seqs_to_hash(tester[0]) == 'fce4c8bee040d5ea6fa4bf9985f7310f'
+    assert md5(str(tester[1]).encode()).hexdigest() == "741ca6ca9204a067dce7398f15c6e350"
 
+    # Specify a few REs and limit the number of cuts
+    tester = Sb.find_restriction_sites(Sb._make_copies(sb_objects[1]), _enzymes=["EcoRI", "KspI", "TasI", "Bme1390I"],
+                                       _min_cuts=2, _max_cuts=4)
+    assert seqs_to_hash(tester[0]) == 'c42b3bf0367557383000b897432fed2d'
+    assert md5(str(tester[1]).encode()).hexdigest() == "0d2e5fdba6fed434495481397a91e56a"
 
-def test_restriction_sites_noncomm():
-    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")), _commercial=False)[1]
-    assert md5(output.encode()).hexdigest() == '0009092142da23f6e3d618ab506499dc'
-
-
-def test_restriction_sites_double():
-    output = Sb.find_restriction_sites(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")), _single_cut=False)[1]
-    assert md5(output.encode()).hexdigest() == '89fa9faa61571b1aeee0cdb4c6fd5e1d'
+    with pytest.raises(TypeError):
+        Sb.find_restriction_sites(sb_objects[7])
 
 
 # ######################  'bl', '--blast' ###################### #
@@ -661,39 +666,39 @@ def test_bl2seq_pep():
 def test_count_residues():
     # Unambiguous DNA
     tester = Sb._make_copies(sb_objects[0])
-    residues = Sb.count_residues(tester)
-    residues = {x[0]: x[1] for x in residues}
+    tester, residues = Sb.count_residues(tester)
     assert residues['Mle-Panxα6']['G'] == [265, 0.21703521703521703]
+    assert tester.records[0].buddy_data["Residue_frequency"]["G"] == [282, 0.2344139650872818]
     assert "% Ambiguous" not in residues['Mle-Panxα6'] and "U" not in residues['Mle-Panxα6']
 
     # Unambiguous RNA
     Sb.dna2rna(tester)
-    residues = Sb.count_residues(tester)
-    residues = {x[0]: x[1] for x in residues}
+    tester, residues = Sb.count_residues(tester)
     assert residues['Mle-Panxα6']['U'] == [356, 0.2915642915642916]
+    assert tester.records[0].buddy_data["Residue_frequency"]["U"] == [312, 0.2593516209476309]
     assert "% Ambiguous" not in residues['Mle-Panxα6'] and "T" not in residues['Mle-Panxα6']
 
     # Ambiguous DNA
     tester = Sb._make_copies(sb_objects[12])
-    residues = Sb.count_residues(tester)
-    residues = {x[0]: x[1] for x in residues}
+    tester, residues = Sb.count_residues(tester)
     assert "U" not in residues['Mle-Panxα6']
     assert residues['Mle-Panxα6']['Y'] == [1, 0.000819000819000819]
+    assert tester.records[0].buddy_data["Residue_frequency"]["Y"] == [1, 0.0008312551953449709]
     assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
 
     # Ambiguous RNA
     tester = Sb._make_copies(sb_objects[13])
-    residues = Sb.count_residues(tester)
-    residues = {x[0]: x[1] for x in residues}
+    tester, residues = Sb.count_residues(tester)
     assert "T" not in residues['Mle-Panxα6']
     assert residues['Mle-Panxα6']['U'] == [353, 0.2891072891072891]
+    assert tester.records[0].buddy_data["Residue_frequency"]["Y"] == [1, 0.0008312551953449709]
     assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
 
     # Protein
     tester = Sb._make_copies(sb_objects[6])
-    residues = Sb.count_residues(tester)
-    residues = {x[0]: x[1] for x in residues}
+    tester, residues = Sb.count_residues(tester)
     assert residues['Mle-Panxα6']['P'] == [17, 0.04176904176904177]
+    assert tester.records[0].buddy_data["Residue_frequency"]["G"] == [28, 0.06947890818858561]
     assert "% Ambiguous" not in residues['Mle-Panxα6']
     assert residues['Mle-Panxα8']["% Ambiguous"] == 1.2
     assert residues['Mle-Panxα8']["% Positive"] == 12.23
@@ -879,11 +884,13 @@ def test_split_by_taxa():
 
 # #####################  'fp', '--find_pattern' ###################### ##
 def test_find_pattern():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_recs(tester, "α[67]")
-    assert Sb.find_pattern(tester, "ATGGT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
-    assert Sb.find_pattern(tester, "ATggT") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
-    assert Sb.find_pattern(tester, "ATg{2}T") == {'Mle-Panxα6': [389, 517, 560, 746, 813], 'Mle-Panxα7A': []}
+    tester = Sb._make_copies(sb_objects[1])
+    assert Sb.find_pattern(tester, "ATGGT")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
+    assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
+    assert Sb.find_pattern(tester, "ATggT")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
+    assert seqs_to_hash(tester) == "af143e56752595457e3da9869d2ee6de"
+    assert Sb.find_pattern(tester, "ATg{2}T")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
+    assert seqs_to_hash(tester) == "f0f46b147a85c65e5e35e00dfbf9ad38"
 
 
 # #####################  'sf', '--split_file' ###################### ##
@@ -924,25 +931,31 @@ def test_insert_seqs_start():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'start')) == 'f65fee08b892af5ef93caa1bf3cb3980'
 
+
 def test_insert_seqs_end():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'end')) == '792397e2e32e95b56ddc15b8b2310ec0'
+
 
 def test_insert_seqs_index():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100)) == 'da2b2e0efb5807a51e925076857b189d'
 
+
 def test_insert_seqs_endminus():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -25)) == '0f4115d81cc5fa2cc381f17bada0f0ce'
+
 
 def test_insert_seqs_startplus():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 25)) == 'cb37efd3069227476306f9129efd4d05'
 
+
 def test_insert_seqs_endminus_extreme():
     tester = Sb._make_copies(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -9000)) == 'f65fee08b892af5ef93caa1bf3cb3980'
+
 
 def test_insert_seqs_startplus_extreme():
     tester = Sb._make_copies(sb_objects[0])
@@ -954,18 +967,22 @@ def test_count_codons_dna():
     tester = Sb.count_codons(Sb._make_copies(sb_objects[0]))[1]
     assert md5(str(tester).encode()).hexdigest() == '829c9cf42887880767548eb39d747d35'
 
+
 def test_count_codons_rna():
     tester = Sb.count_codons(Sb.dna2rna(Sb._make_copies(sb_objects[0])))[1]
     assert md5(str(tester).encode()).hexdigest() == 'b91daa8905533b5885d2067d9d6ffe36'
+
 
 def test_count_codons_dna_badchar():
     tester = Sb.count_codons(Sb.insert_sequence(Sb._make_copies(sb_objects[0]), 'PPP', 'end'))[1]
     assert md5(str(tester).encode()).hexdigest() == '9aba116675fe0e9eaaf43e5c6e0ba99d'
 
+
 def test_pep_exception():
     tester = Sb._make_copies(sb_objects[6])
     with pytest.raises(TypeError):
         Sb.count_codons(tester)
+
 
 # ##################### 'lf', 'list_features' ###################### ##
 def test_list_features():
@@ -976,41 +993,49 @@ def test_list_features():
         if output[record.id] is not None:
             assert output[record.id] == record.features
 
+
 # ##################### 'af', 'add_feaure' ###################### ##
 def test_add_feature_pattern():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _pattern='α4')
     assert seqs_to_hash(tester) == '7330c5905e216575b8bb8f54db3a0610'
 
+
 def test_add_feature_no_pattern():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100))
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
 
 def test_add_feature_compoundlocation():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', [(1, 100), (200, 250)])
     assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
 
+
 def test_add_feature_nested_tuples():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', ((1, 100), (200, 250)))
     assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+
 
 def test_add_feature_list_str():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', ['1-100', '(200-250)'])
     assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
 
+
 def test_add_feature_str():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', '1-100, (200-250)')
     assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
 
+
 def test_add_feature_fl_obj():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', FeatureLocation(start=1, end=100))
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+
 
 def test_add_feature_cl_obj():
     tester = Sb._make_copies(sb_objects[1])
@@ -1018,35 +1043,42 @@ def test_add_feature_cl_obj():
                                                               FeatureLocation(start=200, end=250)], operator='order'))
     assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
 
+
 def test_add_feature_typerror():
     with pytest.raises(TypeError):
         tester = Sb._make_copies(sb_objects[1])
         tester = Sb.add_feature(tester, 'test', 5)
+
 
 def test_add_feature_pos_strand():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _strand='+')
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
 
+
 def test_add_feature_neg_strand():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _strand='-')
     assert seqs_to_hash(tester) == 'a6c4bb6b402fa69f60229832af2bf354'
+
 
 def test_add_feature_no_strand():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _strand=0)
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
 
+
 def test_add_feature_qualifier_dict():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers={'foo': 'bar', 'hello': 'world'})
     assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
 
+
 def test_add_feature_qualifier_str():
     tester = Sb._make_copies(sb_objects[1])
     tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers='foo=bar, hello:world')
     assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
+
 
 # ######################  'phylipi' ###################### #
 def test_phylipi():
