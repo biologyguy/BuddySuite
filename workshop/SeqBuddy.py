@@ -467,7 +467,6 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
     script_location = re.sub(str(__file__), '', script_location)
-    os.chdir(script_location)
 
     blast_check = Popen("%s -version" % blast_path, stdout=PIPE, shell=True).communicate()
     blast_check = re.search("([a-z])*[^:]", blast_check[0].decode("utf-8"))
@@ -495,6 +494,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
             prompt = input()
             while True:
                 if prompt.lower() in ['yes', 'y', '']:
+                    os.chdir(script_location)
                     if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                         _stderr("Blastp downloaded.\n")
                     else:
@@ -520,6 +520,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
             prompt = input()
             while True:
                 if prompt.lower() in ['yes', 'y', '']:
+                    os.chdir(script_location)
                     if _download_blast_binaries(_blastdcmd=False, _blastn=True, _blastp=False):
                         _stderr("Blastn downloaded.\n")
                     else:
@@ -550,6 +551,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         prompt = input()
         while True:
             if prompt.lower() in ['yes', 'y', '']:
+                os.chdir(script_location)
                 if _download_blast_binaries(_blastdcmd=True, _blastn=False, _blastp=False):
                     _stderr("Blastdbcmd downloaded.\n")
                 else:
@@ -741,7 +743,8 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
 
     _output = map_features_dna2prot(_seqbuddy, _translation)
     _output.out_format = _seqbuddy.out_format
-    return _output
+    _seqbuddy = _output
+    return _seqbuddy
 
 
 def select_frame(_seqbuddy, frame):  # ToDo: record the deleted residues so the earlier frame can be returned to.
@@ -1577,13 +1580,13 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
     script_location = re.sub('SeqBuddy\.py', '', script_location)
-    os.chdir(script_location)
 
     if not which("blastp") and _seqbuddy.alpha not in [IUPAC.protein]:
         _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
         prompt = input()
         while True:
             if prompt.lower() in ['yes', 'y', '']:
+                os.chdir(script_location)
                 if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                     _stderr("Blastp downloaded.\n")
                 else:
@@ -1606,6 +1609,7 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
         prompt = input()
         while True:
             if prompt.lower() in ['yes', 'y', '']:
+                os.chdir(script_location)
                 if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                     _stderr("Blastn downloaded.\n")
                 else:
