@@ -230,6 +230,65 @@ def _make_copies(_seqbuddy):
     for _indx, _rec in enumerate(copies.records):
         _rec.seq.alphabet = alphabet_list[_indx]
     return copies
+
+def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
+    if os.path.exists('.buddysuite'):
+        current_path = '.buddysuite/'
+    else:
+        current_path = os.getcwd()
+
+    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
+    bins_to_dl = []
+    current_os = sys.platform
+    if current_os.startswith('darwin'):
+        if _blastdcmd:
+            bins_to_dl.append('Darwin_blastdbcmd.zip')
+        if _blastn:
+            bins_to_dl.append('Darwin_blastn.zip')
+        if _blastp:
+            bins_to_dl.append('Darwin_blastp.zip')
+    elif current_os.startswith('linux'):
+        if _blastdcmd:
+            bins_to_dl.append('Linux_blastdbcmd.zip')
+        if _blastn:
+            bins_to_dl.append('Linux_blastn.zip')
+        if _blastp:
+            bins_to_dl.append('Linux_blastp.zip')
+    elif current_os.startswith('win'):
+        if _blastdcmd:
+            bins_to_dl.append('Win32_blastdbcmd.zip')
+        if _blastn:
+            bins_to_dl.append('Win32_blastn.zip')
+        if _blastp:
+            bins_to_dl.append('Win32_blastp.zip')
+    else:
+        return False
+
+    file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
+                    'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd.zip': 'blastdbcmd',
+                    'Linux_blastn.zip': 'blastn', 'Linux_blastp.zip': 'blastp',
+                    'Win32_blastdbcmd.zip': 'blastdbcmd', 'Win32_blastn.zip': 'blastn',
+                    'Win32_blastp.zip': 'blastp'}
+
+    os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
+    try:
+        for blast_bin in bins_to_dl:
+            with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
+                    open("{0}/__tempdir__/{1}".format(current_path, blast_bin), mode='wb') as writer:
+                shutil.copyfileobj(reader, writer)
+            zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
+            zip_file.extractall(path=current_path)
+            os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
+                      '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
+            os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
+            print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
+        shutil.rmtree("{0}/__tempdir__".format(current_path))
+    except error.URLError:
+        return False
+
+    # TODO account for manual install w/ symlinks
+    return True
+
 # ##################################################### SEQ BUDDY #################################################### #
 
 
@@ -2416,66 +2475,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             with open(os.path.abspath(_path), "w") as _ofile:
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
-
-
-    def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
-        if os.path.exists('.buddysuite'):
-            current_path = '.buddysuite/'
-        else:
-            current_path = os.getcwd()
-
-        binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
-        bins_to_dl = []
-        current_os = sys.platform
-        if current_os.startswith('darwin'):
-            if _blastdcmd:
-                bins_to_dl.append('Darwin_blastdbcmd.zip')
-            if _blastn:
-                bins_to_dl.append('Darwin_blastn.zip')
-            if _blastp:
-                bins_to_dl.append('Darwin_blastp.zip')
-        elif current_os.startswith('linux'):
-            if _blastdcmd:
-                bins_to_dl.append('Linux_blastdbcmd.zip')
-            if _blastn:
-                bins_to_dl.append('Linux_blastn.zip')
-            if _blastp:
-                bins_to_dl.append('Linux_blastp.zip')
-        elif current_os.startswith('win'):
-            if _blastdcmd:
-                bins_to_dl.append('Win32_blastdbcmd.zip')
-            if _blastn:
-                bins_to_dl.append('Win32_blastn.zip')
-            if _blastp:
-                bins_to_dl.append('Win32_blastp.zip')
-        else:
-            return False
-
-        file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
-                        'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd.zip': 'blastdbcmd',
-                        'Linux_blastn.zip': 'blastn', 'Linux_blastp.zip': 'blastp',
-                        'Win32_blastdbcmd.zip': 'blastdbcmd', 'Win32_blastn.zip': 'blastn',
-                        'Win32_blastp.zip': 'blastp'}
-
-        os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
-        try:
-            for blast_bin in bins_to_dl:
-                with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
-                        open("{0}/__tempdir__/{1}".format(current_path, blast_bin), mode='wb') as writer:
-                    shutil.copyfileobj(reader, writer)
-                zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
-                zip_file.extractall(path=current_path)
-                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
-                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
-                os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
-                print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
-            shutil.rmtree("{0}/__tempdir__".format(current_path))
-        except error.URLError:
-            return False
-
-        # TODO account for manual install w/ symlinks
-        return True
-
 
     def _get_blast_binaries():
         blastp = None
