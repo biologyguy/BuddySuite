@@ -37,7 +37,7 @@ import string
 import json
 import zipfile
 import shutil
-from urllib import request
+from urllib import request, error
 from copy import copy, deepcopy
 from random import sample, choice, randint, random
 from math import floor, ceil, log
@@ -464,6 +464,12 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     if not blast_path:
         blast_path = which("blastp") if _seqbuddy.alpha == IUPAC.protein else which("blastn")
 
+    current_dir = os.getcwd()
+    script_location = os.path.realpath(__file__)
+    script_location = re.sub(str(__file__), '', script_location)
+    print(script_location)
+    os.chdir(script_location)
+
     blast_check = Popen("%s -version" % blast_path, stdout=PIPE, shell=True).communicate()
     blast_check = re.search("([a-z])*[^:]", blast_check[0].decode("utf-8"))
     if blast_check:
@@ -483,6 +489,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
 
     # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
     # Check to make sure blast is in $PATH and ensure that the blast_db is present
+
     if blast_check == "blastp":
         if not which(blast_path):
             _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
@@ -500,6 +507,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
                     _stderr("Input not understood.\n")
                     _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
                     prompt = input()
+            os.chdir(current_dir)
             if not which("blastp"):
                 raise FileNotFoundError("blastp binary not found")
             return
@@ -524,6 +532,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
                     _stderr("Input not understood.\n")
                     _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
                     prompt = input()
+            os.chdir(current_dir)
             if not which("blastn"):
                 raise FileNotFoundError("blastn binary not found")
             return
@@ -553,6 +562,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
                 _stderr("Input not understood.\n")
                 _stderr("Would you like to download blastdbcmd? (program will be aborted) [yes]/no\n")
                 prompt = input()
+        os.chdir(current_dir)
         if not which("blastdbcmd"):
             raise FileNotFoundError("blastdbcmd")
         return
@@ -562,6 +572,7 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         if not os.path.isfile("%s.%s" % (blast_db, extension)):
             raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
                                "used with makeblastdb." % extension)
+
 
     _seqbuddy = clean_seq(_seqbuddy)  # in case there are gaps or something in the sequences
 
@@ -1565,6 +1576,9 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     threshold may need to be increased quite a bit to return short alignments
     """
+    current_dir = os.getcwd()
+    script_location = os.path.realpath(__file__)
+    os.chdir(script_location)
     if not which("blastp") and _seqbuddy.alpha not in [IUPAC.protein]:
         _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
         prompt = input()
@@ -1581,6 +1595,7 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
                 _stderr("Input not understood.\n")
                 _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
                 prompt = input()
+        os.chdir(current_dir)
         if not which("blastp"):
             raise RuntimeError("Blastp not present in $PATH or working directory.")
         sys.exit()
@@ -1602,9 +1617,11 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
                 _stderr("Input not understood.\n")
                 _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
                 prompt = input()
+        os.chdir(current_dir)
         if not which("blastn"):
             raise RuntimeError("Blastn not present in $PATH or working directory.")
         sys.exit()
+
 
     def mc_blast(_query, args):
         _subject_file = args[0]
@@ -2404,8 +2421,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             current_path = os.getcwd()
 
-        binary_source = 'wget --no-check-certificate https://github.com/biologyguy/BuddySuite/blob/master/workshop/' \
-                        'build_dir/blast_binaries/'
+        binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
         bins_to_dl = []
         current_os = sys.platform
         if current_os.startswith('darwin'):
@@ -2439,17 +2455,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         'Win32_blastp.zip': 'blastp'}
 
         os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
-        for blast_bin in bins_to_dl:
-            with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
-                    open("{0}/__tempdir__/{1}".format(current_path, blast_bin), mode='wb') as writer:
-                shutil.copyfileobj(reader, writer)
-            zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
-            zip_file.extractall(path=current_path)
-            os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
-                      '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
-            os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
-            print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
-        shutil.rmtree("{0}/__tempdir__".format(current_path))
+        try:
+            for blast_bin in bins_to_dl:
+                with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
+                        open("{0}/__tempdir__/{1}".format(current_path, blast_bin), mode='wb') as writer:
+                    shutil.copyfileobj(reader, writer)
+                zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
+                zip_file.extractall(path=current_path)
+                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
+                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
+                os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
+                print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
+            shutil.rmtree("{0}/__tempdir__".format(current_path))
+        except error.URLError:
+            return False
 
         # TODO account for manual install w/ symlinks
         return True

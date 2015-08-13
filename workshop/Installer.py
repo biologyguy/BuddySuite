@@ -4,7 +4,7 @@
 from functools import partial
 import shutil
 from shutil import which, rmtree, copytree
-from urllib import request
+from urllib import request, error
 from platform import *
 from os import path
 from configparser import *
@@ -120,17 +120,20 @@ class BuddyInstall:
                         'Win32_blastp.zip': 'blastp'}
 
         os.makedirs("{0}/temp".format(install_dir), exist_ok=True)
-        for blast_bin in bins_to_dl:
-            with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
-                    open("{0}/temp/{1}".format(install_dir, blast_bin), mode='wb') as writer:
-                shutil.copyfileobj(reader, writer)
-            zip_file = zipfile.ZipFile("{0}/temp/{1}".format(install_dir, blast_bin))
-            zip_file.extractall(path=install_dir)
-            os.rename('{0}/{1}'.format(install_dir, re.sub('\.zip', '', blast_bin)),
-                      '{0}/{1}'.format(install_dir, file_to_name[blast_bin]))
-            os.chmod('{0}/{1}'.format(install_dir, file_to_name[blast_bin]), 0o755)
-            print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
-        shutil.rmtree("{0}/temp".format(install_dir))
+        try:
+            for blast_bin in bins_to_dl:
+                with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
+                        open("{0}/temp/{1}".format(install_dir, blast_bin), mode='wb') as writer:
+                    shutil.copyfileobj(reader, writer)
+                zip_file = zipfile.ZipFile("{0}/temp/{1}".format(install_dir, blast_bin))
+                zip_file.extractall(path=install_dir)
+                os.rename('{0}/{1}'.format(install_dir, re.sub('\.zip', '', blast_bin)),
+                          '{0}/{1}'.format(install_dir, file_to_name[blast_bin]))
+                os.chmod('{0}/{1}'.format(install_dir, file_to_name[blast_bin]), 0o755)
+                print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
+            shutil.rmtree("{0}/temp".format(install_dir))
+        except error.URLError:
+            return False
 
         return True
 
