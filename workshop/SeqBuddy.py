@@ -467,7 +467,6 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
     script_location = re.sub(str(__file__), '', script_location)
-    print(script_location)
     os.chdir(script_location)
 
     blast_check = Popen("%s -version" % blast_path, stdout=PIPE, shell=True).communicate()
@@ -495,13 +494,13 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
             _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
             prompt = input()
             while True:
-                if prompt.lower() in ['yes', '']:
+                if prompt.lower() in ['yes', 'y', '']:
                     if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                         _stderr("Blastp downloaded.\n")
                     else:
                         _stderr("Failed to download blastp.\n")
                     break
-                elif prompt.lower() in ['no']:
+                elif prompt.lower() in ['no', 'n']:
                     break
                 else:
                     _stderr("Input not understood.\n")
@@ -520,13 +519,13 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
             _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
             prompt = input()
             while True:
-                if prompt.lower() in ['yes', '']:
+                if prompt.lower() in ['yes', 'y', '']:
                     if _download_blast_binaries(_blastdcmd=False, _blastn=True, _blastp=False):
                         _stderr("Blastn downloaded.\n")
                     else:
                         _stderr("Failed to download blastn.\n")
                     break
-                elif prompt.lower() in ['no']:
+                elif prompt.lower() in ['no', 'n']:
                     break
                 else:
                     _stderr("Input not understood.\n")
@@ -550,13 +549,13 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         _stderr("Blastdbcmd binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
         prompt = input()
         while True:
-            if prompt.lower() in ['yes', '']:
+            if prompt.lower() in ['yes', 'y', '']:
                 if _download_blast_binaries(_blastdcmd=True, _blastn=False, _blastp=False):
                     _stderr("Blastdbcmd downloaded.\n")
                 else:
                     _stderr("Failed to download blastdbcmd.\n")
                 break
-            elif prompt.lower() in ['no']:
+            elif prompt.lower() in ['no', 'n']:
                 break
             else:
                 _stderr("Input not understood.\n")
@@ -572,7 +571,6 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
         if not os.path.isfile("%s.%s" % (blast_db, extension)):
             raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
                                "used with makeblastdb." % extension)
-
 
     _seqbuddy = clean_seq(_seqbuddy)  # in case there are gaps or something in the sequences
 
@@ -1578,18 +1576,21 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     """
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
+    script_location = re.sub('SeqBuddy\.py', '', script_location)
+    print(script_location)
     os.chdir(script_location)
+
     if not which("blastp") and _seqbuddy.alpha not in [IUPAC.protein]:
         _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
         prompt = input()
         while True:
-            if prompt.lower() in ['yes', '']:
+            if prompt.lower() in ['yes', 'y', '']:
                 if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                     _stderr("Blastp downloaded.\n")
                 else:
                     _stderr("Failed to download blastp.\n")
                 break
-            elif prompt.lower() in ['no']:
+            elif prompt.lower() in ['no', 'n']:
                 break
             else:
                 _stderr("Input not understood.\n")
@@ -1605,13 +1606,13 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
         _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
         prompt = input()
         while True:
-            if prompt.lower() in ['yes', '']:
+            if prompt.lower() in ['yes', 'y', '']:
                 if _download_blast_binaries(_blastdcmd=False, _blastn=False, _blastp=True):
                     _stderr("Blastn downloaded.\n")
                 else:
                     _stderr("Failed to download blastn.\n")
                 break
-            elif prompt.lower() in ['no']:
+            elif prompt.lower() in ['no', 'n']:
                 break
             else:
                 _stderr("Input not understood.\n")
@@ -1621,7 +1622,6 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
         if not which("blastn"):
             raise RuntimeError("Blastn not present in $PATH or working directory.")
         sys.exit()
-
 
     def mc_blast(_query, args):
         _subject_file = args[0]
