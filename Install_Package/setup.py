@@ -10,4 +10,6 @@ setup(
     download_url = 'https://github.com/biologyguy/BuddySuite/archive/SeqBuddy_v1.0.tar.gz', # git tag 1.alpha -m "Adds a tag so that we can put this on PyPI."
     keywords = ['testing', 'logging', 'example'], # arbitrary keywords
     classifiers = [],
+    install_requires=['biopython',
+                      ],
 )
