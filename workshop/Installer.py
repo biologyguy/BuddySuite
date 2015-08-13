@@ -762,6 +762,11 @@ class Installer(Frame):
         frame.pack(side=TOP)
         mega_frame.pack(side=TOP)
 
+        if self.buddy_names[num] == "PhyloBuddy":  # Disable phylobuddy
+            tool_button.deselect()
+            self.buddies["PhyloBuddy"] = False
+            tool_button.config(text="Not yet available.", state=DISABLED)
+
     def toggle_tool(self, name, var=None):
         if var is not None:
             if var.get() == 1:
