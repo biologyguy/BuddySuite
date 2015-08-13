@@ -86,13 +86,14 @@ def mutate():
 
 
 def random_aa(_length, number, matrix):
-    # create random protein sequences
+    # create random prot sequences. Not sure exactly how to implement this yet, because it would theoretically not start
+    # from input sequences...
     x = [_length, number, matrix]
     return x
 
 
 def random_dna(_length, number, matrix):
-    # create random DNA sequences
+    # create random DNA sequences.
     x = [_length, number, matrix]
     return x
 
@@ -244,8 +245,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(_input.read())
-                _input = temp
+                _temp = StringIO(_input.read())
+                _input = _temp
             _input.seek(0)
             in_handle = _input.read()
             _input.seek(0)
@@ -262,8 +263,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         # Plain text in a specific format
         if type(_input) == str and not os.path.isfile(_input):
             _raw_seq = _input
-            temp = StringIO(_input)
-            _input = temp
+            _temp = StringIO(_input)
+            _input = _temp
             _input.seek(0)
 
         # File paths
@@ -714,8 +715,8 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
             # internal stop codon(s) found
             if re.search("Extra in frame stop codon found", str(test_trans)):
                 for _i in range(round(len(str(temp_seq.seq)) / 3) - 1):
-                    codon = str(temp_seq.seq)[(_i * 3):(_i * 3 + 3)]
-                    if codon.upper() in ["TGA", "TAG", "TAA"]:
+                    _codon = str(temp_seq.seq)[(_i * 3):(_i * 3 + 3)]
+                    if _codon.upper() in ["TGA", "TAG", "TAA"]:
                         new_seq = str(temp_seq.seq)[:(_i * 3)] + "NNN" + str(temp_seq.seq)[(_i * 3 + 3):]
                         temp_seq.seq = Seq(new_seq, alphabet=temp_seq.seq.alphabet)
                 continue
@@ -971,8 +972,8 @@ def concat_seqs(_seqbuddy, _clean=False):
         full_seq_len = len(_new_seq) + len(str(_rec.seq))
         _rec.features = _shift_features(_rec.features, _shift, full_seq_len)
 
-        location = FeatureLocation(len(_new_seq), len(_new_seq) + len(str(_rec.seq)))
-        feature = SeqFeature(location=location, id=_rec.id, type=_rec.id[:15])
+        _location = FeatureLocation(len(_new_seq), len(_new_seq) + len(str(_rec.seq)))
+        feature = SeqFeature(location=_location, id=_rec.id, type=_rec.id[:15])
         features.append(feature)
         features += _rec.features
         concat_ids.append(_rec.id)
@@ -1023,8 +1024,8 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
         elif type(_feature.location) == FeatureLocation:
             _start = _feature.location.start / 3
             _end = _feature.location.end / 3
-            location = FeatureLocation(floor(_start), floor(_end))
-            _feature.location = location
+            _location = FeatureLocation(floor(_start), floor(_end))
+            _feature.location = _location
 
         else:
             raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
@@ -1084,8 +1085,8 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
         elif type(_feature.location) == FeatureLocation:
             _start = feature.location.start * 3
             _end = feature.location.end * 3
-            location = FeatureLocation(_start, _end)
-            _feature.location = location
+            _location = FeatureLocation(_start, _end)
+            _feature.location = _location
 
         else:
             raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
@@ -1754,17 +1755,17 @@ def molecular_weight(_seqbuddy):
                 _rec.mass_ds += _dict[_value] + deoxynucleotide_weights[deoxynucleotide_compliments[_value]]
         _output['masses_ss'].append(round(_rec.mass_ss, 3))
 
-        qualifiers = {}
+        _qualifiers = {}
         if _seqbuddy.alpha == IUPAC.protein:
-            qualifiers["peptide_value"] = round(_rec.mass_ss, 3)
+            _qualifiers["peptide_value"] = round(_rec.mass_ss, 3)
         elif _dna:
-            qualifiers["ssDNA_value"] = round(_rec.mass_ss, 3)
-            qualifiers["dsDNA_value"] = round(_rec.mass_ds, 3)
+            _qualifiers["ssDNA_value"] = round(_rec.mass_ss, 3)
+            _qualifiers["dsDNA_value"] = round(_rec.mass_ds, 3)
             _output['masses_ds'].append(round(_rec.mass_ds, 3))
         elif _seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
-            qualifiers["ssRNA_value"] = round(_rec.mass_ss, 3)
+            _qualifiers["ssRNA_value"] = round(_rec.mass_ss, 3)
         _output['ids'].append(_rec.id)
-        mw_feature = SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='mw', qualifiers=qualifiers)
+        mw_feature = SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='mw', qualifiers=_qualifiers)
         _rec.features.append(mw_feature)
     return _seqbuddy, _output
 
@@ -1830,11 +1831,10 @@ def count_residues(_seqbuddy):
             if "T" not in resid_count and "U" not in resid_count:
                 resid_count["T"] = [0, 0]
                 
-        cr_json = json.dumps(resid_count)
         try:
-            _rec.buddy_data['Residue_frequency'] = cr_json
+            _rec.buddy_data['Residue_frequency'] = resid_count
         except AttributeError:
-            _rec.buddy_data = {'Residue_frequency': cr_json}
+            _rec.buddy_data = {'Residue_frequency': resid_count}
         
         _output[_rec.id] = resid_count
     return _seqbuddy, _output
@@ -1884,7 +1884,9 @@ def split_file(_seqbuddy):
 
 
 # _order in ['alpha', 'position']
-def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):
+def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):  # ToDo: Make sure cut sites are not already in the features list
+    if _seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Unable to identify restriction sites in protein sequences.")
     if _max_cuts and _min_cuts > _max_cuts:
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     _max_cuts = 1000000000 if not _max_cuts else _max_cuts
@@ -1920,9 +1922,9 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
                 _stderr("Warning: %s not a known enzyme\n" % enzyme)
 
     sites = []
-    for rec in _seqbuddy.records:
-        rec.res_sites = {}
-        analysis = Analysis(batch, rec.seq)
+    for _rec in _seqbuddy.records:
+        _rec.res_sites = {}
+        analysis = Analysis(batch, _rec.seq)
         result = analysis.with_sites()
         for _key, _value in result.items():
             if _key.cut_twice():
@@ -1933,12 +1935,13 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
                     for zyme in _value:
                         cut_start = zyme + _key.fst3 - 1
                         cut_end = zyme + _key.fst5 + abs(_key.ovhg) - 1
-                        rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(_key)))
+                        _rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(_key)))
                 except TypeError:
                     _stderr("Warning: No-cutters not supported.\n")
                     pass
-                rec.res_sites[_key] = _value
-        sites.append((rec.id, rec.res_sites))
+                _rec.res_sites[_key] = _value
+        _rec.res_sites = OrderedDict(sorted(_rec.res_sites.items(), key=lambda x: x[0]))
+        sites.append((_rec.id, _rec.res_sites))
     order_features_alphabetically(_seqbuddy)
 
     return [_seqbuddy, sites]
@@ -1968,31 +1971,31 @@ def find_CpG(_seqbuddy):
     _output = OrderedDict()
     records = []
 
-    def cpg_calc(_seq):  # Returns observed/expected value of a sequence
-        _seq = _seq.upper()
-        observed_cpg = len(re.findall("CG", _seq)) * len(_seq)
-        expected = (len(re.findall("[CG]", _seq)) / 2) ** 2
+    def cpg_calc(in_seq):  # Returns observed/expected value of a sequence
+        in_seq = in_seq.upper()
+        observed_cpg = len(re.findall("CG", in_seq)) * len(in_seq)
+        expected = (len(re.findall("[CG]", in_seq)) / 2) ** 2
         return observed_cpg / expected
 
-    def cg_percent(_seq):  # Returns the CG % of a sequence
-        _seq = _seq.upper()
-        return len(re.findall("[CG]", _seq)) / len(_seq)
+    def cg_percent(in_seq):  # Returns the CG % of a sequence
+        in_seq = in_seq.upper()
+        return len(re.findall("[CG]", in_seq)) / len(in_seq)
 
     def find_islands(cg_percents, oe_values):  # Returns a list of tuples containing the start and end of an island
         _indx = 0
-        _output = []
+        out_list = []
         while _indx < len(cg_percents):
             if cg_percents[_indx] > .5 and oe_values[_indx] > .6:
                 start = _indx
                 while _indx < len(cg_percents) and cg_percents[_indx] > .5 and oe_values[_indx] > .6:
                     _indx += 1
                 end = _indx
-                _output.append((start, end))
+                out_list.append((start, end))
             _indx += 1
-        return _output
+        return out_list
 
-    def map_cpg(_seq, island_ranges):  # Maps CpG islands onto a sequence as capital letters
-        cpg_seq = _seq.lower()
+    def map_cpg(in_seq, island_ranges):  # Maps CpG islands onto a sequence as capital letters
+        cpg_seq = in_seq.lower()
         for pair in island_ranges:
             cpg_seq = cpg_seq[:pair[0]] + cpg_seq[pair[0]:pair[1] + 1].upper() + cpg_seq[pair[1] + 1:]
         return cpg_seq
@@ -2049,7 +2052,7 @@ def shuffle_seqs(_seqbuddy):
             tokens.append(letter)
         new_seq = ''
         while len(tokens) > 0:
-            rand_indx = randint(0, len(tokens)-1)
+            rand_indx = randint(0, len(tokens) - 1)
             new_seq += tokens.pop(rand_indx)
         _rec.seq = Seq(data=new_seq, alphabet=_seqbuddy.alpha)
     return _seqbuddy
@@ -2109,21 +2112,22 @@ def count_codons(_seqbuddy):
                         _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(_codon))
             _sequence = _sequence[3:]
         for _codon in data_table:
-            data_table[_codon][2] = round(data_table[_codon][1]/float(num_codons) * 100, 3)
+            data_table[_codon][2] = round(data_table[_codon][1] / float(num_codons) * 100, 3)
         _output[_rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
     for _rec in _seqbuddy.records:
-        jsond_table = json.dumps(_output[_rec.id])
         try:
-            _rec.buddy_data['Codon_frequency'] = jsond_table
+            _rec.buddy_data['Codon_frequency'] = _output[_rec.id]
         except AttributeError:
-            _rec.buddy_data = {'Codon_frequency': jsond_table}
+            _rec.buddy_data = {'Codon_frequency': _output[_rec.id]}
     return _seqbuddy, _output
+
 
 def list_features(_seqbuddy):
     _output = OrderedDict()
     for _rec in _seqbuddy.records:
         _output[_rec.id] = _rec.features if len(_rec.features) > 0 else None
     return _output
+
 
 def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pattern=None):
     # http://www.insdc.org/files/feature_table.html
@@ -2147,8 +2151,8 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
         if isinstance(_location[0], int):
             _locations.append(FeatureLocation(start=_location[0], end=_location[1]))
         elif isinstance(_location[0], tuple) or isinstance(_location[0], list):
-            for tup in _location:
-                _locations.append(FeatureLocation(start=tup[0], end=tup[1]))
+            for _tup in _location:
+                _locations.append(FeatureLocation(start=_tup[0], end=_tup[1]))
         elif isinstance(_location[0], str):
             for substr in _location:
                 substr = re.sub('[ ()]', '', substr)
@@ -2393,6 +2397,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
+
     def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
         if os.path.exists('.buddysuite'):
             current_path = '.buddysuite/'
@@ -2447,24 +2452,24 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         shutil.rmtree("{0}/__tempdir__".format(current_path))
 
         # TODO account for manual install w/ symlinks
-
         return True
+
 
     def _get_blast_binaries():
         blastp = None
         blastn = None
         blastdbcmd = None
         if in_args.params:
-            for param in in_args.params:
-                binary = Popen("%s -version" % param, stdout=PIPE, shell=True).communicate()
+            for _param in in_args.params:
+                binary = Popen("%s -version" % _param, stdout=PIPE, shell=True).communicate()
                 binary = re.search("([a-z])*[^:]", binary[0].decode("utf-8"))
                 binary = binary.group(0)
                 if binary == "blastp":
-                    blastp = param
+                    blastp = _param
                 elif binary == "blastn":
-                    blastn = param
+                    blastn = _param
                 elif binary == "blastdbcmd":
-                    blastdbcmd = param
+                    blastdbcmd = _param
 
         blastp = blastp if blastp else which("blastp")
         blastn = blastn if blastn else which("blastn")
@@ -2483,11 +2488,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
         _stderr(record_map, in_args.quiet)
         _print_recs(purged_seqs)
+        sys.exit()
 
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
         _stdout(output[1])
+        sys.exit()
 
     # BLAST  ToDo: Determine if this can be refactored
     if in_args.blast:
@@ -2503,21 +2510,25 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         if blast_res:
             _print_recs(blast_res)
+        sys.exit()
 
     # Order ids randomly
     if in_args.order_ids_randomly:
         _print_recs(order_ids_randomly(seqbuddy))
+        sys.exit()
 
     # Order ids
     if in_args.order_ids:
         reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
         _print_recs(order_ids(seqbuddy, _reverse=reverse))
+        sys.exit()
 
     # Find repeat sequences or ids
     if in_args.find_repeats:
         columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
         unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
         _stdout(out_string)
+        sys.exit()
 
     # Delete repeats
     if in_args.delete_repeats:
@@ -2571,6 +2582,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         else:
             _stderr("No duplicate records found\n")
+        sys.exit()
 
     # Delete records
     if in_args.delete_records:
@@ -2603,24 +2615,29 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
         new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
         _print_recs(new_list)
+        sys.exit()
 
     # Delete sequences above threshold
     if in_args.delete_large:
         _print_recs(delete_large(seqbuddy, in_args.delete_large))
+        sys.exit()
 
     # Delete sequences below threshold
     if in_args.delete_small:
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
+        sys.exit()
 
     # Delete features
     if in_args.delete_features:
         for next_pattern in in_args.delete_features:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Merge
     if in_args.merge:
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Screw formats
     if in_args.screw_formats:
@@ -2631,66 +2648,75 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                                   "." + seqbuddy.out_format
             open(in_args.sequence[0], "w").close()
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Renaming
     if in_args.rename_ids:
         num = 0 if not in_args.params else int(in_args.params[0])
         _print_recs(rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        sys.exit()
 
     # Uppercase
     if in_args.uppercase:
         _print_recs(uppercase(seqbuddy))
+        sys.exit()
 
     # Lowercase
     if in_args.lowercase:
         _print_recs(lowercase(seqbuddy))
+        sys.exit()
 
     # Transcribe
     if in_args.transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_dna:
             raise ValueError("You need to provide a DNA sequence.")
         _print_recs(dna2rna(seqbuddy))
+        sys.exit()
 
     # Back Transcribe
     if in_args.back_transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_rna:
             raise ValueError("You need to provide an RNA sequence.")
         _print_recs(rna2dna(seqbuddy))
+        sys.exit()
 
     # Complement
     if in_args.complement:
         _print_recs(complement(seqbuddy))
+        sys.exit()
 
     # Reverse complement
     if in_args.reverse_complement:
         _print_recs(reverse_complement(seqbuddy))
+        sys.exit()
 
     # List identifiers
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
         _stdout(list_ids(seqbuddy, columns))
+        sys.exit()
 
     # Translate CDS
     if in_args.translate:
         if seqbuddy.alpha == IUPAC.protein:
             raise ValueError("You need to supply DNA or RNA sequences to translate")
-
         _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
+        sys.exit()
 
     # Shift reading frame
     if in_args.select_frame:
         _print_recs(select_frame(seqbuddy, in_args.select_frame))
+        sys.exit()
 
     # Translate 6 reading frames
     if in_args.translate6frames:
         if seqbuddy.alpha == IUPAC.protein:
             raise ValueError("You need to supply DNA or RNA sequences to translate")
-
         seqbuddy = translate6frames(seqbuddy)
         if in_args.out_format:
             seqbuddy.out_format = in_args.out_format
-
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Back translate CDS
     if in_args.back_translate:
@@ -2705,8 +2731,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             mode = "RANDOM"
             species = None
-
         _print_recs(back_translate(seqbuddy, mode, species))
+        sys.exit()
 
     # Concatenate sequences
     if in_args.concat_seqs:
@@ -2715,32 +2741,39 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         if in_args.out_format:
             seqbuddy.out_format = in_args.out_format
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Count number of sequences in a file
     if in_args.num_seqs:
         _stdout("%s\n" % num_seqs(seqbuddy))
+        sys.exit()
 
     # Average length of sequences
     if in_args.ave_seq_length:
         clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
         _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
+        sys.exit()
 
     # Pull sequence ends
     if in_args.pull_record_ends:
         _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+        sys.exit()
 
     # Extract regions
     if in_args.extract_region:
         _print_recs(extract_range(seqbuddy, *in_args.extract_region))
+        sys.exit()
 
     # Pull records
     if in_args.pull_records:
         _print_recs(pull_recs(seqbuddy, in_args.pull_records))
+        sys.exit()
 
     # Pull random records
     if in_args.pull_random_record:
         count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
         _print_recs(pull_random_recs(seqbuddy, count))
+        sys.exit()
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
@@ -2748,10 +2781,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         seqbuddy, hash_map, hash_table = hash_sequence_ids(seqbuddy, hash_length)
         _stderr(hash_table, in_args.quiet)
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Delete metadata
     if in_args.delete_metadata:
         _print_recs(delete_metadata(seqbuddy))
+        sys.exit()
 
     # Raw Seq
     if in_args.raw_seq:
@@ -2760,6 +2795,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _in_place(output, in_args.sequence[0])
         else:
             _stdout(output)
+        sys.exit()
 
     # Clean Seq
     if in_args.clean_seq:
@@ -2767,6 +2803,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _print_recs(clean_seq(seqbuddy, ambiguous=False))
         else:
             _print_recs(clean_seq(seqbuddy, ambiguous=True))
+        sys.exit()
 
     # Guess format
     if in_args.guess_format:
@@ -2775,6 +2812,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         else:
             for seq_set in in_args.sequence:
                 _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+        sys.exit()
 
     # Guess alphabet
     if in_args.guess_alphabet:
@@ -2790,17 +2828,15 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _stdout("rna\n")
             else:
                 _stdout("Undetermined\n")
+        sys.exit()
 
     # Map features from cDNA over to protein
     if in_args.map_features_dna2prot:
         file1, file2 = in_args.sequence[:2]
-
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-
         if file1.alpha == file2.alpha:
             raise ValueError("You must provide one DNA file and one protein file")
-
         if file1.alpha == IUPAC.protein:
             prot = file1
             dna = file2
@@ -2808,19 +2844,16 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
             prot = file2
             dna = file1
-
         _print_recs(map_features_dna2prot(dna, prot))
+        sys.exit()
 
     # Map features from protein over to cDNA
     if in_args.map_features_prot2dna:
         file1, file2 = in_args.sequence[:2]
-
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-
         if file1.alpha == file2.alpha:
             raise ValueError("You must provide one DNA file and one protein file")
-
         if file1.alpha != IUPAC.protein:
             dna = file1
             prot = file2
@@ -2828,8 +2861,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
             dna = file2
             prot = file1
-
         _print_recs(map_features_prot2dna(prot, dna))
+        sys.exit()
 
     # Combine feature sets from two files into one
     if in_args.combine_features:
@@ -2837,19 +2870,21 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
         _print_recs(combine_features(file1, file2))
+        sys.exit()
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
         reverse = True if in_args.order_features_by_position[0] \
             and in_args.order_features_by_position[0] == "rev" else False
-
         _print_recs(order_features_by_position(seqbuddy, reverse))
+        sys.exit()
 
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
         reverse = True if in_args.order_features_alphabetically[0] \
             and in_args.order_features_alphabetically[0] == "rev" else False
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
+        sys.exit()
 
     # Split sequences by taxa.
     if in_args.split_by_taxa:
@@ -2865,6 +2900,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(seqbuddy)
+        sys.exit()
 
     # Calculate Molecular Weight
     if in_args.molecular_weight:
@@ -2880,6 +2916,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 print("{0}\t{1}\t{2}".format(value, lists['masses_ss'][indx], lists['masses_ds'][indx]))
             else:
                 print("{0}\t{1}".format(value, lists['masses_ss'][indx]))
+        sys.exit()
 
     # Calculate Isoelectric Point
     if in_args.isoelectric_point:
@@ -2890,6 +2927,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
         except ValueError as e:
             _raise_error(e)
+        sys.exit()
 
     # Count residues
     if in_args.count_residues:
@@ -2900,10 +2938,11 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             for residue in sorted_residues:
                 try:
                     print("{0}:\t{1}\t{2} %".format(residue, output[sequence][residue][0],
-                                                   round(output[sequence][residue][1] * 100, 2)))
+                                                    round(output[sequence][residue][1] * 100, 2)))
                 except TypeError:
                     print("{0}:\t{1}".format(residue, output[sequence][residue]))
             print()
+        sys.exit()
 
     # Split sequences into files
     if in_args.split_to_files:
@@ -2919,6 +2958,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(seqbuddy)
+        sys.exit()
 
     # Find restriction sites
     if in_args.find_restriction_sites:
@@ -2950,13 +2990,17 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             min_cuts = temp
 
         clean_seq(seqbuddy)
-        output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts)
+        try:
+            output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts)
+        except TypeError as e:
+            _raise_error(e)
+            sys.exit()
 
         out_string = ''
         for tup in output[1]:
             out_string += "{0}\n".format(tup[0])
             restriction_list = tup[1]
-            restriction_list = [[_key, _value] for _key, _value in restriction_list.items()]
+            restriction_list = [[key, value] for key, value in restriction_list.items()]
             restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
                 sorted(restriction_list, key=lambda l: l[1])
 
@@ -2964,8 +3008,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 cut_sites = [str(x) for x in _enzyme[1]]
                 out_string += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
             out_string += "\n"
-
         _stdout(out_string)
+        sys.exit()
 
     # Find pattern
     if in_args.find_pattern:
@@ -2980,25 +3024,28 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                     "pattern '{2}' ####\n".format(num_matches, len(output[1]), pattern), in_args.quiet)
             _stderr("%s\n" % out_string, in_args.quiet)
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Find CpG
     if in_args.find_CpG:
         output = find_CpG(seqbuddy)
         if output[1]:
             out_string = ""
-            for key, _value in output[1].items():
-                if _value:
-                    _value = ["%s-%s" % (x[0], x[1]) for x in _value]
-                    out_string += "{0}: {1}\n".format(key, ", ".join(_value))
+            for key, value in output[1].items():
+                if value:
+                    value = ["%s-%s" % (x[0], x[1]) for x in value]
+                    out_string += "{0}: {1}\n".format(key, ", ".join(value))
             _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
                     out_string.strip(), in_args.quiet)
         else:
             _stderr("# No Islands identified\n\n", in_args.quiet)
         _print_recs(seqbuddy)
+        sys.exit()
 
     # Shuffle Seqs
     if in_args.shuffle_seqs:
         _print_recs(shuffle_seqs(seqbuddy))
+        sys.exit()
 
     # Insert Seq
     if in_args.insert_seq:
@@ -3009,6 +3056,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             except ValueError("Location must be start, end, or integer index") as e:
                 _raise_error(e)
         _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
+        sys.exit()
 
     # Codon counter
     if in_args.count_codons:
@@ -3023,6 +3071,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                 _stdout('\n')
         except TypeError as e:
             _raise_error(e)
+        sys.exit()
 
     # List features
     if in_args.list_features:
@@ -3054,7 +3103,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         out_string += '\ref: {0}'.format(feat.ref)
             else:
                 out_string = 'None\n'
-            _stdout(out_string+'\n')
+            _stdout('%s\n' % out_string)
+        sys.exit()
 
     # Add feature
     if in_args.add_feature:
@@ -3071,7 +3121,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         elif len(in_args.add_feature) == 4:
             if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
                                           'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
-                strand=in_args.add_feature[2]
+                strand = in_args.add_feature[2]
                 if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
                     qualifiers = in_args.add_feature[3]
                 else:
@@ -3094,6 +3144,5 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             raise AttributeError("Invalid parameters were provided.")
         ftype = in_args.add_feature[0]
         flocation = in_args.add_feature[1]
-
         _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
-
+        sys.exit()
