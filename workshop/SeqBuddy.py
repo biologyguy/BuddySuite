@@ -1577,7 +1577,6 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
     script_location = re.sub('SeqBuddy\.py', '', script_location)
-    print(script_location)
     os.chdir(script_location)
 
     if not which("blastp") and _seqbuddy.alpha not in [IUPAC.protein]:
