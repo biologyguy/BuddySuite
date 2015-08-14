@@ -12,7 +12,7 @@ and allows maintenance of rich feature annotation following alignment.
 import sys
 import os
 from copy import copy, deepcopy
-from io import StringIO
+from io import StringIO, TextIOWrapper
 from random import sample
 import re
 from tempfile import TemporaryDirectory
@@ -886,6 +886,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     align_set = ""
 
     for align_set in in_args.alignment:
+        if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
         align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
         alignbuddy += align_set.alignments
 
