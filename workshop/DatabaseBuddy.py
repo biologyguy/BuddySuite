@@ -55,7 +55,8 @@ from MyFuncs import *
 
 
 # ###################################################### GLOBALS ##################################################### #
-DATABASES = ["all", "gb", "genbank", "uniprot", "ensembl"]
+DATABASES = ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
+RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
@@ -120,21 +121,61 @@ def terminal_colors():
         _counter += 1
 
 
+def check_database(_database):
+    _output = []
+    if type(_database) == list:
+        for _db in [x.lower() for x in _database]:
+            if _db == "all":
+                _output = DATABASES
+                break
+            elif _db in DATABASES:
+                _output.append(_db)
+            else:
+                _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
+
+        if not _output:
+            _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
+            _output = DATABASES
+
+    elif not _database:
+        _output = DATABASES
+    else:
+        _database = _database.lower()
+        if _database == "all":
+            _output = DATABASES
+        elif _database in DATABASES:
+            _output = [_database]
+        else:
+            _stderr("Warning: '%s' is not a valid database choice. Setting to default 'all'.\n")
+            _output = DATABASES
+    return _output
+
+
+def check_type(_type):
+    _type = None if not _type else _type.lower()
+    if _type in ["p", "pr", "prt", "prtn", "prn", "prot", "protn", "protien", "protein"]:
+        _type = "protein"
+    elif _type in ["n", "ncl", "nuc", "dna", "nt", "gene", "transcript", "nucleotide"]:
+        _type = "nucleotide"
+    elif _type in ["g", "gi", "gn", "gin", "gi_num", "ginum", "gi_number"]:
+        _type = "gi_num"
+
+    if _type and _type not in RETRIEVAL_TYPES:
+        _stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
+        _type = "protein"
+    return _type
+
+
 # ##################################################### DB BUDDY ##################################################### #
 class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
-    def __init__(self, _input=None, _database=None, _out_format="summary"):
-        if _database and _database.lower() not in DATABASES:
-            raise DatabaseError("%s is not currently supported." % _database)
-
-        if _database and _database.lower() == "genbank":
-            _database = "gb"
-
+    def __init__(self, _input=None, _databases=None, _out_format="summary"):
         self.search_terms = []
         self.records = OrderedDict()
         self.recycle_bin = {}  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
         self.failures = {}
-        self.databases = [_database] if _database else ["uniprot", "refseq", "ensembl"]
+        self.databases = check_database(_databases)
+        _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
 
         # Empty DbBuddy object
         if not _input:
@@ -177,8 +218,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 _record = Record(_accession)
                 _record.guess_database()
                 if _record.database:
-                    if _database:
-                        _record.database = _database.lower()
+                    if _databases:
+                        _record.database = _databases
                     self.records[_accession] = _record
                     if _record.database not in self.databases:
                         self.databases.append(_record.database)
@@ -250,8 +291,48 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 _stderr(errors_etc, quiet)
 
             _output = ""
+            # Summary outputs
+            if self.out_format in ["summary", "full_summary", "ids", "accessions"]:
+                lines = []
+                saved_headings = []
+                for _accession, _rec in list(self.records.items())[:_num]:
+                    if self.out_format in ["ids", "accessions"]:
+                        lines.append([_accession])
+
+                    elif self.out_format in ["summary", "full_summary"]:
+                        headings = ["ACCN", "DB"]
+                        headings += [heading for heading, _value in _rec.summary.items()]
+                        if columns:
+                            headings = [heading for heading in headings if heading in columns]
+                        if saved_headings != headings:
+                            # for heading in headings:
+                            lines.append(headings)
+                            saved_headings = list(headings)
+
+                        lines.append([])
+                        if "ACCN" in headings:
+                            lines[-1].append(_accession)
+                        if "DB" in headings:
+                            if _rec.database:
+                                lines[-1].append(_rec.database)
+                            else:
+                                lines[-1].append("")
+
+                        for attrib, _value in _rec.summary.items():
+                            if attrib in headings:
+                                if len(str(_value)) > 50 and self.out_format != "full_summary":
+                                    lines[-1].append(_value[:47])
+                                else:
+                                    lines[-1].append(_value)
+
+                    # ToDo: Thinks about lining up all columns for easier viewing
+                    _output = "\033[m\033[40m\033[97m"
+                    for _line in lines:
+                        colors = terminal_colors()
+                        _output += "%s\n" % "\t".join(["%s%s" % (next(colors), _col) for _col in _line])
+
             # Full records
-            if self.out_format not in ["summary", "full_summary", "ids", "accessions"]:
+            else:
                 nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide"
                             and _rec.record]
                 prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein"
@@ -270,42 +351,6 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
                     with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
                         _output += "%s\n" % ifile.read()
-            # Summary outputs
-            else:
-                _output += "\033[m\033[40m\033[97m"
-                saved_headings = []
-                for _accession, _rec in list(self.records.items())[:_num]:
-                    colors = terminal_colors()
-                    if self.out_format in ["ids", "accessions"]:
-                        _output += "%s\n" % _accession
-
-                    elif self.out_format in ["summary", "full_summary"]:
-                        headings = ["ACCN", "DB"]
-                        headings += [heading for heading, _value in _rec.summary.items()]
-                        if columns:
-                            headings = [heading for heading in headings if heading in columns]
-                        if saved_headings != headings:
-                            for heading in headings:
-                                _output += "\t%s%s" % (next(colors), heading)
-                            _output = "%s\n" % _output.strip()
-                            saved_headings = list(headings)
-                            colors = terminal_colors()
-
-                        if "ACCN" in headings:
-                            _output += "%s%s\t" % (next(colors), _accession)
-                        if "DB" in headings:
-                            if _rec.database:
-                                _output += "%s%s" % (next(colors), _rec.database)
-                            else:
-                                next(colors)
-                        _output = _output.strip()
-                        for attrib, _value in _rec.summary.items():
-                            if attrib in headings:
-                                if len(str(_value)) > 50 and self.out_format != "full_summary":
-                                    _output += "\t%s%s..." % (next(colors), str(_value[:47]))
-                                else:
-                                    _output += "\t%s%s" % (next(colors), _value)
-                        _output += "\n"
 
             if not destination:
                 _stdout("{0}\n".format(_output.rstrip()))
@@ -346,18 +391,18 @@ class Record:
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
         self.size = _size
-        self.database = _database  # refseq, genbank, ensembl, uniprot
-        self.type = _type  # protein, nucleotide, gi_num
+        self.database = _database
+        self.type = check_type(_type)
         self.search_term = _search_term  # In case the record was the result of a particular search
 
     def guess_database(self):
         # RefSeq
         if re.match("^[NX][MR]_[0-9]+", self.accession):
-            self.database = "refseq"
+            self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
         elif re.match("^[ANYXZ]P_[0-9]+", self.accession):
-            self.database = "refseq"
+            self.database = "ncbi_prot"
             self.type = "protein"
 
         # UniProt/SwissProt
@@ -372,23 +417,23 @@ class Record:
 
         # GenBank
         elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}$", self.accession):  # Nucleotide
-            self.database = "gb"
+            self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
         elif re.match("^[A-Z]{3}[0-9]{5}$", self.accession):  # Protein
-            self.database = "gb"
+            self.database = "ncbi_prot"
             self.type = "protein"
 
         elif re.match("^[A-Z]{4}[0-9]{8,10}$", self.accession):  # Whole Genome
-            self.database = "gb"
+            self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
         elif re.match("^[A-Z]{5}[0-9]{7}$", self.accession):  # MGA (Mass sequence for Genome Annotation)
-            self.database = "gb"
+            self.database = "ncbi_prot"
             self.type = "protein"
 
         elif re.match("^[0-9]+$", self.accession):  # GI number
-            self.database = "gb"
+            self.database = ["ncbi_nuc", "ncbi_prot"]
             self.type = "gi_num"  # Need to check genbank accession number to figure out that this is
 
         return
@@ -693,7 +738,6 @@ class EnsemblRestClient:
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
         self.terminal_default = "\033[m\033[40m%s" % WHITE
-        _stderr(self.terminal_default)
         cmd.Cmd.__init__(self)
         hash_heading = ""
         colors = terminal_colors()
@@ -711,8 +755,12 @@ class LiveSearch(cmd.Cmd):
         self.dbbuddy = _dbbuddy
         self.file = None
 
-        retrieve_summary(dbbuddy)
-
+        _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
+        if self.dbbuddy.records or self.dbbuddy.search_terms:
+            retrieve_summary(dbbuddy)
+        else:
+            _stdout("Your session is currently unpopulated. Use 'search' to retrieve records.\n",
+                    format_out=self.terminal_default)
         self.hash = None
         self.cmdloop()
 
@@ -731,21 +779,6 @@ class LiveSearch(cmd.Cmd):
                         format_out=self.terminal_default)
         else:
             Popen(line, shell=True).wait()
-
-    def do_delete(self, line="all"):
-        if line.lower() not in ["all", "rb", "recycle", "recyclebin", "recycle-bin",
-                                "recs", "records", "main", "filtered"]:
-            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, recycle-bin\n\n",
-                    format_in=RED, format_out=self.terminal_default)
-            return
-        confirm = input("%sAre you sure you want to delete ALL %s records from your live session (y/[n])?%s" %
-                        (RED, len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin), self.terminal_default))
-        if confirm.lower() not in ["yes", "y"]:
-            _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
-            return
-        self.dbbuddy.recycle_bin = {}
-        self.dbbuddy.records = {}
-        self.dbbuddy.search_terms = []
 
     def do_database(self, line):
         if not line:
@@ -766,7 +799,22 @@ class LiveSearch(cmd.Cmd):
         else:
             _stdout("Database seach list not changed.\n", format_in=RED, format_out=self.terminal_default)
 
-    def do_download(self, line=None):
+    def do_delete(self, line="all"):
+        if line.lower() not in ["all", "rb", "recycle", "recyclebin", "recycle-bin",
+                                "recs", "records", "main", "filtered"]:
+            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, recycle-bin\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+        confirm = input("%sAre you sure you want to delete ALL %s records from your live session (y/[n])?%s" %
+                        (RED, len(self.dbbuddy.records) + len(self.dbbuddy.recycle_bin), self.terminal_default))
+        if confirm.lower() not in ["yes", "y"]:
+            _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
+            return
+        self.dbbuddy.recycle_bin = {}
+        self.dbbuddy.records = {}
+        self.dbbuddy.search_terms = []
+
+    def do_fetch(self, line=None):
         retrieve_summary(self.dbbuddy)
         amount_seq_requested = 0
         for _accn, _rec in self.dbbuddy.records.items():
@@ -781,18 +829,6 @@ class LiveSearch(cmd.Cmd):
                 return
         retrieve_sequences(self.dbbuddy)
         _stdout("Retrieved %s residues of sequence data\n" % pretty_number(amount_seq_requested), format_out=self.terminal_default)
-
-    def do_exit(self, line=None):
-        if (self.dbbuddy.records or self.dbbuddy.recycle_bin) and self.hash != hash(self.dbbuddy):
-            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
-            if confirm.lower() in ["yes", "y"]:
-                _stdout("Goodbye\n")
-                sys.exit()
-            else:
-                _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
-                return
-        _stdout("Goodbye\033[m\n")
-        sys.exit()
 
     def do_filter(self, line):
         if not line:
@@ -831,7 +867,16 @@ class LiveSearch(cmd.Cmd):
             break
 
     def do_quit(self, line=None):
-        self.do_exit()
+        if (self.dbbuddy.records or self.dbbuddy.recycle_bin) and self.hash != hash(self.dbbuddy):
+            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
+            if confirm.lower() in ["yes", "y"]:
+                _stdout("Goodbye\n")
+                sys.exit()
+            else:
+                _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
+                return
+        _stdout("Goodbye\033[m\n")
+        sys.exit()
 
     def do_reset(self, line=None):
         current_count = len(self.dbbuddy.records)
@@ -862,54 +907,6 @@ class LiveSearch(cmd.Cmd):
         _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin))
 
     def do_save(self, line=None):
-        self.do_write(line)
-
-    def do_search(self, line):
-        if not line:
-            line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
-
-        temp_buddy = DbBuddy(line)
-        temp_buddy.databases = dbbuddy.databases
-
-        if len(temp_buddy.records):
-            retrieve_sequences(temp_buddy)
-
-        if len(temp_buddy.search_terms):
-            retrieve_summary(temp_buddy)
-
-        for _term in temp_buddy.search_terms:
-            if _term not in self.dbbuddy.search_terms:
-                self.dbbuddy.search_terms.append(line)
-
-        for _accn, _rec in temp_buddy.records.items():
-            if _accn not in self.dbbuddy.records:
-                self.dbbuddy.records[_accn] = _rec
-
-    def do_show(self, line=None):
-        if line:
-            line = line.split(" ")
-        num_returned = len(self.dbbuddy.records)
-        columns = []
-        for _next in line:
-            try:
-                num_returned = int(_next)
-            except ValueError:
-                columns.append(_next)
-
-        columns = None if not columns else columns
-
-        if num_returned > 100:
-            confirm = input("%s%s records currently in buffer, show them all (y/[n])?%s " %
-                            (RED, len(self.dbbuddy.records, self.terminal_default), self.terminal_default))
-            if confirm.lower() not in ["yes", "y"]:
-                _stdout("Include an integer value with 'show' to return a specific number of records.\n")
-                return
-        self.dbbuddy.print(_num=num_returned, columns=columns)
-
-    def do_status(self, line=None):
-        _stdout(str(self.dbbuddy))
-
-    def do_write(self, line=None):
         if not line and not self.file:
             line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
 
@@ -951,15 +948,57 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
                     format_out=self.terminal_default)
             self.hash = hash(self.dbbuddy)
 
+    def do_search(self, line):
+        if not line:
+            line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
+
+        temp_buddy = DbBuddy(line)
+        temp_buddy.databases = dbbuddy.databases
+
+        if len(temp_buddy.records):
+            retrieve_sequences(temp_buddy)
+
+        if len(temp_buddy.search_terms):
+            retrieve_summary(temp_buddy)
+
+        for _term in temp_buddy.search_terms:
+            if _term not in self.dbbuddy.search_terms:
+                self.dbbuddy.search_terms.append(line)
+
+        for _accn, _rec in temp_buddy.records.items():
+            if _accn not in self.dbbuddy.records:
+                self.dbbuddy.records[_accn] = _rec
+
+    def do_show(self, line=None):
+        if line:
+            line = line.split(" ")
+        num_returned = len(self.dbbuddy.records)
+        columns = []
+        for _next in line:
+            try:
+                num_returned = int(_next)
+            except ValueError:
+                columns.append(_next)
+
+        columns = None if not columns else columns
+
+        if num_returned > 100:
+            confirm = input("%s%s records currently in buffer, show them all (y/[n])?%s " %
+                            (RED, len(self.dbbuddy.records), self.terminal_default))
+            if confirm.lower() not in ["yes", "y"]:
+                _stdout("Include an integer value with 'show' to return a specific number of records.\n")
+                return
+        self.dbbuddy.print(_num=num_returned, columns=columns)
+
+    def do_status(self, line=None):
+        _stdout(str(self.dbbuddy))
+
     def help_bash(self):
         _stdout('''\
 Run bash commands from the DbBuddy Live Session.
 Be careful!! This is not sand-boxed in any way, so give the 'bash' command
 all the respect you would afford the normal terminal window.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
-
-    def help_delete(self):
-        _stdout("Delete records from the Live Session. \n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def help_database(self):
         _stdout('''\
@@ -969,14 +1008,20 @@ Valid choices: {0}{3}\n
 '''.format(YELLOW, ", ".join(self.dbbuddy.databases), GREEN, ", ".join(DATABASES)), format_in=GREEN,
                 format_out=self.terminal_default)
 
-    def help_download(self):
+    def help_delete(self):
+        _stdout('''\
+Remove records completely from the Live Session. Be careful, this is permanent.
+Choices are:
+    recycle-bin, rb: Empty the recycle bin
+    records, recs:   Delete all the main list of records (leaving the recycle bin alone)
+    all:             Delete everything
+''', format_in=GREEN, format_out=self.terminal_default)
+
+    def help_fetch(self):
         _stdout('''\
 Retrieve full records for all accessions in the main record list.
 If requesting more than 50 Mbp of sequence data, you will be prompted to confirm the command.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
-
-    def help_exit(self):
-        _stdout("End the live session.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def help_filter(self):
         _stdout('''\
@@ -1044,11 +1089,6 @@ the number records and amount of information per record displayed.\n
         _stdout("Display the current state of your Live Session, including how many accessions and full records "
                 "have been downloaded.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
-    def help_write(self):
-        _stdout('''\
-Send records to a file (format currently set to '{0}{1}{2}').
-Supply the file name to be written to.\n
-'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
 # DL everything
 """
@@ -1080,7 +1120,7 @@ def retrieve_accessions(_dbbuddy):
 
     return _dbbuddy  # TEMPORARY
 
-    if "gb" in _dbbuddy.databases or check_all:
+    if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
         # refseq.search_nucliotides()
@@ -1096,7 +1136,7 @@ def retrieve_summary(_dbbuddy):
         uniprot.search_proteins()
 
     return _dbbuddy  # TEMPORARY
-    if "gb" in _dbbuddy.databases or check_all:
+    if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
         # refseq.search_nucliotides()
@@ -1114,7 +1154,7 @@ def retrieve_sequences(_dbbuddy):
         uniprot.fetch_proteins()
 
     return _dbbuddy  # TEMPORARY
-    if "gb" in _dbbuddy.databases or check_all:
+    if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         pass
 
     if "ensembl" in _dbbuddy.databases or check_all:
