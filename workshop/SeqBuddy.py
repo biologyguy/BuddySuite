@@ -2281,6 +2281,71 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
     _seqbuddy = merge([old, _seqbuddy])
     return _seqbuddy
 
+    ###Jeremy code block 1
+
+
+
+
+def degenerate_sequence(_seqbuddy):
+    
+    #private method within the degenerate_sequence
+    def degenerate_codon(codon): #probably want to make this something like _degenerate_codon to make it private method
+        try:
+            #translate codon
+            
+            aa = codon.translate()
+
+            #dictionary relating aa to degnerate codon
+            
+            degen_dict = { 'A': 'GCN', 'C': 'TGY', 'D': 'GAY', 'E': 'GAR',
+                           'F': 'TTY', 'G': 'GGN', 'H': 'CAY', 'I': 'ATH', 
+                           'K': 'AAR', 'L': 'YTN', 'M': 'ATG', 'N': 'AAY',
+                           'P': 'CCN', 'Q': 'CAR', 'R': 'MGN', 'T': 'ACN',
+                           'V': 'GTN', 'W': 'TGG', 'Y': 'TAY', 'X': 'NNN' } 
+            #dealing with multiple serine codons
+            if str(aa) == 'S':
+                if codon in ('AGT', 'ACG', 'AGC'):
+                    return('AGY')
+                else:
+                    return('TCN')
+
+            #main block to deal with most of the codons
+            elif str(aa) in degen_dict.keys():
+                #convert back to string before returning the codon
+                return(degen_dict[aa])
+            else:
+                #Return the stop codons
+                return(codon.upper())
+
+        #The except block allows the return of --- and ??? if those are the codons
+        except:
+            if str(codon) == '???':
+                return('NNN')
+            else:
+                return(codon)
+
+    #start actual degenerate_sequence method
+    if _seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.") 
+    #if not divisible by 3, slice off end of sequence to make divisible by 3
+    _seqbuddy = clean_seq(_seqbuddy)
+    for _rec in _seqbuddy.records:
+        seq_length = len(_rec.seq)
+        i=0
+        degen_string=""
+        print(_rec.seq)
+
+        while i < seq_length:
+            degen_string += degenerate_codon((_rec.seq[i:i+3])) #this could cause error here because i don't know if I can slice seq buddy objects
+            i = i+3
+           # print(degen_string)
+        _rec.seq = degen_string
+    return(_seqbuddy)
+
+
+
+    ### end Jeremy Block
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -2435,6 +2500,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly",
                         action='store')
     parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
+
+    #Jeremy code block 2
+    parser.add_argument('-dgn', '--degenerate_sequence', action='store_true',
+                        help="Return degenerate nucleotide sequence") #also something called 'nargs'
+
+    #end Jeremy code
+
 
     in_args = parser.parse_args()
 
@@ -3167,3 +3239,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         flocation = in_args.add_feature[1]
         _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
         sys.exit()
+   
+    #Jeremy code 3
+    if in_args.degenerate_sequence:
+        if seqbuddy.alpha != IUPAC.ambiguous_dna:
+            raise ValueError("You need to provide a DNA sequence.")
+        print(degenerate_sequence(seqbuddy))
+    #end Jeremy code
