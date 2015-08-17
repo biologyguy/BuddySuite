@@ -636,7 +636,7 @@ def test_restriction_sites():
         Sb.find_restriction_sites(sb_objects[7])
 
 
-# ######################  'bl', '--blast' ###################### #
+######################  'bl', '--blast' ###################### #
 def test_blastn():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[0])), '8')
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_cds.n"))
