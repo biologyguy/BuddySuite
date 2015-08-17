@@ -264,8 +264,18 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 del self.recycle_bin[_id]
         return
 
-    def print(self, _num=0, quiet=False, columns=None, destination=None):  # destination can be a file handle to write
-        _num = _num if _num > 0 else len(self.records)
+    def print(self, _num=0, quiet=False, columns=None, destination=None, group="records"):
+        """
+        :param _num: Limit the number of rows (records) returned, otherwise everything is output
+        :param quiet: suppress stderr
+        :param columns: Variable, list of column names to include in summary output
+        :param destination: a file path or handle to write to
+        :param group: Either 'records' or 'rec_bin'
+        :return: Nothing.
+        """
+        group = self.recycle_bin if group == "rec_bin" else self.records
+
+        _num = _num if _num > 0 else len(group)
         if in_args.test:
             _stderr("*** Test passed ***\n", quiet)
             pass
@@ -298,7 +308,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             if self.out_format in ["summary", "full_summary", "ids", "accessions"]:
                 lines = []
                 saved_headings = []
-                for _accession, _rec in list(self.records.items())[:_num]:
+                for _accession, _rec in list(group.items())[:_num]:
                     if self.out_format in ["ids", "accessions"]:
                         lines.append([_accession])
 
@@ -336,9 +346,9 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
             # Full records
             else:
-                nuc_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "nucleotide"
+                nuc_recs = [_rec.record for _accession, _rec in group.items() if _rec.type == "nucleotide"
                             and _rec.record]
-                prot_recs = [_rec.record for _accession, _rec in self.records.items() if _rec.type == "protein"
+                prot_recs = [_rec.record for _accession, _rec in group.items() if _rec.type == "protein"
                              and _rec.record]
                 tmp_dir = TemporaryDirectory()
                 if len(nuc_recs) > 0:
@@ -889,6 +899,9 @@ class LiveSearch(cmd.Cmd):
         _stdout("Goodbye\033[m\n")
         sys.exit()
 
+    def do_rec_bin(self, line=None):
+        self.do_show(line, "rec_bin")
+
     def do_reset(self, line=None):
         current_count = len(self.dbbuddy.records)
         for _accn, _rec in self.dbbuddy.recycle_bin.items():
@@ -984,10 +997,12 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             if _accn not in self.dbbuddy.records:
                 self.dbbuddy.records[_accn] = _rec
 
-    def do_show(self, line=None):
+    def do_show(self, line=None, group="records"):
         if line:
             line = line.split(" ")
-        num_returned = len(self.dbbuddy.records)
+
+        _length = len(self.dbbuddy.recycle_bin) if group == "rec_bin" else len(self.dbbuddy.records)
+        num_returned = _length
         columns = []
         for _next in line:
             try:
@@ -999,12 +1014,12 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
         if num_returned > 100:
             confirm = input("%s%s records currently in buffer, show them all (y/[n])?%s " %
-                            (RED, len(self.dbbuddy.records), self.terminal_default))
+                            (RED, _length, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n",
                         format_out=self.terminal_default)
                 return
-        self.dbbuddy.print(_num=num_returned, columns=columns)
+        self.dbbuddy.print(_num=num_returned, columns=columns, group=group)
 
     def do_status(self, line=None):
         _stdout(str(self.dbbuddy), format_out=self.terminal_default)
@@ -1066,6 +1081,13 @@ Set the output format:
     def help_quit():
         _stdout("End the live session.\n\n", format_in=GREEN)
 
+    def help_rec_bin(self):
+        _stdout('''\
+Output the records held in the recycle bin (out_format currently set to '{0}{1}{2}')
+Optionally include an integer value and/or column name(s) to limit
+the number of records and amount of information per record displayed.\n
+'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+
     def help_reset(self):
         _stdout('''\
 Return all filtered records back into the main list (use the 'restore' command to only return a subset)\n
@@ -1098,7 +1120,7 @@ are supplied then full sequence records will be downloaded.\n
         _stdout('''\
 Output the records held in the Live Session (out_format currently set to '{0}{1}{2}')
 Optionally include an integer value and/or column name(s) to limit
-the number records and amount of information per record displayed.\n
+the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_status(self):
