@@ -41,11 +41,14 @@ from hashlib import md5
 import cmd
 from subprocess import Popen
 from io import TextIOWrapper
+import warnings
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
+from Bio import BiopythonWarning
+warnings.simplefilter('ignore', BiopythonWarning)
 
 # My functions
 from MyFuncs import *
@@ -369,17 +372,17 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
     def __str__(self):
         _output = "############################\n"
         _output += "### DatabaseBuddy object ###\n"
-        _output += "Databases: %s\n" % ", ".join(self.databases)
-        _output += "Out format: %s\n" % self.out_format
-        _output += "Search term(s): "
+        _output += "Databases:    %s\n" % ", ".join(self.databases)
+        _output += "Out format:   %s\n" % self.out_format
+        _output += "Searches:     "
         _output += "None\n" if not self.search_terms else "%s\n" % ", ".join(self.search_terms)
 
         breakdown = self.record_breakdown()
-        _output += "Full Recs: %s\n" % len(breakdown["full"])
+        _output += "Full Recs:    %s\n" % len(breakdown["full"])
         _output += "Partial Recs: %s\n" % len(breakdown["partial"])
-        _output += "ACCN only: %s\n" % len(breakdown["accession"])
-        _output += "Filtered out: %s\n" % len(self.recycle_bin)
-        _output += "Failures: %s\n" % len(self.failures)
+        _output += "ACCN only:    %s\n" % len(breakdown["accession"])
+        _output += "Recycle bin:  %s\n" % len(self.recycle_bin)
+        _output += "Failures:     %s\n" % len(self.failures)
         _output += "############################\n"
 
         return _output
@@ -592,10 +595,11 @@ class UniProtRestClient:
                                                       _search_term=result[0], summary=raw, _size=int(hit[2]))
 
     def fetch_proteins(self):
-        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot"]
+        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot" and not _rec.record]
         if len(_records) > 0:
             _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
-            _ids = ",".join([_rec.accession for _rec in _records]).strip(",")
+            _ids = ",".join([_rec.accession for _rec in _records])
+            # ToDo: Split up queries for size limits
             request = Request("%s?query=%s&format=txt" % (self.server, _ids))
             response = urlopen(request)
             data = SeqIO.to_dict(SeqIO.parse(response, "swiss"))
@@ -735,6 +739,12 @@ class EnsemblRestClient:
 
 
 # ################################################## API FUNCTIONS ################################################### #
+# ToDo: - Show recycle bin
+#       - Abort commands
+#       - Filter '*' crashes
+#       - Catch URL errors
+#       - delete not working
+
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
         self.terminal_default = "\033[m\033[40m%s" % WHITE
@@ -815,10 +825,10 @@ class LiveSearch(cmd.Cmd):
         self.dbbuddy.search_terms = []
 
     def do_fetch(self, line=None):
-        retrieve_summary(self.dbbuddy)
         amount_seq_requested = 0
         for _accn, _rec in self.dbbuddy.records.items():
-            amount_seq_requested += _rec.size
+            if not _rec.record:  # Not fetching sequence if the full record already exists
+                amount_seq_requested += _rec.size
 
         if amount_seq_requested > 5000000:
             confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
@@ -838,17 +848,18 @@ class LiveSearch(cmd.Cmd):
             line = line.strip("'").split("' '")
         else:
             line = line.strip('"').split('" "')
-        max_regex_len = 0
+        max_regex_len = 6  # length of the string 'filter'
         for _filter in line:
             max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
         tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
-        _stdout(tabbed.format("Filter", "# Recs removed"))
+        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
+        _stdout(tabbed.format("Filter", "# Recs removed"), format_out=self.terminal_default)
         current_count = len(self.dbbuddy.records)
         for _filter in line:
             self.dbbuddy.filter_records(_filter)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)))
+            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
-        _stdout("\n%s records remain.\n" % len(self.dbbuddy.records))
+        _stdout("\n%s records remain.\n\n" % len(self.dbbuddy.records), format_out=self.terminal_default)
 
     def do_format(self, line):
         while True:
@@ -884,7 +895,8 @@ class LiveSearch(cmd.Cmd):
             if _accn not in self.dbbuddy.records:
                 self.dbbuddy.records[_accn] = _rec
         self.dbbuddy.recycle_bin = {}
-        _stdout("%s records recovered\n" % (len(self.dbbuddy.records) - current_count), format_in=BLUE)
+        _stdout("%s records recovered\n" % (len(self.dbbuddy.records) - current_count),
+                format_in=BLUE, format_out=self.terminal_default)
 
     def do_restore(self, line):
         if not line:
@@ -894,17 +906,20 @@ class LiveSearch(cmd.Cmd):
             line = line.strip("'").split("' '")
         else:
             line = line.strip('"').split('" "')
-        max_regex_len = 0
+        max_regex_len = 6
         for _filter in line:
             max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
         tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
-        _stdout(tabbed.format("Filter", "# Recs returned"))
+        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
+        _stdout(tabbed.format("Filter", "# Recs returned"), format_out=self.terminal_default)
         current_count = len(self.dbbuddy.recycle_bin)
         for _filter in line:
             self.dbbuddy.restore_records(_filter)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.recycle_bin)))
+            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.recycle_bin)),
+                    format_out=self.terminal_default)
             current_count = len(self.dbbuddy.recycle_bin)
-        _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin))
+        _stdout("\n%s records remain in the recycle bin.\n" % len(self.dbbuddy.recycle_bin),
+                format_out=self.terminal_default)
 
     def do_save(self, line=None):
         if not line and not self.file:
@@ -986,12 +1001,13 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             confirm = input("%s%s records currently in buffer, show them all (y/[n])?%s " %
                             (RED, len(self.dbbuddy.records), self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
-                _stdout("Include an integer value with 'show' to return a specific number of records.\n")
+                _stdout("Include an integer value with 'show' to return a specific number of records.\n",
+                        format_out=self.terminal_default)
                 return
         self.dbbuddy.print(_num=num_returned, columns=columns)
 
     def do_status(self, line=None):
-        _stdout(str(self.dbbuddy))
+        _stdout(str(self.dbbuddy), format_out=self.terminal_default)
 
     def help_bash(self):
         _stdout('''\
@@ -1005,8 +1021,8 @@ all the respect you would afford the normal terminal window.\n
 Reset the database(s) to be searched. Separate multiple databases with spaces.
 Currently set to: {0}{1}{2}
 Valid choices: {0}{3}\n
-'''.format(YELLOW, ", ".join(self.dbbuddy.databases), GREEN, ", ".join(DATABASES)), format_in=GREEN,
-                format_out=self.terminal_default)
+'''.format(YELLOW, ", ".join(self.dbbuddy.databases), GREEN, ", ".join(DATABASES)),
+                format_in=GREEN, format_out=self.terminal_default)
 
     def help_delete(self):
         _stdout('''\
@@ -1110,9 +1126,9 @@ def download_everything(_dbbuddy):
     return _dbbuddy
 """
 
-
+"""
 def retrieve_accessions(_dbbuddy):
-    check_all = True if len(_dbbuddy.databases) == 0 else False
+    check_all = False if _dbbuddy.databases else True
 
     if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
@@ -1126,10 +1142,11 @@ def retrieve_accessions(_dbbuddy):
         # refseq.search_nucliotides()
 
     return _dbbuddy
+"""
 
 
 def retrieve_summary(_dbbuddy):
-    check_all = True if len(_dbbuddy.databases) == 0 else False
+    check_all = False if _dbbuddy.databases else True
 
     if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
@@ -1148,7 +1165,7 @@ def retrieve_summary(_dbbuddy):
 
 
 def retrieve_sequences(_dbbuddy):
-    check_all = True if len(_dbbuddy.databases) == 0 else False
+    check_all = False if _dbbuddy.databases else True
     if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.fetch_proteins()

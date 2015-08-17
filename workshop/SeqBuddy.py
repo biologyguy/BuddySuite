@@ -34,7 +34,6 @@ import sys
 import os
 import re
 import string
-import json
 import zipfile
 import shutil
 from urllib import request, error
@@ -230,6 +229,7 @@ def _make_copies(_seqbuddy):
     for _indx, _rec in enumerate(copies.records):
         _rec.seq.alphabet = alphabet_list[_indx]
     return copies
+
 
 def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
     if os.path.exists('.buddysuite'):
@@ -1339,7 +1339,6 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
 
 def pull_recs(_seqbuddy, _search):  # _search can be a list of regex expressions or single string
     _search = "|".join(_search) if type(_search) == list else _search
-    print(_search)
     matched_records = []
     for _rec in _seqbuddy.records:
         if re.search(_search, _rec.description) or re.search(_search, _rec.id) or re.search(_search, _rec.name):
