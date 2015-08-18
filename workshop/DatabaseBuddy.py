@@ -516,7 +516,7 @@ class UniProtRestClient:
         open(self.http_errors_file, "w").close()
         self.results_file = "%s/results.txt" % self.temp_dir.path
         open(self.results_file, "w").close()
-        self.max_url = 1950
+        self.max_url = 1000
 
     def query_uniprot(self, _term, args):  # Multicore ready
         http_errors_file, results_file, request_params = args
@@ -676,14 +676,15 @@ class UniProtRestClient:
             clean_recs = []
             for _rec in data:
                 if _rec:
-                    clean_recs.append(re.sub("# Search.*\n", "", _rec))  # Strip the first line from multi-core searches
+                    # Strip the first line from multi-core searches
+                    clean_recs.append(re.sub("# Search.*\n", "", _rec.strip()))
 
             with open(self.results_file, "w") as ifile:
                 ifile.write("//\n".join(clean_recs))
-                ifile.write("//")
+                ifile.write("\n//")
 
-            with open(self.results_file, "r") as ofile:
-                _records = SeqIO.parse(ofile, "swiss")
+            with open(self.results_file, "r") as ifile:
+                _records = SeqIO.parse(ifile, "swiss")
                 for _rec in _records:
                     if _rec.id not in self.dbbuddy.records:
                         print(_rec.id)
@@ -821,11 +822,7 @@ class EnsemblRestClient:
 
 
 # ################################################## API FUNCTIONS ################################################### #
-# ToDo: - Show trash bin
-#       - Abort commands
-#       - Filter '*' crashes
-#       - Catch URL errors
-#       - delete not working
+# ToDo: - Abort commands
 
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
@@ -942,7 +939,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("Database search list updated to %s\n\n" % self.dbbuddy.databases, format_in=GREEN,
                     format_out=self.terminal_default)
         else:
-            _stdout("Database seach list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
+            _stdout("Database search list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
 
     def do_delete(self, line="all"):
         if not self.dbbuddy.trash_bin and not self.dbbuddy.records and not self.dbbuddy.search_terms:
@@ -1183,8 +1180,6 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
 
-        _stderr("\n")
-
     def do_show(self, line=None, group="records"):
         if line:
             line = line.split(" ")
@@ -1193,6 +1188,12 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         if not num_returned:
             _stdout("Nothing in %s to show.\n\n" % group, format_in=RED, format_out=self.terminal_default)
             return
+
+        if self.dbbuddy.out_format not in ["ids", "accessions", "summary", "full-summary"]:
+            if not self.dbbuddy.record_breakdown()["full"]:
+                _stdout("No full records in %s to show. Use 'fetch' to retrieve sequences first.\n\n"
+                        % group, format_in=RED, format_out=self.terminal_default)
+                return
 
         columns = []
         for _next in line:
