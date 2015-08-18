@@ -23,6 +23,7 @@ from Bio.Phylo import PhyloXML, NeXML, Newick
 import ete3
 from dendropy.datamodel.treemodel import Tree
 from dendropy.datamodel.treecollectionmodel import TreeList
+from dendropy.calculate import treecompare
 
 
 # from newick_utils import *
@@ -99,7 +100,7 @@ def _extract_figtree_metadata(_file_path):
 
     return filedata, figdata
 
-def convert_to_ete(_tree):
+def convert_to_ete(_tree, ignore_color=False):
     tmp_dir = TemporaryDirectory()
     with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
         _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
@@ -107,12 +108,16 @@ def convert_to_ete(_tree):
 
     ete_tree = ete3.TreeNode(newick="%s/tree.tmp" % tmp_dir.name)
 
-    for node in ete_tree.traverse():
-        if hasattr(node, 'pb_color'):
-            style = ete3.NodeStyle()
-            style['fgcolor'] = node.pb_color
-            style['hz_line_color'] = node.pb_color
-            node.set_style(style)
+    if not ignore_color:
+        for node in ete_tree.traverse():
+            if hasattr(node, 'pb_color'):
+                style = ete3.NodeStyle()
+                style['fgcolor'] = node.pb_color
+                style['hz_line_color'] = node.pb_color
+                node.set_style(style)
+    else:
+        for node in ete_tree.traverse():
+            node.del_feature('pb_color')
 
     return ete_tree
 
@@ -245,7 +250,7 @@ class PhyloBuddy:
         else:
             raise TypeError("Error: Unsupported output format.")
 
-        _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=True, suppress_annotations=False)
+        _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
         return _output
 
     def write(self, _file_path):
@@ -315,6 +320,129 @@ def prune_taxa(_phylobuddy, _patterns):
         for _taxon in taxa_to_prune:
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
+def show_unique_nodes(_phylobuddy):
+    if len(_phylobuddy.trees) != 2:
+        raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
+    _trees = [convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
+              convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]
+
+    data = _trees[0].robinson_foulds(_trees[1])
+    tree1_only = []
+    tree2_only = []
+
+    common_leaves = data[2]
+    for _names in data[3]:
+        if len(_names) == 1:
+            tree1_only.append(_names[0])
+    for _names in data[4]:
+        if len(_names) == 1:
+            tree2_only.append(_names[0])
+
+    for _node in _trees[0]:
+        if _node.name in common_leaves:
+            _node.add_feature('pb_color', '#00ff00')
+        else:
+            _node.add_feature('pb_color', '#ff0000')
+    for _node in _trees[1]:
+        if _node.name in common_leaves:
+            _node.add_feature('pb_color', '#00ff00')
+        else:
+            _node.add_feature('pb_color', '#ff0000')
+
+    tmp_dir = TemporaryDirectory()
+    with open("%s/tree1.tmp" % tmp_dir.name, "w") as _ofile:
+        _ofile.write(re.sub('pb_color', '!color', _trees[0].write(features=[])))
+    with open("%s/tree2.tmp" % tmp_dir.name, "w") as _ofile:
+        _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
+
+    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
+                             _out_format=_phylobuddy.out_format)
+    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
+                             _out_format=_phylobuddy.out_format)
+
+    _trees = pb1.trees + pb2.trees
+
+    _phylobuddy = PhyloBuddy(_input=_trees, _in_format=_phylobuddy.in_format, _out_format=_phylobuddy.out_format)
+
+    return _phylobuddy
+
+def show_diff(_phylobuddy):
+    #if len(_phylobuddy.trees) != 2:
+    #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
+    _trees = [convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
+              convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]
+
+    paths = []
+
+    def get_all_paths(_tree, _path_list=list()):
+        new_list = deepcopy(_path_list)
+        new_list.append(_tree)
+        print(_tree)
+        if not _tree.is_leaf():
+            children = _tree.child_nodes()
+            for child in children:
+                new_list.append(get_all_paths(child, _path_list=new_list))
+        else:
+            paths.append(new_list)
+    get_all_paths(_phylobuddy.trees[0].seed_node)
+    print(paths)
+
+    data = _trees[0].robinson_foulds(_trees[1])
+    tree1_only = data[3] - data[4]
+    tree2_only = data[4] - data[3]
+
+    tree1_only_set = set()
+    for tup in tree1_only:
+        for _name in tup:
+            tree1_only_set.add(_name)
+
+    tree2_only_set = set()
+    for tup in tree2_only:
+        for _name in tup:
+            tree2_only_set.add(_name)
+
+    for _node in _trees[0]:
+        if _node.name in tree1_only_set:
+            _node.add_feature('pb_color', '#ff0000')
+        else:
+            _node.add_feature('pb_color', '#00ff00')
+
+    for _node in _trees[1]:
+        if _node.name in tree2_only_set:
+            _node.add_feature('pb_color', '#ff0000')
+        else:
+            _node.add_feature('pb_color', '#00ff00')
+
+    tmp_dir = TemporaryDirectory()
+    with open("%s/tree1.tmp" % tmp_dir.name, "w") as _ofile:
+        _ofile.write(re.sub('pb_color', '!color', _trees[0].write(features=[])))
+    with open("%s/tree2.tmp" % tmp_dir.name, "w") as _ofile:
+        _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
+
+    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
+                             _out_format=_phylobuddy.out_format)
+    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
+                             _out_format=_phylobuddy.out_format)
+
+    _trees = pb1.trees + pb2.trees
+
+    _phylobuddy = PhyloBuddy(_input=_trees, _in_format=_phylobuddy.in_format, _out_format=_phylobuddy.out_format)
+
+    return _phylobuddy
+
+
+def display_trees(_phylobuddy):
+    for _tree in _phylobuddy.trees:
+        convert_to_ete(_tree).show()
+
+
+def list_leaf_names(_phylobuddy):
+    _output = OrderedDict()
+    for indx, _tree in enumerate(_phylobuddy.trees):
+        _namespace = _tree.update_taxon_namespace()
+        key = _tree.label if _tree.label is not None else 'tree_{0}'.format(str(indx+1))
+        _output[key] = list(_namespace.labels())
+    return _output
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -332,6 +460,7 @@ if __name__ == '__main__':
                         help="Run the function and return any stderr/stdout other than sequences.")
     parser.add_argument('-prt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
+    parser.add_argument('-lln', '--list_leaf_names', action='store_true')
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If PhyloBuddy can't guess the file format, just specify it directly.",
                         action='store')
@@ -390,3 +519,10 @@ if __name__ == '__main__':
         prune_taxa(phylobuddy, in_args.prune_taxa[0])
         _print_trees(phylobuddy)
         sys.exit()
+
+    # List leaf names
+    if in_args.list_leaf_names:
+        output = list_leaf_names(phylobuddy)
+        for key in output:
+            print('#### {0} ####'.format(key))
+            print(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
