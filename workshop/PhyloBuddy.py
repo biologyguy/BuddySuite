@@ -45,7 +45,7 @@ def screw_formats(_phylobuddy, _format):
 
 # Regex taxa names
 
-# List all leaf names [ ]
+# List all leaf names [X]
 
 # 'Clean' a tree, as implemented in phyutility
 
@@ -444,6 +444,48 @@ def list_leaf_names(_phylobuddy):
         _output[key] = list(_namespace.labels())
     return _output
 
+def all_by_all_compare(_phylobuddy, _method='weighted_robinson_foulds'):
+    _method = _method.lower()
+    if _method in ['wrf', 'weighted_robinson_foulds']:
+        _method = 'wrf'
+    elif _method in ['uwrf', 'sym', 'unweighted_robinson_foulds', 'symmetric']:
+        _method = 'uwrf'
+    elif _method in ['mgk', 'mason_gamer_kellogg']:
+        _method = 'mgk'
+    elif _method in ['euclid', 'euclidean']:
+        _method = 'euclid'
+    else:
+        raise AttributeError('{0} is an invalid comparison method.'.format(_method))
+
+    _output = OrderedDict()
+    _keypairs = []
+
+    for indx1, _tree1 in enumerate(_phylobuddy.trees):
+        for indx2, _tree2 in enumerate(_phylobuddy.trees):
+            if _tree1 is not _tree2:
+                _key1 = 'tree_{0}'.format(indx1+1) if _tree1.label is None else _tree1.label
+                _key2 = 'tree_{0}'.format(indx2+1) if _tree2.label is None else _tree2.label
+                if _key1 not in _output.keys():
+                    _output[_key1] = OrderedDict()
+                if _key2 not in _output.keys():
+                    _output[_key2] = OrderedDict()
+                if (_key2, _key1) not in _keypairs:
+                    _keypairs.append((_key1, _key2))
+                    if _method == 'wrf':
+                        _output[_key1][_key2] = treecompare.weighted_robinson_foulds_distance(_tree1, _tree2)
+                        _output[_key2][_key1] = _output[_key1][_key2]
+                    elif _method == 'uwrf':
+                        _output[_key1][_key2] = treecompare.symmetric_difference(_tree1, _tree2)
+                        _output[_key2][_key1] = _output[_key1][_key2]
+                    elif _method == 'mgk':
+                        _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
+                        _output[_key2][_key1] = _output[_key1][_key2]
+                    else:
+                        _output[_key1][_key2] = treecompare.euclidean_distance(_tree1, _tree2)
+                        _output[_key2][_key1] = _output[_key1][_key2]
+
+    return _output
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="phylobuddy", description="",
@@ -461,6 +503,7 @@ if __name__ == '__main__':
     parser.add_argument('-prt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
     parser.add_argument('-lln', '--list_leaf_names', action='store_true')
+    parser.add_argument('-abac', '--all_by_all_compare', action='store', nargs=1)
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If PhyloBuddy can't guess the file format, just specify it directly.",
                         action='store')
@@ -524,5 +567,16 @@ if __name__ == '__main__':
     if in_args.list_leaf_names:
         output = list_leaf_names(phylobuddy)
         for key in output:
-            print('#### {0} ####'.format(key))
-            print(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
+            _stdout('#### {0} ####'.format(key))
+            _stdout(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
+
+    # All-by-all compare
+    if in_args.all_by_all_compare:
+        output = all_by_all_compare(phylobuddy, in_args.all_by_all_compare[0])
+        _stderr('Tree 1\tTree 2\tValue\n')
+        keypairs = []
+        for key1 in output:
+            for key2 in output[key1]:
+                if (key2, key1) not in keypairs:
+                    keypairs.append((key1, key2))
+                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
