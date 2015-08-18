@@ -202,8 +202,12 @@ class PhyloBuddy:
                 with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
                     _ofile.write(figtree[0])
 
-            _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.name], schema=self.in_format,
-                                           extract_comment_metadata=True)
+            if self.in_format != 'nexml':
+                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.name], schema=self.in_format,
+                                               extract_comment_metadata=True)
+            else:
+                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.name], schema=self.in_format)
+
             for _tree in _trees:
                 self.trees.append(_tree)
 
@@ -214,7 +218,10 @@ class PhyloBuddy:
                 with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
                     _ofile.write(figtree[0])
                 _input = "%s/tree.tmp" % tmp_dir.name
-            _trees = Tree.yield_from_files(files=[_input], schema=self.in_format, extract_comment_metadata=True)
+            if self.in_format != 'nexml':
+                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format, extract_comment_metadata=True)
+            else:
+                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format)
             for _tree in _trees:
                 self.trees.append(_tree)
         else:
@@ -250,7 +257,10 @@ class PhyloBuddy:
         else:
             raise TypeError("Error: Unsupported output format.")
 
-        _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
+        if self.out_format != 'nexml':
+            _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
+        else:
+            _output = tree_list.as_string(schema=self.out_format)
         return _output
 
     def write(self, _file_path):
