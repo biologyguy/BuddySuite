@@ -58,6 +58,9 @@ from MyFuncs import *
 
 
 # ###################################################### GLOBALS ##################################################### #
+TRASH_SYNOS = ["t", "tb", "t_bin", "tbin", "trash", "trashbin", "trash-bin", "trash_bin"]
+RECORD_SYNOS = ["r", "rec", "recs", "records", "main", "filtered"]
+SEARCH_SYNOS = ["st", "search", "search-terms", "search_terms", "terms"]
 DATABASES = ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
 RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
@@ -252,9 +255,14 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                                 if not _rec.record and not _rec.summary]
         return _output
 
-    def filter_records(self, regex):
+    def filter_records(self, regex, mode="keep"):
+        if mode not in ["keep", "exclude"]:
+            raise ValueError("The 'mode' argument in filter() must be either 'keep' or 'exclude', not %s." % mode)
+
         for _id, _rec in self.records.items():
-            if not _rec.search(regex):
+            if mode == "keep" and not _rec.search(regex):
+                self.trash_bin[_id] = _rec
+            elif mode == "exclude" and _rec.search(regex):
                 self.trash_bin[_id] = _rec
 
         for _id in self.trash_bin:
@@ -278,10 +286,10 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         :param quiet: suppress stderr
         :param columns: Variable, list of column names to include in summary output
         :param destination: a file path or handle to write to
-        :param group: Either 'records' or 'rec_bin'
+        :param group: Either 'records' or 'trash_bin'
         :return: Nothing.
         """
-        group = self.trash_bin if group == "rec_bin" else self.records
+        group = self.trash_bin if group == "trash_bin" else self.records
 
         _num = _num if _num > 0 else len(group)
         if in_args.test:
@@ -842,13 +850,15 @@ class LiveSearch(cmd.Cmd):
 {0}{1}      {2}{3}DatabaseBuddy Help{1}{4}      {0}{1}
 
 A general workflow: 1) {5}search{1} databases with search terms or accession numbers
-                    2) {5}filter{1} search results
-                    3) {5}fetch{1} full sequence records for filtered set
-                    4) {5}save{1} sequences to file
+                    2) {5}show{1} summary information
+                    3) Filter search results with {5}keep{1} and {5}exclude{1}
+                    4) {5}fetch{1} full sequence records for filtered set
+                    5) Switch to a {5}format{1} that includes sequences, like fasta or genbank
+                    6) {5}save{1} sequences to file
 Further details about each command can be accessed by typing 'help <command>'
 '''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
-        self.doc_header = "Available Commands:                                               "
+        self.doc_header = "Available commands:                                                      "
         self.dbbuddy = _dbbuddy
         self.file = None
 
@@ -863,6 +873,33 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
+
+    def filter(self, line, mode="keep"):
+        if mode not in ["keep", "exclude"]:
+            raise ValueError("The 'mode' argument in filter() must be either 'keep' or 'exclude', not %s." % mode)
+
+        if not line:
+            action = "retained" if mode == "keep" else "removed"
+            line = input("%sSpecify a search string to be used as a filter (records will be %s): %s" %
+                         (RED, action, self.terminal_default))
+
+        if line[0] == "'":
+            line = line.strip("'").split("' '")
+        else:
+            line = line.strip('"').split('" "')
+        max_regex_len = 6  # length of the string 'filter'
+        for _filter in line:
+            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
+        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
+        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
+        _stdout(tabbed.format("Filter", "# Recs removed"), format_out=self.terminal_default)
+        current_count = len(self.dbbuddy.records)
+        for _filter in line:
+            self.dbbuddy.filter_records(_filter, mode=mode)
+            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
+            current_count = len(self.dbbuddy.records)
+        _stdout("\n%s records remain.\n\n" % len(self.dbbuddy.records),
+                format_in=GREEN, format_out=self.terminal_default)
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -891,14 +928,18 @@ Further details about each command can be accessed by typing 'help <command>'
         line = line.split(" ")
         new_database_list = []
         for l in line:
-            if l not in DATABASES:
+            if l not in DATABASES and l != "all":
                 _stdout("Error: %s is not a valid database choice.\n"
-                        "Please select from %s\n" % (l, DATABASES), format_in=RED, format_out=self.terminal_default)
+                        "Please select from %s\n" % (l, ["all"] + DATABASES), format_in=RED, format_out=self.terminal_default)
             else:
                 new_database_list.append(l)
         if new_database_list:
-            self.dbbuddy.databases = new_database_list
-            _stdout("Database search list updated to %s\n\n" % new_database_list, format_in=GREEN,
+            if "all" in new_database_list:
+                self.dbbuddy.databases = DATABASES
+            else:
+                self.dbbuddy.databases = new_database_list
+
+            _stdout("Database search list updated to %s\n\n" % self.dbbuddy.databases, format_in=GREEN,
                     format_out=self.terminal_default)
         else:
             _stdout("Database seach list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
@@ -909,14 +950,12 @@ Further details about each command can be accessed by typing 'help <command>'
             return
 
         line = line.lower()
-        if line not in ["", "all", "rb", "rec_bin", "recbin", "trash", "trashbin", "trash-bin", "trash_bin",
-                        "rec", "recs", "records", "main", "filtered",
-                        "st", "search", "search-terms", "search_terms", "terms"]:
+        if line not in ["", "a", "all"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
             _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
-        if line in ["st", "search", "search-terms", "search_terms", "terms"]:
+        if line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
                 _stdout("Search terms list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
@@ -924,30 +963,30 @@ Further details about each command can be accessed by typing 'help <command>'
                                 (RED, len(self.dbbuddy.search_terms), self.terminal_default))
 
                 if confirm.lower() not in ["yes", "y"]:
-                    _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
+                    _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.search_terms = []
 
-        elif line in ["t", "tb", "t_bin", "tbin", "trash", "trashbin", "trash-bin", "trash_bin"]:
+        elif line in TRASH_SYNOS:
             if not self.dbbuddy.trash_bin:
-                _stdout("Trash bin is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
+                _stdout("Trash bin is already empty.\n", format_in=RED, format_out=self.terminal_default)
             else:
                 confirm = input("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
                                 (RED, len(self.dbbuddy.trash_bin), self.terminal_default))
 
                 if confirm.lower() not in ["yes", "y"]:
-                    _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
+                    _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.trash_bin = {}
 
-        elif line in ["recs", "records", "main", "filtered"]:
+        elif line in RECORD_SYNOS:
             if not self.dbbuddy.records:
-                _stdout("Records list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
+                _stdout("Records list is already empty.\n", format_in=RED, format_out=self.terminal_default)
             else:
                 confirm = input("%sAre you sure you want to delete all %s records from your main "
                                 "filtered list (y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default))
                 if confirm.lower() not in ["yes", "y"]:
-                    _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
+                    _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.records = {}
 
@@ -956,12 +995,15 @@ Further details about each command can be accessed by typing 'help <command>'
                             (RED, len(self.dbbuddy.records) + len(self.dbbuddy.trash_bin), self.terminal_default))
 
             if confirm.lower() not in ["yes", "y"]:
-                _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
+                _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
             else:
                 self.dbbuddy.trash_bin = {}
                 self.dbbuddy.records = {}
                 self.dbbuddy.search_terms = []
         _stderr("\n")
+
+    def do_exclude(self, line=None):
+        self.filter(line, mode="exclude")
 
     def do_failures(self, line=None):
         if line != "":
@@ -1001,27 +1043,6 @@ Further details about each command can be accessed by typing 'help <command>'
         _stdout("Retrieved %s residues of sequence data\n\n" % pretty_number(seq_retrieved),
                 format_out=self.terminal_default)
 
-    def do_filter(self, line):
-        if not line:
-            line = input("%sSpecify a search string to be used as a filter: %s" % (RED, self.terminal_default))
-
-        if line[0] == "'":
-            line = line.strip("'").split("' '")
-        else:
-            line = line.strip('"').split('" "')
-        max_regex_len = 6  # length of the string 'filter'
-        for _filter in line:
-            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
-        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
-        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
-        _stdout(tabbed.format("Filter", "# Recs removed"), format_out=self.terminal_default)
-        current_count = len(self.dbbuddy.records)
-        for _filter in line:
-            self.dbbuddy.filter_records(_filter)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
-            current_count = len(self.dbbuddy.records)
-        _stdout("\n%s records remain.\n\n" % len(self.dbbuddy.records), format_out=self.terminal_default)
-
     def do_format(self, line):
         while True:
             if not line:
@@ -1039,6 +1060,9 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
             break
 
+    def do_keep(self, line=None):
+        self.filter(line, mode="keep")
+
     def do_quit(self, line=None):
         if line != "":
             _stdout("Note: 'quit' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
@@ -1055,7 +1079,7 @@ Further details about each command can be accessed by typing 'help <command>'
         sys.exit()
 
     def do_trash(self, line=None):
-        self.do_show(line, "rec_bin")
+        self.do_show(line, "trash_bin")
 
     def do_reset(self, line=None):
         if line != "":
@@ -1067,7 +1091,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.records[_accn] = _rec
         self.dbbuddy.trash_bin = {}
         _stdout("%s records recovered\n\n" % (len(self.dbbuddy.records) - current_count),
-                format_in=BLUE, format_out=self.terminal_default)
+                format_in=GREEN, format_out=self.terminal_default)
 
     def do_restore(self, line):
         if not line:
@@ -1090,7 +1114,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
             current_count = len(self.dbbuddy.trash_bin)
         _stdout("\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin),
-                format_out=self.terminal_default)
+                format_in=GREEN, format_out=self.terminal_default)
 
     def do_save(self, line=None):
         if not line and not self.file:
@@ -1165,7 +1189,7 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         if line:
             line = line.split(" ")
 
-        num_returned = len(self.dbbuddy.trash_bin) if group == "rec_bin" else len(self.dbbuddy.records)
+        num_returned = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
         if not num_returned:
             _stdout("Nothing in %s to show.\n\n" % group, format_in=RED, format_out=self.terminal_default)
             return
@@ -1206,7 +1230,7 @@ all the respect you would afford the normal terminal window.\n
 Reset the database(s) to be searched. Separate multiple databases with spaces.
 Currently set to: {0}{1}{2}
 Valid choices: {0}{3}\n
-'''.format(YELLOW, ", ".join(self.dbbuddy.databases), GREEN, ", ".join(DATABASES)),
+'''.format(YELLOW, ", ".join(self.dbbuddy.databases), GREEN, ", ".join(["all"] + DATABASES)),
             format_in=GREEN, format_out=self.terminal_default)
 
     def help_delete(self):
@@ -1214,9 +1238,21 @@ Valid choices: {0}{3}\n
 Remove records completely from the Live Session. Be careful, this is permanent.
 Choices are:
     search-terms, st: Delete all search terms from live session
-    trash-bin, rb:  Empty the trash bin
+    trash-bin, tb:  Empty the trash bin
     records, recs:    Delete all the main list of records (leaving the trash bin alone)
-    all:              Delete everything
+    all:              Delete everything\n
+''', format_in=GREEN, format_out=self.terminal_default)
+
+    def help_exclude(self):
+        _stdout('''\
+Further refine your results with search terms:
+    - All summary fields are searched
+    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
+    - Enclose filters in quotes
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
+    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
+    - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
+      with the 'reset' or 'restore' commands\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_failures(self):
@@ -1230,18 +1266,6 @@ Retrieve full records for all accessions in the main record list.
 If requesting more than 50 Mbp of sequence data, you will be prompted to confirm the command.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
-    def help_filter(self):
-        _stdout('''\
-Further refine your results with search terms:
-    - All summary fields are searched
-    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
-    - Enclose filters in quotes
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
-    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
-    - Records that do not match your filters are relegated to the 'trash bin'; return them to the main list
-      with the 'reset' or 'restore' commands\n
-''', format_in=GREEN, format_out=self.terminal_default)
-
     def help_format(self):
         _stdout('''\
 Set the output format:
@@ -1251,6 +1275,18 @@ Set the output format:
     <SeqIO format>           ->  Full sequence records, in any sequence file format
                                  supported by BioPython (e.g. gb, fasta, clustal)
                                  See http://biopython.org/wiki/SeqIO#File_Formats for details\n
+''', format_in=GREEN, format_out=self.terminal_default)
+
+    def help_keep(self):
+        _stdout('''\
+Further refine your results with search terms:
+    - All summary fields are searched
+    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
+    - Enclose filters in quotes
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
+    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
+    - Records that DO NOT MATCH your filters are relegated to the 'trash bin'; return them to the main list
+      with the 'reset' or 'restore' commands\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
