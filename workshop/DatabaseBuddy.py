@@ -31,7 +31,7 @@ Collection of functions that interact with public sequence databases. Pull them 
 import sys
 import re
 from urllib.parse import urlencode
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from time import sleep
 import json
@@ -73,6 +73,10 @@ MAGENTA = "\033[95m"
 CYAN = "\033[96m"
 WHITE = "\033[97m"
 BOLD = "\033[1m"
+UNDERLINE = "\033[4m"
+NO_UNDERLINE = "\033[24m"
+DEF_FONT = "\033[39m"
+
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -101,6 +105,10 @@ def _stderr(message, quiet=False):
 
 
 def _stdout(message, quiet=False, format_in=None, format_out=None):
+    if format_in and type(format_in) == list:
+        format_in = "".join(format_in)
+    if format_out and type(format_out) == list:
+        format_out = "".join(format_out)
     if not quiet:
         if format_in and re.search("\\033\[[0-9]*m", format_in):
             sys.stdout.write(format_in)
@@ -399,7 +407,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 
 class Record:
-    def __init__(self, _accession, _record=None, summary=None, _size=None, _database=None, _type=None, _search_term=None):
+    def __init__(self, _accession, _record=None, summary=None, _size=None,
+                 _database=None, _type=None, _search_term=None):
         self.accession = _accession
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
@@ -524,26 +533,32 @@ class UniProtRestClient:
             with self.lock:
                 with open(http_errors_file, "a") as ofile:
                     ofile.write("%s\n%s//\n" % (_term, e))
-            return
+
+        except URLError as e:
+            with self.lock:
+                with open(http_errors_file, "a") as ofile:
+                    ofile.write("%s\n%s//\n" % (_term, e))
 
         except KeyboardInterrupt:
             _stderr("\r\tUniProt query interrupted by user\n")
 
-            return
-
     def _parse_error_file(self):
         with open(self.http_errors_file, "r") as ifile:
             http_errors_file = ifile.read().strip("//\n")
-            if http_errors_file != "":
-                http_errors_file = http_errors_file.split("//")
-                for error in http_errors_file:
-                    error = error.split("\n")
-                    error = (error[0], "\n".join(error[1:]) if len(error) > 2 else (error[0], error[1]))
-                    error = Failure(*error)
-                    if error.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[error.hash] = error
-                open(self.http_errors_file, "w").close()
-        return
+        if http_errors_file != "":
+            _output = ""
+            http_errors_file = http_errors_file.split("//")
+            for error in http_errors_file:
+                error = error.split("\n")
+                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
+                error = Failure(*error)
+                if error.hash not in self.dbbuddy.failures:
+                    self.dbbuddy.failures[error.hash] = error
+                    _output += "%s\n" % error
+            open(self.http_errors_file, "w").close()
+            return _output  # Errors found
+        else:
+            return False  # No errors to report
 
     def count_hits(self):
         # Limit URLs to 2,083 characters
@@ -552,7 +567,7 @@ class UniProtRestClient:
             if len(_term) > self.max_url:
                 raise ValueError("Search term exceeds size limit of %s characters." % self.max_url)
 
-            _term = "(%s)" % _term
+            _term = "(%s)" % _term  # Parentheses to keep search terms together
             _term = re.sub(" ", "+", _term)
             if not search_terms:
                 search_terms.append(_term)
@@ -569,7 +584,10 @@ class UniProtRestClient:
             _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
         open(self.results_file, "w").close()
 
-        self._parse_error_file()
+        errors = self._parse_error_file()
+        if errors:
+            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                    "count_hits():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
         return _count
 
     def search_proteins(self):
@@ -578,7 +596,7 @@ class UniProtRestClient:
         _count = self.count_hits()
 
         if _count == 0:
-            _stderr("Uniprot returned no results\n")
+            _stderr("Uniprot returned no results\n\n")
             return
 
         else:
@@ -593,6 +611,11 @@ class UniProtRestClient:
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params])
+
+        errors = self._parse_error_file()
+        if errors:
+            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                    "search_proteins():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
         with open(self.results_file, "r") as ifile:
             results = ifile.read().strip("//\n").split("//")
@@ -614,7 +637,9 @@ class UniProtRestClient:
 
     def fetch_proteins(self):
         open(self.results_file, "w").close()
-        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.database == "uniprot" and not _rec.record]
+        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
+                    _rec.database == "uniprot" and not _rec.record]
+
         if len(_records) > 0:
             _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
             accessions = [_records[0].accession]
@@ -624,13 +649,21 @@ class UniProtRestClient:
                 else:
                     accessions[-1] += ",%s" % _rec.accession
 
-            # print(accessions)
             params = {"format": "txt"}
             run_multicore_function(accessions, self.query_uniprot, max_processes=10,
                                    func_args=[self.http_errors_file, self.results_file, params])
 
+            errors = self._parse_error_file()
+            if errors:
+                _stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                        "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+
             with open(self.results_file, "r") as ifile:
                 data = ifile.read().strip().split("//\n//")
+
+            if data[0] == "":
+                _stderr("No sequences returned\n\n")
+                return
 
             clean_recs = []
             for _rec in data:
@@ -796,12 +829,12 @@ class LiveSearch(cmd.Cmd):
             hash_heading += "%s#" % next(colors)
         _stdout('''{1}
 
-{0} {1}\033[4m{2}Welcome to the DatabaseBuddy live shell{1} {0}{1}
+{0} {1}{3}{2}Welcome to the DatabaseBuddy live shell{1} {0}{1}
 
 {2}Type 'help' for a list of available commands or 'help <command>' for further details.
                   To end the session, use the 'quit' command.{1}
 
-'''.format(hash_heading, self.terminal_default, BOLD))
+'''.format(hash_heading, self.terminal_default, BOLD, UNDERLINE))
         self.prompt = '{0}{1}DbBuddy>{0} '.format(self.terminal_default, BOLD)
         self.dbbuddy = _dbbuddy
         self.file = None
@@ -814,6 +847,9 @@ class LiveSearch(cmd.Cmd):
                     format_out=self.terminal_default)
         self.hash = None
         self.cmdloop()
+
+    def default(self, line):
+        _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -895,8 +931,8 @@ class LiveSearch(cmd.Cmd):
             if not self.dbbuddy.records:
                 _stdout("Records list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s records from your main filtered list (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.records), self.terminal_default))
+                confirm = input("%sAre you sure you want to delete all %s records from your main "
+                                "filtered list (y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default))
                 if confirm.lower() not in ["yes", "y"]:
                     _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 else:
@@ -919,18 +955,21 @@ class LiveSearch(cmd.Cmd):
             _stdout("Note: 'failures' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
 
         if not self.dbbuddy.failures:
-            _stdout("No failures to report\n\n", format_out=self.terminal_default)
+            _stdout("No failures to report\n\n", format_in=GREEN, format_out=self.terminal_default)
         else:
-            for _key, _values in self.dbbuddy.failures:
-                _stdout("%s\n%s\n\n" % (_key, _values), format_out=self.terminal_default)
+            _stdout("The following failures have occured\n", format_in=[UNDERLINE, GREEN], format_out=self.terminal_default)
+            for _hash, _values in self.dbbuddy.failures.items():
+                _stdout("%s\n\n" % _values, format_out=self.terminal_default)
 
     def do_fetch(self, line=None):
         if line != "":
             _stdout("Note: 'fetch' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
         amount_seq_requested = 0
+        new_records_fetched = []
         for _accn, _rec in self.dbbuddy.records.items():
             if not _rec.record:  # Not fetching sequence if the full record already exists
                 amount_seq_requested += _rec.size
+                new_records_fetched.append(_accn)
 
         if amount_seq_requested > 5000000:
             confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
@@ -940,7 +979,13 @@ class LiveSearch(cmd.Cmd):
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
         retrieve_sequences(self.dbbuddy)
-        _stdout("Retrieved %s residues of sequence data\n\n" % pretty_number(amount_seq_requested),
+
+        seq_retrieved = 0
+        for _accn in new_records_fetched:
+            if self.dbbuddy.records[_accn].record:
+                seq_retrieved += self.dbbuddy.records[_accn].size
+
+        _stdout("Retrieved %s residues of sequence data\n\n" % pretty_number(seq_retrieved),
                 format_out=self.terminal_default)
 
     def do_filter(self, line):
@@ -1096,6 +1141,11 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         for _accn, _rec in temp_buddy.records.items():
             if _accn not in self.dbbuddy.records:
                 self.dbbuddy.records[_accn] = _rec
+
+        for _hash, failure in temp_buddy.failures.items():
+            if _hash not in self.dbbuddy.failures:
+                self.dbbuddy.failures[_hash] = failure
+
         _stderr("\n")
 
     def do_show(self, line=None, group="records"):
