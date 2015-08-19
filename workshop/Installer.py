@@ -678,7 +678,8 @@ class Installer(Frame):
                            height=int(25*scale_factor))
         license_box.insert(END, license_file.read())
         license_box.config(state=DISABLED)
-        scrollbar.config(command=license_box.yview())
+        scrollbar.config(command=license_box.yview)
+
         frame.pack(side=TOP)
         license_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
@@ -727,7 +728,7 @@ class Installer(Frame):
         description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75*scale_factor))
         description_box.insert(END, description_file.read())
         description_box.config(state=DISABLED)
-        scrollbar.config(command=description_box.yview())
+        scrollbar.config(command=description_box.yview)
         description_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame(mega_frame)
@@ -872,7 +873,7 @@ class Installer(Frame):
             if self.buddies[buddy]:
                 for shortcut in self.shortcuts[buddy]:
                     shortcut_box.insert(END, "{0} ==> {1}".format(buddy, shortcut))
-        scrollbar.config(command=shortcut_box.yview())
+        scrollbar.config(command=shortcut_box.yview)
         shortcut_box.pack(side=LEFT, fill=BOTH, expand=1)
         scrollbar.pack(side=RIGHT, fill=Y)
         scrollbox_frame.pack(side=TOP, fill=BOTH, expand=1)
