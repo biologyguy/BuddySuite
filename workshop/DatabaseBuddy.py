@@ -850,7 +850,6 @@ class EnsemblRestClient:
 
 
 # ################################################## API FUNCTIONS ################################################### #
-# ToDo: - Abort commands
 
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
@@ -900,38 +899,63 @@ Further details about each command can be accessed by typing 'help <command>'
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     def filter(self, line, mode="keep"):
-        if mode not in ["keep", "exclude"]:
-            raise ValueError("The 'mode' argument in filter() must be either 'keep' or 'exclude', not %s." % mode)
+        if mode not in ["keep", "exclude", "restore"]:
+            raise ValueError("The 'mode' argument in filter() must be "
+                             "'keep', 'exclude', or 'restore', not %s." % mode)
 
         if not line:
-            action = "retained" if mode == "keep" else "removed"
-            line = input("%sSpecify a search string to be used as a filter (records will be %s): %s" %
+            if mode == "keep":
+                action = "Specify a search string to be used as a filter (records will be retained): "
+            elif mode == "exclude":
+                action = "Specify a search string to be used as a filter (records will be removed): "
+            else:
+                action = "Specify a string to search the trash bin with: "
+            line = input("%s%s%s" %
                          (RED, action, self.terminal_default))
 
-        # ToDo: this is broken. Need to check for different types of separators.
+        # Kill the command if the user is mixing quote types to separate search terms
+        error_message = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
+                        "multiple filters. Please pick one or the other.\n\n"
         if line[0] == "'":
+            if line.strip()[-1] == '"':
+                _stdout(error_message, format_in=RED, format_out=self.terminal_default)
+                return
             line = line.strip("'").split("' '")
         else:
+            if line.strip()[-1] == "'":
+                _stdout(error_message, format_in=RED, format_out=self.terminal_default)
+                return
             line = line.strip('"').split('" "')
         max_regex_len = 6  # length of the string 'filter'
         for _filter in line:
             max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
         tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
         _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
-        _stdout(tabbed.format("Filter", "# Recs removed"), format_out=self.terminal_default)
-        current_count = len(self.dbbuddy.records)
+        heading = "# Recs returned" if mode == "restore" else "# Recs removed"
+        _stdout(tabbed.format("Filter", heading), format_out=self.terminal_default)
+
         column_errors = []
-        for _filter in line:
-            column_errors += self.dbbuddy.filter_records(_filter, mode=mode)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
+        if mode in ["keep", "exclude"]:
             current_count = len(self.dbbuddy.records)
+            for _filter in line:
+                column_errors += self.dbbuddy.filter_records(_filter, mode=mode)
+                _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
+                current_count = len(self.dbbuddy.records)
+            output_message = "\n%s records remain.\n\n" % len(self.dbbuddy.records)
+        else:
+            current_count = len(self.dbbuddy.trash_bin)
+            for _filter in line:
+                column_errors += self.dbbuddy.restore_records(_filter)
+                _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.trash_bin)),
+                        format_out=self.terminal_default)
+                current_count = len(self.dbbuddy.trash_bin)
+            output_message = "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
 
         if column_errors:
             _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
                     "%s%s\n" % (RED, ", ".join(column_errors), DEF_FONT))
 
-        _stdout("\n%s records remain.\n\n" % len(self.dbbuddy.records),
-                format_in=GREEN, format_out=self.terminal_default)
+        _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -1126,33 +1150,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 format_in=GREEN, format_out=self.terminal_default)
 
     def do_restore(self, line):
-        if not line:
-            line = input("%sSpecify a string to search the trash bin with: %s" % (RED, self.terminal_default))
-
-        if line[0] == "'":
-            line = line.strip("'").split("' '")
-        else:
-            line = line.strip('"').split('" "')
-        max_regex_len = 6
-        for _filter in line:
-            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
-        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
-        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
-        _stdout(tabbed.format("Filter", "# Recs returned"), format_out=self.terminal_default)
-        current_count = len(self.dbbuddy.trash_bin)
-        column_errors = []
-        for _filter in line:
-            column_errors += self.dbbuddy.restore_records(_filter)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.trash_bin)),
-                    format_out=self.terminal_default)
-            current_count = len(self.dbbuddy.trash_bin)
-
-        if column_errors:
-            _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
-                    "%s%s\n" % (RED, ", ".join(column_errors), DEF_FONT))
-
-        _stdout("\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin),
-                format_in=GREEN, format_out=self.terminal_default)
+        self.filter(line, "restore")
 
     def do_save(self, line=None):
         if not line and not self.file:
