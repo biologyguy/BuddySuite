@@ -516,7 +516,7 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument("-spts", "--split_polys", action="store_true",
+    parser.add_argument("-sp", "--split_polys", action="store_true",
                         help="Create a binary tree by splitting polytomies randomly.")
     parser.add_argument('-pt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
