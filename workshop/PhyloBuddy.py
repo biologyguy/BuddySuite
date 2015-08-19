@@ -90,6 +90,7 @@ def _make_copies(_phylobuddy):
         copies = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
     return copies
 
+
 def _extract_figtree_metadata(_file_path):
     with open(_file_path, "r") as _tree_file:
         filedata = _tree_file.read()
@@ -103,6 +104,7 @@ def _extract_figtree_metadata(_file_path):
         return None
 
     return filedata, figdata
+
 
 def convert_to_ete(_tree, ignore_color=False):
     tmp_dir = TemporaryDirectory()
@@ -126,6 +128,8 @@ def convert_to_ete(_tree, ignore_color=False):
     return ete_tree
 
 # #################################################################################################################### #
+
+
 class PhyloBuddy:
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
@@ -161,7 +165,6 @@ class PhyloBuddy:
         except TypeError:  # This happens when testing something other than a string.
             pass
 
-
         if not _in_format:
             self.in_format = guess_format(_input)
             self.out_format = str(self.in_format).lower() if not _out_format else str(_out_format).lower()
@@ -180,7 +183,8 @@ class PhyloBuddy:
                 raise GuessError("Could not determine format from input file-like object\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(in_handle)[:50])
             else:
-                raise GuessError("Unable to determine format or input type. Please check how PhyloBuddy is being called.")
+                raise GuessError("Unable to determine format or input type. "
+                                 "Please check how PhyloBuddy is being called.")
 
         self.out_format = self.in_format if not _out_format else _out_format
 
@@ -246,7 +250,6 @@ class PhyloBuddy:
             for _tree in self.trees:
                 for _node in _tree:
                     _node.edge_length = 1.0
-
 
     def print(self):
         print(self)
@@ -332,6 +335,7 @@ def prune_taxa(_phylobuddy, *_patterns):
         for _taxon in taxa_to_prune:
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
+
 def show_unique_nodes(_phylobuddy):
     if len(_phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
@@ -368,9 +372,9 @@ def show_unique_nodes(_phylobuddy):
         _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
-                             _out_format=_phylobuddy.out_format)
+                     _out_format=_phylobuddy.out_format)
     pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
-                             _out_format=_phylobuddy.out_format)
+                     _out_format=_phylobuddy.out_format)
 
     _trees = pb1.trees + pb2.trees
 
@@ -378,8 +382,10 @@ def show_unique_nodes(_phylobuddy):
 
     return _phylobuddy
 
+
 def show_diff(_phylobuddy):
-    #if len(_phylobuddy.trees) != 2:
+    raise NotImplementedError('show_diff() is not yet implemented.')
+    # if len(_phylobuddy.trees) != 2:
     #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
     _trees = [convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
               convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]
@@ -432,9 +438,9 @@ def show_diff(_phylobuddy):
         _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
-                             _out_format=_phylobuddy.out_format)
+                     _out_format=_phylobuddy.out_format)
     pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.name, _in_format=_phylobuddy.in_format,
-                             _out_format=_phylobuddy.out_format)
+                     _out_format=_phylobuddy.out_format)
 
     _trees = pb1.trees + pb2.trees
 
@@ -452,9 +458,10 @@ def list_ids(_phylobuddy):
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
         _namespace = _tree.update_taxon_namespace()
-        key = _tree.label if _tree.label is not None else 'tree_{0}'.format(str(indx+1))
-        _output[key] = list(_namespace.labels())
+        _key = _tree.label if _tree.label is not None else 'tree_{0}'.format(str(indx+1))
+        _output[_key] = list(_namespace.labels())
     return _output
+
 
 def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     _method = _method.lower()
@@ -462,8 +469,8 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
         _method = 'wrf'
     elif _method in ['uwrf', 'sym', 'unweighted_robinson_foulds', 'symmetric']:
         _method = 'uwrf'
-    #elif _method in ['mgk', 'mason_gamer_kellogg']:
-    #    _method = 'mgk'
+    # elif _method in ['mgk', 'mason_gamer_kellogg']:
+    #     _method = 'mgk'
     elif _method in ['ed', 'euclid', 'euclidean']:
         _method = 'euclid'
     else:
@@ -489,14 +496,14 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
                     elif _method == 'uwrf':
                         _output[_key1][_key2] = treecompare.symmetric_difference(_tree1, _tree2)
                         _output[_key2][_key1] = _output[_key1][_key2]
-                    #elif _method == 'mgk':
-                    #    _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
-                    #    _output[_key2][_key1] = _output[_key1][_key2]
+                    # elif _method == 'mgk':
+                    #     _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
+                    #     _output[_key2][_key1] = _output[_key1][_key2]
                     else:
                         _output[_key1][_key2] = treecompare.euclidean_distance(_tree1, _tree2)
                         _output[_key2][_key1] = _output[_key1][_key2]
-
     return _output
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -517,7 +524,7 @@ if __name__ == '__main__':
     parser.add_argument('-li', '--list_ids', action='store_true')
     parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If PhyloBuddy can't guess the file format, just specify it directly.",
+    parser.add_argument('-f', '--in_format', help="Specify the file format.",
                         action='store')
 
     in_args = parser.parse_args()
