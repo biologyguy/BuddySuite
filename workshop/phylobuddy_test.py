@@ -112,7 +112,7 @@ def test_stdout(capsys):
 pb_objects = [Pb.PhyloBuddy(resource(x)) for x in phylo_files]
 
 hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a',
-          '03004ab7b970d0ff2a373f5455f848e4', '6fb5c46a5852685021d2825f6162b13b', '6937386ca3acd012c0dc889ed4fd06fb']
+          '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
 
 hashes = [(pb_objects[x], hashes[x]) for x in range(len(pb_objects))]
 

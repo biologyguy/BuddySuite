@@ -522,10 +522,9 @@ if __name__ == '__main__':
     parser.add_argument('-ptr', '--print_trees', action='store_true')
     parser.add_argument('-dt', '--display_trees', action='store_true')
     parser.add_argument('-li', '--list_ids', action='store_true')
-    parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)
+    parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)  # TODO: Display input options
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="Specify the file format.",
-                        action='store')
+    parser.add_argument('-f', '--in_format', help="Specify the file format.", action='store')
 
     in_args = parser.parse_args()
 

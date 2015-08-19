@@ -1,108 +1,159 @@
-<?xml version="1.0" encoding="windows-1252"?>
-<!-- 
-	For an explanation of the structure of the root element 
-	and the taxa element refer to the file taxa.xml.
--->
-<nex:nexml version="0.9" xml:base="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xml="http://www.w3.org/XML/1998/namespace" xsi:schemaLocation="http://www.nexml.org/2009 ../xsd/nexml.xsd" xmlns:nex="http://www.nexml.org/2009" xmlns:cdao="http://www.evolutionaryontology.org/cdao/1.0/cdao.owl#" xmlns:xsd="http://www.w3.org/2001/XMLSchema#" xmlns="http://www.nexml.org/2009">	        
-	<otus id="tax1" label="RootTaxaBlock">
-		<otu id="t1"/>
-		<otu id="t2"/>
-		<otu id="t3"/>
-		<otu id="t4"/>
-		<otu id="t5"/>
-	</otus>
-	<!--
-		The trees block is structured as follows:
-			* the root element takes the same attributes as 
-			  characters elements do: an id, a reference
-			  to a taxa element, and various optional
-			  attributes.
-			* the trees element contains one or more tree/network
-			  elements, which are the same structure as
-			  GraphML documents (http://graphml.graphdrawing.org/),
-			  with the following extentions:
-			  	- there are two subclasses (xsi:type="nex:Tree" and
-			  	  xsi:type="nex:Network"), which only differ in the
-			  	  constrained in-degree of node elements (one for 
-			  	  trees, one or more for networks)
-			  	- node elements can have an additional taxon attribute
-			  	  to refer to a taxon element defined earlier 
-			  	- edge elements can have a 'length' attribute
-			  	  to specify edge length/weight, which is a 
-			  	  IEEE 754-1985 compliant floating point number on 
-			  	  trees of type FloatTree.
-	-->
-	<trees otus="tax1" id="Trees" label="TreesBlockFromXML">
-		<!--
-			A tree with float edges. 
-		-->
-		<tree id="tree1" xsi:type="nex:FloatTree" label="tree1">
-			<node id="n1" label="n1" root="true"/>
-			<node id="n2" label="n2" otu="t1"/>
-			<node id="n3" label="n3"/>
-			<node id="n4" label="n4" about="#n4">
-			    <meta id="dict1" property="cdao:has_tag" content="true" xsi:type="nex:LiteralMeta" datatype="xsd:boolean"/>
-			</node>
-			<node id="n5" label="n5" otu="t3"/>
-			<node id="n6" label="n6" otu="t2"/>
-			<node id="n7" label="n7"/>
-			<node id="n8" label="n8" otu="t5"/>
-			<node id="n9" label="n9" otu="t4"/>
-			<edge source="n1" target="n3" id="e1" length="0.34534"/>			
-			<edge source="n1" target="n2" id="e2" length="0.4353"/>
-			<edge source="n3" target="n4" id="e3" length="0.324"/>
-			<edge source="n3" target="n7" id="e4" length="0.3247"/>
-			<edge source="n4" target="n5" id="e5" length="0.234"/>
-			<edge source="n4" target="n6" id="e6" length="0.3243"/>
-			<edge source="n7" target="n8" id="e7" length="0.32443"/>
-			<edge source="n7" target="n9" id="e8" length="0.2342"/>
-		</tree>
-		<!--  
-			A tree with int edges.
-		-->
-		<tree id="tree2" xsi:type="nex:IntTree" label="tree2">
-			<node id="tree2n1" label="n1"/>
-			<node id="tree2n2" label="n2" otu="t1"/>
-			<node id="tree2n3" label="n3"/>
-			<node id="tree2n4" about="#tree2n4" label="n4">
-			    <meta id="tree2dict1" property="cdao:has_tag" content="true" xsi:type="nex:LiteralMeta" datatype="xsd:boolean"/>
-			</node>
-			<node id="tree2n5" label="n5" otu="t3"/>
-			<node id="tree2n6" label="n6" otu="t2"/>
-			<node id="tree2n7" label="n7"/>
-			<node id="tree2n8" label="n8" otu="t5"/>
-			<node id="tree2n9" label="n9" otu="t4"/>
-			<edge source="tree2n1" target="tree2n3" id="tree2e1" length="1"/>			
-			<edge source="tree2n1" target="tree2n2" id="tree2e2" length="2"/>
-			<edge source="tree2n3" target="tree2n4" id="tree2e3" length="3"/>
-			<edge source="tree2n3" target="tree2n7" id="tree2e4" length="1"/>
-			<edge source="tree2n4" target="tree2n5" id="tree2e5" length="2"/>
-			<edge source="tree2n4" target="tree2n6" id="tree2e6" length="1"/>
-			<edge source="tree2n7" target="tree2n8" id="tree2e7" length="1"/>
-			<edge source="tree2n7" target="tree2n9" id="tree2e8" length="1"/>
-		</tree>	
-		<!--  
-			A network with int edges.
-		-->
-		<network id="tree3" xsi:type="nex:IntNetwork" label="tree2">
-			<node id="tree3n1" label="tree3n1"/>
-			<node id="tree3n2" label="tree3n2" otu="t1"/>
-			<node id="tree3n3" label="tree3n3"/>
-			<node id="tree3n4" label="tree3n4"/>
-			<node id="tree3n5" label="tree3n5" otu="t3"/>
-			<node id="tree3n6" label="tree3n6" otu="t2"/>
-			<node id="tree3n7" label="tree3n7"/>
-			<node id="tree3n8" label="tree3n8" otu="t5"/>
-			<node id="tree3n9" label="tree3n9" otu="t4"/>
-			<edge source="tree3n1" target="tree3n3" id="tree3e1" length="1"/>			
-			<edge source="tree3n1" target="tree3n2" id="tree3e2" length="2"/>
-			<edge source="tree3n3" target="tree3n4" id="tree3e3" length="3"/>
-			<edge source="tree3n3" target="tree3n7" id="tree3e4" length="1"/>
-			<edge source="tree3n4" target="tree3n5" id="tree3e5" length="2"/>
-			<edge source="tree3n4" target="tree3n6" id="tree3e6" length="1"/>
-			<edge source="tree3n7" target="tree3n6" id="tree3e7" length="1"/> <!-- extra edge -->
-			<edge source="tree3n7" target="tree3n8" id="tree3e9" length="1"/>
-			<edge source="tree3n7" target="tree3n9" id="tree3e8" length="1"/>
-		</network>				
-	</trees>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<nex:nexml
+    version="0.9"
+    xsi:schemaLocation="http://www.nexml.org/2009 ../xsd/nexml.xsd"
+    xmlns="http://www.nexml.org/2009"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:nex="http://www.nexml.org/2009"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+>
+    <otus id="d0">
+        <otu id="d1" label="penHA34a" />
+        <otu id="d2" label="penHA34b" />
+        <otu id="d3" label="penHA32b" />
+        <otu id="d4" label="penHA32a" />
+        <otu id="d5" label="penSH30b" />
+        <otu id="d6" label="penSH30a" />
+        <otu id="d7" label="penSH28b" />
+        <otu id="d8" label="penSH28a" />
+        <otu id="d9" label="penIT13b" />
+        <otu id="d10" label="penIT13a" />
+        <otu id="d11" label="penIT12a" />
+        <otu id="d12" label="firSA26b" />
+        <otu id="d13" label="firGU7b" />
+        <otu id="d14" label="firGU8b" />
+        <otu id="d15" label="firSP18b" />
+        <otu id="d16" label="firSP20b" />
+        <otu id="d17" label="firSP36b" />
+        <otu id="d18" label="firSP39b" />
+        <otu id="d19" label="penSH31a" />
+        <otu id="d20" label="penSH31b" />
+        <otu id="d21" label="firSP19b" />
+        <otu id="d22" label="firSP17b" />
+        <otu id="d23" label="penIT12b" />
+        <otu id="d24" label="firSA24a" />
+        <otu id="d25" label="firSA24b" />
+        <otu id="d26" label="firSA25a" />
+        <otu id="d27" label="firSA26a" />
+        <otu id="d28" label="firGU7a" />
+        <otu id="d29" label="firGU8a" />
+        <otu id="d30" label="firSP17a" />
+        <otu id="d31" label="firSP18a" />
+        <otu id="d32" label="firSP19a" />
+        <otu id="d33" label="firSP20a" />
+        <otu id="d34" label="firSP36a" />
+        <otu id="d35" label="firSP39a" />
+        <otu id="d36" label="firSA25b" />
+        <otu id="d37" label="firSP40b" />
+        <otu id="d38" label="firSP40a" />
+        <otu id="d39" label="penIT11b" />
+        <otu id="d40" label="penIT11a" />
+        <otu id="d41" label="ovi47a" />
+        <otu id="d42" label="ovi47b" />
+    </otus>
+    <trees id="d43" otus="d0">
+        <tree id="d44" xsi:type="nex:FloatTree">
+            <node id="d45" />
+            <node id="d46" />
+            <node id="d47" />
+            <node id="d48" />
+            <node id="d49" otu="d1" />
+            <node id="d50" otu="d2" />
+            <node id="d51" otu="d3" />
+            <node id="d52" otu="d4" />
+            <node id="d53" otu="d5" />
+            <node id="d54" otu="d6" />
+            <node id="d55" otu="d7" />
+            <node id="d56" otu="d8" />
+            <node id="d57" otu="d9" />
+            <node id="d58" otu="d10" />
+            <node id="d59" otu="d11" />
+            <node id="d60" otu="d12" />
+            <node id="d61" otu="d13" />
+            <node id="d62" otu="d14" />
+            <node id="d63" otu="d15" />
+            <node id="d64" otu="d16" />
+            <node id="d65" otu="d17" />
+            <node id="d66" otu="d18" />
+            <node id="d67" otu="d19" />
+            <node id="d68" otu="d20" />
+            <node id="d69" />
+            <node id="d70" otu="d21" />
+            <node id="d71" />
+            <node id="d72" otu="d22" />
+            <node id="d73" otu="d23" />
+            <node id="d74" otu="d24" />
+            <node id="d75" otu="d25" />
+            <node id="d76" otu="d26" />
+            <node id="d77" otu="d27" />
+            <node id="d78" otu="d28" />
+            <node id="d79" otu="d29" />
+            <node id="d80" otu="d30" />
+            <node id="d81" otu="d31" />
+            <node id="d82" otu="d32" />
+            <node id="d83" otu="d33" />
+            <node id="d84" otu="d34" />
+            <node id="d85" otu="d35" />
+            <node id="d86" />
+            <node id="d87" otu="d36" />
+            <node id="d88" otu="d37" />
+            <node id="d89" otu="d38" />
+            <node id="d90" otu="d39" />
+            <node id="d91" otu="d40" />
+            <node id="d92" />
+            <node id="d93" otu="d41" />
+            <node id="d94" otu="d42" />
+            <rootedge id="d95" target="d45" length="1.0" />
+            <edge id="d96" source="d45" target="d46" length="1.0" />
+            <edge id="d97" source="d46" target="d47" length="1.0" />
+            <edge id="d98" source="d47" target="d48" length="1.0" />
+            <edge id="d99" source="d48" target="d49" length="1.0" />
+            <edge id="d100" source="d48" target="d50" length="1.0" />
+            <edge id="d101" source="d48" target="d51" length="1.0" />
+            <edge id="d102" source="d48" target="d52" length="1.0" />
+            <edge id="d103" source="d48" target="d53" length="1.0" />
+            <edge id="d104" source="d48" target="d54" length="1.0" />
+            <edge id="d105" source="d48" target="d55" length="1.0" />
+            <edge id="d106" source="d48" target="d56" length="1.0" />
+            <edge id="d107" source="d48" target="d57" length="1.0" />
+            <edge id="d108" source="d48" target="d58" length="1.0" />
+            <edge id="d109" source="d48" target="d59" length="1.0" />
+            <edge id="d110" source="d48" target="d60" length="1.0" />
+            <edge id="d111" source="d48" target="d61" length="1.0" />
+            <edge id="d112" source="d48" target="d62" length="1.0" />
+            <edge id="d113" source="d48" target="d63" length="1.0" />
+            <edge id="d114" source="d48" target="d64" length="1.0" />
+            <edge id="d115" source="d48" target="d65" length="1.0" />
+            <edge id="d116" source="d48" target="d66" length="1.0" />
+            <edge id="d117" source="d48" target="d67" length="1.0" />
+            <edge id="d118" source="d48" target="d68" length="1.0" />
+            <edge id="d119" source="d47" target="d69" length="1.0" />
+            <edge id="d120" source="d69" target="d70" length="1.0" />
+            <edge id="d121" source="d69" target="d71" length="1.0" />
+            <edge id="d122" source="d71" target="d72" length="1.0" />
+            <edge id="d123" source="d71" target="d73" length="1.0" />
+            <edge id="d124" source="d46" target="d74" length="1.0" />
+            <edge id="d125" source="d46" target="d75" length="1.0" />
+            <edge id="d126" source="d46" target="d76" length="1.0" />
+            <edge id="d127" source="d46" target="d77" length="1.0" />
+            <edge id="d128" source="d46" target="d78" length="1.0" />
+            <edge id="d129" source="d46" target="d79" length="1.0" />
+            <edge id="d130" source="d46" target="d80" length="1.0" />
+            <edge id="d131" source="d46" target="d81" length="1.0" />
+            <edge id="d132" source="d46" target="d82" length="1.0" />
+            <edge id="d133" source="d46" target="d83" length="1.0" />
+            <edge id="d134" source="d46" target="d84" length="1.0" />
+            <edge id="d135" source="d46" target="d85" length="1.0" />
+            <edge id="d136" source="d46" target="d86" length="1.0" />
+            <edge id="d137" source="d86" target="d87" length="1.0" />
+            <edge id="d138" source="d86" target="d88" length="1.0" />
+            <edge id="d139" source="d46" target="d89" length="1.0" />
+            <edge id="d140" source="d46" target="d90" length="1.0" />
+            <edge id="d141" source="d46" target="d91" length="1.0" />
+            <edge id="d142" source="d45" target="d92" length="1.0" />
+            <edge id="d143" source="d92" target="d93" length="1.0" />
+            <edge id="d144" source="d92" target="d94" length="1.0" />
+        </tree>
+    </trees>
 </nex:nexml>
