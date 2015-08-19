@@ -258,7 +258,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         if mode not in ["keep", "exclude", "restore"]:
             raise ValueError("The 'mode' argument in filter() must be 'keep', 'exclude', or 'restore', not %s." % mode)
 
-        column_errors = []
+        column_errors = {"KeyError": [], "ValueError": []}
         for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
             try:
                 if mode == "keep" and not _rec.search(regex):
@@ -268,8 +268,11 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 elif mode == "restore" and _rec.search(regex):
                     self.records[_id] = _rec
             except KeyError as e:
-                if str(e) not in column_errors:
-                    column_errors.append(str(e))
+                if str(e) not in column_errors["KeyError"]:
+                    column_errors["KeyError"].append(str(e))
+            except ValueError as e:
+                if str(e) not in column_errors["ValueError"]:
+                    column_errors["ValueError"].append(str(e))
 
         if mode == "restore":
             for _id in self.records:
@@ -476,10 +479,39 @@ class Record:
         column = re.match("\((.*)\)", regex)
         if column:
             column = column.group(1)
+            # Special case, if user is searching sequence length
+            if re.match("length.+", column):
+                if not re.match("^length[ =<>]*[0-9]*$", column):
+                    raise ValueError("Invalid syntax for seaching 'length': %s" % column)
+
+                limit = re.search("length[ =<>]*([0-9]*)", column).group(1)
+                try:
+                    limit = int(limit)
+                except ValueError:
+                    limit = re.search("length[ =<>]*(.*)", column).group(1)[:-1]
+                    raise ValueError("Unable to recast limit: %s" % limit)
+
+                operator = re.search("length *([=<>]*) *[0-9]", column).group(1)
+                if operator not in ["=", ">", ">=", "<", "<="]:
+                    raise ValueError("Invalid operator: %s" % operator)
+
+                if operator == "=" and int(self.summary["length"]) == limit:
+                    return True
+                elif operator == ">" and int(self.summary["length"]) > limit:
+                    return True
+                elif operator == ">=" and int(self.summary["length"]) >= limit:
+                    return True
+                elif operator == "<" and int(self.summary["length"]) < limit:
+                    return True
+                elif operator == "<=" and int(self.summary["length"]) <= limit:
+                    return True
+                else:
+                    return False
+
             column = "?i" if column == "i?" else column  # Catch an easy syntax error. Maybe a bad idea?
             regex = regex[len(column) + 2:] if column != "?i" else regex
             try:
-                if re.search(regex, self.summary[column]):
+                if re.search(str(regex), str(self.summary[column])):
                     return True
                 else:
                     return False
@@ -923,16 +955,21 @@ Further details about each command can be accessed by typing 'help <command>'
         heading = "# Recs recovered" if mode == "restore" else "# Recs removed"
         _stdout(tabbed.format("Filter", heading), format_out=self.terminal_default)
 
-        column_errors = []
+        _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            column_errors += self.dbbuddy.filter_records(_filter, mode=mode)
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
+                _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))), format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
 
-        if column_errors:
+        if _errors["KeyError"]:
             _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
-                    "%s%s\n" % (RED, ", ".join(column_errors), DEF_FONT))
+                    "%s%s\n" % (RED, ", ".join(_errors["KeyError"]), DEF_FONT))
+
+        if _errors["ValueError"]:
+            _stderr("%s\nThe following errors occurred:\n"
+                    "%s%s\n" % (RED, ", ".join(_errors["ValueError"]), DEF_FONT))
 
         output_message = "\n%s records remain.\n\n" % len(self.dbbuddy.records) if mode != "restore" \
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
@@ -1275,6 +1312,8 @@ Further refine your results with search terms:
     - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
     - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
       the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
+      Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
     - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
@@ -1309,6 +1348,8 @@ Further refine your results with search terms:
     - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
     - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
       the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
+      Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
     - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
@@ -1329,6 +1370,8 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
     - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
     - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
       the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
+      Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
     - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
