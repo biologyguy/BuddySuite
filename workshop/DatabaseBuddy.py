@@ -81,7 +81,6 @@ NO_UNDERLINE = "\033[24m"
 DEF_FONT = "\033[39m"
 
 
-
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
@@ -255,30 +254,33 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                                 if not _rec.record and not _rec.summary]
         return _output
 
-    def filter_records(self, regex, mode="keep"):
-        if mode not in ["keep", "exclude"]:
-            raise ValueError("The 'mode' argument in filter() must be either 'keep' or 'exclude', not %s." % mode)
+    def filter_records(self, regex, mode):
+        if mode not in ["keep", "exclude", "restore"]:
+            raise ValueError("The 'mode' argument in filter() must be 'keep', 'exclude', or 'restore', not %s." % mode)
 
-        for _id, _rec in self.records.items():
-            if mode == "keep" and not _rec.search(regex):
-                self.trash_bin[_id] = _rec
-            elif mode == "exclude" and _rec.search(regex):
-                self.trash_bin[_id] = _rec
+        column_errors = []
+        for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
+            try:
+                if mode == "keep" and not _rec.search(regex):
+                    self.trash_bin[_id] = _rec
+                elif mode == "exclude" and _rec.search(regex):
+                    self.trash_bin[_id] = _rec
+                elif mode == "restore" and _rec.search(regex):
+                    self.records[_id] = _rec
+            except KeyError as e:
+                if str(e) not in column_errors:
+                    column_errors.append(str(e))
 
-        for _id in self.trash_bin:
-            if _id in self.records:
-                del self.records[_id]
-        return
+        if mode == "restore":
+            for _id in self.records:
+                if _id in self.trash_bin:
+                    del self.trash_bin[_id]
+        else:
+            for _id in self.trash_bin:
+                if _id in self.records:
+                    del self.records[_id]
 
-    def restore_records(self, regex):
-        for _id, _rec in self.trash_bin.items():
-            if _rec.search(regex):
-                self.records[_id] = _rec
-
-        for _id in self.records:
-            if _id in self.trash_bin:
-                del self.trash_bin[_id]
-        return
+        return column_errors
 
     def print(self, _num=0, quiet=False, columns=None, destination=None, group="records"):
         """
@@ -321,14 +323,14 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
             _output = ""
             # Summary outputs
-            if self.out_format in ["summary", "full_summary", "ids", "accessions"]:
+            if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
                 lines = []
                 saved_headings = []
                 for _accession, _rec in list(group.items())[:_num]:
                     if self.out_format in ["ids", "accessions"]:
                         lines.append([_accession])
 
-                    elif self.out_format in ["summary", "full_summary"]:
+                    elif self.out_format in ["summary", "full-summary"]:
                         headings = ["ACCN", "DB"]
                         headings += [heading for heading, _value in _rec.summary.items()]
                         if columns:
@@ -349,8 +351,8 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
                         for attrib, _value in _rec.summary.items():
                             if attrib in headings:
-                                if len(str(_value)) > 50 and self.out_format != "full_summary":
-                                    lines[-1].append(_value[:47])
+                                if len(str(_value)) > 50 and self.out_format != "full-summary":
+                                    lines[-1].append("%s..." % _value[:47])
                                 else:
                                     lines[-1].append(_value)
 
@@ -414,6 +416,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         return _output
 
 
+# ################################################# SUPPORT CLASSES ################################################## #
 class Record:
     def __init__(self, _accession, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
@@ -470,6 +473,20 @@ class Record:
 
     def search(self, regex):
         regex = "." if regex == "*" else regex
+        column = re.match("\((.*)\)", regex)
+        if column:
+            column = column.group(1)
+            column = "?i" if column == "i?" else column  # Catch an easy syntax error. Maybe a bad idea?
+            regex = regex[len(column) + 2:] if column != "?i" else regex
+            try:
+                if re.search(regex, self.summary[column]):
+                    return True
+                else:
+                    return False
+            except KeyError:
+                if column != "?i":
+                    raise KeyError(column)
+
         for param in [self.accession, self.database, self.type, self.search_term]:
             if re.search(regex, str(param)):
                 return True
@@ -516,7 +533,7 @@ class UniProtRestClient:
         open(self.http_errors_file, "w").close()
         self.results_file = "%s/results.txt" % self.temp_dir.path
         open(self.results_file, "w").close()
-        self.max_url = 1950
+        self.max_url = 1000
 
     def query_uniprot(self, _term, args):  # Multicore ready
         http_errors_file, results_file, request_params = args
@@ -676,14 +693,15 @@ class UniProtRestClient:
             clean_recs = []
             for _rec in data:
                 if _rec:
-                    clean_recs.append(re.sub("# Search.*\n", "", _rec))  # Strip the first line from multi-core searches
+                    # Strip the first line from multi-core searches
+                    clean_recs.append(re.sub("# Search.*\n", "", _rec.strip()))
 
             with open(self.results_file, "w") as ifile:
                 ifile.write("//\n".join(clean_recs))
-                ifile.write("//")
+                ifile.write("\n//")
 
-            with open(self.results_file, "r") as ofile:
-                _records = SeqIO.parse(ofile, "swiss")
+            with open(self.results_file, "r") as ifile:
+                _records = SeqIO.parse(ifile, "swiss")
                 for _rec in _records:
                     if _rec.id not in self.dbbuddy.records:
                         print(_rec.id)
@@ -821,11 +839,6 @@ class EnsemblRestClient:
 
 
 # ################################################## API FUNCTIONS ################################################### #
-# ToDo: - Show trash bin
-#       - Abort commands
-#       - Filter '*' crashes
-#       - Catch URL errors
-#       - delete not working
 
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy):
@@ -875,31 +888,56 @@ Further details about each command can be accessed by typing 'help <command>'
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     def filter(self, line, mode="keep"):
-        if mode not in ["keep", "exclude"]:
-            raise ValueError("The 'mode' argument in filter() must be either 'keep' or 'exclude', not %s." % mode)
+        if mode not in ["keep", "exclude", "restore"]:
+            raise ValueError("The 'mode' argument in filter() must be "
+                             "'keep', 'exclude', or 'restore', not %s." % mode)
 
         if not line:
-            action = "retained" if mode == "keep" else "removed"
-            line = input("%sSpecify a search string to be used as a filter (records will be %s): %s" %
+            if mode == "keep":
+                action = "Specify a search string to be used as a filter (records will be retained): "
+            elif mode == "exclude":
+                action = "Specify a search string to be used as a filter (records will be removed): "
+            else:
+                action = "Specify a string to search the trash bin with: "
+            line = input("%s%s%s" %
                          (RED, action, self.terminal_default))
 
+        # Kill the command if the user is mixing quote types to separate search terms
+        error_message = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
+                        "multiple filters. Please pick one or the other.\n\n"
         if line[0] == "'":
+            if line.strip()[-1] == '"':
+                _stdout(error_message, format_in=RED, format_out=self.terminal_default)
+                return
             line = line.strip("'").split("' '")
         else:
+            if line.strip()[-1] == "'":
+                _stdout(error_message, format_in=RED, format_out=self.terminal_default)
+                return
             line = line.strip('"').split('" "')
         max_regex_len = 6  # length of the string 'filter'
         for _filter in line:
             max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
         tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
         _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
-        _stdout(tabbed.format("Filter", "# Recs removed"), format_out=self.terminal_default)
+        heading = "# Recs recovered" if mode == "restore" else "# Recs removed"
+        _stdout(tabbed.format("Filter", heading), format_out=self.terminal_default)
+
+        column_errors = []
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            self.dbbuddy.filter_records(_filter, mode=mode)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.records)), format_out=self.terminal_default)
+            column_errors += self.dbbuddy.filter_records(_filter, mode=mode)
+            _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))), format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
-        _stdout("\n%s records remain.\n\n" % len(self.dbbuddy.records),
-                format_in=GREEN, format_out=self.terminal_default)
+
+        if column_errors:
+            _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
+                    "%s%s\n" % (RED, ", ".join(column_errors), DEF_FONT))
+
+        output_message = "\n%s records remain.\n\n" % len(self.dbbuddy.records) if mode != "restore" \
+            else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
+
+        _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -942,7 +980,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("Database search list updated to %s\n\n" % self.dbbuddy.databases, format_in=GREEN,
                     format_out=self.terminal_default)
         else:
-            _stdout("Database seach list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
+            _stdout("Database search list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
 
     def do_delete(self, line="all"):
         if not self.dbbuddy.trash_bin and not self.dbbuddy.records and not self.dbbuddy.search_terms:
@@ -950,12 +988,24 @@ Further details about each command can be accessed by typing 'help <command>'
             return
 
         line = line.lower()
-        if line not in ["", "a", "all"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
+        if line not in ["", "a", "all", "failures", "f"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
             _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
-        if line in SEARCH_SYNOS:
+        if line in ["failures", "f"]:
+            if not self.dbbuddy.failures:
+                _stdout("Failures list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
+            else:
+                confirm = input("%sAre you sure you want to clear all %s failures (y/[n])?%s " %
+                                (RED, len(self.dbbuddy.failures), self.terminal_default))
+
+                if confirm.lower() not in ["yes", "y"]:
+                    _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
+                else:
+                    self.dbbuddy.failures = {}
+
+        elif line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
                 _stdout("Search terms list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
@@ -991,8 +1041,8 @@ Further details about each command can be accessed by typing 'help <command>'
                     self.dbbuddy.records = {}
 
         else:
-            confirm = input("%sAre you sure you want to delete ALL %s records from your live session (y/[n])?%s " %
-                            (RED, len(self.dbbuddy.records) + len(self.dbbuddy.trash_bin), self.terminal_default))
+            confirm = input("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
+                            (RED, self.terminal_default))
 
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
@@ -1000,6 +1050,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.trash_bin = {}
                 self.dbbuddy.records = {}
                 self.dbbuddy.search_terms = []
+                self.dbbuddy.failures = {}
         _stderr("\n")
 
     def do_exclude(self, line=None):
@@ -1081,40 +1132,8 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_trash(self, line=None):
         self.do_show(line, "trash_bin")
 
-    def do_reset(self, line=None):
-        if line != "":
-            _stdout("Note: 'reset' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
-        current_count = len(self.dbbuddy.records)
-        for _accn, _rec in self.dbbuddy.trash_bin.items():
-            if _accn not in self.dbbuddy.records:
-                self.dbbuddy.records[_accn] = _rec
-        self.dbbuddy.trash_bin = {}
-        _stdout("%s records recovered\n\n" % (len(self.dbbuddy.records) - current_count),
-                format_in=GREEN, format_out=self.terminal_default)
-
     def do_restore(self, line):
-        if not line:
-            line = input("%sSpecify a string to search the trash bin with: %s" % (RED, self.terminal_default))
-
-        if line[0] == "'":
-            line = line.strip("'").split("' '")
-        else:
-            line = line.strip('"').split('" "')
-        max_regex_len = 6
-        for _filter in line:
-            max_regex_len = len(_filter) if len(_filter) > max_regex_len else max_regex_len
-        tabbed = "{0: <%s}{1}\n" % (max_regex_len + 2)
-        _stdout("\033[4m%s\n" % (" " * (max_regex_len + 16)), format_in=RED, format_out=self.terminal_default)
-        _stdout(tabbed.format("Filter", "# Recs returned"), format_out=self.terminal_default)
-        current_count = len(self.dbbuddy.trash_bin)
-        for _filter in line:
-            self.dbbuddy.restore_records(_filter)
-            _stdout(tabbed.format(_filter, current_count - len(self.dbbuddy.trash_bin)),
-                    format_out=self.terminal_default)
-            current_count = len(self.dbbuddy.trash_bin)
-        _stdout("\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin),
-                format_in=GREEN, format_out=self.terminal_default)
+        self.filter(line, "restore")
 
     def do_save(self, line=None):
         if not line and not self.file:
@@ -1142,7 +1161,7 @@ Further details about each command can be accessed by typing 'help <command>'
             if self.dbbuddy.out_format in ["ids", "accessions"]:
                 _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
                         format_out=self.terminal_default)
-            elif self.dbbuddy.out_format in ["summary", "full_summary"]:
+            elif self.dbbuddy.out_format in ["summary", "full-summary"]:
                 _stdout("%s summary records " % (len(breakdown["full"] + breakdown["partial"])), format_in=GREEN,
                         format_out=self.terminal_default)
             else:
@@ -1183,8 +1202,6 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
 
-        _stderr("\n")
-
     def do_show(self, line=None, group="records"):
         if line:
             line = line.split(" ")
@@ -1193,6 +1210,12 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         if not num_returned:
             _stdout("Nothing in %s to show.\n\n" % group, format_in=RED, format_out=self.terminal_default)
             return
+
+        if self.dbbuddy.out_format not in ["ids", "accessions", "summary", "full-summary"]:
+            if not self.dbbuddy.record_breakdown()["full"]:
+                _stdout("No full records in %s to show. Use 'fetch' to retrieve sequences first.\n\n"
+                        % group, format_in=RED, format_out=self.terminal_default)
+                return
 
         columns = []
         for _next in line:
@@ -1222,7 +1245,7 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         _stdout('''\
 Run bash commands from the DbBuddy Live Session.
 Be careful!! This is not sand-boxed in any way, so give the 'bash' command
-all the respect you would afford the normal terminal window.\n
+all the respect you would normally give the terminal window.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_database(self):
@@ -1238,7 +1261,8 @@ Valid choices: {0}{3}\n
 Remove records completely from the Live Session. Be careful, this is permanent.
 Choices are:
     search-terms, st: Delete all search terms from live session
-    trash-bin, tb:  Empty the trash bin
+    failures, f:      Clear list of failures
+    trash-bin, tb:    Empty the trash bin
     records, recs:    Delete all the main list of records (leaving the trash bin alone)
     all:              Delete everything\n
 ''', format_in=GREEN, format_out=self.terminal_default)
@@ -1246,13 +1270,13 @@ Choices are:
     def help_exclude(self):
         _stdout('''\
 Further refine your results with search terms:
-    - All summary fields are searched
-    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
-    - Enclose filters in quotes
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
-    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
     - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
-      with the 'reset' or 'restore' commands\n
+      with the 'restore' command
+    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
+    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
+      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
+    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_failures(self):
@@ -1280,13 +1304,13 @@ Set the output format:
     def help_keep(self):
         _stdout('''\
 Further refine your results with search terms:
-    - All summary fields are searched
-    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
-    - Enclose filters in quotes
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
-    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).
     - Records that DO NOT MATCH your filters are relegated to the 'trash bin'; return them to the main list
-      with the 'reset' or 'restore' commands\n
+      with 'restore' command.
+    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
+    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
+      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
+    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
@@ -1299,20 +1323,15 @@ Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
-    def help_reset(self):
-        _stdout('''\
-Return all filtered records back into the main list (use the 'restore' command to only return a subset)\n
-''', format_in=GREEN, format_out=self.terminal_default)
-
     def help_restore(self):
         _stdout('''\
-Return a subset of filtered records back into the main list (use the 'reset' command to return all records)
-    - All summary fields are searched
-    - Multiple filters can be included at the same time, separated by spaces (equivalent to the 'AND' operator)
-    - Enclose filters in quotes
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html)
-    - The 'OR' operator is not implemented to prevent ambiguity issues ('OR' can be handled by regex).\n
-''', format_in=GREEN, format_out=self.terminal_default)
+Return a subset of filtered records back into the main list (use '%srestore *%s' to recover all records)
+    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
+    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
+      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
+    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_save(self):
         _stdout('''\
