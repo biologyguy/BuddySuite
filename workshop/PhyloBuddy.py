@@ -521,7 +521,7 @@ if __name__ == '__main__':
     parser.add_argument('-pt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
     parser.add_argument('-dt', '--display_trees', action='store_true')
-    parser.add_argument('-li', '--list_ids', action='store_true')
+    parser.add_argument('-li', '--list_ids', action='store', nargs='?', type=int)
     parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)  # TODO: Display input options
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="Specify the file format.", action='store')
@@ -583,14 +583,24 @@ if __name__ == '__main__':
 
     # List ids
     if in_args.list_ids:
-        output = list_ids(phylobuddy)
-        for key in output:
-            _stdout('#### {0} ####\n'.format(key))
-            if len(output[key]) == 0:
-                _stdout('None\n')
+        listed_ids = list_ids(phylobuddy)
+        columns = 1 if not in_args.list_ids or in_args.list_ids == 0 else abs(in_args.list_ids)
+        output = ""
+        for key in listed_ids:
+            count = 1
+            output += '#### {0} ####\n'.format(key)
+            if len(listed_ids[key]) == 0:
+                output += 'None\n'
             else:
-                _stdout(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
-        _stdout('\n')
+                for identifier in listed_ids[key]:
+                    if count < columns:
+                        output += "%s\t" % identifier
+                        count += 1
+                    else:
+                        output += "%s\n" % identifier
+                        count = 1
+            output += '\n'
+        _stdout(output)
 
     # Calculate distance
     if in_args.calculate_distance:
