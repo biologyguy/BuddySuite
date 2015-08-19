@@ -83,7 +83,11 @@ def _format_to_extension(_format):
 
 
 def _make_copies(_phylobuddy):
-    copies = deepcopy(_phylobuddy)
+    try:
+        copies = deepcopy(_phylobuddy)
+    except AttributeError:
+        _stderr("Warning: Deepcopy failed. Attempting workaround. Some metadata may be lost.")
+        copies = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
     return copies
 
 def _extract_figtree_metadata(_file_path):
@@ -181,8 +185,9 @@ class PhyloBuddy:
         self.out_format = self.in_format if not _out_format else _out_format
 
         # ####  RECORDS  #### #
-        if str(type(_input)) == "<class '__main__.PhyloBuddy'>":
+        if type(_input) == PhyloBuddy:
             self.trees = _input.trees
+            self.stored_input = _input
 
         elif isinstance(_input, list):
             # make sure that the list is actually Bio.Phylo records (just test a few...)
@@ -191,9 +196,11 @@ class PhyloBuddy:
                 if type(_tree) not in tree_classes:
                     raise TypeError("Tree list is not populated with Phylo objects.")
             self.trees = _input
+            self.stored_input = deepcopy(_input)
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
             tmp_dir = TemporaryDirectory()
+            self.stored_input = deepcopy(in_handle)
             with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
                 _ofile.write(in_handle)
 
@@ -212,6 +219,7 @@ class PhyloBuddy:
                 self.trees.append(_tree)
 
         elif os.path.isfile(_input):
+            self.stored_input = deepcopy(_input)
             figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded
             if figtree is not None:
                 tmp_dir = TemporaryDirectory()
@@ -261,6 +269,9 @@ class PhyloBuddy:
             _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
         else:
             _output = tree_list.as_string(schema=self.out_format)
+
+        _output = '{0}\n'.format(_output.rstrip())
+
         return _output
 
     def write(self, _file_path):
@@ -306,20 +317,11 @@ def guess_format(_input):
 
 def split_polytomies(_phylobuddy):
     for _tree in _phylobuddy.trees:
-        _tree.resolve_polytomies()
+        _tree.resolve_polytomies(rng=random.Random())
     return _phylobuddy
 
 
-def root(_phylobuddy, position="guess"):
-    for _tree in _phylobuddy.trees:
-        outgroup = [{'name': taxon_name} for taxon_name in ('E', 'F', 'G')]
-        if _tree.is_monophyletic(outgroup):
-            _tree.root_with_outgroup(*outgroup)
-        else:
-            raise ValueError("outgroup is paraphyletic")
-    return _phylobuddy
-
-def prune_taxa(_phylobuddy, _patterns):
+def prune_taxa(_phylobuddy, *_patterns):
     for _tree in _phylobuddy.trees:
         taxa_to_prune = []
         _namespace = _tree.update_taxon_namespace()
@@ -446,7 +448,7 @@ def display_trees(_phylobuddy):
         convert_to_ete(_tree).show()
 
 
-def list_leaf_names(_phylobuddy):
+def list_ids(_phylobuddy):
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
         _namespace = _tree.update_taxon_namespace()
@@ -454,15 +456,15 @@ def list_leaf_names(_phylobuddy):
         _output[key] = list(_namespace.labels())
     return _output
 
-def all_by_all_compare(_phylobuddy, _method='weighted_robinson_foulds'):
+def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     _method = _method.lower()
     if _method in ['wrf', 'weighted_robinson_foulds']:
         _method = 'wrf'
     elif _method in ['uwrf', 'sym', 'unweighted_robinson_foulds', 'symmetric']:
         _method = 'uwrf'
-    elif _method in ['mgk', 'mason_gamer_kellogg']:
-        _method = 'mgk'
-    elif _method in ['euclid', 'euclidean']:
+    #elif _method in ['mgk', 'mason_gamer_kellogg']:
+    #    _method = 'mgk'
+    elif _method in ['ed', 'euclid', 'euclidean']:
         _method = 'euclid'
     else:
         raise AttributeError('{0} is an invalid comparison method.'.format(_method))
@@ -487,9 +489,9 @@ def all_by_all_compare(_phylobuddy, _method='weighted_robinson_foulds'):
                     elif _method == 'uwrf':
                         _output[_key1][_key2] = treecompare.symmetric_difference(_tree1, _tree2)
                         _output[_key2][_key1] = _output[_key1][_key2]
-                    elif _method == 'mgk':
-                        _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
-                        _output[_key2][_key1] = _output[_key1][_key2]
+                    #elif _method == 'mgk':
+                    #    _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
+                    #    _output[_key2][_key1] = _output[_key1][_key2]
                     else:
                         _output[_key1][_key2] = treecompare.euclidean_distance(_tree1, _tree2)
                         _output[_key2][_key1] = _output[_key1][_key2]
@@ -503,17 +505,17 @@ if __name__ == '__main__':
 
     parser.add_argument("trees", help="Supply a file path or raw tree string", nargs="*", default=[sys.stdin])
 
-    parser.add_argument("-spts", "--split_polys", action="store_true",
-                        help="Create a binary tree by splitting polytomies randomly.")
-
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-prt', '--prune_taxa', action='append', nargs="+")
+    parser.add_argument("-spts", "--split_polys", action="store_true",
+                        help="Create a binary tree by splitting polytomies randomly.")
+    parser.add_argument('-pt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
-    parser.add_argument('-lln', '--list_leaf_names', action='store_true')
-    parser.add_argument('-abac', '--all_by_all_compare', action='store', nargs=1)
+    parser.add_argument('-dt', '--display_trees', action='store_true')
+    parser.add_argument('-li', '--list_ids', action='store_true')
+    parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="If PhyloBuddy can't guess the file format, just specify it directly.",
                         action='store')
@@ -569,20 +571,24 @@ if __name__ == '__main__':
 
     # Prune taxa
     if in_args.prune_taxa:
-        prune_taxa(phylobuddy, in_args.prune_taxa[0])
+        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
         _print_trees(phylobuddy)
         sys.exit()
 
-    # List leaf names
-    if in_args.list_leaf_names:
-        output = list_leaf_names(phylobuddy)
+    # List ids
+    if in_args.list_ids:
+        output = list_ids(phylobuddy)
         for key in output:
-            _stdout('#### {0} ####'.format(key))
-            _stdout(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
+            _stdout('#### {0} ####\n'.format(key))
+            if len(output[key]) == 0:
+                _stdout('None\n')
+            else:
+                _stdout(re.sub(', ', '\n', re.sub("[\[\]']", '', str(output[key]))))
+        _stdout('\n')
 
-    # All-by-all compare
-    if in_args.all_by_all_compare:
-        output = all_by_all_compare(phylobuddy, in_args.all_by_all_compare[0])
+    # Calculate distance
+    if in_args.calculate_distance:
+        output = calculate_distance(phylobuddy, in_args.calculate_distance[0])
         _stderr('Tree 1\tTree 2\tValue\n')
         keypairs = []
         for key1 in output:
@@ -590,3 +596,7 @@ if __name__ == '__main__':
                 if (key2, key1) not in keypairs:
                     keypairs.append((key1, key2))
                     _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+
+    # Display trees
+    if in_args.display_trees:
+        display_trees(phylobuddy)
