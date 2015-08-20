@@ -474,6 +474,13 @@ def display_trees(_phylobuddy):
         for _thread in _threads:
             _thread.start()
 
+        while True:
+            living = False
+            for _thread in _threads:
+                if _thread.is_alive():
+                    living = True
+            if not living:
+                break
 
 def list_ids(_phylobuddy):
     _output = OrderedDict()
