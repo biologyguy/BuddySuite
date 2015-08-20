@@ -516,6 +516,12 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     return _output
 
 
+def consensus_tree(_phylobuddy, _frequency=.5):
+    _trees = TreeList(_phylobuddy.trees)
+    _consensus = _trees.consensus(_frequency=_frequency)
+    _phylobuddy.trees = [_consensus]
+    return _phylobuddy
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="phylobuddy", description="",
@@ -534,6 +540,7 @@ if __name__ == '__main__':
     parser.add_argument('-dt', '--display_trees', action='store_true')
     parser.add_argument('-li', '--list_ids', action='append', nargs='?', type=int)
     parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)  # TODO: Display input options
+    parser.add_argument('-ct', '--consensus_tree', action='store', nargs=1, type=float)
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="Specify the file format.", action='store')
 
@@ -618,6 +625,7 @@ if __name__ == '__main__':
                         count = 1
             output += '\n'
         _stdout(output)
+        sys.exit()
 
     # Calculate distance
     if in_args.calculate_distance:
@@ -629,8 +637,14 @@ if __name__ == '__main__':
                 if (key2, key1) not in keypairs:
                     keypairs.append((key1, key2))
                     _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+        sys.exit()
 
     # Display trees
     if in_args.display_trees:
         display_trees(phylobuddy)
+        sys.exit()
+
+    # Consensus tree
+    if in_args.consensus_tree:
+        _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree[0]))
         sys.exit()
