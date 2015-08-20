@@ -11,13 +11,15 @@ and allows maintenance of rich feature annotation following alignment.
 # Standard library imports
 import sys
 import os
+import zipfile
 from copy import copy, deepcopy
 from io import StringIO, TextIOWrapper
 from random import sample
 import re
 from tempfile import TemporaryDirectory
 from collections import OrderedDict
-from shutil import which
+from shutil import *
+from urllib import error, request
 import subprocess
 
 # Third party package imports
@@ -83,6 +85,43 @@ def _format_to_extension(_format):
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                            'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
+
+
+def _get_alignment_binaries(_tool):
+    if os.path.exists('.buddysuite'):
+        current_path = '.buddysuite/'
+    else:
+        current_path = os.getcwd()
+
+    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/align_binaries/'
+    current_os = sys.platform
+    if current_os.startswith('darwin'):
+        binary_source += 'Darwin_{0}.zip'.format(_tool)
+        binary = 'Darwin_{0}.zip'.format(_tool)
+    elif current_os.startswith('linux'):
+        binary_source += 'Linux_{0}.zip'.format(_tool)
+        binary = 'Darwin_{0}.zip'.format(_tool)
+    elif current_os.startswith('win'):
+        binary_source += 'Win32_{0}.zip'.format(_tool)
+        binary = 'Darwin_{0}.zip'.format(_tool)
+    else:
+        return False
+
+    tmp_dir = TemporaryDirectory()
+    try:
+        with request.urlopen(binary_source) as reader, \
+                open("{0}/{1}".format(tmp_dir.name, binary), mode='wb') as writer:
+            copyfileobj(reader, writer)
+        zip_file = zipfile.ZipFile("{0}/{1}".format(tmp_dir.name, binary))
+        zip_file.extractall(path=current_path)
+        os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', binary)),
+                  '{0}/{1}'.format(current_path, _tool))
+        os.chmod('{0}/{1}'.format(current_path, _tool), 0o755)
+        print("File added: {0}/{1}".format(current_path, _tool))
+    except error.URLError:
+        return False
+
+    return True
 
 # ##################################################### Globals ###################################################### #
 gap_characters = ["-", ".", " "]
@@ -819,11 +858,29 @@ def split_alignbuddy(_alignbuddy):
 
 
 def generate_msa(_alignbuddy, _tool, _params):
+    script_location = os.path.realpath(__file__)
+    script_location = re.sub(str(__file__), '', script_location)
     _tool = _tool.lower()
     if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
-        raise AttributeError("{0} is not installed on your system.".format(_tool))
+        _stderr('Could not find {0} in $PATH. Would you like to install {0}? (program will be aborted) [yes]/no\n')
+        prompt = input()
+        os.chdir(script_location)
+        while True:
+            if prompt.lower() in ['yes', 'y', '']:
+                if _get_alignment_binaries(_tool):
+                    _stderr("{0} downloaded.\n".format(_tool))
+                else:
+                    _stderr("Failed to download {0}.\n".format(_tool))
+                break
+            elif prompt.lower() in ['no', 'n']:
+                _stderr("Did not download {0}.\n".format(_tool))
+                break
+            else:
+                _stderr("Input not understood.\n")
+                _stderr('Would you like to install {0}? (program will be aborted) [yes]/no\n')
+                prompt = input()
         sys.exit()
     else:
         _output = subprocess.check_output('{0} {1}'.format(_tool, _params), shell=True)
