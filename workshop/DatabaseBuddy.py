@@ -29,6 +29,7 @@ Collection of functions that interact with public sequence databases. Pull them 
 # import pdb
 # import timeit
 import sys
+import os
 import re
 from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
@@ -39,7 +40,7 @@ from multiprocessing import Lock
 from collections import OrderedDict
 from hashlib import md5
 import cmd
-from subprocess import Popen
+from subprocess import Popen, PIPE
 from io import TextIOWrapper
 import warnings
 
@@ -123,7 +124,7 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
 
 
 def terminal_colors():
-    colors = [MAGENTA, BLUE, GREEN, RED, YELLOW, GREY]
+    colors = [MAGENTA, CYAN, GREEN, RED, YELLOW, GREY]
     _counter = 0
     while True:
         try:
@@ -914,10 +915,20 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("Your session is currently unpopulated. Use 'search' to retrieve records.\n",
                     format_out=self.terminal_default)
         self.hash = None
+        self.shell_execs = []  # Only populate this if called by the user
         self.cmdloop()
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
+
+    def get_headings(self):
+        headings = []
+        if len(self.dbbuddy.records) > 0:
+            _rec = []
+            for _accn, _rec in self.dbbuddy.records.items():
+                break
+            headings = ["ACCN", "DB"] + [heading for heading, _value in _rec.summary.items()]
+        return headings
 
     def filter(self, line, mode="keep"):
         if mode not in ["keep", "exclude", "restore"]:
@@ -1085,7 +1096,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
             else:
                 self.dbbuddy.trash_bin = {}
-                self.dbbuddy.records = {}
+                self.dbbuddy.records = OrderedDict()
                 self.dbbuddy.search_terms = []
                 self.dbbuddy.failures = {}
         _stderr("\n")
@@ -1132,21 +1143,18 @@ Further details about each command can be accessed by typing 'help <command>'
                 format_out=self.terminal_default)
 
     def do_format(self, line):
-        while True:
-            if not line:
-                line = input("%sSpecify format:%s " % (GREEN, self.terminal_default))
+        if not line:
+            line = input("%sSpecify format:%s " % (GREEN, self.terminal_default))
 
-            if line not in FORMATS:
-                _stdout("Sorry, {1}'{2}'{0} is not a valid format. Please select from the "
-                        "following:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
-                        format_in=RED, format_out=self.terminal_default)
-                line = None
-                continue
+        if line not in FORMATS:
+            _stdout("Sorry, {1}'{2}'{0} is not a valid format. Please select from the "
+                    "following:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
+                    format_in=RED, format_out=self.terminal_default)
+            return
 
-            self.dbbuddy.out_format = line
-            _stdout("Output format changed to %s%s\n\n" % (YELLOW, line), format_in=GREEN,
-                    format_out=self.terminal_default)
-            break
+        self.dbbuddy.out_format = line
+        _stdout("Output format changed to %s%s\n\n" % (YELLOW, line), format_in=GREEN,
+                format_out=self.terminal_default)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
@@ -1277,6 +1285,71 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         if line != "":
             _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
+
+    def complete_bash(self, text, line, startidx, endidx):
+        if not self.shell_execs:
+            path_dirs = Popen("echo $PATH", stdout=PIPE, shell=True).communicate()
+            path_dirs = path_dirs[0].decode("utf-8").split(":")
+            for _dir in path_dirs:
+                if not os.path.isdir(_dir):
+                    continue
+                root, dirs, files = next(os.walk(_dir))
+                for _file in files:
+                    if os.access("%s/%s" % (root, _file), os.X_OK):
+                        self.shell_execs.append(_file.strip())
+        return [x for x in self.shell_execs if x.startswith(text)]
+
+    @staticmethod
+    def complete_database(text, line, startidx, endidx):
+        return [db for db in DATABASES if db.startswith(text)]
+
+    @staticmethod
+    def complete_delete(text, line, startidx, endidx):
+        return [x for x in ["all", "failures", "search", "trash", "records"] if x.startswith(text)]
+
+    def complete_exclude(self, text, line, startidx, endidx):
+        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    @staticmethod
+    def complete_format(self, text, line, startidx, endidx):
+        return [x for x in FORMATS if x.startswith(text)]
+
+    def complete_keep(self, text, line, startidx, endidx):
+        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_trash(self, text, line, startidx, endidx):
+        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_restore(self, text, line, startidx, endidx):
+        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    @staticmethod
+    def complete_save(text, line, startidx, endidx):
+        # ToDo: pulled code from stack overflow, modify or credit.
+        import glob
+
+        def _append_slash_if_dir(p):
+            if p and os.path.isdir(p) and p[-1] != os.sep:
+                return p + os.sep
+            else:
+                return p
+
+        before_arg = line.rfind(" ", 0, startidx)
+        if before_arg == -1:
+            return # arg not found
+
+        fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
+        arg = line[before_arg + 1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = _append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
+
+    def complete_show(self, text, line, startidx, endidx):
+        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def help_bash(self):
         _stdout('''\
