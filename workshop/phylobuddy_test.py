@@ -158,7 +158,7 @@ def test_prune_taxa(phylobuddy, next_hash):
 
 
 # ############################# 'li', '--list_ids' ############################# #
-li_hashes = ['188aaa14889c438a66bcf6e02ea77eb7', 'f06f615e2bf0c4aa91c982aa8956cf12', 'b99e5b92ec1ab59ad85e94e43131bb78']
+li_hashes = ['514675543e958d5177f248708405224d', '229e5d7cd8bb2bfc300fd45ec18e8424', '514675543e958d5177f248708405224d']
 li_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enumerate(li_hashes)]
 @pytest.mark.parametrize("phylobuddy, next_hash", li_hashes)
 def test_list_ids(phylobuddy, next_hash):
@@ -167,21 +167,21 @@ def test_list_ids(phylobuddy, next_hash):
 
 
 # ############################# 'cd', '--calculate_distance' ############################# #
-cd_hashes = ['3c49c6a7f06244c0b5d45812f6791519', 'df0d56fe8bdc120a9898cbdf186182f6', '7df609f2e6ee613d3bf3c3d2aae26ad4']
+cd_hashes = ['e39a8aadaec77680ad0d9004bab824ea', '3c49c6a7f06244c0b5d45812f6791519', '7df609f2e6ee613d3bf3c3d2aae26ad4']
 cd_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enumerate(cd_hashes)]
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
 def test_calculate_distance_wrf(phylobuddy, next_hash):
     tester = str(Pb.calculate_distance(phylobuddy, _method='wrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
-cd_hashes = ['6d087b86aa9f5bc5013113972173fe0f', 'ec0b22eb92836fc0666ce89e89c17336', '7ef096e3c32dbf898d4b1a035d5c9ad4']
+cd_hashes = ['c15d06fc5344da3149e19b134ca31c62', '6d087b86aa9f5bc5013113972173fe0f', '7ef096e3c32dbf898d4b1a035d5c9ad4']
 cd_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enumerate(cd_hashes)]
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
 def test_calculate_distance_uwrf(phylobuddy, next_hash):
     tester = str(Pb.calculate_distance(phylobuddy, _method='uwrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
-cd_hashes = ['3dba6b10fdd04505b4e4482d926b67d3', 'a36937f19d7398dabe4309046506f1fe', '8d0b3a035015d62916b525f371684bf8']
+cd_hashes = ['68942718c8baf4e4bdf5dd2992fbbf9d', '3dba6b10fdd04505b4e4482d926b67d3', '8d0b3a035015d62916b525f371684bf8']
 cd_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enumerate(cd_hashes)]
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
 def test_calculate_distance_ed(phylobuddy, next_hash):
