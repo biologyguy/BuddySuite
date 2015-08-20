@@ -11,10 +11,6 @@ import os
 import argparse
 import random
 import re
-import threading
-import subprocess
-from functools import partial
-from shutil import which
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from random import sample
@@ -463,15 +459,8 @@ def show_diff(_phylobuddy):
 
 
 def display_trees(_phylobuddy):
-    _threads = []
-    if which('figtree') is not None:
-        #tmp_dir = TemporaryDirectory()
-        os.makedirs('temp_dir', exist_ok=True)
-        for _indx, _tree in enumerate(_phylobuddy.trees):
-            with open("temp_dir/tree{0}.tmp".format(_indx), "w") as _ofile:
-                _ofile.write(_tree.as_string(schema='nexus'))
-            subprocess.call(["figtree", "temp_dir/tree{0}.tmp".format(_indx), "&"])
-
+    for _tree in _phylobuddy.trees:
+        convert_to_ete(_tree).show()
 
 def list_ids(_phylobuddy):
     _output = OrderedDict()
