@@ -483,7 +483,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]  # ToDo: Glean CLUSTAL
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml"]  # ToDo: Glean CLUSTAL
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -1375,7 +1375,7 @@ def pull_record_ends(_seqbuddy, _amount, _which_end):
             _rec.seq = _rec.seq[-1 * _amount:]
 
         else:
-            raise AttributeError("You much pick 'front' or 'rear' for the '_which_end' argument in pull_record_ends.")
+            raise AttributeError("You must pick 'front' or 'rear' for the '_which_end' argument in pull_record_ends.")
 
         seq_ends.append(_rec)
 
@@ -2776,7 +2776,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Pull sequence ends
     if in_args.pull_record_ends:
-        _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+        try:
+            _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+            sys.exit()
+        except ValueError:
+            pass
+        except AttributeError:
+            pass
+        try:
+             _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
+        except ValueError:
+            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
+        except AttributeError:
+            _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
+                                        "should come from in pull_record_ends"))
         sys.exit()
 
     # Extract regions
