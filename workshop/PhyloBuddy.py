@@ -11,6 +11,10 @@ import os
 import argparse
 import random
 import re
+import threading
+from functools import partial
+from shutil import which
+from subprocess import Popen
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from random import sample
@@ -21,6 +25,7 @@ from tempfile import TemporaryDirectory
 import Bio.Phylo
 from Bio.Phylo import PhyloXML, NeXML, Newick
 import ete3
+import dendropy
 from dendropy.datamodel.treemodel import Tree
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.calculate import treecompare
@@ -327,7 +332,10 @@ def split_polytomies(_phylobuddy):
 def prune_taxa(_phylobuddy, *_patterns):
     for _tree in _phylobuddy.trees:
         taxa_to_prune = []
-        _namespace = _tree.update_taxon_namespace()
+        _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
+        for node in _tree:
+            if node.taxon is not None:
+                _namespace.add_taxon(node.taxon)
         for _taxon in _namespace.labels():
             for _pattern in _patterns:
                 if re.search(_pattern, _taxon):
@@ -335,6 +343,12 @@ def prune_taxa(_phylobuddy, *_patterns):
         for _taxon in taxa_to_prune:
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
+def trees_to_ascii(_phylobuddy):
+    _output = OrderedDict()
+    for _indx, _tree in enumerate(_phylobuddy.trees):
+        _key = 'tree_{0}'.format(_indx+1) if _tree.label in [None, ''] else _tree.label
+        _output[_key] = _tree.as_ascii_plot()
+    return _output
 
 def show_unique_nodes(_phylobuddy):
     if len(_phylobuddy.trees) != 2:
@@ -381,7 +395,6 @@ def show_unique_nodes(_phylobuddy):
     _phylobuddy = PhyloBuddy(_input=_trees, _in_format=_phylobuddy.in_format, _out_format=_phylobuddy.out_format)
 
     return _phylobuddy
-
 
 def show_diff(_phylobuddy):
     raise NotImplementedError('show_diff() is not yet implemented.')
@@ -450,15 +463,26 @@ def show_diff(_phylobuddy):
 
 
 def display_trees(_phylobuddy):
-    for _tree in _phylobuddy.trees:
-        convert_to_ete(_tree).show()
+    _threads = []
+    if which('figtree') is not None:
+        tmp_dir = TemporaryDirectory()
+        for _indx, _tree in enumerate(_phylobuddy.trees):
+            with open("{0}/tree{1}.tmp".format(tmp_dir.name, _indx), "w") as _ofile:
+                _ofile.write(_tree.as_string())
+            thread_func = partial(Popen, "figtree {0}/tree{1}.tmp".format(tmp_dir.name, _indx))
+            _threads.append(threading.Thread(target=thread_func))
+        for _thread in _threads:
+            _thread.start()
 
 
 def list_ids(_phylobuddy):
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
-        _namespace = _tree.update_taxon_namespace()
-        _key = _tree.label if _tree.label is not None else 'tree_{0}'.format(str(indx+1))
+        _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
+        for node in _tree:
+            if node.taxon is not None:
+                _namespace.add_taxon(node.taxon)
+        _key = _tree.label if _tree.label not in [None, ''] else 'tree_{0}'.format(str(indx+1))
         _output[_key] = list(_namespace.labels())
     return _output
 
@@ -482,8 +506,8 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     for indx1, _tree1 in enumerate(_phylobuddy.trees):
         for indx2, _tree2 in enumerate(_phylobuddy.trees):
             if _tree1 is not _tree2:
-                _key1 = 'tree_{0}'.format(indx1+1) if _tree1.label is None else _tree1.label
-                _key2 = 'tree_{0}'.format(indx2+1) if _tree2.label is None else _tree2.label
+                _key1 = 'tree_{0}'.format(indx1+1) if _tree1.label not in [None, ''] else _tree1.label
+                _key2 = 'tree_{0}'.format(indx2+1) if _tree2.label not in [None, ''] else _tree2.label
                 if _key1 not in _output.keys():
                     _output[_key1] = OrderedDict()
                 if _key2 not in _output.keys():
@@ -521,7 +545,7 @@ if __name__ == '__main__':
     parser.add_argument('-pt', '--prune_taxa', action='append', nargs="+")
     parser.add_argument('-ptr', '--print_trees', action='store_true')
     parser.add_argument('-dt', '--display_trees', action='store_true')
-    parser.add_argument('-li', '--list_ids', action='store', nargs='?', type=int)
+    parser.add_argument('-li', '--list_ids', action='append', nargs='?', type=int)
     parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)  # TODO: Display input options
     parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
     parser.add_argument('-f', '--in_format', help="Specify the file format.", action='store')
@@ -572,7 +596,13 @@ if __name__ == '__main__':
 
     # Print trees
     if in_args.print_trees:
-        _print_trees(phylobuddy)
+        tree_table = trees_to_ascii(phylobuddy)
+        output = ''
+        for key in tree_table:
+            output += '\n#### {0} ####\n'.format(key)
+            output += tree_table[key]
+        output += '\n'
+        _stdout(output)
         sys.exit()
 
     # Prune taxa
@@ -584,7 +614,7 @@ if __name__ == '__main__':
     # List ids
     if in_args.list_ids:
         listed_ids = list_ids(phylobuddy)
-        columns = 1 if not in_args.list_ids or in_args.list_ids == 0 else abs(in_args.list_ids)
+        columns = 1 if not in_args.list_ids[0] or in_args.list_ids[0] <= 0 else abs(in_args.list_ids[0])
         output = ""
         for key in listed_ids:
             count = 1
@@ -616,3 +646,4 @@ if __name__ == '__main__':
     # Display trees
     if in_args.display_trees:
         display_trees(phylobuddy)
+        sys.exit()
