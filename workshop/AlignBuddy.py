@@ -17,6 +17,8 @@ from random import sample
 import re
 from tempfile import TemporaryDirectory
 from collections import OrderedDict
+from shutil import which
+import subprocess
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -814,6 +816,19 @@ def split_alignbuddy(_alignbuddy):
         _ab.out_format = _alignbuddy.out_format
         ab_objs_list.append(_ab)
     return ab_objs_list
+
+
+def generate_msa(_alignbuddy, _tool, _params):
+    _tool = _tool.lower()
+    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalomega', 'mafft']:
+        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
+    if which(_tool) is None:
+        raise AttributeError("{0} is not installed on your system.".format(_tool))
+        sys.exit()
+    else:
+        _output = subprocess.check_output('{0} {1}'.format(_tool, _params), shell=True)
+        _alignbuddy = AlignBuddy(_output, _in_format=_alignbuddy.in_format, _out_format=_alignbuddy.out_format)
+        return _alignbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
