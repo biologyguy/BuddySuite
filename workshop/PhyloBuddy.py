@@ -19,7 +19,7 @@ from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from random import sample
 from copy import deepcopy
-from tempfile import TemporaryDirectory
+from MyFuncs import TemporaryDirectory
 
 # Third party package imports
 import Bio.Phylo
