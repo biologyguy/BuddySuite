@@ -467,9 +467,9 @@ def display_trees(_phylobuddy):
     if which('figtree') is not None:
         #tmp_dir = TemporaryDirectory()
         for _indx, _tree in enumerate(_phylobuddy.trees):
-            with open("temp_dir/tree{1}.tmp".format(_indx), "w") as _ofile:
+            with open("temp_dir/tree{0}.tmp".format(_indx), "w") as _ofile:
                 _ofile.write(_tree.as_string(schema='nexus'))
-            thread_func = partial(Popen, "figtree temp_dir/tree{1}.tmp".format(_indx))
+            thread_func = partial(Popen, "figtree temp_dir/tree{0}.tmp".format(_indx))
             _threads.append(threading.Thread(target=thread_func))
         for _thread in _threads:
             _thread.start()
