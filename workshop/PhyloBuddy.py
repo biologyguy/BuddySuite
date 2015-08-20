@@ -470,7 +470,7 @@ def display_trees(_phylobuddy):
         for _indx, _tree in enumerate(_phylobuddy.trees):
             with open("temp_dir/tree{0}.tmp".format(_indx), "w") as _ofile:
                 _ofile.write(_tree.as_string(schema='nexus'))
-            thread_func = partial(Popen, "figtree temp_dir/tree{0}.tmp &".format(_indx))
+            Popen("figtree temp_dir/tree{0}.tmp &".format(_indx))
 
 
 def list_ids(_phylobuddy):
