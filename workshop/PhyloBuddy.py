@@ -12,9 +12,9 @@ import argparse
 import random
 import re
 import threading
+import subprocess
 from functools import partial
 from shutil import which
-from subprocess import Popen
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from random import sample
@@ -470,7 +470,7 @@ def display_trees(_phylobuddy):
         for _indx, _tree in enumerate(_phylobuddy.trees):
             with open("temp_dir/tree{0}.tmp".format(_indx), "w") as _ofile:
                 _ofile.write(_tree.as_string(schema='nexus'))
-            Popen("figtree temp_dir/tree{0}.tmp &".format(_indx))
+            subprocess.call(["figtree", "temp_dir/tree{0}.tmp".format(_indx), "&"])
 
 
 def list_ids(_phylobuddy):
