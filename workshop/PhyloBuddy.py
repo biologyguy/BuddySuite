@@ -466,6 +466,7 @@ def display_trees(_phylobuddy):
     _threads = []
     if which('figtree') is not None:
         #tmp_dir = TemporaryDirectory()
+        os.makedirs('temp_dir')
         for _indx, _tree in enumerate(_phylobuddy.trees):
             with open("temp_dir/tree{0}.tmp".format(_indx), "w") as _ofile:
                 _ofile.write(_tree.as_string(schema='nexus'))
