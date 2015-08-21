@@ -1334,13 +1334,13 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
         _seqbuddy.records[i].id = new_hash
         _seqbuddy.records[i].name = new_hash
 
-    _hash_map = []
+    _hash_map = OrderedDict()
     for i in range(len(hash_list)):
-        _hash_map.append((hash_list[i], seq_ids[i]))
+        _hash_map[hash_list[i]] = seq_ids[i]
 
     _hash_table = "# Hash table\n"
     for _seq in _hash_map:
-        _hash_table += "%s,%s\n" % (_seq[0], _seq[1])
+        _hash_table += "%s,%s\n" % (_seq, _hash_map[_seq])
 
     return [_seqbuddy, _hash_map, _hash_table]
 
