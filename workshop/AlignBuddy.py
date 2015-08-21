@@ -94,6 +94,7 @@ def _get_alignment_binaries(_tool):
                  'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
                  'muscle': 'http://www.drive5.com/muscle/downloads.htm',
                  'clustalw': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
                  'clustalomega': 'http://www.clustal.org/omega/#Download'}
     return tool_dict[_tool]
 
@@ -198,6 +199,9 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         if self.out_format == "phylipi":
             _output = phylipi(self)
 
+        elif self.out_format == "philip-sequential":
+            _output = phylipseq(self)
+
         elif self.out_format == "phylipis":
             _output = phylipi(self, "strict")
 
@@ -258,7 +262,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["gb", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal", "pir"]
+        possible_formats = ["gb", "phylip-relaxed", "phylip-sequential", "stockholm", "fasta", "nexus", "clustal",
+                            "pir"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -272,6 +277,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
                 continue
             except ValueError:
                 continue
+
         return None  # Unable to determine format from file handle
 
     else:
@@ -294,6 +300,37 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
         _output += "\n"
     return _output
 
+def phylipseq(_alignbuddy, _format="relaxed"): ### TODO ###
+    _io = AlignIO.PhylipIO.SequentialPhylipWriter(AlignIO.PhylipIO.SequentialAlignmentWriter(None))
+    _output = _io.write_alignment(_alignbuddy.alignments, id_width=250)
+    return _output
+
+def read_phylipseq(_input): ### TODO ###
+    _input = _input.splitlines(keepends=True)
+    max_len = 0
+    for line in _input:
+        if len(line) > max_len:
+            max_len = len(line)
+    curr_seq = ''
+    _records = []
+    _alignments = []
+    for line in _input[1:]:
+        if re.search('[0-9] [0-9]', line):
+            _records[-1].seq = Seq(curr_seq)
+            _alignments.append(MultipleSeqAlignment(records=_records))
+            _records = []
+        if line.endswith(' '):
+            _records[-1].seq = Seq(curr_seq)
+            _records.append(SeqRecord('', id=line))
+            curr_seq = ''
+        else:
+            curr_seq += line
+    _records[-1].seq = Seq(curr_seq)
+    _alignments.append(MultipleSeqAlignment(records=_records))
+    for _alignment in _alignments:
+        return
+
+    return _alignments
 
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
@@ -835,7 +872,7 @@ def generate_msa(_seqbuddy, _tool, _params):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
-    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalomega', 'mafft']:
+    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalw2', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
@@ -843,15 +880,52 @@ def generate_msa(_seqbuddy, _tool, _params):
         sys.exit()
     else:
         tmp_dir = TemporaryDirectory()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+
+        from SeqBuddy import hash_sequence_ids
+        hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
+
+        _seqbuddy.out_format = 'fasta'
         with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
             out_file.write(str(_seqbuddy))
-        command = '{0} {1} {2}'.format(_tool, ''.join(_params), "{0}/tmp.fa".format(tmp_dir.name))
+        if _tool == 'clustalomega':
+            command = '{0} {1} -i {2}'.format(_tool, ''.join(_params), tmp_in)
+        elif _tool.startswith('clustalw'):
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+        elif _tool == 'muscle':
+            command = '{0} -in {1} {2}'.format(_tool, tmp_in, ''.join(_params))
+        elif _tool == 'prank':
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+        else:
+            command = '{0} {1} {2}'.format(_tool, ''.join(_params), tmp_in)
         try:
-            _output = subprocess.check_output(command, shell=True, universal_newlines=True)
+            if _tool == 'prank':
+                subprocess.Popen(command, shell=True, universal_newlines=True).wait()
+            else:
+                _output = subprocess.check_output(command, shell=True, universal_newlines=True)
         except subprocess.CalledProcessError:
             _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), in_args.quiet)
             sys.exit()
-        if _tool == 'mafft' and '--clustalout' in _params:  # MAFFT adds extra spaces to clustal in v7.245 (2015/07/22)
+
+        if _tool.startswith('clustalw'):
+            with open('{0}/result'.format(tmp_dir.name)) as result:
+                _output = result.read()
+        elif _tool == 'prank':
+            extension = 'fas'
+            if '-f=nex' in _params:
+                extension = 'nex'
+            elif '-f=phylipi' in _params:
+                extension='phy'
+            elif '-f=phylips' in _params:
+                extension='phy'
+            with open('{0}/result.best.{1}'.format(tmp_dir.name, extension)) as result:
+                _output = result.read()
+
+        # Fix broken outputs to play nicely with AlignBuddy parsers
+        if (_tool == 'mafft' and '--clustalout' in _params) or \
+                (_tool.startswith('clustalw2') and '-output' not in _params) or \
+                (_tool == 'clustalomega' and 'clustal' in _params or '--outfmt clu' in _params or '--outfmt=clu'):
+            # Clustal format extra spaces
             contents = ''
             prev_line = ''
             for line in _output.splitlines(keepends=True):
@@ -861,6 +935,19 @@ def generate_msa(_seqbuddy, _tool, _params):
                     contents += line
                 prev_line = line
             _output = contents
+        if _tool.startswith('clustalw') and 'nexus' in _params or '=NEXUS' in _params:  # if taxa has gap chars
+            contents = ''
+            for _indx, line in enumerate(_output.splitlines(keepends=True)):
+                if _indx > 6 and not line.startswith('\n') and ';' not in line:
+                    split = re.split(' ', line, maxsplit=1)
+                    contents += "'" + split[0] + "' " + split[1]
+                else:
+                    contents += line
+            _output = contents
+        for _hash in hash_table:
+            _output = re.sub(_hash, hash_table[_hash], _output)
+            _output = re.sub('_M', '', _output)
+        print(_output)
         _alignbuddy = AlignBuddy(_output)
         return _alignbuddy
 
