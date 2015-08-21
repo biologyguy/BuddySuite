@@ -46,6 +46,7 @@ from shutil import which
 from hashlib import md5
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
+from xml.sax import SAXParseException
 
 
 # Third party package imports
@@ -115,6 +116,7 @@ def degenerate_dna():
 # - Execution timer, for long running jobs
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Sort out a good way to manage 'lazy' imports
+# - Fix --clean_seq for .phy, .phyr, .stklm, .nex
 
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
@@ -130,6 +132,10 @@ def degenerate_dna():
 # - Add split_by_taxa() function. Writes individual files for groups of sequences based on an identifier in their ids
 # - Unit tests
 # - New graphical installer
+# - Rework argparse output
+
+
+# ###################################################### GLOBALS ##################################################### #
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -496,6 +502,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             except StopIteration:  # ToDo check that other types of error are not possible
                 continue
             except ValueError:
+                continue
+            except SAXParseException:  # Thrown by seqxml parser
                 continue
         return None  # Unable to determine format from file handle
 
@@ -1684,8 +1692,8 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
             raise RuntimeError("Blastn not present in $PATH or working directory.")
         sys.exit()
 
-    def mc_blast(_query, args):
-        _subject_file = args[0]
+    def mc_blast(_query, _args):
+        _subject_file = _args[0]
 
         if subject.id == _query.id:
             return
@@ -2284,14 +2292,55 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=argparse.RawTextHelpFormatter,
-                                     description="Commandline wrapper for all the fun functions in this file. "
-                                                 "Play with your sequences!")
+    from argparse_args import *
 
-    parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="*", default=[sys.stdin])
+    # Pulled from stackoverflow: http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
+    # Credit to rr- (http://stackoverflow.com/users/2016221/rr)
+    class CustomHelpFormatter(argparse.HelpFormatter):
+        def _format_action_invocation(self, action):
+            if not action.option_strings or action.nargs == 0:
+                return super()._format_action_invocation(action)
+            default = self._get_default_metavar_for_optional(action)
+            args_string = self._format_args(action, default)
+            return ', '.join(action.option_strings) + ' ' + args_string
+    fmt = lambda prog: CustomHelpFormatter(prog)
 
-    parser.add_argument('-v', '--version', action='version',
-                        version='''\
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False,
+                                     description="\033[1mSeqBuddy commandline tools for manipulating sequence files.\033[m",
+                                     usage='''
+    SeqBuddy.py "/path/to/seq_file" -<cmd>
+    SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
+    SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>''')
+
+    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
+    positional.add_argument("sequence", help="Supply a file path(s) or raw sequence. If piping sequences into SeqBuddy "
+                                             "this argument can be left blank.", nargs="*", default=[sys.stdin])
+
+    sb_flags = OrderedDict(sorted(sb_flags.items(), key=lambda x: x[0]))
+    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+    for func, in_args in sb_flags.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        flags.add_argument(*args, **kwargs)
+
+    sb_modifiers = OrderedDict(sorted(sb_modifiers.items(), key=lambda x: x[0]))
+    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+    for func, in_args in sb_modifiers.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        modifiers.add_argument(*args, **kwargs)
+
+    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
+    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
+    misc.add_argument('-v', '--version', action='version', version='''\
 SeqBuddy 2.alpha (2015)
 
 Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
@@ -2299,141 +2348,6 @@ This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
-    # TODO Fix --clean_seq for .phy, .phyr, .stklm, .nex
-    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
-                             "'strict' to remove all characters except the unambiguous letter codes.")
-    parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')
-    parser.add_argument('-lc', '--lowercase', action='store_true',
-                        help='Convert all sequences to lowercase')
-    parser.add_argument('-dm', '--delete_metadata', action='store_true',
-                        help="Remove meta-data from file (only id is retained)")
-    parser.add_argument('-rs', '--raw_seq', action='store_true',
-                        help="Return line break separated sequences")
-    parser.add_argument('-tr', '--translate', action='store_true',
-                        help="Convert coding sequences into amino acid sequences")
-    parser.add_argument('-sfr', '--select_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
-                        help="Change the reading frame of sequences by deleting characters off of the front")
-    parser.add_argument('-tr6', '--translate6frames', action='store_true',
-                        help="Translate nucleotide sequences into all six reading frames")
-    parser.add_argument('-btr', '--back_translate', action='append', nargs="*",
-                        help="Convert amino acid sequences into codons. Optionally, select mode by passing in "
-                             "['random', 'r', 'optimized', 'o'] "
-                             "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']")
-    parser.add_argument('-d2r', '--transcribe', action='store_true',
-                        help="Convert DNA sequences to RNA")
-    parser.add_argument('-r2d', '--back_transcribe', action='store_true',
-                        help="Convert RNA sequences to DNA")
-    parser.add_argument('-cmp', '--complement', action='store_true',
-                        help="Return complement of nucleotide sequence")
-    parser.add_argument('-rc', '--reverse_complement', action='store_true',
-                        help="Return reverse complement of nucleotide sequence")
-    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
-                             "specify the # of columns to write")
-    parser.add_argument('-ns', '--num_seqs', action='store_true',
-                        help="Counts how many sequences are present in an input file")
-    parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
-                        help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
-                             "from the sequences before counting.")
-    parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
-                        help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
-                             "remove stops, gaps, etc., from the sequences before concatenating.")
-    parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
-                        help="Take the features annotated onto nucleotide sequences and map to protein sequences. "
-                             "Both a protein and cDNA file must be passed in.")
-    parser.add_argument('-fp2d', '--map_features_prot2dna', action='store_true',
-                        help="Arguments: one cDNA file and one protein file")
-    parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
-                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
-    parser.add_argument('-cf', '--combine_features', action='store_true',
-                        help="Takes the features in two files and combines them for each sequence")
-    parser.add_argument('-oir', '--order_ids_randomly', action='store_true',
-                        help="Randomly reorder the position of records in the file.")
-    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
-                        help="Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order")
-    parser.add_argument('-ofp', '--order_features_by_position', action='append', nargs="?",
-                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
-                             "to reverse order.")
-    parser.add_argument('-ofa', '--order_features_alphabetically', action='append', nargs="?",
-                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
-                             "to reverse order.")
-    parser.add_argument('-sf', '--screw_formats', action='store', metavar="<out_format>",
-                        help="Change the file format to something else.")
-    parser.add_argument('-hsi', '--hash_seq_ids', action='append', nargs="?", type=int,
-                        help="Rename all the identifiers in a sequence list to a fixed length hash. Default 10; "
-                             "override by passing in an integer.")
-    parser.add_argument('-pr', '--pull_records', action='store', nargs="+", metavar="<regex pattern(s)>",
-                        help="Get all the records with ids containing a given string")
-    parser.add_argument('-prr', '--pull_random_record', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Extract random sequences. Optionally, pass in an integer to increase the number of "
-                             "sequences returned")
-    parser.add_argument('-pre', '--pull_record_ends', nargs=2, metavar=('<amount (int)>', "<front|rear>"),
-                        action='store', help="Get the ends (front or rear) of all sequences in a file.")
-    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
-                        type=int, help="Pull out sub-sequences.")
-    parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
-                        help="Remove records from a file. The deleted IDs are sent to stderr.")
-    parser.add_argument('-dsm', '--delete_small', help='Delete sequences with length below threshold', type=int,
-                        metavar='<threshold (int)>', action='store')
-    parser.add_argument('-dlg', '--delete_large', help='Delete sequences with length above threshold', type=int,
-                        metavar='<threshold (int)>', action='store')
-    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern(s)>",  # ToDo: update wiki to show multiple regex inputs
-                        help="Remove specified features from all records.")
-    parser.add_argument('-drp', '--delete_repeats', action='append', nargs="?", type=int,
-                        help="Strip repeat records (ids and/or identical sequences. Optional, pass in an integer to "
-                             "specify # columns for deleted ids")
-    parser.add_argument('-frp', '--find_repeats', action='append', nargs="?", type=int,
-                        help="Identify whether a file contains repeat sequences and/or sequence ids. The number of "
-                             "output columns can be modified by passing in an integer.")
-    parser.add_argument("-mg", "--merge", action="store_true",
-                        help="Group a bunch of seq files together",)
-    parser.add_argument("-bl", "--blast", metavar="<BLAST database>", action="store",
-                        help="BLAST your sequence file using common settings, return the hits from blastdb")
-    parser.add_argument("-bl2s", "--bl2seq", action="store_true",
-                        help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
-    parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
-                        help="Delete sequences with high similarity")
-    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
-                        help="")
-    parser.add_argument("-frs", "--find_restriction_sites", action='append', nargs="*",
-                        help="Identify restriction sites. Args: enzymes [specific enzymes, commercial, all], max cuts, "
-                             "min cuts")
-    parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
-                        help="Search for subsequences, returning the start positions of all matches")
-    parser.add_argument("-mw", "--molecular_weight", action='store_true',
-                        help="Computes the molecular weight of all of the sequences found in the input file")
-    parser.add_argument("-ip", "--isoelectric_point", action='store_true',
-                        help="Returns a list of isoelectric points for each protein sequence in the file")
-    parser.add_argument("-fcpg", "--find_CpG", action='store_true',
-                        help="Predict regions under strong purifying selection based on high CpG content")
-    parser.add_argument("-cr", "--count_residues", action='store_true', help="Generate a table of sequence compositions")
-    parser.add_argument("-stf", "--split_to_files", action='store', metavar="<out dir>",
-                        help="Write individual files for each sequence")
-    parser.add_argument("-ss", "--shuffle_seqs", action='store_true', help='Shuffles the letters in all the sequences.')
-    parser.add_argument("-is", "--insert_seq", action='store', nargs=2,
-                        metavar=('<sequence>', '<start|end|index(int)>'),
-                        help='Insert a sequence at the desired location')
-    parser.add_argument('-cc', '--count_codons', action='store_true',
-                        help="Return codon frequency statistics.")
-    parser.add_argument('-lf', '--list_features', action='store_true',
-                        help="Return a dictionary mapping sequence IDs to features.")
-    parser.add_argument("-af", "--add_feature", nargs='*',
-                        help='Add a feature (annotation) to selected sequence.s Args: <name>, '
-                             '<location (start1-end1,start2-end2...)>, <strand (+|-)>, '
-                             '<qualifiers (foo=bar,hello=world...)>, <regex_pattern>')
-    parser.add_argument('-ga', '--guess_alphabet', action='store_true')
-    parser.add_argument('-gf', '--guess_format', action='store_true')
-    parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences")
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly",
-                        action='store')
-    parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
 
     in_args = parser.parse_args()
 
@@ -2784,7 +2698,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         except AttributeError:
             pass
         try:
-             _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
+            _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
         except ValueError:
             _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
         except AttributeError:
