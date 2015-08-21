@@ -2294,15 +2294,6 @@ if __name__ == '__main__':
     import argparse
     from argparse_args import *
 
-    # Pulled from stackoverflow: http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
-    # Credit to rr- (http://stackoverflow.com/users/2016221/rr)
-    class CustomHelpFormatter(argparse.HelpFormatter):
-        def _format_action_invocation(self, action):
-            if not action.option_strings or action.nargs == 0:
-                return super()._format_action_invocation(action)
-            default = self._get_default_metavar_for_optional(action)
-            args_string = self._format_args(action, default)
-            return ', '.join(action.option_strings) + ' ' + args_string
     fmt = lambda prog: CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False,
