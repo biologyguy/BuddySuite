@@ -16,11 +16,12 @@ from copy import copy, deepcopy
 from io import StringIO, TextIOWrapper
 from random import sample
 import re
-from tempfile import TemporaryDirectory
+from MyFuncs import TemporaryDirectory
 from collections import OrderedDict
 from shutil import *
 from urllib import error, request
 import subprocess
+from fcntl import fcntl, F_SETFL
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -88,40 +89,13 @@ def _format_to_extension(_format):
 
 
 def _get_alignment_binaries(_tool):
-    if os.path.exists('.buddysuite'):
-        current_path = '.buddysuite/'
-    else:
-        current_path = os.getcwd()
-
-    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/align_binaries/'
-    current_os = sys.platform
-    if current_os.startswith('darwin'):
-        binary_source += 'Darwin_{0}.zip'.format(_tool)
-        binary = 'Darwin_{0}.zip'.format(_tool)
-    elif current_os.startswith('linux'):
-        binary_source += 'Linux_{0}.zip'.format(_tool)
-        binary = 'Darwin_{0}.zip'.format(_tool)
-    elif current_os.startswith('win'):
-        binary_source += 'Win32_{0}.zip'.format(_tool)
-        binary = 'Darwin_{0}.zip'.format(_tool)
-    else:
-        return False
-
-    tmp_dir = TemporaryDirectory()
-    try:
-        with request.urlopen(binary_source) as reader, \
-                open("{0}/{1}".format(tmp_dir.name, binary), mode='wb') as writer:
-            copyfileobj(reader, writer)
-        zip_file = zipfile.ZipFile("{0}/{1}".format(tmp_dir.name, binary))
-        zip_file.extractall(path=current_path)
-        os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', binary)),
-                  '{0}/{1}'.format(current_path, _tool))
-        os.chmod('{0}/{1}'.format(current_path, _tool), 0o755)
-        print("File added: {0}/{1}".format(current_path, _tool))
-    except error.URLError:
-        return False
-
-    return True
+    tool_dict = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
+                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
+                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
+                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
+                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
+    return tool_dict[_tool]
 
 # ##################################################### Globals ###################################################### #
 gap_characters = ["-", ".", " "]
@@ -857,42 +831,51 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
-def generate_msa(_alignbuddy, _tool, _params):
-    script_location = os.path.realpath(__file__)
-    script_location = re.sub(str(__file__), '', script_location)
+def generate_msa(_seqbuddy, _tool, _params):
+    if _params is None:
+        _params = ''
     _tool = _tool.lower()
     if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
-        _stderr('Could not find {0} in $PATH. Would you like to install {0}? (program will be aborted) [yes]/no\n')
-        prompt = input()
-        os.chdir(script_location)
-        while True:
-            if prompt.lower() in ['yes', 'y', '']:
-                if _get_alignment_binaries(_tool):
-                    _stderr("{0} downloaded.\n".format(_tool))
-                else:
-                    _stderr("Failed to download {0}.\n".format(_tool))
-                break
-            elif prompt.lower() in ['no', 'n']:
-                _stderr("Did not download {0}.\n".format(_tool))
-                break
-            else:
-                _stderr("Input not understood.\n")
-                _stderr('Would you like to install {0}? (program will be aborted) [yes]/no\n')
-                prompt = input()
+        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
+        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool),_tool))
         sys.exit()
     else:
-        _output = subprocess.check_output('{0} {1}'.format(_tool, _params), shell=True)
-        _alignbuddy = AlignBuddy(_output, _in_format=_alignbuddy.in_format, _out_format=_alignbuddy.out_format)
+        tmp_dir = TemporaryDirectory()
+        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+            out_file.write(str(_seqbuddy))
+        command = '{0} {1} {2}'.format(_tool, ''.join(_params), "{0}/tmp.fa".format(tmp_dir.name))
+        try:
+            _output = subprocess.check_output(command, shell=True, universal_newlines=True)
+        except subprocess.CalledProcessError:
+            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), in_args.quiet)
+            sys.exit()
+        if _tool == 'mafft' and '--clustalout' in _params:  # MAFFT adds extra spaces to clustal in v7.245 (2015/07/22)
+            contents = ''
+            prev_line = ''
+            for line in _output.splitlines(keepends=True):
+                if line.startswith(' ') and len(line) == len(prev_line) + 1:
+                    contents += line[1:]
+                else:
+                    contents += line
+                prev_line = line
+            _output = contents
+        _alignbuddy = AlignBuddy(_output)
         return _alignbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
+    if '--params' in sys.argv:
+        sys.argv[sys.argv.index('--params')] = '-p'
+    if '-p' in sys.argv:
+        arg_index = sys.argv.index('-p')
+        _params = '-p' + sys.argv.pop(arg_index+1)
+        sys.argv[arg_index] = _params
 
+    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
     parser.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
     parser.add_argument('-v', '--version', action='version',
                         version='''\
@@ -943,9 +926,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
     parser.add_argument("-stf", "--split_to_files", action='store', nargs=2, metavar=("<out dir>", "<out file>"),
                         help="Write individual files for each alignment")
+    parser.add_argument("-ga", "--generate_alignment", action='append')
 
     parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
+    parser.add_argument('-p', '--params', help="Free form arguments for some functions", action='store')
     parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
     parser.add_argument('-t', '--test', action='store_true',
                         help="Run the function and return any stderr/stdout other than sequences.")
@@ -956,6 +940,19 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     alignbuddy = []
     align_set = ""
+
+    # Generate Alignment
+    if in_args.generate_alignment:
+        import SeqBuddy as Sb
+        seqbuddy = []
+        for seq_set in in_args.alignment:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
+            seqbuddy += seq_set.records
+        seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], in_args.params)))
+        sys.exit()
 
     for align_set in in_args.alignment:
         if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
@@ -1130,3 +1127,5 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
             open(in_args.alignment[0], "w").close()
             _print_aligments(alignbuddy)
+
+
