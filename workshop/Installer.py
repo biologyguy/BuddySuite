@@ -13,12 +13,15 @@ from tempfile import TemporaryDirectory
 from subprocess import Popen
 import zipfile
 from inspect import getsourcefile
+from collections import OrderedDict
+import argparse_args as arga
 
 import argparse
 
 buddysuite_version = '1.alpha'
 
-parser = argparse.ArgumentParser(prog="BuddySuite", description="The BuddySuite installer")
+parser = argparse.ArgumentParser(
+    prog="BuddySuite", description="The BuddySuite installer")
 
 parser.add_argument('-v', '--version', action='version',
                     version='''\
@@ -62,7 +65,8 @@ if not in_args.cmd_line:
         elif which("pip"):
             print("The image processing package 'Pillow' is needed for the graphical installer, "
                   "attempting to install a temporary copy.")
-            Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" % temp_dir.name, shell=True).wait()
+            Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
+                  temp_dir.name, shell=True).wait()
             if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
                 shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
 
@@ -82,8 +86,8 @@ if not in_args.cmd_line:
         print("Failed to build GUI. Package Tkinter was not found.")
         in_args.cmd_line = True
 
-class BuddyInstall:
 
+class BuddyInstall:
     @staticmethod
     def download_blast_binaries(install_dir, current_path, _blastn=True, _blastp=True, _blastdcmd=True):
         binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
@@ -150,7 +154,7 @@ class BuddyInstall:
 
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
-                           "config.ini"]
+                           "config.ini", "argparse_args.py"]
 
         if path.exists("{0}/.buddysuite/__pycache__".format(home_dir)):
             rmtree("{0}/.buddysuite/__pycache__".format(home_dir))
@@ -170,6 +174,7 @@ class BuddyInstall:
             rmtree(path.realpath("{0}/.buddysuite".format(home_dir)))
             os.remove("{0}/.buddysuite".format(home_dir))
 
+        argparse_args_path = "./argparse_args.py"
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
         if not all_false:
@@ -183,6 +188,8 @@ class BuddyInstall:
                 user_system = 'Linux' if user_system == "Unix" else user_system
                 user_system = 'Win32' if user_system == "Windows" else user_system
 
+                shutil.copy(argparse_args_path, "{0}/argparse_args.py".format(install_directory))
+                print("File added: {0}/argparse_args.py".format(install_directory))
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 print("File added: {0}/MyFuncs.py".format(install_directory))
                 copytree(biopython_path, "{0}/Bio".format(install_directory))
@@ -317,7 +324,8 @@ class BuddyInstall:
                         file_write.write('export PATH=$PATH:{0}/.buddysuite\n'.format(home_dir))
 
 
-def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as the graphical installer
+# installer
+def cmd_install():
     def ask(_prompt):
         _response = input(_prompt)
         while True:
@@ -343,29 +351,29 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
 
     def print_shortcuts():
         print("\tSelected Shortcuts: ")
-        for buddy in shortcuts:
-            if buddies_to_install[buddy]:
-                print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy]).strip('[]')))
+        for buddy_tool in shortcuts:
+            if buddies_to_install[buddy_tool]:
+                print("\t{0}:\t{1}".format(buddy_tool, str(shortcuts[buddy_tool]).strip('[]')))
 
-    def add_shortcut(_buddy, _shortcut):
-        if buddies_to_install[_buddy] is False:
-            print("Warning: {0} is not being installed. Shortcut '{1}' could not be added.".format(_buddy, _shortcut))
+    def add_shortcut(in_buddy, in_shortcut):
+        if buddies_to_install[in_buddy] is False:
+            print("Warning: %s is not being installed. Shortcut '%s' could not be added." % (in_buddy, in_shortcut))
             return
-        if which(_shortcut) is None:
-            for buddy in shortcuts:
-                for shortcut in shortcuts[buddy]:
-                    if _shortcut == shortcut:
-                        print("Warning: '{0}' is already a shortcut!".format(_shortcut))
+        if which(in_shortcut) is None:
+            for buddy_tool in shortcuts:
+                for sc in shortcuts[buddy_tool]:
+                    if in_shortcut == sc:
+                        print("Warning: '{0}' is already a shortcut!".format(in_shortcut))
                         return
-            shortcuts[_buddy].append(_shortcut)
-            print("Shortcut added: {0}\t==>\t'{1}'".format(_buddy, _shortcut))
+            shortcuts[in_buddy].append(in_shortcut)
+            print("Shortcut added: {0}\t==>\t'{1}'".format(in_buddy, in_shortcut))
         else:
-            print("Warning: '{0}' is already in use by another program.".format(_shortcut))
+            print("Warning: '{0}' is already in use by another program.".format(in_shortcut))
 
-    def remove_shortcut(_shortcut):
-        for _buddy in shortcuts:
-            if _shortcut in shortcuts[_buddy]:
-                shortcuts[_buddy].remove(_shortcut)
+    def remove_shortcut(in_shortcut):
+        for buddy_tool in shortcuts:
+            if in_shortcut in shortcuts[buddy_tool]:
+                shortcuts[buddy_tool].remove(in_shortcut)
                 return True
         return False
 
@@ -510,8 +518,7 @@ def cmd_install():  # ToDo: Beef this up some, allowing as much flexibility as t
                     break
                 except PermissionError:
                     print('Insufficient privileges to write here.')
-                except:
-                    print('Unknown error.')
+
                 install_dir = input("Please specify a different installation directory (or say 'abort') ")
         else:
             install_dir = old_install_dir
@@ -555,7 +562,7 @@ else:
     root = Tk()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
-    scale_factor = sh/1440
+    scale_factor = sh / 1440
     # print(scale_factor)
     sys.path.insert(0, "./")
     root.title("BuddySuite Installer")
@@ -571,9 +578,9 @@ class Installer(Frame):
 
     uninstall = False
     image_paths = ["{0}/BuddySuite-logo.gif".format(temp_dir.name), "{0}/InstallDirectory.gif".format(temp_dir.name),
-              "{0}/ConsoleShortcuts.gif".format(temp_dir.name), "{0}/ConfirmSelection.gif".format(temp_dir.name),
-              "{0}/AlignBuddy-logo.gif".format(temp_dir.name), "{0}/SeqBuddy-logo.gif".format(temp_dir.name),
-              "{0}/PhyloBuddy-logo.gif".format(temp_dir.name), "{0}/DBBuddy-logo.gif".format(temp_dir.name)]
+                   "{0}/ConsoleShortcuts.gif".format(temp_dir.name), "{0}/ConfirmSelection.gif".format(temp_dir.name),
+                   "{0}/AlignBuddy-logo.gif".format(temp_dir.name), "{0}/SeqBuddy-logo.gif".format(temp_dir.name),
+                   "{0}/PhyloBuddy-logo.gif".format(temp_dir.name), "{0}/DBBuddy-logo.gif".format(temp_dir.name)]
 
     for _path in image_paths:
         image = Image.open(_path)
@@ -617,7 +624,8 @@ class Installer(Frame):
         install_dir = copy.deepcopy(config[1])
         shortcuts = copy.deepcopy(config[2])
 
-        if which("sb") is None and not buddies["SeqBuddy"]:  # if new install of given tool, re-add default shortcuts
+        # if new install of given tool, re-add default shortcuts
+        if which("sb") is None and not buddies["SeqBuddy"]:
             shortcuts["SeqBuddy"].append("sb")
         if which("seqbuddy") is None and not buddies["SeqBuddy"]:
             shortcuts["SeqBuddy"].append("seqbuddy")
@@ -655,27 +663,28 @@ class Installer(Frame):
         welcome_label.pack(side=TOP)
         version_label = Label(title_frame, text="Version {0}".format(buddysuite_version))
         version_label.pack(side=RIGHT)
-        title_frame.pack(pady=sh/10)
+        title_frame.pack(pady=sh / 10)
         self.container.append(title_frame)
         button_container = Frame()
-        next_button = Button(button_container, width=20, pady=int(20*scale_factor), text="Install", command=self.license)
-        uninstall_button = Button(button_container, width=20, pady=int(20*scale_factor),
+        next_button = Button(button_container, width=20, pady=int(20 * scale_factor),
+                             text="Install", command=self.license)
+        uninstall_button = Button(button_container, width=20, pady=int(20 * scale_factor),
                                   text="Uninstall", command=self.uninstall_all)
         if self.modifying:
             next_button.config(text="Modify Installation")
             uninstall_button.pack(side=BOTTOM)
         next_button.pack(side=TOP)
-        button_container.pack(side=BOTTOM, pady=40*scale_factor)
+        button_container.pack(side=BOTTOM, pady=40 * scale_factor)
         self.container.append(button_container)
 
     def license(self):
         self.uninstall = False
         self.clear_container()
-        frame = Frame(pady=75*scale_factor)
+        frame = Frame(pady=75 * scale_factor)
         scrollbar = Scrollbar(master=frame)
         license_file = open("{0}/LICENSE".format(temp_dir.name))
-        license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75*scale_factor),
-                           height=int(25*scale_factor))
+        license_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75 * scale_factor),
+                           height=int(25 * scale_factor))
         license_box.insert(END, license_file.read())
         license_box.config(state=DISABLED)
         scrollbar.config(command=license_box.yview)
@@ -684,13 +693,13 @@ class Installer(Frame):
         license_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50, pady=20*scale_factor, text="I agree", command=self.next_tool)
+        next_button = Button(button_frame, padx=50, pady=20 * scale_factor, text="I agree", command=self.next_tool)
         next_button.pack(side=TOP)
-        back_button = Label(button_frame, padx=50, pady=20*scale_factor, text="Cancel", fg='blue',
+        back_button = Label(button_frame, padx=50, pady=20 * scale_factor, text="Cancel", fg='blue',
                             font=('Helvetica', 12, 'underline'))
         back_button.bind("<Button-1>", self.welcome)
         back_button.pack(side=BOTTOM)
-        button_frame.pack(side=BOTTOM, pady=20*scale_factor)
+        button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
         self.container.append(frame)
         self.container.append(button_frame)
 
@@ -717,33 +726,45 @@ class Installer(Frame):
                 self.install_location()
             return
 
-        logo_label = Label(image=self.suite_logos[num], pady=20*scale_factor)
+        logo_label = Label(image=self.suite_logos[num], pady=20 * scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        mega_frame = Frame(pady=20*scale_factor)
+        mega_frame = Frame(pady=20 * scale_factor)
         self.container.append(mega_frame)
-        frame = Frame(mega_frame, padx=50*scale_factor, pady=10*scale_factor)
+        frame = Frame(mega_frame, padx=50 * scale_factor, pady=10 * scale_factor)
         scrollbar = Scrollbar(master=frame)
-        description_file = open("{0}/LICENSE".format(temp_dir.name))
-        description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75*scale_factor))
-        description_box.insert(END, description_file.read())
+        description_box = Text(master=frame, wrap=WORD, yscrollcommand=scrollbar.set, width=int(75 * scale_factor))
+        if num == 0:
+            description_box.insert(END, seqbuddy_blurb)
+        elif num == 1:
+            description_box.insert(END, phylobuddy_blurb)
+        elif num == 2:
+            description_box.insert(END, alignbuddy_blurb)
+        elif num == 3:
+            description_box.insert(END, databasebuddy_blurb)
+        else:
+            description = open("{0}/LICENSE".format(temp_dir.name)).read()
+            description_box.insert(END, description)
+
         description_box.config(state=DISABLED)
         scrollbar.config(command=description_box.yview)
         description_box.pack(side=LEFT)
         scrollbar.pack(side=RIGHT, fill=Y)
         button_frame = Frame(mega_frame)
         next_func = partial(self.next_tool, num + 1)
-        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next", command=next_func)
+        next_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Next", command=next_func)
         self.container.append(next_button)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, num - 1)
-        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=back_func)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM)
-        func = partial(self.toggle_tool, self.buddy_names[num])
+        _func = partial(self.toggle_tool, self.buddy_names[num])
         if not self.modifying or self.config[0][self.buddy_names[num]] is False:
-            tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=func,
-                                      pady=20*scale_factor)
+            tool_button = Checkbutton(mega_frame, text="Install {0}".format(self.buddy_names[num]), command=_func,
+                                      pady=20 * scale_factor)
             if self.buddies[self.buddy_names[num]]:
                 tool_button.select()
             else:
@@ -758,9 +779,9 @@ class Installer(Frame):
                 var.set(0)
             radiobutton_func = partial(self.toggle_tool, self.buddy_names[num], var)
             update = Radiobutton(radio_frame, text="Update/Repair", value=1, variable=var, command=radiobutton_func,
-                                 pady=20*scale_factor)
+                                 pady=20 * scale_factor)
             uninstall = Radiobutton(radio_frame, text="Uninstall", value=0, variable=var, command=radiobutton_func,
-                                    pady=20*scale_factor)
+                                    pady=20 * scale_factor)
             update.pack(side=LEFT)
             uninstall.pack(side=RIGHT)
             radio_frame.pack(side=BOTTOM)
@@ -779,25 +800,25 @@ class Installer(Frame):
     def none_selected_page(self):
         self.clear_container()
         labelframe = Frame(root)
-        label1 = Label(labelframe, text="You're currently not installing anything!", pady=5*scale_factor,
-                       font=('Helvetica', int(16*scale_factor)))
-        label2 = Label(labelframe, text="Please go back and select at least one tool.", pady=5*scale_factor,
-                       font=('Helvetica', int(16*scale_factor)))
+        label1 = Label(labelframe, text="You're currently not installing anything!", pady=5 * scale_factor,
+                       font=('Helvetica', int(16 * scale_factor)))
+        label2 = Label(labelframe, text="Please go back and select at least one tool.", pady=5 * scale_factor,
+                       font=('Helvetica', int(16 * scale_factor)))
         label1.pack(side=TOP)
         label2.pack(side=BOTTOM)
-        labelframe.pack(side=TOP, pady=120*scale_factor)
+        labelframe.pack(side=TOP, pady=120 * scale_factor)
         back_func = partial(self.next_tool, 3)
-        back_button = Button(root, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
-        back_button.pack(side=BOTTOM, pady=40*scale_factor)
+        back_button = Button(root, padx=50 * scale_factor, pady=20 * scale_factor, text="Back", command=back_func)
+        back_button.pack(side=BOTTOM, pady=40 * scale_factor)
         self.container.append(labelframe)
         self.container.append(back_button)
 
     def install_location(self):
         self.clear_container()
-        logo_label = Label(image=self.id_logo, pady=20*scale_factor)
+        logo_label = Label(image=self.id_logo, pady=20 * scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        frame = Frame(root, padx=50*scale_factor, pady=50*scale_factor)
+        frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
         label = Label(frame, text="Directory:")
         label.pack(side=TOP, anchor=NW)
         directory_frame = Frame(frame)
@@ -808,10 +829,10 @@ class Installer(Frame):
         browse_button.pack(side=RIGHT)
         directory_text.pack(side=TOP, anchor=NW, fill=X)
         directory_frame.pack(side=TOP, anchor=NW, fill=X)
-        frame.pack(side=TOP, padx=10*scale_factor, pady=10*scale_factor, fill=BOTH)
+        frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
 
         toggle_func = partial(self.default_directory, directory_text, browse_button)
-        toggle_default = Checkbutton(frame, text="Default directory", pady=10*scale_factor, command=toggle_func)
+        toggle_default = Checkbutton(frame, text="Default directory", pady=10 * scale_factor, command=toggle_func)
         toggle_default.pack(side=LEFT)
 
         if self.default:
@@ -828,15 +849,17 @@ class Installer(Frame):
             directory_text.config(state=DISABLED)
             toggle_default.config(state=DISABLED)
             warning = Label(lower_box, text="Previous install detected. Uninstall first to change install directory.")
-            warning.pack(side=TOP, pady=50*scale_factor)
+            warning.pack(side=TOP, pady=50 * scale_factor)
         button_frame = Frame(lower_box)
         next_func = partial(self.install_shortcuts, directory_text)
-        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next", command=next_func)
+        next_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Next", command=next_func)
         next_button.pack(side=RIGHT)
         back_func = partial(self.next_tool, 3, directory_text)
-        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=back_func)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=20*scale_factor)
+        button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
         lower_box.pack(side=BOTTOM)
         self.container.append(lower_box)
 
@@ -849,13 +872,13 @@ class Installer(Frame):
         self.container.append(logo_label)
 
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Next",
+        next_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Next",
                              command=self.confirmation)
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back",
+        back_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Back",
                              command=self.install_location)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=40*scale_factor)
+        button_frame.pack(side=BOTTOM, pady=40 * scale_factor)
         self.container.append(button_frame)
 
         frame = Frame()
@@ -863,7 +886,7 @@ class Installer(Frame):
         scrollbox_frame = Frame(frame)
         scrollbar = Scrollbar(master=scrollbox_frame)
         shortcut_box = Listbox(master=scrollbox_frame, yscrollcommand=scrollbar.set, bd=2, relief=SUNKEN,
-                               height=int(12*scale_factor))
+                               height=int(12 * scale_factor))
         for buddy in self.shortcuts:
             if self.buddies[buddy]:
                 for shortcut in self.shortcuts[buddy]:
@@ -873,7 +896,7 @@ class Installer(Frame):
         scrollbar.pack(side=RIGHT, fill=Y)
         scrollbox_frame.pack(side=TOP, fill=BOTH, expand=1)
         space = Frame()
-        space.pack(pady=25*scale_factor)
+        space.pack(pady=25 * scale_factor)
 
         self.container.append(space)
 
@@ -895,7 +918,7 @@ class Installer(Frame):
         debug_frame.pack(fill=X, expand=1, side=BOTTOM, anchor=NW)
         self.container.append(entry_frame)
         entry_button_frame = Frame(entry_frame)
-        shortcut_entry = Entry(entry_frame, width=int(20*scale_factor))
+        shortcut_entry = Entry(entry_frame, width=int(20 * scale_factor))
         add_func = partial(self.add_shortcut, curr_buddy, shortcut_box, shortcut_entry, debug)
         add_button = Button(entry_button_frame, text="Add", command=add_func, padx=1)
         add_button.pack(side=LEFT)
@@ -904,7 +927,7 @@ class Installer(Frame):
         rmv_button.pack(side=RIGHT)
         shortcut_entry.pack(side=LEFT, fill=X, expand=1)
         entry_button_frame.pack(side=LEFT)
-        frame.pack(padx=100*scale_factor, expand=1, fill=BOTH, side=BOTTOM)
+        frame.pack(padx=100 * scale_factor, expand=1, fill=BOTH, side=BOTTOM)
         entry_frame.pack(fill=X, expand=1, side=LEFT)
 
         click_func = partial(self.click_shortcut, shortcut_entry, curr_buddy)
@@ -956,12 +979,12 @@ class Installer(Frame):
             self.shortcuts[buddy.get()].remove(text)
 
     def confirmation(self):
-        confirmation_font = ('Courier', int(15*scale_factor))
+        confirmation_font = ('Courier', int(15 * scale_factor))
         self.clear_container()
-        logo_label = Label(image=self.cs_logo, pady=18*scale_factor)
+        logo_label = Label(image=self.cs_logo, pady=18 * scale_factor)
         logo_label.pack(side=TOP)
         self.container.append(logo_label)
-        info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10*scale_factor, pady=10*scale_factor)
+        info_frame = LabelFrame(text="Selections", bd=2, relief=SUNKEN, padx=10 * scale_factor, pady=10 * scale_factor)
         self.container.append(info_frame)
         os_label = Label(info_frame, text="{:<28}{}".format("Operating System:", self.user_os),
                          font=confirmation_font)
@@ -979,8 +1002,7 @@ class Installer(Frame):
             install_state = "Install" if self.buddies["PhyloBuddy"] else "Skip"
         else:
             install_state = "Modify" if self.buddies["PhyloBuddy"] else "Uninstall"
-        pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state),
-                         font=confirmation_font)
+        pb_label = Label(info_frame, text="{:<28}{}".format("PhyloBuddy:", install_state), font=confirmation_font)
 
         if not self.modifying or self.config[0]["AlignBuddy"] is False:
             install_state = "Install" if self.buddies["AlignBuddy"] else "Skip"
@@ -1020,7 +1042,7 @@ class Installer(Frame):
             cs_pb_label.grid(row=8, sticky=NW)
         if self.buddies["DatabaseBuddy"]:
             cs_db_label.grid(row=9, sticky=NW)
-        info_frame.pack(side=TOP, anchor=NW, padx=50*scale_factor, pady=50*scale_factor, fill=BOTH)
+        info_frame.pack(side=TOP, anchor=NW, padx=50 * scale_factor, pady=50 * scale_factor, fill=BOTH)
 
         all_false = True
         for buddy in self.buddies:
@@ -1032,16 +1054,17 @@ class Installer(Frame):
             back_func = self.install_shortcuts
 
         button_frame = Frame()
-        next_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Install",
+        next_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Install",
                              command=self.install)
         if all_false:
             next_button.config(text="Uninstall")
         next_button.pack(side=RIGHT)
-        back_button = Button(button_frame, padx=50*scale_factor, pady=20*scale_factor, text="Back", command=back_func)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=back_func)
         if self.uninstall:
             back_button.config(command=self.welcome)
         back_button.pack(side=LEFT)
-        button_frame.pack(side=BOTTOM, pady=40*scale_factor)
+        button_frame.pack(side=BOTTOM, pady=40 * scale_factor)
         self.container.append(button_frame)
 
     def install(self):
@@ -1075,7 +1098,7 @@ class Installer(Frame):
         name = filedialog.askdirectory(parent=root, title="Select Directory", initialdir=textbox.get())
         if name is not "":
             textbox.delete(0, len(textbox.get()))
-            textbox.insert(END, name+"/BuddySuite")
+            textbox.insert(END, name + "/BuddySuite")
 
     def default_directory(self, textbox, browse):
         if self.default:
@@ -1090,10 +1113,48 @@ class Installer(Frame):
             textbox.config(state=DISABLED)
             self.default = True
 
+# ################################################### Buddy Blurbs ################################################### #
+seqbuddy_blurb = "Read, write, analyze, and manipulate sequence files in common formats including FASTA, " \
+                 "GenBank, and EMBL. From the command line, SeqBuddy input can be file paths or piped data " \
+                 "and the content is automatically detected.\n\n"
+
+seqbuddy_blurb += "The %s available tools:" % len(arga.sb_flags)
+sb_flags = OrderedDict(sorted(arga.sb_flags.items(), key=lambda x: x[0]))
+for func in sb_flags:
+    func = re.sub("_", " ", func)
+    seqbuddy_blurb += "\n    - %s" % func
+
+alignbuddy_blurb = "Read, write, analyze, and manipulate alignment files in common formats including NEXUS, PHYLIP, " \
+                   "and Stockholm. AlignBuddy can also generate alignments by wrapping common alignment programs " \
+                   "(e.g., MAFFT, MUSCLE, and PAGAN), handling pre- and post- formatting automatically.\n\n"
+
+alignbuddy_blurb += "The %s available tools:" % len(arga.alb_flags)
+alb_flags = OrderedDict(sorted(arga.alb_flags.items(), key=lambda x: x[0]))
+for func in alb_flags:
+    func = re.sub("_", " ", func)
+    alignbuddy_blurb += "\n    - %s" % func
+
+phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic tree files in Newick, Nexus, and XML formats.\n\n"
+
+phylobuddy_blurb += "The %s available tools:" % len(arga.pb_flags)
+pb_flags = OrderedDict(sorted(arga.pb_flags.items(), key=lambda x: x[0]))
+for func in pb_flags:
+    func = re.sub("_", " ", func)
+    phylobuddy_blurb += "\n    - %s" % func
+
+databasebuddy_blurb = "Search for and retrieve sequence records from NCBI, UniProt, and Ensembl. DatabaseBuddy is " \
+                      "primarily used as a 'live shell', allowing the user to filter results before committing " \
+                      "to downloading the actual sequences.\n\n"
+
+databasebuddy_blurb += "The %s available tools:" % len(arga.db_flags)
+db_flags = OrderedDict(sorted(arga.db_flags.items(), key=lambda x: x[0]))
+for func in db_flags:
+    func = re.sub("_", " ", func)
+    databasebuddy_blurb += "\n    - %s" % func
 
 if __name__ == '__main__':
     app = Installer(master=root)
-    root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw/3)), str(int(sh/2)), str(int(sw/4)), str(int(sh/4))))
+    root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw / 3)), str(int(sh / 2)), str(int(sw / 4)), str(int(sh / 4))))
     root.lift()
     root.call('wm', 'attributes', '.', '-topmost', True)
     root.after_idle(root.call, 'wm', 'attributes', '.', '-topmost', False)
