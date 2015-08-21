@@ -300,12 +300,14 @@ def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
         _output += "\n"
     return _output
 
-def phylipseq(_alignbuddy, _format="relaxed"): ### TODO ###
+
+def phylipseq(_alignbuddy, _format="relaxed"):  # TODO
     _io = AlignIO.PhylipIO.SequentialPhylipWriter(AlignIO.PhylipIO.SequentialAlignmentWriter(None))
     _output = _io.write_alignment(_alignbuddy.alignments, id_width=250)
     return _output
 
-def read_phylipseq(_input): ### TODO ###
+
+def read_phylipseq(_input):  # TODO
     _input = _input.splitlines(keepends=True)
     max_len = 0
     for line in _input:
@@ -331,6 +333,7 @@ def read_phylipseq(_input): ### TODO ###
         return
 
     return _alignments
+
 
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
@@ -567,7 +570,7 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
         def gappyout():
             for i in gap_distr:
                 if i == 0:
-                    max_gaps = i + 1
+                    _max_gaps = i + 1
                 else:
                     break
 
@@ -609,18 +612,18 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 if slopes[prev_pointer1] != -1:
                     if slopes[active_pointer] / slopes[prev_pointer1] > max_slope:
                         max_slope = slopes[active_pointer] / slopes[prev_pointer1]
-                        max_gaps = prev_pointer1
+                        _max_gaps = prev_pointer1
                 elif slopes[prev_pointer2] != -1:
                     if slopes[active_pointer] / slopes[prev_pointer2] > max_slope:
                         max_slope = slopes[active_pointer] / slopes[prev_pointer2]
-                        max_gaps = prev_pointer1
+                        _max_gaps = prev_pointer1
 
                 active_pointer = prev_pointer2
 
             def mark_cuts():
                 cuts = []
                 for _col, _gaps in enumerate(each_column):
-                    if _gaps <= max_gaps:
+                    if _gaps <= _max_gaps:
                         cuts.append(_col)
                 return cuts
 
@@ -632,16 +635,16 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
         if _threshold in ["no_gaps", "all"]:
             _threshold = 0
             new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    new_alignment += _alignment[:, _col:_col + 1]
+            for next_col, num_gaps in enumerate(each_column):
+                if num_gaps <= max_gaps:
+                    new_alignment += _alignment[:, next_col:next_col + 1]
 
         if _threshold == "clean":
             max_gaps = len(_alignment) - 1
             new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    new_alignment += _alignment[:, _col:_col + 1]
+            for next_col, num_gaps in enumerate(each_column):
+                if num_gaps <= max_gaps:
+                    new_alignment += _alignment[:, next_col:next_col + 1]
 
         elif _threshold == "gappyout":
             new_alignment = gappyout()
@@ -663,9 +666,9 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 max_gaps = round(len(_alignment) * _threshold)
 
                 new_alignment = _alignment[:, 0:0]
-                for _col, _gaps in enumerate(each_column):
-                    if _gaps <= max_gaps:
-                        new_alignment += _alignment[:, _col:_col + 1]
+                for next_col, num_gaps in enumerate(each_column):
+                    if num_gaps <= max_gaps:
+                        new_alignment += _alignment[:, next_col:next_col + 1]
 
             except ValueError:
                 raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
@@ -876,7 +879,7 @@ def generate_msa(_seqbuddy, _tool, _params):
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
-        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool),_tool))
+        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
         sys.exit()
     else:
         tmp_dir = TemporaryDirectory()
@@ -954,18 +957,54 @@ def generate_msa(_seqbuddy, _tool, _params):
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
-    import argparse
+    # Catching params to prevent weird collisions with alignment program arguments
     if '--params' in sys.argv:
         sys.argv[sys.argv.index('--params')] = '-p'
     if '-p' in sys.argv:
         arg_index = sys.argv.index('-p')
-        _params = '-p' + sys.argv.pop(arg_index+1)
-        sys.argv[arg_index] = _params
+        params = '-p' + sys.argv.pop(arg_index + 1)
+        sys.argv[arg_index] = params
 
-    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
-    parser.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
-    parser.add_argument('-v', '--version', action='version',
-                        version='''\
+    import argparse
+    from argparse_args import *
+
+    fmt = lambda prog: CustomHelpFormatter(prog)
+
+    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequence alignment with a splash of Kava",
+                                     formatter_class=fmt, add_help=False, usage='''
+    AlignBuddy.py "/path/to/align_file" -<cmd>
+    AlignBuddy.py "/path/to/align_file" -<cmd> | AlignBuddy.py -<cmd>
+    AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"''')
+
+    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
+    positional.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
+
+    alb_flags = OrderedDict(sorted(alb_flags.items(), key=lambda x: x[0]))
+    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+    for func, in_args in alb_flags.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        flags.add_argument(*args, **kwargs)
+
+    alb_modifiers = OrderedDict(sorted(alb_modifiers.items(), key=lambda x: x[0]))
+    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+    for func, in_args in alb_modifiers.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        modifiers.add_argument(*args, **kwargs)
+
+    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
+    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
+
+    misc.add_argument('-v', '--version', action='version', version='''\
 AlignBuddy 1.alpha (2015)
 
 Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
@@ -974,55 +1013,6 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
 
-    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
-                             "'strict' to remove all characters except the unambiguous letter codes.")
-    parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
-    parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
-    parser.add_argument('-tr', '--translate', action='store_true',
-                        help="Convert coding sequences into amino acid sequences")
-    parser.add_argument('-an', '--features', action="store_true")  # ToDo: Delete
-    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
-                             "specify the # of columns to write")
-    parser.add_argument('-ns', '--num_seqs', action='store_true',
-                        help="Counts how many sequences are present in each alignment")
-    parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
-    parser.add_argument('-ca', '--codon_alignment', action='store_true',
-                        help="Shift all gaps so the sequence is in triplets.")
-    parser.add_argument('-dr', '--delete_rows', action='store',
-                        help="Remove selected rows from alignments. Arguments: <search_pattern>")
-    parser.add_argument('-pr', '--pull_rows', action='store',
-                        help="Keep selected rows from alignements. Arguments: <search_pattern>")
-    parser.add_argument('-trm', '--trimal', nargs='?', action='append',
-                        help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
-    parser.add_argument('-cta', '--concat_alignments', action='store',
-                        help="Concatenates two or more alignments by splitting and matching the sequence identifiers."
-                             " Arguments: <split_pattern>")
-    parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
-                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
-    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
-                        help="Sort all sequences in an alignment by id in alpha-numeric order. "
-                             "Pass in the word 'rev' to reverse order")
-    parser.add_argument('-d2r', '--transcribe', action='store_true',
-                        help="Convert DNA alignments to RNA")
-    parser.add_argument('-r2d', '--back_transcribe', action='store_true',
-                        help="Convert RNA alignments to DNA")
-    parser.add_argument('-er', '--extract_range', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
-                        type=int, help="Pull out sub-alignments in a given range.")
-    parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
-    parser.add_argument("-stf", "--split_to_files", action='store', nargs=2, metavar=("<out dir>", "<out file>"),
-                        help="Write individual files for each alignment")
-    parser.add_argument("-ga", "--generate_alignment", action='append')
-
-    parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", action='store')
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', help="Some functions use this flag for output format", action='store')
-    parser.add_argument('-f', '--in_format', action='store',
-                        help="If AlignBuddy can't guess the file format, just specify it directly.")
     in_args = parser.parse_args()
 
     alignbuddy = []
@@ -1130,15 +1120,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     if in_args.lowercase:
         _print_aligments(lowercase(alignbuddy))
 
-    # This is temporary for testing purposes
-    if in_args.features:
-        blahh = ['annotations', 'dbxrefs', 'description', 'features', 'id', 'letter_annotations', 'name', 'seq']
-        foo = alignbuddy.alignments[0][0]
-        bar = [foo.annotations, foo.dbxrefs, foo.description, foo.features, foo.id, foo.letter_annotations, foo.name, foo.seq]
-        for indx, value in enumerate(blahh):
-            print("{0}: {1}".format(value, bar[indx]))
-        print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
-
     # Codon alignment
     if in_args.codon_alignment:
         _print_aligments(codon_alignment(alignbuddy))
@@ -1214,5 +1195,3 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
             _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
             open(in_args.alignment[0], "w").close()
             _print_aligments(alignbuddy)
-
-

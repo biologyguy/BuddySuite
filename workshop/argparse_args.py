@@ -23,7 +23,22 @@ derivative work: No
 Description:
 Dictionaries of the commands available for each Buddy Tool
 """
+import argparse
+
+
+# Pulled from stackoverflow: http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
+# Credit to rr- (http://stackoverflow.com/users/2016221/rr)
+class CustomHelpFormatter(argparse.HelpFormatter):
+    def _format_action_invocation(self, action):
+        if not action.option_strings or action.nargs == 0:
+            return super()._format_action_invocation(action)
+        default = self._get_default_metavar_for_optional(action)
+        args_string = self._format_args(action, default)
+        return ', '.join(action.option_strings) + ' ' + args_string
+
 # flag, action, nargs, metavar, help, choices, type
+
+# ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",
                             "help": "Add a feature (annotation) to selected sequence.s Args: <name>, "
@@ -75,7 +90,7 @@ sb_flags = {"add_feature": {"flag": "af",
                              "action": "store_true",
                              "help": "Return codon frequency statistics."},
             "count_residues": {"flag": "cr",
-                                "action": "store_true",
+                               "action": "store_true",
                                "help": "Generate a table of sequence compositions."},
             "delete_features": {"flag": "df",
                                 "action": "store",
@@ -286,6 +301,184 @@ sb_modifiers = {"alpha": {"flag": "a",
                            "action": "store",
                            "nargs": "+",
                            "help": "Free form arguments for some functions"},
+                "quiet": {"flag": "q",
+                          "action": "store_true",
+                          "help": "Suppress stderr messages"},
+                "test": {"flag": "t",
+                         "action": "store_true",
+                         "help": "Run the function and return any stderr/stdout other than sequences"}}
+
+# #################################################### ALIGNBUDDY #################################################### #
+alb_flags = {"alignment_lengths": {"flag": "al",
+                                   "action": "store_true",
+                                   "help": "Returns a list of alignment lengths."},
+             "back_transcribe": {"flag": "r2d",
+                                 "action": "store_true",
+                                 "help": "Convert RNA alignments to DNA"},
+             "clean_seq": {"flag": "cs",
+                           "action": "append",
+                           "nargs": "?",
+                           "help": "Strip out non-sequence characters, such as stops (*) "
+                                   "and gaps (-). Pass in the word 'strict' to remove all "
+                                   "characters except the unambiguous letter codes."},
+             "codon_alignment": {"flag": "ca",
+                                 "action": "store_true",
+                                 "help": "Shift all gaps so the sequence is in triplets."},
+             "concat_alignments": {"flag": "cta",
+                                   "action": "store",
+                                   "help": "Concatenates two or more alignments by splitting and matching the "
+                                           "sequence identifiers. Arguments: <split_pattern>"},
+             "delete_rows": {"flag": "dr",
+                             "action": "store",
+                             "help": "Remove selected rows from alignments. Arguments: <search_pattern>"},
+             "extract_range": {"flag": "er",
+                               "action": "store",
+                               "nargs":2,
+                               "metavar": ("<start (int)>", "<end (int)>"),
+                               "type": int,
+                               "help": "Pull out sub-alignments in a given range."},
+             "generate_alignment": {"flag": "ga",
+                                    "action": "append",
+                                    "help": ""},
+             "list_ids": {"flag": "li",
+                          "action": "append",
+                          "nargs": "?",
+                          "type": int,
+                          "metavar": "int (optional)",
+                          "help": "Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                                  "specify the # of columns to write"},
+             "lowercase": {"flag": "lc",
+                           "action": "store_true",
+                           "help": "Convert all sequences to lowercase"},
+             "num_seqs": {"flag": "ns",
+                          "action": "store_true",
+                          "help": "Counts how many sequences are present in each alignment"},
+             "order_ids": {"flag": "oi",
+                           "action": "append",
+                           "nargs": "?",
+                           "help": "Sort all sequences in an alignment by id in alpha-numeric order. "
+                                   "Pass in the word 'rev' to reverse order"},
+             "pull_rows": {"flag": "pr",
+                           "action": "store",
+                           "help": "Keep selected rows from alignements. Arguments: <search_pattern>"},
+             "rename_ids": {"flag": "ri",
+                            "action": "store",
+                            "nargs": 2,
+                            "metavar": ("<pattern>", "<substitution>"),
+                            "help": "Replace some pattern in ids with something else. "
+                                    "Limit number of replacements with -p."},
+             "screw_formats": {"flag": "sf",
+                               "action": "store",
+                               "help": "Arguments: <out_format>"},
+             "split_to_files": {"flag": "stf",
+                                "action": "store",
+                                "nargs": 2,
+                                "metavar": ("<out dir>", "<out file>"),
+                                "help": "Write individual files for each alignment"},
+             "translate": {"flag": "tr",
+                           "action": "store_true",
+                           "help": "Convert coding sequences into amino acid sequences"},
+             "trimal": {"flag": "trm",
+                        "action": "append",
+                        "nargs": "?",
+                        "help": "Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'."},
+             "transcribe": {"flag": "d2r",
+                            "action": "store_true",
+                            "help": "Convert DNA alignments to RNA"},
+             "uppercase": {"flag": "uc",
+                           "action": "store_true",
+                           "help": "Convert all sequences to uppercase"},
+             }
+
+alb_modifiers = {"in_format": {"flag": "f",
+                               "action": "store",
+                               "help": "If AlignBuddy can't guess the file format, just specify it directly"},
+                 "in_place": {"flag": "i",
+                              "action": "store_true",
+                              "help": "Rewrite the input file in-place. Be careful!"},
+                 "out_format": {"flag": "o",
+                                "action": "store",
+                                "help": "If you want a specific format output"},
+                 "params": {"flag": "p",
+                            "action": "store",
+                            "nargs": "+",
+                            "help": "Free form arguments for some functions"},
+                 "quiet": {"flag": "q",
+                           "action": "store_true",
+                           "help": "Suppress stderr messages"},
+                 "test": {"flag": "t",
+                          "action": "store_true",
+                          "help": "Run the function and return any stderr/stdout other than sequences"}}
+
+# #################################################### PHYLOBUDDY #################################################### #
+
+pb_flags = {"calculate_distance": {"flag": "cd",
+                                   "action": "store",
+                                   "choices": ["weighted_robinson_foulds", "wrf", "unweighted_robinson_foulds", "uwrf",
+                                               "euclidean_distance", "ed"],
+                                   "help": ""},
+            "consensus_tree": {"flag": "ct",
+                               "action": "store",
+                               "type": float,
+                               "help": ""},
+            "display_trees": {"flag": "dt",
+                              "action": "store_true",
+                              "help": ""},
+            "list_ids": {"flag": "li",
+                         "action": "append",
+                         "nargs": "?",
+                         "type": int,
+                         "help": ""},
+            "prune_taxa": {"flag": "pt",
+                           "action": "append",
+                           "nargs": "+",
+                           "help": ""},
+            "print_trees": {"flag": "ptr",
+                            "action": "store_true",
+                            "help": ""},
+            "split_polytomies": {"flag": "sp",
+                                 "action": "store_true",
+                                 "help": "Create a binary tree by splitting polytomies randomly."}
+            }
+
+pb_modifiers = {"in_format": {"flag": "f",
+                              "action": "store",
+                              "help": "If PhyloBuddy can't guess the file format, try specifying it directly"},
+                "in_place": {"flag": "i",
+                             "action": "store_true",
+                             "help": "Rewrite the input file in-place. Be careful!"},
+                "out_format": {"flag": "o",
+                               "action": "store",
+                               "help": "If you want a specific format output"},
+                "quiet": {"flag": "q",
+                          "action": "store_true",
+                          "help": "Suppress stderr messages"},
+                "test": {"flag": "t",
+                         "action": "store_true",
+                         "help": "Run the function and return any stderr/stdout other than trees"}}
+
+# ################################################## DATABASEBUDDY ################################################### #
+db_flags = {"guess_database": {"flag": "gd",
+                               "action": "store_true",
+                               "help": "List the database that each provided accession belongs to."},
+            "live_shell": {"flag": "ls",
+                           "action": "store_true",
+                           "help": "Interactive database searching. The best tool for sequence discovery."},
+            "retrieve_accessions": {"flag": "ra",
+                                    "action": "store_true",
+                                    "help": "Use search terms to find a list of sequence accession numbers"},
+            "retrieve_sequences": {"flag": "rs",
+                                   "action": "store_true",
+                                   "help": "Get sequences for every included accession"}
+            }
+
+db_modifiers = {"database": {"flag": "d",
+                             "action": "store",
+                             "choices": [],
+                             "help": "Specify a specific database or database class to search"},
+                "out_format": {"flag": "o",
+                               "action": "store",
+                               "help": "If you want a specific format output"},
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},
