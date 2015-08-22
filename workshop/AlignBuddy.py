@@ -970,11 +970,16 @@ if __name__ == '__main__':
 
     fmt = lambda prog: CustomHelpFormatter(prog)
 
-    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequence alignment with a splash of Kava",
-                                     formatter_class=fmt, add_help=False, usage='''
-    AlignBuddy.py "/path/to/align_file" -<cmd>
-    AlignBuddy.py "/path/to/align_file" -<cmd> | AlignBuddy.py -<cmd>
-    AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"''')
+    parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mAlignBuddy\033[m
+Sequence alignments with a splash of kava.
+
+\033[1mUsage examples\033[m:
+  AlignBuddy.py "/path/to/align_file" -<cmd>
+  AlignBuddy.py "/path/to/align_file" -<cmd> | AlignBuddy.py -<cmd>
+  AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
+''')
 
     positional = parser.add_argument_group(title="\033[1mPositional\033[m")
     positional.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])

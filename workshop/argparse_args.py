@@ -28,7 +28,7 @@ import argparse
 
 # Pulled from stackoverflow: http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
 # Credit to rr- (http://stackoverflow.com/users/2016221/rr)
-class CustomHelpFormatter(argparse.HelpFormatter):
+class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
     def _format_action_invocation(self, action):
         if not action.option_strings or action.nargs == 0:
             return super()._format_action_invocation(action)

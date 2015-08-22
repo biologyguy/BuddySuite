@@ -1623,17 +1623,22 @@ if __name__ == '__main__':
 
     fmt = lambda prog: CustomHelpFormatter(prog)
 
-    parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False,
-                                     description="\033[1mDatabaseBuddy commandline tools for accessing public databases.\033[m",
-                                     usage='''
-    DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
-    DbBuddy.py "<search term1, search term2,...>" -<cmd>
-    DbBuddy.py "<accn1,search term1>" -<cmd>
-    DbBuddy.py "/path/to/file_of_accns" -<cmd>''')
+    parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''
+\033[1mDatabaseBuddy\033[m
+Go forth to the servers of sequence, and discover.
+
+\033[1mUsage examples\033[m:
+  DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
+  DbBuddy.py "<search term1, search term2,...>" -<cmd>
+  DbBuddy.py "<accn1,search term1>" -<cmd>
+  DbBuddy.py "/path/to/file_of_accns" -<cmd>
+  ''')
 
     positional = parser.add_argument_group(title="\033[1mPositional\033[m")
-    positional.add_argument("user_input", help="Specify accession numbers or search terms, either in a file or as space "
-                                               "separated list", nargs="*", default=[sys.stdin])
+    positional.add_argument("user_input", nargs="*", default=[sys.stdin],
+                            help="Specify accession numbers or search terms, "
+                                 "either in a file or as a comma separated list")
 
     db_flags = OrderedDict(sorted(db_flags.items(), key=lambda x: x[0]))
     flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")

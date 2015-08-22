@@ -22,7 +22,7 @@ from Bio.Phylo import PhyloXML, NeXML, Newick
 try:
     import ete3
 except ImportError:
-    confirm = input("PhyloBuddy requires ETE v3+, and it was not detected on your system. Try to install [y]/n? ")
+    confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
         from subprocess import Popen
         Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
@@ -36,7 +36,7 @@ except ImportError:
 try:
     import dendropy
 except ImportError:
-    confirm = input("PhyloBuddy requires ETE v3+, and it was not detected on your system. Try to install [y]/n? ")
+    confirm = input("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
         from subprocess import Popen
         Popen("pip install dendropy", shell=True).wait()
@@ -555,15 +555,20 @@ if __name__ == '__main__':
 
     fmt = lambda prog: CustomHelpFormatter(prog)
 
-    parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False,
-                                     description="\033[1mPhyloBuddy commandline tools for manipulating tree files.\033[m",
-                                     usage='''
-    PhyloBuddy.py "/path/to/tree_file" -<cmd>
-    PhyloBuddy.py "/path/to/tree_file" -<cmd> | PhyloBuddy.py -<cmd>
-    PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>''')
+    parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mPhyloBuddy\033[m
+Put a little bonsai into your phylogeny.
 
-    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
-    positional.add_argument("trees", help="Supply a file path or raw tree string", nargs="*", default=[sys.stdin])
+\033[1mUsage examples\033[m:
+  PhyloBuddy.py "/path/to/tree_file" -<cmd>
+  PhyloBuddy.py "/path/to/tree_file" -<cmd> | PhyloBuddy.py -<cmd>
+  PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
+''')
+
+    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+    positional.add_argument("trees", help="Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+                                          "this argument can be left blank.", nargs="*", default=[sys.stdin])
 
     pb_flags = OrderedDict(sorted(pb_flags.items(), key=lambda x: x[0]))
     flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")

@@ -2296,15 +2296,19 @@ if __name__ == '__main__':
 
     fmt = lambda prog: CustomHelpFormatter(prog)
 
-    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False,
-                                     description="\033[1mSeqBuddy commandline tools for manipulating sequence files.\033[m",
-                                     usage='''
-    SeqBuddy.py "/path/to/seq_file" -<cmd>
-    SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
-    SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>''')
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mSeqBuddy\033[m
+See your sequence files. Be your sequence files.
 
-    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
-    positional.add_argument("sequence", help="Supply a file path(s) or raw sequence. If piping sequences into SeqBuddy "
+\033[1mUsage examples\033[m:
+  SeqBuddy.py "/path/to/seq_file" -<cmd>
+  SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
+  SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
+''')
+
+    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+    positional.add_argument("sequence", help="Supply file path(s) or raw sequence. If piping sequences into SeqBuddy "
                                              "this argument can be left blank.", nargs="*", default=[sys.stdin])
 
     sb_flags = OrderedDict(sorted(sb_flags.items(), key=lambda x: x[0]))
