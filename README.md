@@ -15,16 +15,16 @@ The BuddySuite modules are designed to be 'one-stop-shop' command line tools for
 [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) and
  [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) are the most mature BuddySuite tools, although
  [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) is also functional with a limited number of
- tools. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is under active development and
+ commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is under active development and
  should be available soon.
 
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
  and Mac OS X, however, so it is unclear if the Suite will work within Windows.
 
 ## Dependencies
-The BuddySuite is written in Python3 and is not backwards compatible with Python2. If Python3 is not currently installed
- on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34) from
- Continuum Analytics. Alternatively, the software can be downloaded directly from the
+This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
+ installed on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
+ from Continuum Analytics. Alternatively, the software can be downloaded directly from the
  [Python Software Foundation](https://www.python.org/downloads/).
 
 
@@ -38,7 +38,7 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
  use the development version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit
  tests to fail. PhyloBuddy requires [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
  [ETE toolkit](http://etetoolkit.org/download/). All of these dependencies are bundled with the installer, however, so
- no extra download is required unless you are developing (or want the bleeding edge).
+ _**no extra download is required**_ unless you are developing (or want the bleeding edge).
  
 ## Standalone installation 
 #### This is still an Alpha version, but it seems to be working for Mac and Linux. It will not work on Windows.
@@ -68,7 +68,7 @@ All new features are developed in the 'workshop' versions of the buddy programs.
     $: git clone https://github.com/biologyguy/BuddySuite.git
 
 The Buddy tools are structured so they can be used as importable modules as well as command line programs. If you wish
- to contribute to the project, new features require three components:
+ to contribute to the project (and we'd love the help!!), new features require three components:
 
 1. A self contained function that accepts a buddy object as input, and (usually) returns a new buddy object.
 2. An argparse entry in the argparse_args.py module, allowing the function to be called from the command line.
