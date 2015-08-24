@@ -421,7 +421,7 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
         for rec_indx, _rec in enumerate(_alignment):
             _rec.features = []
             while True:
-                test_trans = trans(copy(_rec))
+                test_trans = trans(deepcopy(_rec))
                 # success
                 if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
                     break
