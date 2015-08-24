@@ -187,7 +187,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         self.records = OrderedDict()
         self.trash_bin = {}  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
-        self.failures = {}
+        self.failures = {}  # The key for these is a hash of the Failure, and the values are actual Failure objects
         self.databases = check_database(_databases)
         _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
 
@@ -422,9 +422,10 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 # ################################################# SUPPORT CLASSES ################################################## #
 class Record:
-    def __init__(self, _accession, _record=None, summary=None, _size=None,
+    def __init__(self, _accession, gi=None, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
+        self.gi = gi  # This is only used for NCBI records
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
         self.size = _size if _size in [None, ''] else int(_size)
@@ -480,6 +481,7 @@ class Record:
         elif re.match("^[0-9]+$", self.accession):  # GI number
             self.database = ["ncbi_nuc", "ncbi_prot"]
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
+            self.gi = self.accession
 
         #else:
         #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)  # ToDo: This is for testing, needs to be removed for production
@@ -544,6 +546,16 @@ class Record:
                 return True
         # If nothing hits, default to False
         return False
+
+    def update(self, new_rec):
+        self.accession = new_rec.accession if new_rec.accession else self.accession
+        self.gi = new_rec.gi if new_rec.gi else self.gi
+        self.record = new_rec.record if new_rec.record else self.record
+        self.summary = new_rec.summary if new_rec.summary else self.summary
+        self.size = new_rec.size if new_rec.size else self.size
+        self.database = new_rec.database if new_rec.database else self.database
+        self.type = new_rec.type if new_rec.type else self.type
+        self.search_term = new_rec.search_term if new_rec.search_term else self.search_term
 
     def __str__(self):
         return "Accession:\t{0}\nDatabase:\t{1}\nRecord:\t{2}\nType:\t{3}\n".format(self.accession, self.database,
@@ -766,59 +778,142 @@ class NCBIClient:
         open(self.results_file, "w").close()
         self.max_url = 1000
 
-    def gi2acc(self):
-        def ncbi_summary(accessions, args):  # Multicore ready
-            results_file, error_file, lock = args
-            #handle = Entrez.esummary(db="nucleotide", id=accessions, retmax=10000)
-            handle = Entrez.efetch(db="nucleotide", id=accessions, rettype="acc", retmax=10000)
-            with lock:
-                with open(results_file, "a") as _ifile:
-                    _ifile.write("%s### END ###\n" % handle.read())
-            return
-
-        open(self.results_file, "w").close()
-        gi_records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num"]
-        if not gi_records:
-            return
-        gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
-        gi_groups = [""]
-        for gi in gi_accessions:
-            if gi_groups[-1] == "":
-                gi_groups[-1] = gi
-            elif len(gi_groups[-1] + gi) + 1 <= self.max_url:
-                gi_groups[-1] += ",%s" % gi
+    def _split_for_url(self, accessions):
+        _groups = [""]
+        for _gi in accessions:
+            if _groups[-1] == "":
+                _groups[-1] = _gi
+            elif len(_groups[-1] + _gi) + 1 <= self.max_url:
+                _groups[-1] += ",%s" % _gi
             else:
-                gi_groups.append(gi)
+                _groups.append(_gi)
+        return _groups
 
-        run_multicore_function(gi_groups, ncbi_summary, [self.results_file, self.http_errors_file, self.lock])
+    def _mc_taxa(self, _taxa_ids):
+        handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)  # db needs to be set, but doesn't matter.
+        with self.lock:
+            with open(self.results_file, "a") as _ifile:
+                _ifile.write("%s### END ###\n" % handle.read())
+        return
 
+    def _get_taxa(self, _taxa_ids):
+        open(self.results_file, "w").close()
+        _taxa_ids = self._split_for_url(_taxa_ids)
+        run_multicore_function(_taxa_ids, self._mc_taxa)
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
-        sys.exit(results)
+            results = [x for x in results if x]
+
+        _output = {}
         for result in results:
-            if result == '':
-                continue
-            for x in Entrez.parse(StringIO(result)):
-                _rec = OrderedDict() if x["Caption"] not in self.dbbuddy.records \
-                    else self.dbbuddy.records[x["Caption"]].summary
+            for summary in Entrez.parse(StringIO(result)):
+                _output[summary["TaxId"]] = summary["ScientificName"]
+        return _output
 
-                _rec["ACCN"] = x["Caption"]
+    def _mc_accn2gi(self, _accns):
+        handle = Entrez.efetch(db="nucleotide", id=_accns, rettype="gi", retmax=10000)
+        with self.lock:
+            with open(self.results_file, "a") as _ifile:
+                _ifile.write("%s### END ###\n" % handle.read())
+        return
+
+    def _get_gis(self, accessions):
+        open(self.results_file, "w").close()
+        accessions = self._split_for_url(accessions)
+        run_multicore_function(accessions, self._mc_accn2gi)
+        with open(self.results_file, "r") as ifile:
+            results = ifile.read().split("\n### END ###\n")
+            results = [x.split("\n") for x in results]
+            results = [x for sublist in results for x in sublist if x]
+        return results
+
+    def _mc_summaries(self, _gi_nums):
+        handle = Entrez.esummary(db="nucleotide", id=_gi_nums, retmax=10000)  # db needs to be set, but doesn't matter.
+        with self.lock:
+            with open(self.results_file, "a") as _ifile:
+                _ifile.write("%s### END ###\n" % handle.read())
+        return
+
+    def _fetch_summaries(self, _gi_nums):
+        open(self.results_file, "w").close()
+        _gi_nums = self._split_for_url(_gi_nums)
+        run_multicore_function(_gi_nums, self._mc_summaries)
+        with open(self.results_file, "r") as _ifile:
+            results = _ifile.read().split("\n### END ###\n")
+            results = [x for x in results if x != ""]
+
+        _output = {}
+        taxa = []
+        for result in results:
+            for summary in Entrez.parse(StringIO(result)):
+                _rec = OrderedDict()
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                _rec["status"] = x["Status"] if x["ReplacedBy"] == '' else "%s->%s" % (x["Status"], x["ReplacedBy"])
-                _rec["gi_num"] = str(x["Gi"])
-                _rec["TaxId"] = x["TaxId"]
-                _rec["length"] = x["Length"]
-                _rec["comments"] = x["Title"]
+                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else "%s->%s" % (summary["Status"], summary["ReplacedBy"])
+                _rec["TaxId"] = summary["TaxId"]
+                if summary["TaxId"] not in taxa:
+                    taxa.append(summary["TaxId"])
+                _rec["organism"] = ""
+                _rec["length"] = summary["Length"]
+                _rec["comments"] = summary["Title"]
 
-                if x["Caption"] not in self.dbbuddy.records:
-                    self.dbbuddy.records[x["Caption"]] = Record(_rec["ACCN"], summary=_rec, _size=_rec["length"])
-                    self.dbbuddy.records[x["Caption"]].guess_database()
-                    del self.dbbuddy.records[_rec["gi_num"]]
+                _output[summary["Caption"]] = Record(summary["Caption"], gi=summary["Gi"], summary=_rec, _size=_rec["length"])
+                _output[summary["Caption"]].guess_database()
 
-                #print("%s%s" % (self.dbbuddy.records[x["Caption"]], x))
+        taxa = self._get_taxa(taxa)
+        for accn, rec in _output.items():
+            rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+
+        return _output
+
+    def fetch_summary(self):
+        # EUtils esummary will only take gi numbers
+        open(self.results_file, "w").close()
+        accns = [accn for accn, _rec in self.dbbuddy.records.items() if
+                 ("ncbi_nuc" in list(_rec.database) or "ncbi_prot" in list(_rec.database)) and not _rec.gi]
+
+        if accns:
+            gi_nums = self._get_gis(accns)
+            summaries = self._fetch_summaries(gi_nums)
+            for accn in accns:
+                if accn not in summaries:
+                    failure = Failure("ACCN: %s" % accn, "Unable to fetch summary from NCBI")
+                    if failure.hash not in self.dbbuddy.failures:
+                        self.dbbuddy.failures[failure.hash] = failure
+                    self.dbbuddy.failures.append()
+
+            for accn, rec in summaries.items():
+                if accn in self.dbbuddy.records:
+                    self.dbbuddy.records[accn].update(rec)
+                else:
+                    self.dbbuddy.records[accn] = rec
+
+            open(self.results_file, "w").close()
+
+        gi_nums = [accn for accn, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num" and not _rec.summary]
+
+        if gi_nums:
+            summaries = self._fetch_summaries(gi_nums)
+            summary_gis = [_rec.gi for accn, _rec in summaries.items()]
+            print(summary_gis)
+            for gi_num in gi_nums:
+                if gi_num not in summary_gis:
+                    failure = Failure("gi: %s" % gi_num, "gi_nums: Unable to fetch summary from NCBI")
+                    if failure.hash not in self.dbbuddy.failures:
+                        self.dbbuddy.failures[failure.hash] = failure
+            for accn, rec in summaries.items():
+                if accn in self.dbbuddy.records:
+                    self.dbbuddy.records[accn].update(rec)
+                elif rec.gi in self.dbbuddy.records:
+                    self.dbbuddy.records[rec.gi].update(rec)
+                else:
+                    self.dbbuddy.records[accn] = rec
+
+
+        print(self.dbbuddy.failures)
+        print(self.dbbuddy)
+        self.dbbuddy.print()
 
     def search_nucliotides(self):
-
         for _term in self.dbbuddy.search_terms:
             try:
                 count = Entrez.read(Entrez.esearch(db='nucleotide', term=_term, rettype="count"))["Count"]
@@ -827,7 +922,7 @@ class NCBIClient:
                 for _id in result["IdList"]:
                     if _id not in self.dbbuddy.records:
                         self.dbbuddy.records[_id] = Record(_id, _database="genbank", _type="gi_num")
-                self.gi2acc()
+                self.fetch_summary()
                 print(self.dbbuddy)
                 sys.exit()
             except HTTPError as e:
@@ -1593,8 +1688,8 @@ def retrieve_summary(_dbbuddy):
 
     if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
-        refseq.gi2acc()
         refseq.search_nucliotides()
+        refseq.fetch_summary()
 
     if "ensembl" in _dbbuddy.databases or check_all:
         pass
@@ -1720,6 +1815,7 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
+    dbbuddy.databases = ["ncbi_nuc"]
     retrieve_summary(dbbuddy)
     sys.exit()
     # Default to LiveSearch
