@@ -884,7 +884,7 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                 _output = result.read()
         elif _tool == 'prank':
             extension = 'fas'
-            if '-f=nex' in _params or '-f=nexus' in _params:
+            if '-f=nexus' in _params or '-f=nexus' in _params:
                 extension = 'nex'
             elif '-f=phylipi' in _params or '-f=phylips' in _params:
                 extension = 'phy'
@@ -974,7 +974,8 @@ if __name__ == '__main__':
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records
         seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
-        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], in_args.params[0])))
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], params)))
         sys.exit()
 
     for align_set in in_args.alignments:
