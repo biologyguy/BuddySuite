@@ -11,7 +11,6 @@ and allows maintenance of rich feature annotation following alignment.
 # Standard library imports
 import sys
 import os
-import zipfile
 from copy import copy, deepcopy
 from io import StringIO, TextIOWrapper
 from random import sample
@@ -19,9 +18,7 @@ import re
 from MyFuncs import TemporaryDirectory
 from collections import OrderedDict
 from shutil import *
-from urllib import error, request
 import subprocess
-from fcntl import fcntl, F_SETFL
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -869,10 +866,12 @@ def generate_msa(_seqbuddy, _tool, _params):
             command = '{0} -in {1} {2}'.format(_tool, tmp_in, ''.join(_params))
         elif _tool == 'prank':
             command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+        elif _tool == 'pagan':
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
         else:
             command = '{0} {1} {2}'.format(_tool, ''.join(_params), tmp_in)
         try:
-            if _tool == 'prank':
+            if _tool in ['prank', 'pagan']:
                 subprocess.Popen(command, shell=True, universal_newlines=True).wait()
             else:
                 _output = subprocess.check_output(command, shell=True, universal_newlines=True)
@@ -885,13 +884,19 @@ def generate_msa(_seqbuddy, _tool, _params):
                 _output = result.read()
         elif _tool == 'prank':
             extension = 'fas'
-            if '-f=nex' in _params:
+            if '-f=nex' in _params or '-f=nexus' in _params:
                 extension = 'nex'
-            elif '-f=phylipi' in _params:
-                extension='phy'
-            elif '-f=phylips' in _params:
-                extension='phy'
+            elif '-f=phylipi' in _params or '-f=phylips' in _params:
+                extension = 'phy'
             with open('{0}/result.best.{1}'.format(tmp_dir.name, extension)) as result:
+                _output = result.read()
+        elif _tool == 'pagan':
+            extension = 'fas'
+            if '-f nexus' in _params:
+                extension = 'nex'
+            elif '-f phylipi' in _params or '-f phylips' in _params:
+                extension = 'phy'
+            with open('{0}/result.{1}'.format(tmp_dir.name, extension)) as result:
                 _output = result.read()
 
         # Fix broken outputs to play nicely with AlignBuddy parsers
@@ -917,11 +922,9 @@ def generate_msa(_seqbuddy, _tool, _params):
                 else:
                     contents += line
             _output = contents
-        for _hash in hash_table:
-            _output = re.sub(_hash, hash_table[_hash], _output)
-            _output = re.sub('_M', '', _output)
-        print(_output)
         _alignbuddy = AlignBuddy(_output)
+        for _hash in hash_table:
+            rename(_alignbuddy, _hash, hash_table[_hash])
         return _alignbuddy
 
 
@@ -965,7 +968,7 @@ if __name__ == '__main__':
     if in_args.generate_alignment:
         import SeqBuddy as Sb
         seqbuddy = []
-        for seq_set in in_args.alignment:
+        for seq_set in in_args.alignments:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
@@ -974,7 +977,7 @@ if __name__ == '__main__':
         _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], in_args.params)))
         sys.exit()
 
-    for align_set in in_args.alignment:
+    for align_set in in_args.alignments:
         if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
         align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
