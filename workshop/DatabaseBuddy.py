@@ -41,7 +41,7 @@ from collections import OrderedDict
 from hashlib import md5
 import cmd
 from subprocess import Popen, PIPE
-from io import TextIOWrapper
+from io import TextIOWrapper, StringIO
 import warnings
 
 # Third party package imports
@@ -427,7 +427,7 @@ class Record:
         self.accession = _accession
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
-        self.size = _size
+        self.size = _size if _size in [None, ''] else int(_size)
         self.database = _database
         self.type = check_type(_type)
         self.search_term = _search_term  # In case the record was the result of a particular search
@@ -435,6 +435,10 @@ class Record:
     def guess_database(self):
         # RefSeq
         if re.match("^[NX][MR]_[0-9]+", self.accession):
+            self.database = "ncbi_nuc"
+            self.type = "nucleotide"
+
+        if re.match("^[NX][C]_[0-9]+", self.accession):  # Chromosome
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
@@ -461,6 +465,10 @@ class Record:
             self.database = "ncbi_prot"
             self.type = "protein"
 
+        elif re.match("[0-9][A-Z0-9]{3}(_[A-Z0-9])?$", self.accession):  # PDB
+            self.database = "ncbi_prot"
+            self.type = "protein"
+
         elif re.match("^[A-Z]{4}[0-9]{8,10}$", self.accession):  # Whole Genome
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
@@ -471,7 +479,10 @@ class Record:
 
         elif re.match("^[0-9]+$", self.accession):  # GI number
             self.database = ["ncbi_nuc", "ncbi_prot"]
-            self.type = "gi_num"  # Need to check genbank accession number to figure out that this is
+            self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
+
+        #else:
+        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)  # ToDo: This is for testing, needs to be removed for production
 
         return
 
@@ -745,17 +756,94 @@ class UniProtRestClient:
 
 class NCBIClient:
     def __init__(self, _dbbuddy):
-        Entrez.email = ""
+        Entrez.email = "steve.bond@nih.gov"  # ToDo: Pull email address from .buddysuite config file
         self.dbbuddy = _dbbuddy
+        self.lock = Lock()
+        self.temp_dir = TempDir()
+        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
+        open(self.http_errors_file, "w").close()
+        self.results_file = "%s/results.txt" % self.temp_dir.path
+        open(self.results_file, "w").close()
+        self.max_url = 1000
 
     def gi2acc(self):
+        def ncbi_summary(accessions, args):  # Multicore ready
+            results_file, error_file, lock = args
+            #handle = Entrez.esummary(db="nucleotide", id=accessions, retmax=10000)
+            handle = Entrez.efetch(db="nucleotide", id=accessions, rettype="acc", retmax=10000)
+            with lock:
+                with open(results_file, "a") as _ifile:
+                    _ifile.write("%s### END ###\n" % handle.read())
+            return
+
+        open(self.results_file, "w").close()
         gi_records = [_rec for _accession, _rec in self.dbbuddy.records.items() if _rec.type == "gi_num"]
-        # gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
+        if not gi_records:
+            return
+        gi_accessions = [_rec.accession for _indx, _rec in enumerate(gi_records)]
+        gi_groups = [""]
+        for gi in gi_accessions:
+            if gi_groups[-1] == "":
+                gi_groups[-1] = gi
+            elif len(gi_groups[-1] + gi) + 1 <= self.max_url:
+                gi_groups[-1] += ",%s" % gi
+            else:
+                gi_groups.append(gi)
+
+        run_multicore_function(gi_groups, ncbi_summary, [self.results_file, self.http_errors_file, self.lock])
+
+        with open(self.results_file, "r") as ifile:
+            results = ifile.read().split("\n### END ###\n")
+        sys.exit(results)
+        for result in results:
+            if result == '':
+                continue
+            for x in Entrez.parse(StringIO(result)):
+                _rec = OrderedDict() if x["Caption"] not in self.dbbuddy.records \
+                    else self.dbbuddy.records[x["Caption"]].summary
+
+                _rec["ACCN"] = x["Caption"]
+                # status can be 'live', 'dead', 'withdrawn', 'replaced'
+                _rec["status"] = x["Status"] if x["ReplacedBy"] == '' else "%s->%s" % (x["Status"], x["ReplacedBy"])
+                _rec["gi_num"] = str(x["Gi"])
+                _rec["TaxId"] = x["TaxId"]
+                _rec["length"] = x["Length"]
+                _rec["comments"] = x["Title"]
+
+                if x["Caption"] not in self.dbbuddy.records:
+                    self.dbbuddy.records[x["Caption"]] = Record(_rec["ACCN"], summary=_rec, _size=_rec["length"])
+                    self.dbbuddy.records[x["Caption"]].guess_database()
+                    del self.dbbuddy.records[_rec["gi_num"]]
+
+                #print("%s%s" % (self.dbbuddy.records[x["Caption"]], x))
+
+    def search_nucliotides(self):
+
+        for _term in self.dbbuddy.search_terms:
+            try:
+                count = Entrez.read(Entrez.esearch(db='nucleotide', term=_term, rettype="count"))["Count"]
+                handle = Entrez.esearch(db='nucleotide', term=_term, retmax=count)
+                result = Entrez.read(handle)
+                for _id in result["IdList"]:
+                    if _id not in self.dbbuddy.records:
+                        self.dbbuddy.records[_id] = Record(_id, _database="genbank", _type="gi_num")
+                self.gi2acc()
+                print(self.dbbuddy)
+                sys.exit()
+            except HTTPError as e:
+                if e.getcode() == 400:
+                    self.dbbuddy.failures.append(_term)
+                elif e.getcode() == 503:
+                    print("503 'Service unavailable': NCBI is either blocking you or they are "
+                          "experiencing some technical issues.")
+                else:
+                    sys.exit("Error connecting with NCBI. Returned code %s" % e.getcode())
+
         # record = Entrez.read(Entrez.fetch())
         # handle = Entrez.efetch(db="nucleotide", id=gi_accessions[:2], rettype="acc", retmode="text")
-        print("Hello")
-        handle = Entrez.esummary(db="nucleotide", id=["28864546", "28800981"])
-        sys.exit(handle.read())
+
+    def search_protein(self):
+        pass
 
     def fetch_nucliotides(self):
         for _accession, _rec in self.dbbuddy.records.items():
@@ -777,26 +865,7 @@ class NCBIClient:
                     if e.getcode() == 400:
                         self.dbbuddy.failures.append(_rec.accession)
 
-    def search_nucliotides(self):
-        for _term in self.dbbuddy.search_terms:
-            try:
-                count = Entrez.read(Entrez.esearch(db='nucleotide', term=_term, rettype="count"))["Count"]
-                handle = Entrez.esearch(db='nucleotide', term=_term, retmax=count)
-                result = Entrez.read(handle)
-                for _id in result["IdList"]:
-                    if _id not in self.dbbuddy.records:
-                        self.dbbuddy.records[_id] = Record(_id, _database="genbank", _type="gi_num")
-                self.gi2acc()
-                print(self.dbbuddy)
-                sys.exit()
-            except HTTPError as e:
-                if e.getcode() == 400:
-                    self.dbbuddy.failures.append(_term)
-                elif e.getcode() == 503:
-                    print("503 'Service unavailable': NCBI is either blocking you or they are "
-                          "experiencing some technical issues.")
-                else:
-                    sys.exit("Error connecting with NCBI. Returned code %s" % e.getcode())
+
 
 
 class EnsemblRestClient:
@@ -1301,6 +1370,8 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
     @staticmethod
     def complete_database(text, line, startidx, endidx):
+        if startidx and endidx:
+            pass
         return [db for db in DATABASES if db.startswith(text)]
 
     @staticmethod
@@ -1520,11 +1591,10 @@ def retrieve_summary(_dbbuddy):
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.search_proteins()
 
-    return _dbbuddy  # TEMPORARY
     if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = NCBIClient(_dbbuddy)
         refseq.gi2acc()
-        # refseq.search_nucliotides()
+        refseq.search_nucliotides()
 
     if "ensembl" in _dbbuddy.databases or check_all:
         pass
@@ -1538,7 +1608,6 @@ def retrieve_sequences(_dbbuddy):
         uniprot = UniProtRestClient(_dbbuddy)
         uniprot.fetch_proteins()
 
-    return _dbbuddy  # TEMPORARY
     if "ncbi_nuc" in _dbbuddy.databases or "ncbi_prot" in _dbbuddy.databases or check_all:
         pass
 
@@ -1550,40 +1619,29 @@ def retrieve_sequences(_dbbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=argparse.RawTextHelpFormatter,
-                                     description="Commandline wrapper for all the fun functions in this file. "
-                                                 "Access those databases!")
+    import buddy_resources as br
 
-    parser.add_argument("user_input", help="Specify accession numbers or search terms, either in a file or as space "
-                                           "separated list", nargs="*", default=[sys.stdin])
+    version = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
 
-    parser.add_argument('-v', '--version', action='version',
-                        version='''\
-DbBuddy 1.alpha (2015)
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''
+\033[1mDatabaseBuddy\033[m
+  Go forth to the servers of sequence, and discover.
 
-    # parser.add_argument('-de', '--download_everything', action="store_true",
-    #                    help="Retrieve full records for all search terms and accessions")
-    parser.add_argument('-ls', '--live_search', action="store_true",
-                        help="Interactive database searching. The best tool for sequence discovery.")
-    parser.add_argument('-ra', '--retrieve_accessions', action="store_true",
-                        help="Use search terms to find a list of sequence accession numbers")
-    parser.add_argument('-rs', '--retrieve_sequences', action="store_true",
-                        help="Get sequences for every included accession")
-    parser.add_argument('-gd', '--guess_database', action="store_true",
-                        help="List the database that each provided accession belongs to.")
+\033[1mUsage examples\033[m:
+  DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
+  DbBuddy.py "<search term1, search term2,...>" -<cmd>
+  DbBuddy.py "<accn1,search term1>" -<cmd>
+  DbBuddy.py "/path/to/file_of_accns" -<cmd>
+  ''')
 
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')  # accessions/ids, summary, SeqIO formats
-    parser.add_argument('-d', '--database', choices=["all", "ensembl", "genbank", "uniprot", "dna", "protein"],
-                        help='Specify a specific database or database class to search', action='store')
+    br.db_modifiers["database"]["choices"] = DATABASES
+    br.flags(parser, "DatabaseBuddy", ("user_input", "Specify accession numbers or search terms, "
+                                                     "either in a file or as a comma separated list"),
+             br.db_flags, br.db_modifiers, version)
+
     in_args = parser.parse_args()
 
     dbbuddy = []
@@ -1593,7 +1651,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     try:
         if isinstance(in_args.user_input[0], TextIOWrapper) and in_args.user_input[0].buffer.raw.isatty():
                 dbbuddy = DbBuddy()
-                in_args.live_search = True
+                in_args.live_shell = True
         elif len(in_args.user_input) > 1:
             for search_set in in_args.user_input:
                 dbbuddy.append(DbBuddy(search_set, in_args.database, out_format))
@@ -1607,8 +1665,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                  "Check the file path or try specifying an input type with -f")
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Live Search
-    if in_args.live_search:
+    # Live Shell
+    if in_args.live_shell:
         live_search = LiveSearch(dbbuddy)
         sys.exit()
 
@@ -1662,5 +1720,7 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         _stdout(output)
         sys.exit()
 
+    retrieve_summary(dbbuddy)
+    sys.exit()
     # Default to LiveSearch
     live_search = LiveSearch(dbbuddy)

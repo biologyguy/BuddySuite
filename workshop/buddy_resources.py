@@ -9,7 +9,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 details at http://www.gnu.org/licenses/.
 
-name: available_commands.py
+name: shared_resources.py
 date: Aug-21-2015
 author: Stephen R. Bond
 email: steve.bond@nih.gov
@@ -21,9 +21,122 @@ repository: https://github.com/biologyguy/BuddySuite
 derivative work: No
 
 Description:
-Dictionaries of the commands available for each Buddy Tool
+Collection of resources used by all BuddySuite tools
+Including dictionaries of the commands available for each Buddy Tool
 """
+import sys
+import argparse
+import datetime
+from collections import OrderedDict
+
+
+class Version:
+    def __init__(self, name, major, minor, _contributors, release_date=None):
+        self.name = name
+        self.major = major
+        self.minor = minor
+        self.contributors = _contributors  # This needs to be a list of Contributor objects
+        if not release_date:
+            self.release_date = datetime.date.today()
+        else:
+            # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
+            self.release_date = datetime.datetime(**release_date)
+
+    def contributors_string(self):
+        _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
+        _output = ""
+        for contributor in _contributors:
+            _output += "%s\n" % contributor
+        return _output.strip()
+
+    def __str__(self):
+        _output = '''\
+%s %s.%s (%s)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+
+Contributors:
+%s
+''' % (self.name, self.major, self.minor, self.release_date, self.contributors_string())
+        return _output
+
+
+class Contributor:
+    def __init__(self, first, last, commits=None, github=None):
+        self.first = first
+        self.last = last
+        self.commits = commits
+        self.github = github
+
+    def __str__(self):
+        if not self.commits:
+            commits = "0 commits"
+        elif self.commits == 1:
+            commits = "1 commit"
+        else:
+            commits = "%s commits" % self.commits
+
+        _output = "%s %s, %s" % (self.first, self.last, commits)
+        return _output if not self.github else "%s, %s" % (_output, self.github)
+
+
+# Credit to rr- (http://stackoverflow.com/users/2016221/rr)
+# http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
+class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    def _format_action_invocation(self, action):
+        if not action.option_strings or action.nargs == 0:
+            return super()._format_action_invocation(action)
+        default = self._get_default_metavar_for_optional(action)
+        args_string = self._format_args(action, default)
+        return ', '.join(action.option_strings) + ' ' + args_string
+
+
+def flags(parser, tool_name, _positional, _flags, _modifiers, version):
+    """
+    :param parser: argparse.ArgumentParser object
+    :param tool_name: str e.g., "DatabaseBuddy"
+    :param positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
+    :param _flags: dict e.g., db_flags
+    :param version: Version object
+    :return:
+    """
+    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+    positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
+
+    _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
+    parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+    for func, in_args in _flags.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        parser_flags.add_argument(*args, **kwargs)
+
+    _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
+    parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+    for func, in_args in _modifiers.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        parser_modifiers.add_argument(*args, **kwargs)
+
+    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
+    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
+    misc.add_argument('-v', '--version', action='version', version=str(version))
+
+contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
+                Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
 # flag, action, nargs, metavar, help, choices, type
+# ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",
                             "help": "Add a feature (annotation) to selected sequence.s Args: <name>, "
@@ -75,7 +188,7 @@ sb_flags = {"add_feature": {"flag": "af",
                              "action": "store_true",
                              "help": "Return codon frequency statistics."},
             "count_residues": {"flag": "cr",
-                                "action": "store_true",
+                               "action": "store_true",
                                "help": "Generate a table of sequence compositions."},
             "delete_features": {"flag": "df",
                                 "action": "store",
@@ -181,7 +294,7 @@ sb_flags = {"add_feature": {"flag": "af",
                       "help": "Group a bunch of seq files together"},
             "molecular_weight": {"flag": "mw",
                                  "action": "store_true",
-                                 "help": "Computes the molecular weight of all of the sequences found in the input file."},
+                                 "help": "Compute the molecular weight of sequences"},
             "num_seqs": {"flag": "ns",
                          "action": "store_true",
                          "help": "Counts how many sequences are present in an input file"},
@@ -198,7 +311,7 @@ sb_flags = {"add_feature": {"flag": "af",
             "order_ids": {"flag": "oi",
                           "action": "append",
                           "nargs": "?",
-                          "help": "Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order"},
+                          "help": "Sort sequences by id alpha-numerically. Pass in the word 'rev' to reverse order"},
             "order_ids_randomly": {"flag": "oir",
                                    "action": "store_true",
                                    "help": "Randomly reorder the position of records in the file."},
@@ -286,6 +399,184 @@ sb_modifiers = {"alpha": {"flag": "a",
                            "action": "store",
                            "nargs": "+",
                            "help": "Free form arguments for some functions"},
+                "quiet": {"flag": "q",
+                          "action": "store_true",
+                          "help": "Suppress stderr messages"},
+                "test": {"flag": "t",
+                         "action": "store_true",
+                         "help": "Run the function and return any stderr/stdout other than sequences"}}
+
+# #################################################### ALIGNBUDDY #################################################### #
+alb_flags = {"alignment_lengths": {"flag": "al",
+                                   "action": "store_true",
+                                   "help": "Returns a list of alignment lengths."},
+             "back_transcribe": {"flag": "r2d",
+                                 "action": "store_true",
+                                 "help": "Convert RNA alignments to DNA"},
+             "clean_seq": {"flag": "cs",
+                           "action": "append",
+                           "nargs": "?",
+                           "help": "Strip out non-sequence characters, such as stops (*) "
+                                   "and gaps (-). Pass in the word 'strict' to remove all "
+                                   "characters except the unambiguous letter codes."},
+             "codon_alignment": {"flag": "ca",
+                                 "action": "store_true",
+                                 "help": "Shift all gaps so the sequence is in triplets."},
+             "concat_alignments": {"flag": "cta",
+                                   "action": "store",
+                                   "help": "Concatenates two or more alignments by splitting and matching the "
+                                           "sequence identifiers. Arguments: <split_pattern>"},
+             "delete_rows": {"flag": "dr",
+                             "action": "store",
+                             "help": "Remove selected rows from alignments. Arguments: <search_pattern>"},
+             "extract_range": {"flag": "er",
+                               "action": "store",
+                               "nargs": 2,
+                               "metavar": ("<start (int)>", "<end (int)>"),
+                               "type": int,
+                               "help": "Pull out sub-alignments in a given range."},
+             "generate_alignment": {"flag": "ga",
+                                    "action": "append",
+                                    "help": ""},
+             "list_ids": {"flag": "li",
+                          "action": "append",
+                          "nargs": "?",
+                          "type": int,
+                          "metavar": "int (optional)",
+                          "help": "Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                                  "specify the # of columns to write"},
+             "lowercase": {"flag": "lc",
+                           "action": "store_true",
+                           "help": "Convert all sequences to lowercase"},
+             "num_seqs": {"flag": "ns",
+                          "action": "store_true",
+                          "help": "Counts how many sequences are present in each alignment"},
+             "order_ids": {"flag": "oi",
+                           "action": "append",
+                           "nargs": "?",
+                           "help": "Sort all sequences in an alignment by id in alpha-numeric order. "
+                                   "Pass in the word 'rev' to reverse order"},
+             "pull_rows": {"flag": "pr",
+                           "action": "store",
+                           "help": "Keep selected rows from alignements. Arguments: <search_pattern>"},
+             "rename_ids": {"flag": "ri",
+                            "action": "store",
+                            "nargs": 2,
+                            "metavar": ("<pattern>", "<substitution>"),
+                            "help": "Replace some pattern in ids with something else. "
+                                    "Limit number of replacements with -p."},
+             "screw_formats": {"flag": "sf",
+                               "action": "store",
+                               "help": "Arguments: <out_format>"},
+             "split_to_files": {"flag": "stf",
+                                "action": "store",
+                                "nargs": 2,
+                                "metavar": ("<out dir>", "<out file>"),
+                                "help": "Write individual files for each alignment"},
+             "translate": {"flag": "tr",
+                           "action": "store_true",
+                           "help": "Convert coding sequences into amino acid sequences"},
+             "trimal": {"flag": "trm",
+                        "action": "append",
+                        "nargs": "?",
+                        "help": "Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'."},
+             "transcribe": {"flag": "d2r",
+                            "action": "store_true",
+                            "help": "Convert DNA alignments to RNA"},
+             "uppercase": {"flag": "uc",
+                           "action": "store_true",
+                           "help": "Convert all sequences to uppercase"},
+             }
+
+alb_modifiers = {"in_format": {"flag": "f",
+                               "action": "store",
+                               "help": "If AlignBuddy can't guess the file format, just specify it directly"},
+                 "in_place": {"flag": "i",
+                              "action": "store_true",
+                              "help": "Rewrite the input file in-place. Be careful!"},
+                 "out_format": {"flag": "o",
+                                "action": "store",
+                                "help": "If you want a specific format output"},
+                 "params": {"flag": "p",
+                            "action": "store",
+                            "nargs": "+",
+                            "help": "Free form arguments for some functions"},
+                 "quiet": {"flag": "q",
+                           "action": "store_true",
+                           "help": "Suppress stderr messages"},
+                 "test": {"flag": "t",
+                          "action": "store_true",
+                          "help": "Run the function and return any stderr/stdout other than sequences"}}
+
+# #################################################### PHYLOBUDDY #################################################### #
+
+pb_flags = {"calculate_distance": {"flag": "cd",
+                                   "action": "store",
+                                   "choices": ["weighted_robinson_foulds", "wrf", "unweighted_robinson_foulds", "uwrf",
+                                               "euclidean_distance", "ed"],
+                                   "help": ""},
+            "consensus_tree": {"flag": "ct",
+                               "action": "store",
+                               "type": float,
+                               "help": ""},
+            "display_trees": {"flag": "dt",
+                              "action": "store_true",
+                              "help": ""},
+            "list_ids": {"flag": "li",
+                         "action": "append",
+                         "nargs": "?",
+                         "type": int,
+                         "help": ""},
+            "prune_taxa": {"flag": "pt",
+                           "action": "append",
+                           "nargs": "+",
+                           "help": ""},
+            "print_trees": {"flag": "ptr",
+                            "action": "store_true",
+                            "help": ""},
+            "split_polytomies": {"flag": "sp",
+                                 "action": "store_true",
+                                 "help": "Create a binary tree by splitting polytomies randomly."}
+            }
+
+pb_modifiers = {"in_format": {"flag": "f",
+                              "action": "store",
+                              "help": "If PhyloBuddy can't guess the file format, try specifying it directly"},
+                "in_place": {"flag": "i",
+                             "action": "store_true",
+                             "help": "Rewrite the input file in-place. Be careful!"},
+                "out_format": {"flag": "o",
+                               "action": "store",
+                               "help": "If you want a specific format output"},
+                "quiet": {"flag": "q",
+                          "action": "store_true",
+                          "help": "Suppress stderr messages"},
+                "test": {"flag": "t",
+                         "action": "store_true",
+                         "help": "Run the function and return any stderr/stdout other than trees"}}
+
+# ################################################## DATABASEBUDDY ################################################### #
+db_flags = {"guess_database": {"flag": "gd",
+                               "action": "store_true",
+                               "help": "List the database that each provided accession belongs to."},
+            "live_shell": {"flag": "ls",
+                           "action": "store_true",
+                           "help": "Interactive database searching. The best tool for sequence discovery."},
+            "retrieve_accessions": {"flag": "ra",
+                                    "action": "store_true",
+                                    "help": "Use search terms to find a list of sequence accession numbers"},
+            "retrieve_sequences": {"flag": "rs",
+                                   "action": "store_true",
+                                   "help": "Get sequences for every included accession"}
+            }
+
+db_modifiers = {"database": {"flag": "d",
+                             "action": "store",
+                             "choices": [],  # This needs to be set to DATABASES in the main program
+                             "help": "Specify a specific database or database class to search"},
+                "out_format": {"flag": "o",
+                               "action": "store",
+                               "help": "If you want a specific format output"},
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},

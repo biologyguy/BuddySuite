@@ -8,7 +8,6 @@ DESCRIPTION OF PROGRAM
 
 import sys
 import os
-import argparse
 import random
 import re
 from io import StringIO, TextIOWrapper
@@ -20,8 +19,35 @@ from MyFuncs import TemporaryDirectory
 # Third party package imports
 import Bio.Phylo
 from Bio.Phylo import PhyloXML, NeXML, Newick
-import ete3
-import dendropy
+try:
+    import ete3
+except ImportError:
+    confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
+    if confirm.lower() in ["", "y", "yes"]:
+        from subprocess import Popen
+        Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
+        try:
+            import ete3
+        except ImportError:
+            sys.exit("Failed to install ETE3, please see http://etetoolkit.org/download/ for further details")
+    else:
+        sys.exit("Aborting. Please see http://etetoolkit.org/download/ for installation details\n")
+
+try:
+    import dendropy
+except ImportError:
+    confirm = input("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ")
+    if confirm.lower() in ["", "y", "yes"]:
+        from subprocess import Popen
+        Popen("pip install dendropy", shell=True).wait()
+        try:
+            import dendropy
+        except ImportError:
+            sys.exit("Failed to install dendropy, please see https://pythonhosted.org/DendroPy/ for further details")
+    else:
+        sys.exit("Aborting. Please see https://pythonhosted.org/DendroPy/ for installation details\n")
+
+
 from dendropy.datamodel.treemodel import Tree
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.calculate import treecompare
@@ -524,25 +550,25 @@ def consensus_tree(_phylobuddy, _frequency=.5):
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog="phylobuddy", description="",
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    import argparse
+    import buddy_resources as br
 
-    parser.add_argument("trees", help="Supply a file path or raw tree string", nargs="*", default=[sys.stdin])
+    version = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-    parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument("-sp", "--split_polys", action="store_true",
-                        help="Create a binary tree by splitting polytomies randomly.")
-    parser.add_argument('-pt', '--prune_taxa', action='append', nargs="+")
-    parser.add_argument('-ptr', '--print_trees', action='store_true')
-    parser.add_argument('-dt', '--display_trees', action='store_true')
-    parser.add_argument('-li', '--list_ids', action='append', nargs='?', type=int)
-    parser.add_argument('-cd', '--calculate_distance', action='store', nargs=1)  # TODO: Display input options
-    parser.add_argument('-ct', '--consensus_tree', action='store', nargs=1, type=float)
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="Specify the file format.", action='store')
+    parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mPhyloBuddy\033[m
+  Put a little bonsai into your phylogeny.
+
+\033[1mUsage examples\033[m:
+  PhyloBuddy.py "/path/to/tree_file" -<cmd>
+  PhyloBuddy.py "/path/to/tree_file" -<cmd> | PhyloBuddy.py -<cmd>
+  PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
+''')
+
+    br.flags(parser, "PhyloBuddy", ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+                                             "this argument can be left blank."), br.pb_flags, br.pb_modifiers, version)
 
     in_args = parser.parse_args()
 
