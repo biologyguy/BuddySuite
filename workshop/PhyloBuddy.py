@@ -551,14 +551,15 @@ def consensus_tree(_phylobuddy, _frequency=.5):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    from argparse_args import *
+    import buddy_resources as br
 
-    fmt = lambda prog: CustomHelpFormatter(prog)
+    version = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''\
 \033[1mPhyloBuddy\033[m
-Put a little bonsai into your phylogeny.
+  Put a little bonsai into your phylogeny.
 
 \033[1mUsage examples\033[m:
   PhyloBuddy.py "/path/to/tree_file" -<cmd>
@@ -566,42 +567,8 @@ Put a little bonsai into your phylogeny.
   PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
 ''')
 
-    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
-    positional.add_argument("trees", help="Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
-                                          "this argument can be left blank.", nargs="*", default=[sys.stdin])
-
-    pb_flags = OrderedDict(sorted(pb_flags.items(), key=lambda x: x[0]))
-    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in pb_flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        flags.add_argument(*args, **kwargs)
-
-    pb_modifiers = OrderedDict(sorted(pb_modifiers.items(), key=lambda x: x[0]))
-    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in pb_modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        modifiers.add_argument(*args, **kwargs)
-
-    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
-    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-    misc.add_argument('-v', '--version', action='version', version='''\
-PhyloBuddy 1.alpha (2015)
-
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    br.flags(parser, "PhyloBuddy", ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+                                             "this argument can be left blank."), br.pb_flags, br.pb_modifiers, version)
 
     in_args = parser.parse_args()
 

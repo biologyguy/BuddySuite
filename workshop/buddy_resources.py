@@ -9,7 +9,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 details at http://www.gnu.org/licenses/.
 
-name: available_commands.py
+name: shared_resources.py
 date: Aug-21-2015
 author: Stephen R. Bond
 email: steve.bond@nih.gov
@@ -21,13 +21,71 @@ repository: https://github.com/biologyguy/BuddySuite
 derivative work: No
 
 Description:
-Dictionaries of the commands available for each Buddy Tool
+Collection of resources used by all BuddySuite tools
+Including dictionaries of the commands available for each Buddy Tool
 """
+import sys
 import argparse
+import datetime
+from collections import OrderedDict
 
 
-# Pulled from stackoverflow: http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
+class Version:
+    def __init__(self, name, major, minor, _contributors, release_date=None):
+        self.name = name
+        self.major = major
+        self.minor = minor
+        self.contributors = _contributors  # This needs to be a list of Contributor objects
+        if not release_date:
+            self.release_date = datetime.date.today()
+        else:
+            # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
+            self.release_date = datetime.datetime(**release_date)
+
+    def contributors_string(self):
+        _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
+        _output = ""
+        for contributor in _contributors:
+            _output += "%s\n" % contributor
+        return _output.strip()
+
+    def __str__(self):
+        _output = '''\
+%s %s.%s (%s)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+
+Contributors:
+%s
+''' % (self.name, self.major, self.minor, self.release_date, self.contributors_string())
+        return _output
+
+
+class Contributor:
+    def __init__(self, first, last, commits=None, github=None):
+        self.first = first
+        self.last = last
+        self.commits = commits
+        self.github = github
+
+    def __str__(self):
+        if not self.commits:
+            commits = "0 commits"
+        elif self.commits == 1:
+            commits = "1 commit"
+        else:
+            commits = "%s commits" % self.commits
+
+        _output = "%s %s, %s" % (self.first, self.last, commits)
+        return _output if not self.github else "%s, %s" % (_output, self.github)
+
+
 # Credit to rr- (http://stackoverflow.com/users/2016221/rr)
+# http://stackoverflow.com/questions/18275023/dont-show-long-options-twice-in-print-help-from-argparse
 class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
     def _format_action_invocation(self, action):
         if not action.option_strings or action.nargs == 0:
@@ -36,8 +94,48 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
         args_string = self._format_args(action, default)
         return ', '.join(action.option_strings) + ' ' + args_string
 
-# flag, action, nargs, metavar, help, choices, type
 
+def flags(parser, tool_name, _positional, _flags, _modifiers, version):
+    """
+    :param parser: argparse.ArgumentParser object
+    :param tool_name: str e.g., "DatabaseBuddy"
+    :param positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
+    :param _flags: dict e.g., db_flags
+    :param version: Version object
+    :return:
+    """
+    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+    positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
+
+    _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
+    parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+    for func, in_args in _flags.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        parser_flags.add_argument(*args, **kwargs)
+
+    _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
+    parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+    for func, in_args in _modifiers.items():
+        args = ("-%s" % in_args["flag"], "--%s" % func)
+        kwargs = {}
+        for cmd, val in in_args.items():
+            if cmd == 'flag':
+                continue
+            kwargs[cmd] = val
+        parser_modifiers.add_argument(*args, **kwargs)
+
+    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
+    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
+    misc.add_argument('-v', '--version', action='version', version=str(version))
+
+contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
+                Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
+# flag, action, nargs, metavar, help, choices, type
 # ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",
@@ -196,7 +294,7 @@ sb_flags = {"add_feature": {"flag": "af",
                       "help": "Group a bunch of seq files together"},
             "molecular_weight": {"flag": "mw",
                                  "action": "store_true",
-                                 "help": "Computes the molecular weight of all of the sequences found in the input file."},
+                                 "help": "Compute the molecular weight of sequences"},
             "num_seqs": {"flag": "ns",
                          "action": "store_true",
                          "help": "Counts how many sequences are present in an input file"},
@@ -213,7 +311,7 @@ sb_flags = {"add_feature": {"flag": "af",
             "order_ids": {"flag": "oi",
                           "action": "append",
                           "nargs": "?",
-                          "help": "Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order"},
+                          "help": "Sort sequences by id alpha-numerically. Pass in the word 'rev' to reverse order"},
             "order_ids_randomly": {"flag": "oir",
                                    "action": "store_true",
                                    "help": "Randomly reorder the position of records in the file."},
@@ -333,7 +431,7 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                              "help": "Remove selected rows from alignments. Arguments: <search_pattern>"},
              "extract_range": {"flag": "er",
                                "action": "store",
-                               "nargs":2,
+                               "nargs": 2,
                                "metavar": ("<start (int)>", "<end (int)>"),
                                "type": int,
                                "help": "Pull out sub-alignments in a given range."},
@@ -474,7 +572,7 @@ db_flags = {"guess_database": {"flag": "gd",
 
 db_modifiers = {"database": {"flag": "d",
                              "action": "store",
-                             "choices": [],
+                             "choices": [],  # This needs to be set to DATABASES in the main program
                              "help": "Specify a specific database or database class to search"},
                 "out_format": {"flag": "o",
                                "action": "store",

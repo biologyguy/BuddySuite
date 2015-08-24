@@ -1619,14 +1619,16 @@ def retrieve_sequences(_dbbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    from argparse_args import *
+    import buddy_resources as br
 
-    fmt = lambda prog: CustomHelpFormatter(prog)
+    version = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
+
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''
 \033[1mDatabaseBuddy\033[m
-Go forth to the servers of sequence, and discover.
+  Go forth to the servers of sequence, and discover.
 
 \033[1mUsage examples\033[m:
   DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
@@ -1635,46 +1637,10 @@ Go forth to the servers of sequence, and discover.
   DbBuddy.py "/path/to/file_of_accns" -<cmd>
   ''')
 
-    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
-    positional.add_argument("user_input", nargs="*", default=[sys.stdin],
-                            help="Specify accession numbers or search terms, "
-                                 "either in a file or as a comma separated list")
-
-    db_flags = OrderedDict(sorted(db_flags.items(), key=lambda x: x[0]))
-    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in db_flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        flags.add_argument(*args, **kwargs)
-
-    db_modifiers = OrderedDict(sorted(db_modifiers.items(), key=lambda x: x[0]))
-    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in db_modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            elif func == "database" and cmd == 'choices':
-                val = DATABASES
-            kwargs[cmd] = val
-        modifiers.add_argument(*args, **kwargs)
-
-    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
-    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-
-    misc.add_argument('-v', '--version', action='version', version='''\
-DbBuddy 1.alpha (2015)
-
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    br.db_modifiers["database"]["choices"] = DATABASES
+    br.flags(parser, "DatabaseBuddy", ("user_input", "Specify accession numbers or search terms, "
+                                                     "either in a file or as a comma separated list"),
+             br.db_flags, br.db_modifiers, version)
 
     in_args = parser.parse_args()
 

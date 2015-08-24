@@ -966,14 +966,16 @@ if __name__ == '__main__':
         sys.argv[arg_index] = params
 
     import argparse
-    from argparse_args import *
+    import buddy_resources as br
 
-    fmt = lambda prog: CustomHelpFormatter(prog)
+    version = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
+
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''\
 \033[1mAlignBuddy\033[m
-Sequence alignments with a splash of kava.
+  Sequence alignments with a splash of kava.
 
 \033[1mUsage examples\033[m:
   AlignBuddy.py "/path/to/align_file" -<cmd>
@@ -981,42 +983,8 @@ Sequence alignments with a splash of kava.
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    positional = parser.add_argument_group(title="\033[1mPositional\033[m")
-    positional.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
-
-    alb_flags = OrderedDict(sorted(alb_flags.items(), key=lambda x: x[0]))
-    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in alb_flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        flags.add_argument(*args, **kwargs)
-
-    alb_modifiers = OrderedDict(sorted(alb_modifiers.items(), key=lambda x: x[0]))
-    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in alb_modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        modifiers.add_argument(*args, **kwargs)
-
-    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
-    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-
-    misc.add_argument('-v', '--version', action='version', version='''\
-AlignBuddy 1.alpha (2015)
-
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    br.flags(parser, "AlignBuddy", ("alignments", "The file(s) you want to start working on"),
+             br.alb_flags, br.alb_modifiers, version)
 
     in_args = parser.parse_args()
 

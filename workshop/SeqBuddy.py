@@ -2292,14 +2292,16 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    from argparse_args import *
+    import buddy_resources as br
 
-    fmt = lambda prog: CustomHelpFormatter(prog)
+    version = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
+
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''\
 \033[1mSeqBuddy\033[m
-See your sequence files. Be your sequence files.
+  See your sequence files. Be your sequence files.
 
 \033[1mUsage examples\033[m:
   SeqBuddy.py "/path/to/seq_file" -<cmd>
@@ -2307,42 +2309,9 @@ See your sequence files. Be your sequence files.
   SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
 ''')
 
-    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
-    positional.add_argument("sequence", help="Supply file path(s) or raw sequence. If piping sequences into SeqBuddy "
-                                             "this argument can be left blank.", nargs="*", default=[sys.stdin])
-
-    sb_flags = OrderedDict(sorted(sb_flags.items(), key=lambda x: x[0]))
-    flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in sb_flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        flags.add_argument(*args, **kwargs)
-
-    sb_modifiers = OrderedDict(sorted(sb_modifiers.items(), key=lambda x: x[0]))
-    modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in sb_modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        modifiers.add_argument(*args, **kwargs)
-
-    misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
-    misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-    misc.add_argument('-v', '--version', action='version', version='''\
-SeqBuddy 2.alpha (2015)
-
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    br.flags(parser, "SeqBuddy", ("sequence", "Supply file path(s) or raw sequence. If piping sequences into SeqBuddy "
+                                              "this argument can be left blank."),
+             br.sb_flags, br.sb_modifiers, version)
 
     in_args = parser.parse_args()
 
