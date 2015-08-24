@@ -202,10 +202,10 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         if self.out_format in ["phylip-sequential", "phylips"]:
             _output = phylipseq(self)
 
-        elif self.out_format in ["phylipss", "phylip-sequential-strict"]:
-            _output = phylipseq(self, _relaxed=False)
-
         else:
+            if self.out_format in ["phylipss", "phylip-sequential-strict"]:
+                self.out_format = "phylip-sequential"
+
             tmp_dir = TemporaryDirectory()
             with open("%s/aligns.tmp" % tmp_dir.name, "w") as _ofile:
                 AlignIO.write(self.alignments, _ofile, self.out_format)
@@ -838,7 +838,7 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
-def generate_msa(_seqbuddy, _tool, _params):
+def generate_msa(_seqbuddy, _tool, _params=None):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
@@ -859,17 +859,17 @@ def generate_msa(_seqbuddy, _tool, _params):
         with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
             out_file.write(str(_seqbuddy))
         if _tool == 'clustalomega':
-            command = '{0} {1} -i {2}'.format(_tool, ''.join(_params), tmp_in)
+            command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
         elif _tool.startswith('clustalw'):
-            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
         elif _tool == 'muscle':
-            command = '{0} -in {1} {2}'.format(_tool, tmp_in, ''.join(_params))
+            command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
         elif _tool == 'prank':
-            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
         elif _tool == 'pagan':
-            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, ''.join(_params), tmp_dir.name)
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
         else:
-            command = '{0} {1} {2}'.format(_tool, ''.join(_params), tmp_in)
+            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
         try:
             if _tool in ['prank', 'pagan']:
                 subprocess.Popen(command, shell=True, universal_newlines=True).wait()
@@ -974,7 +974,7 @@ if __name__ == '__main__':
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records
         seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
-        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], in_args.params)))
+        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], in_args.params[0])))
         sys.exit()
 
     for align_set in in_args.alignments:
