@@ -14,7 +14,7 @@ from subprocess import Popen
 import zipfile
 from inspect import getsourcefile
 from collections import OrderedDict
-import argparse_args as arga
+import buddy_resources as br
 
 import argparse
 
@@ -154,7 +154,7 @@ class BuddyInstall:
 
         paths_to_delete = ["resources", "blast_binaries", "Bio"]
         files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
-                           "config.ini", "argparse_args.py"]
+                           "config.ini", "buddy_resources.py"]
 
         if path.exists("{0}/.buddysuite/__pycache__".format(home_dir)):
             rmtree("{0}/.buddysuite/__pycache__".format(home_dir))
@@ -174,7 +174,7 @@ class BuddyInstall:
             rmtree(path.realpath("{0}/.buddysuite".format(home_dir)))
             os.remove("{0}/.buddysuite".format(home_dir))
 
-        argparse_args_path = "./argparse_args.py"
+        buddy_resources_path = "./buddy_resources.py"
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
         if not all_false:
@@ -188,8 +188,8 @@ class BuddyInstall:
                 user_system = 'Linux' if user_system == "Unix" else user_system
                 user_system = 'Win32' if user_system == "Windows" else user_system
 
-                shutil.copy(argparse_args_path, "{0}/argparse_args.py".format(install_directory))
-                print("File added: {0}/argparse_args.py".format(install_directory))
+                shutil.copy(buddy_resources_path, "{0}/buddy_resources.py".format(install_directory))
+                print("File added: {0}/buddy_resources.py".format(install_directory))
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
                 print("File added: {0}/MyFuncs.py".format(install_directory))
                 copytree(biopython_path, "{0}/Bio".format(install_directory))
@@ -1118,8 +1118,8 @@ seqbuddy_blurb = "Read, write, analyze, and manipulate sequence files in common 
                  "GenBank, and EMBL. From the command line, SeqBuddy input can be file paths or piped data " \
                  "and the content is automatically detected.\n\n"
 
-seqbuddy_blurb += "The %s available tools:" % len(arga.sb_flags)
-sb_flags = OrderedDict(sorted(arga.sb_flags.items(), key=lambda x: x[0]))
+seqbuddy_blurb += "The %s available tools:" % len(br.sb_flags)
+sb_flags = OrderedDict(sorted(br.sb_flags.items(), key=lambda x: x[0]))
 for func in sb_flags:
     func = re.sub("_", " ", func)
     seqbuddy_blurb += "\n    - %s" % func
@@ -1128,16 +1128,16 @@ alignbuddy_blurb = "Read, write, analyze, and manipulate alignment files in comm
                    "and Stockholm. AlignBuddy can also generate alignments by wrapping common alignment programs " \
                    "(e.g., MAFFT, MUSCLE, and PAGAN), handling pre- and post- formatting automatically.\n\n"
 
-alignbuddy_blurb += "The %s available tools:" % len(arga.alb_flags)
-alb_flags = OrderedDict(sorted(arga.alb_flags.items(), key=lambda x: x[0]))
+alignbuddy_blurb += "The %s available tools:" % len(br.alb_flags)
+alb_flags = OrderedDict(sorted(br.alb_flags.items(), key=lambda x: x[0]))
 for func in alb_flags:
     func = re.sub("_", " ", func)
     alignbuddy_blurb += "\n    - %s" % func
 
 phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic tree files in Newick, Nexus, and XML formats.\n\n"
 
-phylobuddy_blurb += "The %s available tools:" % len(arga.pb_flags)
-pb_flags = OrderedDict(sorted(arga.pb_flags.items(), key=lambda x: x[0]))
+phylobuddy_blurb += "The %s available tools:" % len(br.pb_flags)
+pb_flags = OrderedDict(sorted(br.pb_flags.items(), key=lambda x: x[0]))
 for func in pb_flags:
     func = re.sub("_", " ", func)
     phylobuddy_blurb += "\n    - %s" % func
@@ -1146,8 +1146,8 @@ databasebuddy_blurb = "Search for and retrieve sequence records from NCBI, UniPr
                       "primarily used as a 'live shell', allowing the user to filter results before committing " \
                       "to downloading the actual sequences.\n\n"
 
-databasebuddy_blurb += "The %s available tools:" % len(arga.db_flags)
-db_flags = OrderedDict(sorted(arga.db_flags.items(), key=lambda x: x[0]))
+databasebuddy_blurb += "The %s available tools:" % len(br.db_flags)
+db_flags = OrderedDict(sorted(br.db_flags.items(), key=lambda x: x[0]))
 for func in db_flags:
     func = re.sub("_", " ", func)
     databasebuddy_blurb += "\n    - %s" % func
