@@ -196,14 +196,17 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         if self.out_format == "fasta" and len(self.alignments) > 1:
             raise ValueError("Error: FASTA format does not support multiple alignments in one file.\n")
 
-        if self.out_format == "phylipi":
-            _output = phylipi(self)
+        if self.out_format in ["phylipi", "phylip-interleaved"]:
+            self.out_format = "phylip-relaxed"
 
-        elif self.out_format == "philip-sequential":
+        elif self.out_format in ["phylipis", "phylip-strict"]:
+            self.out_format = "phylip"
+
+        if self.out_format in ["phylip-sequential", "phylips"]:
             _output = phylipseq(self)
 
-        elif self.out_format == "phylipis":
-            _output = phylipi(self, "strict")
+        elif self.out_format in ["phylipss", "phylip-sequential-strict"]:
+            _output = phylipseq(self, _relaxed=False)
 
         else:
             tmp_dir = TemporaryDirectory()
@@ -263,7 +266,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         _input.seek(0)
 
         possible_formats = ["gb", "phylip-relaxed", "phylip-sequential", "stockholm", "fasta", "nexus", "clustal",
-                            "pir"]
+                            "pir", "phylip"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -283,54 +286,23 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
     else:
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
-
-def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
+def phylipseq(_alignbuddy, _relaxed=True):
     _output = ""
     for _alignment in _alignbuddy.alignments:
-        max_id_length = 0
         max_seq_length = 0
         for _rec in _alignment:
-            max_id_length = len(_rec.id) if len(_rec.id) > max_id_length else max_id_length
             max_seq_length = len(_rec.seq) if len(_rec.seq) > max_seq_length else max_seq_length
 
-        _output += " %s %s\n" % (len(_alignment), max_seq_length)
+        _output += " %s %s" % (len(_alignment), max_seq_length)
         for _rec in _alignment:
-            _seq_id = _rec.id.ljust(max_id_length) if _format == "relaxed" else _rec.id[:10].ljust(10)
-            _output += "%s  %s\n" % (_seq_id, _rec.seq)
+            if _relaxed:
+                _seq_id = re.sub(' \t', '_', _rec.id)
+                _output += "\n%s \n%s" % (_seq_id, _rec.seq)
+            else:
+                _seq_id = _rec.id[:10].ljust(10)
+                _output += "\n%s%s" % (_seq_id, _rec.seq)
         _output += "\n"
     return _output
-
-def phylipseq(_alignbuddy, _format="relaxed"): ### TODO ###
-    _io = AlignIO.PhylipIO.SequentialPhylipWriter(AlignIO.PhylipIO.SequentialAlignmentWriter(None))
-    _output = _io.write_alignment(_alignbuddy.alignments, id_width=250)
-    return _output
-
-def read_phylipseq(_input): ### TODO ###
-    _input = _input.splitlines(keepends=True)
-    max_len = 0
-    for line in _input:
-        if len(line) > max_len:
-            max_len = len(line)
-    curr_seq = ''
-    _records = []
-    _alignments = []
-    for line in _input[1:]:
-        if re.search('[0-9] [0-9]', line):
-            _records[-1].seq = Seq(curr_seq)
-            _alignments.append(MultipleSeqAlignment(records=_records))
-            _records = []
-        if line.endswith(' '):
-            _records[-1].seq = Seq(curr_seq)
-            _records.append(SeqRecord('', id=line))
-            curr_seq = ''
-        else:
-            curr_seq += line
-    _records[-1].seq = Seq(curr_seq)
-    _alignments.append(MultipleSeqAlignment(records=_records))
-    for _alignment in _alignments:
-        return
-
-    return _alignments
 
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
