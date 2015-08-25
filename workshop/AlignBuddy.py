@@ -842,7 +842,7 @@ def generate_msa(_seqbuddy, _tool, _params=None):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
-    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw', 'clustalw2', 'clustalomega', 'mafft']:
+    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
@@ -860,7 +860,7 @@ def generate_msa(_seqbuddy, _tool, _params=None):
             out_file.write(str(_seqbuddy))
         if _tool == 'clustalomega':
             command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
-        elif _tool.startswith('clustalw'):
+        elif _tool == 'clustalw2':
             command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
         elif _tool == 'muscle':
             command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
@@ -923,8 +923,22 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                     contents += line
             _output = contents
         _alignbuddy = AlignBuddy(_output)
+
         for _hash in hash_table:
             rename(_alignbuddy, _hash, hash_table[_hash])
+            for _alignment in _alignbuddy.alignments:
+                for _rec in _alignment:
+                    if _hash in _rec.annotations:
+                        _rec.annotations.pop(_hash)
+                    to_pop = []
+                    for _key in _rec.annotations:
+                        if _hash in _rec.annotations[_key]:
+                            to_pop.append(_key)
+                    for _key in to_pop:
+                        _rec.annotations.pop(_key)
+                    _rec.name = re.sub(_hash, '', _rec.name)
+                    _rec.description = re.sub(_hash, '', _rec.description)
+
         return _alignbuddy
 
 
