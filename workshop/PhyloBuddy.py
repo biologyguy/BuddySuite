@@ -11,10 +11,12 @@ import os
 import random
 import re
 from io import StringIO, TextIOWrapper
+from subprocess import Popen, CalledProcessError, check_output
 from collections import OrderedDict
 from random import sample
 from copy import deepcopy
 from MyFuncs import TemporaryDirectory
+from shutil import *
 
 # Third party package imports
 import Bio.Phylo
@@ -24,7 +26,6 @@ try:
 except ImportError:
     confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
-        from subprocess import Popen
         Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
         try:
             import ete3
@@ -548,6 +549,66 @@ def consensus_tree(_phylobuddy, _frequency=.5):
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
 
+def generate_tree(_alignbuddy, _tool, _params=None):
+    if _params is None:
+        _params = ''
+    _tool = _tool.lower()
+    if _tool not in ['raxml']:
+        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
+    if which(_tool) is None:
+        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
+        #_stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
+        sys.exit()
+    else:
+        tmp_dir = TemporaryDirectory()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+
+        _alignbuddy.out_format = 'fasta'
+        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+            out_file.write(str(_alignbuddy))
+        if _tool == 'raxml':
+            if '-T' not in _params:
+                _params += ' -T 2'
+            if '-m' not in _params:
+                _stderr("No tree-building method specified! Use the -m flag!")
+                sys.exit()
+            if '-p' not in _params:
+                _params += ' -p 12345'
+            if '-#' not in _params and '-N' not in _params:
+                _params += ' -# 1'
+            command = '{0} -s {1} {2} -n result -w {3}'.format(_tool, tmp_in, _params, tmp_dir.name)
+        else:
+            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
+
+        _output = ''
+
+        try:
+            if _tool in ['raxml']:
+                Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+            else:
+                _output = check_output(command, shell=True, universal_newlines=True)
+        except CalledProcessError:
+            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), in_args.quiet)
+            sys.exit()
+
+        if _tool == 'raxml':
+            num_runs = re.search('-#', _params)
+            if _params[num_runs.end()+1].isdigit():
+                num_runs = int(_params[num_runs.end()+1])
+            else:
+                num_runs = int(_params[num_runs.end()+2])
+            if num_runs > 1:
+                for tree_indx in range(num_runs):
+                    with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.name, tree_indx)) as result:
+                        _output += result.read()
+            else:
+                with open('{0}/RAxML_bestTree.result'.format(tmp_dir.name)) as result:
+                    _output += result.read()
+
+        _phylobuddy = PhyloBuddy(_output)
+
+        return _phylobuddy
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
@@ -574,6 +635,24 @@ if __name__ == '__main__':
 
     phylobuddy = []
     tree_set = ""
+
+    # Generate Tree
+    if in_args.generate_tree:
+        alignbuddy = []
+        try:
+            import AlignBuddy as Alb
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
+        for seq_set in in_args.trees:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            seq_set = Alb.AlignBuddy(seq_set, in_args.in_format, in_args.out_format)
+            alignbuddy += seq_set.alignments
+        alignbuddy = Alb.AlignBuddy(alignbuddy, seq_set.in_format, seq_set.out_format)
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        _stdout(str(generate_tree(alignbuddy, in_args.generate_tree[0], params)))
+        sys.exit()
 
     for tree_set in in_args.trees:
         if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
@@ -609,7 +688,7 @@ if __name__ == '__main__':
 # ############################################## COMMAND LINE LOGIC ############################################## #
 
     # Split polytomies
-    if in_args.split_polys:
+    if in_args.split_polytomies:
         split_polytomies(phylobuddy)
         _print_trees(phylobuddy)
         sys.exit()

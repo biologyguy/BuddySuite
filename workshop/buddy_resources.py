@@ -536,7 +536,10 @@ pb_flags = {"calculate_distance": {"flag": "cd",
                             "help": ""},
             "split_polytomies": {"flag": "sp",
                                  "action": "store_true",
-                                 "help": "Create a binary tree by splitting polytomies randomly."}
+                                 "help": "Create a binary tree by splitting polytomies randomly."},
+            "generate_tree": {"flag": "gt",
+                              "action": "append",
+                              "help": ""},
             }
 
 pb_modifiers = {"in_format": {"flag": "f",
@@ -551,6 +554,10 @@ pb_modifiers = {"in_format": {"flag": "f",
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},
+                "params": {"flag": "p",
+                           "action": "store",
+                           "nargs": "+",
+                           "help": "Free form arguments for some functions"},
                 "test": {"flag": "t",
                          "action": "store_true",
                          "help": "Run the function and return any stderr/stdout other than trees"}}
