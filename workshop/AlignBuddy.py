@@ -861,7 +861,15 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                 _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
                 sys.exit()
 
+        _params = re.split(' ', _params, )
+        for _token in _params:
+            if os.path.exists(_token):
+                _token = os.path.abspath(_token)
+        _params = ' '.join(_params)
+
         hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
+
+        _output = ''
 
         _seqbuddy.out_format = 'fasta'
         with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
@@ -896,7 +904,12 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                 extension = 'nex'
             elif '-f=phylipi' in _params or '-f=phylips' in _params:
                 extension = 'phy'
-            with open('{0}/result.best.{1}'.format(tmp_dir.name, extension)) as result:
+            possible_files = os.listdir(tmp_dir.name)
+            _filename = 'result.best.{0}'.format(extension)
+            for _file in possible_files:
+                if 'result.best' in _file and extension in _file:
+                    _filename = _file
+            with open('{0}/{1}'.format(tmp_dir.name, _filename)) as result:
                 _output = result.read()
         elif _tool == 'pagan':
             extension = 'fas'
@@ -910,7 +923,8 @@ def generate_msa(_seqbuddy, _tool, _params=None):
         # Fix broken outputs to play nicely with AlignBuddy parsers
         if (_tool == 'mafft' and '--clustalout' in _params) or \
                 (_tool.startswith('clustalw2') and '-output' not in _params) or \
-                (_tool == 'clustalomega' and 'clustal' in _params or '--outfmt clu' in _params or '--outfmt=clu'):
+                (_tool == 'clustalomega' and ('clustal' in _params or '--outfmt clu' in _params or
+                 '--outfmt=clu' in _params)):
             # Clustal format extra spaces
             contents = ''
             prev_line = ''
@@ -946,7 +960,7 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                         _rec.annotations.pop(_key)
                     _rec.name = re.sub(_hash, '', _rec.name)
                     _rec.description = re.sub(_hash, '', _rec.description)
-
+        _stderr('\n')
         return _alignbuddy
 
 
