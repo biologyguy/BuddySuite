@@ -573,6 +573,12 @@ def generate_tree(_alignbuddy, _tool, _params=None):
                 parameters = re.sub(_pattern, '', parameters)
             return parameters
 
+        _params = re.split(' ', _params, )
+        for _token in _params:
+            if os.path.exists(_token):
+                _token = os.path.abspath(_token)
+        _params = ' '.join(_params)
+
         _alignbuddy.out_format = 'phylip-interleaved'
         with open("{0}/tmp.del".format(tmp_dir.name), 'w') as out_file:
             out_file.write(str(_alignbuddy))
