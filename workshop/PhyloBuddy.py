@@ -563,10 +563,19 @@ def generate_tree(_alignbuddy, _tool, _params=None):
         tmp_dir = TemporaryDirectory()
         tmp_in = "{0}/tmp.del".format(tmp_dir.name)
 
+        def remove_invalid_params(_dict):
+            for _key in _dict:
+                if _dict[_key] == True:
+                    _pattern = "{0} [^ ]*".format(_key)
+                else:
+                    _pattern = "{0}"
+                _params = re.sub(_pattern, '', _params)
+
         _alignbuddy.out_format = 'phylip-interleaved'
         with open("{0}/tmp.del".format(tmp_dir.name), 'w') as out_file:
             out_file.write(str(_alignbuddy))
         if _tool == 'raxml':
+            remove_invalid_params({'-s': True, '-n': True, '-w': True})
             if '-T' not in _params:
                 _params += ' -T 2'
             if '-m' not in _params:
@@ -578,6 +587,8 @@ def generate_tree(_alignbuddy, _tool, _params=None):
                 _params += ' -# 1'
             command = '{0} -s {1} {2} -n result -w {3}'.format(_tool, tmp_in, _params, tmp_dir.name)
         elif _tool == 'phyml':
+            remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
+                                   '--run_id': True})
             if '-m' not in _params and '--model' not in _params:
                 _stderr("No tree-building method specified! Use the -m flag!\n")
                 sys.exit()
