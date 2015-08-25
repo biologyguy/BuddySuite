@@ -880,7 +880,7 @@ def generate_msa(_seqbuddy, _tool, _params=None):
             command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
         try:
             if _tool in ['prank', 'pagan']:
-                subprocess.Popen(command, shell=True, universal_newlines=True).wait()
+                subprocess.Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
             else:
                 _output = subprocess.check_output(command, shell=True, universal_newlines=True)
         except subprocess.CalledProcessError:
