@@ -793,6 +793,30 @@ class NCBIClient:
         self.results_file = "%s/results.txt" % self.temp_dir.path
         open(self.results_file, "w").close()
         self.max_url = 1000
+        self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
+
+    def _clear_files(self):
+        open(self.http_errors_file, "w").close()
+        open(self.results_file, "w").close()
+        return
+
+    def _parse_error_file(self):
+        with open(self.http_errors_file, "r") as ifile:
+            http_errors_file = ifile.read().strip("//\n")
+        if http_errors_file != "":
+            _output = ""
+            http_errors_file = http_errors_file.split("//")
+            for error in http_errors_file:
+                error = error.split("\n")
+                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
+                error = Failure(*error)
+                if error.hash not in self.dbbuddy.failures:
+                    self.dbbuddy.failures[error.hash] = error
+                    _output += "%s\n" % error
+            open(self.http_errors_file, "w").close()
+            return _output  # Errors found
+        else:
+            return False  # No errors to report
 
     def _split_for_url(self, accessions):
         _groups = [""]
@@ -807,14 +831,27 @@ class NCBIClient:
         return _groups
 
     def _mc_taxa(self, _taxa_ids):
-        handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)  # db needs to be set, but doesn't matter.
+        error = False
+        handle = False
+        for i in range(self.max_attempts):
+            try:
+                handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
+                break
+            except HTTPError as e:
+                if i == self.max_attempts - 1:
+                    error = e
+
         with self.lock:
-            with open(self.results_file, "a") as _ifile:
-                _ifile.write("%s### END ###\n" % handle.read())
+            if error:
+                with open(self.http_errors_file) as ifile:
+                    ifile.write("%s\n%s//\n" % (_taxa_ids, error))
+            else:
+                with open(self.results_file, "a") as ifile:
+                    ifile.write("%s### END ###\n" % handle.read())
         return
 
     def _get_taxa(self, _taxa_ids):
-        open(self.results_file, "w").close()
+        self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
         run_multicore_function(_taxa_ids, self._mc_taxa)
         with open(self.results_file, "r") as ifile:
@@ -828,14 +865,27 @@ class NCBIClient:
         return _output
 
     def _mc_accn2gi(self, accns):
-        handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
+        error = False
+        handle = False
+        for i in range(self.max_attempts):
+            try:
+                handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
+                break
+            except HTTPError as e:
+                if i == self.max_attempts - 1:
+                    error = e
+
         with self.lock:
-            with open(self.results_file, "a") as _ifile:
-                _ifile.write("%s### END ###\n" % handle.read())
+            if error:
+                with open(self.http_errors_file) as ifile:
+                    ifile.write("%s\n%s//\n" % (accns, error))
+            else:
+                with open(self.results_file, "a") as ifile:
+                    ifile.write("%s### END ###\n" % handle.read())
         return
 
     def _get_gis(self, accns):
-        open(self.results_file, "w").close()
+        self._clear_files()
         accns = self._split_for_url(accns)
         run_multicore_function(accns, self._mc_accn2gi)
         with open(self.results_file, "r") as ifile:
@@ -845,14 +895,28 @@ class NCBIClient:
         return results
 
     def _mc_summaries(self, gi_nums):
-        handle = Entrez.esummary(db="nucleotide", id=gi_nums, retmax=10000)  # db needs to be set, but doesn't matter.
+        error = False
+        handle = False
+        for i in range(self.max_attempts):
+            try:
+                # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
+                handle = Entrez.esummary(db="nucleotide", id=gi_nums, retmax=10000)
+                break
+            except HTTPError as e:
+                if i == self.max_attempts - 1:
+                    error = e
+
         with self.lock:
-            with open(self.results_file, "a") as _ifile:
-                _ifile.write("%s### END ###\n" % handle.read())
+            if error:
+                with open(self.http_errors_file) as ifile:
+                    ifile.write("%s\n%s//\n" % (gi_nums, error))
+            else:
+                with open(self.results_file, "a") as ifile:
+                    ifile.write("%s### END ###\n" % handle.read())
         return
 
     def _fetch_summaries(self, gi_nums):
-        open(self.results_file, "w").close()
+        self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
         run_multicore_function(gi_nums, self._mc_summaries)
         with open(self.results_file, "r") as _ifile:
@@ -883,7 +947,7 @@ class NCBIClient:
 
     def fetch_summary(self):
         # EUtils esummary will only take gi numbers
-        open(self.results_file, "w").close()
+        self._clear_files()
         accns = [accn for accn, rec in self.dbbuddy.records.items() if
                  rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
 
@@ -956,35 +1020,46 @@ class NCBIClient:
                         self.dbbuddy.failures[failure.hash] = failure
 
     def _mc_seq(self, accns, database):
-        handle = Entrez.efetch(db=database[0], id=accns, rettype="gb", retmode="text", retmax=10000)
+        error = False
+        handle = False
+        for i in range(self.max_attempts):
+            try:
+                handle = Entrez.efetch(db=database[0], id=accns, rettype="gb", retmode="text", retmax=10000)
+                break
+            except HTTPError as e:
+                if i == self.max_attempts - 1:
+                    error = e
+
         with self.lock:
-            with open(self.results_file, "a") as _ifile:
-                _ifile.write(handle.read())
+            if error:
+                with open(self.http_errors_file) as ifile:
+                    ifile.write("%s\n%s//\n" % (accns, error))
+            else:
+                with open(self.results_file, "a") as ifile:
+                    ifile.write(handle.read())
         return
 
-    def _get_seq(self, accns, database):
-        open(self.results_file, "w").close()
-        accns = self._split_for_url(accns)
-        run_multicore_function(accns, self._mc_seq, [database])
+    def _get_seq(self, gi_nums, database):
+        self._clear_files()
+        gi_nums = self._split_for_url(gi_nums)
+        run_multicore_function(gi_nums, self._mc_seq, [database])
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
         return results
 
     def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
-        accns = [accn for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
-        accns = self._split_for_url(accns)
-        try:
-            records = self._get_seq(accns, database)
-            for accn, rec in records.items():
-                if accn not in self.dbbuddy.records:
-                    self.dbbuddy.failures.setdefault("# Uniprot fetch: Ids not in dbbuddy.records", []).append(rec.id)
-                else:
-                    self.dbbuddy.records[accn].record = rec
-        except HTTPError as e:
-            failure = Failure("ACCNs: %s" % accns, "Unable to fetch sequence from NCBI\n%s" % e)
-            if failure.hash not in self.dbbuddy.failures:
-                self.dbbuddy.failures[failure.hash] = failure
+        gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
+        records = self._get_seq(gi_nums, database)
+
+        for accn, rec in records.items():
+            short_accn = re.search("^(.*?)\.[0-9]+$", accn)
+            if accn in self.dbbuddy.records:
+                self.dbbuddy.records[accn].record = rec
+            elif short_accn and short_accn.group(1) in self.dbbuddy.records:
+                self.dbbuddy.records[]  # ToDo: Broken
+            else:
+                self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
 
 class EnsemblRestClient:
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org', reqs_per_sec=15):
@@ -1848,10 +1923,9 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
-    dbbuddy.databases = ["ncbi_prot"]
     retrieve_summary(dbbuddy)
-    retrieve_sequences(dbbuddy)
     dbbuddy.print()
+    retrieve_sequences(dbbuddy)
     dbbuddy.out_format = "fasta"
     dbbuddy.print()
     sys.exit()
