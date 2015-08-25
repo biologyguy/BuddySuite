@@ -14,8 +14,10 @@ from MyFuncs import TempFile
 
 try:
     import workshop.AlignBuddy as Alb
+    import workshop.SeqBuddy as Sb
 except ImportError:
     import AlignBuddy as Alb
+    import SeqBuddy as Sb
 
 
 def align_to_hash(_alignbuddy, mode='hash'):
@@ -196,10 +198,11 @@ def test_write2():  # Unloopable components
 
     tester = Alb._make_copies(alb_objects[2])
     tester.out_format = "phylipi"
-    assert md5(str(tester).encode()).hexdigest() == "0379295eb39370bdba17c848ec9a8b73"
+    assert md5(str(tester).encode()).hexdigest() == "52c23bd793c9761b7c0f897d3d757c12"
 
-    tester.out_format = "phylipis"
-    assert md5(str(tester).encode()).hexdigest() == "729a3de75d70179a27a802bc0437f4ee"
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds_hashed_ids.nex"))
+    tester.out_format = "phylip-strict"
+    assert md5(str(tester).encode()).hexdigest() == "16b3397d6315786e8ad8b66e0d9c798f"
 
 
 def test_get_seq_recs():
@@ -208,26 +211,34 @@ def test_get_seq_recs():
     assert tester == "6168f8b57d0ff78d70fd22ee09d713b5"
 
 
-def test_phylipi():
-    tester = Alb.phylipi(alb_objects[0], _format="relaxed")
-    tester = "{0}\n".format(tester.rstrip())
+def test_phylip():
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), _out_format='phylip-strict')
+    tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
-    assert tester == "c5fb6a5ce437afa1a4004e4f8780ad68"
+    assert tester == "16b3397d6315786e8ad8b66e0d9c798f"
 
-    tester = Alb.phylipi(alb_objects[8], _format="relaxed").rstrip()
-    tester = "{0}\n".format(tester.rstrip())
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-relaxed')
+    tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
-    assert tester == "af97ddb03817ff050d3dfb42472c91e0"
+    assert tester == "52c23bd793c9761b7c0f897d3d757c12"
 
-    tester = Alb.phylipi(alb_objects[0], _format="strict").rstrip()
-    tester = "{0}\n".format(tester.rstrip())
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), _out_format='phylip-sequential-strict')
+    tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
-    assert tester == "270f1bac51b2e29c0e163d261795c5fe"
+    assert tester == "cc9278c0dbe6b315162545115978dda3"
 
-    tester = Alb.phylipi(alb_objects[8], _format="strict").rstrip()
-    tester = "{0}\n".format(tester.rstrip())
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-sequential')
+    tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
-    assert tester == "af97ddb03817ff050d3dfb42472c91e0"
+    assert tester == "90267e3a80f29bc966dc580e26c1fc0a"
+
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-sequential-strict')
+    with pytest.raises(ValueError):
+        tester = str(tester)
+
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-interleaved-strict')
+    with pytest.raises(ValueError):
+        tester = str(tester)
 
 
 def test_guess_alphabet():
@@ -518,3 +529,159 @@ def test_split_alignment():
     output = Alb.split_alignbuddy(tester)
     for buddy in output:
         assert buddy.alignments[0] in tester.alignments
+
+
+# ###########################################  'ga', '--generate_alignment' ########################################## #
+@pytest.mark.generate_alignments
+def test_pagan_inputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'pagan')
+    assert align_to_hash(tester) == 'b9fe3405313f6a2e10fe6697ee7331ae'
+
+@pytest.mark.generate_alignments
+def test_pagan_outputs():
+    # NEXUS
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'pagan', '-f nexus')
+    assert align_to_hash(tester) == 'ceeed2958da32fa78cd6807a786f133e'
+    # PHYLIPI
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'pagan', '-f phylipi')
+    assert align_to_hash(tester) == '74026266e3159a90b1ba10c428ccefde'
+    # PHYLIPS
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'pagan', '-f phylips')
+    assert align_to_hash(tester) == 'e93137dbafb008970c10953de1f00dfe'
+
+@pytest.mark.generate_alignments
+def test_pagan_multi_param():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'pagan', '-f nexus --translate')
+    assert align_to_hash(tester) == '81ca46a079324b484260476a21f996fc'
+
+@pytest.mark.generate_alignments
+def test_prank_inputs():
+    # FASTA
+    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
+    tester = Alb.generate_msa(tester, 'prank', '-once')
+    assert tester.out_format == 'fasta'
+
+@pytest.mark.generate_alignments
+def test_prank_outputs():
+    # NEXUS
+    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
+    tester = Alb.generate_msa(tester, 'prank', '-f=nexus -once')
+    assert tester.out_format == 'nexus'
+    # PHYLIPI
+    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
+    tester = Alb.generate_msa(tester, 'prank', '-f=phylipi -once')
+    assert tester.out_format == 'phylip-relaxed'
+    # PHYLIPS
+    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
+    tester = Alb.generate_msa(tester, 'prank', '-f=phylips -once')
+    assert tester.out_format == 'phylip-sequential'
+
+@pytest.mark.generate_alignments
+def test_muscle_inputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'muscle')
+    assert align_to_hash(tester) == '60ada1630165a40be9d5700cc228b1e1'
+
+@pytest.mark.generate_alignments
+def test_muscle_outputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'muscle', '-clw')
+    assert align_to_hash(tester) == 'ff8d81f75dfd6249ba1e91e5bbc8bdce'
+
+@pytest.mark.generate_alignments
+def test_muscle_multi_param():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
+    assert align_to_hash(tester) == 'ff8d81f75dfd6249ba1e91e5bbc8bdce'
+
+@pytest.mark.generate_alignments
+def test_clustalw2_inputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalw2')
+    assert align_to_hash(tester) == 'd744b9cadf592a6d4e8d5eefef90e7c7'
+
+@pytest.mark.generate_alignments
+def test_clustalw2_outputs():
+    # NEXUS
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalw2', '-output=nexus')
+    assert align_to_hash(tester) == 'f4a61a8c2d08a1d84a736231a4035e2e'
+    # PHYLIP
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalw2', '-output=phylip')
+    assert align_to_hash(tester) == 'a9490f124039c6a2a6193d27d3d01205'
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalw2', '-output=fasta')
+    assert align_to_hash(tester) == '955440b5139c8e6d7d3843b7acab8446'
+
+@pytest.mark.generate_alignments
+def test_clustalw2_multi_param():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalw2', '-output=phylip -noweights')
+    assert align_to_hash(tester) == 'ae9126eb8c482a82d4060d175803c478'
+
+@pytest.mark.generate_alignments
+def test_clustalomega_inputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalomega')
+    assert align_to_hash(tester) == 'c041c78d3d3a62a027490a139ad435e4'
+    # PHYLIP
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.phy"))
+    tester = Alb.generate_msa(tester, 'clustalomega')
+    assert align_to_hash(tester) == '734e93bac16fd2fe49a3340086bde048'
+    # STOCKHOLM
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.stklm"))
+    tester = Alb.generate_msa(tester, 'clustalomega')
+    assert align_to_hash(tester) == '5c7a21e173f8bf54a26ed9d49764bf80'
+
+@pytest.mark.generate_alignments
+def test_clustalomega_outputs():
+    # CLUSTAL
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal')
+    assert align_to_hash(tester) == 'ce25de1a84cc7bfbcd946c88b65cf3e8'
+    # PHYLIP
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=phylip')
+    assert align_to_hash(tester) == '692c6af848bd90966f15908903894dbd'
+    # STOCKHOLM
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=stockholm')
+    assert align_to_hash(tester) == '47cc879b68719b8de0eb031d2f0e9fcc'
+
+@pytest.mark.generate_alignments
+def test_clustalomega_multi_param():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal --iter=1')
+    assert align_to_hash(tester) == '294d8c0260eb81d2039ce8be7289dfcc'
+
+@pytest.mark.generate_alignments
+def test_mafft_inputs():
+    # FASTA
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'mafft')
+    assert align_to_hash(tester) == '8dda0524aaffb326aff09143a1df8a45'
+
+@pytest.mark.generate_alignments
+def test_mafft_outputs():
+    # CLUSTAL
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'mafft', '--clustalout')
+    assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
+
+@pytest.mark.generate_alignments
+def test_mafft_multi_param():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
+    assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
