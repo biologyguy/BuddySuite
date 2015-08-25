@@ -852,7 +852,15 @@ def generate_msa(_seqbuddy, _tool, _params=None):
         tmp_dir = TemporaryDirectory()
         tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
 
-        from SeqBuddy import hash_sequence_ids
+        try:
+            from workshop.SeqBuddy import hash_sequence_ids
+        except ImportError:
+            try:
+                from SeqBuddy import hash_sequence_ids
+            except ImportError:
+                _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+                sys.exit()
+
         hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
 
         _seqbuddy.out_format = 'fasta'
@@ -980,8 +988,12 @@ if __name__ == '__main__':
 
     # Generate Alignment
     if in_args.generate_alignment:
-        import SeqBuddy as Sb
         seqbuddy = []
+        try:
+            import SeqBuddy as Sb
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
         for seq_set in in_args.alignments:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
