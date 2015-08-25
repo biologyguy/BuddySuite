@@ -248,7 +248,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                         self.search_terms.append(search_term)
 
     def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
-        if self.server_clients[_server]:
+        if _server in self.server_clients:
             return self.server_clients[_server]
         if _server == "uniprot":
             client = UniProtRestClient(self)
@@ -1283,6 +1283,7 @@ class EnsemblRestClient:
         return data
 
     def fetch_nucleotides(self):
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         for _accession, _rec in self.dbbuddy.records.items():
             if _rec.database == "ensembl" and _rec.type == "nucleotide":
                 _rec.record = self.perform_rest_action("/sequence/id", _rec.accession)
@@ -1963,7 +1964,9 @@ def retrieve_summary(_dbbuddy):
         refseq.fetch_summary()
 
     if "ensembl" in _dbbuddy.databases or check_all:
-        pass
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.fetch_nucleotides()
+        # ensembl.fetch_summary()
 
     return _dbbuddy
 
@@ -2006,7 +2009,7 @@ if __name__ == '__main__':
   DbBuddy.py "<search term1, search term2,...>" -<cmd>
   DbBuddy.py "<accn1,search term1>" -<cmd>
   DbBuddy.py "/path/to/file_of_accns" -<cmd>
-  ''')
+''')
 
     br.db_modifiers["database"]["choices"] = DATABASES
     br.flags(parser, "DatabaseBuddy", ("user_input", "Specify accession numbers or search terms, "
@@ -2091,5 +2094,8 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
+    retrieve_summary(dbbuddy)
+    dbbuddy.print()
+    sys.exit()
     # Default to LiveSearch
     live_search = LiveSearch(dbbuddy)
