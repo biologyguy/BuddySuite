@@ -553,7 +553,7 @@ def generate_tree(_alignbuddy, _tool, _params=None):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
-    if _tool not in ['raxml']:
+    if _tool not in ['raxml', 'phyml']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
@@ -561,29 +561,34 @@ def generate_tree(_alignbuddy, _tool, _params=None):
         sys.exit()
     else:
         tmp_dir = TemporaryDirectory()
-        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+        tmp_in = "{0}/tmp.del".format(tmp_dir.name)
 
-        _alignbuddy.out_format = 'fasta'
-        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+        _alignbuddy.out_format = 'phylip-interleaved'
+        with open("{0}/tmp.del".format(tmp_dir.name), 'w') as out_file:
             out_file.write(str(_alignbuddy))
         if _tool == 'raxml':
             if '-T' not in _params:
                 _params += ' -T 2'
             if '-m' not in _params:
-                _stderr("No tree-building method specified! Use the -m flag!")
+                _stderr("No tree-building method specified! Use the -m flag!\n")
                 sys.exit()
             if '-p' not in _params:
                 _params += ' -p 12345'
             if '-#' not in _params and '-N' not in _params:
                 _params += ' -# 1'
             command = '{0} -s {1} {2} -n result -w {3}'.format(_tool, tmp_in, _params, tmp_dir.name)
+        elif _tool == 'phyml':
+            if '-m' not in _params and '--model' not in _params:
+                _stderr("No tree-building method specified! Use the -m flag!\n")
+                sys.exit()
+            command = '{0} -i {1} {2}'.format(_tool, tmp_in, _params)
         else:
             command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
 
         _output = ''
 
         try:
-            if _tool in ['raxml']:
+            if _tool in ['raxml', 'phyml']:
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
             else:
                 _output = check_output(command, shell=True, universal_newlines=True)
@@ -604,6 +609,9 @@ def generate_tree(_alignbuddy, _tool, _params=None):
             else:
                 with open('{0}/RAxML_bestTree.result'.format(tmp_dir.name)) as result:
                     _output += result.read()
+        if _tool == 'phyml':
+            with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.name)) as result:
+                _output += result.read()
 
         _phylobuddy = PhyloBuddy(_output)
 
