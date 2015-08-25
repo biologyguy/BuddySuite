@@ -437,16 +437,23 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 # ################################################# SUPPORT CLASSES ################################################## #
 class Record:
-    def __init__(self, _accession, gi=None, _record=None, summary=None, _size=None,
+    def __init__(self, _accession, gi=None, _version=None, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
-        self.gi = gi  # This is only used for NCBI records
+        self.gi = gi  # This is for NCBI records
+        self.version = _version  # This is for NCBI records
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
         self.size = _size if _size in [None, ''] else int(_size)
         self.database = _database
         self.type = check_type(_type)
         self.search_term = _search_term  # In case the record was the result of a particular search
+
+    def ncbi_accn(self):
+        if not self.version:
+            return self.accession
+        else:
+            return "%s.%s" % (self.accession, self.version)
 
     def guess_database(self):
         # RefSeq
@@ -497,6 +504,14 @@ class Record:
             self.database = "ncbi_nuc"
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
             self.gi = str(self.accession)
+
+        if self.database in ["ncbi_nuc", "ncbi_prot"]:
+            # Catch accn/version
+            with_version = re.search("^(.*?)\.([0-9]+)$", self.accession)
+            if with_version:
+                accn, ver = with_version.group(1), with_version.group(2)
+                self.accession = accn
+                self.version = ver
 
         #else:
         #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)  # ToDo: This is for testing, needs to be removed for production
@@ -563,8 +578,10 @@ class Record:
         return False
 
     def update(self, new_rec):
+        # ToDo: automate this by looping through Record object dir()
         self.accession = new_rec.accession if new_rec.accession else self.accession
         self.gi = new_rec.gi if new_rec.gi else self.gi
+        self.version = new_rec.version if new_rec.version else self.version
         self.record = new_rec.record if new_rec.record else self.record
         self.summary = new_rec.summary if new_rec.summary else self.summary
         self.size = new_rec.size if new_rec.size else self.size
@@ -820,14 +837,14 @@ class NCBIClient:
 
     def _split_for_url(self, accessions):
         _groups = [""]
-        for _gi in accessions:
-            _gi = str(_gi)
+        for accn in accessions:
+            accn = str(accn)
             if _groups[-1] == "":
-                _groups[-1] = _gi
-            elif len(_groups[-1] + _gi) + 1 <= self.max_url:
-                _groups[-1] += ",%s" % _gi
+                _groups[-1] = accn
+            elif len(_groups[-1] + accn) + 1 <= self.max_url:
+                _groups[-1] += ",%s" % accn
             else:
-                _groups.append(_gi)
+                _groups.append(accn)
         return _groups
 
     def _mc_taxa(self, _taxa_ids):
@@ -836,6 +853,25 @@ class NCBIClient:
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
+                '''
+                Example output: esummary.fcgi?db=taxonomy&id=649
+                    <eSummaryResult>
+                        <DocSum>
+                            <Id>649</Id>
+                            <Item Name="Status" Type="String">active</Item>
+                            <Item Name="Rank" Type="String">species</Item>
+                            <Item Name="Division" Type="String">g-proteobacteria</Item>
+                            <Item Name="ScientificName" Type="String">Aeromonas eucrenophila</Item>
+                            <Item Name="CommonName" Type="String"/>
+                            <Item Name="TaxId" Type="Integer">649</Item>
+                            <Item Name="AkaTaxId" Type="Integer">0</Item>
+                            <Item Name="Genus" Type="String">Aeromonas</Item>
+                            <Item Name="Species" Type="String">eucrenophila</Item>
+                            <Item Name="Subsp" Type="String"/>
+                            <Item Name="ModificationDate" Type="Date">2014/12/30 00:00</Item>
+                        </DocSum>
+                    </eSummaryResult>
+                '''
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
@@ -870,6 +906,12 @@ class NCBIClient:
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
+                '''
+                Example output: efetch.fcgi?db=nucleotide&id=XP_010103297.1,XP_010103298.1,XP_010103299.1&rettype=gi
+                    703125407
+                    703125412
+                    703125416
+                '''
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
@@ -884,7 +926,7 @@ class NCBIClient:
                     ifile.write("%s### END ###\n" % handle.read())
         return
 
-    def _get_gis(self, accns):
+    def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
         run_multicore_function(accns, self._mc_accn2gi)
@@ -901,6 +943,32 @@ class NCBIClient:
             try:
                 # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
                 handle = Entrez.esummary(db="nucleotide", id=gi_nums, retmax=10000)
+                '''
+                Example output: esummary.fcgi?db=nucleotide&id=728840875
+                    <eSummaryResult>
+                        <DocSum>
+                            <Id>728840875</Id>
+                            <Item Name="Caption" Type="String">KHG20318</Item>
+                            <Item Name="Title" Type="String">
+                                Proline-rich receptor-like protein kinase PERK1 [Gossypium arboreum]
+                            </Item>
+                            <Item Name="Extra" Type="String">
+                                gi|728840875|gb|KHG20318.1||gnl|WGS:JRRC|F383_09126[728840875]
+                            </Item>
+                            <Item Name="Gi" Type="Integer">728840875</Item>
+                            <Item Name="CreateDate" Type="String">2014/12/04</Item>
+                            <Item Name="UpdateDate" Type="String">2014/12/04</Item>
+                            <Item Name="Flags" Type="Integer">0</Item>
+                            <Item Name="TaxId" Type="Integer">29729</Item>
+                            <Item Name="Length" Type="Integer">649</Item>
+                            <Item Name="Status" Type="String">live</Item>
+                            <Item Name="ReplacedBy" Type="String"/>
+                            <Item Name="Comment" Type="String">
+                                <![CDATA[ ]]>
+                            </Item>
+                        </DocSum>
+                    </eSummaryResult>
+                '''
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
@@ -948,14 +1016,14 @@ class NCBIClient:
     def fetch_summary(self):
         # EUtils esummary will only take gi numbers
         self._clear_files()
-        accns = [accn for accn, rec in self.dbbuddy.records.items() if
+        accns = [rec.ncbi_accn() for accn, rec in self.dbbuddy.records.items() if
                  rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
 
         if accns:
             gi_nums = self._get_gis(accns)
             summaries = self._fetch_summaries(gi_nums)
             for accn in accns:
-                if re.search("\.[0-9]+$", accn):
+                if re.search("\.[0-9]+$", accn):  # Add record the version number if present
                     wrong_accn = re.search("^(.*?)\.", accn).group(1)
                     summaries[wrong_accn].accession = accn
                     summaries[accn] = summaries[wrong_accn]
@@ -1000,6 +1068,32 @@ class NCBIClient:
             try:
                 count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
                 handle = Entrez.esearch(db=database, term=_term, retmax=count)
+                '''
+                Example output: esearch.fcgi?db=nucleotide&term=perk1&retmax=5
+                <eSearchResult>
+                    <Count>456</Count>
+                    <RetMax>5</RetMax>
+                    <RetStart>0</RetStart>
+                    <IdList>
+                        <Id>909549231</Id>
+                        <Id>909549227</Id>
+                        <Id>909549224</Id>
+                        <Id>909546647</Id>
+                        <Id>306819620</Id>
+                    </IdList>
+                    <TranslationSet/>
+                    <TranslationStack>
+                        <TermSet>
+                            <Term>perk1[All Fields]</Term>
+                            <Field>All Fields</Field>
+                            <Count>456</Count>
+                            <Explode>N</Explode>
+                        </TermSet>
+                        <OP>GROUP</OP>
+                    </TranslationStack>
+                    <QueryTranslation>perk1[All Fields]</QueryTranslation>
+                </eSearchResult>
+                '''
                 result = Entrez.read(handle)
                 for _id in result["IdList"]:
                     if _id not in self.dbbuddy.records:
@@ -1025,6 +1119,77 @@ class NCBIClient:
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db=database[0], id=accns, rettype="gb", retmode="text", retmax=10000)
+                '''
+                Example output: efetch.fcgi?db=protein&id=920714169&rettype=gb&retmode=text
+                LOCUS       KOM54257                 441 aa            linear   PLN 21-AUG-2015
+                DEFINITION  hypothetical protein LR48_Vigan10g014900 [Vigna angularis].
+                ACCESSION   KOM54257
+                VERSION     KOM54257.1  GI:920714169
+                DBLINK      BioProject: PRJNA261643
+                            BioSample: SAMN03074979
+                DBSOURCE    accession CM003380.1
+                KEYWORDS    .
+                SOURCE      Vigna angularis (adzuki bean)
+                  ORGANISM  Vigna angularis
+                            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
+                            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
+                            Pentapetalae; rosids; fabids; Fabales; Fabaceae; Papilionoideae;
+                            Phaseoleae; Vigna.
+                REFERENCE   1  (residues 1 to 441)
+                  AUTHORS   Wan,P.
+                  TITLE     The draft genome sequence of high starch accumulation legume
+                            species adzuki bean (Vigna angularis)
+                  JOURNAL   Unpublished
+                REFERENCE   2  (residues 1 to 441)
+                  AUTHORS   Wan,P.
+                  TITLE     Direct Submission
+                  JOURNAL   Submitted (27-FEB-2015) College of Plant Science and Technology,
+                            Beijing University of Agriculture, Huilongguan Beinonglu 7
+                            Changping District, Beijing 102206, China
+                COMMENT     Method: conceptual translation.
+                FEATURES             Location/Qualifiers
+                     source          1..441
+                                     /organism="Vigna angularis"
+                                     /cultivar="Jingnong 6"
+                                     /db_xref="taxon:3914"
+                                     /chromosome="10"
+                                     /tissue_type="seedling"
+                                     /country="China: Beijing"
+                     Protein         1..441
+                                     /product="hypothetical protein"
+                     CDS             1..441
+                                     /locus_tag="LR48_Vigan10g014900"
+                                     /coded_by="complement(join(CM003380.1:1168320..1168634,
+                                     CM003380.1:1168784..1168945,CM003380.1:1169144..1169291,
+                                     CM003380.1:1169589..1169665,CM003380.1:1169837..1169907,
+                                     CM003380.1:1169999..1170085,CM003380.1:1170242..1170707))"
+                                     /note="GO_function: GO:0004672 - protein kinase activity
+                                     [Evidence IEA];
+                                     GO_function: GO:0004674 - protein serine/threonine kinase
+                                     activity [Evidence IEA];
+                                     GO_function: GO:0004713 - protein tyrosine kinase activity
+                                     [Evidence IEA];
+                                     GO_function: GO:0005524 - ATP binding [Evidence IEA];
+                                     GO_process: GO:0006468 - protein phosphorylation [Evidence
+                                     IEA]"
+                                     /db_xref="InterPro:IPR000719"
+                                     /db_xref="InterPro:IPR001245"
+                                     /db_xref="InterPro:IPR002290"
+                                     /db_xref="InterPro:IPR008271"
+                                     /db_xref="InterPro:IPR017441"
+                                     /db_xref="InterPro:IPR020635"
+                                     /db_xref="UniProtKB/Swiss-Prot:PERK1"
+                ORIGIN
+                        1 mppkpspppa payaaqpppp pppfiissgg sgsnysggep lpppspgisl gfskstftye
+                       61 elaratdgfs danllgqggf gyvhrgilpn gkevavkqlk agsgqgeref qaeveiisrv
+                      121 hhkhlvslvg ycitgsqrll vyefvpnntm efhlhgrgrp tmdwptrlri algsakglay
+                      181 lhedchpkii hrdiksanil ldfkfeakva dfglakfssd vnthvstrvm gtfgylapey
+                      241 assgkltdks dvfsygvmll elitgrrpvd ktqtfmedsl vdwarplltr aleeddfdsi
+                      301 idprlqndyd pnemarmvac aaactrhsak rrprmsqvvr alegdvslad lnegikpghs
+                      361 tmysshessd ydtvqyredm kkfrkmalgt qeygasseys aatseyglnp sgssseaqsr
+                      421 qttrememrk mknsqgfsgs s
+                //
+                '''
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
@@ -1051,15 +1216,18 @@ class NCBIClient:
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
         records = self._get_seq(gi_nums, database)
-
         for accn, rec in records.items():
-            short_accn = re.search("^(.*?)\.[0-9]+$", accn)
-            if accn in self.dbbuddy.records:
+            # Catch accn/version
+            with_version = re.search("^(.*?)\.([0-9]+)$", accn)
+            if with_version:
+                accn, ver = with_version.group(1), with_version.group(2)
                 self.dbbuddy.records[accn].record = rec
-            elif short_accn and short_accn.group(1) in self.dbbuddy.records:
-                self.dbbuddy.records[]  # ToDo: Broken
+                self.dbbuddy.records[accn].version = ver
             else:
-                self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
+                try:
+                    self.dbbuddy.records[accn].record = rec
+                except KeyError:
+                    self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
 
 class EnsemblRestClient:
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org', reqs_per_sec=15):
@@ -1394,8 +1562,8 @@ Further details about each command can be accessed by typing 'help <command>'
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
-        retrieve_sequences(self.dbbuddy)
 
+        retrieve_sequences(self.dbbuddy)
         seq_retrieved = 0
         for _accn in new_records_fetched:
             if self.dbbuddy.records[_accn].record:
@@ -1923,11 +2091,5 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
-    retrieve_summary(dbbuddy)
-    dbbuddy.print()
-    retrieve_sequences(dbbuddy)
-    dbbuddy.out_format = "fasta"
-    dbbuddy.print()
-    sys.exit()
     # Default to LiveSearch
     live_search = LiveSearch(dbbuddy)
