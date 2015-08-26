@@ -3101,6 +3101,8 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
     dgn_tables = {1: dgn_dict_1, 2: dgn_dict_2, 3: dgn_dict_3, 4: dgn_dict_4, 5: dgn_dict_5, 6:
               dgn_dict_6, 9: dgn_dict_9, 10: dgn_dict_10, 11: dgn_dict_11, 12: dgn_dict_12, 13: dgn_dict_13}
 
+    #print(dict(set.intersection(*(set(d.iteritems()) for d in dgn_tables))))
+
     working_dict = dgn_tables[table]
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
@@ -4029,9 +4031,13 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     
     #degenerate_sequence
     if in_args.degenerate_sequence:
-        table, reading_frame = None, None
+        table, reading_frame = 1, 1
         in_args.degenerate_sequence = in_args.degenerate_sequence[0]
-        table = int(in_args.degenerate_sequence[0])
-        reading_frame = int(in_args.degenerate_sequence[1])
+        
+        if not in_args.degenerate_sequence:
+            pass
+        else:
+            table = int(in_args.degenerate_sequence[0])
+            reading_frame = int(in_args.degenerate_sequence[1])
         print(degenerate_sequence(seqbuddy, table, reading_frame))
     
