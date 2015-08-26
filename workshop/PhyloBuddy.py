@@ -10,13 +10,13 @@ import sys
 import os
 import random
 import re
+import shutil
 from io import StringIO, TextIOWrapper
 from subprocess import Popen, CalledProcessError, check_output
 from collections import OrderedDict
 from random import sample
 from copy import deepcopy
 from MyFuncs import TemporaryDirectory
-from shutil import *
 
 # Third party package imports
 import Bio.Phylo
@@ -549,13 +549,19 @@ def consensus_tree(_phylobuddy, _frequency=.5):
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
 
-def generate_tree(_alignbuddy, _tool, _params=None):
+def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
+
+    if _keep_temp:
+        if os.path.exists(_keep_temp):
+            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), in_args.quiet)
+            sys.exit()
+
     if _tool not in ['raxml', 'phyml']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
-    if which(_tool) is None:
+    if shutil.which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
         #_stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
         sys.exit()
@@ -632,7 +638,16 @@ def generate_tree(_alignbuddy, _tool, _params=None):
             with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.name)) as result:
                 _output += result.read()
 
+        if _keep_temp:
+            try:
+                shutil.copytree(tmp_dir.name, _keep_temp)
+            except FileExistsError:
+                # Should never get here
+                pass
+
         _phylobuddy = PhyloBuddy(_output)
+
+        _stderr("Returning to PhyloBuddy...\n\n", in_args.quiet)
 
         return _phylobuddy
 
@@ -678,7 +693,7 @@ if __name__ == '__main__':
             alignbuddy += seq_set.alignments
         alignbuddy = Alb.AlignBuddy(alignbuddy, seq_set.in_format, seq_set.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        _stdout(str(generate_tree(alignbuddy, in_args.generate_tree[0], params)))
+        _stdout(str(generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)))
         sys.exit()
 
     for tree_set in in_args.trees:

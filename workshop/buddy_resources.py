@@ -506,7 +506,10 @@ alb_modifiers = {"in_format": {"flag": "f",
                            "help": "Suppress stderr messages"},
                  "test": {"flag": "t",
                           "action": "store_true",
-                          "help": "Run the function and return any stderr/stdout other than sequences"}}
+                          "help": "Run the function and return any stderr/stdout other than sequences"},
+                 "keep_temp": {"flag": "k",
+                               "action": "store",
+                               "help": "Save temporary files created by generate_tree in current working directory"}}
 
 # #################################################### PHYLOBUDDY #################################################### #
 
@@ -560,7 +563,10 @@ pb_modifiers = {"in_format": {"flag": "f",
                            "help": "Free form arguments for some functions"},
                 "test": {"flag": "t",
                          "action": "store_true",
-                         "help": "Run the function and return any stderr/stdout other than trees"}}
+                         "help": "Run the function and return any stderr/stdout other than trees"},
+                "keep_temp": {"flag": "k",
+                              "action": "store",
+                              "help": "Save temporary files created by generate_tree in current working directory"}}
 
 # ################################################## DATABASEBUDDY ################################################### #
 db_flags = {"guess_database": {"flag": "gd",

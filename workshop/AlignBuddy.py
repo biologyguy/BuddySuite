@@ -838,10 +838,16 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
-def generate_msa(_seqbuddy, _tool, _params=None):
+def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
     if _params is None:
         _params = ''
     _tool = _tool.lower()
+
+    if _keep_temp:
+        if os.path.exists(_keep_temp):
+            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), in_args.quiet)
+            sys.exit()
+
     if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
@@ -961,6 +967,16 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                     _rec.name = re.sub(_hash, '', _rec.name)
                     _rec.description = re.sub(_hash, '', _rec.description)
         _stderr('\n')
+
+        if _keep_temp:
+            try:
+                copytree(tmp_dir.name, _keep_temp)
+            except FileExistsError:
+                # Should never get here
+                pass
+
+        _stderr("Returning to AlignBuddy...\n\n", in_args.quiet)
+
         return _alignbuddy
 
 
@@ -1015,7 +1031,7 @@ if __name__ == '__main__':
             seqbuddy += seq_set.records
         seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], params)))
+        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp)))
         sys.exit()
 
     for align_set in in_args.alignments:
