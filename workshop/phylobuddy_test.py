@@ -8,8 +8,10 @@ from MyFuncs import TempFile
 
 try:
     import workshop.PhyloBuddy as Pb
+    import workshop.AlignBuddy as Alb
 except ImportError:
     import PhyloBuddy as Pb
+    import AlignBuddy as Alb
 
 def phylo_to_hash(_phylobuddy, mode='hash'):
     if mode != "hash":
@@ -187,3 +189,56 @@ cd_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enu
 def test_calculate_distance_ed(phylobuddy, next_hash):
     tester = str(Pb.calculate_distance(phylobuddy, _method='ed'))
     assert md5(tester.encode()).hexdigest() == next_hash
+
+
+# ###########################################  'ga', '--generate_alignment' ########################################## #
+@pytest.mark.generate_trees
+def test_raxml_inputs():
+    # Nucleotide
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT')
+    assert phylo_to_hash(tester) == 'dfa03dd7f2eed29d0c531885c8cb6203'
+    # Peptide
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
+    tester = Pb.generate_tree(tester, 'raxml', '-m PROTCATBLOSUM62')
+    assert phylo_to_hash(tester) == '9b67fd4fd8b3dff3952858a37277862e'
+
+@pytest.mark.generate_trees
+def test_raxml_multi_param():
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK')
+    assert phylo_to_hash(tester) == 'de761d8495f772ae943638792d9a241d'
+
+@pytest.mark.generate_trees
+def test_phyml_inputs():
+    # Nucleotide
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
+    assert phylo_to_hash(tester) == 'd3a4e7601998885f333ddd714ca764db'
+    # Peptide
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
+    tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
+    assert phylo_to_hash(tester) == '52c7d028341b250bcc867d57a68c794c'
+
+@pytest.mark.generate_trees
+def test_phyml_multi_param():
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'phyml', '-m GTR -o tl -b 2 --r_seed 12345')
+    assert phylo_to_hash(tester) == '5434f29509eab76dd52dd69d2c0e186f'
+    
+@pytest.mark.generate_trees
+def test_fasttree_inputs():
+    # Nucleotide
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345')
+    assert phylo_to_hash(tester) == 'da8a67cae6f3f70668f7cf04060b7cd8'
+    # Peptide - FAILS (segfault 11)
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
+    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345')
+    assert phylo_to_hash(tester) == '52c7d028341b250bcc867d57a68c794c'
+
+@pytest.mark.generate_trees
+def test_fasttree_multi_param():
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest')
+    assert phylo_to_hash(tester) == 'da8a67cae6f3f70668f7cf04060b7cd8'
