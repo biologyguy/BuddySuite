@@ -156,6 +156,12 @@ def convert_to_ete(_tree, ignore_color=False):
 
     return ete_tree
 
+def _get_tree_binaries(_tool):
+    tool_dict = {'raxml': 'http://sco.h-its.org/exelixis/web/software/raxml/index.html',
+                 'phyml': 'http://www.atgc-montpellier.fr/phyml/versions.php',
+                 'fastree': 'http://www.microbesonline.org/fasttree/#Install'}
+    return tool_dict[_tool]
+
 # #################################################################################################################### #
 
 
@@ -564,7 +570,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if shutil.which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool))
-        #_stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
+        _stderr('Please go to {0} to install {1}.\n'.format(_get_tree_binaries(_tool), _tool))
         sys.exit()
     else:
         tmp_dir = TemporaryDirectory()

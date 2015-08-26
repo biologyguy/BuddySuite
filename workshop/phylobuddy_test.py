@@ -225,7 +225,7 @@ def test_phyml_multi_param():
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
     tester = Pb.generate_tree(tester, 'phyml', '-m GTR -o tl -b 2 --r_seed 12345')
     assert phylo_to_hash(tester) == '5434f29509eab76dd52dd69d2c0e186f'
-    
+
 @pytest.mark.generate_trees
 def test_fasttree_inputs():
     # Nucleotide
