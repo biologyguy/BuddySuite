@@ -1031,7 +1031,10 @@ if __name__ == '__main__':
             seqbuddy += seq_set.records
         seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        _stdout(str(generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp)))
+        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp)
+        if in_args.out_format:
+            generated_msas.out_format = in_args.out_format
+        _stdout(str(generated_msas))
         sys.exit()
 
     for align_set in in_args.alignments:

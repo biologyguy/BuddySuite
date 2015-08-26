@@ -702,7 +702,10 @@ if __name__ == '__main__':
             alignbuddy += seq_set.alignments
         alignbuddy = Alb.AlignBuddy(alignbuddy, seq_set.in_format, seq_set.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        _stdout(str(generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)))
+        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
+        if in_args.out_format:
+            generated_trees.out_format = in_args.out_format
+        _stdout(str(generated_trees))
         sys.exit()
 
     for tree_set in in_args.trees:
