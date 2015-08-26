@@ -21,6 +21,7 @@ from MyFuncs import TemporaryDirectory
 # Third party package imports
 import Bio.Phylo
 from Bio.Phylo import PhyloXML, NeXML, Newick
+from Bio.Alphabet import IUPAC
 try:
     import ete3
 except ImportError:
@@ -559,7 +560,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
             _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), in_args.quiet)
             sys.exit()
 
-    if _tool not in ['raxml', 'phyml']:
+    if _tool not in ['raxml', 'phyml', 'fasttree']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if shutil.which(_tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
@@ -607,6 +608,14 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
                 _stderr("No tree-building method specified! Use the -m flag!\n")
                 sys.exit()
             command = '{0} -i {1} {2}'.format(_tool, tmp_in, _params)
+        elif _tool == 'fasttree':
+            if '-n ' not in _params and len(_alignbuddy.alignments) > 1:
+                _params += ' -n {0}'.format(len(_alignbuddy.alignments))
+            if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                     IUPAC.unambiguous_rna] and '-nt' not in _params:
+                command = '{0} -nt {1} {2}'.format(_tool, tmp_in, _params)
+            else:
+                command = '{0} -nt {1} {2}'.format(_tool, tmp_in, _params)
         else:
             command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
 
@@ -634,7 +643,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
             else:
                 with open('{0}/RAxML_bestTree.result'.format(tmp_dir.name)) as result:
                     _output += result.read()
-        if _tool == 'phyml':
+        elif _tool == 'phyml':
             with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.name)) as result:
                 _output += result.read()
 
