@@ -862,9 +862,9 @@ def generate_msa(_seqbuddy, _tool, _params=None):
                 sys.exit()
 
         _params = re.split(' ', _params, )
-        for _token in _params:
+        for _indx, _token in enumerate(_params):
             if os.path.exists(_token):
-                _token = os.path.abspath(_token)
+                _params[_indx] = os.path.abspath(_token)
         _params = ' '.join(_params)
 
         hash_table = hash_sequence_ids(_seqbuddy, 8)[1]

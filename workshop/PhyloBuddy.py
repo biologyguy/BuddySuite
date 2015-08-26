@@ -574,9 +574,9 @@ def generate_tree(_alignbuddy, _tool, _params=None):
             return parameters
 
         _params = re.split(' ', _params, )
-        for _token in _params:
+        for _indx, _token in enumerate(_params):
             if os.path.exists(_token):
-                _token = os.path.abspath(_token)
+                _params[_indx] = os.path.abspath(_token)
         _params = ' '.join(_params)
 
         _alignbuddy.out_format = 'phylip-interleaved'
