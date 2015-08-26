@@ -3098,31 +3098,37 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}  
-    dgn_tables = {1:dgn_dict_1, 2:dgn_dict_2, 3:dgn_dict_3, 4:dgn_dict_4, 5:dgn_dict_5, 6:dgn_dict_6, 9:dgn_dict_9, 10: dgn_dict_10, 11:dgn_dict_11, 12:dgn_dict_12, 13:dgn_dict_13}
+    dgn_tables = {1: dgn_dict_1, 2: dgn_dict_2, 3: dgn_dict_3, 4: dgn_dict_4, 5: dgn_dict_5, 6:
+              dgn_dict_6, 9: dgn_dict_9, 10: dgn_dict_10, 11: dgn_dict_11, 12: dgn_dict_12, 13: dgn_dict_13}
 
     working_dict = dgn_tables[table]
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
-        raise TypeError("DNA sequence required, not protein.") 
+        raise TypeError("DNA sequence required, not protein.")
     if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
-        raise TypeError("Please use a DNA seqeunce instead of an RNA sequence.")
-    
+        raise TypeError(
+            "Please use a DNA seqeunce instead of an RNA sequence.")
+
     _seqbuddy = clean_seq(_seqbuddy)
-    
+
     for _rec in _seqbuddy.records:
-        
-        #shift reading frame
+
+        # shift reading frame
         _rec.seq = _rec.seq[reading_frame-1:]
         seq_length = len(_rec.seq)
-        i=0
-        degen_string=""
-        
+        i = 0
+        degen_string = ""
+
         while i < seq_length:
             codon = _rec.seq[i:i+3]
-            degen_string += working_dict[codon] if codon in working_dict else codon #this could cause error here because i don't know if I can slice seq buddy objects
+            # this could cause error here because i don't know if I can slice
+            # seq buddy objects
+            degen_string += working_dict[
+                codon] if codon in working_dict else codon
             i = i+3
         _rec.seq = degen_string
     return(_seqbuddy)
+
 
 
 
@@ -3282,7 +3288,10 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         action='store')
     parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
 
-    parser.add_argument('-dgn', '--degenerate_sequence',action='append', nargs="*", help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
+    parser.add_argument('-dgn', '--degenerate_sequence', action='append', nargs="*",
+                        help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
+
+
 
 
 
