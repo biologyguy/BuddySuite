@@ -190,7 +190,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         self.failures = {}  # The key for these is a hash of the Failure, and the values are actual Failure objects
         self.databases = check_database(_databases)
         _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
-        self.server_clients = {"ncbi": False, "ensmbl": False, "uniprot": False}
+        self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
 
         # Empty DbBuddy object
         if not _input:
@@ -248,7 +248,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                         self.search_terms.append(search_term)
 
     def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
-        if _server in self.server_clients:
+        if self.server_clients[_server]:
             return self.server_clients[_server]
         if _server == "uniprot":
             client = UniProtRestClient(self)
@@ -441,7 +441,7 @@ class Record:
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
         self.gi = gi  # This is for NCBI records
-        self.version = _version  # This is for NCBI records
+        self.version = _version
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
         self.size = _size if _size in [None, ''] else int(_size)
@@ -513,8 +513,9 @@ class Record:
                 self.accession = accn
                 self.version = ver
 
-        #else:
-        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)  # ToDo: This is for testing, needs to be removed for production
+        # ToDo: This is for testing, needs to be removed for production
+        # else:
+        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)
 
         return
 
@@ -1050,8 +1051,7 @@ class NCBIClient:
             for gi_num in gi_nums:
                 if gi_num not in summary_gis:
                     failure = Failure("gi: %s" % gi_num, "gi_nums: Unable to fetch summary from NCBI")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
+                    self.dbbuddy.failures[failure.hash] = failure
 
             for accn, rec in summaries.items():
                 if accn in self.dbbuddy.records:
@@ -1229,77 +1229,144 @@ class NCBIClient:
                 except KeyError:
                     self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
 
+
 class EnsemblRestClient:
-    def __init__(self, _dbbuddy, server='http://rest.ensembl.org', reqs_per_sec=15):
+    def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
         self.dbbuddy = _dbbuddy
+        self.lock = Lock()
+        self.temp_dir = TempDir()
+        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
+        open(self.http_errors_file, "w").close()
+        self.results_file = "%s/results.txt" % self.temp_dir.path
+        open(self.results_file, "w").close()
         self.server = server
-        self.reqs_per_sec = reqs_per_sec
-        self.req_count = 0
-        self.last_req = 0
+        self.species = self.perform_rest_action("info/species", headers={"Content-type": "application/json",
+                                                                         "Accept": "application/json"})["species"]
+        self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
 
-    def perform_rest_action(self, endpoint, _id, headers=None, params=None):
-        endpoint = "/%s/%s" % (endpoint.strip("/"), _id)
-        if not headers:
-            headers = {}
-
-        if 'Content-Type' not in headers:
-            headers['Content-Type'] = 'text/x-seqxml+xml'
-
-        if params:
-            endpoint += '?' + urlencode(params)
-
-        data = None
-
-        # check if we need to rate limit ourselves
-        if self.req_count >= self.reqs_per_sec:
-            delta = time() - self.last_req
-            if delta < 1:
-                sleep(1 - delta)
-            self.last_req = time()
-            self.req_count = 0
-
+    def perform_rest_action(self, endpoint, **kwargs):
+        """
+        :param endpoint:
+        :param kwargs: requires 'headers' {'Content-type': [text/x-seqxml+xml, application/json],
+                                           "Accept": "application/json"} and can also take 'data'
+        :return:
+        """
+        endpoint = endpoint.strip("/")
+        kwargs_backup = dict(kwargs)
         try:
-            request = Request(self.server + endpoint, headers=headers)
+            if "data" in kwargs:
+                data = '{'
+                for key, value in kwargs["data"].items():
+                    data += '"%s": %s, ' % (key, value)
+                data = "%s}" % data.strip(", ")
+                data = re.sub("'", '"', data)
+                kwargs["data"] = data.encode('utf-8')
+
+            request = Request(self.server + endpoint, **kwargs)
             response = urlopen(request)
-            if headers["Content-Type"] == "application/json":
+
+            if request.get_header("Content-type") == "application/json":
                 content = response.read().decode()
                 data = json.loads(content)
-            else:
+            elif request.get_header("Content-type") == "text/x-seqxml+xml":
                 data = SeqIO.read(response, "seqxml")
+            else:
+                raise ValueError(request.headers)
 
-            self.req_count += 1
+            return data
 
         except HTTPError as e:
             # check if we are being rate limited by the server
             if e.getcode() == 429:
                 if 'Retry-After' in e.headers:
                     retry = e.headers['Retry-After']
-                    sleep(float(retry))
-                    self.perform_rest_action(endpoint, headers, params)
+                    sleep(float(retry) + 1)
+                    self.perform_rest_action(endpoint, **kwargs_backup)
             else:
-                self.dbbuddy.failures.append(_id)
-                # sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
+                failure = Failure("%s" % self.server + endpoint, "Ensemble request failed. %s" % e)
+                self.dbbuddy.failures[failure.hash] = failure
 
-        return data
+    def fetch_nucleotide(self):
+        pass
 
-    def fetch_nucleotides(self):
+    def _mc_search(self, species, args):
+        identifier = args[0]
+        self.dbbuddy.failures = {}
+        data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
+                                        headers={"Content-type": "application/json", "Accept": "application/json"})
+        with self.lock:
+            with open(self.results_file, "a") as ofile:
+                ofile.write("%s\n### END ###\n" % data)
+            if self.dbbuddy.failures:
+                with open(self.http_errors_file, "a") as ofile:
+                    for _hash, failure in self.dbbuddy.failures.items():
+                        ofile.write("%s\n" % failure)
+
+    def _parse_summary(self, summary):
+        accn = summary['id']
+        size = abs(summary["start"] - summary["end"])
+        _version = summary['version']
+
+        required_keys = ['display_name', 'species', 'biotype', 'object_type',
+                         'strand', 'assembly_name', 'description', 'version']
+
+        for key in required_keys:
+            if key not in summary:
+                summary[key] = ''
+
+        summary = OrderedDict([('name', summary['display_name']), ('length', size),
+                               ('organism', summary['species']),
+                               ('organism-id', self.species[summary['species']]['taxon_id']),
+                               ('biotype', summary['biotype']), ('object_type', summary['object_type']),
+                               ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
+                               ('comments', summary['description'])])
+
+        rec = Record(accn, summary=summary, _version=_version,
+                     _size=size, _database="ensembl", _type="nucleotide")
+        return rec
+
+    def search_ensembl(self):
+        open(self.http_errors_file, "w").close()
+        open(self.results_file, "w").close()
+        species = [_name for _name, _info in self.species.items()]
+        for search_term in self.dbbuddy.search_terms:
+            run_multicore_function(species, self._mc_search, [search_term])
+            with open(self.results_file, "r") as ifile:
+                results = ifile.read().split("\n### END ###")
+
+            for rec in results:
+                rec = rec.strip()
+                if not rec or rec in ["None", ""]:
+                    continue
+                rec = re.sub("'", '"', rec)
+                rec = self._parse_summary(json.loads(rec))
+                if rec.accession in self.dbbuddy.records:
+                    self.dbbuddy.records[rec.accession].update(rec)
+                else:
+                    self.dbbuddy.records[rec.accession] = rec
+
+    def fetch_summary(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        for _accession, _rec in self.dbbuddy.records.items():
-            if _rec.database == "ensembl" and _rec.type == "nucleotide":
-                _rec.record = self.perform_rest_action("/sequence/id", _rec.accession)
+        data = self.perform_rest_action("lookup/id", data={"ids": accns},
+                                        headers={"Content-type": "application/json", "Accept": "application/json"})
 
-                if _rec.record:
-                    rec_info = self.perform_rest_action("/lookup/id", _rec.accession,
-                                                        headers={"Content-Type": "application/json"})
+        for accn, results in data.items():
+            size = abs(results["start"] - results["end"])
+            required_keys = ['display_name', 'species', 'biotype', 'object_type',
+                             'strand', 'assembly_name', 'description']
+            for key in required_keys:
+                if key not in results:
+                    results[key] = ''
 
-                if _rec.record and rec_info:
-                    _rec.record.name = rec_info["display_name"]
-                    _rec.record.description = rec_info["description"]
-                    _rec.record.annotations["keywords"] = ['Ensembl']
-                    _rec.record.annotations["source"] = rec_info["source"]
-                    _rec.record.annotations["organism"] = rec_info["species"]
-                    _rec.record.annotations["accessions"] = [rec_info["id"]]
-                    _rec.record.annotations["sequence_version"] = int(rec_info["version"])
+            summary = OrderedDict([('name', results['display_name']), ('length', size),
+                                   ('organism', results['species']), ('biotype', results['biotype']),
+                                   ('object_type', results['object_type']), ('strand', results['strand']),
+                                   ('assembly_name', results['assembly_name']), ('comments', results['description'])])
+
+            rec = Record(accn, summary=summary, _version=results['version'],
+                         _size=size, _database="ensembl", _type="nucleotide")
+            self.dbbuddy.records[accn].update(rec)
+        return
 
 
 # ################################################## API FUNCTIONS ################################################### #
@@ -1717,7 +1784,8 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
 
-    def complete_bash(self, text, line, startidx, endidx):
+    def complete_bash(self, *args):
+        text = args[0]
         if not self.shell_execs:
             path_dirs = Popen("echo $PATH", stdout=PIPE, shell=True).communicate()
             path_dirs = path_dirs[0].decode("utf-8").split(":")
@@ -1731,33 +1799,43 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         return [x for x in self.shell_execs if x.startswith(text)]
 
     @staticmethod
-    def complete_database(text, line, startidx, endidx):
+    def complete_database(*args):
+        text = args[0]
+        startidx = args[2]
+        endidx = args[3]
         if startidx and endidx:
             pass
         return [db for db in DATABASES if db.startswith(text)]
 
     @staticmethod
-    def complete_delete(text, line, startidx, endidx):
+    def complete_delete(*args):
+        text = args[0]
         return [x for x in ["all", "failures", "search", "trash", "records"] if x.startswith(text)]
 
-    def complete_exclude(self, text, line, startidx, endidx):
+    def complete_exclude(self, *args):
+        text = args[0]
         return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     @staticmethod
-    def complete_format(self, text, line, startidx, endidx):
+    def complete_format(*args):
+        text = args[0]
         return [x for x in FORMATS if x.startswith(text)]
 
-    def complete_keep(self, text, line, startidx, endidx):
+    def complete_keep(self, *args):
+        text = args[0]
         return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
-    def complete_trash(self, text, line, startidx, endidx):
+    def complete_trash(self, *args):
+        text = args[0]
         return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
-    def complete_restore(self, text, line, startidx, endidx):
+    def complete_restore(self, *args):
+        text = args[0]
         return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     @staticmethod
-    def complete_save(text, line, startidx, endidx):
+    def complete_save(*args):
+        line, startidx, endidx = args[1:]
         # ToDo: pulled code from stack overflow, modify or credit.
         import glob
 
@@ -1769,7 +1847,7 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
-            return # arg not found
+            return  # arg not found
 
         fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
         arg = line[before_arg + 1:endidx]
@@ -1781,7 +1859,8 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
             completions.append(path.replace(fixed, "", 1))
         return completions
 
-    def complete_show(self, text, line, startidx, endidx):
+    def complete_show(self, *args):
+        text = args[0]
         return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def help_bash(self):
@@ -1965,7 +2044,8 @@ def retrieve_summary(_dbbuddy):
 
     if "ensembl" in _dbbuddy.databases or check_all:
         ensembl = _dbbuddy.server("ensembl")
-        ensembl.fetch_nucleotides()
+        ensembl.search_ensembl()
+        ensembl.fetch_summary()
         # ensembl.fetch_summary()
 
     return _dbbuddy
