@@ -2281,10 +2281,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
     _seqbuddy = merge([old, _seqbuddy])
     return _seqbuddy
 
-def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if reading frame is zero indexed by convention in Biopython 
-    
-    
-        
+def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ): 
     dgn_dict_1 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2353,7 +2350,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_2 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2422,7 +2418,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_3 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2491,7 +2486,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_4 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2560,7 +2554,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_5 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2629,7 +2622,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_6 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2698,7 +2690,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '---': '---',
             '???': 'NNN'}
-
     dgn_dict_9 = {
             'AAA': 'AAH',
             'AAC': 'AAH',
@@ -2767,7 +2758,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_10 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2836,7 +2826,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}            
-
     dgn_dict_11 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2905,7 +2894,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}            
-
     dgn_dict_12 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -2974,7 +2962,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_13 = {
             'AAA': 'AAR',
             'AAC': 'AAY',
@@ -3043,7 +3030,6 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'NNN': 'NNN',
             '???': 'NNN',
             '---': '---'}
-
     dgn_dict_14 = {
             'AAA': 'AAH',
             'AAC': 'AAH',
@@ -3111,13 +3097,16 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             'TTT': 'TTY',
             'NNN': 'NNN',
             '???': 'NNN',
-            '---': '---'}
+            '---': '---'}  
     dgn_tables = {1:dgn_dict_1, 2:dgn_dict_2, 3:dgn_dict_3, 4:dgn_dict_4, 5:dgn_dict_5, 6:dgn_dict_6, 9:dgn_dict_9, 10: dgn_dict_10, 11:dgn_dict_11, 12:dgn_dict_12, 13:dgn_dict_13}
 
     working_dict = dgn_tables[table]
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
-        raise TypeError("Nucleic acid sequence required, not protein.") 
+        raise TypeError("DNA sequence required, not protein.") 
+    if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
+        raise TypeError("Please use a DNA seqeunce instead of an RNA sequence.")
+    
     _seqbuddy = clean_seq(_seqbuddy)
     
     for _rec in _seqbuddy.records:
@@ -3132,13 +3121,11 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame=1 ): #not sure if read
             codon = _rec.seq[i:i+3]
             degen_string += working_dict[codon] if codon in working_dict else codon #this could cause error here because i don't know if I can slice seq buddy objects
             i = i+3
-           # print(degen_string)
         _rec.seq = degen_string
     return(_seqbuddy)
 
 
 
-    ### end Jeremy Block
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -3295,11 +3282,8 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
                         action='store')
     parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
 
-    #Jeremy code block 2
-    parser.add_argument('-dgn', '--degenerate_sequence', action='store_true',
-                        help="Return degenerate nucleotide sequence") #also something called 'nargs'
+    parser.add_argument('-dgn', '--degenerate_sequence',action='append', nargs="*", help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
 
-    #end Jeremy code
 
 
     in_args = parser.parse_args()
@@ -4033,10 +4017,12 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
         flocation = in_args.add_feature[1]
         _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
         sys.exit()
-   
-    #Jeremy code 3
+    
+    #degenerate_sequence
     if in_args.degenerate_sequence:
-        if seqbuddy.alpha != IUPAC.ambiguous_dna:
-            raise ValueError("You need to provide a DNA sequence.")
-        print(degenerate_sequence(seqbuddy))
-    #end Jeremy code
+        table, reading_frame = None, None
+        in_args.degenerate_sequence = in_args.degenerate_sequence[0]
+        table = int(in_args.degenerate_sequence[0])
+        reading_frame = int(in_args.degenerate_sequence[1])
+        print(degenerate_sequence(seqbuddy, table, reading_frame))
+    
