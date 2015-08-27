@@ -120,7 +120,7 @@ def _make_copies(_phylobuddy):
     return copies
 
 
-def _extract_figtree_metadata(_file_path):
+def _extract_figtree_metadata(_file_path):  # Removes figtree block from nexus files
     with open(_file_path, "r") as _tree_file:
         filedata = _tree_file.read()
     extract_fig = re.search('(begin figtree;)', filedata)
@@ -135,7 +135,7 @@ def _extract_figtree_metadata(_file_path):
     return filedata, figdata
 
 
-def convert_to_ete(_tree, ignore_color=False):
+def convert_to_ete(_tree, ignore_color=False):  # Converts dendropy trees to ete trees
     tmp_dir = TemporaryDirectory()
     with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
         _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
@@ -143,7 +143,7 @@ def convert_to_ete(_tree, ignore_color=False):
 
     ete_tree = ete3.TreeNode(newick="%s/tree.tmp" % tmp_dir.name)
 
-    if not ignore_color:
+    if not ignore_color:  # Converts color annotations from figtree into NodeStyle objects.
         for node in ete_tree.traverse():
             if hasattr(node, 'pb_color'):
                 style = ete3.NodeStyle()
@@ -156,7 +156,7 @@ def convert_to_ete(_tree, ignore_color=False):
 
     return ete_tree
 
-def _get_tree_binaries(_tool):
+def _get_tree_binaries(_tool):  # For use in generate_tree
     tool_dict = {'raxml': 'http://sco.h-its.org/exelixis/web/software/raxml/index.html',
                  'phyml': 'http://www.atgc-montpellier.fr/phyml/versions.php',
                  'fastree': 'http://www.microbesonline.org/fasttree/#Install'}
@@ -174,7 +174,7 @@ class PhyloBuddy:
         raw_seq = None
         in_file = None
         self.trees = []
-        tree_classes = [Bio.Phylo.Newick.Tree, Bio.Phylo.NeXML.Tree, Bio.Phylo.PhyloXML.Phylogeny, Tree]
+        tree_classes = [Tree]  # Dendropy Tree
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
@@ -243,6 +243,7 @@ class PhyloBuddy:
             with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
                 _ofile.write(in_handle)
 
+            # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.name)
             if figtree is not None:
                 with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
@@ -259,7 +260,7 @@ class PhyloBuddy:
 
         elif os.path.isfile(_input):
             self.stored_input = deepcopy(_input)
-            figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded
+            figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
             if figtree is not None:
                 tmp_dir = TemporaryDirectory()
                 with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
@@ -353,38 +354,39 @@ def guess_format(_input):
 # #################################################### TOOL KIT ###################################################### #
 
 
-def split_polytomies(_phylobuddy):
+def split_polytomies(_phylobuddy):  # Randomly splits polytomies
     for _tree in _phylobuddy.trees:
         _tree.resolve_polytomies(rng=random.Random())
     return _phylobuddy
 
 
-def prune_taxa(_phylobuddy, *_patterns):
+def prune_taxa(_phylobuddy, *_patterns):  # Prunes taxa that match one or more regex patterns
     for _tree in _phylobuddy.trees:
         taxa_to_prune = []
         _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
-        for node in _tree:
+        for node in _tree:  # Populate the namespace for easy iteration
             if node.taxon is not None:
                 _namespace.add_taxon(node.taxon)
         for _taxon in _namespace.labels():
             for _pattern in _patterns:
-                if re.search(_pattern, _taxon):
+                if re.search(_pattern, _taxon):  # Sets aside the names of the taxa to be pruned
                     taxa_to_prune.append(_taxon)
-        for _taxon in taxa_to_prune:
+        for _taxon in taxa_to_prune:  # Removes the nodes from the tree
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
-def trees_to_ascii(_phylobuddy):
+def trees_to_ascii(_phylobuddy):  # Returns an ascii representation of the tree. Scales to terminal window size.
     _output = OrderedDict()
     for _indx, _tree in enumerate(_phylobuddy.trees):
         _key = 'tree_{0}'.format(_indx+1) if _tree.label in [None, ''] else _tree.label
         _output[_key] = _tree.as_ascii_plot()
     return _output
 
-def show_unique_nodes(_phylobuddy):
+def show_unique_nodes(_phylobuddy):  # Colors all of the nodes that aren't common between two trees
     if len(_phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
+
     _trees = [convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
-              convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]
+              convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
 
     data = _trees[0].robinson_foulds(_trees[1])
     tree1_only = []
@@ -398,7 +400,7 @@ def show_unique_nodes(_phylobuddy):
         if len(_names) == 1:
             tree2_only.append(_names[0])
 
-    for _node in _trees[0]:
+    for _node in _trees[0]:  # Colors the nodes
         if _node.name in common_leaves:
             _node.add_feature('pb_color', '#00ff00')
         else:
@@ -409,7 +411,7 @@ def show_unique_nodes(_phylobuddy):
         else:
             _node.add_feature('pb_color', '#ff0000')
 
-    tmp_dir = TemporaryDirectory()
+    tmp_dir = TemporaryDirectory()  # Convert back to dendropy
     with open("%s/tree1.tmp" % tmp_dir.name, "w") as _ofile:
         _ofile.write(re.sub('pb_color', '!color', _trees[0].write(features=[])))
     with open("%s/tree2.tmp" % tmp_dir.name, "w") as _ofile:
@@ -426,7 +428,7 @@ def show_unique_nodes(_phylobuddy):
 
     return _phylobuddy
 
-def show_diff(_phylobuddy):
+def show_diff(_phylobuddy):  # Doesn't work.
     raise NotImplementedError('show_diff() is not yet implemented.')
     # if len(_phylobuddy.trees) != 2:
     #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
@@ -492,12 +494,12 @@ def show_diff(_phylobuddy):
     return _phylobuddy
 
 
-def display_trees(_phylobuddy):
+def display_trees(_phylobuddy):  # Displays trees in an ETE GUI window, one-by-one.
     for _tree in _phylobuddy.trees:
         convert_to_ete(_tree).show()
 
 
-def list_ids(_phylobuddy):
+def list_ids(_phylobuddy):  # Returns a dictionary of tree names and node labels
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
         _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
@@ -509,7 +511,7 @@ def list_ids(_phylobuddy):
     return _output
 
 
-def rename(_phylobuddy, _query, _replace):
+def rename(_phylobuddy, _query, _replace):  # Substitutes matches in node names with a string
     for indx, _tree in enumerate(_phylobuddy.trees):
         for node in _tree:
             if node.label is not None:
@@ -519,7 +521,7 @@ def rename(_phylobuddy, _query, _replace):
     return _phylobuddy
 
 
-def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
+def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):  # Calculates tree distance with various algos
     _method = _method.lower()
     if _method in ['wrf', 'weighted_robinson_foulds']:
         _method = 'wrf'
@@ -535,16 +537,16 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     _output = OrderedDict()
     _keypairs = []
 
-    for indx1, _tree1 in enumerate(_phylobuddy.trees):
+    for indx1, _tree1 in enumerate(_phylobuddy.trees):  # Compares all-by-all
         for indx2, _tree2 in enumerate(_phylobuddy.trees):
-            if _tree1 is not _tree2:
+            if _tree1 is not _tree2:  # Will not compare to itself
                 _key1 = 'tree_{0}'.format(indx1+1) if _tree1.label not in [None, ''] else _tree1.label
                 _key2 = 'tree_{0}'.format(indx2+1) if _tree2.label not in [None, ''] else _tree2.label
                 if _key1 not in _output.keys():
                     _output[_key1] = OrderedDict()
                 if _key2 not in _output.keys():
                     _output[_key2] = OrderedDict()
-                if (_key2, _key1) not in _keypairs:
+                if (_key2, _key1) not in _keypairs:  # Prevent repeated (reversed) searches
                     _keypairs.append((_key1, _key2))
                     if _method == 'wrf':
                         _output[_key1][_key2] = treecompare.weighted_robinson_foulds_distance(_tree1, _tree2)
@@ -561,26 +563,28 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     return _output
 
 
-def consensus_tree(_phylobuddy, _frequency=.5):
+def consensus_tree(_phylobuddy, _frequency=.5):  # Generates a consensus tree based on all the trees in phylobuddy
     _trees = TreeList(_phylobuddy.trees)
     _consensus = _trees.consensus(_frequency=_frequency)
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
 
 
-def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
+def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):  # Calls tree building tools to generate trees
+    # NOTE: FastTree segfaults with protein alignments for an unknown reason (may be OSX only?)
+
     if _params is None:
         _params = ''
     _tool = _tool.lower()
 
-    if _keep_temp:
+    if _keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(_keep_temp):
             _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp))
             sys.exit()
 
-    if _tool not in ['raxml', 'phyml', 'fasttree']:
+    if _tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
-    if shutil.which(_tool) is None:
+    if shutil.which(_tool) is None:  # Tool must be callable from command line
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool))
         _stderr('Please go to {0} to install {1}.\n'.format(_get_tree_binaries(_tool), _tool))
         sys.exit()
@@ -588,55 +592,57 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
         tmp_dir = TemporaryDirectory()
         tmp_in = "{0}/tmp.del".format(tmp_dir.name)
 
-        def remove_invalid_params(_dict):
+        def remove_invalid_params(_dict):  # Helper method for blacklisting flags
             parameters = _params
             for _key in _dict:
-                if _dict[_key] == True:
-                    _pattern = "{0} [^ ]*".format(_key)
+                if _dict[_key] is True:  # Flag has an argument
+                    _pattern = "{0} [^-]*".format(_key)
+                    # Deletes until it reaches another flag.
+                    # May cause issues if flag is right before the file path.
                 else:
                     _pattern = "{0}".format(_key)
                 parameters = re.sub(_pattern, '', parameters)
             return parameters
 
-        _params = re.split(' ', _params, )
+        _params = re.split(' ', _params, )  # Expands paths in _params to absolute paths
         for _indx, _token in enumerate(_params):
             if os.path.exists(_token):
                 _params[_indx] = os.path.abspath(_token)
         _params = ' '.join(_params)
 
-        _alignbuddy.out_format = 'phylip-interleaved'
+        _alignbuddy.out_format = 'phylip-interleaved'  # Supported by most tree builders
         with open("{0}/tmp.del".format(tmp_dir.name), 'w') as out_file:
-            out_file.write(str(_alignbuddy))
+            out_file.write(str(_alignbuddy))  # Most tree builders require an input file
         if _tool == 'raxml':
             _params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
-            if '-T' not in _params:
+            if '-T' not in _params:  # Num threads
                 _params += ' -T 2'
-            if '-m' not in _params:
+            if '-m' not in _params:  # Tree building model (REQUIRED)
                 _stderr("No tree-building method specified! Use the -m flag!\n")
                 sys.exit()
-            if '-p' not in _params:
+            if '-p' not in _params:  # RNG seed
                 _params += ' -p 12345'
-            if '-#' not in _params and '-N' not in _params:
+            if '-#' not in _params and '-N' not in _params:  # Number of trees to build
                 _params += ' -# 1'
             command = '{0} -s {1} {2} -n result -w {3}'.format(_tool, tmp_in, _params, tmp_dir.name)
         elif _tool == 'phyml':
             _params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
                                              '--run_id': True})
-            if '-m' not in _params and '--model' not in _params:
+            if '-m' not in _params and '--model' not in _params:  # Tree building model (REQUIRED)
                 _stderr("No tree-building method specified! Use the -m flag!\n")
                 sys.exit()
             if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
                                      IUPAC.unambiguous_rna] and ('-d nt' not in _params or '--datatype nt' not in _params):
-                _params += ' -d nt'
+                _params += ' -d nt'  # phyml needs to be told which alphabet to use
             elif _alignbuddy.alpha == IUPAC.protein and ('-d aa' not in _params or '--datatype aa' not in _params):
                 _params += ' -d aa'
             command = '{0} -i {1} {2}'.format(_tool, tmp_in, _params)
         elif _tool == 'fasttree':
             if '-n ' not in _params and '--multiple' not in _params and len(_alignbuddy.alignments) > 1:
-                _params += ' -n {0}'.format(len(_alignbuddy.alignments))
+                _params += ' -n {0}'.format(len(_alignbuddy.alignments))  # Number of alignments to be input
             if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
                                      IUPAC.unambiguous_rna]:
-                command = '{0} {1} -nt {2}'.format(_tool, _params, tmp_in)
+                command = '{0} {1} -nt {2}'.format(_tool, _params, tmp_in)  # fasttree must be told what alphabet to use
             else:
                 command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
         else:
@@ -645,15 +651,15 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
         _output = ''
 
         try:
-            if _tool in ['raxml', 'phyml']:
+            if _tool in ['raxml', 'phyml']:  # If tool writes to file
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
-            else:
+            else:  # If tool outputs to stdout
                 _output = check_output(command, shell=True, universal_newlines=True)
         except CalledProcessError:
             _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool))
             sys.exit()
 
-        if _tool == 'raxml':
+        if _tool == 'raxml':  # Pull tree from written file
             num_runs = re.search('-#', _params)
             if _params[num_runs.end()+1].isdigit():
                 num_runs = int(_params[num_runs.end()+1])
@@ -670,7 +676,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
             with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.name)) as result:
                 _output += result.read()
 
-        if _keep_temp:
+        if _keep_temp:  # Store temp files
             try:
                 shutil.copytree(tmp_dir.name, _keep_temp)
             except FileExistsError:
@@ -686,6 +692,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
 
 def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
     raise NotImplementedError("If you're reading this, send an angry email to biologyguy@gmail.com.")
+
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -722,7 +729,7 @@ if __name__ == '__main__':
         except ImportError:
             _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
             sys.exit()
-        for seq_set in in_args.trees:
+        for seq_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
             seq_set = Alb.AlignBuddy(seq_set, in_args.in_format, in_args.out_format)
@@ -838,3 +845,4 @@ if __name__ == '__main__':
     # Rename IDs
     if in_args.rename_ids:
         _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
+        sys.exit()
