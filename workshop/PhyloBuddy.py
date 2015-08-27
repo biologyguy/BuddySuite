@@ -112,6 +112,11 @@ def _format_to_extension(_format):
 
 
 def _make_copies(_phylobuddy):
+    """
+    Returns a copy of the PhyloBuddy object
+    :param _phylobuddy: The PhyloBuddy object to be copied
+    :return: A copy of the original PhyloBuddy object
+    """
     try:
         copies = deepcopy(_phylobuddy)
     except AttributeError:
@@ -120,7 +125,12 @@ def _make_copies(_phylobuddy):
     return copies
 
 
-def _extract_figtree_metadata(_file_path):  # Removes figtree block from nexus files
+def _extract_figtree_metadata(_file_path):
+    """
+    Removes the figtree block from nexus files
+    :param _file_path: Specifies the nexus file path
+    :return: A length 2 tuple containing the nexus data and the figtree block
+    """
     with open(_file_path, "r") as _tree_file:
         filedata = _tree_file.read()
     extract_fig = re.search('(begin figtree;)', filedata)
@@ -135,7 +145,13 @@ def _extract_figtree_metadata(_file_path):  # Removes figtree block from nexus f
     return filedata, figdata
 
 
-def convert_to_ete(_tree, ignore_color=False):  # Converts dendropy trees to ete trees
+def convert_to_ete(_tree, ignore_color=False):
+    """
+    Converts dendropy trees to ete trees
+    :param _tree: A dendropy Tree object
+    :param ignore_color: Specifies if figtree color metadata should be turned into ETE NodeStyle objects
+    :return: An ETE Tree object
+    """
     tmp_dir = TemporaryDirectory()
     with open("%s/tree.tmp" % tmp_dir.name, "w") as _ofile:
         _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
@@ -156,7 +172,13 @@ def convert_to_ete(_tree, ignore_color=False):  # Converts dendropy trees to ete
 
     return ete_tree
 
-def _get_tree_binaries(_tool):  # For use in generate_tree
+def _get_tree_binaries(_tool):
+    """
+    Returns a URL where a tool's binaries can be found.
+    :param _tool: Specify the tree building tool to be used.
+    :return: A string containing the tool's URL.
+    """
+
     tool_dict = {'raxml': 'http://sco.h-its.org/exelixis/web/software/raxml/index.html',
                  'phyml': 'http://www.atgc-montpellier.fr/phyml/versions.php',
                  'fastree': 'http://www.microbesonline.org/fasttree/#Install'}
@@ -354,13 +376,24 @@ def guess_format(_input):
 # #################################################### TOOL KIT ###################################################### #
 
 
-def split_polytomies(_phylobuddy):  # Randomly splits polytomies
+def split_polytomies(_phylobuddy):
+    """
+    Randomly splits polytomies.
+    :param _phylobuddy: The PhyloBuddy object whose trees will be processed.
+    :return: The same PhyloBuddy object after processing.
+    """
     for _tree in _phylobuddy.trees:
         _tree.resolve_polytomies(rng=random.Random())
     return _phylobuddy
 
 
-def prune_taxa(_phylobuddy, *_patterns):  # Prunes taxa that match one or more regex patterns
+def prune_taxa(_phylobuddy, *_patterns):
+    """
+    Prunes taxa that match one or more regex patterns
+    :param _phylobuddy: The PhyloBuddy object whose trees will be pruned.
+    :param _patterns: One or more regex patterns.
+    :return: The same PhyloBuddy object after pruning.
+    """
     for _tree in _phylobuddy.trees:
         taxa_to_prune = []
         _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
@@ -374,14 +407,24 @@ def prune_taxa(_phylobuddy, *_patterns):  # Prunes taxa that match one or more r
         for _taxon in taxa_to_prune:  # Removes the nodes from the tree
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
-def trees_to_ascii(_phylobuddy):  # Returns an ascii representation of the tree. Scales to terminal window size.
+def trees_to_ascii(_phylobuddy):
+    """
+    Returns an ascii representation of the tree. Scales to terminal window size.
+    :param _phylobuddy: The PhyloBuddy object whose trees will be converted.
+    :return: A string containing ASCII representations of the trees.
+    """
     _output = OrderedDict()
     for _indx, _tree in enumerate(_phylobuddy.trees):
         _key = 'tree_{0}'.format(_indx+1) if _tree.label in [None, ''] else _tree.label
         _output[_key] = _tree.as_ascii_plot()
     return _output
 
-def show_unique_nodes(_phylobuddy):  # Colors all of the nodes that aren't common between two trees
+def show_unique_nodes(_phylobuddy):
+    """
+    Colors all of the nodes that aren't common between two trees
+    :param _phylobuddy: The PhyloBuddy object to be labeled
+    :return: The labeled PhyloBuddy object
+    """
     if len(_phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
 
@@ -494,12 +537,22 @@ def show_diff(_phylobuddy):  # Doesn't work.
     return _phylobuddy
 
 
-def display_trees(_phylobuddy):  # Displays trees in an ETE GUI window, one-by-one.
+def display_trees(_phylobuddy):
+    """
+    Displays trees in an ETE GUI window, one-by-one.
+    :param _phylobuddy: The PhyloBuddy object whose trees will be displayed.
+    :return:
+    """
     for _tree in _phylobuddy.trees:
         convert_to_ete(_tree).show()
 
 
-def list_ids(_phylobuddy):  # Returns a dictionary of tree names and node labels
+def list_ids(_phylobuddy):
+    """
+    Returns a dictionary of tree names and node labels
+    :param _phylobuddy: The PhyloBuddy object to be analyzed
+    :return: A dictionary of tree names and node labels
+    """
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
         _namespace = dendropy.datamodel.taxonmodel.TaxonNamespace()
@@ -511,7 +564,14 @@ def list_ids(_phylobuddy):  # Returns a dictionary of tree names and node labels
     return _output
 
 
-def rename(_phylobuddy, _query, _replace):  # Substitutes matches in node names with a string
+def rename(_phylobuddy, _query, _replace):
+    """
+    Substitutes matches in node names with a string
+    :param _phylobuddy: The PhyloBuddy object to be modified
+    :param _query: The regex pattern to be searched
+    :param _replace: The string to replace the matches with
+    :return: The modified PhyloBuddy object
+    """
     for indx, _tree in enumerate(_phylobuddy.trees):
         for node in _tree:
             if node.label is not None:
@@ -521,7 +581,13 @@ def rename(_phylobuddy, _query, _replace):  # Substitutes matches in node names 
     return _phylobuddy
 
 
-def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):  # Calculates tree distance with various algos
+def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
+    """
+    Calculates tree distance with various algorithms
+    :param _phylobuddy: The PhyloBuddy object containing the trees to be compared
+    :param _method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
+    :return: A dictionary of dictonaries containing the distances between tree pairs. dict[tree1][tree2]
+    """
     _method = _method.lower()
     if _method in ['wrf', 'weighted_robinson_foulds']:
         _method = 'wrf'
@@ -563,14 +629,28 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):  # Calc
     return _output
 
 
-def consensus_tree(_phylobuddy, _frequency=.5):  # Generates a consensus tree based on all the trees in phylobuddy
+def consensus_tree(_phylobuddy, _frequency=.5):
+    """
+    Generates a consensus tree based on all the trees in phylobuddy
+    :param _phylobuddy: The PhyloBuddy object to be modified
+    :param _frequency: The frequency threshold of a taxa for it to be included
+    :return: The modified PhyloBuddy object
+    """
     _trees = TreeList(_phylobuddy.trees)
     _consensus = _trees.consensus(_frequency=_frequency)
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
 
 
-def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):  # Calls tree building tools to generate trees
+def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
+    """
+    Calls tree building tools to generate trees
+    :param _alignbuddy: The AlignBuddy object containing the alignments for building the trees
+    :param _tool: The tree building tool to be used (raxml/phyml/fasttree)
+    :param _params: Additional parameters to be passed to the tree building tool
+    :param _keep_temp: Determines if/where the temporary files will be kept
+    :return: A PhyloBuddy object containing the trees produced.
+    """
     # NOTE: FastTree segfaults with protein alignments for an unknown reason (may be OSX only?)
 
     if _params is None:
