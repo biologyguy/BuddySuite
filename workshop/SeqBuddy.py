@@ -1749,14 +1749,14 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     for match in output_list:
         query, subj, _ident, _length, _evalue, _bit_score = match
         if query not in output_dict:
-            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), float(_bit_score)]}
         else:
-            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), float(_bit_score)]
 
         if subj not in output_dict:
-            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), float(_bit_score)]}
         else:
-            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), float(_bit_score)]
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
 
