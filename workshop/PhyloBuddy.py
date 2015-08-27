@@ -496,6 +496,7 @@ def display_trees(_phylobuddy):
     for _tree in _phylobuddy.trees:
         convert_to_ete(_tree).show()
 
+
 def list_ids(_phylobuddy):
     _output = OrderedDict()
     for indx, _tree in enumerate(_phylobuddy.trees):
@@ -506,6 +507,16 @@ def list_ids(_phylobuddy):
         _key = _tree.label if _tree.label not in [None, ''] else 'tree_{0}'.format(str(indx+1))
         _output[_key] = list(_namespace.labels())
     return _output
+
+
+def rename(_phylobuddy, _query, _replace):
+    for indx, _tree in enumerate(_phylobuddy.trees):
+        for node in _tree:
+            if node.label is not None:
+                node.label = re.sub(_query, _replace, node.label)
+            if node.taxon is not None and node.taxon.label is not None:
+                node.taxon.label = re.sub(_query, _replace, node.taxon.label)
+    return _phylobuddy
 
 
 def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
@@ -555,6 +566,7 @@ def consensus_tree(_phylobuddy, _frequency=.5):
     _consensus = _trees.consensus(_frequency=_frequency)
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
+
 
 def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
     if _params is None:
@@ -670,6 +682,10 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
         _stderr("Returning to PhyloBuddy...\n\n")
 
         return _phylobuddy
+
+
+def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
+    raise NotImplementedError("If you're reading this, send an angry email to biologyguy@gmail.com.")
 
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
@@ -818,3 +834,7 @@ if __name__ == '__main__':
     if in_args.consensus_tree:
         _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree[0]))
         sys.exit()
+
+    # Rename IDs
+    if in_args.rename_ids:
+        _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
