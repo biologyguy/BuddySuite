@@ -304,6 +304,11 @@ def phylipseq(_alignbuddy, _relaxed=True):
 
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
+    """
+    Returns a list of lists of sequence IDs
+    :param _phylobuddy: The AlignBuddy object to be analyzed
+    :return: A list of lists of sequence IDs
+    """
     _output = []
     for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         _output.append([])
@@ -313,23 +318,43 @@ def list_ids(_alignbuddy):
 
 
 def num_seqs(_alignbuddy):
+    """
+    Returns a list of alignment lengths
+    :param _alignbuddy:
+    :return: A list of alignment lengths
+    """
     return [len(_alignment) for _alignment in _alignbuddy.alignments]
 
 
 def uppercase(_alignbuddy):
+    """
+    Converts all sequence residues to uppercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
+    :return: The modified AlignBuddy object
+    """
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
 
 
 def lowercase(_alignbuddy):
+    """
+    Converts all sequence residues to lowercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
+    :return: The modified AlignBuddy object
+    """
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
 
 
 def clean_seq(_alignbuddy, skip_list=None):
-    """remove all non-sequence charcters from sequence strings"""
+    """
+    Remove all non-sequence charcters from sequence strings
+    :param _alignbuddy: The AlignBuddy object to be cleaned
+    :param skip_list: A list of characters to be left alone
+    :return: The cleaned AlignBuddy object
+    """
     skip_list = "" if not skip_list else "".join(skip_list)
     for _rec in _get_seq_recs(_alignbuddy):
         if _alignbuddy.alpha == IUPAC.protein:
@@ -342,6 +367,11 @@ def clean_seq(_alignbuddy, skip_list=None):
 
 
 def codon_alignment(_alignbuddy):
+    """
+    Organizes nucleotide alignment into codon triplets
+    :param _alignbuddy: The AlignBuddy object to be rearranged
+    :return: The rearranged AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
@@ -387,6 +417,12 @@ def codon_alignment(_alignbuddy):
 
 
 def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+    """
+    Translates a nucleotide alignment into a protein alignment.
+    :param _alignbuddy: The AlignBuddy object to be translated
+    :param quiet: Suppress error messages and warnings
+    :return: The translated AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
@@ -481,6 +517,12 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
 
 
 def delete_rows(_alignbuddy, _search):
+    """
+    Deletes rows with names/IDs matching a search pattern
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
+    """
     _alignments = []
     for _alignment in _alignbuddy.alignments:
         matches = []
@@ -495,6 +537,12 @@ def delete_rows(_alignbuddy, _search):
 
 
 def pull_rows(_alignbuddy, _search):
+    """
+    Retrieves rows with names/IDs matching a search pattern
+    :param _alignbuddy: G
+    :param _search:
+    :return:
+    """
     _alignments = []
     for _alignment in _alignbuddy.alignments:
         matches = []
@@ -511,6 +559,13 @@ def pull_rows(_alignbuddy, _search):
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
+    """
+    Trims alignment gaps using algorithms from trimal
+    :param _alignbuddy: The AlignBuddy object to be trimmed
+    :param _threshold: The threshold value or trimming algorithm to be used
+    :param _window_size: The window size
+    :return: The trimmed AlignBuddy object
+    """
     for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
 
         # gap_distr is the number of columns w/ each possible number of gaps; the index is == to number of gaps
@@ -646,7 +701,11 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
 
 def consensus_sequence(_alignbuddy):
-    # http://bioinformatics.oxfordjournals.org/content/18/11/1494
+    """
+    Generates a rough consensus sequence from an alignment
+    :param _alignbuddy: The AlignBuddy object to be processed
+    :return: A list of SeqRecords containing the consensus sequences
+    """
     _output = []
     for _alignment in _alignbuddy.alignments:
         _id = _alignment[0].id
@@ -657,10 +716,16 @@ def consensus_sequence(_alignbuddy):
 
 
 def concat_alignments(_alignbuddy, _pattern):
+    """
+    Concatenates two or more alignments together, end-to-end
+    :param _alignbuddy: The AlignBuddy object whose alignments will be concatenated
+    :param _pattern: The pattern to split the sequence names with
+    :return: The AlignBuddy object containing a concatenated alignment
+    """
     # collapsed multiple genes from single taxa down to one consensus seq
     # detected mixed sequence types
     if len(_alignbuddy.alignments) < 2:
-        raise AttributeError("Please provide ")
+        raise AttributeError("Please provide at least two alignments.")
 
     def organism_list():
         orgnsms = set()
@@ -751,6 +816,14 @@ def concat_alignments(_alignbuddy, _pattern):
 
 
 def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
+    """
+    Rename an alignment's sequence IDs
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param query: The pattern to be searched for
+    :param replace: The string to be substituted
+    :param _num: The maximum number of substitutions to make
+    :return: The modified AlignBuddy object
+    """
     for _alignment in _alignbuddy.alignments:
         for _rec in _alignment:
             new_name = re.sub(query, replace, _rec.id, _num)
@@ -760,6 +833,12 @@ def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement 
 
 
 def order_ids(_alignbuddy, _reverse=False):
+    """
+    Sorts the alignments by ID, alphabetically
+    :param _alignbuddy: The AlignBuddy object to be sorted
+    :param _reverse: Reverses the order
+    :return: A sorted AlignBuddy object
+    """
     for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         _output = [(_rec.id, _rec) for _rec in _alignment]
         _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
@@ -769,6 +848,11 @@ def order_ids(_alignbuddy, _reverse=False):
 
 
 def rna2dna(_alignbuddy):
+    """
+    Transcribes RNA into DNA sequences.
+    :param _alignbuddy: The AlignBuddy object to be transcribed
+    :return: The transcribed AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _alignment in _alignbuddy.alignments:
@@ -779,6 +863,11 @@ def rna2dna(_alignbuddy):
 
 
 def dna2rna(_alignbuddy):
+    """
+    Back-transcribes DNA into RNA sequences
+    :param _alignbuddy: The AlignBuddy object to be back_transcribed
+    :return: The back-transcribed AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _alignment in _alignbuddy.alignments:
@@ -789,6 +878,13 @@ def dna2rna(_alignbuddy):
 
 
 def extract_range(_alignbuddy, _start, _end):
+    """
+    Extracts all columns within a given range
+    :param _alignbuddy: The AlignBuddy object to be extracted from
+    :param _start: The starting residue (indexed from 1)
+    :param _end: The end residue (inclusive)
+    :return: The extracted AlignBuddy object
+    """
     _start = 1 if int(_start) < 1 else _start
     # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
     _start, _end = int(_start) - 1, int(_end)
@@ -822,6 +918,11 @@ def extract_range(_alignbuddy, _start, _end):
 
 
 def alignment_lengths(_alignbuddy):
+    """
+    Returns a list of alignment lengths
+    :param _alignbuddy: The AlignBuddy object to be analyzed
+    :return: A list of alignment lengths
+    """
     _output = []
     for _alignment in _alignbuddy.alignments:
         _output.append(_alignment.get_alignment_length())
@@ -829,6 +930,11 @@ def alignment_lengths(_alignbuddy):
 
 
 def split_alignbuddy(_alignbuddy):
+    """
+    Splits each alignment into its own AlignBuddy object
+    :param _alignbuddy: The AlignBuddy object to be split
+    :return: A list of AlignBuddy objects
+    """
     ab_objs_list = []
     for _alignment in _alignbuddy.alignments:
         _ab = AlignBuddy([_alignment])
@@ -839,6 +945,14 @@ def split_alignbuddy(_alignbuddy):
 
 
 def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
+    """
+    Calls sequence aligning tools to generate multiple sequence alignments
+    :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
+    :param _tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
+    :param _params: Additional parameters to be passed to the alignment tool
+    :param _keep_temp: Determines if/where the temporary files will be kept
+    :return: An AlignBuddy object containing the alignment produced.
+    """
     if _params is None:
         _params = ''
     _tool = _tool.lower()
