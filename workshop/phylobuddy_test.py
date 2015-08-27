@@ -191,7 +191,7 @@ def test_calculate_distance_ed(phylobuddy, next_hash):
     assert md5(tester.encode()).hexdigest() == next_hash
 
 
-# ###########################################  'ga', '--generate_alignment' ########################################## #
+# ###########################################  'gt', '--generate_trees' ########################################## #
 @pytest.mark.generate_trees
 def test_raxml_inputs():
     # Nucleotide
@@ -242,3 +242,12 @@ def test_fasttree_multi_param():
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
     tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest')
     assert phylo_to_hash(tester) == 'da8a67cae6f3f70668f7cf04060b7cd8'
+
+
+# ##############################################  'ri', '--rename_ids' ############################################### #
+ri_hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a', '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
+ri_hashes = [(Pb._make_copies(pb_objects[x]), next_hash) for x, next_hash in enumerate(ri_hashes)]
+@pytest.mark.parametrize("phylobuddy, next_hash", ri_hashes)
+def test_rename_ids(phylobuddy, next_hash):
+    tester = Pb.rename(phylobuddy, 'Mle', 'Phylo')
+    assert phylo_to_hash(tester) == next_hash
