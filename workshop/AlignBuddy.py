@@ -539,9 +539,9 @@ def delete_rows(_alignbuddy, _search):
 def pull_rows(_alignbuddy, _search):
     """
     Retrieves rows with names/IDs matching a search pattern
-    :param _alignbuddy: G
-    :param _search:
-    :return:
+    :param _alignbuddy: The AlignBuddy object to be pulled from
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
     """
     _alignments = []
     for _alignment in _alignbuddy.alignments:
@@ -865,7 +865,7 @@ def rna2dna(_alignbuddy):
 def dna2rna(_alignbuddy):
     """
     Back-transcribes DNA into RNA sequences
-    :param _alignbuddy: The AlignBuddy object to be back_transcribed
+    :param _alignbuddy: The AlignBuddy object to be back-transcribed
     :return: The back-transcribed AlignBuddy object
     """
     if _alignbuddy.alpha == IUPAC.protein:
