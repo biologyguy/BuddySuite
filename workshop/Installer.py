@@ -51,6 +51,11 @@ with zipfile.ZipFile(source_file) as ifile:
 os.chdir(temp_dir.name)
 sys.path.insert(0, "./")
 
+# Global variables
+paths_installed = ["resources", "blast_binaries", "Bio", "dendropy", "ete3"]
+files_installed = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
+                   "config.ini", "buddy_resources.py"]
+
 # Check for pillow dependency
 if not in_args.cmd_line:
     try:
@@ -152,10 +157,6 @@ class BuddyInstall:
             if not buddies_to_install[buddy]:
                 shortcuts[buddy] = []
 
-        paths_to_delete = ["resources", "blast_binaries", "Bio"]
-        files_to_delete = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
-                           "config.ini", "buddy_resources.py"]
-
         if path.exists("{0}/.buddysuite/__pycache__".format(home_dir)):
             rmtree("{0}/.buddysuite/__pycache__".format(home_dir))
 
@@ -163,10 +164,10 @@ class BuddyInstall:
         for buddy in buddies_to_install:
             if buddies_to_install[buddy]:
                 all_false = False
-        for loc in paths_to_delete:
+        for loc in paths_installed:
             if path.exists("{0}/.buddysuite/{1}".format(home_dir, loc)):
                 rmtree("{0}/.buddysuite/{1}".format(home_dir, loc))
-        for loc in files_to_delete:
+        for loc in files_installed:
             if path.exists("{0}/.buddysuite/{1}".format(home_dir, loc)):
                 os.remove("{0}/.buddysuite/{1}".format(home_dir, loc))
 
