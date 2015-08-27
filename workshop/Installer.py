@@ -52,9 +52,9 @@ os.chdir(temp_dir.name)
 sys.path.insert(0, "./")
 
 # Global variables
-paths_installed = ["resources", "blast_binaries", "Bio", "dendropy", "ete3"]
+paths_installed = ["resources", "Bio", "dendropy", "ete3"]
 files_installed = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
-                   "config.ini", "buddy_resources.py"]
+                   "config.ini", "buddy_resources.py", "blastn", "blastp", "blastdbcmd"]
 
 # Check for pillow dependency
 if not in_args.cmd_line:
@@ -178,6 +178,8 @@ class BuddyInstall:
         buddy_resources_path = "./buddy_resources.py"
         myfuncs_path = "./MyFuncs.py"
         biopython_path = "./Bio"
+        ete3_path = "./ete3"
+        dendropy_path = "./dendropy"
         if not all_false:
             print("Install path: " + install_directory)
             os.makedirs(install_directory, exist_ok=True)
@@ -195,11 +197,14 @@ class BuddyInstall:
                 print("File added: {0}/MyFuncs.py".format(install_directory))
                 copytree(biopython_path, "{0}/Bio".format(install_directory))
                 print("Directory added: {0}/Bio".format(install_directory))
+                copytree(ete3_path, "{0}/ete3".format(install_directory))
+                print("Directory added: {0}/ete3".format(install_directory))
+                copytree(dendropy_path, "{0}/dendropy".format(install_directory))
+                print("Directory added: {0}/dendropy".format(install_directory))
 
                 binaries = ["blastn", "blastp", "blastdbcmd"] if user_system != "Win32" else \
                     ["blastn.exe", "blastp.exe", "blastdbcmd.exe"]
 
-                os.makedirs('{0}/blast_binaries'.format(install_directory), exist_ok=True)
                 for binary in binaries:
                     if not which(binary):
                         if binary.startswith('blastn'):
@@ -567,6 +572,8 @@ else:
     # print(scale_factor)
     sys.path.insert(0, "./")
     root.title("BuddySuite Installer")
+    root.config(background='white')
+    root.tk_setPalette(background='white')
 
 
 class Installer(Frame):
