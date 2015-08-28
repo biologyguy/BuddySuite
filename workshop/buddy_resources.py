@@ -102,7 +102,6 @@ def error_report(error_msg):
     temp_file.write(error_msg)
     ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
     ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Might want to include date in error file name
-    print(ftp.retrlines('LIST'))
 
 
 def send_usage_report(report):

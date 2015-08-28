@@ -2173,17 +2173,19 @@ if __name__ == '__main__':
         try:  # Catch all exceptions and try to send error report to server
             live_search = LiveSearch(dbbuddy, temp_file)
         except Exception as e:
+            import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
-            _stderr("The live session has crashed with the following exception:\n\n%s\n\nYour work has been saved to "
-                    "%s, and can be loaded by launching DatabaseBuddy and using the 'load' command.\n" % (e, save_file))
             temp_file.save(save_file)
-
-            prompt = input("Would you like to send a crash report to the developers ([y]/n)?")
+            tb = "".join(traceback.format_tb(sys.exc_info()[2]))
+            tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+            _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
+                    "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
+                    "command.\n" % (RED, tb, save_file))
+            prompt = input("%sWould you like to send a crash report to the developers ([y]/n)?\033[m" % BOLD)
             if prompt.lower() in ["y", "yes", ""]:
-                import traceback
-                tb = "".join(traceback.format_tb(sys.exc_info()[2]))
-                tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+                _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
+                _stderr("Success, thank you.")
         temp_file.close()
         sys.exit()
 
