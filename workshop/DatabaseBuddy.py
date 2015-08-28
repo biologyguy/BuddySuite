@@ -625,7 +625,7 @@ class UniProtRestClient:
         self.max_url = 1000
 
     def query_uniprot(self, _term, args):  # Multicore ready
-        http_errors_file, results_file, request_params = args
+        http_errors_file, results_file, request_params, lock = args
         _term = re.sub(" ", "+", _term)
         request_string = ""
         for _param, _value in request_params.items():
@@ -637,19 +637,19 @@ class UniProtRestClient:
             response = urlopen(request)
             response = response.read().decode()
             response = re.sub("^Entry.*\n", "", response, count=1)
-            with self.lock:
+            with lock:
                 with open(results_file, "a") as ofile:
 
                     ofile.write("# Search: %s\n%s//\n" % (_term, response))
             return
 
         except HTTPError as e:
-            with self.lock:
+            with lock:
                 with open(http_errors_file, "a") as ofile:
                     ofile.write("%s\n%s//\n" % (_term, e))
 
         except URLError as e:
-            with self.lock:
+            with lock:
                 with open(http_errors_file, "a") as ofile:
                     ofile.write("%s\n%s//\n" % (_term, e))
 
@@ -693,7 +693,7 @@ class UniProtRestClient:
                 search_terms.append(_term)
 
         search_terms = search_terms[0] if len(search_terms) == 1 else search_terms
-        self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}])
+        self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}, Lock()])
         with open(self.results_file, "r") as ifile:
             _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
         open(self.results_file, "w").close()
@@ -721,10 +721,10 @@ class UniProtRestClient:
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params])
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
-            self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params])
+            self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params, Lock()])
 
         errors = self._parse_error_file()
         if errors:
@@ -765,7 +765,7 @@ class UniProtRestClient:
 
             params = {"format": "txt"}
             run_multicore_function(accessions, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params])
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
 
             errors = self._parse_error_file()
             if errors:
@@ -804,7 +804,6 @@ class NCBIClient:
     def __init__(self, _dbbuddy):
         Entrez.email = "steve.bond@nih.gov"  # ToDo: Pull email address from .buddysuite config file
         self.dbbuddy = _dbbuddy
-        self.lock = Lock()
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
@@ -848,7 +847,8 @@ class NCBIClient:
                 _groups.append(accn)
         return _groups
 
-    def _mc_taxa(self, _taxa_ids):
+    def _mc_taxa(self, _taxa_ids, args):
+        lock = args[0]
         error = False
         handle = False
         for i in range(self.max_attempts):
@@ -878,7 +878,7 @@ class NCBIClient:
                 if i == self.max_attempts - 1:
                     error = e
 
-        with self.lock:
+        with lock:
             if error:
                 with open(self.http_errors_file) as ifile:
                     ifile.write("%s\n%s//\n" % (_taxa_ids, error))
@@ -890,7 +890,7 @@ class NCBIClient:
     def _get_taxa(self, _taxa_ids):
         self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
-        run_multicore_function(_taxa_ids, self._mc_taxa)
+        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()])
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x for x in results if x]
@@ -901,7 +901,8 @@ class NCBIClient:
                 _output[summary["TaxId"]] = summary["ScientificName"]
         return _output
 
-    def _mc_accn2gi(self, accns):
+    def _mc_accn2gi(self, accns, args):
+        lock = args[0]
         error = False
         handle = False
         for i in range(self.max_attempts):
@@ -918,7 +919,7 @@ class NCBIClient:
                 if i == self.max_attempts - 1:
                     error = e
 
-        with self.lock:
+        with lock:
             if error:
                 with open(self.http_errors_file) as ifile:
                     ifile.write("%s\n%s//\n" % (accns, error))
@@ -930,14 +931,15 @@ class NCBIClient:
     def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
-        run_multicore_function(accns, self._mc_accn2gi)
+        run_multicore_function(accns, self._mc_accn2gi, [Lock()])
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x.split("\n") for x in results]
             results = [x for sublist in results for x in sublist if x]
         return results
 
-    def _mc_summaries(self, gi_nums):
+    def _mc_summaries(self, gi_nums, args):
+        lock = args[0]
         error = False
         handle = False
         for i in range(self.max_attempts):
@@ -975,7 +977,7 @@ class NCBIClient:
                 if i == self.max_attempts - 1:
                     error = e
 
-        with self.lock:
+        with lock:
             if error:
                 with open(self.http_errors_file) as ifile:
                     ifile.write("%s\n%s//\n" % (gi_nums, error))
@@ -987,7 +989,7 @@ class NCBIClient:
     def _fetch_summaries(self, gi_nums):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_summaries)
+        run_multicore_function(gi_nums, self._mc_summaries, [Lock()])
         with open(self.results_file, "r") as _ifile:
             results = _ifile.read().split("\n### END ###\n")
             results = [x for x in results if x != ""]
@@ -1113,12 +1115,13 @@ class NCBIClient:
                     if failure.hash not in self.dbbuddy.failures:
                         self.dbbuddy.failures[failure.hash] = failure
 
-    def _mc_seq(self, accns, database):
+    def _mc_seq(self, accns, args):
+        database, lock = args
         error = False
         handle = False
         for i in range(self.max_attempts):
             try:
-                handle = Entrez.efetch(db=database[0], id=accns, rettype="gb", retmode="text", retmax=10000)
+                handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
                 '''
                 Example output: efetch.fcgi?db=protein&id=920714169&rettype=gb&retmode=text
                 LOCUS       KOM54257                 441 aa            linear   PLN 21-AUG-2015
@@ -1195,7 +1198,7 @@ class NCBIClient:
                 if i == self.max_attempts - 1:
                     error = e
 
-        with self.lock:
+        with lock:
             if error:
                 with open(self.http_errors_file) as ifile:
                     ifile.write("%s\n%s//\n" % (accns, error))
@@ -1207,7 +1210,7 @@ class NCBIClient:
     def _get_seq(self, gi_nums, database):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_seq, [database])
+        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()])
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
         return results
@@ -1233,7 +1236,6 @@ class NCBIClient:
 class EnsemblRestClient:
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
         self.dbbuddy = _dbbuddy
-        self.lock = Lock()
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
@@ -1269,7 +1271,7 @@ class EnsemblRestClient:
                 content = response.read().decode()
                 data = json.loads(content)
             elif request.get_header("Content-type") == "text/x-seqxml+xml":
-                data = SeqIO.read(response, "seqxml")
+                data = SeqIO.parse(response, "seqxml")
             else:
                 raise ValueError(request.headers)
 
@@ -1287,14 +1289,26 @@ class EnsemblRestClient:
                 self.dbbuddy.failures[failure.hash] = failure
 
     def fetch_nucleotide(self):
-        pass
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
+        data = self.perform_rest_action("sequence/id", data={"ids": accns},
+                                        headers={"Content-type": "text/x-seqxml+xml"})
+        for rec in data:
+            summary = self.dbbuddy.records[rec.id].summary
+            rec.description = summary['comments']
+            rec.accession = rec.id
+            rec.name = rec.id
+            species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+            species = "%s%s" % (species.group(1).upper(), species.group(2))
+            new_id = "%s-%s" % (species, summary['name'])
+            self.dbbuddy.records[rec.id].record = rec
+            self.dbbuddy.records[rec.id].record.id = new_id
 
     def _mc_search(self, species, args):
-        identifier = args[0]
+        identifier, lock = args
         self.dbbuddy.failures = {}
         data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
                                         headers={"Content-type": "application/json", "Accept": "application/json"})
-        with self.lock:
+        with lock:
             with open(self.results_file, "a") as ofile:
                 ofile.write("%s\n### END ###\n" % data)
             if self.dbbuddy.failures:
@@ -1330,7 +1344,7 @@ class EnsemblRestClient:
         open(self.results_file, "w").close()
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
-            run_multicore_function(species, self._mc_search, [search_term])
+            run_multicore_function(species, self._mc_search, [search_term, Lock()])
             with open(self.results_file, "r") as ifile:
                 results = ifile.read().split("\n### END ###")
 
@@ -1372,7 +1386,11 @@ class EnsemblRestClient:
 # ################################################## API FUNCTIONS ################################################### #
 
 class LiveSearch(cmd.Cmd):
-    def __init__(self, _dbbuddy):
+    def __init__(self, _dbbuddy, crash_file):
+        """
+        :param _dbbuddy: pre-instantiated DbBuddy object
+        :param crash_file: MyFuncs.TempFile object
+        """
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
         hash_heading = ""
@@ -1404,6 +1422,8 @@ Further details about each command can be accessed by typing 'help <command>'
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
         self.doc_header = "Available commands:                                                      "
         self.dbbuddy = _dbbuddy
+        self.crash_file = crash_file
+        self.dump_session()
         self.file = None
 
         _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
@@ -1413,8 +1433,12 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("Your session is currently unpopulated. Use 'search' to retrieve records.\n",
                     format_out=self.terminal_default)
         self.hash = None
-        self.shell_execs = []  # Only populate this if called by the user
+        self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.cmdloop()
+
+    def dump_session(self):
+        import pickle
+        self.crash_file.write(pickle.dumps(self.dbbuddy), "w")
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
@@ -1484,6 +1508,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
 
         _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
+        self.dump_session()
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -1527,6 +1552,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
         else:
             _stdout("Database search list not changed.\n\n", format_in=RED, format_out=self.terminal_default)
+        self.dump_session()
 
     def do_delete(self, line="all"):
         if not self.dbbuddy.trash_bin and not self.dbbuddy.records and not self.dbbuddy.search_terms:
@@ -1598,6 +1624,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.search_terms = []
                 self.dbbuddy.failures = {}
         _stderr("\n")
+        self.dump_session()
 
     def do_exclude(self, line=None):
         self.filter(line, mode="exclude")
@@ -1639,6 +1666,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         _stdout("Retrieved %s residues of sequence data\n\n" % pretty_number(seq_retrieved),
                 format_out=self.terminal_default)
+        self.dump_session()
 
     def do_format(self, line):
         if not line:
@@ -1653,6 +1681,23 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dbbuddy.out_format = line
         _stdout("Output format changed to %s%s\n\n" % (YELLOW, line), format_in=GREEN,
                 format_out=self.terminal_default)
+        self.dump_session()
+
+    def do_load(self, line=None):
+        import pickle
+        if not line:
+            line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
+        try:
+            with open(os.path.abspath(line), "r") as ifile:
+                self.dbbuddy = pickle.loads(ifile.read())
+
+        except IOError as e:
+            _stderr("%s\n" % e)
+            prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
+            if prompt == 'abort':
+                _stderr("Aborted...\n")
+            else:
+                self.do_load(prompt)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
@@ -2066,7 +2111,8 @@ def retrieve_sequences(_dbbuddy):
         refseq.fetch_sequence("protein")
 
     if "ensembl" in _dbbuddy.databases or check_all:
-        pass
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.fetch_nucleotide()
 
     return _dbbuddy
 
@@ -2121,7 +2167,24 @@ if __name__ == '__main__':
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Live Shell
     if in_args.live_shell:
-        live_search = LiveSearch(dbbuddy)
+        # Create a temp file for crash handling
+        temp_file = TempFile(byte_mode=True)
+        temp_file.open()
+        try:  # Catch all exceptions and try to send error report to server
+            live_search = LiveSearch(dbbuddy, temp_file)
+        except Exception as e:
+            save_file = "./DbSessionDump_%s" % temp_file.name
+            _stderr("The live session has crashed with the following exception:\n\n%s\n\nYour work has been saved to "
+                    "%s, and can be loaded by launching DatabaseBuddy and using the 'load' command.\n" % (e, save_file))
+            temp_file.save(save_file)
+
+            prompt = input("Would you like to send a crash report to the developers ([y]/n)?")
+            if prompt.lower() in ["y", "yes", ""]:
+                import traceback
+                tb = "".join(traceback.format_tb(sys.exc_info()[2]))
+                tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+                br.error_report(tb)
+        temp_file.close()
         sys.exit()
 
     """
@@ -2174,7 +2237,8 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
-    retrieve_summary(dbbuddy)
+    retrieve_sequences(dbbuddy)
+    dbbuddy.out_format = "seqxml"
     dbbuddy.print()
     sys.exit()
     # Default to LiveSearch
