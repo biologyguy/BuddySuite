@@ -98,6 +98,7 @@ class BuddyInstall:
         binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
         bins_to_dl = []
         current_os = sys.platform
+        # Determine which binaries need to be installed
         if current_os.startswith('darwin'):
             if _blastdcmd:
                 bins_to_dl.append('Darwin_blastdbcmd.zip')
@@ -131,13 +132,16 @@ class BuddyInstall:
         os.makedirs("{0}/temp".format(install_dir), exist_ok=True)
         try:
             for blast_bin in bins_to_dl:
+                # Download the zip files as bytes and write them to a temporary directory
                 with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
                         open("{0}/temp/{1}".format(install_dir, blast_bin), mode='wb') as writer:
                     shutil.copyfileobj(reader, writer)
+                # Unzip the zip files
                 zip_file = zipfile.ZipFile("{0}/temp/{1}".format(install_dir, blast_bin))
                 zip_file.extractall(path=install_dir)
                 os.rename('{0}/{1}'.format(install_dir, re.sub('\.zip', '', blast_bin)),
                           '{0}/{1}'.format(install_dir, file_to_name[blast_bin]))
+                # Make the binaries executable
                 os.chmod('{0}/{1}'.format(install_dir, file_to_name[blast_bin]), 0o755)
                 print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
             shutil.rmtree("{0}/temp".format(install_dir))
@@ -149,28 +153,31 @@ class BuddyInstall:
     @staticmethod
     def install_buddy_suite(user_system, options):
         print("Starting.")
-        BuddyInstall.edit_profile()
+        BuddyInstall.edit_profile()  # Adds install directory to $PATH
         buddies_to_install = options[0]
         install_directory = options[1]
         shortcuts = options[2]
-        for buddy in buddies_to_install:
+
+        for buddy in buddies_to_install:  # Deletes shortcuts from buddies that aren't being installed
             if not buddies_to_install[buddy]:
                 shortcuts[buddy] = []
 
         if path.exists("{0}/.buddysuite/__pycache__".format(home_dir)):
             rmtree("{0}/.buddysuite/__pycache__".format(home_dir))
 
-        all_false = True
+        uninstall = True  # Detects if BuddySuite is being uninstalled
         for buddy in buddies_to_install:
             if buddies_to_install[buddy]:
-                all_false = False
-        for loc in paths_installed:
+                uninstall = False
+
+        for loc in paths_installed:  # Remove all previously installed subdirectories
             if path.exists("{0}/.buddysuite/{1}".format(home_dir, loc)):
                 rmtree("{0}/.buddysuite/{1}".format(home_dir, loc))
-        for loc in files_installed:
+        for loc in files_installed:  # Remove all previously installed paths
             if path.exists("{0}/.buddysuite/{1}".format(home_dir, loc)):
                 os.remove("{0}/.buddysuite/{1}".format(home_dir, loc))
 
+        # Removes the install directory if it already exists and there are no user files present
         if path.exists("{0}/.buddysuite".format(home_dir)) and len(os.listdir("{0}/.buddysuite".format(home_dir))) == 0:
             rmtree(path.realpath("{0}/.buddysuite".format(home_dir)))
             os.remove("{0}/.buddysuite".format(home_dir))
@@ -180,17 +187,19 @@ class BuddyInstall:
         biopython_path = "./Bio"
         ete3_path = "./ete3"
         dendropy_path = "./dendropy"
-        if not all_false:
+        if not uninstall:  # If not uninstalling
             print("Install path: " + install_directory)
             os.makedirs(install_directory, exist_ok=True)
             print("Directory added: {0}".format(install_directory))
             if not path.exists("{0}/.buddysuite".format(home_dir)):
                 os.symlink(install_directory, "{0}/.buddysuite".format(home_dir))
                 print("Shortcut added: {0} ==> {1}/.buddysuite".format(install_directory, home_dir))
-            if user_system in ['Darwin', 'Linux', 'Unix']:
-                user_system = 'Linux' if user_system == "Unix" else user_system
-                user_system = 'Win32' if user_system == "Windows" else user_system
 
+            if user_system in ['Darwin', 'Linux', 'Unix']:  # We don't support windows
+                user_system = 'Linux' if user_system == "Unix" else user_system
+                user_system = 'Win32' if user_system == "Windows" else user_system  # Not sure why this is here
+
+                # Install all dependencies
                 shutil.copy(buddy_resources_path, "{0}/buddy_resources.py".format(install_directory))
                 print("File added: {0}/buddy_resources.py".format(install_directory))
                 shutil.copy(myfuncs_path, "{0}/MyFuncs.py".format(install_directory))
@@ -255,10 +264,12 @@ class BuddyInstall:
         writer.add_section('selected')
         writer.add_section('Install_path')
         writer.add_section('shortcuts')
+        writer.add_section('other')
         writer['DEFAULT'] = {'selected': {'SeqBuddy': True, 'AlignBuddy': True, 'PhyloBuddy': True, 'DatabaseBuddy': True},
                              'Install_path': {'path': '{0}/BuddySuite'.format(home_dir)},
                              'shortcuts': {'SeqBuddy': 'sb\tseqbuddy', 'AlignBuddy': 'alb\talignbuddy',
-                                           'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'}}
+                                           'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'},
+                             'other': {'email': '', 'diagnostics': False}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -267,6 +278,9 @@ class BuddyInstall:
                 writer['selected'][buddy] = 'False'
 
         writer["Install_path"]['path'] = options[1]
+
+        writer['other']['email'] = options[3]
+        writer['other']['diagnostics'] = options[4]
 
         for buddy in options[2]:
             sc = ''
@@ -285,7 +299,8 @@ class BuddyInstall:
             reader.read("{0}/.buddysuite/config.ini".format(home_dir))
 
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
-                       reader.get('Install_path', 'path'), {}]
+                       reader.get('Install_path', 'path'), {}, reader.get('other', 'email'),
+                       reader.get('other', 'diagnostics')]
 
             for buddy in options[0]:
                 if reader['selected'][buddy] == 'True':
@@ -295,6 +310,8 @@ class BuddyInstall:
                     options[2][buddy] = sc
                 else:
                     options[2][buddy] = []
+
+            options[4] = True if options[4] == 'True' else False
 
             return options
 
@@ -321,7 +338,7 @@ class BuddyInstall:
             if not path.exists("{0}/.bashrc".format(home_dir)):
                 make_file = open("{0}/.bashrc".format(home_dir), 'w')
                 make_file.close()
-            with open("{0}/.profile".format(home_dir)) as file:
+            with open("{0}/.bashrc".format(home_dir)) as file:
                 contents = file.read()
                 if re.search(regex, contents) is None:
                     file.close()
@@ -588,7 +605,8 @@ class Installer(Frame):
     image_paths = ["{0}/BuddySuite-logo.gif".format(temp_dir.name), "{0}/InstallDirectory.gif".format(temp_dir.name),
                    "{0}/ConsoleShortcuts.gif".format(temp_dir.name), "{0}/ConfirmSelection.gif".format(temp_dir.name),
                    "{0}/AlignBuddy-logo.gif".format(temp_dir.name), "{0}/SeqBuddy-logo.gif".format(temp_dir.name),
-                   "{0}/PhyloBuddy-logo.gif".format(temp_dir.name), "{0}/DBBuddy-logo.gif".format(temp_dir.name)]
+                   "{0}/PhyloBuddy-logo.gif".format(temp_dir.name), "{0}/DBBuddy-logo.gif".format(temp_dir.name),
+                   "{0}/EmailAddress.gif".format(temp_dir.name), "{0}/SendDiagnostics.gif".format(temp_dir.name)]
 
     for _path in image_paths:
         image = Image.open(_path)
@@ -602,6 +620,8 @@ class Installer(Frame):
     id_logo = PhotoImage(file="{0}/InstallDirectory.gif".format(temp_dir.name))
     sc_logo = PhotoImage(file="{0}/ConsoleShortcuts.gif".format(temp_dir.name))
     cs_logo = PhotoImage(file="{0}/ConfirmSelection.gif".format(temp_dir.name))
+    ea_logo = PhotoImage(file="{0}/EmailAddress.gif".format(temp_dir.name))
+    sd_logo = PhotoImage(file="{0}/SendDiagnostics.gif".format(temp_dir.name))
 
     alb_logo = PhotoImage(file="{0}/AlignBuddy-logo.gif".format(temp_dir.name))
     sb_logo = PhotoImage(file="{0}/SeqBuddy-logo.gif".format(temp_dir.name))
@@ -609,6 +629,9 @@ class Installer(Frame):
     db_logo = PhotoImage(file="{0}/DBBuddy-logo.gif".format(temp_dir.name))
 
     suite_logos = [sb_logo, pb_logo, alb_logo, db_logo]
+
+    email_address = ''
+    send_diagnostics = True
 
     install_dir = "{0}/BuddySuite".format(home_dir)
     default_dir = "{0}/BuddySuite".format(home_dir)
@@ -631,8 +654,10 @@ class Installer(Frame):
         buddies = copy.deepcopy(config[0])
         install_dir = copy.deepcopy(config[1])
         shortcuts = copy.deepcopy(config[2])
+        email_address = config[3]
+        send_diagnostics = config[4]
 
-        # if new install of given tool, re-add default shortcuts
+        # if new install of given tool, re-add default shortcuts]
         if which("sb") is None and not buddies["SeqBuddy"]:
             shortcuts["SeqBuddy"].append("sb")
         if which("seqbuddy") is None and not buddies["SeqBuddy"]:
@@ -821,7 +846,9 @@ class Installer(Frame):
         self.container.append(labelframe)
         self.container.append(back_button)
 
-    def install_location(self):
+    def install_location(self, email=None):
+        if email is not None:
+            self.email_address = email.get()
         self.clear_container()
         logo_label = Label(image=self.id_logo, pady=20 * scale_factor)
         logo_label.pack(side=TOP)
@@ -859,7 +886,7 @@ class Installer(Frame):
             warning = Label(lower_box, text="Previous install detected. Uninstall first to change install directory.")
             warning.pack(side=TOP, pady=50 * scale_factor)
         button_frame = Frame(lower_box)
-        next_func = partial(self.install_shortcuts, directory_text)
+        next_func = partial(self.email_address_page, directory_text)
         next_button = Button(button_frame, padx=50 * scale_factor,
                              pady=20 * scale_factor, text="Next", command=next_func)
         next_button.pack(side=RIGHT)
@@ -871,9 +898,51 @@ class Installer(Frame):
         lower_box.pack(side=BOTTOM)
         self.container.append(lower_box)
 
-    def install_shortcuts(self, in_dir=None):
+    def email_address_page(self, in_dir=None):
         if in_dir is not None:
             self.install_dir = in_dir.get()
+        self.clear_container()
+        if self.buddies['DatabaseBuddy'] is False:
+            if in_dir is not None:
+                self.install_shortcuts()
+            else:
+                self.install_location()
+            return
+        else:
+            logo_label = Label(image=self.ea_logo, pady=20 * scale_factor)
+            logo_label.pack(side=TOP)
+            self.container.append(logo_label)
+
+            frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
+
+            label = Label(frame, text="Would you like to provide your email address? (optional)")
+            label.pack(side=TOP, anchor=NW)
+
+            email_text = Entry(frame)
+            email_text.insert(END, self.email_address)
+            email_text.pack(side=TOP, anchor=NW, fill=X)
+
+            frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
+            self.container.append(frame)
+
+            lower_box = Frame()
+
+            button_frame = Frame(lower_box)
+            next_func = partial(self.install_shortcuts, email_text)
+            next_button = Button(button_frame, padx=50 * scale_factor,
+                                 pady=20 * scale_factor, text="Next", command=next_func)
+            next_button.pack(side=RIGHT)
+            back_func = partial(self.install_location, email_text)
+            back_button = Button(button_frame, padx=50 * scale_factor,
+                                 pady=20 * scale_factor, text="Back", command=back_func)
+            back_button.pack(side=LEFT)
+            button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
+            lower_box.pack(side=BOTTOM)
+            self.container.append(lower_box)
+
+    def install_shortcuts(self, email=None):
+        if email is not None:
+            self.email_address = email.get()
         self.clear_container()
         logo_label = Label(image=self.sc_logo)
         logo_label.pack(side=TOP)
@@ -881,10 +950,10 @@ class Installer(Frame):
 
         button_frame = Frame()
         next_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Next",
-                             command=self.confirmation)
+                             command=self.diagnostic_prompt)
         next_button.pack(side=RIGHT)
         back_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Back",
-                             command=self.install_location)
+                             command=self.email_address_page)
         back_button.pack(side=LEFT)
         button_frame.pack(side=BOTTOM, pady=40 * scale_factor)
         self.container.append(button_frame)
@@ -986,6 +1055,44 @@ class Installer(Frame):
             listbox.delete(index)
             self.shortcuts[buddy.get()].remove(text)
 
+    def diagnostic_prompt(self):
+        self.clear_container()
+        logo_label = Label(image=self.sd_logo, pady=20 * scale_factor)
+        logo_label.pack(side=TOP)
+        self.container.append(logo_label)
+
+        frame = Frame(root, padx=50 * scale_factor, pady=75 * scale_factor)
+
+        diagnostic_box = Checkbutton(frame,
+                                     text="Would you be willing to send usage stats and diagnostic information to us?",
+                                     command=self.toggle_diagnostics, pady=50 * scale_factor)
+        if self.send_diagnostics:
+            diagnostic_box.toggle()
+
+        diagnostic_box.pack(side=BOTTOM)
+
+        frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
+        self.container.append(frame)
+
+        lower_box = Frame()
+
+        button_frame = Frame(lower_box)
+        next_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Next", command=self.confirmation)
+        next_button.pack(side=RIGHT)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=self.install_shortcuts)
+        back_button.pack(side=LEFT)
+        button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
+        lower_box.pack(side=BOTTOM)
+        self.container.append(lower_box)
+
+    def toggle_diagnostics(self):
+        if self.send_diagnostics:
+            self.send_diagnostics = False
+        else:
+            self.send_diagnostics = True
+
     def confirmation(self):
         confirmation_font = ('Courier', int(15 * scale_factor))
         self.clear_container()
@@ -1050,6 +1157,12 @@ class Installer(Frame):
             cs_pb_label.grid(row=8, sticky=NW)
         if self.buddies["DatabaseBuddy"]:
             cs_db_label.grid(row=9, sticky=NW)
+
+        if self.email_address != '' and self.buddies["DatabaseBuddy"]:
+            em_label = Label(info_frame, font=confirmation_font,
+                             text="Email address: {}".format(self.email_address))
+            em_label.grid(row=10, sticky=NW)
+
         info_frame.pack(side=TOP, anchor=NW, padx=50 * scale_factor, pady=50 * scale_factor, fill=BOTH)
 
         all_false = True
@@ -1059,7 +1172,7 @@ class Installer(Frame):
         if self.config is not None and all_false:
             back_func = partial(self.next_tool, 3)
         else:
-            back_func = self.install_shortcuts
+            back_func = self.diagnostic_prompt
 
         button_frame = Frame()
         next_button = Button(button_frame, padx=50 * scale_factor, pady=20 * scale_factor, text="Install",
@@ -1094,7 +1207,8 @@ class Installer(Frame):
         for buddy in self.buddies:
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
-        BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts])
+        BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts,
+                                                            self.email_address, str(self.send_diagnostics)])
         exit()
 
     def clear_container(self):
