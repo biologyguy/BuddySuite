@@ -1160,8 +1160,12 @@ class Installer(Frame):
 
         if self.email_address != '' and self.buddies["DatabaseBuddy"]:
             em_label = Label(info_frame, font=confirmation_font,
-                             text="Email address: {}".format(self.email_address))
+                             text="Email address: {0}".format(self.email_address))
             em_label.grid(row=10, sticky=NW)
+
+        dp_label = Label(info_frame, font=confirmation_font,
+                         text="Send Diagnostics: {0}".format(self.send_diagnostics))
+        dp_label.grid(row=11, sticky=NW)
 
         info_frame.pack(side=TOP, anchor=NW, padx=50 * scale_factor, pady=50 * scale_factor, fill=BOTH)
 
