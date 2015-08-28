@@ -28,6 +28,7 @@ import sys
 import argparse
 import datetime
 from collections import OrderedDict
+from MyFuncs import TempFile
 
 
 class Version:
@@ -93,6 +94,19 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
         default = self._get_default_metavar_for_optional(action)
         args_string = self._format_args(action, default)
         return ', '.join(action.option_strings) + ' ' + args_string
+
+
+def error_report(error_msg):
+    from ftplib import FTP
+    temp_file = TempFile()
+    temp_file.write(error_msg)
+    ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+    ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Might want to inlcude date in error file name
+    print(ftp.retrlines('LIST'))
+
+if __name__ == '__main__':
+    error_report()
+    sys.exit()
 
 
 def flags(parser, tool_name, _positional, _flags, _modifiers, version):
