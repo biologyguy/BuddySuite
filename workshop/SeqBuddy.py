@@ -109,6 +109,7 @@ def degenerate_dna():
     return
 
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
+# - Add support for selecting individual sequences to modify
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
 # - Get BuddySuite into PyPi
@@ -1423,6 +1424,7 @@ def order_features_alphabetically(_seqbuddy, _reverse=False):
     return _seqbuddy
 
 
+# TODO do string formatting in command line ui
 def hash_sequence_ids(_seqbuddy, _hash_length=10):
     """
     Replaces the sequence IDs with random hashes
@@ -1572,6 +1574,7 @@ def extract_range(_seqbuddy, _start, _end):
     return _seqbuddy
 
 
+# TODO do string formatting in command line ui
 def find_repeats(_seqbuddy, _columns=1):
     """
     Finds sequences with identical IDs or sequences
@@ -1821,7 +1824,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
             _output.append(_rec)
 
     _seqbuddy.records = _output
-
+    # TODO do string formatting in command line ui
     _record_map = "### Deleted record mapping ###\n"
     keep_set = [(_key, sorted(_value)) for _key, _value in keep_set.items()]
     keep_set = sorted(keep_set, key=lambda l: l[0])
@@ -1836,7 +1839,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     return [_seqbuddy, purged, _record_map]
 
 
-def bl2seq(_seqbuddy):
+def bl2seq(_seqbuddy):  # TODO do string formatting in command line ui
     """
     Does an all-by-all analysis of the sequences
     :param _seqbuddy: The SeqBuddy object to be BLASTed
@@ -2003,6 +2006,12 @@ def lowercase(_seqbuddy):
 
 
 def split_by_taxa(_seqbuddy, split_pattern):
+    """
+    Splits a SeqBuddy object by a specified pattern
+    :param _seqbuddy: The SeqBuddy object to be split
+    :param split_pattern: The regex pattern to split with
+    :return: A dictionary of SeqRecords
+    """
     recs_by_taxa = {}
     for _rec in _seqbuddy.records:
         split = re.split(split_pattern, _rec.id)
@@ -2011,7 +2020,12 @@ def split_by_taxa(_seqbuddy, split_pattern):
 
 
 def molecular_weight(_seqbuddy):
-    # get the mass of each sequence in daltons
+    """
+    Calculates the mass of each sequence in daltons
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of molecular weight values -
+    dict[id][(ssRNA_value/ssDNA_value, dsDNA_value/peptide_value)]
+    """
 
     amino_acid_weights = {'A': 71.08, 'R': 156.19, 'N': 114.10, 'D': 115.09, 'C': 103.14, 'Q': 128.13, 'E': 129.12,
                           'G': 57.05, 'H': 137.14, 'I': 113.16, 'L': 113.16, 'K': 128.17, 'M': 131.19, 'F': 147.18,
@@ -2063,12 +2077,17 @@ def molecular_weight(_seqbuddy):
         elif _seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
             _qualifiers["ssRNA_value"] = round(_rec.mass_ss, 3)
         _output['ids'].append(_rec.id)
-        mw_feature = SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='mw', qualifiers=_qualifiers)
+        mw_feature = SeqFeature(location=FeatureLocation(start=1, end=len(_rec.seq)), type='mw', qualifiers=_qualifiers)
         _rec.features.append(mw_feature)
     return _seqbuddy, _output
 
 
 def isoelectric_point(_seqbuddy):
+    """
+    Calculate the isoelectric point of each sequence
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of isoelectric point values - dict[id]
+    """
     if _seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
     _isoelectric_points = OrderedDict()
@@ -2076,12 +2095,17 @@ def isoelectric_point(_seqbuddy):
         _pI = ProteinAnalysis(str(_rec.seq))
         _pI = round(_pI.isoelectric_point(), 10)
         _isoelectric_points[_rec.id] = _pI
-        _rec.features.append(SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='pI',
+        _rec.features.append(SeqFeature(location=FeatureLocation(start=1, end=len(_rec.seq)), type='pI',
                                         qualifiers={'value': _pI}))
     return _seqbuddy, _isoelectric_points
 
 
 def count_residues(_seqbuddy):
+    """
+    Count the number of each type of residue in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary - dict[id][residue]
+    """
     _output = OrderedDict()
     for _rec in _seqbuddy.records:
         resid_count = {}
@@ -2138,7 +2162,12 @@ def count_residues(_seqbuddy):
     return _seqbuddy, _output
 
 
-def raw_seq(_seqbuddy):
+def raw_seq(_seqbuddy):  # TODO Make this return a dict
+    """
+    Returns the raw sequence data from the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A string containing the raw sequences
+    """
     _seqbuddy = clean_seq(_seqbuddy)
     _output = ""
     for _rec in _seqbuddy.records:
@@ -2147,7 +2176,12 @@ def raw_seq(_seqbuddy):
     return "%s\n" % _output.strip()
 
 
-def list_ids(_seqbuddy, _columns=1):
+def list_ids(_seqbuddy, _columns=1):  # TODO Make this return a list
+    """
+    Returns a list of sequence IDs
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A string listing sequence IDs
+    """
     _columns = 1 if _columns == 0 else abs(_columns)
     _output = ""
     _counter = 1
@@ -2160,10 +2194,20 @@ def list_ids(_seqbuddy, _columns=1):
 
 
 def num_seqs(_seqbuddy):
+    """
+    Counts the number of sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be counted
+    :return: The int number of sequences
+    """
     return len(_seqbuddy.records)
 
 
 def merge(_seqbuddy_list):
+    """
+    Combines two or more SeqBuddy objects
+    :param _seqbuddy_list: The list of SeqBuddy objects to be merged
+    :return: A single, merged SeqBuddy object
+    """
     _output = _seqbuddy_list[0]
     for _seqbuddy in _seqbuddy_list[1:]:
         _output.records += _seqbuddy.records
@@ -2171,7 +2215,11 @@ def merge(_seqbuddy_list):
 
 
 def split_file(_seqbuddy):
-    # Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
+    """
+    Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
+    :param _seqbuddy: The SeqBuddy object to be split
+    :return: A list of SeqBuddy objects
+    """
     sb_objs_list = []
     for _rec in _seqbuddy.records:
         _sb = SeqBuddy([_rec])
@@ -2183,6 +2231,14 @@ def split_file(_seqbuddy):
 
 # _order in ['alpha', 'position']
 def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):  # ToDo: Make sure cut sites are not already in the features list
+    """
+    Finds the restriction sites in the sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :param _enzymes: "commercial", "all", or a list of specific enzyme names
+    :param _min_cuts: The minimum cut threshold
+    :param _max_cuts: The maximum cut threshold
+    :return: Returns a tuple containing an annotated SeqBuddy object, and a dictionary of restriction sites dict[id][re]
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
     if _max_cuts and _min_cuts > _max_cuts:
@@ -2246,6 +2302,12 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
 
 
 def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
+    """
+    Finds occurences of a pattern in a SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be searched
+    :param _pattern: The regex pattern to search with
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of matches dict[id]
+    """
     # search through sequences for regex matches. For example, to find micro-RNAs
     _pattern = _pattern.upper()
     _output = OrderedDict()
@@ -2261,7 +2323,11 @@ def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
 
 
 def find_CpG(_seqbuddy):
-    # Predicts locations of CpG islands in DNA sequences
+    """
+    Predicts locations of CpG islands in DNA sequences
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an SeqBuddy object and a dict of indices - dict[id]
+    """
     _seqbuddy = clean_seq(_seqbuddy)
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         raise TypeError("DNA sequence required, not protein or RNA.")
@@ -2339,11 +2405,15 @@ def find_CpG(_seqbuddy):
         records.append(_rec)
         _output[rec.id] = indices
     _seqbuddy.records = records
-    return [_seqbuddy, _output]
+    return _seqbuddy, _output
 
 
 def shuffle_seqs(_seqbuddy):
-    # randomly reorder the residues in each sequence
+    """
+    Randomly reorder the residues in each sequence
+    :param _seqbuddy: The SeqBuddy object to be shuffled
+    :return: The shuffled SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         tokens = []
         for letter in _rec.seq:
@@ -2357,7 +2427,13 @@ def shuffle_seqs(_seqbuddy):
 
 
 def insert_sequence(_seqbuddy, _sequence, _location):
-    # Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
+    """
+    Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param _sequence: The sequence to be inserted
+    :param _location: The location to insert the sequences at
+    :return: The modified SeqBuddy object
+    """
     if type(_location) is int:
         for _rec in _seqbuddy.records:
             new_seq = _rec.seq[:_location] + _sequence + _rec.seq[_location:]
@@ -2376,7 +2452,11 @@ def insert_sequence(_seqbuddy, _sequence, _location):
 
 
 def count_codons(_seqbuddy):
-    # generate frequency statistics for codon composition
+    """
+    Generate frequency statistics for codon composition
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing the original SeqBuddy object and a dictionary - dict[id][codon] = (Amino acid, num, %)
+    """
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
         raise TypeError("Nucleic acid sequence required, not protein or other.")
     if _seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
@@ -2398,14 +2478,14 @@ def count_codons(_seqbuddy):
                 data_table[_codon][1] += 1
             else:
                 if _codon.upper() in ['ATG', 'AUG']:
-                    data_table[_codon] = ['M', 1, 0.0]
+                    data_table[_codon] = ('M', 1, 0.0)
                 elif _codon.upper() == 'NNN':
-                    data_table[_codon] = ['X', 1, 0.0]
+                    data_table[_codon] = ('X', 1, 0.0)
                 elif _codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
-                    data_table[_codon] = ['*', 1, 0.0]
+                    data_table[_codon] = ('*', 1, 0.0)
                 else:
                     try:
-                        data_table[_codon] = [codontable[_codon.upper()], 1, 0.0]
+                        data_table[_codon] = (codontable[_codon.upper()], 1, 0.0)
                     except KeyError:
                         _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(_codon))
             _sequence = _sequence[3:]
@@ -2421,6 +2501,11 @@ def count_codons(_seqbuddy):
 
 
 def list_features(_seqbuddy):
+    """
+    Returns a dictionary of sequence features
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A dictionary of sequence features - dict[id] = list(features)
+    """
     _output = OrderedDict()
     for _rec in _seqbuddy.records:
         _output[_rec.id] = _rec.features if len(_rec.features) > 0 else None
@@ -2428,6 +2513,16 @@ def list_features(_seqbuddy):
 
 
 def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pattern=None):
+    """
+    Adds a feature annotation to all sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be annotated
+    :param _type: The type attribute of tha annotation
+    :param _location: The location of the annotation - (start, end) or [(start1, end1), (start2, end2)]
+    :param _strand: The feature's strand - (+/-/None)
+    :param _qualifiers: A dictionary of qualifiers, or a string "foo: bar, fizz: buzz"
+    :param _pattern: A regex pattern to specify which sequences to add the feature to
+    :return: The annotated SeqBuddy object
+    """
     # http://www.insdc.org/files/feature_table.html
     old = _make_copies(_seqbuddy)
     if _pattern is not None:
