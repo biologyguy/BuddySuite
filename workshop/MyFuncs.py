@@ -249,14 +249,16 @@ class TempDir:
 
 class TempFile:
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
-    def __init__(self):
+    def __init__(self, byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         dir_hash = self._tmp_dir.path.split("/")[-1]
         self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
         self.handle = None
+        self.bm = "b" if byte_mode else ""
 
     def open(self, mode="w"):
+        mode = "%s%s" % (mode, self.bm)
         if not self.handle:
             self.handle = open(self.path, mode)
 
@@ -266,13 +268,14 @@ class TempFile:
             self.handle = None
 
     def write(self, content, mode="a"):
-        if mode not in ["w", "a"]:
+        mode = "%s%s" % (mode, self.bm)
+        if mode not in ["w", "wb", "a", "ab"]:
             print("Write Error: mode must be 'w' or 'a' in TempFile.write()", file=stderr)
             return False
         already_open = True if self.handle else False
         if not already_open:
-            self.open(mode)
-        if mode == "a":
+            self.open(mode[0])
+        if mode in ["a", "ab"]:
             self.handle.write(content)
         else:
             self.handle.truncate(0)
@@ -287,7 +290,7 @@ class TempFile:
         if already_open:
             position = self.handle.tell()
             self.close()
-        with open(self.path, "r") as ifile:
+        with open(self.path, "r%s" % self.bm) as ifile:
             content = ifile.read()
         if already_open:
             self.open(mode="a")
@@ -295,7 +298,7 @@ class TempFile:
         return content
 
     def save(self, location):
-        with open(location, "w") as ofile:
+        with open(location, "w%s" % self.bm) as ofile:
             ofile.write(self.read())
         return
 
@@ -389,10 +392,8 @@ def sendmail(sender, recipient, subject, message):
 
     msg.attach(MIMEText(message))
 
-    try:
-        smtp = smtplib.SMTP('localhost')
-        smtp.starttls()
-        smtp.sendmail(sender, recipient, msg.as_string())
-        smtp.quit()
-    except OSError as e:
-        exit("Failed to deliver message with OSError:\n%s\n" % e)
+    smtp = smtplib.SMTP('localhost')
+    smtp.starttls()
+    smtp.sendmail(sender, recipient, msg.as_string())
+    smtp.quit()
+    return

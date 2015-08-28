@@ -31,6 +31,7 @@ import os
 import MyFuncs
 from datetime import date
 from hashlib import md5
+import re
 
 if __name__ == '__main__':
     import argparse
@@ -47,14 +48,14 @@ if __name__ == '__main__':
     root, dirs, reports = next(MyFuncs.walklevel(in_args.report_folder))
 
     if in_args.errors:
-        with open("./resolved_errors", "r") as ifile:
+        with open("/home/buddysuite_resources/resolved_errors", "r") as ifile:
             resolved = ifile.readlines()
 
         error_reports = []
         report_hashes = {}
         file_paths = []
         for report in reports:
-            if report[:4] == "error":
+            if re.match("error", report):
                 report = "%s/%s" % (root, report)
                 file_paths.append(report)
                 with open(report, "r") as ifile:
@@ -70,20 +71,22 @@ if __name__ == '__main__':
                 else:
                     report_hashes[_hash] += 1
 
-        email_msg = ""
-        for report in error_reports:
-            email_msg += "%s\n" % report_hashes[md5(report.encode()).hexdigest()]
-            email_msg += "%s\n//\n" % report
+        if len(error_reports) > 0:
+            email_msg = ""
+            for report in error_reports:
+                _hash = md5(report.encode()).hexdigest()
+                email_msg += "%s\n%s\n" % (_hash, report_hashes[_hash])
+                email_msg += "%s\n//\n\n" % report
 
-        try:
-            subject = "BuddySuite|error_reports|%s" % date.today()
-            MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
+            try:
+                subject = "BuddySuite|error_reports|%s" % date.today()
+                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
 
-            for report in file_paths:
-                os.remove(report)
+                for report in file_paths:
+                    os.remove(report)
 
-        except OSError as e:
-            sys.stderr("Failed to send error report:\n%s\n" % e)
+            except OSError as e:
+                sys.stderr("Failed to send error report:\n%s\n" % e)
 
         sys.exit()
 
