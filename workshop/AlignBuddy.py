@@ -12,11 +12,13 @@ and allows maintenance of rich feature annotation following alignment.
 import sys
 import os
 from copy import copy, deepcopy
-from io import StringIO
+from io import StringIO, TextIOWrapper
 from random import sample
 import re
-from tempfile import TemporaryDirectory
+from MyFuncs import TemporaryDirectory
 from collections import OrderedDict
+from shutil import *
+import subprocess
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -81,6 +83,17 @@ def _format_to_extension(_format):
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                            'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
+
+
+def _get_alignment_binaries(_tool):
+    tool_dict = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
+                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
+                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
+                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
+                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
+    return tool_dict[_tool]
 
 # ##################################################### Globals ###################################################### #
 gap_characters = ["-", ".", " "]
@@ -180,13 +193,19 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         if self.out_format == "fasta" and len(self.alignments) > 1:
             raise ValueError("Error: FASTA format does not support multiple alignments in one file.\n")
 
-        if self.out_format == "phylipi":
-            _output = phylipi(self)
+        if self.out_format in ["phylipi", "phylip-interleaved"]:
+            self.out_format = "phylip-relaxed"
 
-        elif self.out_format == "phylipis":
-            _output = phylipi(self, "strict")
+        elif self.out_format in ["phylipis", "phylip-strict"]:
+            self.out_format = "phylip"
+
+        if self.out_format in ["phylip-sequential", "phylips"]:
+            _output = phylipseq(self)
 
         else:
+            if self.out_format in ["phylipss", "phylip-sequential-strict"]:
+                self.out_format = "phylip-sequential"
+
             tmp_dir = TemporaryDirectory()
             with open("%s/aligns.tmp" % tmp_dir.name, "w") as _ofile:
                 AlignIO.write(self.alignments, _ofile, self.out_format)
@@ -243,7 +262,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["gb", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal", "pir"]
+        possible_formats = ["gb", "phylip-relaxed", "phylip-sequential", "stockholm", "fasta", "nexus", "clustal",
+                            "pir", "phylip"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -257,31 +277,38 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
                 continue
             except ValueError:
                 continue
+
         return None  # Unable to determine format from file handle
 
     else:
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
-
-def phylipi(_alignbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
+def phylipseq(_alignbuddy, _relaxed=True):
     _output = ""
     for _alignment in _alignbuddy.alignments:
-        max_id_length = 0
         max_seq_length = 0
         for _rec in _alignment:
-            max_id_length = len(_rec.id) if len(_rec.id) > max_id_length else max_id_length
             max_seq_length = len(_rec.seq) if len(_rec.seq) > max_seq_length else max_seq_length
 
-        _output += " %s %s\n" % (len(_alignment), max_seq_length)
+        _output += " %s %s" % (len(_alignment), max_seq_length)
         for _rec in _alignment:
-            _seq_id = _rec.id.ljust(max_id_length) if _format == "relaxed" else _rec.id[:10].ljust(10)
-            _output += "%s  %s\n" % (_seq_id, _rec.seq)
+            if _relaxed:
+                _seq_id = re.sub(' \t', '_', _rec.id)
+                _output += "\n%s \n%s" % (_seq_id, _rec.seq)
+            else:
+                _seq_id = _rec.id[:10].ljust(10)
+                _output += "\n%s%s" % (_seq_id, _rec.seq)
         _output += "\n"
     return _output
 
 
 # #################################################################################################################### #
 def list_ids(_alignbuddy):
+    """
+    Returns a list of lists of sequence IDs
+    :param _phylobuddy: The AlignBuddy object to be analyzed
+    :return: A list of lists of sequence IDs
+    """
     _output = []
     for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         _output.append([])
@@ -291,23 +318,43 @@ def list_ids(_alignbuddy):
 
 
 def num_seqs(_alignbuddy):
+    """
+    Returns a list of alignment lengths
+    :param _alignbuddy:
+    :return: A list of alignment lengths
+    """
     return [len(_alignment) for _alignment in _alignbuddy.alignments]
 
 
 def uppercase(_alignbuddy):
+    """
+    Converts all sequence residues to uppercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
+    :return: The modified AlignBuddy object
+    """
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
 
 
 def lowercase(_alignbuddy):
+    """
+    Converts all sequence residues to lowercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
+    :return: The modified AlignBuddy object
+    """
     for _rec in _get_seq_recs(_alignbuddy):
         _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
 
 
 def clean_seq(_alignbuddy, skip_list=None):
-    """remove all non-sequence charcters from sequence strings"""
+    """
+    Remove all non-sequence charcters from sequence strings
+    :param _alignbuddy: The AlignBuddy object to be cleaned
+    :param skip_list: A list of characters to be left alone
+    :return: The cleaned AlignBuddy object
+    """
     skip_list = "" if not skip_list else "".join(skip_list)
     for _rec in _get_seq_recs(_alignbuddy):
         if _alignbuddy.alpha == IUPAC.protein:
@@ -320,6 +367,11 @@ def clean_seq(_alignbuddy, skip_list=None):
 
 
 def codon_alignment(_alignbuddy):
+    """
+    Organizes nucleotide alignment into codon triplets
+    :param _alignbuddy: The AlignBuddy object to be rearranged
+    :return: The rearranged AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
@@ -365,6 +417,12 @@ def codon_alignment(_alignbuddy):
 
 
 def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+    """
+    Translates a nucleotide alignment into a protein alignment.
+    :param _alignbuddy: The AlignBuddy object to be translated
+    :param quiet: Suppress error messages and warnings
+    :return: The translated AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
@@ -399,7 +457,7 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
         for rec_indx, _rec in enumerate(_alignment):
             _rec.features = []
             while True:
-                test_trans = trans(copy(_rec))
+                test_trans = trans(deepcopy(_rec))
                 # success
                 if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
                     break
@@ -459,6 +517,12 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
 
 
 def delete_rows(_alignbuddy, _search):
+    """
+    Deletes rows with names/IDs matching a search pattern
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
+    """
     _alignments = []
     for _alignment in _alignbuddy.alignments:
         matches = []
@@ -473,6 +537,12 @@ def delete_rows(_alignbuddy, _search):
 
 
 def pull_rows(_alignbuddy, _search):
+    """
+    Retrieves rows with names/IDs matching a search pattern
+    :param _alignbuddy: The AlignBuddy object to be pulled from
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
+    """
     _alignments = []
     for _alignment in _alignbuddy.alignments:
         matches = []
@@ -489,6 +559,13 @@ def pull_rows(_alignbuddy, _search):
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
 def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
+    """
+    Trims alignment gaps using algorithms from trimal
+    :param _alignbuddy: The AlignBuddy object to be trimmed
+    :param _threshold: The threshold value or trimming algorithm to be used
+    :param _window_size: The window size
+    :return: The trimmed AlignBuddy object
+    """
     for alignment_index, _alignment in enumerate(_alignbuddy.alignments):
 
         # gap_distr is the number of columns w/ each possible number of gaps; the index is == to number of gaps
@@ -515,7 +592,7 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
         def gappyout():
             for i in gap_distr:
                 if i == 0:
-                    max_gaps = i + 1
+                    _max_gaps = i + 1
                 else:
                     break
 
@@ -557,18 +634,18 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 if slopes[prev_pointer1] != -1:
                     if slopes[active_pointer] / slopes[prev_pointer1] > max_slope:
                         max_slope = slopes[active_pointer] / slopes[prev_pointer1]
-                        max_gaps = prev_pointer1
+                        _max_gaps = prev_pointer1
                 elif slopes[prev_pointer2] != -1:
                     if slopes[active_pointer] / slopes[prev_pointer2] > max_slope:
                         max_slope = slopes[active_pointer] / slopes[prev_pointer2]
-                        max_gaps = prev_pointer1
+                        _max_gaps = prev_pointer1
 
                 active_pointer = prev_pointer2
 
             def mark_cuts():
                 cuts = []
                 for _col, _gaps in enumerate(each_column):
-                    if _gaps <= max_gaps:
+                    if _gaps <= _max_gaps:
                         cuts.append(_col)
                 return cuts
 
@@ -580,16 +657,16 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
         if _threshold in ["no_gaps", "all"]:
             _threshold = 0
             new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    new_alignment += _alignment[:, _col:_col + 1]
+            for next_col, num_gaps in enumerate(each_column):
+                if num_gaps <= max_gaps:
+                    new_alignment += _alignment[:, next_col:next_col + 1]
 
         if _threshold == "clean":
             max_gaps = len(_alignment) - 1
             new_alignment = _alignment[:, 0:0]
-            for _col, _gaps in enumerate(each_column):
-                if _gaps <= max_gaps:
-                    new_alignment += _alignment[:, _col:_col + 1]
+            for next_col, num_gaps in enumerate(each_column):
+                if num_gaps <= max_gaps:
+                    new_alignment += _alignment[:, next_col:next_col + 1]
 
         elif _threshold == "gappyout":
             new_alignment = gappyout()
@@ -611,9 +688,9 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 max_gaps = round(len(_alignment) * _threshold)
 
                 new_alignment = _alignment[:, 0:0]
-                for _col, _gaps in enumerate(each_column):
-                    if _gaps <= max_gaps:
-                        new_alignment += _alignment[:, _col:_col + 1]
+                for next_col, num_gaps in enumerate(each_column):
+                    if num_gaps <= max_gaps:
+                        new_alignment += _alignment[:, next_col:next_col + 1]
 
             except ValueError:
                 raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
@@ -624,7 +701,11 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
 
 def consensus_sequence(_alignbuddy):
-    # http://bioinformatics.oxfordjournals.org/content/18/11/1494
+    """
+    Generates a rough consensus sequence from an alignment
+    :param _alignbuddy: The AlignBuddy object to be processed
+    :return: A list of SeqRecords containing the consensus sequences
+    """
     _output = []
     for _alignment in _alignbuddy.alignments:
         _id = _alignment[0].id
@@ -635,10 +716,16 @@ def consensus_sequence(_alignbuddy):
 
 
 def concat_alignments(_alignbuddy, _pattern):
+    """
+    Concatenates two or more alignments together, end-to-end
+    :param _alignbuddy: The AlignBuddy object whose alignments will be concatenated
+    :param _pattern: The pattern to split the sequence names with
+    :return: The AlignBuddy object containing a concatenated alignment
+    """
     # collapsed multiple genes from single taxa down to one consensus seq
     # detected mixed sequence types
     if len(_alignbuddy.alignments) < 2:
-        raise AttributeError("Please provide ")
+        raise AttributeError("Please provide at least two alignments.")
 
     def organism_list():
         orgnsms = set()
@@ -729,6 +816,14 @@ def concat_alignments(_alignbuddy, _pattern):
 
 
 def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
+    """
+    Rename an alignment's sequence IDs
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param query: The pattern to be searched for
+    :param replace: The string to be substituted
+    :param _num: The maximum number of substitutions to make
+    :return: The modified AlignBuddy object
+    """
     for _alignment in _alignbuddy.alignments:
         for _rec in _alignment:
             new_name = re.sub(query, replace, _rec.id, _num)
@@ -738,6 +833,12 @@ def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement 
 
 
 def order_ids(_alignbuddy, _reverse=False):
+    """
+    Sorts the alignments by ID, alphabetically
+    :param _alignbuddy: The AlignBuddy object to be sorted
+    :param _reverse: Reverses the order
+    :return: A sorted AlignBuddy object
+    """
     for al_indx, _alignment in enumerate(_alignbuddy.alignments):
         _output = [(_rec.id, _rec) for _rec in _alignment]
         _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
@@ -747,6 +848,11 @@ def order_ids(_alignbuddy, _reverse=False):
 
 
 def rna2dna(_alignbuddy):
+    """
+    Transcribes RNA into DNA sequences.
+    :param _alignbuddy: The AlignBuddy object to be transcribed
+    :return: The transcribed AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _alignment in _alignbuddy.alignments:
@@ -757,6 +863,11 @@ def rna2dna(_alignbuddy):
 
 
 def dna2rna(_alignbuddy):
+    """
+    Back-transcribes DNA into RNA sequences
+    :param _alignbuddy: The AlignBuddy object to be back-transcribed
+    :return: The back-transcribed AlignBuddy object
+    """
     if _alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _alignment in _alignbuddy.alignments:
@@ -767,6 +878,13 @@ def dna2rna(_alignbuddy):
 
 
 def extract_range(_alignbuddy, _start, _end):
+    """
+    Extracts all columns within a given range
+    :param _alignbuddy: The AlignBuddy object to be extracted from
+    :param _start: The starting residue (indexed from 1)
+    :param _end: The end residue (inclusive)
+    :return: The extracted AlignBuddy object
+    """
     _start = 1 if int(_start) < 1 else _start
     # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
     _start, _end = int(_start) - 1, int(_end)
@@ -800,6 +918,11 @@ def extract_range(_alignbuddy, _start, _end):
 
 
 def alignment_lengths(_alignbuddy):
+    """
+    Returns a list of alignment lengths
+    :param _alignbuddy: The AlignBuddy object to be analyzed
+    :return: A list of alignment lengths
+    """
     _output = []
     for _alignment in _alignbuddy.alignments:
         _output.append(_alignment.get_alignment_length())
@@ -807,6 +930,11 @@ def alignment_lengths(_alignbuddy):
 
 
 def split_alignbuddy(_alignbuddy):
+    """
+    Splits each alignment into its own AlignBuddy object
+    :param _alignbuddy: The AlignBuddy object to be split
+    :return: A list of AlignBuddy objects
+    """
     ab_objs_list = []
     for _alignment in _alignbuddy.alignments:
         _ab = AlignBuddy([_alignment])
@@ -816,76 +944,216 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
+def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
+    """
+    Calls sequence aligning tools to generate multiple sequence alignments
+    :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
+    :param _tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
+    :param _params: Additional parameters to be passed to the alignment tool
+    :param _keep_temp: Determines if/where the temporary files will be kept
+    :return: An AlignBuddy object containing the alignment produced.
+    """
+    if _params is None:
+        _params = ''
+    _tool = _tool.lower()
+
+    if _keep_temp:
+        if os.path.exists(_keep_temp):
+            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), in_args.quiet)
+            sys.exit()
+
+    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
+        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
+    if which(_tool) is None:
+        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
+        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
+        sys.exit()
+    else:
+        tmp_dir = TemporaryDirectory()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+
+        try:
+            from workshop.SeqBuddy import hash_sequence_ids
+        except ImportError:
+            try:
+                from SeqBuddy import hash_sequence_ids
+            except ImportError:
+                _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+                sys.exit()
+
+        _params = re.split(' ', _params, )
+        for _indx, _token in enumerate(_params):
+            if os.path.exists(_token):
+                _params[_indx] = os.path.abspath(_token)
+        _params = ' '.join(_params)
+
+        hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
+
+        _output = ''
+
+        _seqbuddy.out_format = 'fasta'
+        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+            out_file.write(str(_seqbuddy))
+        if _tool == 'clustalomega':
+            command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
+        elif _tool == 'clustalw2':
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+        elif _tool == 'muscle':
+            command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
+        elif _tool == 'prank':
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+        elif _tool == 'pagan':
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+        else:
+            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
+        try:
+            if _tool in ['prank', 'pagan']:
+                subprocess.Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+            else:
+                _output = subprocess.check_output(command, shell=True, universal_newlines=True)
+        except subprocess.CalledProcessError:
+            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), in_args.quiet)
+            sys.exit()
+
+        if _tool.startswith('clustalw'):
+            with open('{0}/result'.format(tmp_dir.name)) as result:
+                _output = result.read()
+        elif _tool == 'prank':
+            extension = 'fas'
+            if '-f=nexus' in _params or '-f=nexus' in _params:
+                extension = 'nex'
+            elif '-f=phylipi' in _params or '-f=phylips' in _params:
+                extension = 'phy'
+            possible_files = os.listdir(tmp_dir.name)
+            _filename = 'result.best.{0}'.format(extension)
+            for _file in possible_files:
+                if 'result.best' in _file and extension in _file:
+                    _filename = _file
+            with open('{0}/{1}'.format(tmp_dir.name, _filename)) as result:
+                _output = result.read()
+        elif _tool == 'pagan':
+            extension = 'fas'
+            if '-f nexus' in _params:
+                extension = 'nex'
+            elif '-f phylipi' in _params or '-f phylips' in _params:
+                extension = 'phy'
+            with open('{0}/result.{1}'.format(tmp_dir.name, extension)) as result:
+                _output = result.read()
+
+        # Fix broken outputs to play nicely with AlignBuddy parsers
+        if (_tool == 'mafft' and '--clustalout' in _params) or \
+                (_tool.startswith('clustalw2') and '-output' not in _params) or \
+                (_tool == 'clustalomega' and ('clustal' in _params or '--outfmt clu' in _params or
+                 '--outfmt=clu' in _params)):
+            # Clustal format extra spaces
+            contents = ''
+            prev_line = ''
+            for line in _output.splitlines(keepends=True):
+                if line.startswith(' ') and len(line) == len(prev_line) + 1:
+                    contents += line[1:]
+                else:
+                    contents += line
+                prev_line = line
+            _output = contents
+        if _tool.startswith('clustalw') and 'nexus' in _params or '=NEXUS' in _params:  # if taxa has gap chars
+            contents = ''
+            for _indx, line in enumerate(_output.splitlines(keepends=True)):
+                if _indx > 6 and not line.startswith('\n') and ';' not in line:
+                    split = re.split(' ', line, maxsplit=1)
+                    contents += "'" + split[0] + "' " + split[1]
+                else:
+                    contents += line
+            _output = contents
+        _alignbuddy = AlignBuddy(_output)
+
+        for _hash in hash_table:
+            rename(_alignbuddy, _hash, hash_table[_hash])
+            for _alignment in _alignbuddy.alignments:
+                for _rec in _alignment:
+                    if _hash in _rec.annotations:
+                        _rec.annotations.pop(_hash)
+                    to_pop = []
+                    for _key in _rec.annotations:
+                        if _hash in _rec.annotations[_key]:
+                            to_pop.append(_key)
+                    for _key in to_pop:
+                        _rec.annotations.pop(_key)
+                    _rec.name = re.sub(_hash, '', _rec.name)
+                    _rec.description = re.sub(_hash, '', _rec.description)
+        _stderr('\n')
+
+        if _keep_temp:
+            try:
+                copytree(tmp_dir.name, _keep_temp)
+            except FileExistsError:
+                # Should never get here
+                pass
+
+        _stderr("Returning to AlignBuddy...\n\n", in_args.quiet)
+
+        return _alignbuddy
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
+    # Catching params to prevent weird collisions with alignment program arguments
+    if '--params' in sys.argv:
+        sys.argv[sys.argv.index('--params')] = '-p'
+    if '-p' in sys.argv:
+        arg_index = sys.argv.index('-p')
+        params = '-p' + sys.argv.pop(arg_index + 1)
+        sys.argv[arg_index] = params
+
     import argparse
-    parser = argparse.ArgumentParser(prog="alignBuddy", description="Sequience alignment with a splash of Kava")
+    import buddy_resources as br
 
-    parser.add_argument("alignment", help="The file(s) you want to start working on", nargs="*", default=[sys.stdin])
-    parser.add_argument('-v', '--version', action='version',
-                        version='''\
-AlignBuddy 1.alpha (2015)
+    version = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
-                             "'strict' to remove all characters except the unambiguous letter codes.")
-    parser.add_argument('-uc', '--uppercase', action='store_true', help='Convert all sequences to uppercase')
-    parser.add_argument('-lc', '--lowercase', action='store_true', help='Convert all sequences to lowercase')
-    parser.add_argument('-tr', '--translate', action='store_true',
-                        help="Convert coding sequences into amino acid sequences")
-    parser.add_argument('-an', '--features', action="store_true")  # ToDo: Delete
-    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
-                             "specify the # of columns to write")
-    parser.add_argument('-ns', '--num_seqs', action='store_true',
-                        help="Counts how many sequences are present in each alignment")
-    parser.add_argument('-sf', '--screw_formats', action='store', help="Arguments: <out_format>")
-    parser.add_argument('-ca', '--codon_alignment', action='store_true',
-                        help="Shift all gaps so the sequence is in triplets.")
-    parser.add_argument('-dr', '--delete_rows', action='store',
-                        help="Remove selected rows from alignments. Arguments: <search_pattern>")
-    parser.add_argument('-pr', '--pull_rows', action='store',
-                        help="Keep selected rows from alignements. Arguments: <search_pattern>")
-    parser.add_argument('-trm', '--trimal', nargs='?', action='append',
-                        help="Delete columns with a certain percentage of gaps. Or auto-detect with 'gappyout'.")
-    parser.add_argument('-cta', '--concat_alignments', action='store',
-                        help="Concatenates two or more alignments by splitting and matching the sequence identifiers."
-                             " Arguments: <split_pattern>")
-    parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
-                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
-    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
-                        help="Sort all sequences in an alignment by id in alpha-numeric order. "
-                             "Pass in the word 'rev' to reverse order")
-    parser.add_argument('-d2r', '--transcribe', action='store_true',
-                        help="Convert DNA alignments to RNA")
-    parser.add_argument('-r2d', '--back_transcribe', action='store_true',
-                        help="Convert RNA alignments to DNA")
-    parser.add_argument('-er', '--extract_range', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
-                        type=int, help="Pull out sub-alignments in a given range.")
-    parser.add_argument('-al', '--alignment_lengths', action='store_true', help="Returns a list of alignment lengths.")
-    parser.add_argument("-stf", "--split_to_files", action='store', nargs=2, metavar=("<out dir>", "<out file>"),
-                        help="Write individual files for each alignment")
+    parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mAlignBuddy\033[m
+  Sequence alignments with a splash of kava.
 
-    parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences.")
-    parser.add_argument('-o', '--out_format', help="Some functions use this flag for output format", action='store')
-    parser.add_argument('-f', '--in_format', action='store',
-                        help="If AlignBuddy can't guess the file format, just specify it directly.")
+\033[1mUsage examples\033[m:
+  AlignBuddy.py "/path/to/align_file" -<cmd>
+  AlignBuddy.py "/path/to/align_file" -<cmd> | AlignBuddy.py -<cmd>
+  AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
+''')
+
+    br.flags(parser, "AlignBuddy", ("alignments", "The file(s) you want to start working on"),
+             br.alb_flags, br.alb_modifiers, version)
+
     in_args = parser.parse_args()
 
     alignbuddy = []
     align_set = ""
 
-    for align_set in in_args.alignment:
+    # Generate Alignment
+    if in_args.generate_alignment:
+        seqbuddy = []
+        try:
+            import SeqBuddy as Sb
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
+        for seq_set in in_args.alignments:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
+            seqbuddy += seq_set.records
+        seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp)
+        if in_args.out_format:
+            generated_msas.out_format = in_args.out_format
+        _stdout(str(generated_msas))
+        sys.exit()
+
+    for align_set in in_args.alignments:
+        if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
         align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
         alignbuddy += align_set.alignments
 
@@ -971,15 +1239,6 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
     # Lowercase
     if in_args.lowercase:
         _print_aligments(lowercase(alignbuddy))
-
-    # This is temporary for testing purposes
-    if in_args.features:
-        blahh = ['annotations', 'dbxrefs', 'description', 'features', 'id', 'letter_annotations', 'name', 'seq']
-        foo = alignbuddy.alignments[0][0]
-        bar = [foo.annotations, foo.dbxrefs, foo.description, foo.features, foo.id, foo.letter_annotations, foo.name, foo.seq]
-        for indx, value in enumerate(blahh):
-            print("{0}: {1}".format(value, bar[indx]))
-        print("\nannotations{0}: ".format(alignbuddy.alignments[0].annotations))
 
     # Codon alignment
     if in_args.codon_alignment:

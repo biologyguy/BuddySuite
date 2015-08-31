@@ -86,12 +86,20 @@ def pretty_time(seconds):
     return output
 
 
-def pretty_number(num):
+def pretty_number(num, mode='short', precision=2):  # mode in ['short', 'medium', 'long']
     magnitude = 0
-    while abs(num) >= 1000 and magnitude < 11:
+    while abs(num) >= 1000 and magnitude < 8:
         magnitude += 1
-        num /= 1000.0
-    return '%.2f %s' % (num, ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'X', 'S', 'D'][magnitude])
+        num = round(num / 1000.0, precision)
+    if mode == 'short':
+        return '%s %s' % (num, ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude])
+    elif mode == 'medium':
+        return '%s %s' % (num, ['', 'Kilo', 'Mega', 'Giga', 'Tera', 'Peta', 'Exa', 'Zetta', 'Yotta'][magnitude])
+    elif mode == 'long':
+        return '%s %s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion',
+                                  'Sextillion', 'Septillion'][magnitude])
+    else:
+        raise ValueError("Valid 'mode' values are 'short', 'medium', and 'long'")
 
 
 def usable_cpu_count():
@@ -241,13 +249,16 @@ class TempDir:
 
 class TempFile:
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
-    def __init__(self):
+    def __init__(self, byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         dir_hash = self._tmp_dir.path.split("/")[-1]
+        self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
         self.handle = None
+        self.bm = "b" if byte_mode else ""
 
     def open(self, mode="w"):
+        mode = "%s%s" % (mode, self.bm)
         if not self.handle:
             self.handle = open(self.path, mode)
 
@@ -257,13 +268,14 @@ class TempFile:
             self.handle = None
 
     def write(self, content, mode="a"):
-        if mode not in ["w", "a"]:
+        mode = "%s%s" % (mode, self.bm)
+        if mode not in ["w", "wb", "a", "ab"]:
             print("Write Error: mode must be 'w' or 'a' in TempFile.write()", file=stderr)
             return False
         already_open = True if self.handle else False
         if not already_open:
-            self.open(mode)
-        if mode == "a":
+            self.open(mode[0])
+        if mode in ["a", "ab"]:
             self.handle.write(content)
         else:
             self.handle.truncate(0)
@@ -278,7 +290,7 @@ class TempFile:
         if already_open:
             position = self.handle.tell()
             self.close()
-        with open(self.path, "r") as ifile:
+        with open(self.path, "r%s" % self.bm) as ifile:
             content = ifile.read()
         if already_open:
             self.open(mode="a")
@@ -286,7 +298,7 @@ class TempFile:
         return content
 
     def save(self, location):
-        with open(location, "w") as ofile:
+        with open(location, "w%s" % self.bm) as ofile:
             ofile.write(self.read())
         return
 
@@ -364,3 +376,24 @@ def normalize(data, trim_ends=1.0):
             data[i] = 0. if data[i] < 0. else data[i]
 
     return data
+
+
+# This will only work if SMTP is running locally
+def sendmail(sender, recipient, subject, message):
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    msg = MIMEMultipart()
+    msg.preamble = subject
+    msg.add_header("From", sender)
+    msg.add_header("Subject", subject)
+    msg.add_header("To", recipient)
+
+    msg.attach(MIMEText(message))
+
+    smtp = smtplib.SMTP('localhost')
+    smtp.starttls()
+    smtp.sendmail(sender, recipient, msg.as_string())
+    smtp.quit()
+    return

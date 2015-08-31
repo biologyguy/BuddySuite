@@ -15,47 +15,48 @@ ___
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
  manipulations.
 
-Currently the Buddy 'Suite' only consists of two relatively mature modules, 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) and 
-[AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy), although two more modules are currently under 
-development using the same general architecture 
-([DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) and 
-[PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy))
+[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) and
+ [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) are the most mature BuddySuite tools, although
+ [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) is also functional with a limited number of
+ commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is under active development and
+ should be available soon.
 
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
- and Mac OS X, however, so it is unclear if the Suite will work correctly under Windows.
+ and Mac OS X, however, so it is unclear if the Suite will work within Windows.
 
 ## Dependencies
-The BuddySuite is written in Python3 and is not backwards compatible with Python2. Python3 can be downloaded from
- [here](https://www.python.org/downloads/), or use [Anaconda](http://continuum.io/downloads#py34) as a more
- comprehensive solution. 
+This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
+ installed on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
+ from Continuum Analytics. Alternatively, the software can be downloaded directly from the
+ [Python Software Foundation](https://www.python.org/downloads/).
+
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
  [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH the binaries will be
  downloaded by the installer. SeqBuddy.py will also attempt to download the binaries if any BLAST dependant functions
- are called and the programs are not found in PATH.
+ are called and the programs are not found in PATH. AlignBuddy and PhyloBuddy can be used to launch a number of third
+ party alignment/tree building programs, but the installation of these is up to you.
  
-[BioPython](http://biopython.org/) is used heavily by the suite, and the package must be installed to use the
- development version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit tests to
- fail. This dependency is bundled with the installer, however, so no extra download is required unless you are
- developing (or want the bleeding edge).
-
-AlignBuddy and PhyloBuddy will eventually wrap a number of third party tools, but similar to the BLAST binaries, they
- will only be necessary to use their respective functions.
+[BioPython](http://biopython.org/) is used heavily by the entire suite, and must be installed in your Python PATH to
+ use the development version of the software. Furthermore, any BioPython versions earlier than 16.6 will cause unit
+ tests to fail. PhyloBuddy requires [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
+ [ETE toolkit](http://etetoolkit.org/download/). All of these dependencies are bundled with the installer, however, so
+ _**no extra download is required**_ unless you are developing (or want the bleeding edge).
  
 ## Standalone installation 
 #### This is still an Alpha version, but it seems to be working for Mac and Linux. It will not work on Windows.
-Download the graphical installer and run it from the command line
+[Download the graphical installer](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py)
+ and run it from the command line
     
-    $: wget https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py --no-check-certificate
+    $: cd /path/to/download/folder
     $: chmod +x BuddySuite.py
     $: ./BuddySuite.py
 
-By default, the installer will place short form sym-links to the main tools in your PATH (e.g., 'sb' for SeqBuddy, 'alb'
- for AlignBuddy, etc.), so they can be accessed quickly (examples in the wiki use these short forms). The full names of
- each tool will also be added to PATH. If working outside the context of a graphical OS (on a cluster, for example), the
- installer may be run with the -cmd flag, which will walk you through the install processes directly from the command
- line.
+By default, the installer will place short form sym-links to the main tools in your PATH ('sb' for SeqBuddy, 'alb'
+ for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly (examples in the
+ wiki use these short forms). The full names of each tool will also be added to PATH. If working outside the context
+ of a graphical OS (on a cluster, for example), the installer may be run with the -cmd flag, which will walk you
+ through the install processes directly from the command line.
 
 Once out of alpha, the installer will only bundle stable release versions of the BuddySuite. If bugs are found they will
  be fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
@@ -70,10 +71,10 @@ All new features are developed in the 'workshop' versions of the buddy programs.
     $: git clone https://github.com/biologyguy/BuddySuite.git
 
 The Buddy tools are structured so they can be used as importable modules as well as command line programs. If you wish
-to contribute to the project, new features require three components:
+ to contribute to the project (and we'd love the help!!), new features require three components:
 
 1. A self contained function that accepts a buddy object as input, and (usually) returns a new buddy object.
-2. An argparse entry, allowing the function to be called from the command line.
+2. An argparse entry in the argparse_args.py module, allowing the function to be called from the command line.
 3. Wrapper code in the `if __name__ == '__main__':` block to handle command line calls
 
 The Buddy classes (i.e., SeqBuddy, AlignBuddy, etc) contain a number of core attributes and methods (see below), and act
@@ -112,10 +113,24 @@ alignments | A list of Bio.Align objects.
 print() | Write all alignments to stdout using out_format
 write(_file_path) | Write all alignments to file using out_format
 
+##### PhyloBuddy
+    pb_obj = PhyloBuddy(_input, _in_format=None, _out_format=None)
+
+*Attribute* | *Description*
+----------- | -------------
+in_format | The format of incoming trees (Newick, NEXUS, or NeXML). If explicitly set, PhyloBuddy will only attempt to read the file in the given format (returning no trees if the wrong format is specified), otherwise it will guess the format.
+out_format | Controls the format used when PhyloBuddy objects are written. By default, this will be the same as in_format.
+trees | A list of dendropy.datamodel.treemodel.Tree objects.
+ 
+*Method* | *Description*
+-------- | -------------
+print() | Write all trees to stdout using out_format
+write(_file_path) | Write all trees to file using out_format
+ 
 ##### DbBuddy
     dbb_obj = DbBuddy(_input, _database=None, _out_format="summary")
 
-Note: The core of DbBuddy is still under active development, so expect weirdness.
+Note: The core of DbBuddy is still under very active development, so expect weirdness or total inoperability.
 
 *Attribute* | *Description*
 ----------- | -------------
@@ -133,12 +148,6 @@ filter_records(regex) | Send any records not matched by 'regex' to 'recycle_bin'
 restore_records(regex) | Send any records matching 'regex' from 'recycle_bin' back to 'records'
 print(_num=0, quiet=False, columns=None, destination=None) | Write records to stdout or a path (set with \_destination). The number of records and the columns displayed can be set with their respective arguments.
 
-##### PhyloBuddy
-    pb_obj = PhyloBuddy(_input)
-
-PhyloBuddy is not implemented yet.
- 
- 
 ## Contact
 Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
  contact me directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)

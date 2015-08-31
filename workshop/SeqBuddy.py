@@ -34,7 +34,6 @@ import sys
 import os
 import re
 import string
-import json
 import zipfile
 import shutil
 from urllib import request, error
@@ -47,6 +46,7 @@ from shutil import which
 from hashlib import md5
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
+from xml.sax import SAXParseException
 
 
 # Third party package imports
@@ -109,6 +109,7 @@ def degenerate_dna():
     return
 
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
+# - Add support for selecting individual sequences to modify
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
 # - Get BuddySuite into PyPi
@@ -116,6 +117,7 @@ def degenerate_dna():
 # - Execution timer, for long running jobs
 # - Handle all stderr output from private function (to allow quiet execution)
 # - Sort out a good way to manage 'lazy' imports
+# - Fix --clean_seq for .phy, .phyr, .stklm, .nex
 
 # ################################################# CHANGE LOG for V2 ################################################ #
 # - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
@@ -131,6 +133,10 @@ def degenerate_dna():
 # - Add split_by_taxa() function. Writes individual files for groups of sequences based on an identifier in their ids
 # - Unit tests
 # - New graphical installer
+# - Rework argparse output
+
+
+# ###################################################### GLOBALS ##################################################### #
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -230,6 +236,7 @@ def _make_copies(_seqbuddy):
     for _indx, _rec in enumerate(copies.records):
         _rec.seq.alphabet = alphabet_list[_indx]
     return copies
+
 
 def _download_blast_binaries(_blastn=True, _blastp=True, _blastdcmd=True):
     if os.path.exists('.buddysuite'):
@@ -443,7 +450,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         return
 
 
-# Does not attempt to explicitly deal with weird cases (e.g., ambigous residues).
+# Does not attempt to explicitly deal with weird cases (e.g., ambiguous residues).
 # The user will need to specify an alphabet with the -a flag if using many non-standard characters in their sequences.
 def guess_alphabet(_seqbuddy):
     _seq_list = _seqbuddy if isinstance(_seqbuddy, list) else _seqbuddy.records
@@ -483,7 +490,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus"]  # ToDo: Glean CLUSTAL
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml"]  # ToDo: Glean CLUSTAL
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -496,6 +503,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             except StopIteration:  # ToDo check that other types of error are not possible
                 continue
             except ValueError:
+                continue
+            except SAXParseException:  # Thrown by seqxml parser
                 continue
         return None  # Unable to determine format from file handle
 
@@ -520,6 +529,14 @@ def phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
 
 
 def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow weird binary names to work
+    """
+    Runs a BLAST search for all of the sequences in the SeqBuddy object against a specified database.
+    :param _seqbuddy: The SeqBuddy object containing the sequences to be BLASTed
+    :param blast_db: The location of the BLAST database to run the sequences against
+    :param blast_path: The location of the blastn/blastp executable
+    :param blastdbcmd: The location of the blastdbcmd executable
+    :return: A SeqBuddy object containing all of the BLAST database matches
+    """
     if not blast_path:
         blast_path = which("blastp") if _seqbuddy.alpha == IUPAC.protein else which("blastn")
 
@@ -677,6 +694,11 @@ def blast(_seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow
 
 
 def order_ids_randomly(_seqbuddy):
+    """
+    Randomly reorders the sequences
+    :param _seqbuddy: The SeqBuddy object to be shuffled
+    :return: The shuffled SeqBuddy object
+    """
     _output = []
     for _ in range(len(_seqbuddy.records)):
         random_index = randint(1, len(_seqbuddy.records)) - 1
@@ -686,6 +708,12 @@ def order_ids_randomly(_seqbuddy):
 
 
 def order_ids(_seqbuddy, _reverse=False):
+    """
+    Sorts the sequences by ID, alphabetically
+    :param _seqbuddy: The SeqBuddy object to be sorted
+    :param _reverse: Reverses the sequence order
+    :return: The sorted SeqBuddy object
+    """
     _output = [(_rec.id, _rec) for _rec in _seqbuddy.records]
     _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
     _output = [_rec[1] for _rec in _output]
@@ -694,6 +722,11 @@ def order_ids(_seqbuddy, _reverse=False):
 
 
 def rna2dna(_seqbuddy):
+    """
+    Transcribes RNA into DNA sequences.
+    :param _seqbuddy: The SeqBuddy object to be transcribed
+    :return: The transcribed SeqBuddy object
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
@@ -703,6 +736,11 @@ def rna2dna(_seqbuddy):
 
 
 def dna2rna(_seqbuddy):
+    """
+    Back-transcribes DNA into RNA sequences
+    :param _seqbuddy: The SeqBuddy object to be back-transcribed
+    :return: The back-transcribed SeqBuddy object
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
@@ -712,6 +750,11 @@ def dna2rna(_seqbuddy):
 
 
 def complement(_seqbuddy):
+    """
+    Converts DNA/RNA sequences to their complementary sequence
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :return: The modified SeqBuddy object
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
@@ -720,6 +763,11 @@ def complement(_seqbuddy):
 
 
 def reverse_complement(_seqbuddy):
+    """
+    Converts DNA/RNA sequences to their reverse complementary sequence
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :return: The modified SeqBuddy object
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
     for _rec in _seqbuddy.records:
@@ -732,6 +780,12 @@ def reverse_complement(_seqbuddy):
 
 # ToDo: Deal with alignments...
 def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+    """
+    Translates a nucleotide sequence into a protein sequence.
+    :param _seqbuddy: The SeqBuddy object to be translated
+    :param quiet: Suppress error messages and warnings
+    :return: The translated SeqBuddy object
+    """
     def trans(in_seq):
         try:
             in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
@@ -807,6 +861,12 @@ def translate_cds(_seqbuddy, quiet=False):  # adding 'quiet' will suppress the e
 
 
 def select_frame(_seqbuddy, frame):  # ToDo: record the deleted residues so the earlier frame can be returned to.
+    """
+    Changes the reading frame of the sequences
+    :param _seqbuddy: The SeqBuddy object to be shifted
+    :param frame: The reading frame to shift to
+    :return: The shifted SeqBuddy object
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Select frame requires nucleic acid, not protein.")
     for _rec in _seqbuddy.records:
@@ -816,6 +876,11 @@ def select_frame(_seqbuddy, frame):  # ToDo: record the deleted residues so the 
 
 
 def translate6frames(_seqbuddy):
+    """
+    Translates a nucleotide sequence into a protein sequence across all six reading frames.
+    :param _seqbuddy: The SeqBuddy object to be translated
+    :return: The translated SeqBuddy object
+    """
     frame1, frame2, frame3 = deepcopy(_seqbuddy), deepcopy(_seqbuddy), deepcopy(_seqbuddy)
     _seqbuddy = reverse_complement(_seqbuddy)
 
@@ -850,6 +915,13 @@ def translate6frames(_seqbuddy):
 
 
 def back_translate(_seqbuddy, _mode='random', _species=None):
+    """
+    Back-translates protein sequences into DNA sequences
+    :param _seqbuddy: The SeqBuddy object to be back-translated
+    :param _mode: The codon selection mode (random/optimized)
+    :param _species: The model to use for optimized codon selection (human/mouse/yeast/ecoli)
+    :return: The back-translated SeqBuddy object
+    """
     # available modes --> random, optimized
     # available species --> human, mouse, yeast, ecoli
     # codon preference tables derived from the data at http://www.kazusa.or.jp
@@ -1022,6 +1094,12 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
 
 
 def ave_seq_length(_seqbuddy, _clean=False):
+    """
+    Returns the value of the average sequence length
+    :param _seqbuddy: The SeqBuddy object to be averaged
+    :param _clean: Specifies if non-sequence characters should be counted as well.
+    :return: The value of the average sequence length
+    """
     if _clean:  # Strip out all gaps and stuff before counting
         clean_seq(_seqbuddy)
 
@@ -1032,6 +1110,12 @@ def ave_seq_length(_seqbuddy, _clean=False):
 
 
 def concat_seqs(_seqbuddy, _clean=False):
+    """
+    Concatenates all of the sequences in the SeqBuddy object into one
+    :param _seqbuddy: The SeqBuddy object to be concatenated
+    :param _clean: Specifies whether non-sequence characters should be cleaned
+    :return: The concatenated SeqBuddy object
+    """
     if _clean:
         clean_seq(_seqbuddy)
 
@@ -1058,7 +1142,13 @@ def concat_seqs(_seqbuddy, _clean=False):
 
 
 def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
-    """remove all non-sequence charcters from sequence strings"""
+    """
+    Removes all non-sequence characters from the sequences
+    :param _seqbuddy: The SeqBuddy object to be cleaned
+    :param skip_list: A list of characters to be left alone
+    :param ambiguous: Specifies whether ambiguous characters should be kept or not
+    :return: The cleaned SeqBuddy object
+    """
     skip_list = "" if not skip_list else "".join(skip_list)
     for _rec in _seqbuddy.records:
         if _seqbuddy.alpha == IUPAC.protein:
@@ -1075,6 +1165,11 @@ def clean_seq(_seqbuddy, skip_list=None, ambiguous=True):
 
 
 def delete_metadata(_seqbuddy):
+    """
+    Removes all of the metadata from the records
+    :param _seqbuddy: The SeqBuddy object to be stripped of its metadata
+    :return: The stripped SeqBuddy object
+    """
     _new_seqs = []
     for _rec in _seqbuddy.records:
         _new_seqs.append(SeqRecord(Seq(str(_rec.seq), alphabet=_seqbuddy.alpha), id=_rec.id, name='', description=''))
@@ -1084,6 +1179,12 @@ def delete_metadata(_seqbuddy):
 
 # Apply DNA features to protein sequences
 def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
+    """
+    Applies DNA features to protein sequences
+    :param dna_seqbuddy: A DNA SeqBuddy object with features to map
+    :param prot_seqbuddy: A protein SeqBuddy
+    :return: A protein SeqBuddy with the DNA SeqBuddy's features
+    """
     def _feature_map(_feature):
         if type(_feature.location) == CompoundLocation:
             new_compound_location = []
@@ -1145,6 +1246,12 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
 
 # Apply Protein features to DNA sequences
 def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
+    """
+    Applies DNA features to protein sequences
+    :param prot_seqbuddy: A protein SeqBuddy object with features to map
+    :param dna_seqbuddy: A DNA SeqBuddy
+    :return: A DNA SeqBuddy with the protein SeqBuddy's features
+    """
     def _feature_map(_feature):
         if type(_feature.location) == CompoundLocation:
             new_compound_location = []
@@ -1212,6 +1319,12 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
 
 # Merge feature lists
 def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept any number of input files.
+    """
+    Merges the feature lists of two SeqBuddy objects
+    :param _seqbuddy1: The first SeqBuddy object
+    :param _seqbuddy2: The second SeqBuddy object
+    :return: A SeqBuddy object with merged features
+    """
     # make sure there are no repeat ids
     _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy1)
     if len(_rep_ids) > 0:
@@ -1282,6 +1395,12 @@ def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept an
 
 
 def order_features_by_position(_seqbuddy, _reverse=False):
+    """
+    Sorts features by the order in which they appear in the sequence
+    :param _seqbuddy: The SeqBuddy object to have its features sorted
+    :param _reverse: Specifies if the features should be sorted backwards
+    :return: The SeqBuddy object with sorted features
+    """
     for _rec in _seqbuddy.records:
         new_feature_list = [(int(_feature.location.start), _feature) for _feature in _rec.features]
         new_feature_list = sorted(new_feature_list, key=lambda x: x[0], reverse=_reverse)
@@ -1291,6 +1410,12 @@ def order_features_by_position(_seqbuddy, _reverse=False):
 
 
 def order_features_alphabetically(_seqbuddy, _reverse=False):
+    """
+    Sorts features in alphabetical order
+    :param _seqbuddy: The SeqBuddy object to have its features sorted
+    :param _reverse: Specifies if the features should be sorted backwards
+    :return: The SeqBuddy object with sorted features
+    """
     for _rec in _seqbuddy.records:
         new_feature_list = [(_feature.type, _feature) for _feature in _rec.features]
         new_feature_list = sorted(new_feature_list, key=lambda x: x[0], reverse=_reverse)
@@ -1299,7 +1424,14 @@ def order_features_alphabetically(_seqbuddy, _reverse=False):
     return _seqbuddy
 
 
+# TODO do string formatting in command line ui
 def hash_sequence_ids(_seqbuddy, _hash_length=10):
+    """
+    Replaces the sequence IDs with random hashes
+    :param _seqbuddy: The SeqBuddy to be hashed
+    :param _hash_length: Specifies the length of the random hashes
+    :return: A tuple containing: the hashed SeqBuddy, a dictionary mapping hashes to IDs, and a string representation
+    """
     hash_list = []
     seq_ids = []
     if type(_hash_length) != int or _hash_length < 1:
@@ -1326,20 +1458,25 @@ def hash_sequence_ids(_seqbuddy, _hash_length=10):
         _seqbuddy.records[i].id = new_hash
         _seqbuddy.records[i].name = new_hash
 
-    _hash_map = []
+    _hash_map = OrderedDict()
     for i in range(len(hash_list)):
-        _hash_map.append((hash_list[i], seq_ids[i]))
+        _hash_map[hash_list[i]] = seq_ids[i]
 
     _hash_table = "# Hash table\n"
     for _seq in _hash_map:
-        _hash_table += "%s,%s\n" % (_seq[0], _seq[1])
+        _hash_table += "%s,%s\n" % (_seq, _hash_map[_seq])
 
     return [_seqbuddy, _hash_map, _hash_table]
 
 
 def pull_recs(_seqbuddy, _search):  # _search can be a list of regex expressions or single string
+    """
+    Retrieves sequences with names/IDs matching a search pattern
+    :param _seqbuddy: The SeqBuddy object to be pulled from
+    :param _search: The regex pattern to search with
+    :return: The modified SeqBuddy object
+    """
     _search = "|".join(_search) if type(_search) == list else _search
-    print(_search)
     matched_records = []
     for _rec in _seqbuddy.records:
         if re.search(_search, _rec.description) or re.search(_search, _rec.id) or re.search(_search, _rec.name):
@@ -1349,6 +1486,12 @@ def pull_recs(_seqbuddy, _search):  # _search can be a list of regex expressions
 
 
 def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (without replacement)
+    """
+    Randomly retrieves sequences
+    :param _seqbuddy: The SeqBuddy object to be pulled from
+    :param _count: The number of records to pull
+    :return: The modified SeqBuddy object
+    """
     random_recs = []
     _count = abs(_count) if abs(_count) <= len(_seqbuddy.records) else len(_seqbuddy.records)
     for i in range(_count):
@@ -1360,6 +1503,13 @@ def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (
 
 
 def pull_record_ends(_seqbuddy, _amount, _which_end):
+    """
+    Retrieves subsequences from the ends of the sequences
+    :param _seqbuddy: The SeqBuddy object to be pulled from
+    :param _amount: The number of residues to be pulled
+    :param _which_end: Which end to pull from (front/rear)
+    :return: The modified SeqBuddy object
+    """
     _amount = int(_amount)
     if _amount < 0:
         raise ValueError("Positive integer required for '_amount' argument in pull_record_ends.")
@@ -1376,7 +1526,7 @@ def pull_record_ends(_seqbuddy, _amount, _which_end):
             _rec.seq = _rec.seq[-1 * _amount:]
 
         else:
-            raise AttributeError("You much pick 'front' or 'rear' for the '_which_end' argument in pull_record_ends.")
+            raise AttributeError("You must pick 'front' or 'rear' for the '_which_end' argument in pull_record_ends.")
 
         seq_ends.append(_rec)
 
@@ -1385,6 +1535,13 @@ def pull_record_ends(_seqbuddy, _amount, _which_end):
 
 
 def extract_range(_seqbuddy, _start, _end):
+    """
+    Retrieves subsequences in a specified range
+    :param _seqbuddy: The SeqBuddy object to be pulled from
+    :param _start: The starting point
+    :param _end: The end point
+    :return: The modified SeqBuddy object
+    """
     _start = 1 if int(_start) < 1 else _start
     # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
     _start, _end = int(_start) - 1, int(_end)
@@ -1417,7 +1574,14 @@ def extract_range(_seqbuddy, _start, _end):
     return _seqbuddy
 
 
+# TODO do string formatting in command line ui
 def find_repeats(_seqbuddy, _columns=1):
+    """
+    Finds sequences with identical IDs or sequences
+    :param _seqbuddy: The SeqBuddy object to be searched
+    :param _columns: The number of columns to be output
+    :return: A tuple containing the unique records, the repeat IDs, the repeat sequences, and the string output
+    """
     _columns = 1 if _columns == 0 else abs(_columns)
     unique_seqs = {}
     repeat_ids = {}
@@ -1512,6 +1676,12 @@ def find_repeats(_seqbuddy, _columns=1):
 
 
 def delete_records(_seqbuddy, search_str):
+    """
+    Deletes records with IDs matching a regex pattern
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param search_str: The regex pattern to search with
+    :return: The modified SeqBuddy object
+    """
     retained_records = []
     _deleted = pull_recs(copy(_seqbuddy), search_str).records
     for _rec in _seqbuddy.records:
@@ -1524,6 +1694,12 @@ def delete_records(_seqbuddy, search_str):
 
 
 def delete_large(_seqbuddy, max_value):
+    """
+    Deletes records larger than a certain size
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param max_value: The maximum threshold for sequence length
+    :return: The modified SeqBuddy object
+    """
     retained_records = []
     for _rec in _seqbuddy.records:
         if len(str(_rec.seq)) <= max_value:
@@ -1533,6 +1709,12 @@ def delete_large(_seqbuddy, max_value):
 
 
 def delete_small(_seqbuddy, min_value):
+    """
+    Deletes records smaller than a certain size
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param min_value: The minimum threshold for sequence length
+    :return: The modified SeqBuddy object
+    """
     retained_records = []
     for _rec in _seqbuddy.records:
         if len(str(_rec.seq)) >= min_value:
@@ -1542,6 +1724,12 @@ def delete_small(_seqbuddy, min_value):
 
 
 def delete_features(_seqbuddy, _pattern):
+    """
+    Deletes features with IDs matching a regex pattern
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param _pattern: The regex pattern to search with
+    :return: The modified SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         retained_features = []
         for _feature in _rec.features:
@@ -1552,6 +1740,12 @@ def delete_features(_seqbuddy, _pattern):
 
 
 def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
+    """
+    Deletes records with repeated IDs/seqs
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param scope: Specifies if deleting repeat seqs, ids, or all
+    :return: The modified SeqBuddy object
+    """
     # First, remove duplicate IDs
     if scope in ['all', 'ids']:
         _unique, _rep_ids, _rep_seqs, output_str = find_repeats(_seqbuddy)
@@ -1585,6 +1779,14 @@ def delete_repeats(_seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
 
 
 def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
+    """
+    Rename sequence IDs
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param query: The pattern to be searched for
+    :param replace: The string to be substituted
+    :param _num: The maximum number of substitutions to make
+    :return: The modified SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         new_name = re.sub(query, replace, _rec.id, _num)
         _rec.id = new_name
@@ -1593,6 +1795,12 @@ def rename(_seqbuddy, query, replace="", _num=0):  # TODO Allow a replacement pa
 
 
 def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
+    """
+    Deletes highly similar sequences
+    :param _seqbuddy: The SeqBuddy object to be purged
+    :param threshold: Sets the similarity threshold
+    :return: The purged SeqBuddy object
+    """
     keep_set = {}
     purged = []
     _blast_res = bl2seq(_seqbuddy)[0]
@@ -1616,7 +1824,7 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
             _output.append(_rec)
 
     _seqbuddy.records = _output
-
+    # TODO do string formatting in command line ui
     _record_map = "### Deleted record mapping ###\n"
     keep_set = [(_key, sorted(_value)) for _key, _value in keep_set.items()]
     keep_set = sorted(keep_set, key=lambda l: l[0])
@@ -1631,11 +1839,15 @@ def purge(_seqbuddy, threshold):  # ToDo: Implement a way to return a certain # 
     return [_seqbuddy, purged, _record_map]
 
 
-def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return sequences
+def bl2seq(_seqbuddy):  # TODO do string formatting in command line ui
     """
-    Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
-    threshold may need to be increased quite a bit to return short alignments
+    Does an all-by-all analysis of the sequences
+    :param _seqbuddy: The SeqBuddy object to be BLASTed
+    :return: A tuple containing a table of results and a string output
     """
+    # Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
+    # threshold may need to be increased quite a bit to return short alignments
+
     current_dir = os.getcwd()
     script_location = os.path.realpath(__file__)
     script_location = re.sub('SeqBuddy\.py', '', script_location)
@@ -1685,8 +1897,8 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
             raise RuntimeError("Blastn not present in $PATH or working directory.")
         sys.exit()
 
-    def mc_blast(_query, args):
-        _subject_file = args[0]
+    def mc_blast(_query, _args):
+        _subject_file = _args[0]
 
         if subject.id == _query.id:
             return
@@ -1742,14 +1954,14 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
     for match in output_list:
         query, subj, _ident, _length, _evalue, _bit_score = match
         if query not in output_dict:
-            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+            output_dict[query] = {subj: [float(_ident), int(_length), float(_evalue), float(_bit_score)]}
         else:
-            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[query][subj] = [float(_ident), int(_length), float(_evalue), float(_bit_score)]
 
         if subj not in output_dict:
-            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), int(_bit_score)]}
+            output_dict[subj] = {query: [float(_ident), int(_length), float(_evalue), float(_bit_score)]}
         else:
-            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), int(_bit_score)]
+            output_dict[subj][query] = [float(_ident), int(_length), float(_evalue), float(_bit_score)]
 
     output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
 
@@ -1772,18 +1984,34 @@ def bl2seq(_seqbuddy):  # Does an all-by-all analysis, and does not return seque
 
 
 def uppercase(_seqbuddy):
+    """
+    Converts all sequence residues to uppercase.
+    :param _seqbuddy: The SeqBuddy object to be modified.
+    :return: The modified SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
     return _seqbuddy
 
 
 def lowercase(_seqbuddy):
+    """
+    Converts all sequence residues to lowercase.
+    :param _seqbuddy: The SeqBuddy object to be modified.
+    :return: The modified SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
     return _seqbuddy
 
 
 def split_by_taxa(_seqbuddy, split_pattern):
+    """
+    Splits a SeqBuddy object by a specified pattern
+    :param _seqbuddy: The SeqBuddy object to be split
+    :param split_pattern: The regex pattern to split with
+    :return: A dictionary of SeqRecords
+    """
     recs_by_taxa = {}
     for _rec in _seqbuddy.records:
         split = re.split(split_pattern, _rec.id)
@@ -1792,7 +2020,12 @@ def split_by_taxa(_seqbuddy, split_pattern):
 
 
 def molecular_weight(_seqbuddy):
-    # get the mass of each sequence in daltons
+    """
+    Calculates the mass of each sequence in daltons
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of molecular weight values -
+    dict[id][(ssRNA_value/ssDNA_value, dsDNA_value/peptide_value)]
+    """
 
     amino_acid_weights = {'A': 71.08, 'R': 156.19, 'N': 114.10, 'D': 115.09, 'C': 103.14, 'Q': 128.13, 'E': 129.12,
                           'G': 57.05, 'H': 137.14, 'I': 113.16, 'L': 113.16, 'K': 128.17, 'M': 131.19, 'F': 147.18,
@@ -1844,12 +2077,17 @@ def molecular_weight(_seqbuddy):
         elif _seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
             _qualifiers["ssRNA_value"] = round(_rec.mass_ss, 3)
         _output['ids'].append(_rec.id)
-        mw_feature = SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='mw', qualifiers=_qualifiers)
+        mw_feature = SeqFeature(location=FeatureLocation(start=1, end=len(_rec.seq)), type='mw', qualifiers=_qualifiers)
         _rec.features.append(mw_feature)
     return _seqbuddy, _output
 
 
 def isoelectric_point(_seqbuddy):
+    """
+    Calculate the isoelectric point of each sequence
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of isoelectric point values - dict[id]
+    """
     if _seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
     _isoelectric_points = OrderedDict()
@@ -1857,12 +2095,17 @@ def isoelectric_point(_seqbuddy):
         _pI = ProteinAnalysis(str(_rec.seq))
         _pI = round(_pI.isoelectric_point(), 10)
         _isoelectric_points[_rec.id] = _pI
-        _rec.features.append(SeqFeature(location=FeatureLocation(start=0, end=len(_rec.seq)), type='pI',
+        _rec.features.append(SeqFeature(location=FeatureLocation(start=1, end=len(_rec.seq)), type='pI',
                                         qualifiers={'value': _pI}))
     return _seqbuddy, _isoelectric_points
 
 
 def count_residues(_seqbuddy):
+    """
+    Count the number of each type of residue in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary - dict[id][residue]
+    """
     _output = OrderedDict()
     for _rec in _seqbuddy.records:
         resid_count = {}
@@ -1919,7 +2162,12 @@ def count_residues(_seqbuddy):
     return _seqbuddy, _output
 
 
-def raw_seq(_seqbuddy):
+def raw_seq(_seqbuddy):  # TODO Make this return a dict
+    """
+    Returns the raw sequence data from the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A string containing the raw sequences
+    """
     _seqbuddy = clean_seq(_seqbuddy)
     _output = ""
     for _rec in _seqbuddy.records:
@@ -1928,7 +2176,12 @@ def raw_seq(_seqbuddy):
     return "%s\n" % _output.strip()
 
 
-def list_ids(_seqbuddy, _columns=1):
+def list_ids(_seqbuddy, _columns=1):  # TODO Make this return a list
+    """
+    Returns a list of sequence IDs
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A string listing sequence IDs
+    """
     _columns = 1 if _columns == 0 else abs(_columns)
     _output = ""
     _counter = 1
@@ -1941,10 +2194,20 @@ def list_ids(_seqbuddy, _columns=1):
 
 
 def num_seqs(_seqbuddy):
+    """
+    Counts the number of sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be counted
+    :return: The int number of sequences
+    """
     return len(_seqbuddy.records)
 
 
 def merge(_seqbuddy_list):
+    """
+    Combines two or more SeqBuddy objects
+    :param _seqbuddy_list: The list of SeqBuddy objects to be merged
+    :return: A single, merged SeqBuddy object
+    """
     _output = _seqbuddy_list[0]
     for _seqbuddy in _seqbuddy_list[1:]:
         _output.records += _seqbuddy.records
@@ -1952,7 +2215,11 @@ def merge(_seqbuddy_list):
 
 
 def split_file(_seqbuddy):
-    # Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
+    """
+    Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
+    :param _seqbuddy: The SeqBuddy object to be split
+    :return: A list of SeqBuddy objects
+    """
     sb_objs_list = []
     for _rec in _seqbuddy.records:
         _sb = SeqBuddy([_rec])
@@ -1964,6 +2231,14 @@ def split_file(_seqbuddy):
 
 # _order in ['alpha', 'position']
 def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):  # ToDo: Make sure cut sites are not already in the features list
+    """
+    Finds the restriction sites in the sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :param _enzymes: "commercial", "all", or a list of specific enzyme names
+    :param _min_cuts: The minimum cut threshold
+    :param _max_cuts: The maximum cut threshold
+    :return: Returns a tuple containing an annotated SeqBuddy object, and a dictionary of restriction sites dict[id][re]
+    """
     if _seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
     if _max_cuts and _min_cuts > _max_cuts:
@@ -2027,6 +2302,12 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
 
 
 def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
+    """
+    Finds occurences of a pattern in a SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be searched
+    :param _pattern: The regex pattern to search with
+    :return: A tuple containing an annotated SeqBuddy object and a dictionary of matches dict[id]
+    """
     # search through sequences for regex matches. For example, to find micro-RNAs
     _pattern = _pattern.upper()
     _output = OrderedDict()
@@ -2042,7 +2323,11 @@ def find_pattern(_seqbuddy, _pattern):  # TODO ambiguous letters mode
 
 
 def find_CpG(_seqbuddy):
-    # Predicts locations of CpG islands in DNA sequences
+    """
+    Predicts locations of CpG islands in DNA sequences
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing an SeqBuddy object and a dict of indices - dict[id]
+    """
     _seqbuddy = clean_seq(_seqbuddy)
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         raise TypeError("DNA sequence required, not protein or RNA.")
@@ -2120,11 +2405,15 @@ def find_CpG(_seqbuddy):
         records.append(_rec)
         _output[rec.id] = indices
     _seqbuddy.records = records
-    return [_seqbuddy, _output]
+    return _seqbuddy, _output
 
 
 def shuffle_seqs(_seqbuddy):
-    # randomly reorder the residues in each sequence
+    """
+    Randomly reorder the residues in each sequence
+    :param _seqbuddy: The SeqBuddy object to be shuffled
+    :return: The shuffled SeqBuddy object
+    """
     for _rec in _seqbuddy.records:
         tokens = []
         for letter in _rec.seq:
@@ -2138,7 +2427,13 @@ def shuffle_seqs(_seqbuddy):
 
 
 def insert_sequence(_seqbuddy, _sequence, _location):
-    # Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
+    """
+    Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
+    :param _seqbuddy: The SeqBuddy object to be modified
+    :param _sequence: The sequence to be inserted
+    :param _location: The location to insert the sequences at
+    :return: The modified SeqBuddy object
+    """
     if type(_location) is int:
         for _rec in _seqbuddy.records:
             new_seq = _rec.seq[:_location] + _sequence + _rec.seq[_location:]
@@ -2157,7 +2452,11 @@ def insert_sequence(_seqbuddy, _sequence, _location):
 
 
 def count_codons(_seqbuddy):
-    # generate frequency statistics for codon composition
+    """
+    Generate frequency statistics for codon composition
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A tuple containing the original SeqBuddy object and a dictionary - dict[id][codon] = (Amino acid, num, %)
+    """
     if _seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
         raise TypeError("Nucleic acid sequence required, not protein or other.")
     if _seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
@@ -2179,14 +2478,14 @@ def count_codons(_seqbuddy):
                 data_table[_codon][1] += 1
             else:
                 if _codon.upper() in ['ATG', 'AUG']:
-                    data_table[_codon] = ['M', 1, 0.0]
+                    data_table[_codon] = ('M', 1, 0.0)
                 elif _codon.upper() == 'NNN':
-                    data_table[_codon] = ['X', 1, 0.0]
+                    data_table[_codon] = ('X', 1, 0.0)
                 elif _codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
-                    data_table[_codon] = ['*', 1, 0.0]
+                    data_table[_codon] = ('*', 1, 0.0)
                 else:
                     try:
-                        data_table[_codon] = [codontable[_codon.upper()], 1, 0.0]
+                        data_table[_codon] = (codontable[_codon.upper()], 1, 0.0)
                     except KeyError:
                         _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(_codon))
             _sequence = _sequence[3:]
@@ -2202,6 +2501,11 @@ def count_codons(_seqbuddy):
 
 
 def list_features(_seqbuddy):
+    """
+    Returns a dictionary of sequence features
+    :param _seqbuddy: The SeqBuddy object to be analyzed
+    :return: A dictionary of sequence features - dict[id] = list(features)
+    """
     _output = OrderedDict()
     for _rec in _seqbuddy.records:
         _output[_rec.id] = _rec.features if len(_rec.features) > 0 else None
@@ -2209,6 +2513,16 @@ def list_features(_seqbuddy):
 
 
 def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pattern=None):
+    """
+    Adds a feature annotation to all sequences in the SeqBuddy object
+    :param _seqbuddy: The SeqBuddy object to be annotated
+    :param _type: The type attribute of tha annotation
+    :param _location: The location of the annotation - (start, end) or [(start1, end1), (start2, end2)]
+    :param _strand: The feature's strand - (+/-/None)
+    :param _qualifiers: A dictionary of qualifiers, or a string "foo: bar, fizz: buzz"
+    :param _pattern: A regex pattern to specify which sequences to add the feature to
+    :return: The annotated SeqBuddy object
+    """
     # http://www.insdc.org/files/feature_table.html
     old = _make_copies(_seqbuddy)
     if _pattern is not None:
@@ -2401,156 +2715,26 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=argparse.RawTextHelpFormatter,
-                                     description="Commandline wrapper for all the fun functions in this file. "
-                                                 "Play with your sequences!")
+    import buddy_resources as br
 
-    parser.add_argument("sequence", help="Supply a file path or a raw sequence", nargs="*", default=[sys.stdin])
+    version = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
 
-    parser.add_argument('-v', '--version', action='version',
-                        version='''\
-SeqBuddy 2.alpha (2015)
+    fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov''')
-    # TODO Fix --clean_seq for .phy, .phyr, .stklm, .nex
-    parser.add_argument('-cs', '--clean_seq', action='append', nargs="?",
-                        help="Strip out non-sequence characters, such as stops (*) and gaps (-). Pass in the word "
-                             "'strict' to remove all characters except the unambiguous letter codes.")
-    parser.add_argument('-uc', '--uppercase', action='store_true',
-                        help='Convert all sequences to uppercase')
-    parser.add_argument('-lc', '--lowercase', action='store_true',
-                        help='Convert all sequences to lowercase')
-    parser.add_argument('-dm', '--delete_metadata', action='store_true',
-                        help="Remove meta-data from file (only id is retained)")
-    parser.add_argument('-rs', '--raw_seq', action='store_true',
-                        help="Return line break separated sequences")
-    parser.add_argument('-tr', '--translate', action='store_true',
-                        help="Convert coding sequences into amino acid sequences")
-    parser.add_argument('-sfr', '--select_frame', action='store', metavar='<frame (int)>', type=int, choices=[1, 2, 3],
-                        help="Change the reading frame of sequences by deleting characters off of the front")
-    parser.add_argument('-tr6', '--translate6frames', action='store_true',
-                        help="Translate nucleotide sequences into all six reading frames")
-    parser.add_argument('-btr', '--back_translate', action='append', nargs="*",
-                        help="Convert amino acid sequences into codons. Optionally, select mode by passing in "
-                             "['random', 'r', 'optimized', 'o'] "
-                             "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']")
-    parser.add_argument('-d2r', '--transcribe', action='store_true',
-                        help="Convert DNA sequences to RNA")
-    parser.add_argument('-r2d', '--back_transcribe', action='store_true',
-                        help="Convert RNA sequences to DNA")
-    parser.add_argument('-cmp', '--complement', action='store_true',
-                        help="Return complement of nucleotide sequence")
-    parser.add_argument('-rc', '--reverse_complement', action='store_true',
-                        help="Return reverse complement of nucleotide sequence")
-    parser.add_argument('-li', '--list_ids', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Output all the sequence identifiers in a file. Optionally, pass in an integer to "
-                             "specify the # of columns to write")
-    parser.add_argument('-ns', '--num_seqs', action='store_true',
-                        help="Counts how many sequences are present in an input file")
-    parser.add_argument('-asl', '--ave_seq_length', action='append', nargs="?",
-                        help="Return the average length of all sequences. Pass in the word 'clean' to remove gaps etc "
-                             "from the sequences before counting.")
-    parser.add_argument('-cts', '--concat_seqs', action='append', nargs="?",
-                        help="Concatenate a bunch of sequences into a single solid string. Pass in the word 'clean' to "
-                             "remove stops, gaps, etc., from the sequences before concatenating.")
-    parser.add_argument('-fd2p', '--map_features_dna2prot', action='store_true',
-                        help="Take the features annotated onto nucleotide sequences and map to protein sequences. "
-                             "Both a protein and cDNA file must be passed in.")
-    parser.add_argument('-fp2d', '--map_features_prot2dna', action='store_true',
-                        help="Arguments: one cDNA file and one protein file")
-    parser.add_argument('-ri', '--rename_ids', action='store', metavar=('<pattern>', '<substitution>'), nargs=2,
-                        help="Replace some pattern in ids with something else. Limit number of replacements with -p.")
-    parser.add_argument('-cf', '--combine_features', action='store_true',
-                        help="Takes the features in two files and combines them for each sequence")
-    parser.add_argument('-oir', '--order_ids_randomly', action='store_true',
-                        help="Randomly reorder the position of records in the file.")
-    parser.add_argument('-oi', '--order_ids', action='append', nargs="?",
-                        help="Sort all sequences by id in alpha-numeric order. Pass in the word 'rev' to reverse order")
-    parser.add_argument('-ofp', '--order_features_by_position', action='append', nargs="?",
-                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
-                             "to reverse order.")
-    parser.add_argument('-ofa', '--order_features_alphabetically', action='append', nargs="?",
-                        help="Change the output order of sequence features, based on sequence position. Pass in 'rev' "
-                             "to reverse order.")
-    parser.add_argument('-sf', '--screw_formats', action='store', metavar="<out_format>",
-                        help="Change the file format to something else.")
-    parser.add_argument('-hsi', '--hash_seq_ids', action='append', nargs="?", type=int,
-                        help="Rename all the identifiers in a sequence list to a fixed length hash. Default 10; "
-                             "override by passing in an integer.")
-    parser.add_argument('-pr', '--pull_records', action='store', nargs="+", metavar="<regex pattern(s)>",
-                        help="Get all the records with ids containing a given string")
-    parser.add_argument('-prr', '--pull_random_record', nargs='?', action='append', type=int, metavar='int (optional)',
-                        help="Extract random sequences. Optionally, pass in an integer to increase the number of "
-                             "sequences returned")
-    parser.add_argument('-pre', '--pull_record_ends', nargs=2, metavar=('<amount (int)>', "<front|rear>"),
-                        action='store', help="Get the ends (front or rear) of all sequences in a file.")
-    parser.add_argument('-er', '--extract_region', action='store', nargs=2, metavar=("<start (int)>", "<end (int)>"),
-                        type=int, help="Pull out sub-sequences.")
-    parser.add_argument('-dr', '--delete_records', action='store', nargs="+", metavar="<regex pattern>",  # ToDo: update wiki to show multiple regex inputs
-                        help="Remove records from a file. The deleted IDs are sent to stderr.")
-    parser.add_argument('-dsm', '--delete_small', help='Delete sequences with length below threshold', type=int,
-                        metavar='<threshold (int)>', action='store')
-    parser.add_argument('-dlg', '--delete_large', help='Delete sequences with length above threshold', type=int,
-                        metavar='<threshold (int)>', action='store')
-    parser.add_argument('-df', '--delete_features', action='store', nargs="+", metavar="<regex pattern(s)>",  # ToDo: update wiki to show multiple regex inputs
-                        help="Remove specified features from all records.")
-    parser.add_argument('-drp', '--delete_repeats', action='append', nargs="?", type=int,
-                        help="Strip repeat records (ids and/or identical sequences. Optional, pass in an integer to "
-                             "specify # columns for deleted ids")
-    parser.add_argument('-frp', '--find_repeats', action='append', nargs="?", type=int,
-                        help="Identify whether a file contains repeat sequences and/or sequence ids. The number of "
-                             "output columns can be modified by passing in an integer.")
-    parser.add_argument("-mg", "--merge", action="store_true",
-                        help="Group a bunch of seq files together",)
-    parser.add_argument("-bl", "--blast", metavar="<BLAST database>", action="store",
-                        help="BLAST your sequence file using common settings, return the hits from blastdb")
-    parser.add_argument("-bl2s", "--bl2seq", action="store_true",
-                        help="All-by-all blast among sequences using bl2seq. Only Returns top hit from each search")
-    parser.add_argument("-prg", "--purge", metavar="Max BLAST score", type=int, action="store",
-                        help="Delete sequences with high similarity")
-    parser.add_argument("-sbt", "--split_by_taxa", action='store', nargs=2, metavar=("<Split Pattern>", "<out dir>"),
-                        help="")
-    parser.add_argument("-frs", "--find_restriction_sites", action='append', nargs="*",
-                        help="Identify restriction sites. Args: enzymes [specific enzymes, commercial, all], max cuts, "
-                             "min cuts")
-    parser.add_argument("-fp", "--find_pattern", action='store', nargs="+", metavar="<regex pattern(s)>",
-                        help="Search for subsequences, returning the start positions of all matches")
-    parser.add_argument("-mw", "--molecular_weight", action='store_true',
-                        help="Computes the molecular weight of all of the sequences found in the input file")
-    parser.add_argument("-ip", "--isoelectric_point", action='store_true',
-                        help="Returns a list of isoelectric points for each protein sequence in the file")
-    parser.add_argument("-fcpg", "--find_CpG", action='store_true',
-                        help="Predict regions under strong purifying selection based on high CpG content")
-    parser.add_argument("-cr", "--count_residues", action='store_true', help="Generate a table of sequence compositions")
-    parser.add_argument("-stf", "--split_to_files", action='store', metavar="<out dir>",
-                        help="Write individual files for each sequence")
-    parser.add_argument("-ss", "--shuffle_seqs", action='store_true', help='Shuffles the letters in all the sequences.')
-    parser.add_argument("-is", "--insert_seq", action='store', nargs=2,
-                        metavar=('<sequence>', '<start|end|index(int)>'),
-                        help='Insert a sequence at the desired location')
-    parser.add_argument('-cc', '--count_codons', action='store_true',
-                        help="Return codon frequency statistics.")
-    parser.add_argument('-lf', '--list_features', action='store_true',
-                        help="Return a dictionary mapping sequence IDs to features.")
-    parser.add_argument("-af", "--add_feature", nargs='*',
-                        help='Add a feature (annotation) to selected sequence.s Args: <name>, '
-                             '<location (start1-end1,start2-end2...)>, <strand (+|-)>, '
-                             '<qualifiers (foo=bar,hello=world...)>, <regex_pattern>')
-    parser.add_argument('-ga', '--guess_alphabet', action='store_true')
-    parser.add_argument('-gf', '--guess_format', action='store_true')
-    parser.add_argument("-i", "--in_place", help="Rewrite the input file in-place. Be careful!", action='store_true')
-    parser.add_argument('-p', '--params', help="Free form arguments for some functions", nargs="+", action='store')
-    parser.add_argument('-q', '--quiet', help="Suppress stderr messages", action='store_true')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help="Run the function and return any stderr/stdout other than sequences")
-    parser.add_argument('-o', '--out_format', help="If you want a specific format output", action='store')
-    parser.add_argument('-f', '--in_format', help="If SeqBuddy can't guess the file format, just specify it directly",
-                        action='store')
-    parser.add_argument('-a', '--alpha', help="If you want the file read with a specific alphabet", action='store')
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mSeqBuddy\033[m
+  See your sequence files. Be your sequence files.
+
+\033[1mUsage examples\033[m:
+  SeqBuddy.py "/path/to/seq_file" -<cmd>
+  SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
+  SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
+''')
+
+    br.flags(parser, "SeqBuddy", ("sequence", "Supply file path(s) or raw sequence. If piping sequences into SeqBuddy "
+                                              "this argument can be left blank."),
+             br.sb_flags, br.sb_modifiers, version)
 
     parser.add_argument('-dgn', '--degenerate_sequence', action='append', nargs="*",
                         help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
@@ -2900,7 +3084,20 @@ Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''
 
     # Pull sequence ends
     if in_args.pull_record_ends:
-        _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+        try:
+            _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+            sys.exit()
+        except ValueError:
+            pass
+        except AttributeError:
+            pass
+        try:
+            _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
+        except ValueError:
+            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
+        except AttributeError:
+            _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
+                                        "should come from in pull_record_ends"))
         sys.exit()
 
     # Extract regions
