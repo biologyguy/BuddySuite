@@ -18,25 +18,20 @@ import buddy_resources as br
 
 import argparse
 
-buddysuite_version = '1.alpha'
+version = br.Version("BuddySuite", 1, 'alpha', br.contributors)
 
-parser = argparse.ArgumentParser(
-    prog="BuddySuite", description="The BuddySuite installer")
+fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-parser.add_argument('-v', '--version', action='version',
-                    version='''\
-BuddySuite {0} (2015)
+parser = argparse.ArgumentParser(prog="buddysuite", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                 description='''\
+\033[1mBuddySuite Installer\033[m
+  Install, upgrade, or uninstall the BuddySuite tools.
+''')
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''.format(buddysuite_version))
-
-parser.add_argument('-cmd', '--cmd_line', help="Force the installer to use command line version.",
-                    action='store_true')
+br.flags(parser, None, br.bsi_flags, None, version)
 
 in_args = parser.parse_args()
+
 home_dir = path.expanduser('~')
 start_dir = os.getcwd()
 
@@ -62,19 +57,23 @@ if not in_args.cmd_line:
         from PIL import Image
 
     except ImportError:
-        if which("conda"):
-            print("The image processing package 'Pillow' is needed for the graphical installer, "
-                  "attempting to install with 'conda'.")
-            Popen("conda install pillow", shell=True).wait()
+        print("The image processing package 'Pillow' (https://python-pillow.github.io/) is needed for the graphical "
+              "installer. If you are working within a standard desktop environment you should install Pillow, but it "
+              "is not necessary if working on a non-graphical platform (e.g., on a cluster).")
+        prompt = input("Try to install Pillow y/[n]?")
+        if prompt.lower().strip() in ["yes", "y"]:
+            if which("conda"):
+                print("Attempting to install Pillow with 'conda'.")
+                Popen("conda install pillow", shell=True).wait()
 
-        elif which("pip"):
-            print("The image processing package 'Pillow' is needed for the graphical installer, "
-                  "attempting to install a temporary copy.")
-            Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
-                  temp_dir.name, shell=True).wait()
-            if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
-                shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
-
+            elif which("pip"):
+                print("Attempting to install a temporary copy of Pillow with 'pip'.")
+                Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
+                      temp_dir.name, shell=True).wait()
+                if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
+                    shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
+            else:
+                print("Unable to install Pillow.")
     try:
         from PIL import Image
     except ImportError:
@@ -349,8 +348,8 @@ class BuddyInstall:
 
 # installer
 def cmd_install():
-    def ask(_prompt):
-        _response = input(_prompt)
+    def ask(input_prompt):
+        _response = input(input_prompt)
         while True:
             if _response.lower() in ["yes", "y", '']:
                 return True
@@ -358,7 +357,7 @@ def cmd_install():
                 return False
             else:
                 print("Response not understood. Try again.")
-                _response = input(_prompt)
+                _response = input(input_prompt)
 
     config = BuddyInstall.read_config_file()
     old_install_dir = None
@@ -468,8 +467,8 @@ def cmd_install():
         print_shortcuts()
 
         if ask("Would you like to add or remove shortcuts? ('[yes]/no') "):
-            prompt = True
-            while prompt:
+            _prompt = True
+            while _prompt:
                 add_or_remove = input("Would you like to add or remove? ('add/remove/[cancel]') ")
                 while True:
                     if add_or_remove.lower() in ['cancel', '']:
@@ -523,7 +522,7 @@ def cmd_install():
                         print("Warning: Shortcut already does not exist.")
 
                 print_shortcuts()
-                prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
+                _prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
 
         if old_install_dir is None:
             install_dir = input("Please specify an installation directory ('/BuddySuite' will automatically be appended) ")
@@ -568,7 +567,7 @@ def cmd_install():
         if config is not None:  # Uninstall removed shortcuts
             for buddy in old_shortcuts:
                 for shortcut in old_shortcuts[buddy]:
-                    if os.path.exists("{0}/.buddysuite/{1}".format(home_dir, shortcut)) and shortcut not in shortcuts[buddy]:
+                    if os.path.exists("%s/.buddysuite/%s" % (home_dir, shortcut)) and shortcut not in shortcuts[buddy]:
                         os.remove("{0}/.buddysuite/{1}".format(home_dir, shortcut))
         for buddy in buddies_to_install:
             if not buddies_to_install[buddy]:
@@ -689,12 +688,12 @@ class Installer(Frame):
             self.buddies[buddy] = False
         self.confirmation()
 
-    def welcome(self, debug=None):
+    def welcome(self):
         self.clear_container()
         title_frame = Frame()
         welcome_label = Label(title_frame, image=self.bs_logo)
         welcome_label.pack(side=TOP)
-        version_label = Label(title_frame, text="Version {0}".format(buddysuite_version))
+        version_label = Label(title_frame, text="Version {0}".format(version.short()))
         version_label.pack(side=RIGHT)
         title_frame.pack(pady=sh / 10)
         self.container.append(title_frame)
@@ -902,43 +901,44 @@ class Installer(Frame):
         if in_dir is not None:
             self.install_dir = in_dir.get()
         self.clear_container()
-        if self.buddies['DatabaseBuddy'] is False:
-            if in_dir is not None:
-                self.install_shortcuts()
-            else:
-                self.install_location()
-            return
-        else:
-            logo_label = Label(image=self.ea_logo, pady=20 * scale_factor)
-            logo_label.pack(side=TOP)
-            self.container.append(logo_label)
 
-            frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
+        logo_label = Label(image=self.ea_logo, pady=20 * scale_factor)
+        logo_label.pack(side=TOP)
+        self.container.append(logo_label)
+        info_frame = LabelFrame(bd=0, padx=10 * scale_factor, pady=10 * scale_factor)
+        self.container.append(info_frame)
+        text_lable = Label(info_frame, justify="left", wraplength=700 * scale_factor,
+                           text="Providing a valid email address is recommended if using DatabaseBuddy to access NCBI, "
+                                "as they will attempt to contact you before blocking your IP if you are not adhering "
+                                "to their usage limitations. See our privacy statement for further details.\n"
+                                "https://github.com/biologyguy/BuddySuite/blob/master/privacy")
+        text_lable.grid(row=0, sticky=NW)
+        info_frame.pack(side=TOP, anchor=NW, padx=50 * scale_factor, pady=50 * scale_factor, fill=BOTH)
 
-            label = Label(frame, text="Would you like to provide your email address? (optional)")
-            label.pack(side=TOP, anchor=NW)
+        frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
+        label = Label(frame, text="Please provide your email address (optional).")
+        label.pack(side=TOP, anchor=NW)
+        email_text = Entry(frame)
+        email_text.insert(END, self.email_address)
+        email_text.pack(side=TOP, anchor=NW, fill=X)
 
-            email_text = Entry(frame)
-            email_text.insert(END, self.email_address)
-            email_text.pack(side=TOP, anchor=NW, fill=X)
+        frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
+        self.container.append(frame)
 
-            frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
-            self.container.append(frame)
+        lower_box = Frame()
 
-            lower_box = Frame()
-
-            button_frame = Frame(lower_box)
-            next_func = partial(self.install_shortcuts, email_text)
-            next_button = Button(button_frame, padx=50 * scale_factor,
-                                 pady=20 * scale_factor, text="Next", command=next_func)
-            next_button.pack(side=RIGHT)
-            back_func = partial(self.install_location, email_text)
-            back_button = Button(button_frame, padx=50 * scale_factor,
-                                 pady=20 * scale_factor, text="Back", command=back_func)
-            back_button.pack(side=LEFT)
-            button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
-            lower_box.pack(side=BOTTOM)
-            self.container.append(lower_box)
+        button_frame = Frame(lower_box)
+        next_func = partial(self.install_shortcuts, email_text)
+        next_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Next", command=next_func)
+        next_button.pack(side=RIGHT)
+        back_func = partial(self.install_location, email_text)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=back_func)
+        back_button.pack(side=LEFT)
+        button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
+        lower_box.pack(side=BOTTOM)
+        self.container.append(lower_box)
 
     def install_shortcuts(self, email=None):
         if email is not None:
@@ -1018,7 +1018,7 @@ class Installer(Frame):
         var.set(text[0])
         entry.insert(END, text[1])
 
-    def add_shortcut(self, buddy, listbox, entry, debug, event=None):
+    def add_shortcut(self, buddy, listbox, entry, debug):
         debug.config(text='')
         addable = True
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
@@ -1044,7 +1044,7 @@ class Installer(Frame):
             debug.config(text='Not added: Already exists')
             return
 
-    def remove_shortcut(self, buddy, listbox, entry, debug, event=None):
+    def remove_shortcut(self, buddy, listbox, entry, debug):
         debug.config(text='')
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
         entry.delete(0, END)
@@ -1064,8 +1064,10 @@ class Installer(Frame):
         frame = Frame(root, padx=50 * scale_factor, pady=75 * scale_factor)
 
         diagnostic_box = Checkbutton(frame,
-                                     text="Would you be willing to send usage stats and diagnostic information to us?",
-                                     command=self.toggle_diagnostics, pady=50 * scale_factor)
+                                     text="  Please join our Software Improvement Program.\n"
+                                          "  Anonymized usage statistics and crash reports will be\n"
+                                          "  automatically transmitted to the BuddySuite developers.",
+                                     command=self.toggle_diagnostics, pady=50 * scale_factor, justify="left")
         if self.send_diagnostics:
             diagnostic_box.toggle()
 
