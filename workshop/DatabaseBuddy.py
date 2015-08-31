@@ -616,7 +616,6 @@ class UniProtRestClient:
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
         self.server = server
-        self.lock = Lock()
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
@@ -1389,7 +1388,7 @@ class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy, crash_file):
         """
         :param _dbbuddy: pre-instantiated DbBuddy object
-        :param crash_file: MyFuncs.TempFile object
+        :param crash_file: MyFuncs.TempFile object instantiated in binary mode
         """
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
@@ -1438,10 +1437,19 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def dump_session(self):
         import pickle
-        self.crash_file.write(pickle.dumps(self.dbbuddy), "w")
+        self.crash_file.open()
+        pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
+        self.crash_file.close()
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
+
+    @staticmethod
+    def _append_slash_if_dir(p):  # Used for expanding file patsh
+            if p and os.path.isdir(p) and p[-1] != os.sep:
+                return p + os.sep
+            else:
+                return p
 
     def get_headings(self):
         headings = []
@@ -1652,7 +1660,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if amount_seq_requested > 5000000:
             confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
-                            "Continue (y/[n])?{3}".format(GREEN, round(amount_seq_requested / 1000000, 1),
+                            "Continue (y/[n])?{3}".format(GREEN, pretty_number(amount_seq_requested),
                                                           YELLOW, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
@@ -1688,16 +1696,16 @@ Further details about each command can be accessed by typing 'help <command>'
         if not line:
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
-            with open(os.path.abspath(line), "r") as ifile:
-                self.dbbuddy = pickle.loads(ifile.read())
+            with open(os.path.abspath(line), "rb") as ifile:
+                self.dbbuddy = pickle.load(ifile)
 
         except IOError as e:
             _stderr("%s\n" % e)
-            prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
-            if prompt == 'abort':
+            _prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
+            if _prompt == 'abort':
                 _stderr("Aborted...\n")
             else:
-                self.do_load(prompt)
+                self.do_load(_prompt)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
@@ -1870,25 +1878,10 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         text = args[0]
         return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
-    def complete_trash(self, *args):
-        text = args[0]
-        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
-    def complete_restore(self, *args):
-        text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
-    @staticmethod
-    def complete_save(*args):
+    def complete_load(self, *args):
         line, startidx, endidx = args[1:]
         # ToDo: pulled code from stack overflow, modify or credit.
         import glob
-
-        def _append_slash_if_dir(p):
-            if p and os.path.isdir(p) and p[-1] != os.sep:
-                return p + os.sep
-            else:
-                return p
 
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
@@ -1900,7 +1893,34 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
         completions = []
         for path in glob.glob(pattern):
-            path = _append_slash_if_dir(path)
+            path = self._append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
+
+    def complete_trash(self, *args):
+        text = args[0]
+        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_restore(self, *args):
+        text = args[0]
+        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_save(self, *args):
+        line, startidx, endidx = args[1:]
+        # ToDo: pulled code from stack overflow, modify or credit.
+        import glob
+
+        before_arg = line.rfind(" ", 0, startidx)
+        if before_arg == -1:
+            return  # arg not found
+
+        fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
+        arg = line[before_arg + 1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = self._append_slash_if_dir(path)
             completions.append(path.replace(fixed, "", 1))
         return completions
 
@@ -1986,6 +2006,10 @@ Further refine your results with search terms:
 
     def help_quit(self):
         _stdout("End the live session.\n\n", format_in=GREEN, format_out=self.terminal_default)
+
+    def help_load(self):
+        _stdout("Recover the contents of a previous session that crashed.\n\n", format_in=GREEN,
+                format_out=self.terminal_default)
 
     def help_trash(self):
         _stdout('''\
@@ -2185,7 +2209,7 @@ if __name__ == '__main__':
             if prompt.lower() in ["y", "yes", ""]:
                 _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
-                _stderr("Success, thank you.")
+                _stderr("Success, thank you.\n")
         temp_file.close()
         sys.exit()
 
