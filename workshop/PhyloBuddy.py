@@ -793,8 +793,8 @@ if __name__ == '__main__':
   PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
 ''')
 
-    br.flags(parser, "PhyloBuddy", ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
-                                             "this argument can be left blank."), br.pb_flags, br.pb_modifiers, version)
+    br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+                               "this argument can be left blank."), br.pb_flags, br.pb_modifiers, version)
 
     in_args = parser.parse_args()
 

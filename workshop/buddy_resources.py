@@ -43,6 +43,9 @@ class Version:
             # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
             self.release_date = datetime.datetime(**release_date)
 
+    def short(self):
+        return "%s.%s" % (self.major, self.minor)
+
     def contributors_string(self):
         _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
         _output = ""
@@ -112,47 +115,56 @@ def write_usage_report(message):
     pass
 
 
-def flags(parser, tool_name, _positional, _flags, _modifiers, version):
+def flags(parser, _positional, _flags, _modifiers, version):
     """
     :param parser: argparse.ArgumentParser object
-    :param tool_name: str e.g., "DatabaseBuddy"
-    :param positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
+    :param _positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
     :param _flags: dict e.g., db_flags
     :param version: Version object
     :return:
     """
-    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
-    positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
+    if _positional:
+        positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+        positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
 
-    _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
-    parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in _flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        parser_flags.add_argument(*args, **kwargs)
+    if _flags:
+        _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
+        parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+        for func, in_args in _flags.items():
+            args = ("-%s" % in_args["flag"], "--%s" % func)
+            kwargs = {}
+            for cmd, val in in_args.items():
+                if cmd == 'flag':
+                    continue
+                kwargs[cmd] = val
+            parser_flags.add_argument(*args, **kwargs)
 
-    _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
-    parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in _modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        parser_modifiers.add_argument(*args, **kwargs)
+    if _modifiers:
+        _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
+        parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+        for func, in_args in _modifiers.items():
+            args = ("-%s" % in_args["flag"], "--%s" % func)
+            kwargs = {}
+            for cmd, val in in_args.items():
+                if cmd == 'flag':
+                    continue
+                kwargs[cmd] = val
+            parser_modifiers.add_argument(*args, **kwargs)
 
     misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
     misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-    misc.add_argument('-v', '--version', action='version', version=str(version))
+    if version:
+        misc.add_argument('-v', '--version', action='version', version=str(version))
 
 contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
 # flag, action, nargs, metavar, help, choices, type
+# #################################################### INSTALLER ##################################################### #
+bsi_flags = {"cmd_line": {"flag": "cmd",
+                          "action": "store_true",
+                          "help": "Command line version of the installer (for non-graphical systems)."}}
+
+bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",

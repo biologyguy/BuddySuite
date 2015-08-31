@@ -2616,8 +2616,8 @@ if __name__ == '__main__':
   SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
 ''')
 
-    br.flags(parser, "SeqBuddy", ("sequence", "Supply file path(s) or raw sequence. If piping sequences into SeqBuddy "
-                                              "this argument can be left blank."),
+    br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
+                                  "into SeqBuddy this argument can be left blank."),
              br.sb_flags, br.sb_modifiers, version)
 
     in_args = parser.parse_args()

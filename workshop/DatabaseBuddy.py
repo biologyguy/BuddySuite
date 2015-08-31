@@ -2138,8 +2138,8 @@ if __name__ == '__main__':
 ''')
 
     br.db_modifiers["database"]["choices"] = DATABASES
-    br.flags(parser, "DatabaseBuddy", ("user_input", "Specify accession numbers or search terms, "
-                                                     "either in a file or as a comma separated list"),
+    br.flags(parser, ("user_input", "Specify accession numbers or search terms, "
+                                    "either in a file or as a comma separated list"),
              br.db_flags, br.db_modifiers, version)
 
     in_args = parser.parse_args()

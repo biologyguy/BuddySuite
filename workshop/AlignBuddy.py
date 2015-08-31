@@ -1122,7 +1122,7 @@ if __name__ == '__main__':
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    br.flags(parser, "AlignBuddy", ("alignments", "The file(s) you want to start working on"),
+    br.flags(parser, ("alignments", "The file(s) you want to start working on"),
              br.alb_flags, br.alb_modifiers, version)
 
     in_args = parser.parse_args()
