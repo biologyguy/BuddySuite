@@ -262,11 +262,20 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         return client
 
     def record_breakdown(self):
-        _output = {x: [] for x in ["full", "partial", "accession"]}
+        _output = {x: [] for x in ["full", "summary", "accession"]}
         _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
-        _output["partial"] = [_accession for _accession, _rec in self.records.items()
+        _output["summary"] = [_accession for _accession, _rec in self.records.items()
                               if not _rec.record and _rec.summary]
         _output["accession"] = [_accession for _accession, _rec in self.records.items()
+                                if not _rec.record and not _rec.summary]
+        return _output
+
+    def trash_breakdown(self):
+        _output = {x: [] for x in ["full", "summary", "accession"]}
+        _output["full"] = [_accession for _accession, _rec in self.trash_bin.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.trash_bin.items()
+                              if not _rec.record and _rec.summary]
+        _output["accession"] = [_accession for _accession, _rec in self.trash_bin.items()
                                 if not _rec.record and not _rec.summary]
         return _output
 
@@ -426,7 +435,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
         breakdown = self.record_breakdown()
         _output += "Full Recs:    %s\n" % len(breakdown["full"])
-        _output += "Partial Recs: %s\n" % len(breakdown["partial"])
+        _output += "Summary Recs: %s\n" % len(breakdown["summary"])
         _output += "ACCN only:    %s\n" % len(breakdown["accession"])
         _output += "Trash bin:  %s\n" % len(self.trash_bin)
         _output += "Failures:     %s\n" % len(self.failures)
@@ -1411,11 +1420,12 @@ class LiveSearch(cmd.Cmd):
 {0}{1}      {2}{3}DatabaseBuddy Help{1}{4}      {0}{1}
 
 A general workflow: 1) {5}search{1} databases with search terms or accession numbers
-                    2) {5}show{1} summary information
-                    3) Filter search results with {5}keep{1} and {5}exclude{1}
-                    4) {5}fetch{1} full sequence records for filtered set
-                    5) Switch to a {5}format{1} that includes sequences, like fasta or genbank
-                    6) {5}save{1} sequences to file
+                    2) {5}show{1} summary information (no sequence has been downloaded yet)
+                    3) Create filtered set of results with {5}keep{1} and {5}exclude{1}
+                    4) {5}restore{1} some records from the trash bin to the filtered set
+                    5) {5}fetch{1} full sequence records for the filtered set
+                    6) Switch to a {5}format{1} that includes sequences, like fasta or genbank
+                    7) {5}save{1} sequences to file
 Further details about each command can be accessed by typing 'help <command>'
 '''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
@@ -1474,6 +1484,11 @@ Further details about each command can be accessed by typing 'help <command>'
                 action = "Specify a string to search the trash bin with: "
             line = input("%s%s%s" %
                          (RED, action, self.terminal_default))
+
+        # If the user doesn't supply a string, do nothing
+        if not line:
+            _stdout("Error: you must specify a search string.\n", format_in=RED, format_out=self.terminal_default)
+            return
 
         # Kill the command if the user is mixing quote types to separate search terms
         error_message = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
@@ -1682,7 +1697,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if line not in FORMATS:
             _stdout("Sorry, {1}'{2}'{0} is not a valid format. Please select from the "
-                    "following:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
+                    "following BioPython supported formats:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
                     format_in=RED, format_out=self.terminal_default)
             return
 
@@ -1751,27 +1766,34 @@ Further details about each command can be accessed by typing 'help <command>'
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
 
-        with open(line, "w") as ofile:
-            self.dbbuddy.print(quiet=True, destination=ofile)
-            breakdown = self.dbbuddy.record_breakdown()
-            if self.dbbuddy.out_format in ["ids", "accessions"]:
-                _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
-                        format_out=self.terminal_default)
-            elif self.dbbuddy.out_format in ["summary", "full-summary"]:
-                _stdout("%s summary records " % (len(breakdown["full"] + breakdown["partial"])), format_in=GREEN,
-                        format_out=self.terminal_default)
-            else:
-                non_full = len(breakdown["partial"] + breakdown["accession"])
-                if non_full > 0:
-                    _stdout('''\
-NOTE: There are %s partial records in the Live Session, and only full records can be written
-      in '%s' format. Use the 'download' command to retrieve full records.
-''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
-                _stdout("%s %s records  " % (self.dbbuddy.out_format, len(breakdown["full"])), format_in=GREEN,
-                        format_out=self.terminal_default)
-            _stdout("written to %s.\n\n" % line, format_in=GREEN,
+        try:
+            ofile = open(line, "w")
+        except PermissionError as _e:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+
+        self.dbbuddy.print(quiet=True, destination=ofile)
+        breakdown = self.dbbuddy.record_breakdown()
+        if self.dbbuddy.out_format in ["ids", "accessions"]:
+            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
                     format_out=self.terminal_default)
-            self.hash = hash(self.dbbuddy)
+        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
+            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
+                    format_out=self.terminal_default)
+        else:
+            non_full = len(breakdown["summary"] + breakdown["accession"])
+            if non_full > 0:
+                _stdout('''\
+NOTE: There are %s summary records in the Live Session, and only full records can be written
+  in '%s' format. Use the 'download' command to retrieve full records.
+''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
+            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
+                    format_out=self.terminal_default)
+        _stdout("written to %s.\n\n" % line, format_in=GREEN,
+                format_out=self.terminal_default)
+        self.hash = hash(self.dbbuddy)
+        ofile.close()
 
     def do_search(self, line):
         if not line:
@@ -1802,34 +1824,59 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         if line:
             line = line.split(" ")
 
-        num_returned = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
-        if not num_returned:
-            _stdout("Nothing in %s to show.\n\n" % group, format_in=RED, format_out=self.terminal_default)
+        breakdown = self.dbbuddy.trash_breakdown() if group == "trash_bin" else self.dbbuddy.record_breakdown()
+
+        num_records = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
+        if not num_records:
+            _stdout("Nothing in '%s' to show.\n\n" % re.sub("_", " ", group), format_in=RED,
+                    format_out=self.terminal_default)
             return
 
         if self.dbbuddy.out_format not in ["ids", "accessions", "summary", "full-summary"]:
-            if not self.dbbuddy.record_breakdown()["full"]:
-                _stdout("No full records in %s to show. Use 'fetch' to retrieve sequences first.\n\n"
-                        % group, format_in=RED, format_out=self.terminal_default)
+            if not breakdown["full"]:
+                _stdout("Warning: only summary data available; there is nothing to display in %s format. "
+                        "Use 'fetch' to retrieve sequences first.\n\n"
+                        % self.dbbuddy.out_format, format_in=RED,
+                        format_out=self.terminal_default)
                 return
+
+            if breakdown["summary"] or breakdown["accession"]:
+                _stderr("%sWarning: %s records are only summary data, so will not be displayed in %s format. "
+                        "Use 'fetch' to retrieve all sequence data.%s\n"
+                        % (RED, len(breakdown["summary"] + breakdown["accession"]),
+                           self.dbbuddy.out_format, self.terminal_default))
+
+            num_records = len(breakdown["full"])
 
         columns = []
         for _next in line:
             try:
-                num_returned = int(_next)
+                num_records = int(_next)
             except ValueError:
                 columns.append(_next)
 
         columns = None if not columns else columns
 
-        if num_returned > 100:
+        if num_records > 100:
             confirm = input("%sShow all %s records (y/[n])?%s " %
-                            (RED, num_returned, self.terminal_default))
+                            (RED, num_records, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
-        self.dbbuddy.print(_num=num_returned, columns=columns, group=group)
+        try:
+            self.dbbuddy.print(_num=num_records, columns=columns, group=group)
+        except ValueError as _e:
+            if re.search("Sequences must all be the same length", str(_e)):
+                _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
+                        self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
+            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
+                _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
+                        "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
+                        format_in=RED, format_out=self.terminal_default)
+            else:
+                raise ValueError(_e)
+
         _stderr("%s\n" % self.terminal_default)
 
     def do_status(self, line=None):
@@ -1965,7 +2012,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_failures(self):
@@ -2001,7 +2048,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
@@ -2027,7 +2074,7 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_save(self):
@@ -2045,7 +2092,7 @@ are supplied then full sequence records will be downloaded.\n
 
     def help_show(self):
         _stdout('''\
-Output the records held in the Live Session (out_format currently set to '{0}{1}{2}')
+Output the records held in the Live Session (output format currently set to '{0}{1}{2}')
 Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
