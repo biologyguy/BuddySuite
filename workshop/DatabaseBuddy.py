@@ -1457,6 +1457,10 @@ Further details about each command can be accessed by typing 'help <command>'
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.cmdloop()
 
+    # @staticmethod
+    # def do_crash(line=None):
+    #    open("a file that doesn't exist")
+
     def precmd(self, line):
         readline.write_history_file(self.history_path)
         return line
@@ -2359,18 +2363,27 @@ if __name__ == '__main__':
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
-            tb = "".join(traceback.format_tb(sys.exc_info()[2]))
+            tb = ""
+            for _line in traceback.format_tb(sys.exc_info()[2]):
+                _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+                tb += _line
             tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
 
-            send_diagnostic = CONFIG["other"]["diagnostics"]
+            send_diagnostic = True if CONFIG["other"]["diagnostics"] == "True" else False
             if not send_diagnostic:
-                prompt = input("%sWould you like to send a crash report to the developers ([y]/n)?\033[m" % BOLD)
+                prompt = input("%sWould you like to send a crash report with the above "
+                               "traceback to the developers ([y]/n)?\033[m" % BOLD)
                 if prompt.lower() in ["y", "yes", ""]:
                     send_diagnostic = True
 
+            else:
+                _stderr("An error report with the above traceback is being sent to the BuddySuite developers because "
+                        "you have elected to participate in the Software Improvement Program. To opt-out of this "
+                        "program, re-run the BuddySuite installer and un-check the box on the 'Diagnostics' screen.\n")
+            
             if send_diagnostic:
                 _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
