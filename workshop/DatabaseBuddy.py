@@ -368,6 +368,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                             headings = [heading for heading in headings if heading in columns]
                         if saved_headings != headings:
                             # for heading in headings:
+                            lines.append([])
                             lines.append(headings)
                             saved_headings = list(headings)
 
@@ -387,11 +388,11 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                                 else:
                                     lines[-1].append(_value)
 
-                    # ToDo: Thinks about lining up all columns for easier viewing
-                    _output = "\033[m\033[40m\033[97m"
-                    for _line in lines:
-                        colors = terminal_colors()
-                        _output += "%s\n" % "\t".join(["%s%s" % (next(colors), _col) for _col in _line])
+                # ToDo: Thinks about lining up all columns for easier viewing
+                _output = "\033[m\033[40m\033[97m"
+                for line in lines:
+                    colors = terminal_colors()
+                    _output += "%s\n" % "\t".join(["%s%s" % (next(colors), _col) for _col in line])
 
             # Full records
             else:
@@ -665,7 +666,7 @@ class UniProtRestClient:
                     ofile.write("%s\n%s//\n" % (_term, e))
 
         except KeyboardInterrupt:
-            _stderr("\r\tUniProt query interrupted by user\n")
+            _stderr("\n\tUniProt query interrupted by user\n")
 
     def _parse_error_file(self):
         with open(self.http_errors_file, "r") as ifile:
@@ -1126,6 +1127,9 @@ class NCBIClient:
                     if failure.hash not in self.dbbuddy.failures:
                         self.dbbuddy.failures[failure.hash] = failure
 
+            except KeyboardInterrupt:
+                _stderr("\n\tNCBI query interrupted by user\n")
+
     def _mc_seq(self, accns, args):
         database, lock = args
         error = False
@@ -1242,6 +1246,8 @@ class NCBIClient:
                     self.dbbuddy.records[accn].record = rec
                 except KeyError:
                     self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
+                except KeyboardInterrupt:
+                    _stderr("\n\tNCBI query interrupted by user\n")
 
 
 class EnsemblRestClient:
@@ -1449,7 +1455,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
         if self.dbbuddy.records or self.dbbuddy.search_terms:
-            retrieve_summary(dbbuddy)
+            retrieve_summary(_dbbuddy)
         else:
             _stdout("Your session is currently unpopulated. Use 'search' to retrieve records.\n",
                     format_out=self.terminal_default)
@@ -1803,12 +1809,13 @@ Further details about each command can be accessed by typing 'help <command>'
                 return
         try:
             open(line, "wb").close()
-        except PermissionError as _e:
+        except PermissionError:
             _stdout("Error: You do not have write privileges in the specified directory.\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
         self.crash_file.save(line)
+        self.hash = hash(self.dbbuddy)
         _stdout("Live session saved\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def do_search(self, line):
@@ -1816,7 +1823,7 @@ Further details about each command can be accessed by typing 'help <command>'
             line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
 
         temp_buddy = DbBuddy(line)
-        temp_buddy.databases = dbbuddy.databases
+        temp_buddy.databases = self.dbbuddy.databases
 
         if len(temp_buddy.records):
             retrieve_sequences(temp_buddy)
@@ -1835,6 +1842,7 @@ Further details about each command can be accessed by typing 'help <command>'
         for _hash, failure in temp_buddy.failures.items():
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
+        self.dump_session()
 
     def do_show(self, line=None, group="records"):
         if line:
@@ -1882,16 +1890,16 @@ Further details about each command can be accessed by typing 'help <command>'
                 return
         try:
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
-        except ValueError as _e:
-            if re.search("Sequences must all be the same length", str(_e)):
+        except ValueError as e:
+            if re.search("Sequences must all be the same length", str(e)):
                 _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
                         self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
-            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
+            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(e)):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
             else:
-                raise ValueError(_e)
+                raise ValueError(e)
 
         _stderr("%s\n" % self.terminal_default)
 
@@ -1922,7 +1930,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         try:
             ofile = open(line, "w")
-        except PermissionError as _e:
+        except PermissionError:
             _stdout("Error: You do not have write privileges in the specified directory.\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
@@ -2359,7 +2367,7 @@ if __name__ == '__main__':
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
             live_search = LiveSearch(dbbuddy, temp_file)
-        except Exception as e:
+        except Exception as _e:
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
@@ -2367,7 +2375,7 @@ if __name__ == '__main__':
             for _line in traceback.format_tb(sys.exc_info()[2]):
                 _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
                 tb += _line
-            tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
@@ -2383,7 +2391,7 @@ if __name__ == '__main__':
                 _stderr("An error report with the above traceback is being sent to the BuddySuite developers because "
                         "you have elected to participate in the Software Improvement Program. To opt-out of this "
                         "program, re-run the BuddySuite installer and un-check the box on the 'Diagnostics' screen.\n")
-            
+
             if send_diagnostic:
                 _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
