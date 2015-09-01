@@ -1443,6 +1443,10 @@ Further details about each command can be accessed by typing 'help <command>'
 
         readline.read_history_file(self.history_path)
 
+        # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
+        # occurs, and back to False if undo is used.
+        self.undo = False
+
         _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
         if self.dbbuddy.records or self.dbbuddy.search_terms:
             retrieve_summary(dbbuddy)
@@ -1459,9 +1463,11 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def dump_session(self):
         import pickle
+        self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
         pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
         self.crash_file.close()
+        self.undo = True
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
@@ -1725,6 +1731,7 @@ Further details about each command can be accessed by typing 'help <command>'
         try:
             with open(os.path.abspath(line), "rb") as ifile:
                 self.dbbuddy = pickle.load(ifile)
+            self.dump_session()
 
         except IOError as e:
             _stderr("%s\n" % e)
@@ -1893,8 +1900,20 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def do_status(self, line=None):
         if line != "":
-            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+            _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
+
+    def do_undo(self, line=None):
+        if line != "":
+            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+        if not self.undo:
+            _stdout("There is currently no undo history (only a single undo is possible).\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+
+        self.do_load("%s_undo" % self.crash_file.path)
+        _stdout("Undo: Most recent state reloaded\n", format_in=GREEN, format_out=self.terminal_default)
+        self.undo = False
 
     def complete_bash(self, *args):
         text = args[0]
@@ -2113,6 +2132,20 @@ the number of records and amount of information per record displayed.\n
         _stdout("Display the current state of your Live Session, including how many accessions and full records "
                 "have been downloaded.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
+    def help_undo(self):
+        _stdout('''\
+Revert the most recent change to your live session.
+The commands that can be undone are: - keep
+                                     - exclude
+                                     - restore
+                                     - search
+                                     - fetch
+                                     - format
+                                     - database
+                                     - load
+
+Caution: Undo can only restore a sinlge previous step. All other history is lost.\n
+''', format_in=GREEN, format_out=self.terminal_default)
 
 # DL everything
 """
