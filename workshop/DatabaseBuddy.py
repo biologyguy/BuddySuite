@@ -43,6 +43,7 @@ import cmd
 from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
 import warnings
+import readline
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -53,7 +54,7 @@ warnings.simplefilter('ignore', BiopythonWarning)
 
 # My functions
 from MyFuncs import *
-
+import buddy_resources as br
 
 # ##################################################### WISH LIST #################################################### #
 
@@ -67,6 +68,7 @@ RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
+CONFIG = br.config_values()
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -810,7 +812,7 @@ class UniProtRestClient:
 
 class NCBIClient:
     def __init__(self, _dbbuddy):
-        Entrez.email = "steve.bond@nih.gov"  # ToDo: Pull email address from .buddysuite config file
+        Entrez.email = CONFIG["other"]["email"]
         self.dbbuddy = _dbbuddy
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
@@ -1435,6 +1437,12 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
         self.file = None
 
+        self.history_path = "%s/.cmd_history" % CONFIG["Install_path"]['path']
+        if not os.path.isfile(self.history_path):
+            open(self.history_path, "w").close()
+
+        readline.read_history_file(self.history_path)
+
         _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
         if self.dbbuddy.records or self.dbbuddy.search_terms:
             retrieve_summary(dbbuddy)
@@ -1444,6 +1452,10 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.cmdloop()
+
+    def precmd(self, line):
+        readline.write_history_file(self.history_path)
+        return line
 
     def dump_session(self):
         import pickle
@@ -2190,7 +2202,6 @@ def retrieve_sequences(_dbbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    import buddy_resources as br
 
     version = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
 
@@ -2252,11 +2263,18 @@ if __name__ == '__main__':
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
-            prompt = input("%sWould you like to send a crash report to the developers ([y]/n)?\033[m" % BOLD)
-            if prompt.lower() in ["y", "yes", ""]:
+
+            send_diagnostic = CONFIG["other"]["diagnostics"]
+            if not send_diagnostic:
+                prompt = input("%sWould you like to send a crash report to the developers ([y]/n)?\033[m" % BOLD)
+                if prompt.lower() in ["y", "yes", ""]:
+                    send_diagnostic = True
+
+            if send_diagnostic:
                 _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
                 _stderr("Success, thank you.\n")
+
         temp_file.close()
         sys.exit()
 
