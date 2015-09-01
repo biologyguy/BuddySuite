@@ -44,6 +44,7 @@ from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
 import warnings
 import readline
+import pickle
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -1427,15 +1428,14 @@ A general workflow: 1) {5}search{1} databases with search terms or accession num
                     4) {5}restore{1} some records from the trash bin to the filtered set
                     5) {5}fetch{1} full sequence records for the filtered set
                     6) Switch to a {5}format{1} that includes sequences, like fasta or genbank
-                    7) {5}save{1} sequences to file
+                    7) {5}write{1} sequences to a file or {5}save{1} the live session
 Further details about each command can be accessed by typing 'help <command>'
 '''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
-        self.doc_header = "Available commands:                                                      "
+        self.doc_header = "Available commands:                                       "
         self.dbbuddy = _dbbuddy
         self.crash_file = crash_file
         self.dump_session()
-        self.file = None
 
         self.history_path = "%s/.cmd_history" % CONFIG["Install_path"]['path']
         if not os.path.isfile(self.history_path):
@@ -1602,8 +1602,8 @@ Further details about each command can be accessed by typing 'help <command>'
 
         line = line.lower()
         if line not in ["", "a", "all", "failures", "f"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
-            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin\n\n",
-                    format_in=RED, format_out=self.terminal_default)
+            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin, "
+                    "failures, search\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
         if line in ["failures", "f"]:
@@ -1617,6 +1617,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.failures = {}
+                    _stdout("List of failures removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
@@ -1629,6 +1630,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.search_terms = []
+                    _stdout("Search terms removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in TRASH_SYNOS:
             if not self.dbbuddy.trash_bin:
@@ -1641,6 +1643,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.trash_bin = {}
+                    _stdout("Trash bin emptied.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in RECORD_SYNOS:
             if not self.dbbuddy.records:
@@ -1652,6 +1655,8 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.records = {}
+                    _stdout("All records removed from main list (trash bin is still intact).\n\n",
+                            format_in=GREEN, format_out=self.terminal_default)
 
         else:
             confirm = input("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
@@ -1664,7 +1669,8 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.records = OrderedDict()
                 self.dbbuddy.search_terms = []
                 self.dbbuddy.failures = {}
-        _stderr("\n")
+                _stdout("Live session cleared of all data.\n\n", format_in=GREEN, format_out=self.terminal_default)
+
         self.dump_session()
 
     def do_exclude(self, line=None):
@@ -1725,13 +1731,13 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
     def do_load(self, line=None):
-        import pickle
         if not line:
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
                 self.dbbuddy = pickle.load(ifile)
             self.dump_session()
+            _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         except IOError as e:
             _stderr("%s\n" % e)
@@ -1740,6 +1746,9 @@ Further details about each command can be accessed by typing 'help <command>'
                 _stderr("Aborted...\n")
             else:
                 self.do_load(_prompt)
+        except EOFError:
+            _stdout("Error: Unable to read the provided file. Are you sure it's a saved DbBuddy live session?\n\n",
+                    format_in=RED, format_out=self.terminal_default)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
@@ -1766,8 +1775,8 @@ Further details about each command can be accessed by typing 'help <command>'
         self.filter(line, "restore")
 
     def do_save(self, line=None):
-        if not line and not self.file:
-            line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
+        if not line:
+            line = input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default))
 
         # Ensure the specified directory exists
         line = os.path.abspath(line)
@@ -1778,41 +1787,25 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
             return
 
+        # Set the .db extension
+        if not re.search("\.db$", line):
+            line += ".db"
+
         # Warn if file exists
         if os.path.isfile(line):
             confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
             if confirm.lower() in ["n", "no"]:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
-
         try:
-            ofile = open(line, "w")
+            open(line, "wb").close()
         except PermissionError as _e:
             _stdout("Error: You do not have write privileges in the specified directory.\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
-        self.dbbuddy.print(quiet=True, destination=ofile)
-        breakdown = self.dbbuddy.record_breakdown()
-        if self.dbbuddy.out_format in ["ids", "accessions"]:
-            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
-                    format_out=self.terminal_default)
-        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
-            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
-                    format_out=self.terminal_default)
-        else:
-            non_full = len(breakdown["summary"] + breakdown["accession"])
-            if non_full > 0:
-                _stdout('''\
-NOTE: There are %s summary records in the Live Session, and only full records can be written
-  in '%s' format. Use the 'download' command to retrieve full records.
-''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
-            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
-                    format_out=self.terminal_default)
-        _stdout("written to %s.\n\n" % line, format_in=GREEN,
-                format_out=self.terminal_default)
-        self.hash = hash(self.dbbuddy)
-        ofile.close()
+        self.crash_file.save(line)
+        _stdout("Live session saved\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def do_search(self, line):
         if not line:
@@ -1903,6 +1896,56 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
             _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
 
+    def do_write(self, line=None):
+        if not line:
+            line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
+
+        # Ensure the specified directory exists
+        line = os.path.abspath(line)
+        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        if not os.path.isdir(_dir):
+            _stdout("Error: The specified directory does not exist. Please create it before continuing "
+                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
+                    format_out=self.terminal_default)
+            return
+
+        # Warn if file exists
+        if os.path.isfile(line):
+            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if confirm.lower() in ["n", "no"]:
+                _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
+                return
+
+        try:
+            ofile = open(line, "w")
+        except PermissionError as _e:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+
+        self.dbbuddy.print(quiet=True, destination=ofile)
+        breakdown = self.dbbuddy.record_breakdown()
+        if self.dbbuddy.out_format in ["ids", "accessions"]:
+            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
+                    format_out=self.terminal_default)
+        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
+            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
+                    format_out=self.terminal_default)
+        else:
+            non_full = len(breakdown["summary"] + breakdown["accession"])
+            if non_full > 0:
+                _stdout('''\
+NOTE: There are %s summary records in the Live Session, and only full records can be written
+  in '%s' format. Use the 'download' command to retrieve full records.
+''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
+            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
+                    format_out=self.terminal_default)
+        _stdout("written to %s.\n\n" % line, format_in=GREEN,
+                format_out=self.terminal_default)
+        self.hash = hash(self.dbbuddy)
+        ofile.close()
+        _stdout("Records written to file\n\n", format_in=GREEN, format_out=self.terminal_default)
+
     def do_undo(self, line=None):
         if line != "":
             _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
@@ -1912,8 +1955,8 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
             return
 
         self.do_load("%s_undo" % self.crash_file.path)
-        _stdout("Undo: Most recent state reloaded\n", format_in=GREEN, format_out=self.terminal_default)
         self.undo = False
+        _stdout("Most recent state reloaded\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def complete_bash(self, *args):
         text = args[0]
@@ -2005,6 +2048,25 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
     def complete_show(self, *args):
         text = args[0]
         return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_write(self, *args):
+        line, startidx, endidx = args[1:]
+        # ToDo: pulled code from stack overflow, modify or credit.
+        import glob
+
+        before_arg = line.rfind(" ", 0, startidx)
+        if before_arg == -1:
+            return  # arg not found
+
+        fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
+        arg = line[before_arg + 1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = self._append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
 
     def help_bash(self):
         _stdout('''\
@@ -2110,9 +2172,9 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
 
     def help_save(self):
         _stdout('''\
-Send records to a file (format currently set to '{0}{1}{2}').
-Supply the file name to be written to.\n
-'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+Save your live session in DB format; the session can be restored later with the '{0}load{1}' command.
+Supply the path where the file should be written to.\n
+'''.format(YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_search(self):
         _stdout('''\
@@ -2146,6 +2208,12 @@ The commands that can be undone are: - keep
 
 Caution: Undo can only restore a sinlge previous step. All other history is lost.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
+
+    def help_write(self):
+        _stdout('''\
+Send records to a file (format currently set to '{0}{1}{2}').
+Supply the file name to be written to.\n
+'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
 # DL everything
 """
