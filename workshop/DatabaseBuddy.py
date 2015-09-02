@@ -1489,7 +1489,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else:
                 return p
 
-    def get_headings(self):
+    def get_headings(self):  # ToDo: This does not get all possible headings. Fix that...
         headings = []
         if len(self.dbbuddy.records) > 0:
             _rec = []
@@ -1904,32 +1904,41 @@ Further details about each command can be accessed by typing 'help <command>'
         _stderr("%s\n" % self.terminal_default)
 
     def do_sort(self, line=None):
-        def sub_sort(records, heading, _rev=False):
-
+        def sub_sort(records, headings, _rev=False):
+            heading = headings[0]
+            subgroups = {}
             if heading == "ACCN":
                 return OrderedDict(sorted(records.items(), key=lambda x: x[1].accession, reverse=_rev))
-            elif heading == "DB":
-                return OrderedDict(sorted(records.items(), key=lambda x: x[1].database, reverse=_rev))
-            else:
-                # Make sure all records have the necessary headings
-                recs_with_heading = OrderedDict()
-                recs_wo_heading = OrderedDict()
-                for accn, _rec in records.items():
-                    if heading not in _rec.summary:
-                        recs_wo_heading[accn] = _rec
-                    else:
-                        recs_with_heading[accn] = _rec
 
-                _output = sorted(recs_with_heading.items(), key=lambda x: x[1].summary[heading], reverse=_rev)
-                _output = OrderedDict(_output)
-                _output.update(recs_wo_heading)
-                return _output
+            for accn, _rec in records.items():
+                if heading == "DB":
+                    subgroups.setdefault(_rec.database, {})
+                    subgroups[_rec.database][accn] = _rec
+                else:
+                    if heading not in _rec.summary:
+                        subgroups.setdefault("zzzzz", {})
+                        subgroups["zzzzz"][accn] = _rec
+                    else:
+                        subgroups.setdefault(_rec.summary[heading], {})
+                        subgroups[_rec.summary[heading]][accn] = _rec
+
+            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda x: x[0], reverse=rev))
+            final_order = OrderedDict()
+            for subgroup, _recs in subgroups.items():
+                if len(_recs) == 1:
+                    _recs = [_rec for accn, _rec in _recs.items()]
+                    final_order[_recs[0].accession] = _recs[0]
+                else:
+                    if len(headings) > 1:
+                        _recs = sub_sort(_recs, headings[1:], rev)
+
+                    for x, y in _recs.items():
+                        final_order[x] = y
+            return final_order
 
         sort_columns = line.split(" ")
-
         lower_cols = [col.lower() for col in sort_columns]
         rev = True if "rev" in lower_cols or "reverse" in lower_cols else False
-
         if rev:
             if "rev" in lower_cols:
                 rev_indx = lower_cols.index("rev")
@@ -1939,7 +1948,8 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if not sort_columns or sort_columns[0] == '':
             sort_columns = ["ACCN"]
-        self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns[0], rev)
+
+        self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns, rev)
 
     def do_status(self, line=None):
         if line != "":
@@ -2020,7 +2030,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
                 for _file in files:
                     if os.access("%s/%s" % (root, _file), os.X_OK):
                         self.shell_execs.append(_file.strip())
-        return [x for x in self.shell_execs if x.startswith(text)]
+        return ["%s " % x for x in self.shell_execs if x.startswith(text)]
 
     @staticmethod
     def complete_database(*args):
@@ -2038,7 +2048,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_exclude(self, *args):
         text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     @staticmethod
     def complete_format(*args):
@@ -2047,7 +2057,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_keep(self, *args):
         text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def complete_load(self, *args):
         line, startidx, endidx = args[1:]
@@ -2070,11 +2080,11 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_trash(self, *args):
         text = args[0]
-        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["%s " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def complete_restore(self, *args):
         text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def complete_save(self, *args):
         line, startidx, endidx = args[1:]
@@ -2097,7 +2107,11 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_show(self, *args):
         text = args[0]
-        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["%s " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_sort(self, *args):
+        text = args[0]
+        return ["%s " % x for x in self.get_headings() + ["reverse"] if x.lower().startswith(text.lower())]
 
     def complete_write(self, *args):
         line, startidx, endidx = args[1:]
@@ -2239,6 +2253,14 @@ Output the records held in the Live Session (output format currently set to '{0}
 Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+
+    def help_sort(self):
+        _stdout('''\
+Alter the order that records are shown in.
+By default records will be ordered by accession number, although any number of column
+headings (case sensitive) can be included for a more customized sort.
+To reverse the sort order include the keyword 'rev' or 'reverse'.\n
+''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_status(self):
         _stdout("Display the current state of your Live Session, including how many accessions and full records "
