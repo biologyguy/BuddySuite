@@ -15,6 +15,8 @@ import zipfile
 from inspect import getsourcefile
 from collections import OrderedDict
 import buddy_resources as br
+import string
+from random import choice
 
 import argparse
 
@@ -156,6 +158,9 @@ class BuddyInstall:
         buddies_to_install = options[0]
         install_directory = options[1]
         shortcuts = options[2]
+        # email_address = options[3]
+        # send_diagnostics = options[4]
+        # user_hash = options[5]
 
         for buddy in buddies_to_install:  # Deletes shortcuts from buddies that aren't being installed
             if not buddies_to_install[buddy]:
@@ -268,7 +273,7 @@ class BuddyInstall:
                              'Install_path': {'path': '{0}/BuddySuite'.format(home_dir)},
                              'shortcuts': {'SeqBuddy': 'sb\tseqbuddy', 'AlignBuddy': 'alb\talignbuddy',
                                            'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'},
-                             'other': {'email': '', 'diagnostics': False}}
+                             'other': {'email': '', 'diagnostics': False, 'user_hash': ''}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -280,6 +285,7 @@ class BuddyInstall:
 
         writer['other']['email'] = options[3]
         writer['other']['diagnostics'] = options[4]
+        writer['other']['user_hash'] = options[5]
 
         for buddy in options[2]:
             sc = ''
@@ -299,7 +305,7 @@ class BuddyInstall:
 
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
                        reader.get('Install_path', 'path'), {}, reader.get('other', 'email'),
-                       reader.get('other', 'diagnostics')]
+                       reader.get('other', 'diagnostics'), reader.get('other', 'user_hash')]
 
             for buddy in options[0]:
                 if reader['selected'][buddy] == 'True':
@@ -356,26 +362,34 @@ def cmd_install():
             elif _response.lower() in ["no", "n", "abort"]:
                 return False
             else:
-                print("Response not understood. Try again.")
+                print("Response not understood. Valid options are 'yes' and 'no'.")
                 _response = input(input_prompt)
 
     config = BuddyInstall.read_config_file()
     old_install_dir = None
     already_installed = None
     old_shortcuts = None
+    email_address = ''
+    send_diagnostics = False
+    user_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+
     if config is not None:
         already_installed = copy.deepcopy(config[0])
         old_install_dir = copy.deepcopy(config[1])
         install_dir = old_install_dir
         old_shortcuts = copy.deepcopy(config[2])
+        email_address = config[3]
+        send_diagnostics = config[4]
+        user_hash = config[5]
+
     buddies_to_install = {"SeqBuddy": False, "PhyloBuddy": False, "AlignBuddy": False, "DatabaseBuddy": False}
     shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
 
     def print_shortcuts():
-        print("\tSelected Shortcuts: ")
+        print("\n\tSelected Shortcuts: ")
         for buddy_tool in shortcuts:
             if buddies_to_install[buddy_tool]:
-                print("\t{0}:\t{1}".format(buddy_tool, str(shortcuts[buddy_tool]).strip('[]')))
+                print("\t{0}:\t\t{1}".format(buddy_tool, str(shortcuts[buddy_tool]).strip('[]')))
 
     def add_shortcut(in_buddy, in_shortcut):
         if buddies_to_install[in_buddy] is False:
@@ -399,18 +413,18 @@ def cmd_install():
                 return True
         return False
 
-    print("Basic terminal installer called.")
+    print("\nBuddySuite command line installer launched.")
     if not ask("Would you like to proceed? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
-    print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
+    print("\nBefore continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
     if not ask("Do you accept these terms? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
     if config is not None:
-        print("We have detected a previous installation. Some settings will be imported.")
+        print("\nWe have detected a previous installation. Some settings will be imported.")
 
     for buddy in buddies_to_install:
         operation = ' install' if already_installed is None or not already_installed[buddy] else ' keep'
@@ -427,12 +441,13 @@ def cmd_install():
 
     if not all_false:
         if old_shortcuts is not None:
-            if ask("Would you like to keep your old shortcuts? ('[yes]/no') "):
-                shortcuts = old_shortcuts
-            print("\tImported Shortcuts: ")
-            for buddy in shortcuts:
+            print("\nThe following shortcuts already exist on your system:")
+            for buddy in old_shortcuts:
                 if buddies_to_install[buddy]:
-                    print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy]).strip('[]')))
+                    print("\t{0}:\t{1}".format(buddy, str(old_shortcuts[buddy]).strip('[]')))
+
+            if ask("\nWould you like to keep these old shortcuts? ('[yes]/no') "):
+                shortcuts = old_shortcuts
 
         default_shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
                              "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
@@ -458,7 +473,7 @@ def cmd_install():
                 if buddies_to_install[buddy]:
                     print("\t{0}:\t{1}".format(buddy, str(default_shortcuts[buddy]).strip('[]')))
 
-            if ask("Would you like to add the default shortcuts? ('[yes]/no') "):
+            if ask("\nWould you like to add the default shortcuts? ('[yes]/no') "):
                 for buddy in default_shortcuts:
                     if buddies_to_install[buddy]:
                         for shortcut in default_shortcuts[buddy]:
@@ -466,7 +481,7 @@ def cmd_install():
 
         print_shortcuts()
 
-        if ask("Would you like to add or remove shortcuts? ('[yes]/no') "):
+        if ask("\nWould you like to add or remove shortcuts? ('[yes]/no') "):
             _prompt = True
             while _prompt:
                 add_or_remove = input("Would you like to add or remove? ('add/remove/[cancel]') ")
@@ -525,7 +540,8 @@ def cmd_install():
                 _prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
 
         if old_install_dir is None:
-            install_dir = input("Please specify an installation directory ('/BuddySuite' will automatically be appended) ")
+            install_dir = input("\nBuddySuite will be installed in your home directory, or specify a different "
+                                "location ('/BuddySuite' will be appended): ")
             install_dir = install_dir.rstrip("/")
             while True:
                 if install_dir.lower() == 'abort':
@@ -533,8 +549,11 @@ def cmd_install():
                     exit()
                 try:
                     install_dir = re.sub('~', home_dir, install_dir)
-                    if install_dir[0] != '/':
-                        install_dir = "{0}/{1}".format(start_dir, install_dir)
+                    if install_dir == "":
+                        install_dir = home_dir
+                    else:
+                        install_dir = os.path.abspath(install_dir)
+                    install_dir = install_dir.rstrip("/")
                     os.makedirs("{0}/BuddySuite".format(install_dir), exist_ok=True)
                     install_dir = "{0}/BuddySuite".format(install_dir)
                     break
@@ -545,22 +564,42 @@ def cmd_install():
         else:
             install_dir = old_install_dir
 
-    print("Please verify your settings.\n")
+    print("\nProviding a valid email address is recommended if using DatabaseBuddy to access NCBI, as they will attempt "
+          "to contact you before blocking your IP if you are not adhering to their usage limitations. "
+          "See our privacy statement for further details.\n"
+          "https://github.com/biologyguy/BuddySuite/blob/master/privacy\n")
+
+    if email_address != '':
+        if not ask("Your email address is currently set to \033[1m%s\033[m, would you like to keep it the same? [y]/n"
+                   % email_address):
+            email_address = ''
+
+    if email_address == '':
+        email_address = input("\nPlease provide your email address (optional): ")
+
+    if ask("\nWould you like to join our Software Improvement Program (SIP)? Anonymized usage statistics and crash "
+           "reports will be automatically transmitted to the BuddySuite developers. [y]/n"):
+        send_diagnostics = True
+
+    print("\nPlease verify your settings.\n")
     for buddy in buddies_to_install:
         if already_installed is not None and already_installed[buddy]:
             if buddies_to_install[buddy]:
-                print("\t{0}: Modify".format(buddy))
+                print("\t{0}:\t\tModify".format(buddy))
             else:
-                print("\t{0}: Uninstall".format(buddy))
+                print("\t{0}:\t\tUninstall".format(buddy))
         else:
             if buddies_to_install[buddy]:
-                print("\t{0}: Install".format(buddy))
+                print("\t{0}:\tInstall".format(buddy))
             else:
-                print("\t{0}: Skip".format(buddy))
+                print("\t{0}:\tSkip".format(buddy))
     if not all_false:
-        print()
         print_shortcuts()
-        print("\tInstallation directory: {0}\n".format(install_dir))
+        print("\n\tInstallation directory:\t{0}\n".format(install_dir))
+
+    print("\tEmail address:\t\t\t%s" % email_address)
+    print("\tSIP participation:\t%s\n" % send_diagnostics)
+
     if ask("Are these settings okay? ('[yes]/abort') "):
         if all_false and config is not None:
             os.remove("{0}/.buddysuite/config.ini".format(home_dir))
@@ -572,7 +611,8 @@ def cmd_install():
         for buddy in buddies_to_install:
             if not buddies_to_install[buddy]:
                 shortcuts[buddy] = []
-        BuddyInstall.install_buddy_suite(system(), [buddies_to_install, install_dir, shortcuts])
+        BuddyInstall.install_buddy_suite(system(), [buddies_to_install, install_dir, shortcuts,
+                                                    email_address, str(send_diagnostics), user_hash])
         exit()
     else:
         print("Installation aborted.")
@@ -631,6 +671,7 @@ class Installer(Frame):
 
     email_address = ''
     send_diagnostics = True
+    user_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
     install_dir = "{0}/BuddySuite".format(home_dir)
     default_dir = "{0}/BuddySuite".format(home_dir)
@@ -655,6 +696,7 @@ class Installer(Frame):
         shortcuts = copy.deepcopy(config[2])
         email_address = config[3]
         send_diagnostics = config[4]
+        user_hash = config[5]
 
         # if new install of given tool, re-add default shortcuts]
         if which("sb") is None and not buddies["SeqBuddy"]:
@@ -1215,7 +1257,8 @@ class Installer(Frame):
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
         BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts,
-                                                            self.email_address, str(self.send_diagnostics)])
+                                                            self.email_address, str(self.send_diagnostics),
+                                                            self.user_hash])
         exit()
 
     def clear_container(self):
