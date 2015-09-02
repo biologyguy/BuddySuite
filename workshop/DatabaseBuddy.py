@@ -283,15 +283,15 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         return _output
 
     def filter_records(self, regex, mode):
-        if mode not in ["keep", "exclude", "restore"]:
-            raise ValueError("The 'mode' argument in filter() must be 'keep', 'exclude', or 'restore', not %s." % mode)
+        if mode not in ["keep", "remove", "restore"]:
+            raise ValueError("The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not %s." % mode)
 
         column_errors = {"KeyError": [], "ValueError": []}
         for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
             try:
                 if mode == "keep" and not _rec.search(regex):
                     self.trash_bin[_id] = _rec
-                elif mode == "exclude" and _rec.search(regex):
+                elif mode == "remove" and _rec.search(regex):
                     self.trash_bin[_id] = _rec
                 elif mode == "restore" and _rec.search(regex):
                     self.records[_id] = _rec
@@ -1430,7 +1430,7 @@ class LiveSearch(cmd.Cmd):
 
 A general workflow: 1) {5}search{1} databases with search terms or accession numbers
                     2) {5}show{1} summary information (no sequence has been downloaded yet)
-                    3) Create filtered set of results with {5}keep{1} and {5}exclude{1}
+                    3) Create filtered set of results with {5}keep{1} and {5}remove{1}
                     4) {5}restore{1} some records from the trash bin to the filtered set
                     5) {5}fetch{1} full sequence records for the filtered set
                     6) Switch to a {5}format{1} that includes sequences, like fasta or genbank
@@ -1438,7 +1438,7 @@ A general workflow: 1) {5}search{1} databases with search terms or accession num
 Further details about each command can be accessed by typing 'help <command>'
 '''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
-        self.doc_header = "Available commands:                                       "
+        self.doc_header = "Available commands:                                                            "
         self.dbbuddy = _dbbuddy
         self.crash_file = crash_file
         self.dump_session()
@@ -1499,14 +1499,14 @@ Further details about each command can be accessed by typing 'help <command>'
         return headings
 
     def filter(self, line, mode="keep"):
-        if mode not in ["keep", "exclude", "restore"]:
+        if mode not in ["keep", "remove", "restore"]:
             raise ValueError("The 'mode' argument in filter() must be "
-                             "'keep', 'exclude', or 'restore', not %s." % mode)
+                             "'keep', 'remove', or 'restore', not %s." % mode)
 
         if not line:
             if mode == "keep":
                 action = "Specify a search string to be used as a filter (records will be retained): "
-            elif mode == "exclude":
+            elif mode == "remove":
                 action = "Specify a search string to be used as a filter (records will be removed): "
             else:
                 action = "Specify a string to search the trash bin with: "
@@ -1683,9 +1683,6 @@ Further details about each command can be accessed by typing 'help <command>'
 
         self.dump_session()
 
-    def do_exclude(self, line=None):
-        self.filter(line, mode="exclude")
-
     def do_failures(self, line=None):
         if line != "":
             _stdout("Note: 'failures' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
@@ -1780,6 +1777,9 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_trash(self, line=None):
         self.do_show(line, "trash_bin")
+
+    def do_remove(self, line=None):
+        self.filter(line, mode="remove")
 
     def do_restore(self, line):
         self.filter(line, "restore")
@@ -2046,10 +2046,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         text = args[0]
         return [x for x in ["all", "failures", "search", "trash", "records"] if x.startswith(text)]
 
-    def complete_exclude(self, *args):
-        text = args[0]
-        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
     @staticmethod
     def complete_format(*args):
         text = args[0]
@@ -2081,6 +2077,10 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
     def complete_trash(self, *args):
         text = args[0]
         return ["%s " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_remove(self, *args):
+        text = args[0]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
     def complete_restore(self, *args):
         text = args[0]
@@ -2158,20 +2158,6 @@ Choices are:
     all:              Delete everything\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
-    def help_exclude(self):
-        _stdout('''\
-Further refine your results with search terms:
-    - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
-      with the 'restore' command
-    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
-    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
-      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
-    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
-      Use these operators inside the column prefix. E.g., '(length>300)'
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
-''', format_in=GREEN, format_out=self.terminal_default)
-
     def help_failures(self):
         _stdout('''\
 Print the status of any failures the Live Session has encountered.\n
@@ -2222,6 +2208,20 @@ Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
+    def help_remove(self):
+        _stdout('''\
+Further refine your results with search terms:
+    - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
+      with the 'restore' command
+    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
+    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
+      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
+      Use these operators inside the column prefix. E.g., '(length>300)'
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+''', format_in=GREEN, format_out=self.terminal_default)
+
     def help_restore(self):
         _stdout('''\
 Return a subset of filtered records back into the main list (use '%srestore *%s' to recover all records)
@@ -2270,7 +2270,7 @@ To reverse the sort order include the keyword 'rev' or 'reverse'.\n
         _stdout('''\
 Revert the most recent change to your live session.
 The commands that can be undone are: - keep
-                                     - exclude
+                                     - remove
                                      - restore
                                      - search
                                      - fetch
