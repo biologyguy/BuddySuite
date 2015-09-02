@@ -1903,6 +1903,44 @@ Further details about each command can be accessed by typing 'help <command>'
 
         _stderr("%s\n" % self.terminal_default)
 
+    def do_sort(self, line=None):
+        def sub_sort(records, heading, _rev=False):
+
+            if heading == "ACCN":
+                return OrderedDict(sorted(records.items(), key=lambda x: x[1].accession, reverse=_rev))
+            elif heading == "DB":
+                return OrderedDict(sorted(records.items(), key=lambda x: x[1].database, reverse=_rev))
+            else:
+                # Make sure all records have the necessary headings
+                recs_with_heading = OrderedDict()
+                recs_wo_heading = OrderedDict()
+                for accn, _rec in records.items():
+                    if heading not in _rec.summary:
+                        recs_wo_heading[accn] = _rec
+                    else:
+                        recs_with_heading[accn] = _rec
+
+                _output = sorted(recs_with_heading.items(), key=lambda x: x[1].summary[heading], reverse=_rev)
+                _output = OrderedDict(_output)
+                _output.update(recs_wo_heading)
+                return _output
+
+        sort_columns = line.split(" ")
+
+        lower_cols = [col.lower() for col in sort_columns]
+        rev = True if "rev" in lower_cols or "reverse" in lower_cols else False
+
+        if rev:
+            if "rev" in lower_cols:
+                rev_indx = lower_cols.index("rev")
+            else:
+                rev_indx = lower_cols.index("reverse")
+            del sort_columns[rev_indx]
+
+        if not sort_columns or sort_columns[0] == '':
+            sort_columns = ["ACCN"]
+        self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns[0], rev)
+
     def do_status(self, line=None):
         if line != "":
             _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
