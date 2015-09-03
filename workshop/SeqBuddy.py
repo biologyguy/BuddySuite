@@ -63,6 +63,7 @@ from Bio.Data import CodonTable
 
 # My functions
 from MyFuncs import run_multicore_function
+import buddy_resources as br
 
 
 # ##################################################### WISH LIST #################################################### #
@@ -137,6 +138,7 @@ def degenerate_dna():
 
 
 # ###################################################### GLOBALS ##################################################### #
+VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -2599,9 +2601,6 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    import buddy_resources as br
-
-    version = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
 
@@ -2618,7 +2617,7 @@ if __name__ == '__main__':
 
     br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
                                   "into SeqBuddy this argument can be left blank."),
-             br.sb_flags, br.sb_modifiers, version)
+             br.sb_flags, br.sb_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
@@ -2687,19 +2686,88 @@ if __name__ == '__main__':
         sys.exit("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
 
 
-    # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Purge
-    if in_args.purge:
-        purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
-        _stderr(record_map, in_args.quiet)
-        _print_recs(purged_seqs)
+    def _exit(tool):
+        usage = br.Usage()
+        usage.increment("SeqBuddy", VERSION.short(), tool)
+        usage.save()
         sys.exit()
+
+    # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Add feature
+    if in_args.add_feature:
+        # _type, _location, _strand=None, _qualifiers=None, _pattern=None
+        strand = None
+        qualifiers = None
+        pattern = None
+        if len(in_args.add_feature) < 2:
+            raise AttributeError("Too few parameters provided. Must provide at least a feature type and location.")
+        elif len(in_args.add_feature) == 5:
+            strand = in_args.add_feature[2]
+            qualifiers = in_args.add_feature[3]
+            pattern = in_args.add_feature[4]
+        elif len(in_args.add_feature) == 4:
+            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+                strand = in_args.add_feature[2]
+                if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
+                    qualifiers = in_args.add_feature[3]
+                else:
+                    patterns = in_args.add_feature[3]
+            else:
+                qualifiers = in_args.add_feature[3]
+                patterns = in_args.add_feature[3]
+
+        elif len(in_args.add_feature) == 3:
+            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+                strand = in_args.add_feature[2]
+            elif '=' in in_args.add_feature[2] or ':' in in_args.add_feature[2]:
+                qualifiers = in_args.add_feature[2]
+            else:
+                pattern = in_args.add_feature[2]
+        elif len(in_args.add_feature) == 2:
+            pass
+        else:
+            raise AttributeError("Invalid parameters were provided.")
+        ftype = in_args.add_feature[0]
+        flocation = in_args.add_feature[1]
+        _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
+        _exit("add_feature")
+
+    # Average length of sequences
+    if in_args.ave_seq_length:
+        clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
+        _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
+        _exit("ave_seq_length")
+
+    # Back Transcribe
+    if in_args.back_transcribe:
+        if seqbuddy.alpha != IUPAC.ambiguous_rna:
+            raise ValueError("You need to provide an RNA sequence.")
+        _print_recs(rna2dna(seqbuddy))
+        _exit("back_transcribe")
+
+    # Back translate CDS
+    if in_args.back_translate:
+        if in_args.back_translate[0]:  # All this logic is to determine what mode is being used by the UI
+            in_args.back_translate = in_args.back_translate[0]
+            in_args.back_translate = [i.upper() for i in in_args.back_translate]
+            mode = [i for i in in_args.back_translate if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
+            mode = "RANDOM" if len(mode) == 0 else mode[0]
+            species = [i for i in in_args.back_translate if i in ['HUMAN', 'H', "MOUSE", "M",
+                                                                  "YEAST", "Y", "ECOLI", "E"]]
+            species = None if len(species) == 0 else species[0]
+        else:
+            mode = "RANDOM"
+            species = None
+        _print_recs(back_translate(seqbuddy, mode, species))
+        _exit("back_translate")
 
     # BL2SEQ
     if in_args.bl2seq:
         output = bl2seq(seqbuddy)
         _stdout(output[1])
-        sys.exit()
+        _exit("bl2seq")
 
     # BLAST  ToDo: Determine if this can be refactored
     if in_args.blast:
@@ -2715,25 +2783,117 @@ if __name__ == '__main__':
 
         if blast_res:
             _print_recs(blast_res)
-        sys.exit()
+        _exit("blast")
 
-    # Order ids randomly
-    if in_args.order_ids_randomly:
-        _print_recs(order_ids_randomly(seqbuddy))
-        sys.exit()
+    # Clean Seq
+    if in_args.clean_seq:
+        if in_args.clean_seq[0] == "strict":
+            _print_recs(clean_seq(seqbuddy, ambiguous=False))
+        else:
+            _print_recs(clean_seq(seqbuddy, ambiguous=True))
+        _exit("clean_seq")
 
-    # Order ids
-    if in_args.order_ids:
-        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
-        _print_recs(order_ids(seqbuddy, _reverse=reverse))
-        sys.exit()
+    # Combine feature sets from two files into one
+    if in_args.combine_features:
+        file1, file2 = in_args.sequence[:2]
+        file1 = SeqBuddy(file1)
+        file2 = SeqBuddy(file2)
+        _print_recs(combine_features(file1, file2))
+        _exit("combine_features")
 
-    # Find repeat sequences or ids
-    if in_args.find_repeats:
-        columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
-        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
-        _stdout(out_string)
-        sys.exit()
+    # Complement
+    if in_args.complement:
+        _print_recs(complement(seqbuddy))
+        _exit("complement")
+
+    # Concatenate sequences
+    if in_args.concat_seqs:
+        clean = False if not in_args.concat_seqs[0] or in_args.concat_seqs[0] != "clean" else True
+        seqbuddy = concat_seqs(seqbuddy, clean)
+        if in_args.out_format:
+            seqbuddy.out_format = in_args.out_format
+        _print_recs(seqbuddy)
+        _exit("concat_seqs")
+
+    # Codon counter
+    if in_args.count_codons:
+        try:
+            codon_table = count_codons(seqbuddy)[1]
+            for sequence_id in codon_table:
+                _stdout('#### {0} ####\n'.format(sequence_id))
+                _stdout('Codon\tAmino Acid\tNum\tPercent\n')
+                for codon in codon_table[sequence_id]:
+                    data = codon_table[sequence_id][codon]
+                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
+                _stdout('\n')
+        except TypeError as e:
+            _raise_error(e)
+        _exit("count_codons")
+
+    # Count residues
+    if in_args.count_residues:
+        output = count_residues(seqbuddy)[1]
+        for sequence in output:
+            print(sequence)
+            sorted_residues = OrderedDict(sorted(output[sequence].items()))
+            for residue in sorted_residues:
+                try:
+                    print("{0}:\t{1}\t{2} %".format(residue, output[sequence][residue][0],
+                                                    round(output[sequence][residue][1] * 100, 2)))
+                except TypeError:
+                    print("{0}:\t{1}".format(residue, output[sequence][residue]))
+            print()
+        _exit("count_residues")
+
+    # Delete features
+    if in_args.delete_features:
+        for next_pattern in in_args.delete_features:
+            delete_features(seqbuddy, next_pattern)
+        _print_recs(seqbuddy)
+        _exit("delete_features")
+
+    # Delete sequences above threshold
+    if in_args.delete_large:
+        _print_recs(delete_large(seqbuddy, in_args.delete_large))
+        _exit("delete_large")
+
+    # Delete metadata
+    if in_args.delete_metadata:
+        _print_recs(delete_metadata(seqbuddy))
+        _exit("delete_metadata")
+
+    # Delete records
+    if in_args.delete_records:
+        if in_args.params:
+            columns = int(in_args.params[0])
+        else:
+            columns = 1
+
+        new_list = SeqBuddy(list(seqbuddy.records))
+        deleted_seqs = []
+        for next_pattern in in_args.delete_records:
+            deleted_seqs += pull_recs(copy(new_list), next_pattern).records
+            delete_records(new_list, next_pattern)
+
+        if len(deleted_seqs) > 0 and not in_args.quiet:
+                counter = 1
+                output = "# ####################### Deleted records ######################## #\n"
+                for seq in deleted_seqs:
+                    output += "%s\t" % seq.id
+                    if counter % columns == 0:
+                        output = "%s\n" % output.strip()
+                    counter += 1
+                output = "%s\n# ################################################################ #\n" % output.strip()
+                _stderr(output)
+
+        if len(deleted_seqs) == 0:
+            _stderr("# ################################################################ #\n")
+            _stderr("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
+            _stderr("# ################################################################ #\n")
+
+        new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
+        _print_recs(new_list)
+        _exit("delete_records")
 
     # Delete repeats
     if in_args.delete_repeats:
@@ -2787,396 +2947,55 @@ if __name__ == '__main__':
 
         else:
             _stderr("No duplicate records found\n")
-        sys.exit()
-
-    # Delete records
-    if in_args.delete_records:
-        if in_args.params:
-            columns = int(in_args.params[0])
-        else:
-            columns = 1
-
-        new_list = SeqBuddy(list(seqbuddy.records))
-        deleted_seqs = []
-        for next_pattern in in_args.delete_records:
-            deleted_seqs += pull_recs(copy(new_list), next_pattern).records
-            delete_records(new_list, next_pattern)
-
-        if len(deleted_seqs) > 0 and not in_args.quiet:
-                counter = 1
-                output = "# ####################### Deleted records ######################## #\n"
-                for seq in deleted_seqs:
-                    output += "%s\t" % seq.id
-                    if counter % columns == 0:
-                        output = "%s\n" % output.strip()
-                    counter += 1
-                output = "%s\n# ################################################################ #\n" % output.strip()
-                _stderr(output)
-
-        if len(deleted_seqs) == 0:
-            _stderr("# ################################################################ #\n")
-            _stderr("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
-            _stderr("# ################################################################ #\n")
-
-        new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
-        _print_recs(new_list)
-        sys.exit()
-
-    # Delete sequences above threshold
-    if in_args.delete_large:
-        _print_recs(delete_large(seqbuddy, in_args.delete_large))
-        sys.exit()
+        _exit("delete_repeats")
 
     # Delete sequences below threshold
     if in_args.delete_small:
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
-        sys.exit()
-
-    # Delete features
-    if in_args.delete_features:
-        for next_pattern in in_args.delete_features:
-            delete_features(seqbuddy, next_pattern)
-        _print_recs(seqbuddy)
-        sys.exit()
-
-    # Merge
-    if in_args.merge:
-        _print_recs(seqbuddy)
-        sys.exit()
-
-    # Screw formats
-    if in_args.screw_formats:
-        seqbuddy.out_format = in_args.screw_formats
-        if in_args.in_place:  # Need to change the file extension
-            os.remove(in_args.sequence[0])
-            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
-                                  "." + seqbuddy.out_format
-            open(in_args.sequence[0], "w").close()
-        _print_recs(seqbuddy)
-        sys.exit()
-
-    # Renaming
-    if in_args.rename_ids:
-        num = 0 if not in_args.params else int(in_args.params[0])
-        _print_recs(rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
-        sys.exit()
-
-    # Uppercase
-    if in_args.uppercase:
-        _print_recs(uppercase(seqbuddy))
-        sys.exit()
-
-    # Lowercase
-    if in_args.lowercase:
-        _print_recs(lowercase(seqbuddy))
-        sys.exit()
-
-    # Transcribe
-    if in_args.transcribe:
-        if seqbuddy.alpha != IUPAC.ambiguous_dna:
-            raise ValueError("You need to provide a DNA sequence.")
-        _print_recs(dna2rna(seqbuddy))
-        sys.exit()
-
-    # Back Transcribe
-    if in_args.back_transcribe:
-        if seqbuddy.alpha != IUPAC.ambiguous_rna:
-            raise ValueError("You need to provide an RNA sequence.")
-        _print_recs(rna2dna(seqbuddy))
-        sys.exit()
-
-    # Complement
-    if in_args.complement:
-        _print_recs(complement(seqbuddy))
-        sys.exit()
-
-    # Reverse complement
-    if in_args.reverse_complement:
-        _print_recs(reverse_complement(seqbuddy))
-        sys.exit()
-
-    # List identifiers
-    if in_args.list_ids:
-        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        _stdout(list_ids(seqbuddy, columns))
-        sys.exit()
-
-    # Translate CDS
-    if in_args.translate:
-        if seqbuddy.alpha == IUPAC.protein:
-            raise ValueError("You need to supply DNA or RNA sequences to translate")
-        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
-        sys.exit()
-
-    # Shift reading frame
-    if in_args.select_frame:
-        _print_recs(select_frame(seqbuddy, in_args.select_frame))
-        sys.exit()
-
-    # Translate 6 reading frames
-    if in_args.translate6frames:
-        if seqbuddy.alpha == IUPAC.protein:
-            raise ValueError("You need to supply DNA or RNA sequences to translate")
-        seqbuddy = translate6frames(seqbuddy)
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
-        _print_recs(seqbuddy)
-        sys.exit()
-
-    # Back translate CDS
-    if in_args.back_translate:
-        if in_args.back_translate[0]:  # All this logic is to determine what mode is being used by the UI
-            in_args.back_translate = in_args.back_translate[0]
-            in_args.back_translate = [i.upper() for i in in_args.back_translate]
-            mode = [i for i in in_args.back_translate if i in ['RANDOM', 'R', "OPTIMIZED", "O"]]
-            mode = "RANDOM" if len(mode) == 0 else mode[0]
-            species = [i for i in in_args.back_translate if i in ['HUMAN', 'H', "MOUSE", "M",
-                                                                  "YEAST", "Y", "ECOLI", "E"]]
-            species = None if len(species) == 0 else species[0]
-        else:
-            mode = "RANDOM"
-            species = None
-        _print_recs(back_translate(seqbuddy, mode, species))
-        sys.exit()
-
-    # Concatenate sequences
-    if in_args.concat_seqs:
-        clean = False if not in_args.concat_seqs[0] or in_args.concat_seqs[0] != "clean" else True
-        seqbuddy = concat_seqs(seqbuddy, clean)
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
-        _print_recs(seqbuddy)
-        sys.exit()
-
-    # Count number of sequences in a file
-    if in_args.num_seqs:
-        _stdout("%s\n" % num_seqs(seqbuddy))
-        sys.exit()
-
-    # Average length of sequences
-    if in_args.ave_seq_length:
-        clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
-        _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
-        sys.exit()
-
-    # Pull sequence ends
-    if in_args.pull_record_ends:
-        try:
-            _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
-            sys.exit()
-        except ValueError:
-            pass
-        except AttributeError:
-            pass
-        try:
-            _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
-        except ValueError:
-            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
-        except AttributeError:
-            _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
-                                        "should come from in pull_record_ends"))
-        sys.exit()
+        _exit("delete_small")
 
     # Extract regions
     if in_args.extract_region:
         _print_recs(extract_range(seqbuddy, *in_args.extract_region))
-        sys.exit()
+        _exit("extract_region")
 
-    # Pull records
-    if in_args.pull_records:
-        _print_recs(pull_recs(seqbuddy, in_args.pull_records))
-        sys.exit()
-
-    # Pull random records
-    if in_args.pull_random_record:
-        count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
-        _print_recs(pull_random_recs(seqbuddy, count))
-        sys.exit()
-
-    # Hash sequence ids
-    if in_args.hash_seq_ids:
-        hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
-        seqbuddy, hash_map, hash_table = hash_sequence_ids(seqbuddy, hash_length)
-        _stderr(hash_table, in_args.quiet)
+    # Find CpG
+    if in_args.find_CpG:
+        output = find_CpG(seqbuddy)
+        if output[1]:
+            out_string = ""
+            for key, value in output[1].items():
+                if value:
+                    value = ["%s-%s" % (x[0], x[1]) for x in value]
+                    out_string += "{0}: {1}\n".format(key, ", ".join(value))
+            _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
+                    out_string.strip(), in_args.quiet)
+        else:
+            _stderr("# No Islands identified\n\n", in_args.quiet)
         _print_recs(seqbuddy)
-        sys.exit()
+        _exit("find_CpG")
 
-    # Delete metadata
-    if in_args.delete_metadata:
-        _print_recs(delete_metadata(seqbuddy))
-        sys.exit()
+    # Find pattern
+    if in_args.find_pattern:
+        for pattern in in_args.find_pattern:
+            output = find_pattern(seqbuddy, pattern)
+            out_string = ""
+            num_matches = 0
+            for key in output[1]:
+                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[1][key]]))
+                num_matches += len(output[1][key])
+            _stderr("#### {0} matches found across {1} sequences for "
+                    "pattern '{2}' ####\n".format(num_matches, len(output[1]), pattern), in_args.quiet)
+            _stderr("%s\n" % out_string, in_args.quiet)
+        _print_recs(seqbuddy)
+        _exit("find_pattern")
 
-    # Raw Seq
-    if in_args.raw_seq:
-        output = raw_seq(seqbuddy)
-        if in_args.in_place:
-            _in_place(output, in_args.sequence[0])
-        else:
-            _stdout(output)
-        sys.exit()
-
-    # Clean Seq
-    if in_args.clean_seq:
-        if in_args.clean_seq[0] == "strict":
-            _print_recs(clean_seq(seqbuddy, ambiguous=False))
-        else:
-            _print_recs(clean_seq(seqbuddy, ambiguous=True))
-        sys.exit()
-
-    # Guess format
-    if in_args.guess_format:
-        if str(type(in_args.sequence[0])) == "<class '_io.TextIOWrapper'>":
-            _stdout("{0}\n".format(seqbuddy.in_format))
-        else:
-            for seq_set in in_args.sequence:
-                _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
-        sys.exit()
-
-    # Guess alphabet
-    if in_args.guess_alphabet:
-        for seq_set in in_args.sequence:
-            if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
-                seqbuddy = SeqBuddy(seq_set)
-                _stdout("%s\t-->\t" % seq_set)
-            if seqbuddy.alpha == IUPAC.protein:
-                _stdout("prot\n")
-            elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                _stdout("dna\n")
-            elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                _stdout("rna\n")
-            else:
-                _stdout("Undetermined\n")
-        sys.exit()
-
-    # Map features from cDNA over to protein
-    if in_args.map_features_dna2prot:
-        file1, file2 = in_args.sequence[:2]
-        file1 = SeqBuddy(file1)
-        file2 = SeqBuddy(file2)
-        if file1.alpha == file2.alpha:
-            raise ValueError("You must provide one DNA file and one protein file")
-        if file1.alpha == IUPAC.protein:
-            prot = file1
-            dna = file2
-        else:
-            in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
-            prot = file2
-            dna = file1
-        _print_recs(map_features_dna2prot(dna, prot))
-        sys.exit()
-
-    # Map features from protein over to cDNA
-    if in_args.map_features_prot2dna:
-        file1, file2 = in_args.sequence[:2]
-        file1 = SeqBuddy(file1)
-        file2 = SeqBuddy(file2)
-        if file1.alpha == file2.alpha:
-            raise ValueError("You must provide one DNA file and one protein file")
-        if file1.alpha != IUPAC.protein:
-            dna = file1
-            prot = file2
-        else:
-            in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
-            dna = file2
-            prot = file1
-        _print_recs(map_features_prot2dna(prot, dna))
-        sys.exit()
-
-    # Combine feature sets from two files into one
-    if in_args.combine_features:
-        file1, file2 = in_args.sequence[:2]
-        file1 = SeqBuddy(file1)
-        file2 = SeqBuddy(file2)
-        _print_recs(combine_features(file1, file2))
-        sys.exit()
-
-    # Order sequence features by their position in the sequence
-    if in_args.order_features_by_position:
-        reverse = True if in_args.order_features_by_position[0] \
-            and in_args.order_features_by_position[0] == "rev" else False
-        _print_recs(order_features_by_position(seqbuddy, reverse))
-        sys.exit()
-
-    # Order sequence features alphabetically
-    if in_args.order_features_alphabetically:
-        reverse = True if in_args.order_features_alphabetically[0] \
-            and in_args.order_features_alphabetically[0] == "rev" else False
-        _print_recs(order_features_alphabetically(seqbuddy, reverse))
-        sys.exit()
-
-    # Split sequences by taxa.
-    if in_args.split_by_taxa:
-        in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_by_taxa[1])
-        os.makedirs(out_dir, exist_ok=True)
-        taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
-        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
-        in_args.quiet = True
-        for taxa_heading in taxa_groups:
-            seqbuddy.records = taxa_groups[taxa_heading]
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, _format_to_extension(seqbuddy.out_format))
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
-            _print_recs(seqbuddy)
-        sys.exit()
-
-    # Calculate Molecular Weight
-    if in_args.molecular_weight:
-        lists = molecular_weight(seqbuddy)[1]
-        if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            _stderr("ID\tssDNA\tdsDNA\n")
-        elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            _stderr("ID\tssRNA\n")
-        else:
-            _stderr("ID\tProtein\n")
-        for indx, value in enumerate(lists['ids']):
-            if len(lists['masses_ds']) != 0:
-                print("{0}\t{1}\t{2}".format(value, lists['masses_ss'][indx], lists['masses_ds'][indx]))
-            else:
-                print("{0}\t{1}".format(value, lists['masses_ss'][indx]))
-        sys.exit()
-
-    # Calculate Isoelectric Point
-    if in_args.isoelectric_point:
-        try:
-            isoelectric_points = isoelectric_point(seqbuddy)[1]
-            _stderr("ID\tpI\n")
-            for rec_id in isoelectric_points:
-                print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
-        except ValueError as e:
-            _raise_error(e)
-        sys.exit()
-
-    # Count residues
-    if in_args.count_residues:
-        output = count_residues(seqbuddy)[1]
-        for sequence in output:
-            print(sequence)
-            sorted_residues = OrderedDict(sorted(output[sequence].items()))
-            for residue in sorted_residues:
-                try:
-                    print("{0}:\t{1}\t{2} %".format(residue, output[sequence][residue][0],
-                                                    round(output[sequence][residue][1] * 100, 2)))
-                except TypeError:
-                    print("{0}:\t{1}".format(residue, output[sequence][residue]))
-            print()
-        sys.exit()
-
-    # Split sequences into files
-    if in_args.split_to_files:
-        in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_to_files)
-        os.makedirs(out_dir, exist_ok=True)
-        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
-        in_args.quiet = True
-        for buddy in split_file(seqbuddy):
-            seqbuddy.records = buddy.records
-            ext = _format_to_extension(seqbuddy.out_format)
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, seqbuddy.records[0].id, ext)
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
-            _print_recs(seqbuddy)
-        sys.exit()
+    # Find repeat sequences or ids
+    if in_args.find_repeats:
+        columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
+        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
+        _stdout(out_string)
+        _exit("find_repeats")
 
     # Find restriction sites
     if in_args.find_restriction_sites:
@@ -3227,43 +3046,40 @@ if __name__ == '__main__':
                 out_string += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
             out_string += "\n"
         _stdout(out_string)
-        sys.exit()
+        _exit("find_restriction_sites")
 
-    # Find pattern
-    if in_args.find_pattern:
-        for pattern in in_args.find_pattern:
-            output = find_pattern(seqbuddy, pattern)
-            out_string = ""
-            num_matches = 0
-            for key in output[1]:
-                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[1][key]]))
-                num_matches += len(output[1][key])
-            _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(output[1]), pattern), in_args.quiet)
-            _stderr("%s\n" % out_string, in_args.quiet)
-        _print_recs(seqbuddy)
-        sys.exit()
+    # Guess alphabet
+    if in_args.guess_alphabet:
+        for seq_set in in_args.sequence:
+            if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
+                seqbuddy = SeqBuddy(seq_set)
+                _stdout("%s\t-->\t" % seq_set)
+            if seqbuddy.alpha == IUPAC.protein:
+                _stdout("prot\n")
+            elif seqbuddy.alpha == IUPAC.ambiguous_dna:
+                _stdout("dna\n")
+            elif seqbuddy.alpha == IUPAC.ambiguous_rna:
+                _stdout("rna\n")
+            else:
+                _stdout("Undetermined\n")
+        _exit("guess_alphabet")
 
-    # Find CpG
-    if in_args.find_CpG:
-        output = find_CpG(seqbuddy)
-        if output[1]:
-            out_string = ""
-            for key, value in output[1].items():
-                if value:
-                    value = ["%s-%s" % (x[0], x[1]) for x in value]
-                    out_string += "{0}: {1}\n".format(key, ", ".join(value))
-            _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
-                    out_string.strip(), in_args.quiet)
+    # Guess format
+    if in_args.guess_format:
+        if str(type(in_args.sequence[0])) == "<class '_io.TextIOWrapper'>":
+            _stdout("{0}\n".format(seqbuddy.in_format))
         else:
-            _stderr("# No Islands identified\n\n", in_args.quiet)
-        _print_recs(seqbuddy)
-        sys.exit()
+            for seq_set in in_args.sequence:
+                _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+        _exit("guess_format")
 
-    # Shuffle Seqs
-    if in_args.shuffle_seqs:
-        _print_recs(shuffle_seqs(seqbuddy))
-        sys.exit()
+    # Hash sequence ids
+    if in_args.hash_seq_ids:
+        hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
+        seqbuddy, hash_map, hash_table = hash_sequence_ids(seqbuddy, hash_length)
+        _stderr(hash_table, in_args.quiet)
+        _print_recs(seqbuddy)
+        _exit("hash_seq_ids")
 
     # Insert Seq
     if in_args.insert_seq:
@@ -3274,22 +3090,18 @@ if __name__ == '__main__':
             except ValueError("Location must be start, end, or integer index") as e:
                 _raise_error(e)
         _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
-        sys.exit()
+        _exit("insert_seq")
 
-    # Codon counter
-    if in_args.count_codons:
+    # Calculate Isoelectric Point
+    if in_args.isoelectric_point:
         try:
-            codon_table = count_codons(seqbuddy)[1]
-            for sequence_id in codon_table:
-                _stdout('#### {0} ####\n'.format(sequence_id))
-                _stdout('Codon\tAmino Acid\tNum\tPercent\n')
-                for codon in codon_table[sequence_id]:
-                    data = codon_table[sequence_id][codon]
-                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
-                _stdout('\n')
-        except TypeError as e:
+            isoelectric_points = isoelectric_point(seqbuddy)[1]
+            _stderr("ID\tpI\n")
+            for rec_id in isoelectric_points:
+                print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
+        except ValueError as e:
             _raise_error(e)
-        sys.exit()
+        _exit("isoelectric_point")
 
     # List features
     if in_args.list_features:
@@ -3322,45 +3134,238 @@ if __name__ == '__main__':
             else:
                 out_string = 'None\n'
             _stdout('%s\n' % out_string)
-        sys.exit()
+        _exit("list_features")
 
-    # Add feature
-    if in_args.add_feature:
-        # _type, _location, _strand=None, _qualifiers=None, _pattern=None
-        strand = None
-        qualifiers = None
-        pattern = None
-        if len(in_args.add_feature) < 2:
-            raise AttributeError("Too few parameters provided. Must provide at least a feature type and location.")
-        elif len(in_args.add_feature) == 5:
-            strand = in_args.add_feature[2]
-            qualifiers = in_args.add_feature[3]
-            pattern = in_args.add_feature[4]
-        elif len(in_args.add_feature) == 4:
-            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
-                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
-                strand = in_args.add_feature[2]
-                if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
-                    qualifiers = in_args.add_feature[3]
-                else:
-                    patterns = in_args.add_feature[3]
-            else:
-                qualifiers = in_args.add_feature[3]
-                patterns = in_args.add_feature[3]
+    # List identifiers
+    if in_args.list_ids:
+        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
+        _stdout(list_ids(seqbuddy, columns))
+        _exit("list_ids")
 
-        elif len(in_args.add_feature) == 3:
-            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
-                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
-                strand = in_args.add_feature[2]
-            elif '=' in in_args.add_feature[2] or ':' in in_args.add_feature[2]:
-                qualifiers = in_args.add_feature[2]
-            else:
-                pattern = in_args.add_feature[2]
-        elif len(in_args.add_feature) == 2:
-            pass
+    # Lowercase
+    if in_args.lowercase:
+        _print_recs(lowercase(seqbuddy))
+        _exit("lowercase")
+
+    # Map features from cDNA over to protein
+    if in_args.map_features_dna2prot:
+        file1, file2 = in_args.sequence[:2]
+        file1 = SeqBuddy(file1)
+        file2 = SeqBuddy(file2)
+        if file1.alpha == file2.alpha:
+            raise ValueError("You must provide one DNA file and one protein file")
+        if file1.alpha == IUPAC.protein:
+            prot = file1
+            dna = file2
         else:
-            raise AttributeError("Invalid parameters were provided.")
-        ftype = in_args.add_feature[0]
-        flocation = in_args.add_feature[1]
-        _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
-        sys.exit()
+            in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
+            prot = file2
+            dna = file1
+        _print_recs(map_features_dna2prot(dna, prot))
+        _exit("map_features_dna2prot")
+
+    # Map features from protein over to cDNA
+    if in_args.map_features_prot2dna:
+        file1, file2 = in_args.sequence[:2]
+        file1 = SeqBuddy(file1)
+        file2 = SeqBuddy(file2)
+        if file1.alpha == file2.alpha:
+            raise ValueError("You must provide one DNA file and one protein file")
+        if file1.alpha != IUPAC.protein:
+            dna = file1
+            prot = file2
+        else:
+            in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
+            dna = file2
+            prot = file1
+        _print_recs(map_features_prot2dna(prot, dna))
+        _exit("map_features_prot2dna")
+
+    # Merge
+    if in_args.merge:
+        _print_recs(seqbuddy)
+        _exit("merge")
+
+    # Calculate Molecular Weight
+    if in_args.molecular_weight:
+        lists = molecular_weight(seqbuddy)[1]
+        if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+            _stderr("ID\tssDNA\tdsDNA\n")
+        elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+            _stderr("ID\tssRNA\n")
+        else:
+            _stderr("ID\tProtein\n")
+        for indx, value in enumerate(lists['ids']):
+            if len(lists['masses_ds']) != 0:
+                print("{0}\t{1}\t{2}".format(value, lists['masses_ss'][indx], lists['masses_ds'][indx]))
+            else:
+                print("{0}\t{1}".format(value, lists['masses_ss'][indx]))
+        _exit("molecular_weight")
+
+    # Count number of sequences in a file
+    if in_args.num_seqs:
+        _stdout("%s\n" % num_seqs(seqbuddy))
+        _exit("num_seqs")
+
+    # Order sequence features alphabetically
+    if in_args.order_features_alphabetically:
+        reverse = True if in_args.order_features_alphabetically[0] \
+            and in_args.order_features_alphabetically[0] == "rev" else False
+        _print_recs(order_features_alphabetically(seqbuddy, reverse))
+        _exit("order_features_alphabetically")
+
+    # Order sequence features by their position in the sequence
+    if in_args.order_features_by_position:
+        reverse = True if in_args.order_features_by_position[0] \
+            and in_args.order_features_by_position[0] == "rev" else False
+        _print_recs(order_features_by_position(seqbuddy, reverse))
+        _exit("order_features_by_position")
+
+    # Order ids
+    if in_args.order_ids:
+        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
+        _print_recs(order_ids(seqbuddy, _reverse=reverse))
+        _exit("order_ids")
+
+    # Order ids randomly
+    if in_args.order_ids_randomly:
+        _print_recs(order_ids_randomly(seqbuddy))
+        _exit("order_ids_randomly")
+
+    # Pull random records
+    if in_args.pull_random_record:
+        count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
+        _print_recs(pull_random_recs(seqbuddy, count))
+        _exit("pull_random_record")
+
+    # Pull sequence ends
+    if in_args.pull_record_ends:
+        try:
+            _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
+            sys.exit()
+        except ValueError:
+            pass
+        except AttributeError:
+            pass
+        try:
+            _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
+        except ValueError:
+            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
+        except AttributeError:
+            _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
+                                        "should come from in pull_record_ends"))
+        _exit("pull_record_ends")
+
+    # Pull records
+    if in_args.pull_records:
+        _print_recs(pull_recs(seqbuddy, in_args.pull_records))
+        _exit("pull_records")
+
+    # Purge
+    if in_args.purge:
+        purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
+        _stderr(record_map, in_args.quiet)
+        _print_recs(purged_seqs)
+        _exit("purge")
+
+    # Raw Seq
+    if in_args.raw_seq:
+        output = raw_seq(seqbuddy)
+        if in_args.in_place:
+            _in_place(output, in_args.sequence[0])
+        else:
+            _stdout(output)
+        _exit("raw_seq")
+
+    # Renaming
+    if in_args.rename_ids:
+        num = 0 if not in_args.params else int(in_args.params[0])
+        _print_recs(rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        _exit("rename_ids")
+
+    # Reverse complement
+    if in_args.reverse_complement:
+        _print_recs(reverse_complement(seqbuddy))
+        _exit("reverse_complement")
+
+    # Screw formats
+    if in_args.screw_formats:
+        seqbuddy.out_format = in_args.screw_formats
+        if in_args.in_place:  # Need to change the file extension
+            os.remove(in_args.sequence[0])
+            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
+                                  "." + seqbuddy.out_format
+            open(in_args.sequence[0], "w").close()
+        _print_recs(seqbuddy)
+        _exit("screw_formats")
+
+    # Shift reading frame
+    if in_args.select_frame:
+        _print_recs(select_frame(seqbuddy, in_args.select_frame))
+        _exit("select_frame")
+
+    # Shuffle Seqs
+    if in_args.shuffle_seqs:
+        _print_recs(shuffle_seqs(seqbuddy))
+        _exit("shuffle_seqs")
+
+    # Split sequences by taxa.
+    if in_args.split_by_taxa:
+        in_args.in_place = True
+        out_dir = os.path.abspath(in_args.split_by_taxa[1])
+        os.makedirs(out_dir, exist_ok=True)
+        taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        in_args.quiet = True
+        for taxa_heading in taxa_groups:
+            seqbuddy.records = taxa_groups[taxa_heading]
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, _format_to_extension(seqbuddy.out_format))
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            open(in_args.sequence[0], "w").close()
+            _print_recs(seqbuddy)
+        _exit("split_by_taxa")
+
+    # Split sequences into files
+    if in_args.split_to_files:
+        in_args.in_place = True
+        out_dir = os.path.abspath(in_args.split_to_files)
+        os.makedirs(out_dir, exist_ok=True)
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        in_args.quiet = True
+        for buddy in split_file(seqbuddy):
+            seqbuddy.records = buddy.records
+            ext = _format_to_extension(seqbuddy.out_format)
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, seqbuddy.records[0].id, ext)
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            open(in_args.sequence[0], "w").close()
+            _print_recs(seqbuddy)
+        _exit("split_to_files")
+
+    # Transcribe
+    if in_args.transcribe:
+        if seqbuddy.alpha != IUPAC.ambiguous_dna:
+            raise ValueError("You need to provide a DNA sequence.")
+        _print_recs(dna2rna(seqbuddy))
+        _exit("transcribe")
+
+    # Translate CDS
+    if in_args.translate:
+        if seqbuddy.alpha == IUPAC.protein:
+            raise ValueError("You need to supply DNA or RNA sequences to translate")
+        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
+        _exit("translate")
+
+    # Translate 6 reading frames
+    if in_args.translate6frames:
+        if seqbuddy.alpha == IUPAC.protein:
+            raise ValueError("You need to supply DNA or RNA sequences to translate")
+        seqbuddy = translate6frames(seqbuddy)
+        if in_args.out_format:
+            seqbuddy.out_format = in_args.out_format
+        _print_recs(seqbuddy)
+        _exit("translate6frames")
+
+    # Uppercase
+    if in_args.uppercase:
+        _print_recs(uppercase(seqbuddy))
+        _exit("uppercase")

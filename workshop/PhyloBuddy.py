@@ -5,7 +5,7 @@
 """
 DESCRIPTION OF PROGRAM
 """
-
+# Standard library imports
 import sys
 import os
 import random
@@ -16,7 +16,10 @@ from subprocess import Popen, CalledProcessError, check_output
 from collections import OrderedDict
 from random import sample
 from copy import deepcopy
+
+# My functions
 from MyFuncs import TemporaryDirectory
+import buddy_resources as br
 
 # Third party package imports
 import Bio.Phylo
@@ -64,6 +67,10 @@ def unroot(_trees):
 
 
 def screw_formats(_phylobuddy, _format):
+    pass
+
+
+def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
     pass
 
 # Compare two trees, and add colour to the nodes that differ. [ ]
@@ -137,8 +144,8 @@ def _extract_figtree_metadata(_file_path):
     if extract_fig is not None:
         end_regex = re.compile('(end;)')
         end_fig = end_regex.search(filedata, extract_fig.start())
-        figdata = filedata[extract_fig.start():end_fig.end()+1]
-        filedata = filedata[0:extract_fig.start()-1]
+        figdata = filedata[extract_fig.start():end_fig.end() + 1]
+        filedata = filedata[0:extract_fig.start() - 1]
     else:
         return None
 
@@ -172,6 +179,7 @@ def convert_to_ete(_tree, ignore_color=False):
 
     return ete_tree
 
+
 def _get_tree_binaries(_tool):
     """
     Returns a URL where a tool's binaries can be found.
@@ -184,9 +192,11 @@ def _get_tree_binaries(_tool):
                  'fastree': 'http://www.microbesonline.org/fasttree/#Install'}
     return tool_dict[_tool]
 
-# #################################################################################################################### #
+# ##################################################### GLOBALS ###################################################### #
+VERSION = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
 
 
+# #################################################### PHYLOBUDDY #################################################### #
 class PhyloBuddy:
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
@@ -407,6 +417,7 @@ def prune_taxa(_phylobuddy, *_patterns):
         for _taxon in taxa_to_prune:  # Removes the nodes from the tree
             _tree.prune_taxa_with_labels(StringIO(_taxon))
 
+
 def trees_to_ascii(_phylobuddy):
     """
     Returns an ascii representation of the tree. Scales to terminal window size.
@@ -418,6 +429,7 @@ def trees_to_ascii(_phylobuddy):
         _key = 'tree_{0}'.format(_indx+1) if _tree.label in [None, ''] else _tree.label
         _output[_key] = _tree.as_ascii_plot()
     return _output
+
 
 def show_unique_nodes(_phylobuddy):
     """
@@ -471,8 +483,9 @@ def show_unique_nodes(_phylobuddy):
 
     return _phylobuddy
 
+
 def show_diff(_phylobuddy):  # Doesn't work.
-    raise NotImplementedError('show_diff() is not yet implemented.')
+    sys.exit('show_diff() is not yet implemented.')
     # if len(_phylobuddy.trees) != 2:
     #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
     _trees = [convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
@@ -559,7 +572,7 @@ def list_ids(_phylobuddy):
         for node in _tree:
             if node.taxon is not None:
                 _namespace.add_taxon(node.taxon)
-        _key = _tree.label if _tree.label not in [None, ''] else 'tree_{0}'.format(str(indx+1))
+        _key = _tree.label if _tree.label not in [None, ''] else 'tree_{0}'.format(str(indx + 1))
         _output[_key] = list(_namespace.labels())
     return _output
 
@@ -606,8 +619,8 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     for indx1, _tree1 in enumerate(_phylobuddy.trees):  # Compares all-by-all
         for indx2, _tree2 in enumerate(_phylobuddy.trees):
             if _tree1 is not _tree2:  # Will not compare to itself
-                _key1 = 'tree_{0}'.format(indx1+1) if _tree1.label not in [None, ''] else _tree1.label
-                _key2 = 'tree_{0}'.format(indx2+1) if _tree2.label not in [None, ''] else _tree2.label
+                _key1 = 'tree_{0}'.format(indx1 + 1) if _tree1.label not in [None, ''] else _tree1.label
+                _key2 = 'tree_{0}'.format(indx2 + 1) if _tree2.label not in [None, ''] else _tree2.label
                 if _key1 not in _output.keys():
                     _output[_key1] = OrderedDict()
                 if _key2 not in _output.keys():
@@ -741,10 +754,10 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
 
         if _tool == 'raxml':  # Pull tree from written file
             num_runs = re.search('-#', _params)
-            if _params[num_runs.end()+1].isdigit():
-                num_runs = int(_params[num_runs.end()+1])
+            if _params[num_runs.end() + 1].isdigit():
+                num_runs = int(_params[num_runs.end() + 1])
             else:
-                num_runs = int(_params[num_runs.end()+2])
+                num_runs = int(_params[num_runs.end() + 2])
             if num_runs > 1:
                 for tree_indx in range(num_runs):
                     with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.name, tree_indx)) as result:
@@ -770,16 +783,10 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
         return _phylobuddy
 
 
-def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
-    raise NotImplementedError("If you're reading this, send an angry email to biologyguy@gmail.com.")
-
-
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    import buddy_resources as br
 
-    version = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
     fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
@@ -794,33 +801,12 @@ if __name__ == '__main__':
 ''')
 
     br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
-                               "this argument can be left blank."), br.pb_flags, br.pb_modifiers, version)
+                               "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
     phylobuddy = []
     tree_set = ""
-
-    # Generate Tree
-    if in_args.generate_tree:
-        alignbuddy = []
-        try:
-            import AlignBuddy as Alb
-        except ImportError:
-            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
-            sys.exit()
-        for seq_set in in_args.trees:  # Build an AlignBuddy object
-            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
-            seq_set = Alb.AlignBuddy(seq_set, in_args.in_format, in_args.out_format)
-            alignbuddy += seq_set.alignments
-        alignbuddy = Alb.AlignBuddy(alignbuddy, seq_set.in_format, seq_set.out_format)
-        params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
-        if in_args.out_format:
-            generated_trees.out_format = in_args.out_format
-        _stdout(str(generated_trees))
-        sys.exit()
 
     for tree_set in in_args.trees:
         if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
@@ -828,7 +814,6 @@ if __name__ == '__main__':
         tree_set = PhyloBuddy(tree_set, in_args.in_format, in_args.out_format)
         phylobuddy += tree_set.trees
     phylobuddy = PhyloBuddy(phylobuddy, tree_set.in_format, tree_set.out_format)
-
 
 # ################################################ INTERNAL FUNCTIONS ################################################ #
     def _print_trees(_phylobuddy):  # TODO: Remove the calls to in_args
@@ -853,30 +838,55 @@ if __name__ == '__main__':
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
+    def _exit(tool):
+        usage = br.Usage()
+        usage.increment("PhyloBuddy", VERSION.short(), tool)
+        usage.save()
+        sys.exit()
+
 # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Calculate distance
+    if in_args.calculate_distance:
+        output = calculate_distance(phylobuddy, in_args.calculate_distance)
+        _stderr('Tree 1\tTree 2\tValue\n')
+        keypairs = []
+        for key1 in output:
+            for key2 in output[key1]:
+                if (key2, key1) not in keypairs:
+                    keypairs.append((key1, key2))
+                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+        _exit("calculate_distance")
 
-    # Split polytomies
-    if in_args.split_polytomies:
-        split_polytomies(phylobuddy)
-        _print_trees(phylobuddy)
-        sys.exit()
+    # Consensus tree
+    if in_args.consensus_tree:
+        _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree))
+        _exit("consensus_tree")
 
-    # Print trees
-    if in_args.print_trees:
-        tree_table = trees_to_ascii(phylobuddy)
-        output = ''
-        for key in tree_table:
-            output += '\n#### {0} ####\n'.format(key)
-            output += tree_table[key]
-        output += '\n'
-        _stdout(output)
-        sys.exit()
+    # Display trees
+    if in_args.display_trees:
+        display_trees(phylobuddy)
+        _exit("display_trees")
 
-    # Prune taxa
-    if in_args.prune_taxa:
-        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
-        _print_trees(phylobuddy)
-        sys.exit()
+    # Generate Tree
+    if in_args.generate_tree:
+        alignbuddy = []
+        try:
+            import AlignBuddy as Alb
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
+        for seq_set in in_args.trees:  # Build an AlignBuddy object
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            seq_set = Alb.AlignBuddy(seq_set, in_args.in_format, in_args.out_format)
+            alignbuddy += seq_set.alignments
+        alignbuddy = Alb.AlignBuddy(alignbuddy, seq_set.in_format, seq_set.out_format)
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
+        if in_args.out_format:
+            generated_trees.out_format = in_args.out_format
+        _stdout(str(generated_trees))
+        _exit("generate_tree")
 
     # List ids
     if in_args.list_ids:
@@ -898,31 +908,32 @@ if __name__ == '__main__':
                         count = 1
             output += '\n'
         _stdout(output)
-        sys.exit()
+        _exit("list_ids")
 
-    # Calculate distance
-    if in_args.calculate_distance:
-        output = calculate_distance(phylobuddy, in_args.calculate_distance[0])
-        _stderr('Tree 1\tTree 2\tValue\n')
-        keypairs = []
-        for key1 in output:
-            for key2 in output[key1]:
-                if (key2, key1) not in keypairs:
-                    keypairs.append((key1, key2))
-                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
-        sys.exit()
+    # Prune taxa
+    if in_args.prune_taxa:
+        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
+        _print_trees(phylobuddy)
+        _exit("prune_taxa")
 
-    # Display trees
-    if in_args.display_trees:
-        display_trees(phylobuddy)
-        sys.exit()
-
-    # Consensus tree
-    if in_args.consensus_tree:
-        _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree[0]))
-        sys.exit()
+    # Print trees
+    if in_args.print_trees:
+        tree_table = trees_to_ascii(phylobuddy)
+        output = ''
+        for key in tree_table:
+            output += '\n#### {0} ####\n'.format(key)
+            output += tree_table[key]
+        output += '\n'
+        _stdout(output)
+        _exit("print_trees")
 
     # Rename IDs
     if in_args.rename_ids:
         _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
-        sys.exit()
+        _exit("rename_ids")
+
+    # Split polytomies
+    if in_args.split_polytomies:
+        split_polytomies(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("split_polytomies")
