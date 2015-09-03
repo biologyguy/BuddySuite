@@ -734,14 +734,17 @@ class UniProtRestClient:
 
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
+        runtime = RunTime(prefix="\t")
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
+            runtime.start()
             run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
                                    func_args=[self.http_errors_file, self.results_file, params, Lock()])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
+            runtime.start()
             self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params, Lock()])
-
+        runtime.end()
         errors = self._parse_error_file()
         if errors:
             _stderr("{0}{1}The following errors were encountered while querying UniProt with "
@@ -779,10 +782,12 @@ class UniProtRestClient:
                 else:
                     accessions[-1] += ",%s" % _rec.accession
 
+            runtime = RunTime(prefix="\t")
+            runtime.start()
             params = {"format": "txt"}
             run_multicore_function(accessions, self.query_uniprot, max_processes=10,
                                    func_args=[self.http_errors_file, self.results_file, params, Lock()])
-
+            runtime.end()
             errors = self._parse_error_file()
             if errors:
                 _stderr("{0}{1}The following errors were encountered while querying UniProt with "
@@ -958,8 +963,11 @@ class NCBIClient:
     def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
+        runtime = RunTime(prefix="\t")
         _stderr("Converting NCBI accessions to gi numbers...\n")
+        runtime.start()
         run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x.split("\n") for x in results]
@@ -1006,7 +1014,7 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if i == self.max_attempts - 1:
                     error = e
                 sleep(1)
@@ -1023,8 +1031,11 @@ class NCBIClient:
     def _fetch_summaries(self, gi_nums):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
+        runtime = RunTime(prefix="\t")
         _stderr("Retrieving record summaries from NCBI...\n")
+        runtime.start()
         run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as _ifile:
             results = _ifile.read().split("\n### END ###\n")
             results = [x for x in results if x != ""]
@@ -1142,7 +1153,7 @@ class NCBIClient:
 
                 self.fetch_summary()
 
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if e.getcode() == 503:
                     failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
                                              "experiencing some technical issues.")
@@ -1239,7 +1250,7 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if i == self.max_attempts - 1:
                     error = e
                 sleep(1)
@@ -1256,8 +1267,11 @@ class NCBIClient:
     def _get_seq(self, gi_nums, database):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
+        runtime = RunTime(prefix="\t")
         _stderr("Fetching full sequence records from NCBI...\n")
+        runtime.start()
         run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
         _stderr("\tDone\n")
@@ -1340,8 +1354,12 @@ class EnsemblRestClient:
 
     def fetch_nucleotide(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
+        _stderr("Fetching sequence from Ensembl...\n")
+        runtime = RunTime(prefix="\t")
+        runtime.start()
         data = self.perform_rest_action("sequence/id", data={"ids": accns},
                                         headers={"Content-type": "text/x-seqxml+xml"})
+        runtime.end()
         for rec in data:
             summary = self.dbbuddy.records[rec.id].summary
             rec.description = summary['comments']
@@ -1394,20 +1412,27 @@ class EnsemblRestClient:
         open(self.results_file, "w").close()
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
-            run_multicore_function(species, self._mc_search, [search_term, Lock()])
+            _stderr("Searching Ensembl for %s...\n" % search_term)
+            runtime = RunTime(prefix="\t")
+            runtime.start()
+            run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
+            runtime.end()
             with open(self.results_file, "r") as ifile:
                 results = ifile.read().split("\n### END ###")
 
+            counter = 0
             for rec in results:
                 rec = rec.strip()
                 if not rec or rec in ["None", ""]:
                     continue
+                counter += 1
                 rec = re.sub("'", '"', rec)
                 rec = self._parse_summary(json.loads(rec))
                 if rec.accession in self.dbbuddy.records:
                     self.dbbuddy.records[rec.accession].update(rec)
                 else:
                     self.dbbuddy.records[rec.accession] = rec
+            _stderr("Returned %s results\n\n" % counter)
 
     def fetch_summary(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
@@ -1948,7 +1973,7 @@ Further details about each command can be accessed by typing 'help <command>'
             heading = headings[0]
             subgroups = {}
             if heading == "ACCN":
-                return OrderedDict(sorted(records.items(), key=lambda x: x[1].accession, reverse=_rev))
+                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
 
             for accn, _rec in records.items():
                 if heading == "DB":
@@ -1962,7 +1987,7 @@ Further details about each command can be accessed by typing 'help <command>'
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
 
-            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda x: x[0], reverse=rev))
+            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=rev))
             final_order = OrderedDict()
             for subgroup, _recs in subgroups.items():
                 if len(_recs) == 1:
@@ -2549,9 +2574,5 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
-    retrieve_sequences(dbbuddy)
-    dbbuddy.out_format = "seqxml"
-    dbbuddy.print()
-    sys.exit()
     # Default to LiveSearch
     live_search = LiveSearch(dbbuddy)

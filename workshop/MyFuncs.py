@@ -24,6 +24,43 @@ class Timer:
         return pretty_time(round(time()) - self.current_time)
 
 
+class RunTime:
+    def __init__(self, prefix="", postfix="", out_type=stdout):
+        self.check_file = TempFile()
+        self.out_type = out_type
+        self.prefix = prefix
+        self.postfix = postfix
+
+    def _run(self, check_file_path):
+        d_print = DynamicPrint(self.out_type)
+        start_time = round(time())
+        elapsed = 0
+
+        while True:
+            check_file = open(check_file_path, "r")
+            if check_file.read() == "%!~_-end-_~!%":
+                check_file.close()
+                check_file = open(check_file_path, "w")
+                check_file.write("%!~_-closed-_~!%")
+                check_file.close()
+                d_print.write("")
+                break
+            d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
+            elapsed = round(time()) - start_time
+        return
+
+    def start(self):
+        Process(target=self._run, args=(self.check_file.path,)).start()
+        return
+
+    def end(self):
+        self.check_file.write("%!~_-end-_~!%")
+        while True:
+            if self.check_file.read() == "%!~_-closed-_~!%":
+                break
+        return
+
+
 # maybe use curses library in the future to extend this for multi-line printing
 class DynamicPrint:
     def __init__(self, out_type="stdout", quiet=False):
@@ -254,6 +291,7 @@ class TempFile:
         dir_hash = self._tmp_dir.path.split("/")[-1]
         self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
+        open(self.path, "w").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
 
