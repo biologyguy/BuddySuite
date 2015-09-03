@@ -268,7 +268,7 @@ class TempFile:
             self.handle.close()
             self.handle = None
 
-    def handle(self, mode="w"):
+    def get_handle(self, mode="w"):
         self.open(mode)
         return self.handle
 
