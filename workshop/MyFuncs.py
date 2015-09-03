@@ -97,7 +97,7 @@ def pretty_number(num, mode='short', precision=2):  # mode in ['short', 'medium'
         return '%s %s' % (num, ['', 'Kilo', 'Mega', 'Giga', 'Tera', 'Peta', 'Exa', 'Zetta', 'Yotta'][magnitude])
     elif mode == 'long':
         return '%s %s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion',
-                                  'Sextillion', 'Septillion'][magnitude])
+                                'Sextillion', 'Septillion'][magnitude])
     else:
         raise ValueError("Valid 'mode' values are 'short', 'medium', and 'long'")
 
@@ -259,13 +259,18 @@ class TempFile:
 
     def open(self, mode="w"):
         mode = "%s%s" % (mode, self.bm)
-        if not self.handle:
-            self.handle = open(self.path, mode)
+        if self.handle:
+            self.close()
+        self.handle = open(self.path, mode)
 
     def close(self):
         if self.handle:
             self.handle.close()
             self.handle = None
+
+    def handle(self, mode="w"):
+        self.open(mode)
+        return self.handle
 
     def write(self, content, mode="a"):
         mode = "%s%s" % (mode, self.bm)
@@ -303,7 +308,7 @@ class TempFile:
         return
 
 
-class SafetyValve:  # Use this class if you're afraid of an infinit loop
+class SafetyValve:  # Use this class if you're afraid of an infinite loop
     def __init__(self, global_reps=1000, state_reps=10, counter=0):
         self.counter = counter
         
