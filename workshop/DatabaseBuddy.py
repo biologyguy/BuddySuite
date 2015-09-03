@@ -58,7 +58,10 @@ from MyFuncs import *
 import buddy_resources as br
 
 # ##################################################### WISH LIST #################################################### #
-
+# - Catch memory limits before they are overblown by big fetches. Python std-lib doesn't seem to have a tool for this.
+# - Push some functionality off to separate threads, like session dump and stats usage
+# - BLAST functionality
+# - Load sequence files up into the live session (very useful for BLAST, when implemented)
 
 # ###################################################### GLOBALS ##################################################### #
 TRASH_SYNOS = ["t", "tb", "t_bin", "tbin", "trash", "trashbin", "trash-bin", "trash_bin"]
@@ -70,6 +73,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
+VERSION = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -814,7 +818,8 @@ class UniProtRestClient:
 
 class NCBIClient:
     def __init__(self, _dbbuddy):
-        Entrez.email = CONFIG["other"]["email"]
+        Entrez.email = CONFIG["email"]
+        Entrez.tool = "buddysuite"
         self.dbbuddy = _dbbuddy
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
@@ -863,6 +868,7 @@ class NCBIClient:
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
@@ -885,10 +891,14 @@ class NCBIClient:
                         </DocSum>
                     </eSummaryResult>
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -902,7 +912,7 @@ class NCBIClient:
     def _get_taxa(self, _taxa_ids):
         self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
-        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()])
+        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x for x in results if x]
@@ -917,6 +927,7 @@ class NCBIClient:
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
@@ -926,10 +937,14 @@ class NCBIClient:
                     703125412
                     703125416
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -943,17 +958,20 @@ class NCBIClient:
     def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
-        run_multicore_function(accns, self._mc_accn2gi, [Lock()])
+        _stderr("Converting NCBI accessions to gi numbers...\n")
+        run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x.split("\n") for x in results]
             results = [x for sublist in results for x in sublist if x]
+        _stderr("\tDone\n")
         return results
 
     def _mc_summaries(self, gi_nums, args):
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
@@ -984,10 +1002,14 @@ class NCBIClient:
                         </DocSum>
                     </eSummaryResult>
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -1001,7 +1023,8 @@ class NCBIClient:
     def _fetch_summaries(self, gi_nums):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_summaries, [Lock()])
+        _stderr("Retrieving record summaries from NCBI...\n")
+        run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as _ifile:
             results = _ifile.read().split("\n### END ###\n")
             results = [x for x in results if x != ""]
@@ -1013,7 +1036,8 @@ class NCBIClient:
                 _rec = OrderedDict()
                 _rec["gi_num"] = str(summary["Gi"])
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else "%s->%s" % (summary["Status"], summary["ReplacedBy"])
+                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else \
+                    "%s->%s" % (summary["Status"], summary["ReplacedBy"])
                 _rec["TaxId"] = summary["TaxId"]
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
@@ -1021,11 +1045,13 @@ class NCBIClient:
                 _rec["length"] = summary["Length"]
                 _rec["comments"] = summary["Title"]
 
-                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]), summary=_rec, _size=_rec["length"])
+                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]),
+                                                     summary=_rec, _size=_rec["length"])
                 _output[summary["Caption"]].guess_database()
         taxa = self._get_taxa(taxa)
         for accn, rec in _output.items():
             rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+        _stderr("\t%s records received.\n" % len(_output))
         return _output
 
     def fetch_summary(self):
@@ -1134,6 +1160,7 @@ class NCBIClient:
         database, lock = args
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
@@ -1208,10 +1235,14 @@ class NCBIClient:
                       421 qttrememrk mknsqgfsgs s
                 //
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -1225,9 +1256,11 @@ class NCBIClient:
     def _get_seq(self, gi_nums, database):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()])
+        _stderr("Fetching full sequence records from NCBI...\n")
+        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
+        _stderr("\tDone\n")
         return results
 
     def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
@@ -1412,7 +1445,7 @@ class LiveSearch(cmd.Cmd):
         cmd.Cmd.__init__(self)
         hash_heading = ""
         colors = terminal_colors()
-        for _ in range(22):
+        for _ in range(23):
             hash_heading += "%s#" % next(colors)
         _stdout('''{1}
 
@@ -1435,15 +1468,16 @@ A general workflow: 1) {5}search{1} databases with search terms or accession num
                     5) {5}fetch{1} full sequence records for the filtered set
                     6) Switch to a {5}format{1} that includes sequences, like fasta or genbank
                     7) {5}write{1} sequences to a file or {5}save{1} the live session
+
 Further details about each command can be accessed by typing 'help <command>'
-'''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
+'''.format("".join(["%s-" % next(colors) for _ in range(29)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
-        self.doc_header = "Available commands:                                                            "
+        self.doc_header = "Available commands:                                                         "
         self.dbbuddy = _dbbuddy
         self.crash_file = crash_file
         self.dump_session()
 
-        self.history_path = "%s/.cmd_history" % CONFIG["Install_path"]['path']
+        self.history_path = "%s/.cmd_history" % CONFIG["install_path"]
         if not os.path.isfile(self.history_path):
             open(self.history_path, "w").close()
 
@@ -1461,6 +1495,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
+        self.usage = br.Usage()
         self.cmdloop()
 
     # @staticmethod
@@ -1470,6 +1505,11 @@ Further details about each command can be accessed by typing 'help <command>'
     def precmd(self, line):
         readline.write_history_file(self.history_path)
         return line
+
+    def postcmd(self, stop, line):
+        command = line.split(" ")[0]
+        self.usage.increment("DatabaseBuddy", VERSION.short(), command)
+        return stop
 
     def dump_session(self):
         import pickle
@@ -1737,14 +1777,14 @@ Further details about each command can be accessed by typing 'help <command>'
                 format_out=self.terminal_default)
         self.dump_session()
 
-    def do_load(self, line=None):
+    def do_load(self, line=None, quiet=False):
         if not line:
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
                 self.dbbuddy = pickle.load(ifile)
             self.dump_session()
-            _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default)
+            _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
 
         except IOError as e:
             _stderr("%s\n" % e)
@@ -1767,11 +1807,11 @@ Further details about each command can be accessed by typing 'help <command>'
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
             confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
             if confirm.lower() in ["yes", "y"]:
-                _stdout("Goodbye\n\n")
-                sys.exit()
+                pass
             else:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
+        self.usage.save()
         _stdout("Goodbye\033[m\n\n")
         sys.exit()
 
@@ -1950,6 +1990,7 @@ Further details about each command can be accessed by typing 'help <command>'
             sort_columns = ["ACCN"]
 
         self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns, rev)
+        self.dump_session()
 
     def do_status(self, line=None):
         if line != "":
@@ -2014,7 +2055,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
                     format_in=RED, format_out=self.terminal_default)
             return
 
-        self.do_load("%s_undo" % self.crash_file.path)
+        self.do_load("%s_undo" % self.crash_file.path, quiet=True)
         self.undo = False
         _stdout("Most recent state reloaded\n\n", format_in=GREEN, format_out=self.terminal_default)
 
@@ -2376,8 +2417,6 @@ def retrieve_sequences(_dbbuddy):
 if __name__ == '__main__':
     import argparse
 
-    version = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
-
     fmt = lambda prog: br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
@@ -2395,7 +2434,7 @@ if __name__ == '__main__':
     br.db_modifiers["database"]["choices"] = DATABASES
     br.flags(parser, ("user_input", "Specify accession numbers or search terms, "
                                     "either in a file or as a comma separated list"),
-             br.db_flags, br.db_modifiers, version)
+             br.db_flags, br.db_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
@@ -2440,7 +2479,7 @@ if __name__ == '__main__':
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
 
-            send_diagnostic = True if CONFIG["other"]["diagnostics"] == "True" else False
+            send_diagnostic = True if CONFIG["diagnostics"] == "True" else False
             if not send_diagnostic:
                 prompt = input("%sWould you like to send a crash report with the above "
                                "traceback to the developers ([y]/n)?\033[m" % BOLD)
