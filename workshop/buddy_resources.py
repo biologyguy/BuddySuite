@@ -139,13 +139,15 @@ class Usage:
         try:
             with open(self.usage_file_path) as ifile:
                 self.stats = json.load(ifile)
+                if not self.stats:  # Empty file needs to be populated with a little info
+                    self.clear_stats()
 
         except ValueError:  # If the json file can't be read for whatever reason, start from scratch
             print("Error reading usage json file. Starting from scratch.")
             self.clear_stats()
 
     def clear_stats(self):
-        self.stats = {"BuddySuite": {"last_upload": str(datetime.date.today()), "user_hash": self.config["user_hash"]}}
+        self.stats = {"last_upload": str(datetime.date.today()), "user_hash": self.config["user_hash"]}
 
     def increment(self, buddy, version, tool):
         self.stats.setdefault(buddy, {})
@@ -154,10 +156,10 @@ class Usage:
         self.stats[buddy][version][tool] += 1
         return
 
-    def save(self):
-        if self.config["diagnostics"] == "True":
-            if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["BuddySuite"]["last_upload"],
-                                                                       '%Y-%m-%d')).days > 7:
+    def save(self, send_report=True):
+        if self.config["diagnostics"] == "True" and send_report:
+            if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
+                                                                       '%Y-%m-%d')).days >= 1:
                 self.send_report()
             else:
                 with open(self.usage_file_path, "w") as ofile:
@@ -167,15 +169,15 @@ class Usage:
     def send_report(self):
         from ftplib import FTP, all_errors
         temp_file = TempFile()
-        json.dump(self.stats, temp_file.handle())
+        json.dump(self.stats, temp_file.get_handle())
         try:
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
-            ftp.storlines("STOR usage_%s" % temp_file.name, temp_file.handle("r"))
+            ftp.storlines("STOR usage_%s" % temp_file.name, temp_file.get_handle("rb"))
+            self.clear_stats()
         except all_errors as e:
             print("FTP Error: %s" % e)
 
-        self.clear_stats()
-        self.save()
+        self.save(send_report=False)
         return
 
 
