@@ -32,21 +32,25 @@ from MyFuncs import TempFile
 import os
 from configparser import ConfigParser
 import json
-from multiprocessing import process
 
 if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
 
 def config_values():
-    home_dir = os.path.expanduser('~')
-    config = ConfigParser()
-    config.read("%s/.buddysuite/config.ini" % home_dir)
-    options = {"install_path": config.get('Install_path', 'path'),
-               "email": config.get('other', 'email'),
-               "diagnostics": config.get('other', 'diagnostics'),
-               "user_hash": config.get('other', 'user_hash')}
-
+    config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
+    if os.path.isfile(config_file):
+        config = ConfigParser()
+        config.read(config_file)
+        options = {"install_path": config.get('Install_path', 'path'),
+                   "email": config.get('other', 'email'),
+                   "diagnostics": config.get('other', 'diagnostics'),
+                   "user_hash": config.get('other', 'user_hash')}
+    else:
+        options = {"install_path": False,
+                   "email": "buddysuite@nih.gov",
+                   "diagnostics": False,
+                   "user_hash": "hashless"}
     return options
 
 
@@ -132,8 +136,12 @@ def error_report(error_msg):
 class Usage:
     def __init__(self):
         self.config = config_values()
-        self.usage_file_path = "%s/.buddysuite/usage.json" % os.path.expanduser('~')
-        if not os.path.isfile(self.usage_file_path):  # This will break if ~/.buddysuite doesn't exist
+        if self.config["install_path"]:
+            self.usage_file_path = "%s/usage.json" % self.config["install_path"]
+        else:
+            self.usage_file_path = "/tmp/usage.json"
+
+        if not os.path.isfile(self.usage_file_path):
             with open(self.usage_file_path, "w") as ofile:
                 ofile.write("{}")
         try:
@@ -147,7 +155,7 @@ class Usage:
             self.clear_stats()
 
     def clear_stats(self):
-        self.stats = {"last_upload": str(datetime.date.today()), "user_hash": self.config["user_hash"]}
+        self.stats = {"user_hash": self.config["user_hash"]}
 
     def increment(self, buddy, version, tool):
         self.stats.setdefault(buddy, {})
@@ -167,6 +175,7 @@ class Usage:
         return
 
     def send_report(self):
+        self.stats["date"] = str(datetime.date.today())
         from ftplib import FTP, all_errors
         temp_file = TempFile()
         json.dump(self.stats, temp_file.get_handle())
@@ -174,6 +183,7 @@ class Usage:
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
             ftp.storlines("STOR usage_%s" % temp_file.name, temp_file.get_handle("rb"))
             self.clear_stats()
+            self.stats["last_upload"] = str(datetime.date.today())
         except all_errors as e:
             print("FTP Error: %s" % e)
 
