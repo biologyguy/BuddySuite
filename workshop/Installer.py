@@ -20,7 +20,7 @@ from random import choice
 
 import argparse
 
-version = br.Version("BuddySuite", 1, 'alpha', br.contributors)
+_version = br.Version("BuddySuite", 1, 'alpha', br.contributors)
 
 fmt = lambda prog: br.CustomHelpFormatter(prog)
 
@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(prog="buddysuite", formatter_class=fmt, add_hel
   Install, upgrade, or uninstall the BuddySuite tools.
 ''')
 
-br.flags(parser, None, br.bsi_flags, None, version)
+br.flags(parser, None, br.bsi_flags, None, _version)
 
 in_args = parser.parse_args()
 
@@ -273,7 +273,7 @@ class BuddyInstall:
                              'Install_path': {'path': '{0}/BuddySuite'.format(home_dir)},
                              'shortcuts': {'SeqBuddy': 'sb\tseqbuddy', 'AlignBuddy': 'alb\talignbuddy',
                                            'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'},
-                             'other': {'email': '', 'diagnostics': False, 'user_hash': ''}}
+                             'other': {'email': '', 'diagnostics': True, 'user_hash': ''}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -369,6 +369,7 @@ def cmd_install():
     old_install_dir = None
     already_installed = None
     old_shortcuts = None
+    install_dir = ""
     email_address = ''
     send_diagnostics = False
     user_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
@@ -730,12 +731,12 @@ class Installer(Frame):
             self.buddies[buddy] = False
         self.confirmation()
 
-    def welcome(self):
+    def welcome(self, *args):
         self.clear_container()
         title_frame = Frame()
         welcome_label = Label(title_frame, image=self.bs_logo)
         welcome_label.pack(side=TOP)
-        version_label = Label(title_frame, text="Version {0}".format(version.short()))
+        version_label = Label(title_frame, text="Version {0}".format(_version.short()))
         version_label.pack(side=RIGHT)
         title_frame.pack(pady=sh / 10)
         self.container.append(title_frame)
