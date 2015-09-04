@@ -341,7 +341,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 for _hash, failure in self.failures.items():
                     errors_etc += str(failure)
 
-            if len(self.record_breakdown()["accession"]) > 0:
+            if len(self.record_breakdown()["accession"]) > 0 and _num == len(group):
                 errors_etc += "# ################## Accessions without Records ################## #\n"
                 _counter = 1
                 for _next_acc in self.record_breakdown()["accession"]:
@@ -359,8 +359,18 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             _output = ""
             # Summary outputs
             if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
+                def pad_columns(line_group, col_widths, all_lines):
+                    for indx_x, next_line in enumerate(line_group):
+                        for indx_y, _col in enumerate(next_line):
+                            line_group[indx_x][indx_y] = str(_col).ljust(col_widths[indx_y] + 2)
+                    all_lines += line_group
+                    all_lines.append([])
+                    return all_lines
+
                 lines = []
+                current_group = []
                 saved_headings = []
+                column_widths = []
                 for _accession, _rec in list(group.items())[:_num]:
                     if self.out_format in ["ids", "accessions"]:
                         lines.append([_accession])
@@ -368,35 +378,63 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     elif self.out_format in ["summary", "full-summary"]:
                         headings = ["ACCN", "DB"]
                         headings += [heading for heading, _value in _rec.summary.items()]
+                        headings += ["record"]
+
                         if columns:
                             headings = [heading for heading in headings if heading in columns]
+
                         if saved_headings != headings:
-                            # for heading in headings:
-                            lines.append([])
-                            lines.append(headings)
+                            if saved_headings:
+                                lines = pad_columns(current_group, column_widths, lines)
+                                column_widths = []
+                                current_group = []
+
+                            for heading in headings:
+                                column_widths.append(len(str(heading)))
+                            current_group.append(headings)
                             saved_headings = list(headings)
 
-                        lines.append([])
+                        current_group.append([])
+                        attrib_counter = 0
                         if "ACCN" in headings:
-                            lines[-1].append(_accession)
+                            current_group[-1].append(_accession)
+                            if len(str(_accession)) > column_widths[attrib_counter]:
+                                column_widths[attrib_counter] = len(str(_accession))
+                            attrib_counter += 1
+
                         if "DB" in headings:
                             if _rec.database:
-                                lines[-1].append(_rec.database)
+                                current_group[-1].append(_rec.database)
+                                if len(_rec.database) > column_widths[attrib_counter]:
+                                    column_widths[attrib_counter] = len(_rec.database)
                             else:
-                                lines[-1].append("")
+                                current_group[-1].append("")
+                            attrib_counter += 1
 
                         for attrib, _value in _rec.summary.items():
                             if attrib in headings:
                                 if len(str(_value)) > 50 and self.out_format != "full-summary":
-                                    lines[-1].append("%s..." % _value[:47])
+                                    current_group[-1].append("%s..." % _value[:47])
+                                    column_widths[attrib_counter] = 50
                                 else:
-                                    lines[-1].append(_value)
+                                    current_group[-1].append(_value)
+                                    if len(str(_value)) > column_widths[attrib_counter]:
+                                        column_widths[attrib_counter] = len(str(_value))
+                                attrib_counter += 1
 
-                # ToDo: Thinks about lining up all columns for easier viewing
+                        if self.out_format not in ["ids", "accessions"] and "record" in headings:
+                            if _rec.record:
+                                current_group[-1].append("full")
+                            else:
+                                current_group[-1].append("summary")
+
+                if self.out_format in ["summary", "full-summary"] and current_group:
+                    lines = pad_columns(current_group, column_widths, lines)
+
                 _output = "\033[m\033[40m\033[97m"
                 for line in lines:
                     colors = terminal_colors()
-                    _output += "%s\n" % "\t".join(["%s%s" % (next(colors), _col) for _col in line])
+                    _output += "%s\n" % "".join(["%s%s" % (next(colors), _col) for _col in line])
 
             # Full records
             else:
@@ -422,8 +460,9 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             if not destination:
                 _stdout("{0}\n".format(_output.rstrip()))
             else:
-                # remove any escape characters if writing the file
+                # remove any escape characters and convert space padding to tabs if writing the file
                 _output = re.sub("\\033\[[0-9]*m", "", _output)
+                _output = re.sub("  +", "\t", _output)
                 destination.write(_output)
 
     def __hash__(self):
@@ -739,7 +778,7 @@ class UniProtRestClient:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             runtime.start()
             run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             runtime.start()
@@ -771,7 +810,7 @@ class UniProtRestClient:
     def fetch_proteins(self):
         open(self.results_file, "w").close()
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
-                    _rec.database == "uniprot" and not _rec.record]
+                    _rec.database == "uniprot" and _rec.database == "uniprot" and not _rec.record]
 
         if len(_records) > 0:
             _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
@@ -786,7 +825,7 @@ class UniProtRestClient:
             runtime.start()
             params = {"format": "txt"}
             run_multicore_function(accessions, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
             runtime.end()
             errors = self._parse_error_file()
             if errors:
@@ -1280,21 +1319,22 @@ class NCBIClient:
     def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
-        records = self._get_seq(gi_nums, database)
-        for accn, rec in records.items():
-            # Catch accn/version
-            with_version = re.search("^(.*?)\.([0-9]+)$", accn)
-            if with_version:
-                accn, ver = with_version.group(1), with_version.group(2)
-                self.dbbuddy.records[accn].record = rec
-                self.dbbuddy.records[accn].version = ver
-            else:
-                try:
+        if len(gi_nums) > 0:
+            records = self._get_seq(gi_nums, database)
+            for accn, rec in records.items():
+                # Catch accn/version
+                with_version = re.search("^(.*?)\.([0-9]+)$", accn)
+                if with_version:
+                    accn, ver = with_version.group(1), with_version.group(2)
                     self.dbbuddy.records[accn].record = rec
-                except KeyError:
-                    self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
-                except KeyboardInterrupt:
-                    _stderr("\n\tNCBI query interrupted by user\n")
+                    self.dbbuddy.records[accn].version = ver
+                else:
+                    try:
+                        self.dbbuddy.records[accn].record = rec
+                    except KeyError:
+                        self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
+                    except KeyboardInterrupt:
+                        _stderr("\n\tNCBI query interrupted by user\n")
 
 
 class EnsemblRestClient:
@@ -1354,22 +1394,23 @@ class EnsemblRestClient:
 
     def fetch_nucleotide(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        _stderr("Fetching sequence from Ensembl...\n")
-        runtime = RunTime(prefix="\t")
-        runtime.start()
-        data = self.perform_rest_action("sequence/id", data={"ids": accns},
-                                        headers={"Content-type": "text/x-seqxml+xml"})
-        runtime.end()
-        for rec in data:
-            summary = self.dbbuddy.records[rec.id].summary
-            rec.description = summary['comments']
-            rec.accession = rec.id
-            rec.name = rec.id
-            species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
-            species = "%s%s" % (species.group(1).upper(), species.group(2))
-            new_id = "%s-%s" % (species, summary['name'])
-            self.dbbuddy.records[rec.id].record = rec
-            self.dbbuddy.records[rec.id].record.id = new_id
+        if len(accns) > 0:
+            _stderr("Fetching sequence from Ensembl...\n")
+            runtime = RunTime(prefix="\t")
+            runtime.start()
+            data = self.perform_rest_action("sequence/id", data={"ids": accns},
+                                            headers={"Content-type": "text/x-seqxml+xml"})
+            runtime.end()
+            for rec in data:
+                summary = self.dbbuddy.records[rec.id].summary
+                rec.description = summary['comments']
+                rec.accession = rec.id
+                rec.name = rec.id
+                species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+                species = "%s%s" % (species.group(1).upper(), species.group(2))
+                new_id = "%s-%s" % (species, summary['name'])
+                self.dbbuddy.records[rec.id].record = rec
+                self.dbbuddy.records[rec.id].record.id = new_id
 
     def _mc_search(self, species, args):
         identifier, lock = args
@@ -1502,10 +1543,14 @@ Further details about each command can be accessed by typing 'help <command>'
         self.crash_file = crash_file
         self.dump_session()
 
-        self.history_path = "%s/.cmd_history" % CONFIG["install_path"]
+        if CONFIG["install_path"]:
+            self.history_path = "%s/.cmd_history" % CONFIG["install_path"]
+
+        else:
+            self.history_path = "/tmp/.db_cmd_history"
+
         if not os.path.isfile(self.history_path):
             open(self.history_path, "w").close()
-
         readline.read_history_file(self.history_path)
 
         # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
@@ -1809,6 +1854,14 @@ Further details about each command can be accessed by typing 'help <command>'
             with open(os.path.abspath(line), "rb") as ifile:
                 self.dbbuddy = pickle.load(ifile)
             self.dump_session()
+            for _db, client in self.dbbuddy.server_clients.items():
+                if client:
+                    client.temp_dir = TempDir()
+                    client.http_errors_file = "%s/errors.txt" % client.temp_dir.path
+                    open(client.http_errors_file, "w").close()
+                    client.results_file = "%s/results.txt" % client.temp_dir.path
+                    open(client.results_file, "w").close()
+
             _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
 
         except IOError as e:
@@ -1975,10 +2028,18 @@ Further details about each command can be accessed by typing 'help <command>'
             if heading == "ACCN":
                 return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
 
+            int_headings = 0
             for accn, _rec in records.items():
                 if heading == "DB":
                     subgroups.setdefault(_rec.database, {})
                     subgroups[_rec.database][accn] = _rec
+                elif heading == "record":
+                    if _rec.record:
+                        _value = "full"
+                    else:
+                        _value = "summary"
+                    subgroups.setdefault(_value, {})
+                    subgroups[_value][accn] = _rec
                 else:
                     if heading not in _rec.summary:
                         subgroups.setdefault("zzzzz", {})
@@ -1986,6 +2047,13 @@ Further details about each command can be accessed by typing 'help <command>'
                     else:
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
+                        if isinstance(_rec.summary[heading], int):
+                            if _rec.summary[heading] > int_headings:
+                                int_headings = _rec.summary[heading]
+
+            if int_headings and "zzzzz" in subgroups:
+                subgroups[int_headings + 1] = subgroups["zzzzz"]
+                del subgroups["zzzzz"]
 
             subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=rev))
             final_order = OrderedDict()
@@ -2495,7 +2563,7 @@ if __name__ == '__main__':
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
-            tb = ""
+            tb = "%s\n" % CONFIG["user_hash"]
             for _line in traceback.format_tb(sys.exc_info()[2]):
                 _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
                 tb += _line
