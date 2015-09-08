@@ -21,12 +21,12 @@ write_file = MyFuncs.TempFile()
 
 def seqs_to_hash(_seqbuddy, mode='hash'):
     if _seqbuddy.out_format in ["gb", "genbank"]:
-            for _rec in _seqbuddy.records:
-                try:
-                    if re.search("(\. )+", _rec.annotations['organism']):
-                        _rec.annotations['organism'] = "."
-                except KeyError:
-                    pass
+        for _rec in _seqbuddy.records:
+            try:
+                if re.search("(\. )+", _rec.annotations['organism']):
+                    _rec.annotations['organism'] = "."
+            except KeyError:
+                pass
 
     if _seqbuddy.out_format == "phylipi":
         write_file.write(Sb.phylipi(_seqbuddy, "relaxed"))
@@ -214,7 +214,7 @@ def test_molecular_weight():
     tester = Sb.molecular_weight(Sb._make_copies(sb_objects[1]))
     assert tester[1]['masses_ds'][0] == 743477.1
     assert tester[1]['masses_ss'][0] == 371242.6
-    assert seqs_to_hash(tester[0]) == "49479b48bdc58852072c6415856a9a47"
+    assert seqs_to_hash(tester[0]) == "e080cffef0ec6c5e8eada6f57bbc35f9"
     # Ambiguous DNA
     tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))[1]
     assert tester['masses_ds'][0] == 743477.08
@@ -228,7 +228,7 @@ def test_molecular_weight():
     # Protein
     tester = Sb.molecular_weight(Sb._make_copies(sb_objects[7]))
     assert tester[1]['masses_ss'][0] == 45692.99
-    assert seqs_to_hash(tester[0]) == "1a0e0bc8d8041df9a8e45731cabd8155"
+    assert seqs_to_hash(tester[0]) == "fb1a66b7eb576c0584fc7988c45b6a18"
 
 
 # ######################  'cs', '--clean_seq'  ###################### #
@@ -611,7 +611,7 @@ def test_isoelectric_point(seqbuddy):
     output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
     assert output[1]["Mle-Panxα12"] == 6.0117797852
     if seqbuddy.out_format == "gb":
-        assert seqs_to_hash(seqbuddy) == "00fd1bde906933c479bb8fefb4b9fe9d"
+        assert seqs_to_hash(seqbuddy) == "d3d22b310411419ad9383a83e0ab5893"
 
 
 def test_isoelectric_point_type_error():
@@ -653,13 +653,13 @@ def test_blastp():
 def test_bl2seq_cds():
     seqbuddy = Sb.SeqBuddy(resource(seq_files[0]))
     result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == 'c860c66c9f22eb5ee7b41000b636b47e'
+    assert md5(result.encode()).hexdigest() == '339377aee781fb9d01456f04553e3923'
 
 
 def test_bl2seq_pep():
     seqbuddy = Sb.SeqBuddy(resource(seq_files[6]))
     result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == '247e4a1edd01f2a85ebadf491d794587'
+    assert md5(result.encode()).hexdigest() == '4c722c4db8bd5c066dc76ebb94583a37'
 
 
 # ######################  'cr', '--count_residues' ###################### #

@@ -2480,14 +2480,14 @@ def count_codons(_seqbuddy):
                 data_table[_codon][1] += 1
             else:
                 if _codon.upper() in ['ATG', 'AUG']:
-                    data_table[_codon] = ('M', 1, 0.0)
+                    data_table[_codon] = ['M', 1, 0.0]
                 elif _codon.upper() == 'NNN':
-                    data_table[_codon] = ('X', 1, 0.0)
+                    data_table[_codon] = ['X', 1, 0.0]
                 elif _codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
-                    data_table[_codon] = ('*', 1, 0.0)
+                    data_table[_codon] = ['*', 1, 0.0]
                 else:
                     try:
-                        data_table[_codon] = (codontable[_codon.upper()], 1, 0.0)
+                        data_table[_codon] = [codontable[_codon.upper()], 1, 0.0]
                     except KeyError:
                         _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(_codon))
             _sequence = _sequence[3:]
