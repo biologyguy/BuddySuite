@@ -15,28 +15,25 @@ import zipfile
 from inspect import getsourcefile
 from collections import OrderedDict
 import buddy_resources as br
+import string
+from random import choice
 
 import argparse
 
-buddysuite_version = '1.alpha'
+_version = br.Version("BuddySuite", 1, 'alpha', br.contributors)
 
-parser = argparse.ArgumentParser(
-    prog="BuddySuite", description="The BuddySuite installer")
+fmt = lambda prog: br.CustomHelpFormatter(prog)
 
-parser.add_argument('-v', '--version', action='version',
-                    version='''\
-BuddySuite {0} (2015)
+parser = argparse.ArgumentParser(prog="buddysuite", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                 description='''\
+\033[1mBuddySuite Installer\033[m
+  Install, upgrade, or uninstall the BuddySuite tools.
+''')
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov'''.format(buddysuite_version))
-
-parser.add_argument('-cmd', '--cmd_line', help="Force the installer to use command line version.",
-                    action='store_true')
+br.flags(parser, None, br.bsi_flags, None, _version)
 
 in_args = parser.parse_args()
+
 home_dir = path.expanduser('~')
 start_dir = os.getcwd()
 
@@ -62,19 +59,23 @@ if not in_args.cmd_line:
         from PIL import Image
 
     except ImportError:
-        if which("conda"):
-            print("The image processing package 'Pillow' is needed for the graphical installer, "
-                  "attempting to install with 'conda'.")
-            Popen("conda install pillow", shell=True).wait()
+        print("The image processing package 'Pillow' (https://python-pillow.github.io/) is needed for the graphical "
+              "installer. If you are working within a standard desktop environment you should install Pillow, but it "
+              "is not necessary if working on a non-graphical platform (e.g., on a cluster).")
+        prompt = input("Try to install Pillow y/[n]?")
+        if prompt.lower().strip() in ["yes", "y"]:
+            if which("conda"):
+                print("Attempting to install Pillow with 'conda'.")
+                Popen("conda install pillow", shell=True).wait()
 
-        elif which("pip"):
-            print("The image processing package 'Pillow' is needed for the graphical installer, "
-                  "attempting to install a temporary copy.")
-            Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
-                  temp_dir.name, shell=True).wait()
-            if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
-                shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
-
+            elif which("pip"):
+                print("Attempting to install a temporary copy of Pillow with 'pip'.")
+                Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
+                      temp_dir.name, shell=True).wait()
+                if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
+                    shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
+            else:
+                print("Unable to install Pillow.")
     try:
         from PIL import Image
     except ImportError:
@@ -157,6 +158,9 @@ class BuddyInstall:
         buddies_to_install = options[0]
         install_directory = options[1]
         shortcuts = options[2]
+        # email_address = options[3]
+        # send_diagnostics = options[4]
+        # user_hash = options[5]
 
         for buddy in buddies_to_install:  # Deletes shortcuts from buddies that aren't being installed
             if not buddies_to_install[buddy]:
@@ -269,7 +273,7 @@ class BuddyInstall:
                              'Install_path': {'path': '{0}/BuddySuite'.format(home_dir)},
                              'shortcuts': {'SeqBuddy': 'sb\tseqbuddy', 'AlignBuddy': 'alb\talignbuddy',
                                            'PhyloBuddy': 'pb\tphylobuddy', 'DatabaseBuddy': 'db\tDatabaseBuddy'},
-                             'other': {'email': '', 'diagnostics': False}}
+                             'other': {'email': '', 'diagnostics': True, 'user_hash': ''}}
 
         for buddy in options[0]:
             if options[0][buddy]:
@@ -281,6 +285,7 @@ class BuddyInstall:
 
         writer['other']['email'] = options[3]
         writer['other']['diagnostics'] = options[4]
+        writer['other']['user_hash'] = options[5]
 
         for buddy in options[2]:
             sc = ''
@@ -300,7 +305,7 @@ class BuddyInstall:
 
             options = [{"SeqBuddy": False, "AlignBuddy": False, "PhyloBuddy": False, "DatabaseBuddy": False},
                        reader.get('Install_path', 'path'), {}, reader.get('other', 'email'),
-                       reader.get('other', 'diagnostics')]
+                       reader.get('other', 'diagnostics'), reader.get('other', 'user_hash')]
 
             for buddy in options[0]:
                 if reader['selected'][buddy] == 'True':
@@ -349,34 +354,43 @@ class BuddyInstall:
 
 # installer
 def cmd_install():
-    def ask(_prompt):
-        _response = input(_prompt)
+    def ask(input_prompt):
+        _response = input(input_prompt)
         while True:
             if _response.lower() in ["yes", "y", '']:
                 return True
             elif _response.lower() in ["no", "n", "abort"]:
                 return False
             else:
-                print("Response not understood. Try again.")
-                _response = input(_prompt)
+                print("Response not understood. Valid options are 'yes' and 'no'.")
+                _response = input(input_prompt)
 
     config = BuddyInstall.read_config_file()
     old_install_dir = None
     already_installed = None
     old_shortcuts = None
+    install_dir = ""
+    email_address = ''
+    send_diagnostics = False
+    user_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+
     if config is not None:
         already_installed = copy.deepcopy(config[0])
         old_install_dir = copy.deepcopy(config[1])
         install_dir = old_install_dir
         old_shortcuts = copy.deepcopy(config[2])
+        email_address = config[3]
+        send_diagnostics = config[4]
+        user_hash = config[5]
+
     buddies_to_install = {"SeqBuddy": False, "PhyloBuddy": False, "AlignBuddy": False, "DatabaseBuddy": False}
     shortcuts = {"SeqBuddy": [], "PhyloBuddy": [], "AlignBuddy": [], "DatabaseBuddy": []}
 
     def print_shortcuts():
-        print("\tSelected Shortcuts: ")
+        print("\n\tSelected Shortcuts: ")
         for buddy_tool in shortcuts:
             if buddies_to_install[buddy_tool]:
-                print("\t{0}:\t{1}".format(buddy_tool, str(shortcuts[buddy_tool]).strip('[]')))
+                print("\t{0}:\t\t{1}".format(buddy_tool, str(shortcuts[buddy_tool]).strip('[]')))
 
     def add_shortcut(in_buddy, in_shortcut):
         if buddies_to_install[in_buddy] is False:
@@ -400,18 +414,18 @@ def cmd_install():
                 return True
         return False
 
-    print("Basic terminal installer called.")
+    print("\nBuddySuite command line installer launched.")
     if not ask("Would you like to proceed? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
-    print("Before continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
+    print("\nBefore continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
     if not ask("Do you accept these terms? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
     if config is not None:
-        print("We have detected a previous installation. Some settings will be imported.")
+        print("\nWe have detected a previous installation. Some settings will be imported.")
 
     for buddy in buddies_to_install:
         operation = ' install' if already_installed is None or not already_installed[buddy] else ' keep'
@@ -428,12 +442,13 @@ def cmd_install():
 
     if not all_false:
         if old_shortcuts is not None:
-            if ask("Would you like to keep your old shortcuts? ('[yes]/no') "):
-                shortcuts = old_shortcuts
-            print("\tImported Shortcuts: ")
-            for buddy in shortcuts:
+            print("\nThe following shortcuts already exist on your system:")
+            for buddy in old_shortcuts:
                 if buddies_to_install[buddy]:
-                    print("\t{0}:\t{1}".format(buddy, str(shortcuts[buddy]).strip('[]')))
+                    print("\t{0}:\t{1}".format(buddy, str(old_shortcuts[buddy]).strip('[]')))
+
+            if ask("\nWould you like to keep these old shortcuts? ('[yes]/no') "):
+                shortcuts = old_shortcuts
 
         default_shortcuts = {"SeqBuddy": ['sb', 'seqbuddy'], "PhyloBuddy": ['pb', 'phylobuddy'],
                              "AlignBuddy": ['alb', 'alignbuddy'], "DatabaseBuddy": ['db', 'dbbuddy']}
@@ -459,7 +474,7 @@ def cmd_install():
                 if buddies_to_install[buddy]:
                     print("\t{0}:\t{1}".format(buddy, str(default_shortcuts[buddy]).strip('[]')))
 
-            if ask("Would you like to add the default shortcuts? ('[yes]/no') "):
+            if ask("\nWould you like to add the default shortcuts? ('[yes]/no') "):
                 for buddy in default_shortcuts:
                     if buddies_to_install[buddy]:
                         for shortcut in default_shortcuts[buddy]:
@@ -467,9 +482,9 @@ def cmd_install():
 
         print_shortcuts()
 
-        if ask("Would you like to add or remove shortcuts? ('[yes]/no') "):
-            prompt = True
-            while prompt:
+        if ask("\nWould you like to add or remove shortcuts? ('[yes]/no') "):
+            _prompt = True
+            while _prompt:
                 add_or_remove = input("Would you like to add or remove? ('add/remove/[cancel]') ")
                 while True:
                     if add_or_remove.lower() in ['cancel', '']:
@@ -523,10 +538,11 @@ def cmd_install():
                         print("Warning: Shortcut already does not exist.")
 
                 print_shortcuts()
-                prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
+                _prompt = ask("Would you like to add/remove another shortcut? ('[yes]/no') ")
 
         if old_install_dir is None:
-            install_dir = input("Please specify an installation directory ('/BuddySuite' will automatically be appended) ")
+            install_dir = input("\nBuddySuite will be installed in your home directory, or specify a different "
+                                "location ('/BuddySuite' will be appended): ")
             install_dir = install_dir.rstrip("/")
             while True:
                 if install_dir.lower() == 'abort':
@@ -534,8 +550,11 @@ def cmd_install():
                     exit()
                 try:
                     install_dir = re.sub('~', home_dir, install_dir)
-                    if install_dir[0] != '/':
-                        install_dir = "{0}/{1}".format(start_dir, install_dir)
+                    if install_dir == "":
+                        install_dir = home_dir
+                    else:
+                        install_dir = os.path.abspath(install_dir)
+                    install_dir = install_dir.rstrip("/")
                     os.makedirs("{0}/BuddySuite".format(install_dir), exist_ok=True)
                     install_dir = "{0}/BuddySuite".format(install_dir)
                     break
@@ -546,34 +565,55 @@ def cmd_install():
         else:
             install_dir = old_install_dir
 
-    print("Please verify your settings.\n")
+    print("\nProviding a valid email address is recommended if using DatabaseBuddy to access NCBI, as they will attempt "
+          "to contact you before blocking your IP if you are not adhering to their usage limitations. "
+          "See our privacy statement for further details.\n"
+          "https://github.com/biologyguy/BuddySuite/blob/master/privacy\n")
+
+    if email_address != '':
+        if not ask("Your email address is currently set to \033[1m%s\033[m, would you like to keep it the same? [y]/n"
+                   % email_address):
+            email_address = ''
+
+    if email_address == '':
+        email_address = input("\nPlease provide your email address (optional): ")
+
+    if ask("\nWould you like to join our Software Improvement Program (SIP)? Anonymized usage statistics and crash "
+           "reports will be automatically transmitted to the BuddySuite developers. [y]/n"):
+        send_diagnostics = True
+
+    print("\nPlease verify your settings.\n")
     for buddy in buddies_to_install:
         if already_installed is not None and already_installed[buddy]:
             if buddies_to_install[buddy]:
-                print("\t{0}: Modify".format(buddy))
+                print("\t{0}:\t\tModify".format(buddy))
             else:
-                print("\t{0}: Uninstall".format(buddy))
+                print("\t{0}:\t\tUninstall".format(buddy))
         else:
             if buddies_to_install[buddy]:
-                print("\t{0}: Install".format(buddy))
+                print("\t{0}:\tInstall".format(buddy))
             else:
-                print("\t{0}: Skip".format(buddy))
+                print("\t{0}:\tSkip".format(buddy))
     if not all_false:
-        print()
         print_shortcuts()
-        print("\tInstallation directory: {0}\n".format(install_dir))
+        print("\n\tInstallation directory:\t{0}\n".format(install_dir))
+
+    print("\tEmail address:\t\t\t%s" % email_address)
+    print("\tSIP participation:\t%s\n" % send_diagnostics)
+
     if ask("Are these settings okay? ('[yes]/abort') "):
         if all_false and config is not None:
             os.remove("{0}/.buddysuite/config.ini".format(home_dir))
         if config is not None:  # Uninstall removed shortcuts
             for buddy in old_shortcuts:
                 for shortcut in old_shortcuts[buddy]:
-                    if os.path.exists("{0}/.buddysuite/{1}".format(home_dir, shortcut)) and shortcut not in shortcuts[buddy]:
+                    if os.path.exists("%s/.buddysuite/%s" % (home_dir, shortcut)) and shortcut not in shortcuts[buddy]:
                         os.remove("{0}/.buddysuite/{1}".format(home_dir, shortcut))
         for buddy in buddies_to_install:
             if not buddies_to_install[buddy]:
                 shortcuts[buddy] = []
-        BuddyInstall.install_buddy_suite(system(), [buddies_to_install, install_dir, shortcuts])
+        BuddyInstall.install_buddy_suite(system(), [buddies_to_install, install_dir, shortcuts,
+                                                    email_address, str(send_diagnostics), user_hash])
         exit()
     else:
         print("Installation aborted.")
@@ -632,6 +672,7 @@ class Installer(Frame):
 
     email_address = ''
     send_diagnostics = True
+    user_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
     install_dir = "{0}/BuddySuite".format(home_dir)
     default_dir = "{0}/BuddySuite".format(home_dir)
@@ -656,6 +697,7 @@ class Installer(Frame):
         shortcuts = copy.deepcopy(config[2])
         email_address = config[3]
         send_diagnostics = config[4]
+        user_hash = config[5]
 
         # if new install of given tool, re-add default shortcuts]
         if which("sb") is None and not buddies["SeqBuddy"]:
@@ -689,12 +731,12 @@ class Installer(Frame):
             self.buddies[buddy] = False
         self.confirmation()
 
-    def welcome(self, debug=None):
+    def welcome(self, *args):
         self.clear_container()
         title_frame = Frame()
         welcome_label = Label(title_frame, image=self.bs_logo)
         welcome_label.pack(side=TOP)
-        version_label = Label(title_frame, text="Version {0}".format(buddysuite_version))
+        version_label = Label(title_frame, text="Version {0}".format(_version.short()))
         version_label.pack(side=RIGHT)
         title_frame.pack(pady=sh / 10)
         self.container.append(title_frame)
@@ -902,43 +944,44 @@ class Installer(Frame):
         if in_dir is not None:
             self.install_dir = in_dir.get()
         self.clear_container()
-        if self.buddies['DatabaseBuddy'] is False:
-            if in_dir is not None:
-                self.install_shortcuts()
-            else:
-                self.install_location()
-            return
-        else:
-            logo_label = Label(image=self.ea_logo, pady=20 * scale_factor)
-            logo_label.pack(side=TOP)
-            self.container.append(logo_label)
 
-            frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
+        logo_label = Label(image=self.ea_logo, pady=20 * scale_factor)
+        logo_label.pack(side=TOP)
+        self.container.append(logo_label)
+        info_frame = LabelFrame(bd=0, padx=10 * scale_factor, pady=10 * scale_factor)
+        self.container.append(info_frame)
+        text_lable = Label(info_frame, justify="left", wraplength=700 * scale_factor,
+                           text="Providing a valid email address is recommended if using DatabaseBuddy to access NCBI, "
+                                "as they will attempt to contact you before blocking your IP if you are not adhering "
+                                "to their usage limitations. See our privacy statement for further details.\n"
+                                "https://github.com/biologyguy/BuddySuite/blob/master/privacy")
+        text_lable.grid(row=0, sticky=NW)
+        info_frame.pack(side=TOP, anchor=NW, padx=50 * scale_factor, pady=50 * scale_factor, fill=BOTH)
 
-            label = Label(frame, text="Would you like to provide your email address? (optional)")
-            label.pack(side=TOP, anchor=NW)
+        frame = Frame(root, padx=50 * scale_factor, pady=50 * scale_factor)
+        label = Label(frame, text="Please provide your email address (optional).")
+        label.pack(side=TOP, anchor=NW)
+        email_text = Entry(frame)
+        email_text.insert(END, self.email_address)
+        email_text.pack(side=TOP, anchor=NW, fill=X)
 
-            email_text = Entry(frame)
-            email_text.insert(END, self.email_address)
-            email_text.pack(side=TOP, anchor=NW, fill=X)
+        frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
+        self.container.append(frame)
 
-            frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
-            self.container.append(frame)
+        lower_box = Frame()
 
-            lower_box = Frame()
-
-            button_frame = Frame(lower_box)
-            next_func = partial(self.install_shortcuts, email_text)
-            next_button = Button(button_frame, padx=50 * scale_factor,
-                                 pady=20 * scale_factor, text="Next", command=next_func)
-            next_button.pack(side=RIGHT)
-            back_func = partial(self.install_location, email_text)
-            back_button = Button(button_frame, padx=50 * scale_factor,
-                                 pady=20 * scale_factor, text="Back", command=back_func)
-            back_button.pack(side=LEFT)
-            button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
-            lower_box.pack(side=BOTTOM)
-            self.container.append(lower_box)
+        button_frame = Frame(lower_box)
+        next_func = partial(self.install_shortcuts, email_text)
+        next_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Next", command=next_func)
+        next_button.pack(side=RIGHT)
+        back_func = partial(self.install_location, email_text)
+        back_button = Button(button_frame, padx=50 * scale_factor,
+                             pady=20 * scale_factor, text="Back", command=back_func)
+        back_button.pack(side=LEFT)
+        button_frame.pack(side=BOTTOM, pady=20 * scale_factor)
+        lower_box.pack(side=BOTTOM)
+        self.container.append(lower_box)
 
     def install_shortcuts(self, email=None):
         if email is not None:
@@ -1018,7 +1061,7 @@ class Installer(Frame):
         var.set(text[0])
         entry.insert(END, text[1])
 
-    def add_shortcut(self, buddy, listbox, entry, debug, event=None):
+    def add_shortcut(self, buddy, listbox, entry, debug):
         debug.config(text='')
         addable = True
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
@@ -1044,7 +1087,7 @@ class Installer(Frame):
             debug.config(text='Not added: Already exists')
             return
 
-    def remove_shortcut(self, buddy, listbox, entry, debug, event=None):
+    def remove_shortcut(self, buddy, listbox, entry, debug):
         debug.config(text='')
         text = re.sub("[^a-zA-Z0-9]", '', entry.get())
         entry.delete(0, END)
@@ -1064,8 +1107,10 @@ class Installer(Frame):
         frame = Frame(root, padx=50 * scale_factor, pady=75 * scale_factor)
 
         diagnostic_box = Checkbutton(frame,
-                                     text="Would you be willing to send usage stats and diagnostic information to us?",
-                                     command=self.toggle_diagnostics, pady=50 * scale_factor)
+                                     text="  Please join our Software Improvement Program.\n"
+                                          "  Anonymized usage statistics and crash reports will be\n"
+                                          "  automatically transmitted to the BuddySuite developers.",
+                                     command=self.toggle_diagnostics, pady=50 * scale_factor, justify="left")
         if self.send_diagnostics:
             diagnostic_box.toggle()
 
@@ -1213,7 +1258,8 @@ class Installer(Frame):
             if not self.buddies[buddy]:
                 self.shortcuts[buddy] = []
         BuddyInstall.install_buddy_suite(self.user_system, [self.buddies, self.install_dir, self.shortcuts,
-                                                            self.email_address, str(self.send_diagnostics)])
+                                                            self.email_address, str(self.send_diagnostics),
+                                                            self.user_hash])
         exit()
 
     def clear_container(self):

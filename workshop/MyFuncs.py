@@ -24,6 +24,43 @@ class Timer:
         return pretty_time(round(time()) - self.current_time)
 
 
+class RunTime:
+    def __init__(self, prefix="", postfix="", out_type=stdout):
+        self.check_file = TempFile()
+        self.out_type = out_type
+        self.prefix = prefix
+        self.postfix = postfix
+
+    def _run(self, check_file_path):
+        d_print = DynamicPrint(self.out_type)
+        start_time = round(time())
+        elapsed = 0
+
+        while True:
+            check_file = open(check_file_path, "r")
+            if check_file.read() == "%!~_-end-_~!%":
+                check_file.close()
+                check_file = open(check_file_path, "w")
+                check_file.write("%!~_-closed-_~!%")
+                check_file.close()
+                d_print.write("")
+                break
+            d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
+            elapsed = round(time()) - start_time
+        return
+
+    def start(self):
+        Process(target=self._run, args=(self.check_file.path,)).start()
+        return
+
+    def end(self):
+        self.check_file.write("%!~_-end-_~!%")
+        while True:
+            if self.check_file.read() == "%!~_-closed-_~!%":
+                break
+        return
+
+
 # maybe use curses library in the future to extend this for multi-line printing
 class DynamicPrint:
     def __init__(self, out_type="stdout", quiet=False):
@@ -97,7 +134,7 @@ def pretty_number(num, mode='short', precision=2):  # mode in ['short', 'medium'
         return '%s %s' % (num, ['', 'Kilo', 'Mega', 'Giga', 'Tera', 'Peta', 'Exa', 'Zetta', 'Yotta'][magnitude])
     elif mode == 'long':
         return '%s %s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion',
-                                  'Sextillion', 'Septillion'][magnitude])
+                                'Sextillion', 'Septillion'][magnitude])
     else:
         raise ValueError("Valid 'mode' values are 'short', 'medium', and 'long'")
 
@@ -254,18 +291,24 @@ class TempFile:
         dir_hash = self._tmp_dir.path.split("/")[-1]
         self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
+        open(self.path, "w").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
 
     def open(self, mode="w"):
         mode = "%s%s" % (mode, self.bm)
-        if not self.handle:
-            self.handle = open(self.path, mode)
+        if self.handle:
+            self.close()
+        self.handle = open(self.path, mode)
 
     def close(self):
         if self.handle:
             self.handle.close()
             self.handle = None
+
+    def get_handle(self, mode="w"):
+        self.open(mode)
+        return self.handle
 
     def write(self, content, mode="a"):
         mode = "%s%s" % (mode, self.bm)
@@ -303,7 +346,7 @@ class TempFile:
         return
 
 
-class SafetyValve:  # Use this class if you're afraid of an infinit loop
+class SafetyValve:  # Use this class if you're afraid of an infinite loop
     def __init__(self, global_reps=1000, state_reps=10, counter=0):
         self.counter = counter
         

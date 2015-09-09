@@ -15,7 +15,6 @@ from copy import copy, deepcopy
 from io import StringIO, TextIOWrapper
 from random import sample
 import re
-from MyFuncs import TemporaryDirectory
 from collections import OrderedDict
 from shutil import *
 import subprocess
@@ -33,6 +32,8 @@ from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
 # My functions
+import buddy_resources as br
+from MyFuncs import TemporaryDirectory
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -95,11 +96,12 @@ def _get_alignment_binaries(_tool):
                  'clustalomega': 'http://www.clustal.org/omega/#Download'}
     return tool_dict[_tool]
 
-# ##################################################### Globals ###################################################### #
+# ##################################################### GLOBALS ###################################################### #
 gap_characters = ["-", ".", " "]
+VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
 
 
-# #################################################### ALIGN BUDDY ################################################### #
+# #################################################### ALIGNBUDDY #################################################### #
 class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
@@ -1105,9 +1107,6 @@ if __name__ == '__main__':
         sys.argv[arg_index] = params
 
     import argparse
-    import buddy_resources as br
-
-    version = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
 
@@ -1122,8 +1121,8 @@ if __name__ == '__main__':
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    br.flags(parser, "AlignBuddy", ("alignments", "The file(s) you want to start working on"),
-             br.alb_flags, br.alb_modifiers, version)
+    br.flags(parser, ("alignments", "The file(s) you want to start working on"),
+             br.alb_flags, br.alb_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
@@ -1192,11 +1191,57 @@ if __name__ == '__main__':
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
+    def _exit(tool):
+        usage = br.Usage()
+        usage.increment("AlignBuddy", VERSION.short(), tool)
+        usage.save()
+        sys.exit()
+
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Screw formats
-    if in_args.screw_formats:
-        alignbuddy.out_format = in_args.screw_formats
-        _print_aligments(alignbuddy)
+    # Alignment lengths
+    if in_args.alignment_lengths:
+        counts = alignment_lengths(alignbuddy)
+        output = ""
+        for indx, count in enumerate(counts):
+            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
+
+        _stdout("%s\n" % output.strip())
+        _exit("alignment_lengths")
+
+    # Back Transcribe
+    if in_args.back_transcribe:
+        if alignbuddy.alpha != IUPAC.ambiguous_rna:
+            raise ValueError("You need to provide an RNA sequence.")
+        _print_aligments(rna2dna(alignbuddy))
+        _exit("back_transcribe")
+
+    # Clean Seq
+    if in_args.clean_seq:
+        if in_args.clean_seq[0] == "strict":
+            _print_aligments(clean_seq(alignbuddy))
+        else:
+            _print_aligments(clean_seq(alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx"))
+        _exit("clean_seq")
+
+    # Codon alignment
+    if in_args.codon_alignment:
+        _print_aligments(codon_alignment(alignbuddy))
+        _exit("codon_alignment")
+
+    # Concatenate Alignments
+    if in_args.concat_alignments:
+        _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
+        _exit("concat_alignments")
+
+    # Delete rows
+    if in_args.delete_rows:
+        _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
+        _exit("delete_rows")
+
+    # Extract range
+    if in_args.extract_range:
+        _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
+        _exit("extract_range")
 
     # List identifiers
     if in_args.list_ids:
@@ -1215,6 +1260,12 @@ if __name__ == '__main__':
                     count = 1
             output += "\n"
         _stdout(output)
+        _exit("list_ids")
+
+    # Lowercase
+    if in_args.lowercase:
+        _print_aligments(lowercase(alignbuddy))
+        _exit("lowercase")
 
     # Number sequences per alignment
     if in_args.num_seqs:
@@ -1222,83 +1273,31 @@ if __name__ == '__main__':
         output = ""
         for indx, count in enumerate(counts):
             output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
-
         _stdout("%s\n" % output.strip())
-
-    # Clean Seq
-    if in_args.clean_seq:
-        if in_args.clean_seq[0] == "strict":
-            _print_aligments(clean_seq(alignbuddy))
-        else:
-            _print_aligments(clean_seq(alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx"))
-
-    # Uppercase
-    if in_args.uppercase:
-        _print_aligments(uppercase(alignbuddy))
-
-    # Lowercase
-    if in_args.lowercase:
-        _print_aligments(lowercase(alignbuddy))
-
-    # Codon alignment
-    if in_args.codon_alignment:
-        _print_aligments(codon_alignment(alignbuddy))
-
-    # Translate CDS
-    if in_args.translate:
-        _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
-
-    # Pull rows
-    if in_args.pull_rows:
-        _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
-
-    # Delete rows
-    if in_args.delete_rows:
-        _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
-
-    # Trimal
-    if in_args.trimal:
-        in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
-        _print_aligments(trimal(alignbuddy, in_args.trimal))
-
-    # Concatenate Alignments
-    if in_args.concat_alignments:
-        _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
-
-    # Rename IDs
-    if in_args.rename_ids:
-        num = 0 if not in_args.params else int(in_args.params[0])
-        _print_aligments(rename(alignbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        _exit("num_seqs")
 
     # Order IDs
     if in_args.order_ids:
         reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
         _print_aligments(order_ids(alignbuddy, _reverse=reverse))
+        _exit("order_ids")
 
-    # Transcribe
-    if in_args.transcribe:
-        if alignbuddy.alpha != IUPAC.ambiguous_dna:
-            raise ValueError("You need to provide a DNA sequence.")
-        _print_aligments(dna2rna(alignbuddy))
+    # Pull rows
+    if in_args.pull_rows:
+        _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
+        _exit("pull_rows")
 
-    # Back Transcribe
-    if in_args.back_transcribe:
-        if alignbuddy.alpha != IUPAC.ambiguous_rna:
-            raise ValueError("You need to provide an RNA sequence.")
-        _print_aligments(rna2dna(alignbuddy))
+    # Rename IDs
+    if in_args.rename_ids:
+        num = 0 if not in_args.params else int(in_args.params[0])
+        _print_aligments(rename(alignbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        _exit("rename_ids")
 
-    # Extract range
-    if in_args.extract_range:
-        _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
-
-    # Alignment lengths
-    if in_args.alignment_lengths:
-        counts = alignment_lengths(alignbuddy)
-        output = ""
-        for indx, count in enumerate(counts):
-            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
-
-        _stdout("%s\n" % output.strip())
+    # Screw formats
+    if in_args.screw_formats:
+        alignbuddy.out_format = in_args.screw_formats
+        _print_aligments(alignbuddy)
+        _exit("screw_formats")
 
     # Split alignments into files
     if in_args.split_to_files:
@@ -1315,3 +1314,28 @@ if __name__ == '__main__':
             _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
             open(in_args.alignment[0], "w").close()
             _print_aligments(alignbuddy)
+        _exit("split_to_files")
+
+    # Translate CDS
+    if in_args.translate:
+        _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
+        _exit("translate")
+
+    # Trimal
+    if in_args.trimal:
+        in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
+        _print_aligments(trimal(alignbuddy, in_args.trimal))
+        _exit("trimal")
+
+    # Transcribe
+    if in_args.transcribe:
+        if alignbuddy.alpha != IUPAC.ambiguous_dna:
+            raise ValueError("You need to provide a DNA sequence.")
+        _print_aligments(dna2rna(alignbuddy))
+        _exit("transcribe")
+
+    # Uppercase
+    if in_args.uppercase:
+        _print_aligments(uppercase(alignbuddy))
+        _exit("uppercase")
+

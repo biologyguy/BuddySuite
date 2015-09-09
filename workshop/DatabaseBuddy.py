@@ -43,6 +43,8 @@ import cmd
 from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
 import warnings
+import readline
+import pickle
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -53,10 +55,13 @@ warnings.simplefilter('ignore', BiopythonWarning)
 
 # My functions
 from MyFuncs import *
-
+import buddy_resources as br
 
 # ##################################################### WISH LIST #################################################### #
-
+# - Catch memory limits before they are overblown by big fetches. Python std-lib doesn't seem to have a tool for this.
+# - Push some functionality off to separate threads, like session dump and stats usage
+# - BLAST functionality
+# - Load sequence files up into the live session (very useful for BLAST, when implemented)
 
 # ###################################################### GLOBALS ##################################################### #
 TRASH_SYNOS = ["t", "tb", "t_bin", "tbin", "trash", "trashbin", "trash-bin", "trash_bin"]
@@ -67,6 +72,8 @@ RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
+CONFIG = br.config_values()
+VERSION = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -262,24 +269,33 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         return client
 
     def record_breakdown(self):
-        _output = {x: [] for x in ["full", "partial", "accession"]}
+        _output = {x: [] for x in ["full", "summary", "accession"]}
         _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
-        _output["partial"] = [_accession for _accession, _rec in self.records.items()
+        _output["summary"] = [_accession for _accession, _rec in self.records.items()
                               if not _rec.record and _rec.summary]
         _output["accession"] = [_accession for _accession, _rec in self.records.items()
                                 if not _rec.record and not _rec.summary]
         return _output
 
+    def trash_breakdown(self):
+        _output = {x: [] for x in ["full", "summary", "accession"]}
+        _output["full"] = [_accession for _accession, _rec in self.trash_bin.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.trash_bin.items()
+                              if not _rec.record and _rec.summary]
+        _output["accession"] = [_accession for _accession, _rec in self.trash_bin.items()
+                                if not _rec.record and not _rec.summary]
+        return _output
+
     def filter_records(self, regex, mode):
-        if mode not in ["keep", "exclude", "restore"]:
-            raise ValueError("The 'mode' argument in filter() must be 'keep', 'exclude', or 'restore', not %s." % mode)
+        if mode not in ["keep", "remove", "restore"]:
+            raise ValueError("The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not %s." % mode)
 
         column_errors = {"KeyError": [], "ValueError": []}
         for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
             try:
                 if mode == "keep" and not _rec.search(regex):
                     self.trash_bin[_id] = _rec
-                elif mode == "exclude" and _rec.search(regex):
+                elif mode == "remove" and _rec.search(regex):
                     self.trash_bin[_id] = _rec
                 elif mode == "restore" and _rec.search(regex):
                     self.records[_id] = _rec
@@ -325,7 +341,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 for _hash, failure in self.failures.items():
                     errors_etc += str(failure)
 
-            if len(self.record_breakdown()["accession"]) > 0:
+            if len(self.record_breakdown()["accession"]) > 0 and _num == len(group):
                 errors_etc += "# ################## Accessions without Records ################## #\n"
                 _counter = 1
                 for _next_acc in self.record_breakdown()["accession"]:
@@ -343,8 +359,18 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             _output = ""
             # Summary outputs
             if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
+                def pad_columns(line_group, col_widths, all_lines):
+                    for indx_x, next_line in enumerate(line_group):
+                        for indx_y, _col in enumerate(next_line):
+                            line_group[indx_x][indx_y] = str(_col).ljust(col_widths[indx_y] + 2)
+                    all_lines += line_group
+                    all_lines.append([])
+                    return all_lines
+
                 lines = []
+                current_group = []
                 saved_headings = []
+                column_widths = []
                 for _accession, _rec in list(group.items())[:_num]:
                     if self.out_format in ["ids", "accessions"]:
                         lines.append([_accession])
@@ -352,34 +378,63 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     elif self.out_format in ["summary", "full-summary"]:
                         headings = ["ACCN", "DB"]
                         headings += [heading for heading, _value in _rec.summary.items()]
+                        headings += ["record"]
+
                         if columns:
                             headings = [heading for heading in headings if heading in columns]
+
                         if saved_headings != headings:
-                            # for heading in headings:
-                            lines.append(headings)
+                            if saved_headings:
+                                lines = pad_columns(current_group, column_widths, lines)
+                                column_widths = []
+                                current_group = []
+
+                            for heading in headings:
+                                column_widths.append(len(str(heading)))
+                            current_group.append(headings)
                             saved_headings = list(headings)
 
-                        lines.append([])
+                        current_group.append([])
+                        attrib_counter = 0
                         if "ACCN" in headings:
-                            lines[-1].append(_accession)
+                            current_group[-1].append(_accession)
+                            if len(str(_accession)) > column_widths[attrib_counter]:
+                                column_widths[attrib_counter] = len(str(_accession))
+                            attrib_counter += 1
+
                         if "DB" in headings:
                             if _rec.database:
-                                lines[-1].append(_rec.database)
+                                current_group[-1].append(_rec.database)
+                                if len(_rec.database) > column_widths[attrib_counter]:
+                                    column_widths[attrib_counter] = len(_rec.database)
                             else:
-                                lines[-1].append("")
+                                current_group[-1].append("")
+                            attrib_counter += 1
 
                         for attrib, _value in _rec.summary.items():
                             if attrib in headings:
                                 if len(str(_value)) > 50 and self.out_format != "full-summary":
-                                    lines[-1].append("%s..." % _value[:47])
+                                    current_group[-1].append("%s..." % _value[:47])
+                                    column_widths[attrib_counter] = 50
                                 else:
-                                    lines[-1].append(_value)
+                                    current_group[-1].append(_value)
+                                    if len(str(_value)) > column_widths[attrib_counter]:
+                                        column_widths[attrib_counter] = len(str(_value))
+                                attrib_counter += 1
 
-                    # ToDo: Thinks about lining up all columns for easier viewing
-                    _output = "\033[m\033[40m\033[97m"
-                    for _line in lines:
-                        colors = terminal_colors()
-                        _output += "%s\n" % "\t".join(["%s%s" % (next(colors), _col) for _col in _line])
+                        if self.out_format not in ["ids", "accessions"] and "record" in headings:
+                            if _rec.record:
+                                current_group[-1].append("full")
+                            else:
+                                current_group[-1].append("summary")
+
+                if self.out_format in ["summary", "full-summary"] and current_group:
+                    lines = pad_columns(current_group, column_widths, lines)
+
+                _output = "\033[m\033[40m\033[97m"
+                for line in lines:
+                    colors = terminal_colors()
+                    _output += "%s\n" % "".join(["%s%s" % (next(colors), _col) for _col in line])
 
             # Full records
             else:
@@ -405,8 +460,9 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
             if not destination:
                 _stdout("{0}\n".format(_output.rstrip()))
             else:
-                # remove any escape characters if writing the file
+                # remove any escape characters and convert space padding to tabs if writing the file
                 _output = re.sub("\\033\[[0-9]*m", "", _output)
+                _output = re.sub("  +", "\t", _output)
                 destination.write(_output)
 
     def __hash__(self):
@@ -426,7 +482,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
         breakdown = self.record_breakdown()
         _output += "Full Recs:    %s\n" % len(breakdown["full"])
-        _output += "Partial Recs: %s\n" % len(breakdown["partial"])
+        _output += "Summary Recs: %s\n" % len(breakdown["summary"])
         _output += "ACCN only:    %s\n" % len(breakdown["accession"])
         _output += "Trash bin:  %s\n" % len(self.trash_bin)
         _output += "Failures:     %s\n" % len(self.failures)
@@ -616,7 +672,6 @@ class UniProtRestClient:
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
         self.server = server
-        self.lock = Lock()
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
@@ -654,7 +709,7 @@ class UniProtRestClient:
                     ofile.write("%s\n%s//\n" % (_term, e))
 
         except KeyboardInterrupt:
-            _stderr("\r\tUniProt query interrupted by user\n")
+            _stderr("\n\tUniProt query interrupted by user\n")
 
     def _parse_error_file(self):
         with open(self.http_errors_file, "r") as ifile:
@@ -718,14 +773,17 @@ class UniProtRestClient:
 
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
+        runtime = RunTime(prefix="\t")
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
+            runtime.start()
             run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
+            runtime.start()
             self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params, Lock()])
-
+        runtime.end()
         errors = self._parse_error_file()
         if errors:
             _stderr("{0}{1}The following errors were encountered while querying UniProt with "
@@ -752,7 +810,7 @@ class UniProtRestClient:
     def fetch_proteins(self):
         open(self.results_file, "w").close()
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
-                    _rec.database == "uniprot" and not _rec.record]
+                    _rec.database == "uniprot" and _rec.database == "uniprot" and not _rec.record]
 
         if len(_records) > 0:
             _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
@@ -763,10 +821,12 @@ class UniProtRestClient:
                 else:
                     accessions[-1] += ",%s" % _rec.accession
 
+            runtime = RunTime(prefix="\t")
+            runtime.start()
             params = {"format": "txt"}
             run_multicore_function(accessions, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()])
-
+                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
+            runtime.end()
             errors = self._parse_error_file()
             if errors:
                 _stderr("{0}{1}The following errors were encountered while querying UniProt with "
@@ -802,7 +862,8 @@ class UniProtRestClient:
 
 class NCBIClient:
     def __init__(self, _dbbuddy):
-        Entrez.email = "steve.bond@nih.gov"  # ToDo: Pull email address from .buddysuite config file
+        Entrez.email = CONFIG["email"]
+        Entrez.tool = "buddysuite"
         self.dbbuddy = _dbbuddy
         self.temp_dir = TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
@@ -851,6 +912,7 @@ class NCBIClient:
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
@@ -873,10 +935,14 @@ class NCBIClient:
                         </DocSum>
                     </eSummaryResult>
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -890,7 +956,7 @@ class NCBIClient:
     def _get_taxa(self, _taxa_ids):
         self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
-        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()])
+        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x for x in results if x]
@@ -905,6 +971,7 @@ class NCBIClient:
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
@@ -914,10 +981,14 @@ class NCBIClient:
                     703125412
                     703125416
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
             except HTTPError as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -931,17 +1002,23 @@ class NCBIClient:
     def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
-        run_multicore_function(accns, self._mc_accn2gi, [Lock()])
+        runtime = RunTime(prefix="\t")
+        _stderr("Converting NCBI accessions to gi numbers...\n")
+        runtime.start()
+        run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x.split("\n") for x in results]
             results = [x for sublist in results for x in sublist if x]
+        _stderr("\tDone\n")
         return results
 
     def _mc_summaries(self, gi_nums, args):
         lock = args[0]
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
@@ -972,10 +1049,14 @@ class NCBIClient:
                         </DocSum>
                     </eSummaryResult>
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -989,7 +1070,11 @@ class NCBIClient:
     def _fetch_summaries(self, gi_nums):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_summaries, [Lock()])
+        runtime = RunTime(prefix="\t")
+        _stderr("Retrieving record summaries from NCBI...\n")
+        runtime.start()
+        run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as _ifile:
             results = _ifile.read().split("\n### END ###\n")
             results = [x for x in results if x != ""]
@@ -1001,7 +1086,8 @@ class NCBIClient:
                 _rec = OrderedDict()
                 _rec["gi_num"] = str(summary["Gi"])
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else "%s->%s" % (summary["Status"], summary["ReplacedBy"])
+                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else \
+                    "%s->%s" % (summary["Status"], summary["ReplacedBy"])
                 _rec["TaxId"] = summary["TaxId"]
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
@@ -1009,11 +1095,13 @@ class NCBIClient:
                 _rec["length"] = summary["Length"]
                 _rec["comments"] = summary["Title"]
 
-                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]), summary=_rec, _size=_rec["length"])
+                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]),
+                                                     summary=_rec, _size=_rec["length"])
                 _output[summary["Caption"]].guess_database()
         taxa = self._get_taxa(taxa)
         for accn, rec in _output.items():
             rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+        _stderr("\t%s records received.\n" % len(_output))
         return _output
 
     def fetch_summary(self):
@@ -1104,7 +1192,7 @@ class NCBIClient:
 
                 self.fetch_summary()
 
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if e.getcode() == 503:
                     failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
                                              "experiencing some technical issues.")
@@ -1115,10 +1203,14 @@ class NCBIClient:
                     if failure.hash not in self.dbbuddy.failures:
                         self.dbbuddy.failures[failure.hash] = failure
 
+            except KeyboardInterrupt:
+                _stderr("\n\tNCBI query interrupted by user\n")
+
     def _mc_seq(self, accns, args):
         database, lock = args
         error = False
         handle = False
+        timer = time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
@@ -1193,10 +1285,14 @@ class NCBIClient:
                       421 qttrememrk mknsqgfsgs s
                 //
                 '''
+                timer = time() - timer
+                if timer < 1:
+                    sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except [HTTPError, RuntimeError] as e:
                 if i == self.max_attempts - 1:
                     error = e
+                sleep(1)
 
         with lock:
             if error:
@@ -1210,27 +1306,35 @@ class NCBIClient:
     def _get_seq(self, gi_nums, database):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()])
+        runtime = RunTime(prefix="\t")
+        _stderr("Fetching full sequence records from NCBI...\n")
+        runtime.start()
+        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
+        runtime.end()
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
+        _stderr("\tDone\n")
         return results
 
     def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
-        records = self._get_seq(gi_nums, database)
-        for accn, rec in records.items():
-            # Catch accn/version
-            with_version = re.search("^(.*?)\.([0-9]+)$", accn)
-            if with_version:
-                accn, ver = with_version.group(1), with_version.group(2)
-                self.dbbuddy.records[accn].record = rec
-                self.dbbuddy.records[accn].version = ver
-            else:
-                try:
+        if len(gi_nums) > 0:
+            records = self._get_seq(gi_nums, database)
+            for accn, rec in records.items():
+                # Catch accn/version
+                with_version = re.search("^(.*?)\.([0-9]+)$", accn)
+                if with_version:
+                    accn, ver = with_version.group(1), with_version.group(2)
                     self.dbbuddy.records[accn].record = rec
-                except KeyError:
-                    self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
+                    self.dbbuddy.records[accn].version = ver
+                else:
+                    try:
+                        self.dbbuddy.records[accn].record = rec
+                    except KeyError:
+                        self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
+                    except KeyboardInterrupt:
+                        _stderr("\n\tNCBI query interrupted by user\n")
 
 
 class EnsemblRestClient:
@@ -1290,18 +1394,23 @@ class EnsemblRestClient:
 
     def fetch_nucleotide(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        data = self.perform_rest_action("sequence/id", data={"ids": accns},
-                                        headers={"Content-type": "text/x-seqxml+xml"})
-        for rec in data:
-            summary = self.dbbuddy.records[rec.id].summary
-            rec.description = summary['comments']
-            rec.accession = rec.id
-            rec.name = rec.id
-            species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
-            species = "%s%s" % (species.group(1).upper(), species.group(2))
-            new_id = "%s-%s" % (species, summary['name'])
-            self.dbbuddy.records[rec.id].record = rec
-            self.dbbuddy.records[rec.id].record.id = new_id
+        if len(accns) > 0:
+            _stderr("Fetching sequence from Ensembl...\n")
+            runtime = RunTime(prefix="\t")
+            runtime.start()
+            data = self.perform_rest_action("sequence/id", data={"ids": accns},
+                                            headers={"Content-type": "text/x-seqxml+xml"})
+            runtime.end()
+            for rec in data:
+                summary = self.dbbuddy.records[rec.id].summary
+                rec.description = summary['comments']
+                rec.accession = rec.id
+                rec.name = rec.id
+                species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+                species = "%s%s" % (species.group(1).upper(), species.group(2))
+                new_id = "%s-%s" % (species, summary['name'])
+                self.dbbuddy.records[rec.id].record = rec
+                self.dbbuddy.records[rec.id].record.id = new_id
 
     def _mc_search(self, species, args):
         identifier, lock = args
@@ -1344,20 +1453,27 @@ class EnsemblRestClient:
         open(self.results_file, "w").close()
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
-            run_multicore_function(species, self._mc_search, [search_term, Lock()])
+            _stderr("Searching Ensembl for %s...\n" % search_term)
+            runtime = RunTime(prefix="\t")
+            runtime.start()
+            run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
+            runtime.end()
             with open(self.results_file, "r") as ifile:
                 results = ifile.read().split("\n### END ###")
 
+            counter = 0
             for rec in results:
                 rec = rec.strip()
                 if not rec or rec in ["None", ""]:
                     continue
+                counter += 1
                 rec = re.sub("'", '"', rec)
                 rec = self._parse_summary(json.loads(rec))
                 if rec.accession in self.dbbuddy.records:
                     self.dbbuddy.records[rec.accession].update(rec)
                 else:
                     self.dbbuddy.records[rec.accession] = rec
+            _stderr("Returned %s results\n\n" % counter)
 
     def fetch_summary(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
@@ -1389,13 +1505,13 @@ class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy, crash_file):
         """
         :param _dbbuddy: pre-instantiated DbBuddy object
-        :param crash_file: MyFuncs.TempFile object
+        :param crash_file: MyFuncs.TempFile object instantiated in binary mode
         """
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
         hash_heading = ""
         colors = terminal_colors()
-        for _ in range(22):
+        for _ in range(23):
             hash_heading += "%s#" % next(colors)
         _stdout('''{1}
 
@@ -1412,38 +1528,78 @@ class LiveSearch(cmd.Cmd):
 {0}{1}      {2}{3}DatabaseBuddy Help{1}{4}      {0}{1}
 
 A general workflow: 1) {5}search{1} databases with search terms or accession numbers
-                    2) {5}show{1} summary information
-                    3) Filter search results with {5}keep{1} and {5}exclude{1}
-                    4) {5}fetch{1} full sequence records for filtered set
-                    5) Switch to a {5}format{1} that includes sequences, like fasta or genbank
-                    6) {5}save{1} sequences to file
+                    2) {5}show{1} summary information (no sequence has been downloaded yet)
+                    3) Create filtered set of results with {5}keep{1} and {5}remove{1}
+                    4) {5}restore{1} some records from the trash bin to the filtered set
+                    5) {5}fetch{1} full sequence records for the filtered set
+                    6) Switch to a {5}format{1} that includes sequences, like fasta or genbank
+                    7) {5}write{1} sequences to a file or {5}save{1} the live session
+
 Further details about each command can be accessed by typing 'help <command>'
-'''.format("".join(["%s-" % next(colors) for _ in range(24)]), self.terminal_default,
+'''.format("".join(["%s-" % next(colors) for _ in range(29)]), self.terminal_default,
            UNDERLINE, BOLD, NO_UNDERLINE, GREEN)
-        self.doc_header = "Available commands:                                                      "
+        self.doc_header = "Available commands:                                                         "
         self.dbbuddy = _dbbuddy
         self.crash_file = crash_file
         self.dump_session()
-        self.file = None
+
+        if CONFIG["install_path"]:
+            self.history_path = "%s/.cmd_history" % CONFIG["install_path"]
+
+        else:
+            self.history_path = "/tmp/.db_cmd_history"
+
+        if not os.path.isfile(self.history_path):
+            open(self.history_path, "w").close()
+        readline.read_history_file(self.history_path)
+
+        # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
+        # occurs, and back to False if undo is used.
+        self.undo = False
 
         _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
         if self.dbbuddy.records or self.dbbuddy.search_terms:
-            retrieve_summary(dbbuddy)
+            retrieve_summary(_dbbuddy)
         else:
             _stdout("Your session is currently unpopulated. Use 'search' to retrieve records.\n",
                     format_out=self.terminal_default)
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
+        self.usage = br.Usage()
         self.cmdloop()
+
+    # @staticmethod
+    # def do_crash(line=None):
+    #    open("a file that doesn't exist")
+
+    def precmd(self, line):
+        readline.write_history_file(self.history_path)
+        return line
+
+    def postcmd(self, stop, line):
+        command = line.split(" ")[0]
+        self.usage.increment("DatabaseBuddy", VERSION.short(), command)
+        return stop
 
     def dump_session(self):
         import pickle
-        self.crash_file.write(pickle.dumps(self.dbbuddy), "w")
+        self.crash_file.save("%s_undo" % self.crash_file.path)
+        self.crash_file.open()
+        pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
+        self.crash_file.close()
+        self.undo = True
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
-    def get_headings(self):
+    @staticmethod
+    def _append_slash_if_dir(p):  # Used for expanding file patsh
+            if p and os.path.isdir(p) and p[-1] != os.sep:
+                return p + os.sep
+            else:
+                return p
+
+    def get_headings(self):  # ToDo: This does not get all possible headings. Fix that...
         headings = []
         if len(self.dbbuddy.records) > 0:
             _rec = []
@@ -1453,19 +1609,24 @@ Further details about each command can be accessed by typing 'help <command>'
         return headings
 
     def filter(self, line, mode="keep"):
-        if mode not in ["keep", "exclude", "restore"]:
+        if mode not in ["keep", "remove", "restore"]:
             raise ValueError("The 'mode' argument in filter() must be "
-                             "'keep', 'exclude', or 'restore', not %s." % mode)
+                             "'keep', 'remove', or 'restore', not %s." % mode)
 
         if not line:
             if mode == "keep":
                 action = "Specify a search string to be used as a filter (records will be retained): "
-            elif mode == "exclude":
+            elif mode == "remove":
                 action = "Specify a search string to be used as a filter (records will be removed): "
             else:
                 action = "Specify a string to search the trash bin with: "
             line = input("%s%s%s" %
                          (RED, action, self.terminal_default))
+
+        # If the user doesn't supply a string, do nothing
+        if not line:
+            _stdout("Error: you must specify a search string.\n", format_in=RED, format_out=self.terminal_default)
+            return
 
         # Kill the command if the user is mixing quote types to separate search terms
         error_message = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
@@ -1561,8 +1722,8 @@ Further details about each command can be accessed by typing 'help <command>'
 
         line = line.lower()
         if line not in ["", "a", "all", "failures", "f"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
-            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin\n\n",
-                    format_in=RED, format_out=self.terminal_default)
+            _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin, "
+                    "failures, search\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
         if line in ["failures", "f"]:
@@ -1576,6 +1737,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.failures = {}
+                    _stdout("List of failures removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
@@ -1588,6 +1750,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.search_terms = []
+                    _stdout("Search terms removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in TRASH_SYNOS:
             if not self.dbbuddy.trash_bin:
@@ -1600,6 +1763,7 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.trash_bin = {}
+                    _stdout("Trash bin emptied.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in RECORD_SYNOS:
             if not self.dbbuddy.records:
@@ -1611,6 +1775,8 @@ Further details about each command can be accessed by typing 'help <command>'
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.records = {}
+                    _stdout("All records removed from main list (trash bin is still intact).\n\n",
+                            format_in=GREEN, format_out=self.terminal_default)
 
         else:
             confirm = input("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
@@ -1623,11 +1789,9 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.records = OrderedDict()
                 self.dbbuddy.search_terms = []
                 self.dbbuddy.failures = {}
-        _stderr("\n")
-        self.dump_session()
+                _stdout("Live session cleared of all data.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
-    def do_exclude(self, line=None):
-        self.filter(line, mode="exclude")
+        self.dump_session()
 
     def do_failures(self, line=None):
         if line != "":
@@ -1652,7 +1816,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if amount_seq_requested > 5000000:
             confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
-                            "Continue (y/[n])?{3}".format(GREEN, round(amount_seq_requested / 1000000, 1),
+                            "Continue (y/[n])?{3}".format(GREEN, pretty_number(amount_seq_requested),
                                                           YELLOW, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
@@ -1674,7 +1838,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if line not in FORMATS:
             _stdout("Sorry, {1}'{2}'{0} is not a valid format. Please select from the "
-                    "following:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
+                    "following BioPython supported formats:\n\t{3}\n\n".format(RED, YELLOW, line, ", ".join(FORMATS)),
                     format_in=RED, format_out=self.terminal_default)
             return
 
@@ -1683,21 +1847,33 @@ Further details about each command can be accessed by typing 'help <command>'
                 format_out=self.terminal_default)
         self.dump_session()
 
-    def do_load(self, line=None):
-        import pickle
+    def do_load(self, line=None, quiet=False):
         if not line:
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
-            with open(os.path.abspath(line), "r") as ifile:
-                self.dbbuddy = pickle.loads(ifile.read())
+            with open(os.path.abspath(line), "rb") as ifile:
+                self.dbbuddy = pickle.load(ifile)
+            self.dump_session()
+            for _db, client in self.dbbuddy.server_clients.items():
+                if client:
+                    client.temp_dir = TempDir()
+                    client.http_errors_file = "%s/errors.txt" % client.temp_dir.path
+                    open(client.http_errors_file, "w").close()
+                    client.results_file = "%s/results.txt" % client.temp_dir.path
+                    open(client.results_file, "w").close()
+
+            _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
 
         except IOError as e:
             _stderr("%s\n" % e)
-            prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
-            if prompt == 'abort':
+            _prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
+            if _prompt == 'abort':
                 _stderr("Aborted...\n")
             else:
-                self.do_load(prompt)
+                self.do_load(_prompt)
+        except EOFError:
+            _stdout("Error: Unable to read the provided file. Are you sure it's a saved DbBuddy live session?\n\n",
+                    format_in=RED, format_out=self.terminal_default)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
@@ -1709,23 +1885,26 @@ Further details about each command can be accessed by typing 'help <command>'
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
             confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
             if confirm.lower() in ["yes", "y"]:
-                _stdout("Goodbye\n\n")
-                sys.exit()
+                pass
             else:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
+        self.usage.save()
         _stdout("Goodbye\033[m\n\n")
         sys.exit()
 
     def do_trash(self, line=None):
         self.do_show(line, "trash_bin")
 
+    def do_remove(self, line=None):
+        self.filter(line, mode="remove")
+
     def do_restore(self, line):
         self.filter(line, "restore")
 
     def do_save(self, line=None):
-        if not line and not self.file:
-            line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
+        if not line:
+            line = input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default))
 
         # Ensure the specified directory exists
         line = os.path.abspath(line)
@@ -1736,41 +1915,33 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
             return
 
+        # Set the .db extension
+        if not re.search("\.db$", line):
+            line += ".db"
+
         # Warn if file exists
         if os.path.isfile(line):
             confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
             if confirm.lower() in ["n", "no"]:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
+        try:
+            open(line, "wb").close()
+        except PermissionError:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
 
-        with open(line, "w") as ofile:
-            self.dbbuddy.print(quiet=True, destination=ofile)
-            breakdown = self.dbbuddy.record_breakdown()
-            if self.dbbuddy.out_format in ["ids", "accessions"]:
-                _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
-                        format_out=self.terminal_default)
-            elif self.dbbuddy.out_format in ["summary", "full-summary"]:
-                _stdout("%s summary records " % (len(breakdown["full"] + breakdown["partial"])), format_in=GREEN,
-                        format_out=self.terminal_default)
-            else:
-                non_full = len(breakdown["partial"] + breakdown["accession"])
-                if non_full > 0:
-                    _stdout('''\
-NOTE: There are %s partial records in the Live Session, and only full records can be written
-      in '%s' format. Use the 'download' command to retrieve full records.
-''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
-                _stdout("%s %s records  " % (self.dbbuddy.out_format, len(breakdown["full"])), format_in=GREEN,
-                        format_out=self.terminal_default)
-            _stdout("written to %s.\n\n" % line, format_in=GREEN,
-                    format_out=self.terminal_default)
-            self.hash = hash(self.dbbuddy)
+        self.crash_file.save(line)
+        self.hash = hash(self.dbbuddy)
+        _stdout("Live session saved\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def do_search(self, line):
         if not line:
             line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
 
         temp_buddy = DbBuddy(line)
-        temp_buddy.databases = dbbuddy.databases
+        temp_buddy.databases = self.dbbuddy.databases
 
         if len(temp_buddy.records):
             retrieve_sequences(temp_buddy)
@@ -1789,45 +1960,197 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         for _hash, failure in temp_buddy.failures.items():
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
+        self.dump_session()
 
     def do_show(self, line=None, group="records"):
         if line:
             line = line.split(" ")
 
-        num_returned = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
-        if not num_returned:
-            _stdout("Nothing in %s to show.\n\n" % group, format_in=RED, format_out=self.terminal_default)
+        breakdown = self.dbbuddy.trash_breakdown() if group == "trash_bin" else self.dbbuddy.record_breakdown()
+
+        num_records = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
+        if not num_records:
+            _stdout("Nothing in '%s' to show.\n\n" % re.sub("_", " ", group), format_in=RED,
+                    format_out=self.terminal_default)
             return
 
         if self.dbbuddy.out_format not in ["ids", "accessions", "summary", "full-summary"]:
-            if not self.dbbuddy.record_breakdown()["full"]:
-                _stdout("No full records in %s to show. Use 'fetch' to retrieve sequences first.\n\n"
-                        % group, format_in=RED, format_out=self.terminal_default)
+            if not breakdown["full"]:
+                _stdout("Warning: only summary data available; there is nothing to display in %s format. "
+                        "Use 'fetch' to retrieve sequences first.\n\n"
+                        % self.dbbuddy.out_format, format_in=RED,
+                        format_out=self.terminal_default)
                 return
+
+            if breakdown["summary"] or breakdown["accession"]:
+                _stderr("%sWarning: %s records are only summary data, so will not be displayed in %s format. "
+                        "Use 'fetch' to retrieve all sequence data.%s\n"
+                        % (RED, len(breakdown["summary"] + breakdown["accession"]),
+                           self.dbbuddy.out_format, self.terminal_default))
+
+            num_records = len(breakdown["full"])
 
         columns = []
         for _next in line:
             try:
-                num_returned = int(_next)
+                num_records = int(_next)
             except ValueError:
                 columns.append(_next)
 
         columns = None if not columns else columns
 
-        if num_returned > 100:
+        if num_records > 100:
             confirm = input("%sShow all %s records (y/[n])?%s " %
-                            (RED, num_returned, self.terminal_default))
+                            (RED, num_records, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
-        self.dbbuddy.print(_num=num_returned, columns=columns, group=group)
+        try:
+            self.dbbuddy.print(_num=num_records, columns=columns, group=group)
+        except ValueError as e:
+            if re.search("Sequences must all be the same length", str(e)):
+                _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
+                        self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
+            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(e)):
+                _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
+                        "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
+                        format_in=RED, format_out=self.terminal_default)
+            else:
+                raise ValueError(e)
+
         _stderr("%s\n" % self.terminal_default)
+
+    def do_sort(self, line=None):
+        def sub_sort(records, headings, _rev=False):
+            heading = headings[0]
+            subgroups = {}
+            if heading == "ACCN":
+                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
+
+            int_headings = 0
+            for accn, _rec in records.items():
+                if heading == "DB":
+                    subgroups.setdefault(_rec.database, {})
+                    subgroups[_rec.database][accn] = _rec
+                elif heading == "record":
+                    if _rec.record:
+                        _value = "full"
+                    else:
+                        _value = "summary"
+                    subgroups.setdefault(_value, {})
+                    subgroups[_value][accn] = _rec
+                else:
+                    if heading not in _rec.summary:
+                        subgroups.setdefault("zzzzz", {})
+                        subgroups["zzzzz"][accn] = _rec
+                    else:
+                        subgroups.setdefault(_rec.summary[heading], {})
+                        subgroups[_rec.summary[heading]][accn] = _rec
+                        if isinstance(_rec.summary[heading], int):
+                            if _rec.summary[heading] > int_headings:
+                                int_headings = _rec.summary[heading]
+
+            if int_headings and "zzzzz" in subgroups:
+                subgroups[int_headings + 1] = subgroups["zzzzz"]
+                del subgroups["zzzzz"]
+
+            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=rev))
+            final_order = OrderedDict()
+            for subgroup, _recs in subgroups.items():
+                if len(_recs) == 1:
+                    _recs = [_rec for accn, _rec in _recs.items()]
+                    final_order[_recs[0].accession] = _recs[0]
+                else:
+                    if len(headings) > 1:
+                        _recs = sub_sort(_recs, headings[1:], rev)
+
+                    for x, y in _recs.items():
+                        final_order[x] = y
+            return final_order
+
+        sort_columns = line.split(" ")
+        lower_cols = [col.lower() for col in sort_columns]
+        rev = True if "rev" in lower_cols or "reverse" in lower_cols else False
+        if rev:
+            if "rev" in lower_cols:
+                rev_indx = lower_cols.index("rev")
+            else:
+                rev_indx = lower_cols.index("reverse")
+            del sort_columns[rev_indx]
+
+        if not sort_columns or sort_columns[0] == '':
+            sort_columns = ["ACCN"]
+
+        self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns, rev)
+        self.dump_session()
 
     def do_status(self, line=None):
         if line != "":
-            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+            _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
+
+    def do_write(self, line=None):
+        if not line:
+            line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
+
+        # Ensure the specified directory exists
+        line = os.path.abspath(line)
+        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        if not os.path.isdir(_dir):
+            _stdout("Error: The specified directory does not exist. Please create it before continuing "
+                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
+                    format_out=self.terminal_default)
+            return
+
+        # Warn if file exists
+        if os.path.isfile(line):
+            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if confirm.lower() in ["n", "no"]:
+                _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
+                return
+
+        try:
+            ofile = open(line, "w")
+        except PermissionError:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+
+        self.dbbuddy.print(quiet=True, destination=ofile)
+        breakdown = self.dbbuddy.record_breakdown()
+        if self.dbbuddy.out_format in ["ids", "accessions"]:
+            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
+                    format_out=self.terminal_default)
+        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
+            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
+                    format_out=self.terminal_default)
+        else:
+            non_full = len(breakdown["summary"] + breakdown["accession"])
+            if non_full > 0:
+                _stdout('''\
+NOTE: There are %s summary records in the Live Session, and only full records can be written
+  in '%s' format. Use the 'download' command to retrieve full records.
+''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
+            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
+                    format_out=self.terminal_default)
+        _stdout("written to %s.\n\n" % line, format_in=GREEN,
+                format_out=self.terminal_default)
+        self.hash = hash(self.dbbuddy)
+        ofile.close()
+        _stdout("Records written to file\n\n", format_in=GREEN, format_out=self.terminal_default)
+
+    def do_undo(self, line=None):
+        if line != "":
+            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+        if not self.undo:
+            _stdout("There is currently no undo history (only a single undo is possible).\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+            return
+
+        self.do_load("%s_undo" % self.crash_file.path, quiet=True)
+        self.undo = False
+        _stdout("Most recent state reloaded\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def complete_bash(self, *args):
         text = args[0]
@@ -1841,7 +2164,7 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
                 for _file in files:
                     if os.access("%s/%s" % (root, _file), os.X_OK):
                         self.shell_execs.append(_file.strip())
-        return [x for x in self.shell_execs if x.startswith(text)]
+        return ["%s " % x for x in self.shell_execs if x.startswith(text)]
 
     @staticmethod
     def complete_database(*args):
@@ -1857,10 +2180,6 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
         text = args[0]
         return [x for x in ["all", "failures", "search", "trash", "records"] if x.startswith(text)]
 
-    def complete_exclude(self, *args):
-        text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
     @staticmethod
     def complete_format(*args):
         text = args[0]
@@ -1868,27 +2187,12 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
     def complete_keep(self, *args):
         text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
 
-    def complete_trash(self, *args):
-        text = args[0]
-        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
-    def complete_restore(self, *args):
-        text = args[0]
-        return ["(%s)" % x for x in self.get_headings() if x.lower().startswith(text.lower())]
-
-    @staticmethod
-    def complete_save(*args):
+    def complete_load(self, *args):
         line, startidx, endidx = args[1:]
         # ToDo: pulled code from stack overflow, modify or credit.
         import glob
-
-        def _append_slash_if_dir(p):
-            if p and os.path.isdir(p) and p[-1] != os.sep:
-                return p + os.sep
-            else:
-                return p
 
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
@@ -1900,13 +2204,67 @@ NOTE: There are %s partial records in the Live Session, and only full records ca
 
         completions = []
         for path in glob.glob(pattern):
-            path = _append_slash_if_dir(path)
+            path = self._append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
+
+    def complete_trash(self, *args):
+        text = args[0]
+        return ["%s " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_remove(self, *args):
+        text = args[0]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_restore(self, *args):
+        text = args[0]
+        return ["(%s) " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_save(self, *args):
+        line, startidx, endidx = args[1:]
+        # ToDo: pulled code from stack overflow, modify or credit.
+        import glob
+
+        before_arg = line.rfind(" ", 0, startidx)
+        if before_arg == -1:
+            return  # arg not found
+
+        fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
+        arg = line[before_arg + 1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = self._append_slash_if_dir(path)
             completions.append(path.replace(fixed, "", 1))
         return completions
 
     def complete_show(self, *args):
         text = args[0]
-        return [x for x in self.get_headings() if x.lower().startswith(text.lower())]
+        return ["%s " % x for x in self.get_headings() if x.lower().startswith(text.lower())]
+
+    def complete_sort(self, *args):
+        text = args[0]
+        return ["%s " % x for x in self.get_headings() + ["reverse"] if x.lower().startswith(text.lower())]
+
+    def complete_write(self, *args):
+        line, startidx, endidx = args[1:]
+        # ToDo: pulled code from stack overflow, modify or credit.
+        import glob
+
+        before_arg = line.rfind(" ", 0, startidx)
+        if before_arg == -1:
+            return  # arg not found
+
+        fixed = line[before_arg + 1:startidx]  # fixed portion of the arg
+        arg = line[before_arg + 1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = self._append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
 
     def help_bash(self):
         _stdout('''\
@@ -1932,20 +2290,6 @@ Choices are:
     trash-bin, tb:    Empty the trash bin
     records, recs:    Delete all the main list of records (leaving the trash bin alone)
     all:              Delete everything\n
-''', format_in=GREEN, format_out=self.terminal_default)
-
-    def help_exclude(self):
-        _stdout('''\
-Further refine your results with search terms:
-    - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
-      with the 'restore' command
-    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
-    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
-      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
-    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
-      Use these operators inside the column prefix. E.g., '(length>300)'
-    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_failures(self):
@@ -1981,11 +2325,15 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
         _stdout("End the live session.\n\n", format_in=GREEN, format_out=self.terminal_default)
+
+    def help_load(self):
+        _stdout("Recover the contents of a previous session that crashed.\n\n", format_in=GREEN,
+                format_out=self.terminal_default)
 
     def help_trash(self):
         _stdout('''\
@@ -1993,6 +2341,20 @@ Output the records held in the trash bin (out_format currently set to '{0}{1}{2}
 Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+
+    def help_remove(self):
+        _stdout('''\
+Further refine your results with search terms:
+    - Records that MATCH your filters are relegated to the 'trash bin'; return them to the main list
+      with the 'restore' command
+    - Multiple filters can be included at the same time, each enclosed in quotes and separated by spaces.
+    - Records are searched exhaustively by default; to restrict the search to a given column/field, prefix
+      the filter with '(<column name>)'. E.g., '(organism)Rattus'.
+    - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
+      Use these operators inside the column prefix. E.g., '(length>300)'
+    - Regular expressions are understood (https://docs.python.org/3/library/re.html).
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_restore(self):
         _stdout('''\
@@ -2003,14 +2365,14 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
 ''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_save(self):
         _stdout('''\
-Send records to a file (format currently set to '{0}{1}{2}').
-Supply the file name to be written to.\n
-'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+Save your live session in DB format; the session can be restored later with the '{0}load{1}' command.
+Supply the path where the file should be written to.\n
+'''.format(YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_search(self):
         _stdout('''\
@@ -2021,15 +2383,43 @@ are supplied then full sequence records will be downloaded.\n
 
     def help_show(self):
         _stdout('''\
-Output the records held in the Live Session (out_format currently set to '{0}{1}{2}')
+Output the records held in the Live Session (output format currently set to '{0}{1}{2}')
 Optionally include an integer value and/or column name(s) to limit
 the number of records and amount of information per record displayed.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
+
+    def help_sort(self):
+        _stdout('''\
+Alter the order that records are shown in.
+By default records will be ordered by accession number, although any number of column
+headings (case sensitive) can be included for a more customized sort.
+To reverse the sort order include the keyword 'rev' or 'reverse'.\n
+''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_status(self):
         _stdout("Display the current state of your Live Session, including how many accessions and full records "
                 "have been downloaded.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
+    def help_undo(self):
+        _stdout('''\
+Revert the most recent change to your live session.
+The commands that can be undone are: - keep
+                                     - remove
+                                     - restore
+                                     - search
+                                     - fetch
+                                     - format
+                                     - database
+                                     - load
+
+Caution: Undo can only restore a sinlge previous step. All other history is lost.\n
+''', format_in=GREEN, format_out=self.terminal_default)
+
+    def help_write(self):
+        _stdout('''\
+Send records to a file (format currently set to '{0}{1}{2}').
+Supply the file name to be written to.\n
+'''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
 # DL everything
 """
@@ -2119,9 +2509,6 @@ def retrieve_sequences(_dbbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 if __name__ == '__main__':
     import argparse
-    import buddy_resources as br
-
-    version = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
 
@@ -2138,9 +2525,9 @@ if __name__ == '__main__':
 ''')
 
     br.db_modifiers["database"]["choices"] = DATABASES
-    br.flags(parser, "DatabaseBuddy", ("user_input", "Specify accession numbers or search terms, "
-                                                     "either in a file or as a comma separated list"),
-             br.db_flags, br.db_modifiers, version)
+    br.flags(parser, ("user_input", "Specify accession numbers or search terms, "
+                                    "either in a file or as a comma separated list"),
+             br.db_flags, br.db_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
@@ -2172,20 +2559,36 @@ if __name__ == '__main__':
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
             live_search = LiveSearch(dbbuddy, temp_file)
-        except Exception as e:
+        except Exception as _e:
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
-            tb = "".join(traceback.format_tb(sys.exc_info()[2]))
-            tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+            tb = "%s\n" % CONFIG["user_hash"]
+            for _line in traceback.format_tb(sys.exc_info()[2]):
+                _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+                tb += _line
+            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
-            prompt = input("%sWould you like to send a crash report to the developers ([y]/n)?\033[m" % BOLD)
-            if prompt.lower() in ["y", "yes", ""]:
+
+            send_diagnostic = True if CONFIG["diagnostics"] == "True" else False
+            if not send_diagnostic:
+                prompt = input("%sWould you like to send a crash report with the above "
+                               "traceback to the developers ([y]/n)?\033[m" % BOLD)
+                if prompt.lower() in ["y", "yes", ""]:
+                    send_diagnostic = True
+
+            else:
+                _stderr("An error report with the above traceback is being sent to the BuddySuite developers because "
+                        "you have elected to participate in the Software Improvement Program. To opt-out of this "
+                        "program, re-run the BuddySuite installer and un-check the box on the 'Diagnostics' screen.\n")
+
+            if send_diagnostic:
                 _stderr("Preparing error report for FTP upload...\nSending...\n")
                 br.error_report(tb)
-                _stderr("Success, thank you.")
+                _stderr("Success, thank you.\n")
+
         temp_file.close()
         sys.exit()
 
@@ -2239,9 +2642,5 @@ if __name__ == '__main__':
         _stdout(output)
         sys.exit()
 
-    retrieve_sequences(dbbuddy)
-    dbbuddy.out_format = "seqxml"
-    dbbuddy.print()
-    sys.exit()
     # Default to LiveSearch
     live_search = LiveSearch(dbbuddy)

@@ -29,6 +29,29 @@ import argparse
 import datetime
 from collections import OrderedDict
 from MyFuncs import TempFile
+import os
+from configparser import ConfigParser
+import json
+
+if __name__ == '__main__':
+    sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
+
+
+def config_values():
+    config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
+    if os.path.isfile(config_file):
+        config = ConfigParser()
+        config.read(config_file)
+        options = {"install_path": config.get('Install_path', 'path'),
+                   "email": config.get('other', 'email'),
+                   "diagnostics": config.get('other', 'diagnostics'),
+                   "user_hash": config.get('other', 'user_hash')}
+    else:
+        options = {"install_path": False,
+                   "email": "buddysuite@nih.gov",
+                   "diagnostics": False,
+                   "user_hash": "hashless"}
+    return options
 
 
 class Version:
@@ -42,6 +65,9 @@ class Version:
         else:
             # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
             self.release_date = datetime.datetime(**release_date)
+
+    def short(self):
+        return "%s.%s" % (self.major, self.minor)
 
     def contributors_string(self):
         _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
@@ -97,62 +123,131 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 def error_report(error_msg):
-    from ftplib import FTP
+    from ftplib import FTP, all_errors
     temp_file = TempFile()
     temp_file.write(error_msg)
-    ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
-    ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Might want to include date in error file name
+    try:
+        ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+        ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Might want to include date in error file name
+    except all_errors as e:
+        print("FTP Error: %s" % e)
 
 
-def send_usage_report(report):
-    pass
+class Usage:
+    def __init__(self):
+        self.config = config_values()
+        if self.config["install_path"]:
+            self.usage_file_path = "%s/usage.json" % self.config["install_path"]
+        else:
+            self.usage_file_path = "/tmp/usage.json"
+
+        if not os.path.isfile(self.usage_file_path):
+            with open(self.usage_file_path, "w") as ofile:
+                ofile.write("{}")
+        try:
+            with open(self.usage_file_path) as ifile:
+                self.stats = json.load(ifile)
+                if not self.stats:  # Empty file needs to be populated with a little info
+                    self.clear_stats()
+
+        except ValueError:  # If the json file can't be read for whatever reason, start from scratch
+            print("Error reading usage json file. Starting from scratch.")
+            self.clear_stats()
+
+    def clear_stats(self):
+        self.stats = {"user_hash": self.config["user_hash"]}
+
+    def increment(self, buddy, version, tool):
+        self.stats.setdefault(buddy, {})
+        self.stats[buddy].setdefault(version, {})
+        self.stats[buddy][version].setdefault(tool, 0)
+        self.stats[buddy][version][tool] += 1
+        return
+
+    def save(self, send_report=True):
+        if self.config["diagnostics"] == "True" and send_report:
+            if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
+                                                                       '%Y-%m-%d')).days >= 1:
+                self.send_report()
+            else:
+                with open(self.usage_file_path, "w") as ofile:
+                    json.dump(self.stats, ofile)
+        return
+
+    def send_report(self):
+        self.stats["date"] = str(datetime.date.today())
+        from ftplib import FTP, all_errors
+        temp_file = TempFile()
+        json.dump(self.stats, temp_file.get_handle())
+        try:
+            ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+            ftp.storlines("STOR usage_%s" % temp_file.name, temp_file.get_handle("rb"))
+            self.clear_stats()
+            self.stats["last_upload"] = str(datetime.date.today())
+        except all_errors as e:
+            print("FTP Error: %s" % e)
+
+        self.save(send_report=False)
+        return
 
 
-def write_usage_report(message):
-    pass
-
-
-def flags(parser, tool_name, _positional, _flags, _modifiers, version):
+def flags(parser, _positional, _flags, _modifiers, version):
     """
     :param parser: argparse.ArgumentParser object
-    :param tool_name: str e.g., "DatabaseBuddy"
-    :param positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
+    :param _positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
     :param _flags: dict e.g., db_flags
     :param version: Version object
     :return:
     """
-    positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
-    positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
+    if _positional:
+        positional = parser.add_argument_group(title="\033[1mPositional argument\033[m")
+        positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
 
-    _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
-    parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-    for func, in_args in _flags.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        parser_flags.add_argument(*args, **kwargs)
+    if _flags:
+        _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
+        parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
+        for func, in_args in _flags.items():
+            args = ("-%s" % in_args["flag"], "--%s" % func)
+            kwargs = {}
+            for cmd, val in in_args.items():
+                if cmd == 'flag':
+                    continue
+                kwargs[cmd] = val
+            parser_flags.add_argument(*args, **kwargs)
 
-    _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
-    parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-    for func, in_args in _modifiers.items():
-        args = ("-%s" % in_args["flag"], "--%s" % func)
-        kwargs = {}
-        for cmd, val in in_args.items():
-            if cmd == 'flag':
-                continue
-            kwargs[cmd] = val
-        parser_modifiers.add_argument(*args, **kwargs)
+    if _modifiers:
+        _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
+        parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
+        for func, in_args in _modifiers.items():
+            args = ("-%s" % in_args["flag"], "--%s" % func)
+            kwargs = {}
+            for cmd, val in in_args.items():
+                if cmd == 'flag':
+                    continue
+                kwargs[cmd] = val
+            parser_modifiers.add_argument(*args, **kwargs)
 
     misc = parser.add_argument_group(title="\033[1mMisc options\033[m")
     misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
-    misc.add_argument('-v', '--version', action='version', version=str(version))
+    if version:
+        misc.add_argument('-v', '--version', action='version', version=str(version))
 
 contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
+
+# VERSIONS
+VERSIONS = {"SeqBuddy": Version("SeqBuddy", 2, 'alpha', contributors),
+            "DatabaseBuddy": Version("DatabaseBuddy", 1, 'alpha', contributors),
+            "AlignBuddy": Version("AlignBuddy", 1, 'alpha', contributors),
+            "PhyloBuddy": Version("PhyloBuddy", 1, 'alpha', contributors)}
+
 # flag, action, nargs, metavar, help, choices, type
+# #################################################### INSTALLER ##################################################### #
+bsi_flags = {"cmd_line": {"flag": "cmd",
+                          "action": "store_true",
+                          "help": "Command line version of the installer (for non-graphical systems)."}}
+
+bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",
