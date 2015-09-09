@@ -2684,11 +2684,11 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
     working_dict.update(dgn_tables[reading_frame])
 
 
-    # if str(_seqbuddy.alpha) == str(IUPAC.protein):
-    #     raise TypeError("DNA sequence required, not protein.")
-    # if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
-    #     raise TypeError(
-    #         "Please use a DNA seqeunce instead of an RNA sequence.")
+    if str(_seqbuddy.alpha) == str(IUPAC.protein):
+        raise TypeError("DNA sequence required, not protein.")
+    if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
+        raise TypeError(
+            "Please use a DNA seqeunce instead of an RNA sequence.")
 
     _seqbuddy = clean_seq(_seqbuddy)
     _seqbuddy = uppercase(_seqbuddy)
