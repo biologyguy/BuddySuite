@@ -1117,26 +1117,33 @@ def test_guesserror_infile():
 def test_no__input():
     with pytest.raises(TypeError):
         Sb.SeqBuddy()
+        
+
+def function_add(x):
+    return x+1
+#######################'dgn', '--degenerate_sequence'######################
+dgn_hashes =['cf4a0d65f9487ce75f4d0b13341147f7']#,'938fa614dc678122986201c94b9ff181',  
+             # 'b3ee69d952e93cabe730e8998e169487','537b9a47252e1c129247892be511c185',  
+             # 'a24a4ae3e70f2213299934da0771a775','4b6933573767765e585d06d00435f862',
+             # '81dc00a2b093575826591e7dc6c0d538','ea48df6782c41b9643cf4bc0c2023b93',
+             # 'cf4a0d65f9487ce75f4d0b13341147f7','ee2282f7feffc44d59f0886cf7b0df0f',  
+             # '7b32b75ee5ea190cf28bea20e29adb3a',  ]
+
+hashes = [(Sb._make_copies(sb_objects[indx]), dgn_hash) for indx, dgn_hash in enumerate(dgn_hashes)]
+@pytest.mark.parametrize("seqbuddy, dgn_hash",hashes)
+def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash):
+    codon_tables= [1, 2, 3, 4, 5, 6, 9, 10, 11, 12,13]
+    #print(seqbuddy)
+    tester = Sb.degenerate_sequence(seqbuddy,1,1)
+    print('#################tester starts here###############')
+    print(seqs_to_hash(tester))
+    assert seqs_to_hash(tester) == dgn_hash
 
 
-
-#######################'dgn', '--degenerate_sequence'#######################
-###This is wildly not owrking
-
-# dgn_hashes =['cf4a0d65f9487ce75f4d0b13341147f7','938fa614dc678122986201c94b9ff181',  
-#              'b3ee69d952e93cabe730e8998e169487','537b9a47252e1c129247892be511c185',  
-#              'a24a4ae3e70f2213299934da0771a775','4b6933573767765e585d06d00435f862',
-#              '81dc00a2b093575826591e7dc6c0d538','ea48df6782c41b9643cf4bc0c2023b93',
-#              'cf4a0d65f9487ce75f4d0b13341147f7','ee2282f7feffc44d59f0886cf7b0df0f',  
-#              '7b32b75ee5ea190cf28bea20e29adb3a',  ]
-
-# codon_tables= [1, 2, 3, 4, 5, 6, 9, 10, 11, 12,13]
 # frame_shift =[2, 3]
 # frame_one =1 
 # shifted_dgn_hashes =['db7aeb85902d6e84c6d3b9428cf5f541','5d81ccfa4918f88e8c5b063f9da5e3a7']
-# hashes = [(Sb._make_copies(sb_objects[indx]),codon_tables[indx], dgn_hash) for indx, dgn_hash in enumerate(dgn_hashes)]
 # @pytest.mark.jeremy
-# @pytest.mark.parametrize("seqbuddy,codon_tables, dgn_hashes",hashes)
 # def test_degenerate_sequence_with_different_codon_tables(seqbuddy,condon_tables,dgn_hashes):
 #   tester=Sb.degenerate_sequence(seqbuddy, codon_tables,1)
 #   assert seqs_to_hash(tester)== dgn_hashes
@@ -1162,13 +1169,3 @@ def test_no__input():
 #     assert seqs_to_hash(tester) == d2r_hash
 #     tester = Sb.rna2dna(tester)
 #     assert seqs_to_hash(tester) == r2d_hash
-
-
-# def test_transcribe_pep_exception():  # Asserts that a ValueError will be thrown if user inputs protein
-#     with pytest.raises(TypeError):
-#         Sb.dna2rna(sb_objects[6])
-
-
-# def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
-#     with pytest.raises(TypeError):
-#         Sb.rna2dna(sb_objects[6])

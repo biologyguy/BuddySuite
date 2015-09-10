@@ -2598,7 +2598,6 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
     return _seqbuddy
 
 def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ): 
-
     #degenerate codons that are  universal to each all codon tables
     base_dict = {'ACA': 'ACN','ACC': 'ACN','ACG': 'ACN','ACT': 'ACN','CAC': 'CAY','CAT': 'CAY','CCA': 'CCN','CCC': 'CCN', 
                  'CCG': 'CCN','CCT': 'CCN','GAA': 'GAR','GAC': 'GAY','GAG': 'GAR','GAT': 'GAY','GCA': 'GCN','GCC': 'GCN',
@@ -2685,25 +2684,22 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
     working_dict = base_dict.copy()
     working_dict.update(dgn_tables[reading_frame])
 
-
-    if str(_seqbuddy.alpha) == str(IUPAC.protein):
-        raise TypeError("DNA sequence required, not protein.")
-    if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
-        raise TypeError(
-            "Please use a DNA seqeunce instead of an RNA sequence.")
+    # if str(_seqbuddy.alpha) == str(IUPAC.protein):
+    #     raise TypeError("DNA sequence required, not protein.")
+    # if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
+    #     raise TypeError(
+    #         "Please use a DNA seqeunce instead of an RNA sequence.")
 
     _seqbuddy = clean_seq(_seqbuddy)
     _seqbuddy = uppercase(_seqbuddy)
     for _rec in _seqbuddy.records:
-
         # shift reading frame
         _rec.seq = _rec.seq[reading_frame-1:]
-        seq_length = len(_rec.seq)
-        i = 0
-        degen_string = ""
+        seq_length = len(str(_rec.seq))
+        i=0
+        degen_string=""
         while i < seq_length:
-            
-            codon = _rec.seq[i:i+3]           
+            codon = str(_rec.seq[i:i+3])           
             degen_string += working_dict[codon] if codon in working_dict else codon
             i = i+3
         _rec.seq = Seq(str(degen_string), alphabet=IUPAC.ambiguous_dna)
@@ -2735,10 +2731,6 @@ if __name__ == '__main__':
 
     parser.add_argument('-dgn', '--degenerate_sequence', action='append', nargs="*",
                         help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
-
-
-
-
 
     in_args = parser.parse_args()
 
@@ -3501,4 +3493,4 @@ if __name__ == '__main__':
         else:
             table = int(in_args.degenerate_sequence[0])
             reading_frame = int(in_args.degenerate_sequence[1])
-        print(degenerate_sequence(seqbuddy, table, reading_frame))
+        _print_recs(degenerate_sequence(seqbuddy, table, reading_frame))
