@@ -1117,55 +1117,30 @@ def test_guesserror_infile():
 def test_no__input():
     with pytest.raises(TypeError):
         Sb.SeqBuddy()
-        
 
-def function_add(x):
-    return x+1
+
 #######################'dgn', '--degenerate_sequence'######################
-dgn_hashes =['cf4a0d65f9487ce75f4d0b13341147f7']#,'938fa614dc678122986201c94b9ff181',  
-             # 'b3ee69d952e93cabe730e8998e169487','537b9a47252e1c129247892be511c185',  
-             # 'a24a4ae3e70f2213299934da0771a775','4b6933573767765e585d06d00435f862',
-             # '81dc00a2b093575826591e7dc6c0d538','ea48df6782c41b9643cf4bc0c2023b93',
-             # 'cf4a0d65f9487ce75f4d0b13341147f7','ee2282f7feffc44d59f0886cf7b0df0f',  
-             # '7b32b75ee5ea190cf28bea20e29adb3a',  ]
+dgn_hashes =['0638bc6546eebd9d50f771367d6d7855','72373f8356051e2c6b67642451379054',
+             '9172ad5947c0961b54dc5adbd03d4249','b45ac94ee6a98e495e115bfeb5bd9bcd',
+             '76c45b4de8f7527b4139446b4551712b','baa5b48938cc5cae953c9083a5b21b12',
+             '0ca67c4740fefbc7a20d806715c3ca12','d43ad8f328ff1d30eb1fb7bcd667a345',
+             'd9d0f5cd8f0c25a0042527cc1cea802e','4b9790f3f4eeeae1a9667b62b93bc961',
+             '7ec4365c3571813d63cee4b70ba5dcf5']
 
-hashes = [(Sb._make_copies(sb_objects[indx]), dgn_hash) for indx, dgn_hash in enumerate(dgn_hashes)]
-@pytest.mark.parametrize("seqbuddy, dgn_hash",hashes)
-def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash):
-    codon_tables= [1, 2, 3, 4, 5, 6, 9, 10, 11, 12,13]
-    #print(seqbuddy)
-    tester = Sb.degenerate_sequence(seqbuddy,1,1)
-    print('#################tester starts here###############')
-    print(seqs_to_hash(tester))
+
+
+codon_tables= [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13]
+hashes = [(Sb._make_copies(sb_objects[0]), dgn_hash, codon_tables[indx]) for indx, dgn_hash in enumerate(dgn_hashes)]
+
+@pytest.mark.parametrize("seqbuddy, dgn_hash, tables", hashes)
+def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):  
+    tester = Sb.degenerate_sequence(seqbuddy,table=tables,reading_frame=1)
     assert seqs_to_hash(tester) == dgn_hash
 
-
-# frame_shift =[2, 3]
-# frame_one =1 
-# shifted_dgn_hashes =['db7aeb85902d6e84c6d3b9428cf5f541','5d81ccfa4918f88e8c5b063f9da5e3a7']
-# @pytest.mark.jeremy
-# def test_degenerate_sequence_with_different_codon_tables(seqbuddy,condon_tables,dgn_hashes):
-#   tester=Sb.degenerate_sequence(seqbuddy, codon_tables,1)
-#   assert seqs_to_hash(tester)== dgn_hashes
-
-
-  ##############
-
-
-# ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
-# d2r_hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
-#               "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
-#               "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
-# r2d_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
-#               "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-#               "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
-
-# hashes = [(Sb._make_copies(sb_objects[indx]), d2r_hash, r2d_hashes[indx]) for indx, d2r_hash in enumerate(d2r_hashes)]
-
-
-# @pytest.mark.parametrize("seqbuddy,d2r_hash,r2d_hash", hashes)
-# def test_transcribe(seqbuddy, d2r_hash, r2d_hash):
-#     tester = Sb.dna2rna(seqbuddy)
-#     assert seqs_to_hash(tester) == d2r_hash
-#     tester = Sb.rna2dna(tester)
-#     assert seqs_to_hash(tester) == r2d_hash
+shift_hashes = ['aed33dda2f49d6f05af54858e142bb6f','ca336db0c1990b1a33afe89f846ec959']
+frame = [2,3]
+hashes = [(Sb._make_copies(sb_objects[0]), shift_hash, frame[indx]) for indx, shift_hash in enumerate(shift_hashes)]
+@pytest.mark.parametrize("seqbuddy, shift_hash, frame", hashes)
+def test_degerate_sequence_reading_frame_shift(seqbuddy, shift_hash, frame):
+    tester = Sb.degenerate_sequence(seqbuddy,table=1,reading_frame=frame)
+    assert seqs_to_hash(tester) ==shift_hash
