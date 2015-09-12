@@ -34,6 +34,14 @@ br.flags(parser, None, br.bsi_flags, None, _version)
 
 in_args = parser.parse_args()
 
+# Don't bother continuing on Windows. It won't work.
+if sys.platform.startswith("win"):
+    sys.exit("Error: Windows is not currently supported. If you really want to try BuddySuite on your current system, "
+             "you will need to clone the Git repository and try accessing the modules directly. Sorry...")
+
+if "DISPLAY" not in os.environ:  # Check that the user's system is graphical
+    in_args.cmd_line = True
+
 home_dir = path.expanduser('~')
 start_dir = os.getcwd()
 
@@ -53,34 +61,84 @@ paths_installed = ["resources", "Bio", "dendropy", "ete3"]
 files_installed = ["SeqBuddy.py", "AlignBuddy.py", "DatabaseBuddy.py", "PhyloBuddy.py", "MyFuncs.py",
                    "config.ini", "buddy_resources.py", "blastn", "blastp", "blastdbcmd"]
 
-# Check for pillow dependency
-if not in_args.cmd_line:
+
+def check_pillow():
     try:
         from PIL import Image
-
+        return True
     except ImportError:
+        return False
+
+# Check for pillow dependency and try to get it installed if necessary
+if not in_args.cmd_line:
+    if check_pillow():
+        pass
+    else:
         print("The image processing package 'Pillow' (https://python-pillow.github.io/) is needed for the graphical "
               "installer. If you are working within a standard desktop environment you should install Pillow, but it "
               "is not necessary if working on a non-graphical platform (e.g., on a cluster).")
-        prompt = input("Try to install Pillow y/[n]?")
-        if prompt.lower().strip() in ["yes", "y"]:
-            if which("conda"):
-                print("Attempting to install Pillow with 'conda'.")
-                Popen("conda install pillow", shell=True).wait()
 
-            elif which("pip"):
-                print("Attempting to install a temporary copy of Pillow with 'pip'.")
-                Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
-                      temp_dir.name, shell=True).wait()
-                if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
-                    shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
-            else:
-                print("Unable to install Pillow.")
-    try:
-        from PIL import Image
-    except ImportError:
-        print("Failed to build GUI. Package Pillow was not found.")
-        in_args.cmd_line = True
+        prompt = input("Try to install Pillow? (y)es/(t)emporary/[(n)o]?")
+        if prompt.lower().strip() in ["yes", "y"]:
+            prompt = "yes"
+        elif prompt.lower().strip() in ["t", "temp", "temporary"]:
+            prompt = "temp"
+        else:
+            prompt = "no"
+
+        while True:  # This allows the various checks to block further checks if successful, by breakout out of loop
+            if prompt in ["yes", "temp"]:
+                if which("conda") and prompt == "yes":
+                    print("Attempting to install Pillow with 'conda'.")
+                    Popen("conda install pillow", shell=True).wait()
+                    if check_pillow():
+                        print("Success!")
+                        break
+                    else:
+                        print("Failed...")
+
+                if which("pip"):
+                    print("Attempting to install Pillow with 'pip'.")
+                    if prompt == "temp":
+                        Popen("pip install --install-option='--prefix=%s/' --ignore-installed pillow" %
+                              temp_dir.name, shell=True).wait()
+                        if path.isdir("./lib/python%s/site-packages/PIL" % sys.version[:3]):
+                            shutil.copytree("./lib/python%s/site-packages/PIL" % sys.version[:3], "./PIL")
+                    else:
+                        Popen("pip install pillow", shell=True).wait()
+                    if check_pillow():
+                        print("Success!")
+                        break
+                    else:
+                        print("Failed...")
+
+                fetch = "curl" if which("curl") else "wget" if which("wget") else False
+                if fetch:
+                    print("Attempting to compile Pillow from source.")
+                    if fetch == "curl":
+                        Popen("curl -O https://pypi.python.org/packages/source/P/Pillow/Pillow-2.9.0.tar.gz",
+                              shell=True).wait()
+                    else:
+                        Popen("wget https://pypi.python.org/packages/source/P/Pillow/Pillow-2.9.0.tar.gz",
+                              shell=True).wait()
+
+                    Popen("tar -xzf Pillow-2.9.0.tar.gz", shell=True).wait()
+                    os.chdir("Pillow-2.9.0")
+                    if prompt == "temp":
+                        Popen("python3 setup.py build_ext --inplace", shell=True).wait()
+                        sys.path.insert(0, "%s/Pillow-2.9.0" % temp_dir.name)
+                    else:
+                        Popen("python3 setup.py build", shell=True).wait()
+                        Popen("python3 setup.py install", shell=True).wait()
+                    if check_pillow():
+                        print("Success!")
+                        break
+                    else:
+                        print("Failed...")
+
+            print("Unable to install Pillow\nDefaulting to the command line installer.")
+            in_args.cmd_line = True
+            break
 
 # Check for Tkinter
 if not in_args.cmd_line:
@@ -89,7 +147,8 @@ if not in_args.cmd_line:
         from tkinter import filedialog
     except ImportError:
         proceed = False
-        print("Failed to build GUI. Package Tkinter was not found.")
+        print("Failed to build GUI because the Tkinter package was not found. This is strange, because Tkinter is"
+              "part of the Python standard library...\nDefaulting to the command line installer.")
         in_args.cmd_line = True
 
 
