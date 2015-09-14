@@ -32,6 +32,8 @@ from MyFuncs import TempFile
 import os
 from configparser import ConfigParser
 import json
+import traceback
+import re
 
 if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
@@ -133,6 +135,34 @@ def error_report(error_msg):
         print("FTP Error: %s" % e)
 
 
+def send_traceback(tool, e):
+    config = config_values()
+    tb = "%s\n" % config["user_hash"]
+    for _line in traceback.format_tb(sys.exc_info()[2]):
+        _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+        tb += _line
+    tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+    print("\033[m%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, tb))
+
+    send_diagnostic = True if config["diagnostics"] == "True" else False
+    if not send_diagnostic:
+        prompt = input("\033[1mWould you like to send a crash report with the above "
+                       "traceback to the developers ([y]/n)?\033[m")
+        if prompt.lower() in ["y", "yes", ""]:
+            send_diagnostic = True
+
+    else:
+        print("An error report with the above traceback is being sent to the BuddySuite developers because "
+              "you have elected to participate in the Software Improvement Program. To opt-out of this "
+              "program in the future, re-run the BuddySuite installer and un-check the box on the "
+              "'Diagnostics' screen.\n")
+
+    if send_diagnostic:
+        print("Preparing error report for FTP upload...\nSending...\n")
+        error_report(tb)
+        print("Success, thank you.\n")
+
+
 class Usage:
     def __init__(self):
         self.config = config_values()
@@ -166,6 +196,7 @@ class Usage:
 
     def save(self, send_report=True):
         if self.config["diagnostics"] == "True" and send_report:
+            self.stats.setdefault("last_upload", datetime.date.today().isoformat())
             if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
                                                                        '%Y-%m-%d')).days >= 1:
                 self.send_report()

@@ -2599,7 +2599,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-if __name__ == '__main__':
+def command_line_ui():
     import argparse
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
@@ -3369,3 +3369,13 @@ if __name__ == '__main__':
     if in_args.uppercase:
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
+
+if __name__ == '__main__':
+    try:
+        command_line_ui()
+    except (KeyboardInterrupt, GuessError) as e:
+        print(e)
+    except SystemExit:
+        pass
+    except Exception as e:
+        br.send_traceback("SeqBuddy", e)
