@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     parser.add_argument("report_folder", help="", action="store")
     parser.add_argument("-e", "--errors", help="", action="store_true")
-    parser.add_argument("-u", "--usage", help="", action="store_true")
+    parser.add_argument("-u", "--usage", help="Specify location of usage file", action="store")
 
     in_args = parser.parse_args()
 
@@ -91,4 +91,27 @@ if __name__ == '__main__':
         sys.exit()
 
     if in_args.usage:
+        file_paths = []
+        email_msg = ""
+        for report in reports:
+            if re.match("usage", report):
+                report_path = "%s/%s" % (root, report)
+                file_paths.append(report_path)
+                with open(report_path, "r") as ifile:
+                    content = ifile.read()
+                email_msg += "%s\n" % content
+
+        if email_msg != "":
+            with open(in_args.usage, "a") as ofile:
+                ofile.write(email_msg)
+            try:
+                subject = "BuddySuite|usage_reports|%s" % date.today()
+                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
+
+                for report in file_paths:
+                    os.remove(report)
+
+            except OSError as e:
+                sys.stderr("Failed to send usage report:\n%s\n" % e)
+
         sys.exit()
