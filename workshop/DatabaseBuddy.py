@@ -1569,6 +1569,7 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
+        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch")
         self.cmdloop()
 
     # @staticmethod
