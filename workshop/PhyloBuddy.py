@@ -426,7 +426,7 @@ def trees_to_ascii(_phylobuddy):
     """
     _output = OrderedDict()
     for _indx, _tree in enumerate(_phylobuddy.trees):
-        _key = 'tree_{0}'.format(_indx+1) if _tree.label in [None, ''] else _tree.label
+        _key = 'tree_{0}'.format(_indx + 1) if _tree.label in [None, ''] else _tree.label
         _output[_key] = _tree.as_ascii_plot()
     return _output
 
@@ -809,6 +809,33 @@ def argparse_init():
     phylobuddy = []
     tree_set = ""
 
+    # Generate Tree
+    if in_args.generate_tree:
+        alignbuddy = []
+        align_set = None
+        try:
+            import AlignBuddy as Alb
+        except ImportError:
+            _stderr("AlignBuddy is needed to use generate_msa(). Please re-run the installer and add AlignBuddy to"
+                    "your system.")
+            sys.exit()
+        for align_set in in_args.trees:  # Build an AlignBuddy object
+            if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
+            alignbuddy += align_set.alignments
+        if align_set:
+            alignbuddy = Alb.AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+        else:
+            alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.in_format, in_args.out_format)
+
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
+        if in_args.out_format:
+            generated_trees.out_format = in_args.out_format
+        _stdout(str(generated_trees))
+        sys.exit()
+
     for tree_set in in_args.trees:
         if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
             sys.exit("Warning: No input detected. Process will be aborted.")
@@ -872,28 +899,6 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     if in_args.display_trees:
         display_trees(phylobuddy)
         _exit("display_trees")
-
-    # Generate Tree
-    if in_args.generate_tree:
-        alignbuddy = []
-        try:
-            import AlignBuddy as Alb
-        except ImportError:
-            _stderr("AlignBuddy is needed to use generate_msa(). Please re-run the installer and add AlignBuddy to"
-                    "your system.")
-            sys.exit()
-        for seq_set in in_args.trees:  # Build an AlignBuddy object
-            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
-            seq_set = Alb.AlignBuddy(seq_set, in_args.in_format, in_args.out_format)
-            alignbuddy += seq_set.alignments
-        alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.trees[0].in_format, in_args.trees[0].out_format)
-        params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
-        if in_args.out_format:
-            generated_trees.out_format = in_args.out_format
-        _stdout(str(generated_trees))
-        _exit("generate_tree")
 
     # List ids
     if in_args.list_ids:
