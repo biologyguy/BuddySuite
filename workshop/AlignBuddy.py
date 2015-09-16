@@ -33,7 +33,7 @@ from Bio.Data.CodonTable import TranslationError
 
 # My functions
 import buddy_resources as br
-from MyFuncs import TemporaryDirectory
+from MyFuncs import TempDir
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -208,11 +208,11 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             if self.out_format in ["phylipss", "phylip-sequential-strict"]:
                 self.out_format = "phylip-sequential"
 
-            tmp_dir = TemporaryDirectory()
-            with open("%s/aligns.tmp" % tmp_dir.name, "w") as _ofile:
+            tmp_dir = TempDir()
+            with open("%s/aligns.tmp" % tmp_dir.path, "w") as _ofile:
                 AlignIO.write(self.alignments, _ofile, self.out_format)
 
-            with open("%s/aligns.tmp" % tmp_dir.name, "r") as ifile:
+            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
                 _output = ifile.read()
 
         return _output
@@ -359,13 +359,14 @@ def clean_seq(_alignbuddy, skip_list=None):
     :return: The cleaned AlignBuddy object
     """
     skip_list = "" if not skip_list else "".join(skip_list)
-    skip_list += "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy"
     for _rec in _get_seq_recs(_alignbuddy):
         if _alignbuddy.alpha == IUPAC.protein:
-            _rec.seq = Seq(re.sub("[^%s]" % skip_list, "", str(_rec.seq)),
+            full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
+            _rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(_rec.seq)),
                            alphabet=_alignbuddy.alpha)
         else:
-            _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_alignbuddy.alpha)
+            full_skip = "ATGCUatgcu%s" % skip_list
+            _rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(_rec.seq)), alphabet=_alignbuddy.alpha)
 
     return _alignbuddy
 
@@ -945,7 +946,7 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
-def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
+def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):  # ToDo: clustalomega may be clustalo
     """
     Calls sequence aligning tools to generate multiple sequence alignments
     :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
@@ -970,8 +971,8 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
         _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
         sys.exit()
     else:
-        tmp_dir = TemporaryDirectory()
-        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+        tmp_dir = TempDir()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
 
         try:
             from SeqBuddy import hash_sequence_ids
@@ -990,18 +991,18 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
         _output = ''
 
         _seqbuddy.out_format = 'fasta'
-        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+        with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(_seqbuddy))
         if _tool == 'clustalomega':
             command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
         elif _tool == 'clustalw2':
-            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         elif _tool == 'muscle':
             command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
         elif _tool == 'prank':
-            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         elif _tool == 'pagan':
-            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         else:
             command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
         try:
@@ -1014,7 +1015,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
             sys.exit()
 
         if _tool.startswith('clustalw'):
-            with open('{0}/result'.format(tmp_dir.name)) as result:
+            with open('{0}/result'.format(tmp_dir.path)) as result:
                 _output = result.read()
         elif _tool == 'prank':
             extension = 'fas'
@@ -1022,12 +1023,12 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
                 extension = 'nex'
             elif '-f=phylipi' in _params or '-f=phylips' in _params:
                 extension = 'phy'
-            possible_files = os.listdir(tmp_dir.name)
+            possible_files = os.listdir(tmp_dir.path)
             _filename = 'result.best.{0}'.format(extension)
             for _file in possible_files:
                 if 'result.best' in _file and extension in _file:
                     _filename = _file
-            with open('{0}/{1}'.format(tmp_dir.name, _filename)) as result:
+            with open('{0}/{1}'.format(tmp_dir.path, _filename)) as result:
                 _output = result.read()
         elif _tool == 'pagan':
             extension = 'fas'
@@ -1035,7 +1036,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
                 extension = 'nex'
             elif '-f phylipi' in _params or '-f phylips' in _params:
                 extension = 'phy'
-            with open('{0}/result.{1}'.format(tmp_dir.name, extension)) as result:
+            with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
                 _output = result.read()
 
         # Fix broken outputs to play nicely with AlignBuddy parsers
@@ -1082,7 +1083,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
 
         if _keep_temp:
             try:
-                copytree(tmp_dir.name, _keep_temp)
+                copytree(tmp_dir.path, _keep_temp)
             except FileExistsError:
                 # Should never get here
                 pass
@@ -1128,6 +1129,7 @@ def argparse_init():
     # Generate Alignment
     if in_args.generate_alignment:
         seqbuddy = []
+        seq_set = None
         try:
             import SeqBuddy as Sb
         except ImportError:
@@ -1138,7 +1140,10 @@ def argparse_init():
                 sys.exit("Warning: No input detected. Process will be aborted.")
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records
-        seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.alignments[0].in_format, in_args.alignments[0].out_format)
+        if seq_set:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        else:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
         generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
         if in_args.out_format:
