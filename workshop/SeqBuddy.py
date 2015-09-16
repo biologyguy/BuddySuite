@@ -139,7 +139,9 @@ def degenerate_dna():
 
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
-
+FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
+           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
+           "stockholm", "tab", "qual"]
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
@@ -2599,7 +2601,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-def command_line_ui():
+def argparse_init():
     import argparse
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
@@ -2636,6 +2638,10 @@ def command_line_ui():
         sys.exit("Error: SeqBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
+    return in_args, seqbuddy
+
+
+def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
         if in_args.test:
@@ -2647,7 +2653,6 @@ def command_line_ui():
 
         else:
             _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
-
 
     def _in_place(_output, _path):
         if not os.path.exists(_path):
@@ -2681,12 +2686,12 @@ def command_line_ui():
 
         return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
 
-
     def _raise_error(_err):
         sys.exit("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
 
-
-    def _exit(tool):
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
         usage = br.Usage()
         usage.increment("SeqBuddy", VERSION.short(), tool)
         usage.save()
@@ -3290,13 +3295,16 @@ def command_line_ui():
 
     # Screw formats
     if in_args.screw_formats:
-        seqbuddy.out_format = in_args.screw_formats
-        if in_args.in_place:  # Need to change the file extension
-            os.remove(in_args.sequence[0])
-            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
-                                  "." + seqbuddy.out_format
-            open(in_args.sequence[0], "w").close()
-        _print_recs(seqbuddy)
+        if in_args.screw_formats not in FORMATS:
+            _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
+        else:
+            seqbuddy.out_format = in_args.screw_formats
+            if in_args.in_place:  # Need to change the file extension
+                os.remove(in_args.sequence[0])
+                in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
+                                      "." + seqbuddy.out_format
+                open(in_args.sequence[0], "w").close()
+            _print_recs(seqbuddy)
         _exit("screw_formats")
 
     # Shift reading frame
@@ -3372,10 +3380,10 @@ def command_line_ui():
 
 if __name__ == '__main__':
     try:
-        command_line_ui()
-    except (KeyboardInterrupt, GuessError) as e:
-        print(e)
+        command_line_ui(*argparse_init())
+    except (KeyboardInterrupt, GuessError) as _e:
+        print(_e)
     except SystemExit:
         pass
-    except Exception as e:
-        br.send_traceback("SeqBuddy", e)
+    except Exception as _e:
+        br.send_traceback("SeqBuddy", _e)

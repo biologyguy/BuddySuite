@@ -1093,7 +1093,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-def command_line_ui():
+def argparse_init():
     # Catching params to prevent weird collisions with alignment program arguments
     if '--params' in sys.argv:
         sys.argv[sys.argv.index('--params')] = '-p'
@@ -1154,6 +1154,10 @@ def command_line_ui():
 
     alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
+    return in_args, alignbuddy
+
+
+def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # ############################################# INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         try:
@@ -1186,7 +1190,9 @@ def command_line_ui():
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _exit(tool):
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
         usage = br.Usage()
         usage.increment("AlignBuddy", VERSION.short(), tool)
         usage.save()
@@ -1336,7 +1342,7 @@ def command_line_ui():
 
 if __name__ == '__main__':
     try:
-        command_line_ui()
+        command_line_ui(*argparse_init())
     except (KeyboardInterrupt, GuessError) as e:
         print(e)
     except SystemExit:

@@ -785,7 +785,7 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-def command_line_ui():
+def argparse_init():
     import argparse
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
@@ -816,7 +816,11 @@ def command_line_ui():
         phylobuddy += tree_set.trees
     phylobuddy = PhyloBuddy(phylobuddy, tree_set.in_format, tree_set.out_format)
 
-# ################################################ INTERNAL FUNCTIONS ################################################ #
+    return in_args, phylobuddy
+
+
+def command_line_ui(in_args, phylobuddy, skip_exit=False):
+    # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_trees(_phylobuddy):  # TODO: Remove the calls to in_args
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
@@ -838,7 +842,9 @@ def command_line_ui():
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _exit(tool):
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
         usage = br.Usage()
         usage.increment("PhyloBuddy", VERSION.short(), tool)
         usage.save()
@@ -942,7 +948,7 @@ def command_line_ui():
 
 if __name__ == '__main__':
     try:
-        command_line_ui()
+        command_line_ui(*argparse_init())
     except (KeyboardInterrupt, GuessError) as e:
         print(e)
     except SystemExit:
