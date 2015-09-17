@@ -3520,4 +3520,4 @@ if __name__ == '__main__':
         else:
             table = int(in_args.degenerate_sequence[0])
             reading_frame = int(in_args.degenerate_sequence[1])
-        _print_recs(degenerate_sequence(seqbuddy, table, reading_frame))
+        print(degenerate_sequence(seqbuddy, table, reading_frame))
