@@ -139,7 +139,9 @@ def degenerate_dna():
 
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
-
+FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
+           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
+           "stockholm", "tab", "qual"]
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
@@ -2597,7 +2599,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
     _seqbuddy = merge([old, _seqbuddy])
     return _seqbuddy
 
-def degenerate_sequence(_seqbuddy, _table=1, _reading_frame =1 ): 
+def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ): 
     """
     Generate degenerate codon sequence 
     :param _seqbuddy: The SeqBuddy object to be analyzed
@@ -2709,7 +2711,7 @@ def degenerate_sequence(_seqbuddy, _table=1, _reading_frame =1 ):
 
     #add variable codons to working dictionary 
     working_dict = base_dict.copy()
-    working_dict.update(dgn_tables[_table])
+    working_dict.update(dgn_tables[table])
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
         raise TypeError("DNA sequence required, not protein.")
@@ -2721,7 +2723,7 @@ def degenerate_sequence(_seqbuddy, _table=1, _reading_frame =1 ):
     _seqbuddy = uppercase(_seqbuddy)
     for _rec in _seqbuddy.records:
         # shift reading frame
-        _rec.seq = _rec.seq[_reading_frame-1:]
+        _rec.seq = _rec.seq[reading_frame-1:]
         seq_length = len(str(_rec.seq))
         i=0
         degen_string=""
@@ -2736,7 +2738,7 @@ def degenerate_sequence(_seqbuddy, _table=1, _reading_frame =1 ):
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-if __name__ == '__main__':
+def argparse_init():
     import argparse
 
     fmt = lambda prog: br.CustomHelpFormatter(prog)
@@ -2756,8 +2758,6 @@ if __name__ == '__main__':
                                   "into SeqBuddy this argument can be left blank."),
              br.sb_flags, br.sb_modifiers, VERSION)
 
-    parser.add_argument('-dgn', '--degenerate_sequence', action='append', nargs="*",
-                        help="Return degenerate DNA sequence. Condon table options 1-6,9-14. Reading frame options 1-3.")
 
     in_args = parser.parse_args()
 
@@ -2776,6 +2776,10 @@ if __name__ == '__main__':
         sys.exit("Error: SeqBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
+    return in_args, seqbuddy
+
+
+def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
         if in_args.test:
@@ -2787,7 +2791,6 @@ if __name__ == '__main__':
 
         else:
             _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
-
 
     def _in_place(_output, _path):
         if not os.path.exists(_path):
@@ -2821,12 +2824,12 @@ if __name__ == '__main__':
 
         return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
 
-
     def _raise_error(_err):
         sys.exit("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
 
-
-    def _exit(tool):
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
         usage = br.Usage()
         usage.increment("SeqBuddy", VERSION.short(), tool)
         usage.save()
@@ -3430,13 +3433,16 @@ if __name__ == '__main__':
 
     # Screw formats
     if in_args.screw_formats:
-        seqbuddy.out_format = in_args.screw_formats
-        if in_args.in_place:  # Need to change the file extension
-            os.remove(in_args.sequence[0])
-            in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
-                                  "." + seqbuddy.out_format
-            open(in_args.sequence[0], "w").close()
-        _print_recs(seqbuddy)
+        if in_args.screw_formats not in FORMATS:
+            _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
+        else:
+            seqbuddy.out_format = in_args.screw_formats
+            if in_args.in_place:  # Need to change the file extension
+                os.remove(in_args.sequence[0])
+                in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
+                                      "." + seqbuddy.out_format
+                open(in_args.sequence[0], "w").close()
+            _print_recs(seqbuddy)
         _exit("screw_formats")
 
     # Shift reading frame
@@ -3510,7 +3516,8 @@ if __name__ == '__main__':
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
 
-        #degenerate_sequence
+
+    #degenerate_sequence
     if in_args.degenerate_sequence:
         table, reading_frame = 1, 1
         in_args.degenerate_sequence = in_args.degenerate_sequence[0]
@@ -3521,3 +3528,13 @@ if __name__ == '__main__':
             table = int(in_args.degenerate_sequence[0])
             reading_frame = int(in_args.degenerate_sequence[1])
         print(degenerate_sequence(seqbuddy, table, reading_frame))
+
+if __name__ == '__main__':
+    try:
+        command_line_ui(*argparse_init())
+    except (KeyboardInterrupt, GuessError) as _e:
+        print(_e)
+    except SystemExit:
+        pass
+    except Exception as _e:
+        br.send_traceback("SeqBuddy", _e)

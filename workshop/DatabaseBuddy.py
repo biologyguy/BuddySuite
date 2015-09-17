@@ -31,7 +31,6 @@ Collection of functions that interact with public sequence databases. Pull them 
 import sys
 import os
 import re
-from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from time import sleep
@@ -299,12 +298,12 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     self.trash_bin[_id] = _rec
                 elif mode == "restore" and _rec.search(regex):
                     self.records[_id] = _rec
-            except KeyError as e:
-                if str(e) not in column_errors["KeyError"]:
-                    column_errors["KeyError"].append(str(e))
-            except ValueError as e:
-                if str(e) not in column_errors["ValueError"]:
-                    column_errors["ValueError"].append(str(e))
+            except KeyError as _e:
+                if str(_e) not in column_errors["KeyError"]:
+                    column_errors["KeyError"].append(str(_e))
+            except ValueError as _e:
+                if str(_e) not in column_errors["ValueError"]:
+                    column_errors["ValueError"].append(str(_e))
 
         if mode == "restore":
             for _id in self.records:
@@ -698,15 +697,15 @@ class UniProtRestClient:
                     ofile.write("# Search: %s\n%s//\n" % (_term, response))
             return
 
-        except HTTPError as e:
+        except HTTPError as _e:
             with lock:
                 with open(http_errors_file, "a") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, e))
+                    ofile.write("%s\n%s//\n" % (_term, _e))
 
-        except URLError as e:
+        except URLError as _e:
             with lock:
                 with open(http_errors_file, "a") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, e))
+                    ofile.write("%s\n%s//\n" % (_term, _e))
 
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
@@ -748,6 +747,8 @@ class UniProtRestClient:
                 search_terms.append(_term)
 
         search_terms = search_terms[0] if len(search_terms) == 1 else search_terms
+        if not search_terms:
+            return 0
         self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}, Lock()])
         with open(self.results_file, "r") as ifile:
             _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
@@ -939,9 +940,9 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except HTTPError as _e:
                 if i == self.max_attempts - 1:
-                    error = e
+                    error = _e
                 sleep(1)
 
         with lock:
@@ -985,9 +986,9 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as e:
+            except HTTPError as _e:
                 if i == self.max_attempts - 1:
-                    error = e
+                    error = _e
                 sleep(1)
 
         with lock:
@@ -1053,9 +1054,9 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as e:
+            except [HTTPError, RuntimeError] as _e:
                 if i == self.max_attempts - 1:
-                    error = e
+                    error = _e
                 sleep(1)
 
         with lock:
@@ -1192,14 +1193,14 @@ class NCBIClient:
 
                 self.fetch_summary()
 
-            except [HTTPError, RuntimeError] as e:
-                if e.getcode() == 503:
+            except [HTTPError, RuntimeError] as _e:
+                if _e.getcode() == 503:
                     failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
                                              "experiencing some technical issues.")
                     if failure.hash not in self.dbbuddy.failures:
                         self.dbbuddy.failures[failure.hash] = failure
                 else:
-                    failure = Failure(_term, str(e))
+                    failure = Failure(_term, str(_e))
                     if failure.hash not in self.dbbuddy.failures:
                         self.dbbuddy.failures[failure.hash] = failure
 
@@ -1289,9 +1290,9 @@ class NCBIClient:
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as e:
+            except [HTTPError, RuntimeError] as _e:
                 if i == self.max_attempts - 1:
-                    error = e
+                    error = _e
                 sleep(1)
 
         with lock:
@@ -1320,21 +1321,23 @@ class NCBIClient:
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
         if len(gi_nums) > 0:
-            records = self._get_seq(gi_nums, database)
-            for accn, rec in records.items():
-                # Catch accn/version
-                with_version = re.search("^(.*?)\.([0-9]+)$", accn)
-                if with_version:
-                    accn, ver = with_version.group(1), with_version.group(2)
-                    self.dbbuddy.records[accn].record = rec
-                    self.dbbuddy.records[accn].version = ver
-                else:
-                    try:
+            try:
+                records = self._get_seq(gi_nums, database)
+                for accn, rec in records.items():
+                    # Catch accn/version
+                    with_version = re.search("^(.*?)\.([0-9]+)$", accn)
+                    if with_version:
+                        accn, ver = with_version.group(1), with_version.group(2)
                         self.dbbuddy.records[accn].record = rec
-                    except KeyError:
-                        self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records", []).append(rec.id)
-                    except KeyboardInterrupt:
-                        _stderr("\n\tNCBI query interrupted by user\n")
+                        self.dbbuddy.records[accn].version = ver
+                    else:
+                        try:
+                            self.dbbuddy.records[accn].record = rec
+                        except KeyError:
+                            self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records",
+                                                             []).append(rec.id)
+            except KeyboardInterrupt:
+                _stderr("\n\tNCBI query interrupted by user\n")
 
 
 class EnsemblRestClient:
@@ -1381,15 +1384,15 @@ class EnsemblRestClient:
 
             return data
 
-        except HTTPError as e:
+        except HTTPError as _e:
             # check if we are being rate limited by the server
-            if e.getcode() == 429:
-                if 'Retry-After' in e.headers:
-                    retry = e.headers['Retry-After']
+            if _e.getcode() == 429:
+                if 'Retry-After' in _e.headers:
+                    retry = _e.headers['Retry-After']
                     sleep(float(retry) + 1)
                     self.perform_rest_action(endpoint, **kwargs_backup)
             else:
-                failure = Failure("%s" % self.server + endpoint, "Ensemble request failed. %s" % e)
+                failure = Failure("%s" % self.server + endpoint, "Ensemble request failed. %s" % _e)
                 self.dbbuddy.failures[failure.hash] = failure
 
     def fetch_nucleotide(self):
@@ -1566,6 +1569,7 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
+        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch")
         self.cmdloop()
 
     # @staticmethod
@@ -1654,7 +1658,8 @@ Further details about each command can be accessed by typing 'help <command>'
         for _filter in line:
             for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
                 _errors[_key] += _value
-            _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))), format_out=self.terminal_default)
+            _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
+                    format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
 
         if _errors["KeyError"]:
@@ -1700,7 +1705,8 @@ Further details about each command can be accessed by typing 'help <command>'
         for l in line:
             if l not in DATABASES and l != "all":
                 _stdout("Error: %s is not a valid database choice.\n"
-                        "Please select from %s\n" % (l, ["all"] + DATABASES), format_in=RED, format_out=self.terminal_default)
+                        "Please select from %s\n" % (l, ["all"] + DATABASES), format_in=RED,
+                        format_out=self.terminal_default)
             else:
                 new_database_list.append(l)
         if new_database_list:
@@ -1800,13 +1806,22 @@ Further details about each command can be accessed by typing 'help <command>'
         if not self.dbbuddy.failures:
             _stdout("No failures to report\n\n", format_in=GREEN, format_out=self.terminal_default)
         else:
-            _stdout("The following failures have occured\n", format_in=[UNDERLINE, GREEN], format_out=self.terminal_default)
+            _stdout("The following failures have occured\n", format_in=[UNDERLINE, GREEN],
+                    format_out=self.terminal_default)
             for _hash, _values in self.dbbuddy.failures.items():
                 _stdout("%s\n\n" % _values, format_out=self.terminal_default)
 
     def do_fetch(self, line=None):
         if line != "":
             _stdout("Note: 'fetch' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+
+        accn_only = self.dbbuddy.record_breakdown()["accession"]
+        if accn_only:
+            search_terms = list(self.dbbuddy.search_terms)
+            self.dbbuddy.search_terms = []
+            retrieve_summary(self.dbbuddy)
+            self.dbbuddy.search_terms = search_terms
+
         amount_seq_requested = 0
         new_records_fetched = []
         for _accn, _rec in self.dbbuddy.records.items():
@@ -1864,8 +1879,8 @@ Further details about each command can be accessed by typing 'help <command>'
 
             _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
 
-        except IOError as e:
-            _stderr("%s\n" % e)
+        except IOError as _e:
+            _stderr("%s\n" % _e)
             _prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
             if _prompt == 'abort':
                 _stderr("Aborted...\n")
@@ -2008,16 +2023,16 @@ Further details about each command can be accessed by typing 'help <command>'
                 return
         try:
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
-        except ValueError as e:
-            if re.search("Sequences must all be the same length", str(e)):
+        except ValueError as _e:
+            if re.search("Sequences must all be the same length", str(_e)):
                 _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
                         self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
-            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(e)):
+            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
             else:
-                raise ValueError(e)
+                raise ValueError(_e)
 
         _stderr("%s\n" % self.terminal_default)
 
@@ -2462,7 +2477,6 @@ def retrieve_accessions(_dbbuddy):
 
 def retrieve_summary(_dbbuddy):
     check_all = False if _dbbuddy.databases else True
-
     if "uniprot" in _dbbuddy.databases or check_all:
         uniprot = _dbbuddy.server("uniprot")
         uniprot.search_proteins()
@@ -2553,13 +2567,17 @@ if __name__ == '__main__':
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Live Shell
-    if in_args.live_shell:
+    def launch_live_shell():
         # Create a temp file for crash handling
         temp_file = TempFile(byte_mode=True)
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
-            live_search = LiveSearch(dbbuddy, temp_file)
-        except Exception as _e:
+            LiveSearch(dbbuddy, temp_file)
+        except SystemExit:
+            pass
+        except (KeyboardInterrupt, GuessError) as e:
+            print(e)
+        except Exception as e:
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
@@ -2567,7 +2585,7 @@ if __name__ == '__main__':
             for _line in traceback.format_tb(sys.exc_info()[2]):
                 _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
                 tb += _line
-            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
+            tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
@@ -2591,6 +2609,9 @@ if __name__ == '__main__':
 
         temp_file.close()
         sys.exit()
+
+    if in_args.live_shell:
+        launch_live_shell()
 
     """
     # Download everything
@@ -2643,4 +2664,4 @@ if __name__ == '__main__':
         sys.exit()
 
     # Default to LiveSearch
-    live_search = LiveSearch(dbbuddy)
+    launch_live_shell()

@@ -11,7 +11,7 @@ and allows maintenance of rich feature annotation following alignment.
 # Standard library imports
 import sys
 import os
-from copy import copy, deepcopy
+from copy import deepcopy
 from io import StringIO, TextIOWrapper
 from random import sample
 import re
@@ -33,7 +33,7 @@ from Bio.Data.CodonTable import TranslationError
 
 # My functions
 import buddy_resources as br
-from MyFuncs import TemporaryDirectory
+from MyFuncs import TempDir
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -208,11 +208,11 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             if self.out_format in ["phylipss", "phylip-sequential-strict"]:
                 self.out_format = "phylip-sequential"
 
-            tmp_dir = TemporaryDirectory()
-            with open("%s/aligns.tmp" % tmp_dir.name, "w") as _ofile:
+            tmp_dir = TempDir()
+            with open("%s/aligns.tmp" % tmp_dir.path, "w") as _ofile:
                 AlignIO.write(self.alignments, _ofile, self.out_format)
 
-            with open("%s/aligns.tmp" % tmp_dir.name, "r") as ifile:
+            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
                 _output = ifile.read()
 
         return _output
@@ -285,6 +285,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
     else:
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
+
 def phylipseq(_alignbuddy, _relaxed=True):
     _output = ""
     for _alignment in _alignbuddy.alignments:
@@ -308,7 +309,7 @@ def phylipseq(_alignbuddy, _relaxed=True):
 def list_ids(_alignbuddy):
     """
     Returns a list of lists of sequence IDs
-    :param _phylobuddy: The AlignBuddy object to be analyzed
+    :param _alignbuddy: The AlignBuddy object to be analyzed
     :return: A list of lists of sequence IDs
     """
     _output = []
@@ -360,10 +361,12 @@ def clean_seq(_alignbuddy, skip_list=None):
     skip_list = "" if not skip_list else "".join(skip_list)
     for _rec in _get_seq_recs(_alignbuddy):
         if _alignbuddy.alpha == IUPAC.protein:
-            _rec.seq = Seq(re.sub("[^ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s]" % skip_list, "", str(_rec.seq)),
+            full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
+            _rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(_rec.seq)),
                            alphabet=_alignbuddy.alpha)
         else:
-            _rec.seq = Seq(re.sub("[^ATGCUatgcu%s]" % skip_list, "", str(_rec.seq)), alphabet=_alignbuddy.alpha)
+            full_skip = "ATGCUatgcu%s" % skip_list
+            _rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(_rec.seq)), alphabet=_alignbuddy.alpha)
 
     return _alignbuddy
 
@@ -560,7 +563,7 @@ def pull_rows(_alignbuddy, _search):
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
-def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure why
+def trimal(_alignbuddy, _threshold, _window_size=1):  # ToDo: This might be broken, test it.
     """
     Trims alignment gaps using algorithms from trimal
     :param _alignbuddy: The AlignBuddy object to be trimmed
@@ -581,9 +584,6 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
                 num_gaps = len(re.findall("-", str(_alignment[:, _indx])))
                 gap_distr[num_gaps] += 1
                 each_column[_indx] = num_gaps
-
-        def res_sim_score():
-            return
 
         def remove_cols(cuts):
             _new_alignment = _alignment[:, 0:0]
@@ -653,9 +653,6 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
 
             return remove_cols(mark_cuts())
 
-        def strict():
-            return
-
         if _threshold in ["no_gaps", "all"]:
             _threshold = 0
             new_alignment = _alignment[:, 0:0]
@@ -673,10 +670,11 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
         elif _threshold == "gappyout":
             new_alignment = gappyout()
 
-        elif _threshold == "strict":
-
+        elif _threshold == "strict":  # ToDo: Implement
+            new_alignment = False
             pass
-        elif _threshold == "strictplus":
+        elif _threshold == "strictplus":  # ToDo: Implement
+            new_alignment = False
             pass
         else:
             try:
@@ -697,8 +695,10 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # This is broken, not sure
             except ValueError:
                 raise ValueError("Unable to understand the threshold parameter provided -> %s)" % _threshold)
 
-        _alignbuddy.alignments[alignment_index] = new_alignment
-
+        if new_alignment:
+            _alignbuddy.alignments[alignment_index] = new_alignment
+        else:
+            raise NotImplementedError("%s has not been implemented" % _threshold)
     return _alignbuddy
 
 
@@ -946,7 +946,7 @@ def split_alignbuddy(_alignbuddy):
     return ab_objs_list
 
 
-def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
+def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):  # ToDo: clustalomega may be clustalo
     """
     Calls sequence aligning tools to generate multiple sequence alignments
     :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
@@ -961,27 +961,24 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
 
     if _keep_temp:
         if os.path.exists(_keep_temp):
-            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), in_args.quiet)
+            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), _quiet)
             sys.exit()
 
     if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
         raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
     if which(_tool) is None:
-        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), in_args.quiet)
+        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), _quiet)
         _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
         sys.exit()
     else:
-        tmp_dir = TemporaryDirectory()
-        tmp_in = "{0}/tmp.fa".format(tmp_dir.name)
+        tmp_dir = TempDir()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
 
         try:
-            from workshop.SeqBuddy import hash_sequence_ids
+            from SeqBuddy import hash_sequence_ids
         except ImportError:
-            try:
-                from SeqBuddy import hash_sequence_ids
-            except ImportError:
-                _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
-                sys.exit()
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
 
         _params = re.split(' ', _params, )
         for _indx, _token in enumerate(_params):
@@ -994,18 +991,18 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
         _output = ''
 
         _seqbuddy.out_format = 'fasta'
-        with open("{0}/tmp.fa".format(tmp_dir.name), 'w') as out_file:
+        with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(_seqbuddy))
         if _tool == 'clustalomega':
             command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
         elif _tool == 'clustalw2':
-            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         elif _tool == 'muscle':
             command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
         elif _tool == 'prank':
-            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         elif _tool == 'pagan':
-            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.name)
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
         else:
             command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
         try:
@@ -1014,11 +1011,11 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
             else:
                 _output = subprocess.check_output(command, shell=True, universal_newlines=True)
         except subprocess.CalledProcessError:
-            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), in_args.quiet)
+            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), _quiet)
             sys.exit()
 
         if _tool.startswith('clustalw'):
-            with open('{0}/result'.format(tmp_dir.name)) as result:
+            with open('{0}/result'.format(tmp_dir.path)) as result:
                 _output = result.read()
         elif _tool == 'prank':
             extension = 'fas'
@@ -1026,12 +1023,12 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
                 extension = 'nex'
             elif '-f=phylipi' in _params or '-f=phylips' in _params:
                 extension = 'phy'
-            possible_files = os.listdir(tmp_dir.name)
+            possible_files = os.listdir(tmp_dir.path)
             _filename = 'result.best.{0}'.format(extension)
             for _file in possible_files:
                 if 'result.best' in _file and extension in _file:
                     _filename = _file
-            with open('{0}/{1}'.format(tmp_dir.name, _filename)) as result:
+            with open('{0}/{1}'.format(tmp_dir.path, _filename)) as result:
                 _output = result.read()
         elif _tool == 'pagan':
             extension = 'fas'
@@ -1039,7 +1036,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
                 extension = 'nex'
             elif '-f phylipi' in _params or '-f phylips' in _params:
                 extension = 'phy'
-            with open('{0}/result.{1}'.format(tmp_dir.name, extension)) as result:
+            with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
                 _output = result.read()
 
         # Fix broken outputs to play nicely with AlignBuddy parsers
@@ -1086,18 +1083,18 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None):
 
         if _keep_temp:
             try:
-                copytree(tmp_dir.name, _keep_temp)
+                copytree(tmp_dir.path, _keep_temp)
             except FileExistsError:
                 # Should never get here
                 pass
 
-        _stderr("Returning to AlignBuddy...\n\n", in_args.quiet)
+        _stderr("Returning to AlignBuddy...\n\n", _quiet)
 
         return _alignbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-if __name__ == '__main__':
+def argparse_init():
     # Catching params to prevent weird collisions with alignment program arguments
     if '--params' in sys.argv:
         sys.argv[sys.argv.index('--params')] = '-p'
@@ -1132,6 +1129,7 @@ if __name__ == '__main__':
     # Generate Alignment
     if in_args.generate_alignment:
         seqbuddy = []
+        seq_set = None
         try:
             import SeqBuddy as Sb
         except ImportError:
@@ -1142,9 +1140,12 @@ if __name__ == '__main__':
                 sys.exit("Warning: No input detected. Process will be aborted.")
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records
-        seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        if seq_set:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        else:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp)
+        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
         if in_args.out_format:
             generated_msas.out_format = in_args.out_format
         _stdout(str(generated_msas))
@@ -1158,15 +1159,19 @@ if __name__ == '__main__':
 
     alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
+    return in_args, alignbuddy
+
+
+def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # ############################################# INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         try:
             _output = str(_alignbuddy)
-        except ValueError as e:
-            _stderr("Error: %s\n" % str(e))
+        except ValueError as _e:
+            _stderr("Error: %s\n" % str(_e))
             return False
-        except TypeError as e:
-            _stderr("Error: %s\n" % str(e))
+        except TypeError as _e:
+            _stderr("Error: %s\n" % str(_e))
             return False
 
         if in_args.test:
@@ -1180,7 +1185,6 @@ if __name__ == '__main__':
             _stdout("{0}\n".format(_output.rstrip()))
         return True
 
-
     def _in_place(_output, _path):
         if not os.path.exists(_path):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
@@ -1191,7 +1195,9 @@ if __name__ == '__main__':
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _exit(tool):
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
         usage = br.Usage()
         usage.increment("AlignBuddy", VERSION.short(), tool)
         usage.save()
@@ -1339,3 +1345,12 @@ if __name__ == '__main__':
         _print_aligments(uppercase(alignbuddy))
         _exit("uppercase")
 
+if __name__ == '__main__':
+    try:
+        command_line_ui(*argparse_init())
+    except (KeyboardInterrupt, GuessError) as e:
+        print(e)
+    except SystemExit:
+        pass
+    except Exception as e:
+        br.send_traceback("AlignBuddy", e)
