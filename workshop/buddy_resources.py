@@ -333,6 +333,10 @@ sb_flags = {"add_feature": {"flag": "af",
             "count_residues": {"flag": "cr",
                                "action": "store_true",
                                "help": "Generate a table of sequence compositions."},
+            "degenerate_sequence": {"flag": "dgn",
+                                   "action": "append",
+                                   "nargs": "*",
+                                   "help":"Convert DNA codons to degenerate condons." },
             "delete_features": {"flag": "df",
                                 "action": "store",
                                 "nargs": "+",
@@ -524,11 +528,7 @@ sb_flags = {"add_feature": {"flag": "af",
                                  "help": "Translate nucleotide sequences into all six reading frames"},
             "uppercase": {"flag": "uc",
                           "action": "store_true",
-                          "help": "Convert all sequences to uppercase"},
-            "degnerate_sequence": {"flag": "dgn",
-                                   "action": "append",
-                                   "nargs": 2,
-                                   "help":"Convert DNA codons to degenerate condons" }}
+                          "help": "Convert all sequences to uppercase"}}
                           
 
 sb_modifiers = {"alpha": {"flag": "a",

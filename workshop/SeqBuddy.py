@@ -2711,13 +2711,18 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
 
     #add variable codons to working dictionary 
     working_dict = base_dict.copy()
-    working_dict.update(dgn_tables[table])
+
+    #Handle if codon table not supported. 
+    try:
+        working_dict.update(dgn_tables[table])
+    except KeyError:
+        print("Could not locate codon dictionary. Supported codon tables are 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, and 13")
+        sys.exit(0)
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
         raise TypeError("DNA sequence required, not protein.")
     if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
-        raise TypeError(
-            "Please use a DNA seqeunce instead of an RNA sequence.")
+        raise TypeError("Please use a DNA seqeunce instead of an RNA sequence.")
 
     _seqbuddy = clean_seq(_seqbuddy)
     _seqbuddy = uppercase(_seqbuddy)
@@ -3096,6 +3101,84 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.delete_small:
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
         _exit("delete_small")
+
+    #degenerate_sequence
+    if in_args.degenerate_sequence:
+        table, reading_frame = 1, 1
+        in_args.degenerate_sequence = in_args.degenerate_sequence[0]
+        
+        #check if to make sure letters are not in argument
+        check_numbers = [n for n in in_args.degenerate_sequence if n.isdigit()]
+        if len(check_numbers) != len(in_args.degenerate_sequence):    
+                raise AttributeError('Please use integers not strings')
+        
+        #notify user only need two arguments
+        if len(in_args.degenerate_sequence) > 2:
+            raise AttributeError('Too many attributes provided please only provided 1 or 2 parameters (table or table reading frame') 
+       
+       #if no argument provided will use table 1 first reading frame as default(set above)
+        if not in_args.degenerate_sequence:
+            pass
+        #if one argument provided will set the given argument as the codon table.
+        elif len(in_args.degenerate_sequence) == 1:
+            print("Only one parameter detected, will use the given parameter as a codon table and start at the first reading frame")
+            table = int(in_args.degenerate_sequence[0])
+            read_frame = 1
+        else:
+            table = int(in_args.degenerate_sequence[0])
+            reading_frame = int(in_args.degenerate_sequence[1])
+        _print_recs(degenerate_sequence(seqbuddy, table, reading_frame))
+
+
+######duplicate add FEATURE
+ # if in_args.add_feature:
+ #        # _type, _location, _strand=None, _qualifiers=None, _pattern=None
+ #        strand = None
+ #        qualifiers = None
+ #        pattern = None
+ #        if len(in_args.add_feature) < 2:
+ #            raise AttributeError("Too few parameters provided. Must provide at least a feature type and location.")
+ #        elif len(in_args.add_feature) == 5:
+ #            strand = in_args.add_feature[2]
+ #            qualifiers = in_args.add_feature[3]
+ #            pattern = in_args.add_feature[4]
+ #        elif len(in_args.add_feature) == 4:
+ #            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+ #                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+ #                strand = in_args.add_feature[2]
+ #                if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
+ #                    qualifiers = in_args.add_feature[3]
+ #                else:
+ #                    patterns = in_args.add_feature[3]
+ #            else:
+ #                qualifiers = in_args.add_feature[3]
+ #                patterns = in_args.add_feature[3]
+
+ #        elif len(in_args.add_feature) == 3:
+ #            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
+ #                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
+ #                strand = in_args.add_feature[2]
+ #            elif '=' in in_args.add_feature[2] or ':' in in_args.add_feature[2]:
+ #                qualifiers = in_args.add_feature[2]
+ #            else:
+ #                pattern = in_args.add_feature[2]
+ #        elif len(in_args.add_feature) == 2:
+ #            pass
+ #        else:
+ #            raise AttributeError("Invalid parameters were provided.")
+ #        ftype = in_args.add_feature[0]
+ #        flocation = in_args.add_feature[1]
+ #        _print_recs(add_feature(seqbuddy, ftype, flocation, _strand=strand, _qualifiers=qualifiers, _pattern=pattern))
+ #        _exit("add_feature")
+
+
+
+
+
+
+
+
+
 
     # Extract regions
     if in_args.extract_region:
@@ -3515,19 +3598,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.uppercase:
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
-
-
-    #degenerate_sequence
-    if in_args.degenerate_sequence:
-        table, reading_frame = 1, 1
-        in_args.degenerate_sequence = in_args.degenerate_sequence[0]
-        
-        if not in_args.degenerate_sequence:
-            pass
-        else:
-            table = int(in_args.degenerate_sequence[0])
-            reading_frame = int(in_args.degenerate_sequence[1])
-        print(degenerate_sequence(seqbuddy, table, reading_frame))
 
 if __name__ == '__main__':
     try:
