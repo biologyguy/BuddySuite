@@ -62,6 +62,7 @@ import buddy_resources as br
 # - BLAST functionality
 # - Load sequence files up into the live session (very useful for BLAST, when implemented)
 
+# #################################################### CHANGE LOG #################################################### #
 # ###################################################### GLOBALS ##################################################### #
 TRASH_SYNOS = ["t", "tb", "t_bin", "tbin", "trash", "trashbin", "trash-bin", "trash_bin"]
 RECORD_SYNOS = ["r", "rec", "recs", "records", "main", "filtered"]
@@ -86,104 +87,6 @@ BOLD = "\033[1m"
 UNDERLINE = "\033[4m"
 NO_UNDERLINE = "\033[24m"
 DEF_FONT = "\033[39m"
-
-
-# ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
-class DatabaseError(Exception):
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-        sys.stderr.flush()
-    return
-
-
-def _stdout(message, quiet=False, format_in=None, format_out=None):
-    if format_in and type(format_in) == list:
-        format_in = "".join(format_in)
-    if format_out and type(format_out) == list:
-        format_out = "".join(format_out)
-    if not quiet:
-        if format_in and re.search("\\033\[[0-9]*m", format_in):
-            sys.stdout.write(format_in)
-        if format_out and re.search("\\033\[[0-9]*m", format_out):
-            sys.stdout.write("%s%s" % (message, format_out))
-        else:
-            sys.stdout.write("%s\033[m" % message)
-        sys.stdout.flush()
-    return
-
-
-def terminal_colors():
-    colors = [MAGENTA, CYAN, GREEN, RED, YELLOW, GREY]
-    _counter = 0
-    while True:
-        try:
-            yield colors[_counter]
-        except IndexError:
-            _counter = 0
-            yield colors[_counter]
-        _counter += 1
-
-
-def check_database(_database):
-    _output = []
-    if type(_database) == list:
-        for _db in [x.lower() for x in _database]:
-            if _db == "all":
-                _output = DATABASES
-                break
-            elif _db in DATABASES:
-                _output.append(_db)
-            else:
-                _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
-
-        if not _output:
-            _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
-            _output = DATABASES
-
-    elif not _database:
-        _output = DATABASES
-    else:
-        _database = _database.lower()
-        if _database == "all":
-            _output = DATABASES
-        elif _database in DATABASES:
-            _output = [_database]
-        else:
-            _stderr("Warning: '%s' is not a valid database choice. Setting to default 'all'.\n")
-            _output = DATABASES
-    return _output
-
-
-def check_type(_type):
-    _type = None if not _type else _type.lower()
-    if _type in ["p", "pr", "prt", "prtn", "prn", "prot", "protn", "protien", "protein"]:
-        _type = "protein"
-    elif _type in ["n", "ncl", "nuc", "dna", "nt", "gene", "transcript", "nucleotide"]:
-        _type = "nucleotide"
-    elif _type in ["g", "gi", "gn", "gin", "gi_num", "ginum", "gi_number"]:
-        _type = "gi_num"
-
-    if _type and _type not in RETRIEVAL_TYPES:
-        _stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
-        _type = "protein"
-    return _type
 
 
 # ##################################################### DB BUDDY ##################################################### #
@@ -328,141 +231,137 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
         group = self.trash_bin if group == "trash_bin" else self.records
 
         _num = _num if _num > 0 else len(group)
-        if in_args.test:
-            _stderr("*** Test passed ***\n", quiet)
-            pass
 
+        # First deal with anything that broke or wasn't downloaded
+        errors_etc = ""
+        if len(self.failures) > 0:
+            errors_etc += "# ########################## Failures ########################### #\n"
+            for _hash, failure in self.failures.items():
+                errors_etc += str(failure)
+
+        if len(self.record_breakdown()["accession"]) > 0 and _num == len(group):
+            errors_etc += "# ################## Accessions without Records ################## #\n"
+            _counter = 1
+            for _next_acc in self.record_breakdown()["accession"]:
+                errors_etc += "%s\t" % _next_acc
+                if _counter % 4 == 0:
+                    errors_etc = "%s\n" % errors_etc.strip()
+                _counter += 1
+            errors_etc += "\n"
+
+        if errors_etc != "":
+            errors_etc = "%s\n# ################################################################ #\n\n" \
+                         % errors_etc.strip()
+            _stderr(errors_etc, quiet)
+
+        _output = ""
+        # Summary outputs
+        if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
+            def pad_columns(line_group, col_widths, all_lines):
+                for indx_x, next_line in enumerate(line_group):
+                    for indx_y, _col in enumerate(next_line):
+                        line_group[indx_x][indx_y] = str(_col).ljust(col_widths[indx_y] + 2)
+                all_lines += line_group
+                all_lines.append([])
+                return all_lines
+
+            lines = []
+            current_group = []
+            saved_headings = []
+            column_widths = []
+            for _accession, _rec in list(group.items())[:_num]:
+                if self.out_format in ["ids", "accessions"]:
+                    lines.append([_accession])
+
+                elif self.out_format in ["summary", "full-summary"]:
+                    headings = ["ACCN", "DB"]
+                    headings += [heading for heading, _value in _rec.summary.items()]
+                    headings += ["record"]
+
+                    if columns:
+                        headings = [heading for heading in headings if heading in columns]
+
+                    if saved_headings != headings:
+                        if saved_headings:
+                            lines = pad_columns(current_group, column_widths, lines)
+                            column_widths = []
+                            current_group = []
+
+                        for heading in headings:
+                            column_widths.append(len(str(heading)))
+                        current_group.append(headings)
+                        saved_headings = list(headings)
+
+                    current_group.append([])
+                    attrib_counter = 0
+                    if "ACCN" in headings:
+                        current_group[-1].append(_accession)
+                        if len(str(_accession)) > column_widths[attrib_counter]:
+                            column_widths[attrib_counter] = len(str(_accession))
+                        attrib_counter += 1
+
+                    if "DB" in headings:
+                        if _rec.database:
+                            current_group[-1].append(_rec.database)
+                            if len(_rec.database) > column_widths[attrib_counter]:
+                                column_widths[attrib_counter] = len(_rec.database)
+                        else:
+                            current_group[-1].append("")
+                        attrib_counter += 1
+
+                    for attrib, _value in _rec.summary.items():
+                        if attrib in headings:
+                            if len(str(_value)) > 50 and self.out_format != "full-summary":
+                                current_group[-1].append("%s..." % _value[:47])
+                                column_widths[attrib_counter] = 50
+                            else:
+                                current_group[-1].append(_value)
+                                if len(str(_value)) > column_widths[attrib_counter]:
+                                    column_widths[attrib_counter] = len(str(_value))
+                            attrib_counter += 1
+
+                    if self.out_format not in ["ids", "accessions"] and "record" in headings:
+                        if _rec.record:
+                            current_group[-1].append("full")
+                        else:
+                            current_group[-1].append("summary")
+
+            if self.out_format in ["summary", "full-summary"] and current_group:
+                lines = pad_columns(current_group, column_widths, lines)
+
+            _output = "\033[m\033[40m\033[97m"
+            for line in lines:
+                colors = terminal_colors()
+                _output += "%s\n" % "".join(["%s%s" % (next(colors), _col) for _col in line])
+
+        # Full records
         else:
-            # First deal with anything that broke or wasn't downloaded
-            errors_etc = ""
-            if len(self.failures) > 0:
-                errors_etc += "# ########################## Failures ########################### #\n"
-                for _hash, failure in self.failures.items():
-                    errors_etc += str(failure)
+            nuc_recs = [_rec.record for _accession, _rec in group.items() if
+                        _rec.type == "nucleotide" and _rec.record]
+            prot_recs = [_rec.record for _accession, _rec in group.items() if
+                         _rec.type == "protein" and _rec.record]
+            tmp_dir = TemporaryDirectory()
+            if len(nuc_recs) > 0:
+                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                    SeqIO.write(nuc_recs[:_num], _ofile, self.out_format)
 
-            if len(self.record_breakdown()["accession"]) > 0 and _num == len(group):
-                errors_etc += "# ################## Accessions without Records ################## #\n"
-                _counter = 1
-                for _next_acc in self.record_breakdown()["accession"]:
-                    errors_etc += "%s\t" % _next_acc
-                    if _counter % 4 == 0:
-                        errors_etc = "%s\n" % errors_etc.strip()
-                    _counter += 1
-                errors_etc += "\n"
+                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                    _output += "%s\n" % ifile.read()
 
-            if errors_etc != "":
-                errors_etc = "%s\n# ################################################################ #\n\n" \
-                             % errors_etc.strip()
-                _stderr(errors_etc, quiet)
+            if len(prot_recs) > 0:
+                with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+                    SeqIO.write(prot_recs[:_num], _ofile, self.out_format)
 
-            _output = ""
-            # Summary outputs
-            if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
-                def pad_columns(line_group, col_widths, all_lines):
-                    for indx_x, next_line in enumerate(line_group):
-                        for indx_y, _col in enumerate(next_line):
-                            line_group[indx_x][indx_y] = str(_col).ljust(col_widths[indx_y] + 2)
-                    all_lines += line_group
-                    all_lines.append([])
-                    return all_lines
+                with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+                    _output += "%s\n" % ifile.read()
 
-                lines = []
-                current_group = []
-                saved_headings = []
-                column_widths = []
-                for _accession, _rec in list(group.items())[:_num]:
-                    if self.out_format in ["ids", "accessions"]:
-                        lines.append([_accession])
-
-                    elif self.out_format in ["summary", "full-summary"]:
-                        headings = ["ACCN", "DB"]
-                        headings += [heading for heading, _value in _rec.summary.items()]
-                        headings += ["record"]
-
-                        if columns:
-                            headings = [heading for heading in headings if heading in columns]
-
-                        if saved_headings != headings:
-                            if saved_headings:
-                                lines = pad_columns(current_group, column_widths, lines)
-                                column_widths = []
-                                current_group = []
-
-                            for heading in headings:
-                                column_widths.append(len(str(heading)))
-                            current_group.append(headings)
-                            saved_headings = list(headings)
-
-                        current_group.append([])
-                        attrib_counter = 0
-                        if "ACCN" in headings:
-                            current_group[-1].append(_accession)
-                            if len(str(_accession)) > column_widths[attrib_counter]:
-                                column_widths[attrib_counter] = len(str(_accession))
-                            attrib_counter += 1
-
-                        if "DB" in headings:
-                            if _rec.database:
-                                current_group[-1].append(_rec.database)
-                                if len(_rec.database) > column_widths[attrib_counter]:
-                                    column_widths[attrib_counter] = len(_rec.database)
-                            else:
-                                current_group[-1].append("")
-                            attrib_counter += 1
-
-                        for attrib, _value in _rec.summary.items():
-                            if attrib in headings:
-                                if len(str(_value)) > 50 and self.out_format != "full-summary":
-                                    current_group[-1].append("%s..." % _value[:47])
-                                    column_widths[attrib_counter] = 50
-                                else:
-                                    current_group[-1].append(_value)
-                                    if len(str(_value)) > column_widths[attrib_counter]:
-                                        column_widths[attrib_counter] = len(str(_value))
-                                attrib_counter += 1
-
-                        if self.out_format not in ["ids", "accessions"] and "record" in headings:
-                            if _rec.record:
-                                current_group[-1].append("full")
-                            else:
-                                current_group[-1].append("summary")
-
-                if self.out_format in ["summary", "full-summary"] and current_group:
-                    lines = pad_columns(current_group, column_widths, lines)
-
-                _output = "\033[m\033[40m\033[97m"
-                for line in lines:
-                    colors = terminal_colors()
-                    _output += "%s\n" % "".join(["%s%s" % (next(colors), _col) for _col in line])
-
-            # Full records
-            else:
-                nuc_recs = [_rec.record for _accession, _rec in group.items() if _rec.type == "nucleotide"
-                            and _rec.record]
-                prot_recs = [_rec.record for _accession, _rec in group.items() if _rec.type == "protein"
-                             and _rec.record]
-                tmp_dir = TemporaryDirectory()
-                if len(nuc_recs) > 0:
-                    with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                        SeqIO.write(nuc_recs[:_num], _ofile, self.out_format)
-
-                    with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
-                        _output += "%s\n" % ifile.read()
-
-                if len(prot_recs) > 0:
-                    with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                        SeqIO.write(prot_recs[:_num], _ofile, self.out_format)
-
-                    with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
-                        _output += "%s\n" % ifile.read()
-
-            if not destination:
-                _stdout("{0}\n".format(_output.rstrip()))
-            else:
-                # remove any escape characters and convert space padding to tabs if writing the file
-                _output = re.sub("\\033\[[0-9]*m", "", _output)
-                _output = re.sub("  +", "\t", _output)
-                destination.write(_output)
+        if not destination:
+            _stdout("{0}\n".format(_output.rstrip()))
+        else:
+            # remove any escape characters and convert space padding to tabs if writing the file
+            _output = re.sub("\\033\[[0-9]*m", "", _output)
+            _output = re.sub("  +", "\t", _output)
+            destination.write(_output)
 
     def __hash__(self):
         _records = tuple([(_key, _value) for _key, _value in self.records.items()])
@@ -663,6 +562,104 @@ class Failure:
         _output = "%s\n" % self.query
         _output += "%s\n" % self.error_msg
         return _output
+
+
+# ################################################# HELPER FUNCTIONS ################################################# #
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
+class DatabaseError(Exception):
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
+def _stderr(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+        sys.stderr.flush()
+    return
+
+
+def _stdout(message, quiet=False, format_in=None, format_out=None):
+    if format_in and type(format_in) == list:
+        format_in = "".join(format_in)
+    if format_out and type(format_out) == list:
+        format_out = "".join(format_out)
+    if not quiet:
+        if format_in and re.search("\\033\[[0-9]*m", format_in):
+            sys.stdout.write(format_in)
+        if format_out and re.search("\\033\[[0-9]*m", format_out):
+            sys.stdout.write("%s%s" % (message, format_out))
+        else:
+            sys.stdout.write("%s\033[m" % message)
+        sys.stdout.flush()
+    return
+
+
+def terminal_colors():
+    colors = [MAGENTA, CYAN, GREEN, RED, YELLOW, GREY]
+    _counter = 0
+    while True:
+        try:
+            yield colors[_counter]
+        except IndexError:
+            _counter = 0
+            yield colors[_counter]
+        _counter += 1
+
+
+def check_database(_database):
+    _output = []
+    if type(_database) == list:
+        for _db in [x.lower() for x in _database]:
+            if _db == "all":
+                _output = DATABASES
+                break
+            elif _db in DATABASES:
+                _output.append(_db)
+            else:
+                _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
+
+        if not _output:
+            _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
+            _output = DATABASES
+
+    elif not _database:
+        _output = DATABASES
+    else:
+        _database = _database.lower()
+        if _database == "all":
+            _output = DATABASES
+        elif _database in DATABASES:
+            _output = [_database]
+        else:
+            _stderr("Warning: '%s' is not a valid database choice. Setting to default 'all'.\n")
+            _output = DATABASES
+    return _output
+
+
+def check_type(_type):
+    _type = None if not _type else _type.lower()
+    if _type in ["p", "pr", "prt", "prtn", "prn", "prot", "protn", "protien", "protein"]:
+        _type = "protein"
+    elif _type in ["n", "ncl", "nuc", "dna", "nt", "gene", "transcript", "nucleotide"]:
+        _type = "nucleotide"
+    elif _type in ["g", "gi", "gn", "gin", "gi_num", "ginum", "gi_number"]:
+        _type = "gi_num"
+
+    if _type and _type not in RETRIEVAL_TYPES:
+        _stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
+        _type = "protein"
+    return _type
 
 
 # ################################################# Database Clients ################################################# #
@@ -1502,8 +1499,7 @@ class EnsemblRestClient:
         return
 
 
-# ################################################## API FUNCTIONS ################################################### #
-
+# ################################################ MAIN API FUNCTIONS ################################################ #
 class LiveSearch(cmd.Cmd):
     def __init__(self, _dbbuddy, crash_file):
         """
@@ -2520,11 +2516,13 @@ def retrieve_sequences(_dbbuddy):
 
     return _dbbuddy
 
+
 # ################################################# COMMAND LINE UI ################################################## #
-if __name__ == '__main__':
+def argparse_init():
     import argparse
 
-    fmt = lambda prog: br.CustomHelpFormatter(prog)
+    def fmt(prog):
+        return br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''
@@ -2547,7 +2545,6 @@ if __name__ == '__main__':
 
     dbbuddy = []
     out_format = "summary" if not in_args.out_format else in_args.out_format
-    search_set = ""
 
     try:
         if isinstance(in_args.user_input[0], TextIOWrapper) and in_args.user_input[0].buffer.raw.isatty():
@@ -2565,6 +2562,10 @@ if __name__ == '__main__':
         sys.exit("Error: SeqBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
+    return in_args, dbbuddy
+
+
+def command_line_ui(in_args, dbbuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Live Shell
     def launch_live_shell():
@@ -2575,9 +2576,9 @@ if __name__ == '__main__':
             LiveSearch(dbbuddy, temp_file)
         except SystemExit:
             pass
-        except (KeyboardInterrupt, GuessError) as e:
-            print(e)
-        except Exception as e:
+        except (KeyboardInterrupt, GuessError) as _e:
+            print(_e)
+        except Exception as _e:
             import traceback
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
@@ -2585,7 +2586,7 @@ if __name__ == '__main__':
             for _line in traceback.format_tb(sys.exc_info()[2]):
                 _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
                 tb += _line
-            tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
             _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
@@ -2608,6 +2609,14 @@ if __name__ == '__main__':
                 _stderr("Success, thank you.\n")
 
         temp_file.close()
+        sys.exit()
+
+    def _exit(tool, skip=skip_exit):
+        if skip:
+            return
+        usage = br.Usage()
+        usage.increment("PhyloBuddy", VERSION.short(), tool)
+        usage.save()
         sys.exit()
 
     if in_args.live_shell:
@@ -2665,3 +2674,13 @@ if __name__ == '__main__':
 
     # Default to LiveSearch
     launch_live_shell()
+
+if __name__ == '__main__':
+    try:
+        command_line_ui(*argparse_init())
+    except (KeyboardInterrupt, GuessError) as e:
+        print(e)
+    except SystemExit:
+        pass
+    except Exception as e:
+        br.send_traceback("DbBuddy", e)
