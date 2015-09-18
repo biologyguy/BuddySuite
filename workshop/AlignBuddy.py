@@ -1,9 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Created on: Nov 18 2014 
 
 """
-DESCRIPTION OF PROGRAM
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+details at http://www.gnu.org/licenses/.
+
+name: AlignBuddy.py
+date: Nov-18-2014
+version: 1, unstable
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/BuddySuite
+© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+derivative work: No
+
+Description:
 AlignmentBuddy is a general wrapper for popular DNA and protein alignment programs that handles format conversion
 and allows maintenance of rich feature annotation following alignment.
 """
@@ -17,7 +35,7 @@ from random import sample
 import re
 from collections import OrderedDict
 from shutil import *
-import subprocess
+from subprocess import Popen, PIPE, CalledProcessError
 
 # Third party package imports
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -40,64 +58,9 @@ from MyFuncs import TempDir
 # - Back-translate
 
 
-# ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-    return
-
-
-def _stdout(message, quiet=False):
-    if not quiet:
-        sys.stdout.write(message)
-    return
-
-
-def _get_seq_recs(_alignbuddy):
-    seq_recs = []
-    for _alignment in _alignbuddy.alignments:
-        for _rec in _alignment:
-            seq_recs.append(_rec)
-    return seq_recs
-
-
-def _make_copies(_alignbuddy):
-    alphabet_list = [_rec.seq.alphabet for _rec in _get_seq_recs(_alignbuddy)]
-    copies = deepcopy(_alignbuddy)
-    copies.alpha = _alignbuddy.alpha
-    for _indx, _rec in enumerate(_get_seq_recs(copies)):
-        _rec.seq.alphabet = alphabet_list[_indx]
-    return copies
-
-
-def _format_to_extension(_format):
-    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
-                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
-                           'stockholm': 'stklm', 'stklm': 'stklm'}
-    return format_to_extension[_format]
-
-
-def _get_alignment_binaries(_tool):
-    tool_dict = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
-                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
-                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
-                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
-                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
-    return tool_dict[_tool]
-
+# #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
-gap_characters = ["-", ".", " "]
+GAP_CHARS = ["-", ".", " "]
 VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
 
 
@@ -135,7 +98,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             pass
 
         if not _in_format:
-            self.in_format = guess_format(_input)
+            self.in_format = _guess_format(_input)
             self.out_format = str(self.in_format) if not _out_format else _out_format
 
         else:
@@ -177,7 +140,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         else:  # May be unreachable
             _alignments = None
 
-        self.alpha = guess_alphabet(_alignments)
+        self.alpha = _guess_alphabet(_alignments)
         for _alignment in _alignments:
             _alignment._alphabet = self.alpha
             for _seq in _alignment:
@@ -202,7 +165,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             self.out_format = "phylip"
 
         if self.out_format in ["phylip-sequential", "phylips"]:
-            _output = phylipseq(self)
+            _output = _phylipseq(self)
 
         else:
             if self.out_format in ["phylipss", "phylip-sequential-strict"]:
@@ -223,7 +186,43 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         return
 
 
-def guess_alphabet(_alignbuddy):
+# ################################################# HELPER FUNCTIONS ################################################# #
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
+def _format_to_extension(_format):
+    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
+                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
+                           'stockholm': 'stklm', 'stklm': 'stklm'}
+    return format_to_extension[_format]
+
+
+def _get_alignment_binaries(_tool):
+    tool_dict = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
+                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
+                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
+                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
+                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
+    return tool_dict[_tool]
+
+
+def _get_seq_recs(_alignbuddy):
+    seq_recs = []
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            seq_recs.append(_rec)
+    return seq_recs
+
+
+def _guess_alphabet(_alignbuddy):
     _align_list = _alignbuddy if isinstance(_alignbuddy, list) else _alignbuddy.alignments
     _seq_list = []
     for _alignment in _align_list:
@@ -245,7 +244,7 @@ def guess_alphabet(_alignbuddy):
         return IUPAC.protein
 
 
-def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
+def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
     # If input is just a list, there is no BioPython in-format. Default to gb.
     if isinstance(_input, list):
         return "stockholm"
@@ -286,7 +285,16 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def phylipseq(_alignbuddy, _relaxed=True):
+def _make_copies(_alignbuddy):
+    alphabet_list = [_rec.seq.alphabet for _rec in _get_seq_recs(_alignbuddy)]
+    copies = deepcopy(_alignbuddy)
+    copies.alpha = _alignbuddy.alpha
+    for _indx, _rec in enumerate(_get_seq_recs(copies)):
+        _rec.seq.alphabet = alphabet_list[_indx]
+    return copies
+
+
+def _phylipseq(_alignbuddy, _relaxed=True):
     _output = ""
     for _alignment in _alignbuddy.alignments:
         max_seq_length = 0
@@ -305,50 +313,29 @@ def phylipseq(_alignbuddy, _relaxed=True):
     return _output
 
 
-# #################################################################################################################### #
-def list_ids(_alignbuddy):
-    """
-    Returns a list of lists of sequence IDs
-    :param _alignbuddy: The AlignBuddy object to be analyzed
-    :return: A list of lists of sequence IDs
-    """
-    _output = []
-    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
-        _output.append([])
-        for _rec in _alignment:
-            _output[al_indx].append(_rec.id)
-    return _output
+def _stderr(message, quiet=False):
+    if not quiet:
+        sys.stderr.write(message)
+    return
 
 
-def num_seqs(_alignbuddy):
+def _stdout(message, quiet=False):
+    if not quiet:
+        sys.stdout.write(message)
+    return
+
+
+# ################################################ MAIN API FUNCTIONS ################################################ #
+def alignment_lengths(_alignbuddy):
     """
     Returns a list of alignment lengths
-    :param _alignbuddy:
+    :param _alignbuddy: The AlignBuddy object to be analyzed
     :return: A list of alignment lengths
     """
-    return [len(_alignment) for _alignment in _alignbuddy.alignments]
-
-
-def uppercase(_alignbuddy):
-    """
-    Converts all sequence residues to uppercase.
-    :param _alignbuddy: The AlignBuddy object to be modified.
-    :return: The modified AlignBuddy object
-    """
-    for _rec in _get_seq_recs(_alignbuddy):
-        _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
-    return _alignbuddy
-
-
-def lowercase(_alignbuddy):
-    """
-    Converts all sequence residues to lowercase.
-    :param _alignbuddy: The AlignBuddy object to be modified.
-    :return: The modified AlignBuddy object
-    """
-    for _rec in _get_seq_recs(_alignbuddy):
-        _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
-    return _alignbuddy
+    _output = []
+    for _alignment in _alignbuddy.alignments:
+        _output.append(_alignment.get_alignment_length())
+    return _output
 
 
 def clean_seq(_alignbuddy, skip_list=None):
@@ -400,10 +387,10 @@ def codon_alignment(_alignbuddy):
             if position == 1:
                 _output += _residue
 
-            elif _output[-1] not in gap_characters and _residue not in gap_characters:
+            elif _output[-1] not in GAP_CHARS and _residue not in GAP_CHARS:
                 _output += _residue
 
-            elif _output[-1] in gap_characters and _residue in gap_characters:
+            elif _output[-1] in GAP_CHARS and _residue in GAP_CHARS:
                 _output += _residue
 
             else:
@@ -419,6 +406,460 @@ def codon_alignment(_alignbuddy):
         _rec.seq = Seq(_output, alphabet=_rec.seq.alphabet)
 
     return _alignbuddy
+
+
+def concat_alignments(_alignbuddy, _pattern):
+    """
+    Concatenates two or more alignments together, end-to-end
+    :param _alignbuddy: The AlignBuddy object whose alignments will be concatenated
+    :param _pattern: The pattern to split the sequence names with
+    :return: The AlignBuddy object containing a concatenated alignment
+    """
+    # collapsed multiple genes from single taxa down to one consensus seq
+    # detected mixed sequence types
+    if len(_alignbuddy.alignments) < 2:
+        raise AttributeError("Please provide at least two alignments.")
+
+    def organism_list():
+        orgnsms = set()
+        for _align in _alignbuddy.alignments:
+            for _record in _align:
+                orgnsms.add(_record.id)
+        return list(orgnsms)
+
+    def add_blanks(_record, _num):
+        for _ in range(_num):
+            _record.seq += '-'
+
+    missing_organisms = organism_list()
+
+    # dict[alignment_index][organism] -> gene_name
+    sequence_names = OrderedDict()
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        sequence_names[al_indx] = OrderedDict()
+        for record in _alignment:
+            organism = re.split(_pattern, record.id)[0]
+            gene = ''.join(re.split(_pattern, record.id)[1:])
+            if organism in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism].append(gene)
+            else:
+                sequence_names[al_indx][organism] = [gene]
+            record.id = organism
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        duplicate_table = OrderedDict()
+        for record in _alignment:
+            if record.id in duplicate_table.keys():
+                duplicate_table[record.id].append(record)
+            else:
+                duplicate_table[record.id] = [record]
+        _temp = []
+        for record in _alignment:
+            if len(duplicate_table[record.id]) == 1:
+                _temp.append(record)
+                duplicate_table.pop(record.id)
+        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_temp, alphabet=_alignbuddy.alpha)
+        for gene in duplicate_table:
+            consensus = SummaryInfo(MultipleSeqAlignment(duplicate_table[gene]))
+            consensus = consensus.gap_consensus(consensus_alpha=_alignbuddy.alpha)
+            consensus = SeqRecord(seq=consensus, id=gene)
+            _alignbuddy.alignments[al_indx].append(consensus)
+
+    for al_indx in range(len(_alignbuddy.alignments)):
+        for _id in missing_organisms:
+            organism = re.split(_pattern, _id)[0]
+            if organism not in sequence_names[al_indx].keys():
+                sequence_names[al_indx][organism] = ['missing']
+
+    for x in range(len(missing_organisms)):
+        missing_organisms[x] = re.split(_pattern, missing_organisms[x])[0]
+
+    base_alignment = deepcopy(_alignbuddy.alignments[0])
+    for record in base_alignment:
+        while record.id in missing_organisms:
+            missing_organisms.remove(record.id)
+    for organism in missing_organisms:
+        new_record = SeqRecord(Seq('', alphabet=_alignbuddy.alpha), id=re.split(_pattern, organism)[0])
+        add_blanks(new_record, base_alignment.get_alignment_length())
+        base_alignment.append(new_record)
+
+    for record in base_alignment:
+        record.description = 'concatenated_alignments'
+        record.name = 'multiple'
+
+    curr_length = 0
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        for base_indx, base_rec in enumerate(base_alignment):
+            added = False
+            for record in _alignment:
+                if base_rec.id == record.id:
+                    if al_indx > 0:
+                        base_rec.seq += record.seq
+                        added = True
+            if not added and al_indx > 0:
+                add_blanks(base_rec, _alignment.get_alignment_length())
+            feature_location = FeatureLocation(start=curr_length,
+                                               end=curr_length + _alignment.get_alignment_length())
+            feature = SeqFeature(location=feature_location, type='alignment' + str(al_indx + 1),
+                                 qualifiers={'name': sequence_names[al_indx][base_rec.id]})
+            base_alignment[base_indx].features.append(feature)
+        curr_length += _alignment.get_alignment_length()
+
+    _alignbuddy.alignments = [base_alignment]
+    return _alignbuddy
+
+
+def consensus_sequence(_alignbuddy):
+    """
+    Generates a rough consensus sequence from an alignment
+    :param _alignbuddy: The AlignBuddy object to be processed
+    :return: A list of SeqRecords containing the consensus sequences
+    """
+    _output = []
+    for _alignment in _alignbuddy.alignments:
+        _id = _alignment[0].id
+        aln = SummaryInfo(_alignment)
+        print(aln.gap_consensus())
+        _output.append(SeqRecord(seq=aln.gap_consensus(), id=_id))
+    return _output
+
+
+def delete_rows(_alignbuddy, _search):
+    """
+    Deletes rows with names/IDs matching a search pattern
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
+    """
+    _alignments = []
+    for _alignment in _alignbuddy.alignments:
+        matches = []
+        for record in _alignment:
+            if not re.search(_search, record.id) and not re.search(_search, record.description) \
+                    and not re.search(_search, record.name):
+                matches.append(record)
+        _alignments.append(MultipleSeqAlignment(matches))
+    _alignbuddy.alignments = _alignments
+    trimal(_alignbuddy, "clean")
+    return _alignbuddy
+
+
+def dna2rna(_alignbuddy):
+    """
+    Back-transcribes DNA into RNA sequences
+    :param _alignbuddy: The AlignBuddy object to be back-transcribed
+    :return: The back-transcribed AlignBuddy object
+    """
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
+    _alignbuddy.alpha = IUPAC.ambiguous_rna
+    return _alignbuddy
+
+
+def extract_range(_alignbuddy, _start, _end):
+    """
+    Extracts all columns within a given range
+    :param _alignbuddy: The AlignBuddy object to be extracted from
+    :param _start: The starting residue (indexed from 1)
+    :param _end: The end residue (inclusive)
+    :return: The extracted AlignBuddy object
+    """
+    _start = 1 if int(_start) < 1 else _start
+    # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
+    _start, _end = int(_start) - 1, int(_end)
+    if _end < _start:
+        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
+                         "of range.")
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
+            _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start + 1, _end)
+            _features = []
+            for _feature in _rec.features:
+                if _feature.location.end < _start:
+                    continue
+                if _feature.location.start > _end:
+                    continue
+
+                feat_start = _feature.location.start - _start
+                if feat_start < 0:
+                    feat_start = 0
+
+                feat_end = _feature.location.end - _start
+                if feat_end > len(str(_rec.seq)):
+                    feat_end = len(str(_rec.seq))
+
+                new_location = FeatureLocation(feat_start, feat_end)
+                _feature.location = new_location
+                _features.append(_feature)
+            _rec.features = _features
+    return _alignbuddy
+
+
+def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):  # ToDo: clustalomega may be clustalo
+    """
+    Calls sequence aligning tools to generate multiple sequence alignments
+    :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
+    :param _tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
+    :param _params: Additional parameters to be passed to the alignment tool
+    :param _keep_temp: Determines if/where the temporary files will be kept
+    :return: An AlignBuddy object containing the alignment produced.
+    """
+    if _params is None:
+        _params = ''
+    _tool = _tool.lower()
+
+    if _keep_temp:
+        if os.path.exists(_keep_temp):
+            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), _quiet)
+            sys.exit()
+
+    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
+        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
+    if which(_tool) is None:
+        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), _quiet)
+        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
+        sys.exit()
+    else:
+        tmp_dir = TempDir()
+        tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
+
+        try:
+            from SeqBuddy import hash_sequence_ids
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
+
+        _params = re.split(' ', _params, )
+        for _indx, _token in enumerate(_params):
+            if os.path.exists(_token):
+                _params[_indx] = os.path.abspath(_token)
+        _params = ' '.join(_params)
+
+        hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
+
+        _output = ''
+
+        _seqbuddy.out_format = 'fasta'
+        with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
+            out_file.write(str(_seqbuddy))
+        if _tool == 'clustalomega':
+            command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
+        elif _tool == 'clustalw2':
+            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
+        elif _tool == 'muscle':
+            command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
+        elif _tool == 'prank':
+            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
+        elif _tool == 'pagan':
+            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
+        else:
+            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
+        try:
+            if _tool in ['prank', 'pagan']:
+                Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+            else:
+                _output = Popen(command, shell=True, stdout=PIPE).communicate()
+                _output = _output[0].decode()
+        except CalledProcessError:
+            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), _quiet)
+            sys.exit()
+
+        if _tool.startswith('clustalw'):
+            with open('{0}/result'.format(tmp_dir.path)) as result:
+                _output = result.read()
+        elif _tool == 'prank':
+            extension = 'fas'
+            if '-f=nexus' in _params or '-f=nexus' in _params:
+                extension = 'nex'
+            elif '-f=phylipi' in _params or '-f=phylips' in _params:
+                extension = 'phy'
+            possible_files = os.listdir(tmp_dir.path)
+            _filename = 'result.best.{0}'.format(extension)
+            for _file in possible_files:
+                if 'result.best' in _file and extension in _file:
+                    _filename = _file
+            with open('{0}/{1}'.format(tmp_dir.path, _filename)) as result:
+                _output = result.read()
+        elif _tool == 'pagan':
+            extension = 'fas'
+            if '-f nexus' in _params:
+                extension = 'nex'
+            elif '-f phylipi' in _params or '-f phylips' in _params:
+                extension = 'phy'
+            with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
+                _output = result.read()
+
+        # Fix broken outputs to play nicely with AlignBuddy parsers
+        if (_tool == 'mafft' and '--clustalout' in _params) or \
+                (_tool.startswith('clustalw2') and '-output' not in _params) or \
+                (_tool == 'clustalomega' and ('clustal' in _params or '--outfmt clu' in _params or
+                 '--outfmt=clu' in _params)):
+            # Clustal format extra spaces
+            contents = ''
+            prev_line = ''
+            for line in _output.splitlines(keepends=True):
+                if line.startswith(' ') and len(line) == len(prev_line) + 1:
+                    contents += line[1:]
+                else:
+                    contents += line
+                prev_line = line
+            _output = contents
+        if _tool.startswith('clustalw') and 'nexus' in _params or '=NEXUS' in _params:  # if taxa has gap chars
+            contents = ''
+            for _indx, line in enumerate(_output.splitlines(keepends=True)):
+                if _indx > 6 and not line.startswith('\n') and ';' not in line:
+                    split = re.split(' ', line, maxsplit=1)
+                    contents += "'" + split[0] + "' " + split[1]
+                else:
+                    contents += line
+            _output = contents
+        _alignbuddy = AlignBuddy(_output)
+
+        for _hash in hash_table:
+            rename(_alignbuddy, _hash, hash_table[_hash])
+            for _alignment in _alignbuddy.alignments:
+                for _rec in _alignment:
+                    if _hash in _rec.annotations:
+                        _rec.annotations.pop(_hash)
+                    to_pop = []
+                    for _key in _rec.annotations:
+                        if _hash in _rec.annotations[_key]:
+                            to_pop.append(_key)
+                    for _key in to_pop:
+                        _rec.annotations.pop(_key)
+                    _rec.name = re.sub(_hash, '', _rec.name)
+                    _rec.description = re.sub(_hash, '', _rec.description)
+        _stderr('\n')
+
+        if _keep_temp:
+            try:
+                copytree(tmp_dir.path, _keep_temp)
+            except FileExistsError:
+                # Should never get here
+                pass
+
+        _stderr("Returning to AlignBuddy...\n\n", _quiet)
+
+        return _alignbuddy
+
+
+def list_ids(_alignbuddy):
+    """
+    Returns a list of lists of sequence IDs
+    :param _alignbuddy: The AlignBuddy object to be analyzed
+    :return: A list of lists of sequence IDs
+    """
+    _output = []
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        _output.append([])
+        for _rec in _alignment:
+            _output[al_indx].append(_rec.id)
+    return _output
+
+
+def lowercase(_alignbuddy):
+    """
+    Converts all sequence residues to lowercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
+    :return: The modified AlignBuddy object
+    """
+    for _rec in _get_seq_recs(_alignbuddy):
+        _rec.seq = Seq(str(_rec.seq).lower(), alphabet=_rec.seq.alphabet)
+    return _alignbuddy
+
+
+def num_seqs(_alignbuddy):
+    """
+    Returns a list of alignment lengths
+    :param _alignbuddy:
+    :return: A list of alignment lengths
+    """
+    return [len(_alignment) for _alignment in _alignbuddy.alignments]
+
+
+def order_ids(_alignbuddy, _reverse=False):
+    """
+    Sorts the alignments by ID, alphabetically
+    :param _alignbuddy: The AlignBuddy object to be sorted
+    :param _reverse: Reverses the order
+    :return: A sorted AlignBuddy object
+    """
+    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
+        _output = [(_rec.id, _rec) for _rec in _alignment]
+        _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
+        _output = [_rec[1] for _rec in _output]
+        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_output)
+    return _alignbuddy
+
+
+def pull_rows(_alignbuddy, _search):
+    """
+    Retrieves rows with names/IDs matching a search pattern
+    :param _alignbuddy: The AlignBuddy object to be pulled from
+    :param _search: The regex pattern to search with
+    :return: The modified AlignBuddy object
+    """
+    _alignments = []
+    for _alignment in _alignbuddy.alignments:
+        matches = []
+        for record in _alignment:
+            if re.search(_search, record.id) or re.search(_search, record.description) \
+                    or re.search(_search, record.name):
+                matches.append(record)
+        _alignments.append(MultipleSeqAlignment(matches))
+    _alignbuddy.alignments = _alignments
+    trimal(_alignbuddy, "clean")
+    return _alignbuddy
+
+
+def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
+    """
+    Rename an alignment's sequence IDs
+    :param _alignbuddy: The AlignBuddy object to be modified
+    :param query: The pattern to be searched for
+    :param replace: The string to be substituted
+    :param _num: The maximum number of substitutions to make
+    :return: The modified AlignBuddy object
+    """
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            new_name = re.sub(query, replace, _rec.id, _num)
+            _rec.id = new_name
+            _rec.name = new_name
+    return _alignbuddy
+
+
+def rna2dna(_alignbuddy):
+    """
+    Transcribes RNA into DNA sequences.
+    :param _alignbuddy: The AlignBuddy object to be transcribed
+    :return: The transcribed AlignBuddy object
+    """
+    if _alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+    for _alignment in _alignbuddy.alignments:
+        for _rec in _alignment:
+            _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
+    _alignbuddy.alpha = IUPAC.ambiguous_dna
+    return _alignbuddy
+
+
+def split_alignbuddy(_alignbuddy):
+    """
+    Splits each alignment into its own AlignBuddy object
+    :param _alignbuddy: The AlignBuddy object to be split
+    :return: A list of AlignBuddy objects
+    """
+    ab_objs_list = []
+    for _alignment in _alignbuddy.alignments:
+        _ab = AlignBuddy([_alignment])
+        _ab.in_format = _alignbuddy.in_format
+        _ab.out_format = _alignbuddy.out_format
+        ab_objs_list.append(_ab)
+    return ab_objs_list
 
 
 def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
@@ -446,7 +887,7 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
         pep_string = str(pep.seq)
         new_seq = ""
         for _codon in [nucl[i:i + 3] for i in range(0, len(nucl), 3)]:
-            if _codon[0] not in gap_characters:
+            if _codon[0] not in GAP_CHARS:
                 new_seq += pep_string[0]
                 pep_string = pep_string[1:]
 
@@ -472,7 +913,7 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
                     orig_rec = _alignbuddy.alignments[align_indx][rec_indx]
                     orig_rec_seq = str(orig_rec.seq)
                     for _ in range(len(str(_rec.seq)) % 3):
-                        orig_rec_seq = re.sub(".([%s]+)$" % "".join(gap_characters), r"\1-", orig_rec_seq)
+                        orig_rec_seq = re.sub(".([%s]+)$" % "".join(GAP_CHARS), r"\1-", orig_rec_seq)
 
                     orig_rec.seq = Seq(orig_rec_seq, alphabet=orig_rec.seq.alphabet)
 
@@ -518,46 +959,6 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
                 raise TranslationError("%s failed to translate  --> %s\n" % (_rec.id, e1))
 
     _alignbuddy.alpha = IUPAC.protein
-    return _alignbuddy
-
-
-def delete_rows(_alignbuddy, _search):
-    """
-    Deletes rows with names/IDs matching a search pattern
-    :param _alignbuddy: The AlignBuddy object to be modified
-    :param _search: The regex pattern to search with
-    :return: The modified AlignBuddy object
-    """
-    _alignments = []
-    for _alignment in _alignbuddy.alignments:
-        matches = []
-        for record in _alignment:
-            if not re.search(_search, record.id) and not re.search(_search, record.description) \
-                    and not re.search(_search, record.name):
-                matches.append(record)
-        _alignments.append(MultipleSeqAlignment(matches))
-    _alignbuddy.alignments = _alignments
-    trimal(_alignbuddy, "clean")
-    return _alignbuddy
-
-
-def pull_rows(_alignbuddy, _search):
-    """
-    Retrieves rows with names/IDs matching a search pattern
-    :param _alignbuddy: The AlignBuddy object to be pulled from
-    :param _search: The regex pattern to search with
-    :return: The modified AlignBuddy object
-    """
-    _alignments = []
-    for _alignment in _alignbuddy.alignments:
-        matches = []
-        for record in _alignment:
-            if re.search(_search, record.id) or re.search(_search, record.description) \
-                    or re.search(_search, record.name):
-                matches.append(record)
-        _alignments.append(MultipleSeqAlignment(matches))
-    _alignbuddy.alignments = _alignments
-    trimal(_alignbuddy, "clean")
     return _alignbuddy
 
 
@@ -702,395 +1103,15 @@ def trimal(_alignbuddy, _threshold, _window_size=1):  # ToDo: This might be brok
     return _alignbuddy
 
 
-def consensus_sequence(_alignbuddy):
+def uppercase(_alignbuddy):
     """
-    Generates a rough consensus sequence from an alignment
-    :param _alignbuddy: The AlignBuddy object to be processed
-    :return: A list of SeqRecords containing the consensus sequences
-    """
-    _output = []
-    for _alignment in _alignbuddy.alignments:
-        _id = _alignment[0].id
-        aln = SummaryInfo(_alignment)
-        print(aln.gap_consensus())
-        _output.append(SeqRecord(seq=aln.gap_consensus(), id=_id))
-    return _output
-
-
-def concat_alignments(_alignbuddy, _pattern):
-    """
-    Concatenates two or more alignments together, end-to-end
-    :param _alignbuddy: The AlignBuddy object whose alignments will be concatenated
-    :param _pattern: The pattern to split the sequence names with
-    :return: The AlignBuddy object containing a concatenated alignment
-    """
-    # collapsed multiple genes from single taxa down to one consensus seq
-    # detected mixed sequence types
-    if len(_alignbuddy.alignments) < 2:
-        raise AttributeError("Please provide at least two alignments.")
-
-    def organism_list():
-        orgnsms = set()
-        for _align in _alignbuddy.alignments:
-            for _record in _align:
-                orgnsms.add(_record.id)
-        return list(orgnsms)
-
-    def add_blanks(_record, _num):
-        for _ in range(_num):
-            _record.seq += '-'
-
-    missing_organisms = organism_list()
-
-    # dict[alignment_index][organism] -> gene_name
-    sequence_names = OrderedDict()
-    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
-        sequence_names[al_indx] = OrderedDict()
-        for record in _alignment:
-            organism = re.split(_pattern, record.id)[0]
-            gene = ''.join(re.split(_pattern, record.id)[1:])
-            if organism in sequence_names[al_indx].keys():
-                sequence_names[al_indx][organism].append(gene)
-            else:
-                sequence_names[al_indx][organism] = [gene]
-            record.id = organism
-    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
-        duplicate_table = OrderedDict()
-        for record in _alignment:
-            if record.id in duplicate_table.keys():
-                duplicate_table[record.id].append(record)
-            else:
-                duplicate_table[record.id] = [record]
-        _temp = []
-        for record in _alignment:
-            if len(duplicate_table[record.id]) == 1:
-                _temp.append(record)
-                duplicate_table.pop(record.id)
-        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_temp, alphabet=_alignbuddy.alpha)
-        for gene in duplicate_table:
-            consensus = SummaryInfo(MultipleSeqAlignment(duplicate_table[gene]))
-            consensus = consensus.gap_consensus(consensus_alpha=_alignbuddy.alpha)
-            consensus = SeqRecord(seq=consensus, id=gene)
-            _alignbuddy.alignments[al_indx].append(consensus)
-
-    for al_indx in range(len(_alignbuddy.alignments)):
-        for _id in missing_organisms:
-            organism = re.split(_pattern, _id)[0]
-            if organism not in sequence_names[al_indx].keys():
-                sequence_names[al_indx][organism] = ['missing']
-
-    for x in range(len(missing_organisms)):
-        missing_organisms[x] = re.split(_pattern, missing_organisms[x])[0]
-
-    base_alignment = deepcopy(_alignbuddy.alignments[0])
-    for record in base_alignment:
-        while record.id in missing_organisms:
-            missing_organisms.remove(record.id)
-    for organism in missing_organisms:
-        new_record = SeqRecord(Seq('', alphabet=_alignbuddy.alpha), id=re.split(_pattern, organism)[0])
-        add_blanks(new_record, base_alignment.get_alignment_length())
-        base_alignment.append(new_record)
-
-    for record in base_alignment:
-        record.description = 'concatenated_alignments'
-        record.name = 'multiple'
-
-    curr_length = 0
-    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
-        for base_indx, base_rec in enumerate(base_alignment):
-            added = False
-            for record in _alignment:
-                if base_rec.id == record.id:
-                    if al_indx > 0:
-                        base_rec.seq += record.seq
-                        added = True
-            if not added and al_indx > 0:
-                add_blanks(base_rec, _alignment.get_alignment_length())
-            feature_location = FeatureLocation(start=curr_length,
-                                               end=curr_length + _alignment.get_alignment_length())
-            feature = SeqFeature(location=feature_location, type='alignment' + str(al_indx + 1),
-                                 qualifiers={'name': sequence_names[al_indx][base_rec.id]})
-            base_alignment[base_indx].features.append(feature)
-        curr_length += _alignment.get_alignment_length()
-
-    _alignbuddy.alignments = [base_alignment]
-    return _alignbuddy
-
-
-def rename(_alignbuddy, query, replace="", _num=0):  # TODO Allow a replacement pattern increment (like numbers)
-    """
-    Rename an alignment's sequence IDs
-    :param _alignbuddy: The AlignBuddy object to be modified
-    :param query: The pattern to be searched for
-    :param replace: The string to be substituted
-    :param _num: The maximum number of substitutions to make
+    Converts all sequence residues to uppercase.
+    :param _alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
     """
-    for _alignment in _alignbuddy.alignments:
-        for _rec in _alignment:
-            new_name = re.sub(query, replace, _rec.id, _num)
-            _rec.id = new_name
-            _rec.name = new_name
+    for _rec in _get_seq_recs(_alignbuddy):
+        _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
     return _alignbuddy
-
-
-def order_ids(_alignbuddy, _reverse=False):
-    """
-    Sorts the alignments by ID, alphabetically
-    :param _alignbuddy: The AlignBuddy object to be sorted
-    :param _reverse: Reverses the order
-    :return: A sorted AlignBuddy object
-    """
-    for al_indx, _alignment in enumerate(_alignbuddy.alignments):
-        _output = [(_rec.id, _rec) for _rec in _alignment]
-        _output = sorted(_output, key=lambda x: x[0], reverse=_reverse)
-        _output = [_rec[1] for _rec in _output]
-        _alignbuddy.alignments[al_indx] = MultipleSeqAlignment(_output)
-    return _alignbuddy
-
-
-def rna2dna(_alignbuddy):
-    """
-    Transcribes RNA into DNA sequences.
-    :param _alignbuddy: The AlignBuddy object to be transcribed
-    :return: The transcribed AlignBuddy object
-    """
-    if _alignbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
-    for _alignment in _alignbuddy.alignments:
-        for _rec in _alignment:
-            _rec.seq = Seq(str(_rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
-    _alignbuddy.alpha = IUPAC.ambiguous_dna
-    return _alignbuddy
-
-
-def dna2rna(_alignbuddy):
-    """
-    Back-transcribes DNA into RNA sequences
-    :param _alignbuddy: The AlignBuddy object to be back-transcribed
-    :return: The back-transcribed AlignBuddy object
-    """
-    if _alignbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
-    for _alignment in _alignbuddy.alignments:
-        for _rec in _alignment:
-            _rec.seq = Seq(str(_rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
-    _alignbuddy.alpha = IUPAC.ambiguous_rna
-    return _alignbuddy
-
-
-def extract_range(_alignbuddy, _start, _end):
-    """
-    Extracts all columns within a given range
-    :param _alignbuddy: The AlignBuddy object to be extracted from
-    :param _start: The starting residue (indexed from 1)
-    :param _end: The end residue (inclusive)
-    :return: The extracted AlignBuddy object
-    """
-    _start = 1 if int(_start) < 1 else _start
-    # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
-    _start, _end = int(_start) - 1, int(_end)
-    if _end < _start:
-        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
-                         "of range.")
-    for _alignment in _alignbuddy.alignments:
-        for _rec in _alignment:
-            _rec.seq = Seq(str(_rec.seq)[_start:_end], alphabet=_rec.seq.alphabet)
-            _rec.description += " Sub-sequence extraction, from residue %s to %s" % (_start + 1, _end)
-            _features = []
-            for _feature in _rec.features:
-                if _feature.location.end < _start:
-                    continue
-                if _feature.location.start > _end:
-                    continue
-
-                feat_start = _feature.location.start - _start
-                if feat_start < 0:
-                    feat_start = 0
-
-                feat_end = _feature.location.end - _start
-                if feat_end > len(str(_rec.seq)):
-                    feat_end = len(str(_rec.seq))
-
-                new_location = FeatureLocation(feat_start, feat_end)
-                _feature.location = new_location
-                _features.append(_feature)
-            _rec.features = _features
-    return _alignbuddy
-
-
-def alignment_lengths(_alignbuddy):
-    """
-    Returns a list of alignment lengths
-    :param _alignbuddy: The AlignBuddy object to be analyzed
-    :return: A list of alignment lengths
-    """
-    _output = []
-    for _alignment in _alignbuddy.alignments:
-        _output.append(_alignment.get_alignment_length())
-    return _output
-
-
-def split_alignbuddy(_alignbuddy):
-    """
-    Splits each alignment into its own AlignBuddy object
-    :param _alignbuddy: The AlignBuddy object to be split
-    :return: A list of AlignBuddy objects
-    """
-    ab_objs_list = []
-    for _alignment in _alignbuddy.alignments:
-        _ab = AlignBuddy([_alignment])
-        _ab.in_format = _alignbuddy.in_format
-        _ab.out_format = _alignbuddy.out_format
-        ab_objs_list.append(_ab)
-    return ab_objs_list
-
-
-def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):  # ToDo: clustalomega may be clustalo
-    """
-    Calls sequence aligning tools to generate multiple sequence alignments
-    :param _seqbuddy: The SeqBuddy object containing the sequences to be aligned
-    :param _tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
-    :param _params: Additional parameters to be passed to the alignment tool
-    :param _keep_temp: Determines if/where the temporary files will be kept
-    :return: An AlignBuddy object containing the alignment produced.
-    """
-    if _params is None:
-        _params = ''
-    _tool = _tool.lower()
-
-    if _keep_temp:
-        if os.path.exists(_keep_temp):
-            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp), _quiet)
-            sys.exit()
-
-    if _tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
-        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
-    if which(_tool) is None:
-        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool), _quiet)
-        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(_tool), _tool))
-        sys.exit()
-    else:
-        tmp_dir = TempDir()
-        tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
-
-        try:
-            from SeqBuddy import hash_sequence_ids
-        except ImportError:
-            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
-            sys.exit()
-
-        _params = re.split(' ', _params, )
-        for _indx, _token in enumerate(_params):
-            if os.path.exists(_token):
-                _params[_indx] = os.path.abspath(_token)
-        _params = ' '.join(_params)
-
-        hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
-
-        _output = ''
-
-        _seqbuddy.out_format = 'fasta'
-        with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
-            out_file.write(str(_seqbuddy))
-        if _tool == 'clustalomega':
-            command = '{0} {1} -i {2}'.format(_tool, _params, tmp_in)
-        elif _tool == 'clustalw2':
-            command = '{0} -infile={1} {2} -outfile={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
-        elif _tool == 'muscle':
-            command = '{0} -in {1} {2}'.format(_tool, tmp_in, _params)
-        elif _tool == 'prank':
-            command = '{0} -d={1} {2} -o={3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
-        elif _tool == 'pagan':
-            command = '{0} -s {1} {2} -o {3}/result'.format(_tool, tmp_in, _params, tmp_dir.path)
-        else:
-            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
-        try:
-            if _tool in ['prank', 'pagan']:
-                subprocess.Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
-            else:
-                _output = subprocess.check_output(command, shell=True, universal_newlines=True)
-        except subprocess.CalledProcessError:
-            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool), _quiet)
-            sys.exit()
-
-        if _tool.startswith('clustalw'):
-            with open('{0}/result'.format(tmp_dir.path)) as result:
-                _output = result.read()
-        elif _tool == 'prank':
-            extension = 'fas'
-            if '-f=nexus' in _params or '-f=nexus' in _params:
-                extension = 'nex'
-            elif '-f=phylipi' in _params or '-f=phylips' in _params:
-                extension = 'phy'
-            possible_files = os.listdir(tmp_dir.path)
-            _filename = 'result.best.{0}'.format(extension)
-            for _file in possible_files:
-                if 'result.best' in _file and extension in _file:
-                    _filename = _file
-            with open('{0}/{1}'.format(tmp_dir.path, _filename)) as result:
-                _output = result.read()
-        elif _tool == 'pagan':
-            extension = 'fas'
-            if '-f nexus' in _params:
-                extension = 'nex'
-            elif '-f phylipi' in _params or '-f phylips' in _params:
-                extension = 'phy'
-            with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
-                _output = result.read()
-
-        # Fix broken outputs to play nicely with AlignBuddy parsers
-        if (_tool == 'mafft' and '--clustalout' in _params) or \
-                (_tool.startswith('clustalw2') and '-output' not in _params) or \
-                (_tool == 'clustalomega' and ('clustal' in _params or '--outfmt clu' in _params or
-                 '--outfmt=clu' in _params)):
-            # Clustal format extra spaces
-            contents = ''
-            prev_line = ''
-            for line in _output.splitlines(keepends=True):
-                if line.startswith(' ') and len(line) == len(prev_line) + 1:
-                    contents += line[1:]
-                else:
-                    contents += line
-                prev_line = line
-            _output = contents
-        if _tool.startswith('clustalw') and 'nexus' in _params or '=NEXUS' in _params:  # if taxa has gap chars
-            contents = ''
-            for _indx, line in enumerate(_output.splitlines(keepends=True)):
-                if _indx > 6 and not line.startswith('\n') and ';' not in line:
-                    split = re.split(' ', line, maxsplit=1)
-                    contents += "'" + split[0] + "' " + split[1]
-                else:
-                    contents += line
-            _output = contents
-        _alignbuddy = AlignBuddy(_output)
-
-        for _hash in hash_table:
-            rename(_alignbuddy, _hash, hash_table[_hash])
-            for _alignment in _alignbuddy.alignments:
-                for _rec in _alignment:
-                    if _hash in _rec.annotations:
-                        _rec.annotations.pop(_hash)
-                    to_pop = []
-                    for _key in _rec.annotations:
-                        if _hash in _rec.annotations[_key]:
-                            to_pop.append(_key)
-                    for _key in to_pop:
-                        _rec.annotations.pop(_key)
-                    _rec.name = re.sub(_hash, '', _rec.name)
-                    _rec.description = re.sub(_hash, '', _rec.description)
-        _stderr('\n')
-
-        if _keep_temp:
-            try:
-                copytree(tmp_dir.path, _keep_temp)
-            except FileExistsError:
-                # Should never get here
-                pass
-
-        _stderr("Returning to AlignBuddy...\n\n", _quiet)
-
-        return _alignbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1105,7 +1126,8 @@ def argparse_init():
 
     import argparse
 
-    fmt = lambda prog: br.CustomHelpFormatter(prog)
+    def fmt(prog):
+        return br.CustomHelpFormatter(prog)
 
     parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                      description='''\
@@ -1126,38 +1148,14 @@ def argparse_init():
     alignbuddy = []
     align_set = ""
 
-    # Generate Alignment
-    if in_args.generate_alignment:
-        seqbuddy = []
-        seq_set = None
-        try:
-            import SeqBuddy as Sb
-        except ImportError:
-            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
-            sys.exit()
-        for seq_set in in_args.alignments:
-            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
-            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
-            seqbuddy += seq_set.records
-        if seq_set:
-            seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
-        else:
-            seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
-        params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
-        if in_args.out_format:
-            generated_msas.out_format = in_args.out_format
-        _stdout(str(generated_msas))
-        sys.exit()
+    if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
+        for align_set in in_args.alignments:
+            if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
+                    sys.exit("Warning: No input detected. Process will be aborted.")
+            align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
+            alignbuddy += align_set.alignments
 
-    for align_set in in_args.alignments:
-        if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
-        align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
-        alignbuddy += align_set.alignments
-
-    alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+        alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
     return in_args, alignbuddy
 
@@ -1248,6 +1246,31 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.extract_range:
         _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
         _exit("extract_range")
+
+    # Generate Alignment
+    if in_args.generate_alignment:
+        seqbuddy = []
+        seq_set = None
+        try:
+            import SeqBuddy as Sb
+        except ImportError:
+            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
+            sys.exit()
+        for seq_set in in_args.alignments:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                sys.exit("Warning: No input detected. Process will be aborted.")
+            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
+            seqbuddy += seq_set.records
+        if seq_set:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
+        else:
+            seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
+        params = in_args.params if in_args.params is None else in_args.params[0]
+        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
+        if in_args.out_format:
+            generated_msas.out_format = in_args.out_format
+        _stdout(str(generated_msas))
+        _exit("generate_alignment")
 
     # List identifiers
     if in_args.list_ids:
