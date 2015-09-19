@@ -9,8 +9,7 @@ import re
 from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 import argparse
-#added 'workshop.' to get pytest working.
-import workshop.buddy_resources as br
+import buddy_resources as br
 
 try:
     import workshop.SeqBuddy as Sb

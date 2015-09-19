@@ -28,8 +28,7 @@ import sys
 import argparse
 import datetime
 from collections import OrderedDict
-#added 'workshop.' to get py.test working 
-from workshop.MyFuncs import TempFile
+from MyFuncs import TempFile
 import os
 from configparser import ConfigParser
 import json
