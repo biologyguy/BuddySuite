@@ -10,14 +10,13 @@ import re
 from copy import deepcopy
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
-from MyFuncs import TempFile
+import sys
 
-try:
-    import workshop.AlignBuddy as Alb
-    import workshop.SeqBuddy as Sb
-except ImportError:
-    import AlignBuddy as Alb
-    import SeqBuddy as Sb
+sys.path.insert(0, "./")
+import buddy_resources as br
+from MyFuncs import TempFile
+import AlignBuddy as Alb
+import SeqBuddy as Sb
 
 
 def align_to_hash(_alignbuddy, mode='hash'):

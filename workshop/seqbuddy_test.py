@@ -6,15 +6,14 @@ import pytest
 from hashlib import md5
 import os
 import re
+import sys
 from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 import argparse
-import buddy_resources as br
 
-try:
-    import workshop.SeqBuddy as Sb
-except ImportError:
-    import SeqBuddy as Sb
+sys.path.insert(0, "./")
+import buddy_resources as br
+import SeqBuddy as Sb
 import MyFuncs
 
 VERSION = Sb.VERSION
