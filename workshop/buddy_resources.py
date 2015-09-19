@@ -28,12 +28,14 @@ import sys
 import argparse
 import datetime
 from collections import OrderedDict
-from MyFuncs import TempFile
 import os
 from configparser import ConfigParser
 import json
 import traceback
 import re
+
+sys.path.insert(0, "./")
+from MyFuncs import TempFile
 
 if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))

@@ -3,13 +3,13 @@
 
 import pytest
 import os
+import sys
 from hashlib import md5
 
-
-try:
-    import workshop.DatabaseBuddy as Db
-except ImportError:
-    import DatabaseBuddy as Db
+sys.path.insert(0, "./")
+import DatabaseBuddy as Db
+import buddy_resources as br
+import MyFuncs
 
 
 def result_to_hash(_dbbuddy, mode='hash'):

@@ -4,14 +4,13 @@ import os
 from io import StringIO
 import re
 from copy import deepcopy
-from MyFuncs import TempFile
+import sys
 
-try:
-    import workshop.PhyloBuddy as Pb
-    import workshop.AlignBuddy as Alb
-except ImportError:
-    import PhyloBuddy as Pb
-    import AlignBuddy as Alb
+sys.path.insert(0, "./")
+import buddy_resources as br
+from MyFuncs import TempFile
+import PhyloBuddy as Pb
+import AlignBuddy as Alb
 
 
 def phylo_to_hash(_phylobuddy, mode='hash'):
