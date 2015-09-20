@@ -3100,26 +3100,29 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
         _exit("delete_small")
 
-    #degenerate_sequence
+    # degenerate_sequence
     if in_args.degenerate_sequence:
         table, reading_frame = 1, 1
         in_args.degenerate_sequence = in_args.degenerate_sequence[0]
         
-        #check if to make sure letters are not in argument
+        # check if to make sure letters are not in argument
         check_numbers = [n for n in in_args.degenerate_sequence if n.isdigit()]
         if len(check_numbers) != len(in_args.degenerate_sequence):    
                 raise AttributeError('Please use integers not strings')
         
-        #notify user only need two arguments
+        # notify user only need two arguments
         if len(in_args.degenerate_sequence) > 2:
-            raise AttributeError('Too many attributes provided please only provided 1 or 2 parameters (table or table reading frame') 
+            raise AttributeError(
+                'Too many attributes provided please only provided 1 or 2 parameters (table or table reading frame') 
        
-       #if no argument provided will use table 1 first reading frame as default(set above)
+       # if no argument provided will use table 1 first reading frame as default(set above)
         if not in_args.degenerate_sequence:
             pass
-        #if one argument provided will set the given argument as the codon table.
+        # if one argument provided will set the given argument as the codon 
+        # table.
         elif len(in_args.degenerate_sequence) == 1:
-            print("Only one parameter detected, will use the given parameter as a codon table and start at the first reading frame")
+            print(
+                "Only one parameter detected, will use the given parameter as a codon table and start at the first reading frame")
             table = int(in_args.degenerate_sequence[0])
             read_frame = 1
         else:
