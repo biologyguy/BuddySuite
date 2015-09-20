@@ -507,14 +507,6 @@ def test_count_residues():
     assert residues['Mle-Panxα8']["% Hyrdophilic"] == 36.93
     assert residues['Mle-Panxα8']["% Hyrdophobic"] == 55.4
 
-
-# ######################  'df', '--delete_features' ###################### #
-def test_delete_features():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
-    tester = Sb.delete_features(tester, 'donor')
-    assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
-
-
 #######################'dgn', '--degenerate_sequence'######################
 dgn_hashes = ['0638bc6546eebd9d50f771367d6d7855','72373f8356051e2c6b67642451379054',
               '9172ad5947c0961b54dc5adbd03d4249','b45ac94ee6a98e495e115bfeb5bd9bcd',
@@ -540,6 +532,14 @@ hashes = [(Sb._make_copies(sb_objects[0]), shift_hash, frame[indx]) for indx, sh
 def test_degerate_sequence_reading_frame_shift(seqbuddy, shift_hash, frame):
     tester = Sb.degenerate_sequence(seqbuddy,table=1,reading_frame=frame)
     assert seqs_to_hash(tester) == shift_hash
+
+# ######################  'df', '--delete_features' ###################### #
+def test_delete_features():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Sb.delete_features(tester, 'donor')
+    assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
+
+
 
 
 # ######################  'dl', '--delete_large' ###################### #
