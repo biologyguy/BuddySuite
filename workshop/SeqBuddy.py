@@ -2611,109 +2611,125 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
     Deep-Level Arthropod Phylogenomics: Differentiating Serine Codons in 21-Amino-Acid Models". PLoS ONE 7(11): e47450.
 
     Regier, J.C., Shultz, J.W., Zwick, A., Hussey, A., Ball, B., Wetzer, R. Martin, J.W. & Cunningham, C.W. (2010).
-     "Arthropod relationships revealed by phylogenomic analysis of nuclear protein-coding sequences". Nature 463: 1079-1083.
+     "Arthropod relationships revealed by phylogenomic analysis of nuclear protein-coding sequences".
+     Nature 463: 1079-1083.
     """
-    #degenerate codons that are  universal to each all codon tables
-    base_dict = {'ACA': 'ACN','ACC': 'ACN','ACG': 'ACN','ACT': 'ACN','CAC': 'CAY','CAT': 'CAY','CCA': 'CCN','CCC': 'CCN', 
-                 'CCG': 'CCN','CCT': 'CCN','GAA': 'GAR','GAC': 'GAY','GAG': 'GAR','GAT': 'GAY','GCA': 'GCN','GCC': 'GCN',
-                 'GCG': 'GCN','GCT': 'GCN','GTA': 'GTN','GTC': 'GTN','GTG': 'GTN','GTT': 'GTN','TCA': 'TCN','TCC': 'TCN', 
-                 'TCG': 'TCN','TCT': 'TCN','TTC': 'TTY','TTT': 'TTY','NNN': 'NNN','???': 'NNN','---': '---'} 
+   # degenerate codons that are  universal to each all codon tables
+    base_dict = {'ACA': 'ACN', 'ACC': 'ACN', 'ACG': 'ACN', 'ACT': 'ACN', 'CAC': 'CAY', 'CAT': 'CAY', 'CCA': 'CCN',
+                 'CCC': 'CCN', 'CCG': 'CCN', 'CCT': 'CCN', 'GAA': 'GAR', 'GAC': 'GAY', 'GAG': 'GAR', 'GAT': 'GAY',
+                 'GCA': 'GCN', 'GCC': 'GCN', 'GCG': 'GCN', 'GCT': 'GCN', 'GTA': 'GTN', 'GTC': 'GTN', 'GTG': 'GTN',
+                 'GTT': 'GTN', 'TCA': 'TCN', 'TCC': 'TCN', 'TCG': 'TCN', 'TCT': 'TCN', 'TTC': 'TTY', 'TTT': 'TTY',
+                 'NNN': 'NNN', '???': 'NNN', '---': '---'}
     
-    #Standard Genetic Code codons.  It is the default table
-    dgn_dict_1 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'TCN','AGG': 'MGN','AGT': 'AGY',
-                  'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'MGN','CGC': 'MGN',
-                  'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGA','TGC': 'TGY',
-                  'TGG': 'TGG','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Standard Genetic Code codons.  It is the default table
+    dgn_dict_1 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'TCN', 'AGG': 'MGN',
+                  'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Vertebrate Mitochondiral Code codons 
-    dgn_dict_2 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','ATA': 'ATR','ATC': 'ATY','ATG': 'ATR','ATT': 'ATY',
-                  'AGA': 'AGA','AGG': 'AGG','AGC': 'AGY','AGT': 'AGY','CAA': 'CAR','CAG': 'CAR','CGA': 'CGN','CGC': 'CGN',
-                  'CGG': 'CGN','CGT': 'CGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                  'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Vertebrate Mitochondiral Code codons 
+    dgn_dict_2 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR',
+                  'ATT': 'ATY', 'AGA': 'AGA', 'AGG': 'AGG', 'AGC': 'AGY', 'AGT': 'AGY', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Yeast Mitochondiral Code codons
-    dgn_dict_3 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                  'ATA': 'ATR','ATC': 'ATY','ATG': 'ATR','ATT': 'ATY','CAA': 'CAR','CAG': 'CAR','CGA': 'CGA','CGC': 'CGC',
-                  'CGG': 'MGN','CGT': 'MGN','CTA': 'CTN','CTC': 'CTN','CTG': 'CTN','CTT': 'CTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                  'TGG': 'TGR','TGT': 'TGY','TTA': 'TTR','TTG': 'TTR'}
+    # Yeast Mitochondiral Code codons
+    dgn_dict_3 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                  'AGT': 'AGY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'CGA', 'CGC': 'CGC', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'CTN', 'CTC': 'CTN', 'CTG': 'CTN',
+                  'CTT': 'CTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'TTR',
+                  'TTG': 'TTR'}
     
-    #Mold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code Codons
-    dgn_dict_4 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                  'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'MGN','CGC': 'MGN',
-                  'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                  'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Mold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code Codons
+    dgn_dict_4 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                  'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Invertebrate Mitochondrial Code codons
-    dgn_dict_5 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'AGN','AGC': 'AGN','AGG': 'AGN','AGT': 'AGN',
-                  'ATA': 'ATR','ATC': 'ATY','ATG': 'ATR','ATT': 'ATY','CAA': 'CAR','CAG': 'CAR','CGA': 'CGN','CGC': 'CGN',
-                  'CGG': 'CGN','CGT': 'CGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                  'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Invertebrate Mitochondrial Code codons
+    dgn_dict_5 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
+                  'AGT': 'AGN', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Ciliate / Dasycladacean / Hexamita Nuclear Code codons
-    dgn_dict_6 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                  'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'YAR','CAG': 'YAR','CGA': 'MGN','CGC': 'MGN',
-                  'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'YAR','TAC': 'TAY','TAG': 'YAR','TAT': 'TAY','TGA': 'TGA','TGC': 'TGY',
-                  'TGG': 'TGG','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Ciliate / Dasycladacean / Hexamita Nuclear Code codons
+    dgn_dict_6 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                  'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'YAR', 'CAG': 'YAR',
+                  'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'YAR', 'TAC': 'TAY',
+                  'TAG': 'YAR', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Echinoderm and Flatworm Mitochondrial Code codons
-    dgn_dict_9 = {'AAA': 'AAH','AAC': 'AAH','AAG': 'AAG','AAT': 'AAH','AGA': 'AGN','AGC': 'AGN','AGG': 'AGN','AGT': 'AGN',
-                  'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'CGN','CGC': 'CGN',
-                  'CGG': 'CGN','CGT': 'CGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                  'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                  'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Echinoderm and Flatworm Mitochondrial Code codons
+    dgn_dict_9 = {'AAA': 'AAH', 'AAC': 'AAH', 'AAG': 'AAG', 'AAT': 'AAH', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
+                  'AGT': 'AGN', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                  'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                  'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                  'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                  'TTG': 'YTN'}
     
-    #Euplotid Nuclear Code codons
-    dgn_dict_10 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                   'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'MGN','CGC': 'MGN',
-                   'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                   'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGH','TGC': 'TGH',
-                   'TGG': 'TGG','TGT': 'TGH','TTA': 'YTN','TTG': 'YTN'}            
+    # Euplotid Nuclear Code codons
+    dgn_dict_10 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                   'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGH', 'TGC': 'TGH', 'TGG': 'TGG', 'TGT': 'TGH', 'TTA': 'YTN',
+                   'TTG': 'YTN'}
     
-    #Bacterial / Archaeal / Plant Plastid Code condons
-    dgn_dict_11 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                   'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'MGN','CGC': 'MGN',
-                   'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                   'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGA','TGC': 'TGY',
-                   'TGG': 'TGG','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Bacterial / Archaeal / Plant Plastid Code condons
+    dgn_dict_11 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                   'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
+                   'TTG': 'YTN'}
     
-    #Alternative Yeast Nuclear Code codons
-    dgn_dict_12 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'MGN','AGC': 'AGY','AGG': 'MGN','AGT': 'AGY',
-                   'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'MGN','CGC': 'MGN',
-                   'CGG': 'MGN','CGT': 'MGN','CTA': 'YTN','CTC': 'YTN','CTG': 'CTG','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                   'GGG': 'GGN','GGT': 'GGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGA','TGC': 'TGY',
-                   'TGG': 'TGG','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Alternative Yeast Nuclear Code codons
+    dgn_dict_12 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
+                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                   'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'CTG',
+                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
+                   'TTG': 'YTN'}
     
-    #Ascidian Mitochondrial Code codons
-    dgn_dict_13 = {'AAA': 'AAR','AAC': 'AAY','AAG': 'AAR','AAT': 'AAY','AGA': 'RGN','AGC': 'AGY','AGG': 'RGN','AGT': 'AGY',
-                   'ATA': 'ATR','ATC': 'ATY','ATG': 'ATR','ATT': 'ATY','CAA': 'CAR','CAG': 'CAR','CGA': 'CGN','CGC': 'CGN',
-                   'CGG': 'CGN','CGT': 'CGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'RGN','GGC': 'RGN',
-                   'GGG': 'RGN','GGT': 'RGN','TAA': 'TAA','TAC': 'TAY','TAG': 'TAG','TAT': 'TAY','TGA': 'TGR','TGC': 'TGY',
-                   'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}
+    # Ascidian Mitochondrial Code codons
+    dgn_dict_13 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'RGN', 'AGC': 'AGY', 'AGG': 'RGN',
+                   'AGT': 'AGY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
+                   'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                   'CTT': 'YTN', 'GGA': 'RGN', 'GGC': 'RGN', 'GGG': 'RGN', 'GGT': 'RGN', 'TAA': 'TAA', 'TAC': 'TAY',
+                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                   'TTG': 'YTN'}
     
-    #Alternative Flatworm Mitochondrial Code condons
-    dgn_dict_14 = {'AAA': 'AAH','AAC': 'AAH','AAG': 'AAG','AAT': 'AAH','AGA': 'AGN','AGC': 'AGN','AGG': 'AGN','AGT': 'AGN',
-                   'ATA': 'ATH','ATC': 'ATH','ATG': 'ATG','ATT': 'ATH','CAA': 'CAR','CAG': 'CAR','CGA': 'CGN','CGC': 'CGN',
-                   'CGG': 'CGN','CGT': 'CGN','CTA': 'YTN','CTC': 'YTN','CTG': 'YTN','CTT': 'YTN','GGA': 'GGN','GGC': 'GGN',
-                   'GGG': 'GGN','GGT': 'GGN','TAA': 'TAH','TAC': 'TAH','TAG': 'TAG','TAT': 'TAH','TGA': 'TGR','TGC': 'TGY',
-                   'TGG': 'TGR','TGT': 'TGY','TTA': 'YTN','TTG': 'YTN'}  
+    # Alternative Flatworm Mitochondrial Code condons
+    dgn_dict_14 = {'AAA': 'AAH', 'AAC': 'AAH', 'AAG': 'AAG', 'AAT': 'AAH', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
+                   'AGT': 'AGN', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
+                   'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
+                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAH', 'TAC': 'TAH',
+                   'TAG': 'TAG', 'TAT': 'TAH', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
+                   'TTG': 'YTN'}
     
-    dgn_tables = {1: dgn_dict_1, 2: dgn_dict_2, 3: dgn_dict_3, 4: dgn_dict_4, 5: dgn_dict_5, 6:
-              dgn_dict_6, 9: dgn_dict_9, 10: dgn_dict_10, 11: dgn_dict_11, 12: dgn_dict_12, 13: dgn_dict_13}
+    dgn_tables = {1: dgn_dict_1, 2: dgn_dict_2, 3: dgn_dict_3, 4: dgn_dict_4, 5: dgn_dict_5, 6: dgn_dict_6,
+                  9: dgn_dict_9, 10: dgn_dict_10, 11: dgn_dict_11, 12: dgn_dict_12, 13: dgn_dict_13, 14: dgn_dict_14}
 
-    #add variable codons to working dictionary 
+    # add variable codons to working dictionary 
     working_dict = base_dict.copy()
 
-    #Handle if codon table not supported. 
+    # Handle if codon table not supported. 
     try:
         working_dict.update(dgn_tables[table])
     except KeyError:
-        print("Could not locate codon dictionary. Supported codon tables are 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, and 13")
+        print(
+    "Could not locate codon dictionary. Supported codon tables are 1, 2, 3, 4, 5, 6, 9, "
+    "10, 11, 12, 13 and 14")
         sys.exit(0)
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
@@ -2727,12 +2743,12 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
         # shift reading frame
         _rec.seq = _rec.seq[reading_frame-1:]
         seq_length = len(str(_rec.seq))
-        i=0
-        degen_string=""
+        i = 0
+        degen_string = ""
         while i < seq_length:
-            codon = str(_rec.seq[i:i+3])           
-            degen_string += working_dict[codon] if codon in working_dict else codon
-            i = i+3
+            _codon = str(_rec.seq[i:i + 3])           
+            degen_string += working_dict[_codon] if _codon in working_dict else _codon
+            i += 3
         _rec.seq = Seq(str(degen_string), alphabet=IUPAC.ambiguous_dna)
     return _seqbuddy
 
@@ -3113,7 +3129,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         # notify user only need two arguments
         if len(in_args.degenerate_sequence) > 2:
             raise AttributeError(
-                'Too many attributes provided please only provided 1 or 2 parameters (table or table reading frame') 
+                'Too many attributes provided please only provided 1 or 2 '
+                'parameters (table or table reading frame') 
        
        # if no argument provided will use table 1 first reading frame as default(set above)
         if not in_args.degenerate_sequence:
@@ -3122,7 +3139,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         # table.
         elif len(in_args.degenerate_sequence) == 1:
             print(
-                "Only one parameter detected, will use the given parameter as a codon table and start at the first reading frame")
+                'Only one parameter detected, will use the given parameter as a '
+                'codon table and start at the first reading frame')
             table = int(in_args.degenerate_sequence[0])
             read_frame = 1
         else:
