@@ -25,7 +25,8 @@ Description:
 PhyloBuddy is a general wrapper for popular phylogenetic programs, handles format conversion, and manipulates tree files
 """
 
-# Standard library imports
+# ##################################################### IMPORTS ###################################################### #
+# Standard library
 import sys
 import os
 import random
@@ -37,7 +38,7 @@ from collections import OrderedDict
 from random import sample
 from copy import deepcopy
 
-# Third party package imports
+# Third party
 # import Bio.Phylo
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -75,7 +76,7 @@ from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
 
-# My functions
+# BuddySuite specific
 from MyFuncs import TempDir
 import buddy_resources as br
 
@@ -176,7 +177,7 @@ class PhyloBuddy:
         # ####  RECORDS  #### #
         if type(_input) == PhyloBuddy:
             self.trees = _input.trees
-            self.stored_input = _input
+            stored_input = _input
 
         elif isinstance(_input, list):
             # make sure that the list is actually Bio.Phylo records (just test a few...)
@@ -185,11 +186,11 @@ class PhyloBuddy:
                 if type(_tree) not in tree_classes:
                     raise TypeError("Tree list is not populated with Phylo objects.")
             self.trees = _input
-            self.stored_input = deepcopy(_input)
+            stored_input = deepcopy(_input)
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
             tmp_dir = TempDir()
-            self.stored_input = deepcopy(in_handle)
+            stored_input = deepcopy(in_handle)
             with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
                 _ofile.write(in_handle)
 
@@ -209,7 +210,7 @@ class PhyloBuddy:
                 self.trees.append(_tree)
 
         elif os.path.isfile(_input):
-            self.stored_input = deepcopy(_input)
+            stored_input = deepcopy(_input)
             figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
             if figtree is not None:
                 tmp_dir = TempDir()
@@ -381,18 +382,18 @@ def _guess_format(_input):
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def _make_copies(_phylobuddy):
+def _make_copy(_phylobuddy):
     """
     Returns a copy of the PhyloBuddy object
     :param _phylobuddy: The PhyloBuddy object to be copied
     :return: A copy of the original PhyloBuddy object
     """
     try:
-        copies = deepcopy(_phylobuddy)
+        _copy = deepcopy(_phylobuddy)
     except AttributeError:
         _stderr("Warning: Deepcopy failed. Attempting workaround. Some metadata may be lost.")
-        copies = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
-    return copies
+        _copy = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
+    return _copy
 
 
 def _stderr(message, quiet=False):
@@ -407,6 +408,7 @@ def _stdout(message, quiet=False):
     return
 
 
+# ################################################ MAIN API FUNCTIONS ################################################ #
 def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
     """
     Calculates tree distance with various algorithms
@@ -663,7 +665,7 @@ def rename(_phylobuddy, _query, _replace):
 
 
 def show_diff(_phylobuddy):  # Doesn't work.
-    sys.exit('show_diff() is not yet implemented.')
+    sys.exit('show_diff() is not implemented yet.')
     # if len(_phylobuddy.trees) != 2:
     #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
     _trees = [_convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
@@ -873,6 +875,10 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         usage.save()
         sys.exit()
 
+    def _raise_error(_err, tool):
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+        _exit(tool)
+
 # ############################################## COMMAND LINE LOGIC ############################################## #
     # Calculate distance
     if in_args.calculate_distance:
@@ -903,9 +909,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         try:
             import AlignBuddy as Alb
         except ImportError:
-            _stderr("AlignBuddy is needed to use generate_msa(). Please re-run the installer and add AlignBuddy to"
-                    "your system.")
-            sys.exit()
+            _raise_error(ImportError("AlignBuddy is needed to use generate_msa(). Please re-run the installer and "
+                                     "add AlignBuddy to your system."), "generate_tree")
+            
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
