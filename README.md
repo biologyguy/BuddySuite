@@ -6,7 +6,7 @@ Please head to the [main](https://github.com/biologyguy/BuddySuite) page for the
 <p align="center">
 <a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/SeqBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/AlignBuddy-logo.gif" width=25%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/DBBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/DBBuddy-logo.gif" width=20%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/DBBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/PhyloBuddy-logo.gif" width=25%/></a>
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
@@ -63,90 +63,15 @@ Once out of alpha, the installer will only bundle stable release versions of the
  to the development versions will not become available in the installer until the next release. Versions of each tool or
  the installer can be displayed using the -v flag.
 
-## Development version installation and contribution
+## Development version installation
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
  official release versions, and may have extra dependencies. The easiest way to get the development version
  up and running is to [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
 
     $: git clone https://github.com/biologyguy/BuddySuite.git
 
-The Buddy tools are structured so they can be used as importable modules as well as command line programs. If you wish
- to contribute to the project (and we'd love the help!!), new features require three components:
-
-1. A self contained function that accepts a buddy object as input, and (usually) returns a new buddy object.
-2. An argparse entry in the argparse_args.py module, allowing the function to be called from the command line.
-3. Wrapper code in the `if __name__ == '__main__':` block to handle command line calls
-
-The Buddy classes (i.e., SeqBuddy, AlignBuddy, etc) contain a number of core attributes and methods (see below), and act
- as a standardized input/output for all functions in the Suite. Instantiation of a buddy object is designed to be
- extremely flexible, as the detection and handling of most input types (stdin, file handles, file paths, list of
- SeqRecords, or plain text) are all cooked into the classes.
-
-##### SeqBuddy
-    sb_obj = SeqBuddy(_input, _in_format=None, _out_format=None, _alpha=None)
-
-*Attribute* | *Description*
------------ | -------------
-alpha | An IUPAC object from Bio.Alphabet (one of: IUPAC.protein, IUPAC.ambiguous_dna, or IUPAC.ambiguous_rna). Plain text representatives of each (e.g., 'dna', 'prot', 'protein', 'r') will be understood by the SeqBuddy \__init\__() method, or the alphabet will be guessed if not explicitly set.
-in_format | The [flat file format](http://biopython.org/wiki/SeqIO#File_Formats) sequences are read from. If explicitly set, SeqBuddy will only attempt to read the file in the given format (returning no sequences if the wrong format is specified), otherwise it will guess the format.
-out_format | Controls the format used when SeqBuddy objects are written. By default, this will be the same as in_format.
-records | A list of Bio.SeqRecord objects.
- 
-*Method* | *Description*
--------- | -------------
-to_dict() | Return a dictionary of everything in self.records using SeqRecord.id as keys
-print() | Write all records to stdout using out_format
-write(_file_path) | Write all records to file using out_format
-
-##### AlignBuddy
-    alb_obj = AlignBuddy(_input, _in_format=None, _out_format=None)
-
-*Attribute* | *Description*
------------ | -------------
-alpha | An IUPAC object from Bio.Alphabet, same as in SeqBuddy. The constructor does not accept this explicitly, it is guessed from the sequences in the alignment(s).
-in_format | The [flat file format](http://biopython.org/wiki/AlignIO#File_Formats) sequences are read from. If explicitly set, AlignBuddy will only attempt to read the file in the given format (returning no alignments if the wrong format is specified), otherwise it will guess the format.
-out_format | Controls the format used when AlignBuddy objects are written. By default, this will be the same as in_format.
-alignments | A list of Bio.Align objects.
- 
-*Method* | *Description*
--------- | -------------
-print() | Write all alignments to stdout using out_format
-write(_file_path) | Write all alignments to file using out_format
-
-##### PhyloBuddy
-    pb_obj = PhyloBuddy(_input, _in_format=None, _out_format=None)
-
-*Attribute* | *Description*
------------ | -------------
-in_format | The format of incoming trees (Newick, NEXUS, or NeXML). If explicitly set, PhyloBuddy will only attempt to read the file in the given format (returning no trees if the wrong format is specified), otherwise it will guess the format.
-out_format | Controls the format used when PhyloBuddy objects are written. By default, this will be the same as in_format.
-trees | A list of dendropy.datamodel.treemodel.Tree objects.
- 
-*Method* | *Description*
--------- | -------------
-print() | Write all trees to stdout using out_format
-write(_file_path) | Write all trees to file using out_format
- 
-##### DbBuddy
-    dbb_obj = DbBuddy(_input, _database=None, _out_format="summary")
-
-Note: The core of DbBuddy is still under very active development, so expect weirdness or total inoperability.
-
-*Attribute* | *Description*
------------ | -------------
-search_terms | List of search terms used to query public databases
-records | Dictionary of Record objects (not BioPython records!), using accession numbers as keys.
-recycle_bin | Also a dictionary of records, but which have been filtered out of the main records dict (i.e., will not be output by print())
-out_format | Controls the format used when DbBuddy objects are written. Valid formats include "summary", "full_summary", "ids", "accessions", and any of the supported [BioPython SeqIO](http://biopython.org/wiki/SeqIO#File_Formats) formats.
-failures | A list of Failure objects. The Failure class is used to track issues encountered while communicating with the public databases.
-databases | A list of databases that DbBuddy will query. Valid options include "all", "uniprot", "ensemble", "gb", and "refseq".
- 
-*Method* | *Description*
--------- | -------------
-record_breakdown() | Return a dictionary with counts for 'full', 'partial', and 'accession' only records.
-filter_records(regex) | Send any records not matched by 'regex' to 'recycle_bin'
-restore_records(regex) | Send any records matching 'regex' from 'recycle_bin' back to 'records'
-print(_num=0, quiet=False, columns=None, destination=None) | Write records to stdout or a path (set with \_destination). The number of records and the columns displayed can be set with their respective arguments.
+For further information on dependencies and how to contribute to the project, please see the
+ [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers).
 
 ## Contact
 Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or

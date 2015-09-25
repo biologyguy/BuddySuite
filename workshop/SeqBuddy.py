@@ -25,7 +25,8 @@ Description:
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
 """
 
-# Standard library imports
+# ##################################################### IMPORTS ###################################################### #
+# Standard library
 # from pprint import pprint
 # import pdb
 # import time
@@ -47,7 +48,7 @@ from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from xml.sax import SAXParseException
 
-# Third party package imports
+# Third party
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -59,7 +60,7 @@ from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 from Bio.Data import CodonTable
 
-# My functions
+# BuddySuite specific
 from MyFuncs import run_multicore_function
 import buddy_resources as br
 
@@ -71,6 +72,8 @@ def sim_ident(matrix):  # Return the pairwise similarity and identity scores amo
 
 
 def predict_orfs():
+    # Add all predicted open reading frames to seqrecord features list
+    # http://www.ncbi.nlm.nih.gov/gorf/gorf.html
     return
 
 
@@ -137,9 +140,9 @@ def degenerate_dna():
 
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
-FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
-           "stockholm", "tab", "qual"]
+OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
+                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
+                  "stockholm", "tab", "qual"]
 
 
 # ##################################################### SEQBUDDY ##################################################### #
@@ -429,7 +432,8 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
             sys.exit("Input file is empty.")
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml"]  # ToDo: Glean CLUSTAL
+        # ToDo: Glean CLUSTAL
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
@@ -451,13 +455,13 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def _make_copies(_seqbuddy):
+def _make_copy(_seqbuddy):
     alphabet_list = [_rec.seq.alphabet for _rec in _seqbuddy.records]
-    copies = deepcopy(_seqbuddy)
-    copies.alpha = _seqbuddy.alpha
-    for _indx, _rec in enumerate(copies.records):
+    _copy = deepcopy(_seqbuddy)
+    _copy.alpha = _seqbuddy.alpha
+    for _indx, _rec in enumerate(_copy.records):
         _rec.seq.alphabet = alphabet_list[_indx]
-    return copies
+    return _copy
 
 
 def _phylipi(_seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
@@ -542,7 +546,7 @@ def add_feature(_seqbuddy, _type, _location, _strand=None, _qualifiers=None, _pa
     :return: The annotated SeqBuddy object
     """
     # http://www.insdc.org/files/feature_table.html
-    old = _make_copies(_seqbuddy)
+    old = _make_copy(_seqbuddy)
     if _pattern is not None:
         recs = pull_recs(_seqbuddy, _pattern).records
     else:
@@ -804,9 +808,9 @@ def back_translate(_seqbuddy, _mode='random', _species=None):
                     break
             _rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
 
-    mapped_features = map_features_prot2dna(originals, _seqbuddy)
-    mapped_features.out_format = _seqbuddy.out_format
-    return mapped_features
+    mapped_features_seqbuddy = map_features_prot2dna(originals, _seqbuddy)
+    mapped_features_seqbuddy.out_format = _seqbuddy.out_format
+    return mapped_features_seqbuddy
 
 
 def bl2seq(_seqbuddy):  # TODO do string formatting in command line ui
@@ -1754,7 +1758,8 @@ def find_repeats(_seqbuddy, _columns=1):
     return [unique_seqs, repeat_ids, repeat_seqs, output_str]
 
 
-def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_cuts=None):  # ToDo: Make sure cut sites are not already in the features list
+# ToDo: Make sure cut sites are not already in the features list
+def find_restriction_sites(_seqbuddy, _enzymes=(), _min_cuts=1, _max_cuts=None):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
     :param _seqbuddy: The SeqBuddy object to be analyzed
@@ -1769,7 +1774,7 @@ def find_restriction_sites(_seqbuddy, _enzymes="commercial", _min_cuts=1, _max_c
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     _max_cuts = 1000000000 if not _max_cuts else _max_cuts
 
-    _enzymes = _enzymes if type(_enzymes) == list else [_enzymes]
+    _enzymes = list(_enzymes) if _enzymes else ["commercial"]
 
     blacklist = ["AbaSI", "FspEI", "MspJI", "SgeI", "AspBHI", "SgrTI", "YkrI", "BmeDI"]  # highly nonspecific
     blacklist += ["AjuI", "AlfI", "AloI", "ArsI", "BaeI", "BarI", "BcgI", "BdaI", "BplI", "BsaXI", "Bsp24I", "CjeI",
@@ -1991,7 +1996,8 @@ def map_features_dna2prot(dna_seqbuddy, prot_seqbuddy):
             sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % _seq_id)
             continue
 
-        if len(prot_dict[_seq_id].seq) * 3 not in [len(dna_rec.seq), len(dna_rec.seq) - 3]:  # len(cds) or len(cds minus stop)
+        # len(cds) or len(cds minus stop)
+        if len(prot_dict[_seq_id].seq) * 3 not in [len(dna_rec.seq), len(dna_rec.seq) - 3]:
             sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
                              (_seq_id, len(dna_rec.seq), len(prot_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = prot_dict[_seq_id]
@@ -2057,7 +2063,8 @@ def map_features_prot2dna(prot_seqbuddy, dna_seqbuddy):
             sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % _seq_id)
             continue
 
-        if len(prot_rec.seq) * 3 not in [len(dna_dict[_seq_id].seq), len(dna_dict[_seq_id].seq) - 3]:  # len(cds) or len(cds minus stop)
+        # len(cds) or len(cds minus stop)
+        if len(prot_rec.seq) * 3 not in [len(dna_dict[_seq_id].seq), len(dna_dict[_seq_id].seq) - 3]:
             sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
                              (_seq_id, len(prot_rec.seq), len(dna_dict[_seq_id].seq)))
         _new_seqs[_seq_id] = dna_dict[_seq_id]
@@ -2221,7 +2228,7 @@ def order_ids(_seqbuddy, _reverse=False):
 
 def order_ids_randomly(_seqbuddy):
     """
-    Randomly reorders the sequences
+    Randomly reorders the sequences in _seqbuddy.records
     :param _seqbuddy: The SeqBuddy object to be shuffled
     :return: The shuffled SeqBuddy object
     """
@@ -2233,16 +2240,19 @@ def order_ids_randomly(_seqbuddy):
     return _seqbuddy
 
 
-def pull_random_recs(_seqbuddy, _count=1):  # Return a random set of sequences (without replacement)
+def pull_random_recs(_seqbuddy, count=1):
     """
-    Randomly retrieves sequences
-    :param _seqbuddy: The SeqBuddy object to be pulled from
-    :param _count: The number of records to pull
-    :return: The modified SeqBuddy object
+    Return a random set of sequences (without replacement)
+    :param _seqbuddy: SeqBuddy object
+    :param count: The number of random records to pull
+    :return: The original SeqBuddy object with only the selected records remaining
     """
+    if type(count) != int:
+        raise TypeError("_count parameter requires an integer as input.")
+
+    count = abs(count) if abs(count) <= len(_seqbuddy.records) else len(_seqbuddy.records)
     random_recs = []
-    _count = abs(_count) if abs(_count) <= len(_seqbuddy.records) else len(_seqbuddy.records)
-    for i in range(_count):
+    for i in range(count):
         rand_index = randint(0, len(_seqbuddy.records) - 1)
         random_recs.append(_seqbuddy.records.pop(rand_index))
 
@@ -2839,8 +2849,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
 
-    def _raise_error(_err):
-        sys.exit("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+    def _raise_error(_err, tool):
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+        _exit(tool)
 
     def _exit(tool, skip=skip_exit):
         if skip:
@@ -2985,7 +2996,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
                 _stdout('\n')
         except TypeError as e:
-            _raise_error(e)
+            _raise_error(e, "count_codons")
         _exit("count_codons")
 
     # Count residues
@@ -3173,7 +3184,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Find restriction sites
     if in_args.find_restriction_sites:
-        min_cuts, max_cuts, enzymes, order = None, None, [], 'position'
+        min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
         in_args.find_restriction_sites = in_args.find_restriction_sites[0]
         for param in in_args.find_restriction_sites:
             try:
@@ -3186,13 +3197,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 elif not max_cuts:
                     max_cuts = param
                 else:
-                    _raise_error(ValueError("To many integers in parameter list for find_restriction_sites."))
+                    _raise_error(ValueError("To many integers in parameter list for find_restriction_sites."),
+                                 "find_restriction_sites")
             elif param in ['alpha', 'position']:
                 order = param
             else:
-                enzymes.append(param)
+                _enzymes.append(param)
 
-        enzymes = ["commercial"] if len(enzymes) == 0 else enzymes
+        _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
         max_cuts = int(min_cuts) if min_cuts and not max_cuts else max_cuts
         min_cuts = 1 if not min_cuts else min_cuts
         if max_cuts and min_cuts > max_cuts:
@@ -3201,11 +3213,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             min_cuts = temp
 
         clean_seq(seqbuddy)
+        output = []
         try:
-            output = find_restriction_sites(seqbuddy, enzymes, min_cuts, max_cuts)
+            output = find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
         except TypeError as e:
-            _raise_error(e)
-            sys.exit()
+            _raise_error(e, "find_restriction_sites")
 
         out_string = ''
         for tup in output[1]:
@@ -3262,7 +3274,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             try:
                 location = int(location)
             except ValueError("Location must be start, end, or integer index") as e:
-                _raise_error(e)
+                _raise_error(e, "insert_seq")
         _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
         _exit("insert_seq")
 
@@ -3274,7 +3286,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             for rec_id in isoelectric_points:
                 print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
         except ValueError as e:
-            _raise_error(e)
+            _raise_error(e, "isoelectric_point")
         _exit("isoelectric_point")
 
     # List features
@@ -3327,7 +3339,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
         if file1.alpha == file2.alpha:
-            raise ValueError("You must provide one DNA file and one protein file")
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_dna2prot")
         if file1.alpha == IUPAC.protein:
             prot = file1
             dna = file2
@@ -3343,8 +3355,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         file1, file2 = in_args.sequence[:2]
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-        if file1.alpha == file2.alpha:
-            raise ValueError("You must provide one DNA file and one protein file")
+        if file1.alpha == file2.alpha:  # ToDo: Clean up ValueError
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_prot2dna")
         if file1.alpha != IUPAC.protein:
             dna = file1
             prot = file2
@@ -3416,7 +3428,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.pull_record_ends:
         try:
             _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
-            sys.exit()
+            _exit("pull_record_ends")
         except ValueError:
             pass
         except AttributeError:
@@ -3424,10 +3436,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         try:
             _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
         except ValueError:
-            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"))
+            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"), "pull_record_ends")
         except AttributeError:
             _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
-                                        "should come from in pull_record_ends"))
+                                        "should come from in pull_record_ends"), "pull_record_ends")
         _exit("pull_record_ends")
 
     # Pull records
@@ -3464,7 +3476,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Screw formats
     if in_args.screw_formats:
-        if in_args.screw_formats not in FORMATS:
+        if in_args.screw_formats not in OUTPUT_FORMATS:
             _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
         else:
             seqbuddy.out_format = in_args.screw_formats

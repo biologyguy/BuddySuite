@@ -25,7 +25,8 @@ Description:
 Collection of functions that interact with public sequence databases. Pull them into a script or run from command line.
 """
 
-# Standard library imports
+# ##################################################### IMPORTS ###################################################### #
+# Standard library
 # import pdb
 # import timeit
 import sys
@@ -45,14 +46,14 @@ import warnings
 import readline
 import pickle
 
-# Third party package imports
+# Third party
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
 from Bio import BiopythonWarning
 warnings.simplefilter('ignore', BiopythonWarning)
 
-# My functions
+# BuddySuite specific
 from MyFuncs import *
 import buddy_resources as br
 
@@ -156,38 +157,6 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     if search_term not in self.records:
                         self.search_terms.append(search_term)
 
-    def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
-        if self.server_clients[_server]:
-            return self.server_clients[_server]
-        if _server == "uniprot":
-            client = UniProtRestClient(self)
-        elif _server == "ncbi":
-            client = NCBIClient(self)
-        elif _server == "ensembl":
-            client = EnsemblRestClient(self)
-        else:
-            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
-        self.server_clients[_server] = client
-        return client
-
-    def record_breakdown(self):
-        _output = {x: [] for x in ["full", "summary", "accession"]}
-        _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
-        _output["summary"] = [_accession for _accession, _rec in self.records.items()
-                              if not _rec.record and _rec.summary]
-        _output["accession"] = [_accession for _accession, _rec in self.records.items()
-                                if not _rec.record and not _rec.summary]
-        return _output
-
-    def trash_breakdown(self):
-        _output = {x: [] for x in ["full", "summary", "accession"]}
-        _output["full"] = [_accession for _accession, _rec in self.trash_bin.items() if _rec.record]
-        _output["summary"] = [_accession for _accession, _rec in self.trash_bin.items()
-                              if not _rec.record and _rec.summary]
-        _output["accession"] = [_accession for _accession, _rec in self.trash_bin.items()
-                                if not _rec.record and not _rec.summary]
-        return _output
-
     def filter_records(self, regex, mode):
         if mode not in ["keep", "remove", "restore"]:
             raise ValueError("The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not %s." % mode)
@@ -218,6 +187,38 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                     del self.records[_id]
 
         return column_errors
+
+    def record_breakdown(self):
+        _output = {x: [] for x in ["full", "summary", "accession"]}
+        _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.records.items()
+                              if not _rec.record and _rec.summary]
+        _output["accession"] = [_accession for _accession, _rec in self.records.items()
+                                if not _rec.record and not _rec.summary]
+        return _output
+
+    def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
+        if self.server_clients[_server]:
+            return self.server_clients[_server]
+        if _server == "uniprot":
+            client = UniProtRestClient(self)
+        elif _server == "ncbi":
+            client = NCBIClient(self)
+        elif _server == "ensembl":
+            client = EnsemblRestClient(self)
+        else:
+            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
+        self.server_clients[_server] = client
+        return client
+
+    def trash_breakdown(self):
+        _output = {x: [] for x in ["full", "summary", "accession"]}
+        _output["full"] = [_accession for _accession, _rec in self.trash_bin.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.trash_bin.items()
+                              if not _rec.record and _rec.summary]
+        _output["accession"] = [_accession for _accession, _rec in self.trash_bin.items()
+                                if not _rec.record and not _rec.summary]
+        return _output
 
     def print(self, _num=0, quiet=False, columns=None, destination=None, group="records"):
         """
@@ -2530,6 +2531,7 @@ def argparse_init():
   Go forth to the servers of sequence, and discover.
 
 \033[1mUsage examples\033[m:
+  DbBuddy.py -ls (launch empty live session)
   DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
   DbBuddy.py "<search term1, search term2,...>" -<cmd>
   DbBuddy.py "<accn1,search term1>" -<cmd>
@@ -2567,6 +2569,9 @@ def argparse_init():
 
 def command_line_ui(in_args, dbbuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
+    def _print_recs(_dbbuddy):
+        _dbbuddy.print()
+
     # Live Shell
     def launch_live_shell():
         # Create a temp file for crash handling
@@ -2652,13 +2657,29 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
     if in_args.retrieve_sequences:
         sys.exit()
     """
-    # Guess database  ToDo: Sort by database
+    # Guess database
     if in_args.guess_database:
         output = ""
         if len(dbbuddy.records) > 0:
-            output += "# Accession\tDatabase\n"
-            for accession, record in dbbuddy.records.items():
-                output += "%s\t%s\n" % (accession, record.database)
+            records_by_db = {}
+            for accn, record in dbbuddy.records.items():
+                records_by_db.setdefault(record.database, [])
+                records_by_db[record.database].append(accn)
+
+            for db in records_by_db:
+                records_by_db[db] = sorted(records_by_db[db])
+
+            db_order = sorted(list(records_by_db))
+            ordered_records = []
+            accn_len = 11
+            for db in db_order:
+                for accn in records_by_db[db]:
+                    accn_len = accn_len if len(accn) <= accn_len else len(accn)
+                    ordered_records.append((accn, db))
+
+            output += "%sDatabase\n" % "# Accession".ljust(accn_len + 3)
+            for accn, db in ordered_records:
+                output += "%s%s\n" % (str(accn).ljust(accn_len + 3), db)
             output += "\n"
 
         if len(dbbuddy.search_terms) > 0:
