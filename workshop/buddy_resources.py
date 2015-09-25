@@ -108,9 +108,9 @@ class Usage:
             if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
                                                                        '%Y-%m-%d')).days >= 1:
                 self.send_report()
-            else:
-                with open(self.usage_file_path, "w") as ofile:
-                    json.dump(self.stats, ofile)
+                return
+        with open(self.usage_file_path, "w") as ofile:
+            json.dump(self.stats, ofile)
         return
 
     def send_report(self):
