@@ -41,61 +41,6 @@ if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
 
-def config_values():
-    config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
-    if os.path.isfile(config_file):
-        config = ConfigParser()
-        config.read(config_file)
-        options = {"install_path": config.get('Install_path', 'path'),
-                   "email": config.get('other', 'email'),
-                   "diagnostics": config.get('other', 'diagnostics'),
-                   "user_hash": config.get('other', 'user_hash')}
-    else:
-        options = {"install_path": False,
-                   "email": "buddysuite@nih.gov",
-                   "diagnostics": False,
-                   "user_hash": "hashless"}
-    return options
-
-
-class Version:
-    def __init__(self, name, major, minor, _contributors, release_date=None):
-        self.name = name
-        self.major = major
-        self.minor = minor
-        self.contributors = _contributors  # This needs to be a list of Contributor objects
-        if not release_date:
-            self.release_date = datetime.date.today()
-        else:
-            # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
-            self.release_date = datetime.datetime(**release_date)
-
-    def short(self):
-        return "%s.%s" % (self.major, self.minor)
-
-    def contributors_string(self):
-        _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
-        _output = ""
-        for contributor in _contributors:
-            _output += "%s\n" % contributor
-        return _output.strip()
-
-    def __str__(self):
-        _output = '''\
-%s %s.%s (%s)
-
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-This is free software; see the source for detailed copying conditions.
-There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.
-Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
-
-Contributors:
-%s
-''' % (self.name, self.major, self.minor, self.release_date, self.contributors_string())
-        return _output
-
-
 class Contributor:
     def __init__(self, first, last, commits=None, github=None):
         self.first = first
@@ -124,45 +69,6 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
         default = self._get_default_metavar_for_optional(action)
         args_string = self._format_args(action, default)
         return ', '.join(action.option_strings) + ' ' + args_string
-
-
-def error_report(error_msg):
-    from ftplib import FTP, all_errors
-    temp_file = TempFile()
-    temp_file.write(error_msg)
-    try:
-        ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
-        ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Might want to include date in error file name
-    except all_errors as e:
-        print("FTP Error: %s" % e)
-
-
-def send_traceback(tool, e):
-    config = config_values()
-    tb = "%s\n" % config["user_hash"]
-    for _line in traceback.format_tb(sys.exc_info()[2]):
-        _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
-        tb += _line
-    tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
-    print("\033[m%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, tb))
-
-    send_diagnostic = True if config["diagnostics"] == "True" else False
-    if not send_diagnostic:
-        prompt = input("\033[1mWould you like to send a crash report with the above "
-                       "traceback to the developers ([y]/n)?\033[m")
-        if prompt.lower() in ["y", "yes", ""]:
-            send_diagnostic = True
-
-    else:
-        print("An error report with the above traceback is being sent to the BuddySuite developers because "
-              "you have elected to participate in the Software Improvement Program. To opt-out of this "
-              "program in the future, re-run the BuddySuite installer and un-check the box on the "
-              "'Diagnostics' screen.\n")
-
-    if send_diagnostic:
-        print("Preparing error report for FTP upload...\nSending...\n")
-        error_report(tb)
-        print("Success, thank you.\n")
 
 
 class Usage:
@@ -224,7 +130,74 @@ class Usage:
         return
 
 
-def flags(parser, _positional, _flags, _modifiers, version):
+class Version:
+    def __init__(self, name, major, minor, _contributors, release_date=None):
+        self.name = name
+        self.major = major
+        self.minor = minor
+        self.contributors = _contributors  # This needs to be a list of Contributor objects
+        if not release_date:
+            self.release_date = datetime.date.today()
+        else:
+            # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
+            self.release_date = datetime.datetime(**release_date)
+
+    def contributors_string(self):
+        _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
+        _output = ""
+        for contributor in _contributors:
+            _output += "%s\n" % contributor
+        return _output.strip()
+
+    def short(self):
+        return "%s.%s" % (self.major, self.minor)
+
+    def __str__(self):
+        _output = '''\
+%s %s.%s (%s)
+
+Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+
+Contributors:
+%s
+''' % (self.name, self.major, self.minor, self.release_date, self.contributors_string())
+        return _output
+
+
+def config_values():
+    config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
+    if os.path.isfile(config_file):
+        config = ConfigParser()
+        config.read(config_file)
+        options = {"install_path": config.get('Install_path', 'path'),
+                   "email": config.get('other', 'email'),
+                   "diagnostics": config.get('other', 'diagnostics'),
+                   "user_hash": config.get('other', 'user_hash')}
+    else:
+        options = {"install_path": False,
+                   "email": "buddysuite@nih.gov",
+                   "diagnostics": False,
+                   "user_hash": "hashless"}
+    return options
+
+
+# Might want to include date in error file name
+def error_report(error_msg):
+    from ftplib import FTP, all_errors
+    temp_file = TempFile()
+    temp_file.write(error_msg)
+    try:
+        ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+        ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))
+    except all_errors as e:
+        print("FTP Error: %s" % e)
+
+
+def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     """
     :param parser: argparse.ArgumentParser object
     :param _positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
@@ -265,6 +238,35 @@ def flags(parser, _positional, _flags, _modifiers, version):
     if version:
         misc.add_argument('-v', '--version', action='version', version=str(version))
 
+
+def send_traceback(tool, e):
+    config = config_values()
+    tb = "%s\n" % config["user_hash"]
+    for _line in traceback.format_tb(sys.exc_info()[2]):
+        _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+        tb += _line
+    tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+    print("\033[m%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, tb))
+
+    send_diagnostic = True if config["diagnostics"] == "True" else False
+    if not send_diagnostic:
+        prompt = input("\033[1mWould you like to send a crash report with the above "
+                       "traceback to the developers ([y]/n)?\033[m")
+        if prompt.lower() in ["y", "yes", ""]:
+            send_diagnostic = True
+
+    else:
+        print("An error report with the above traceback is being sent to the BuddySuite developers because "
+              "you have elected to participate in the Software Improvement Program. To opt-out of this "
+              "program in the future, re-run the BuddySuite installer and un-check the box on the "
+              "'Diagnostics' screen.\n")
+
+    if send_diagnostic:
+        print("Preparing error report for FTP upload...\nSending...\n")
+        error_report(tb)
+        print("Success, thank you.\n")
+
+
 contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
 
@@ -284,7 +286,7 @@ bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"add_feature": {"flag": "af",
                             "nargs": "*",
-                            "help": "Add a feature (annotation) to selected sequence.s Args: <name>, "
+                            "help": "Add a feature (annotation) to selected sequences Args: <name>, "
                             "<location (start1-end1,start2-end2...)>, <strand (+|-)>, "
                             "<qualifiers (foo=bar,hello=world...)>, <regex_pattern>"},
             "ave_seq_length": {"flag": "asl",
@@ -725,12 +727,12 @@ db_flags = {"guess_database": {"flag": "gd",
             "live_shell": {"flag": "ls",
                            "action": "store_true",
                            "help": "Interactive database searching. The best tool for sequence discovery."},
-            "retrieve_accessions": {"flag": "ra",
-                                    "action": "store_true",
-                                    "help": "Use search terms to find a list of sequence accession numbers"},
-            "retrieve_sequences": {"flag": "rs",
-                                   "action": "store_true",
-                                   "help": "Get sequences for every included accession"}
+            # "retrieve_accessions": {"flag": "ra",
+            #                        "action": "store_true",
+            #                        "help": "Use search terms to find a list of sequence accession numbers"},
+            # "retrieve_sequences": {"flag": "rs",
+            #                       "action": "store_true",
+            #                       "help": "Get sequences for every included accession"}
             }
 
 db_modifiers = {"database": {"flag": "d",
@@ -740,9 +742,10 @@ db_modifiers = {"database": {"flag": "d",
                 "out_format": {"flag": "o",
                                "action": "store",
                                "help": "If you want a specific format output"},
-                "quiet": {"flag": "q",
-                          "action": "store_true",
-                          "help": "Suppress stderr messages"},
-                "test": {"flag": "t",
-                         "action": "store_true",
-                         "help": "Run the function and return any stderr/stdout other than sequences"}}
+                # "quiet": {"flag": "q",
+                #          "action": "store_true",
+                #          "help": "Suppress stderr messages"},
+                # "test": {"flag": "t",
+                #         "action": "store_true",
+                #         "help": "Run the function and return any stderr/stdout other than sequences"}
+                }
