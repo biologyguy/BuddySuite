@@ -13,7 +13,6 @@ from Bio.Seq import Seq
 import sys
 
 sys.path.insert(0, "./")
-import buddy_resources as br
 from MyFuncs import TempFile
 import AlignBuddy as Alb
 import SeqBuddy as Sb
@@ -31,20 +30,6 @@ root_dir = os.getcwd()
 def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
-
-def test_guess_format():
-    assert Alb._guess_format(["dummy", "list"]) == "stockholm"
-    assert Alb._guess_format(alb_objects[0]) == "nexus"
-
-    with open(resource("Alignments_pep.stklm"), "r") as ifile:
-        assert Alb._guess_format(ifile) == "stockholm"
-        ifile.seek(0)
-        string_io = StringIO(ifile.read())
-    assert Alb._guess_format(string_io) == "stockholm"
-    with pytest.raises(Alb.GuessError):
-        Alb._guess_format({"Dummy dict": "Type not recognized by guess_format()"})
-
-
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
                "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
                "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
@@ -58,6 +43,19 @@ file_types = ["nexus", "phylip", "phylip-relaxed", "stockholm",
 nucl_indices = [0, 1, 2, 3, 11, 12]
 
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
+
+
+def test_guess_format():
+    assert Alb._guess_format(["dummy", "list"]) == "stockholm"
+    assert Alb._guess_format(alb_objects[0]) == "nexus"
+
+    with open(resource("Alignments_pep.stklm"), "r") as ifile:
+        assert Alb._guess_format(ifile) == "stockholm"
+        ifile.seek(0)
+        string_io = StringIO(ifile.read())
+    assert Alb._guess_format(string_io) == "stockholm"
+    with pytest.raises(Alb.GuessError):
+        Alb._guess_format({"Dummy dict": "Type not recognized by guess_format()"})
 
 
 @pytest.mark.parametrize("align_file,file_type", input_tuples)
@@ -233,7 +231,7 @@ def test_write1(alignbuddy, next_hash):
 
 
 def test_write2():  # Unloopable components
-    tester = Alb._make_copies(alb_objects[8])
+    tester = Alb._make_copy(alb_objects[8])
     tester.out_format = "fasta"
     with pytest.raises(ValueError):
         str(tester)
@@ -241,7 +239,7 @@ def test_write2():  # Unloopable components
     tester.alignments = []
     assert str(tester) == "AlignBuddy object contains no alignments.\n"
 
-    tester = Alb._make_copies(alb_objects[2])
+    tester = Alb._make_copy(alb_objects[2])
     tester.out_format = "phylipi"
     assert md5(str(tester).encode()).hexdigest() == "52c23bd793c9761b7c0f897d3d757c12"
 
@@ -251,7 +249,7 @@ def test_write2():  # Unloopable components
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-# ############################################  'al', '--alignment_lengths' ############################################## #
+# ##########################################  'al', '--alignment_lengths' ############################################ #
 def test_alignment_lengths():
     tester_100 = Alb.alignment_lengths(Alb.AlignBuddy(resource('concat_alignment_file.phyr')))
     assert tester_100[0] == 100
@@ -265,7 +263,7 @@ def test_alignment_lengths():
 # ##############################################  'cs', '--clean_seqs' ############################################### #
 def test_clean_seqs():
     # Test an amino acid file
-    tester = Alb._make_copies(alb_objects[8])
+    tester = Alb._make_copy(alb_objects[8])
     Alb.clean_seq(tester)
 
     with pytest.raises(ValueError):
@@ -279,7 +277,7 @@ def test_clean_seqs():
     assert align_to_hash(tester) == "b613060f43f66248cda0088c06de0949"
 
     # Test nucleotide files, but skip the errors
-    tester = Alb._make_copies(alb_objects[11])
+    tester = Alb._make_copy(alb_objects[11])
     Alb.clean_seq(tester, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
     tester.out_format = "genbank"
     assert align_to_hash(tester) == "81189bf7962cc2664815dc7fca8cd95d"
@@ -291,7 +289,7 @@ def test_clean_seqs():
 hashes = ["c907d29434fe2b45db60f1a9b70f110d", "f150b94234e93f354839d7c2ca8dae24", "6a7a5416f2ce1b3161c8b5b8b4b9e901",
           "54d412fbca5baa60e4c31305d35dd79a", "3ddc2109b15655ef0eed3908713510de", "f728ab606602ed67357f78194e500664"]
 
-hashes = [(Alb._make_copies(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
+hashes = [(Alb._make_copy(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -306,7 +304,7 @@ def test_codon_alignment1(alignbuddy, next_hash):
 
 def test_codon_alignment2():
     with pytest.raises(TypeError):
-        tester = Alb._make_copies(alb_objects[3])
+        tester = Alb._make_copy(alb_objects[3])
         tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
                                           alphabet=IUPAC.protein)
         Alb.translate_cds(tester)
@@ -330,7 +328,7 @@ def test_concat_alignments_duplicate_taxa():
 hashes = ['23d3e0b42b6d63bcb810a5abb0a06ad7', '3458c1f790ff90f8403476af021e97e4', '3c09226535f46299ffd1132c9dd336d8',
           '7455b360c4f1155b1aa0ba7e1219485f', 'b3bf1be13a0b75374905f89aba0302c9', '819c954cc80aaf622734a61c09d301f4',
           'f2492c76baa277ba885e5232fa611fea', '67d81be82ffbcffe2bf0a6f78e361cc9', 'b34588123a2b0b56afdf5d719c61f677']
-hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(hashes)]
+hashes = [(Alb._make_copy(alb_objects[x]), value) for x, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -341,7 +339,7 @@ def test_delete_rows(alignbuddy, next_hash):
 # ###########################################  'd2r', '--transcribe' ############################################ #
 d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
               'a083e03b4e0242fa3c23afa80424d670', '45b511f34653e3b984e412182edee3ca']
-d2r_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(d2r_hashes)]
+d2r_hashes = [(Alb._make_copy(alb_objects[x]), value) for x, value in enumerate(d2r_hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy, next_hash", d2r_hashes)
@@ -360,7 +358,7 @@ er_hashes = ['10ca718b74f3b137c083a766cb737f31', '637582d17b5701896d80f0380fa00c
              'f0817e10ba740992409193f1bc6600b2', '29a1d24a36d0f26b17aab7faa5b9ad9b', '06fde20b8bcb8bbe6ce5217324096911',
              '146d0550bb24f4f19f31c294c48c7e49', '64a848cc73d909ca6424ce049e2700cd', '9d9bbdf6f20274f26be802fa2361d459',
              '78ceb2e63d8c9d8800b5fa9335a87a30']
-er_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(er_hashes)]
+er_hashes = [(Alb._make_copy(alb_objects[x]), value) for x, value in enumerate(er_hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy, next_hash", er_hashes)
@@ -565,7 +563,7 @@ uc_hashes = ["52e74a09c305d031fc5263d1751e265d", "34eefeafabfc55811a5c9fe958b614
              "747ca137dc659f302a07b0c39e989e54", "f35cbc6e929c51481e4ec31e95671638", "73e3da29aa78f4abb4bc6392b81cd279",
              "46e049a1be235d17f8379c293e1e393f", "6f3f234d796520c521cb85c66a3e239a"]
 
-hashes = [(Alb._make_copies(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
+hashes = [(Alb._make_copy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
@@ -602,7 +600,7 @@ def test_order_ids(alignbuddy):
 pr_hashes = ['2c0a60cd3f534d46662ed61272481898', '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
              'f41422a10e3b5a7e53c6ba5cc9f28875', '9a1692f1762e67ca0364de22b124dfee', '80fe4fa125e3d944f914fd0c8b923076',
              '52ee82ee31e0d0f9c84a577b01580f25', '068ad86e5e017bd88678b8f5b24512c1']
-pr_hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(pr_hashes)]
+pr_hashes = [(Alb._make_copy(alb_objects[x]), value) for x, value in enumerate(pr_hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", pr_hashes)
@@ -619,7 +617,7 @@ def test_rename_ids_several():
 
 
 def test_rename_ids_all_same():
-    tester = Alb._make_copies(alb_objects[0])
+    tester = Alb._make_copy(alb_objects[0])
     Alb.rename(tester, 'Mle', 'Xle')
     assert align_to_hash(tester) == '5a0c20a41fea9054f5476e6fad7c81f6'
 
@@ -648,7 +646,7 @@ def test_split_alignment():
 # ###########################################  'tr', '--translate' ############################################ #
 hashes = ["fa915eafb9eb0bfa0ed8563f0fdf0ef9", "5064c1d6ae6192a829972b7ec0f129ed", "ce423d5b99d5917fbef6f3b47df40513",
           "2340addad40e714268d2523cdb17a78c", "6c66f5f63c5fb98f5855fb1c847486ad", "d9527fe1dfd2ea639df267bb8ee836f7"]
-hashes = [(Alb._make_copies(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
+hashes = [(Alb._make_copy(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -667,14 +665,14 @@ def test_translate2():
         Alb.translate_cds(alb_objects[4])
 
     # Non-standard length
-    tester = Alb._make_copies(alb_objects[0])
+    tester = Alb._make_copy(alb_objects[0])
     tester.alignments[0][0].seq = Seq(re.sub("-$", "t", str(tester.alignments[0][0].seq)),
                                       alphabet=tester.alignments[0][0].seq.alphabet)
     Alb.translate_cds(tester)
     assert align_to_hash(tester) == "fa915eafb9eb0bfa0ed8563f0fdf0ef9"
 
     # Final codon not stop and stop codon not at end of seq
-    tester = Alb._make_copies(alb_objects[0])
+    tester = Alb._make_copy(alb_objects[0])
     tester.alignments[0][0].seq = Seq(re.sub("---$", "ttt", str(tester.alignments[0][0].seq)),
                                       alphabet=tester.alignments[0][0].seq.alphabet)
     Alb.translate_cds(tester)
@@ -692,7 +690,7 @@ hashes = ['063e7f52f7c7f19da3a624730cd725a5', '0e2c65d9fc8d4b31cc352b3894837dc1'
           '97ea3e55425894d3fe4b817deab003c3', '1f2a937d2c3b020121000822e62c4b96', '4690f58abd6d7f4f3c0d610ea25461c8',
           'b8e65b0a00f55286d57aa76ccfcf04ab', '49a17364aa4bd086c7c432de7baabd07', '82aaad11c9496d8f7e959dd5ce06df4d',
           '4e709de80531c358197f6e1f626c9c58']
-hashes = [(Alb._make_copies(alb_objects[x]), value) for x, value in enumerate(hashes)]
+hashes = [(Alb._make_copy(alb_objects[x]), value) for x, value in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -702,7 +700,7 @@ def test_trimal(alignbuddy, next_hash):
 
 
 def test_trimal2():
-    tester = Alb._make_copies(alb_objects[8])
+    tester = Alb._make_copy(alb_objects[8])
     assert align_to_hash(Alb.trimal(tester, 'clean')) == "a94edb2636a7c9cf177993549371b3e6"
     assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2ac19a0eecb9901211c1c98a7a203cc2"
     assert align_to_hash(Alb.trimal(tester, 'all')) == "caebb7ace4940cea1b87667e5e113acb"
