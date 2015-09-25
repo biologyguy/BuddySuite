@@ -2596,13 +2596,12 @@ def uppercase(_seqbuddy):
         _rec.seq = Seq(str(_rec.seq).upper(), alphabet=_rec.seq.alphabet)
     return _seqbuddy
 
-def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ): 
+def degenerate_sequence(_seqbuddy, table=1 ): 
     """
     Generate degenerate codon sequence 
     :param _seqbuddy: The SeqBuddy object to be analyzed
     :param _table: The degenerate codon table to use
-    :param _reading_frame: selects reading frame to start creating degenerate codon
-    :return: A SeqBuddy object containing a degenerate nucleotide seqeuence
+    :return: A SeqBuddy object containing a degenerate nucleotide sequence
    
     The method is developed based on the Perl script Degen v1.4.
     http://www.phylotools.com/ptdegenoverview.htm
@@ -2629,7 +2628,7 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
     
-    # Vertebrate Mitochondiral Code codons 
+    # Vertebrate Mitochondrial Code codons 
     dgn_dict_2 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR',
                   'ATT': 'ATY', 'AGA': 'AGA', 'AGG': 'AGG', 'AGC': 'AGY', 'AGT': 'AGY', 'CAA': 'CAR', 'CAG': 'CAR',
                   'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
@@ -2637,7 +2636,7 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
     
-    # Yeast Mitochondiral Code codons
+    # Yeast Mitochondrial Code codons
     dgn_dict_3 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
                   'CGA': 'CGA', 'CGC': 'CGC', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'CTN', 'CTC': 'CTN', 'CTG': 'CTN',
@@ -2685,7 +2684,7 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
                    'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGH', 'TGC': 'TGH', 'TGG': 'TGG', 'TGT': 'TGH', 'TTA': 'YTN',
                    'TTG': 'YTN'}
     
-    # Bacterial / Archaeal / Plant Plastid Code condons
+    # Bacterial / Archaeal / Plant Plastid Code codons
     dgn_dict_11 = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                    'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
                    'CGA': 'MGN', 'CGC': 'MGN', 'CGG': 'MGN', 'CGT': 'MGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
@@ -2709,7 +2708,7 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
                    'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                    'TTG': 'YTN'}
     
-    # Alternative Flatworm Mitochondrial Code condons
+    # Alternative Flatworm Mitochondrial Code codons
     dgn_dict_14 = {'AAA': 'AAH', 'AAC': 'AAH', 'AAG': 'AAG', 'AAT': 'AAH', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
                    'AGT': 'AGN', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
                    'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
@@ -2727,21 +2726,18 @@ def degenerate_sequence(_seqbuddy, table=1, reading_frame =1 ):
     try:
         working_dict.update(dgn_tables[table])
     except KeyError:
-        print(
-    "Could not locate codon dictionary. Supported codon tables are 1, 2, 3, 4, 5, 6, 9, "
-    "10, 11, 12, 13 and 14")
-        sys.exit(0)
+        sys.exit('Error: Could not locate codon dictionary. Supported codon tables are 1, 2, 3, 4, 5, 6, 9, '
+            '10, 11, 12, 13 and 14')
 
     if str(_seqbuddy.alpha) == str(IUPAC.protein):
-        raise TypeError("DNA sequence required, not protein.")
+        sys.exit("Error: degenerate_sequence method requires a DNA sequence, not protein.")
+
     if str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna) or str(_seqbuddy.alpha) == str(IUPAC.unambiguous_rna):
-        raise TypeError("Please use a DNA seqeunce instead of an RNA sequence.")
+        sys.exit("Error: Please use a DNA sequence instead of an RNA sequence.")
 
     _seqbuddy = clean_seq(_seqbuddy)
     _seqbuddy = uppercase(_seqbuddy)
     for _rec in _seqbuddy.records:
-        # shift reading frame
-        _rec.seq = _rec.seq[reading_frame-1:]
         seq_length = len(str(_rec.seq))
         i = 0
         degen_string = ""
@@ -3118,35 +3114,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # degenerate_sequence
     if in_args.degenerate_sequence:
-        table, reading_frame = 1, 1
-        in_args.degenerate_sequence = in_args.degenerate_sequence[0]
-        
-        # check if to make sure letters are not in argument
-        check_numbers = [n for n in in_args.degenerate_sequence if n.isdigit()]
-        if len(check_numbers) != len(in_args.degenerate_sequence):    
-                raise AttributeError('Please use integers not strings')
-        
-        # notify user only need two arguments
-        if len(in_args.degenerate_sequence) > 2:
-            raise AttributeError(
-                'Too many attributes provided please only provided 1 or 2 '
-                'parameters (table or table reading frame') 
-       
+        degen_args = in_args.degenerate_sequence[0]
+        # notify user only need one argument
+        if len(degen_args) > 1:
+            _stderr('WARNING: Too many parameters provided please only provided one '
+                'parameter for codon table preference extra parameters will be ignored \n') 
        # if no argument provided will use table 1 first reading frame as default(set above)
-        if not in_args.degenerate_sequence:
+        if not degen_args:
             pass
-        # if one argument provided will set the given argument as the codon 
-        # table.
-        elif len(in_args.degenerate_sequence) == 1:
-            print(
-                'Only one parameter detected, will use the given parameter as a '
-                'codon table and start at the first reading frame')
-            table = int(in_args.degenerate_sequence[0])
-            read_frame = 1
+        # if argument is provided, set the first given argument as the codon table
         else:
-            table = int(in_args.degenerate_sequence[0])
-            reading_frame = int(in_args.degenerate_sequence[1])
-        _print_recs(degenerate_sequence(seqbuddy, table, reading_frame))
+            table = int(degen_args[0])
+        _print_recs(degenerate_sequence(seqbuddy, table))
+        _exit('degenerate_sequence')
 
     # Extract regions
     if in_args.extract_region:

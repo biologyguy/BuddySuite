@@ -521,18 +521,18 @@ hashes = [(Sb._make_copies(sb_objects[0]), dgn_hash, codon_tables[indx]) for ind
 
 @pytest.mark.parametrize("seqbuddy, dgn_hash, tables", hashes)
 def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):  
-    tester = Sb.degenerate_sequence(seqbuddy, table=tables, reading_frame=1)
+    tester = Sb.degenerate_sequence(seqbuddy, table=tables)
     assert seqs_to_hash(tester) == dgn_hash
 
-shift_hashes = ['aed33dda2f49d6f05af54858e142bb6f', 'ca336db0c1990b1a33afe89f846ec959']
-frame = [2, 3]
-hashes = [(Sb._make_copies(sb_objects[0]), shift_hash, frame[indx]) for indx, shift_hash in enumerate(shift_hashes)]
+# shift_hashes = ['aed33dda2f49d6f05af54858e142bb6f', 'ca336db0c1990b1a33afe89f846ec959']
+# frame = [2, 3]
+# hashes = [(Sb._make_copies(sb_objects[0]), shift_hash, frame[indx]) for indx, shift_hash in enumerate(shift_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy, shift_hash, frame", hashes)
-def test_degerate_sequence_reading_frame_shift(seqbuddy, shift_hash, frame):
-    tester = Sb.degenerate_sequence(seqbuddy,table=1,reading_frame=frame)
-    assert seqs_to_hash(tester) == shift_hash
+# @pytest.mark.parametrize("seqbuddy, shift_hash, frame", hashes)
+# def test_degerate_sequence_reading_frame_shift(seqbuddy, shift_hash, frame):
+#     tester = Sb.degenerate_sequence(seqbuddy,table=1,reading_frame=frame)
+#     assert seqs_to_hash(tester) == shift_hash
 
 # ######################  'df', '--delete_features' ###################### #
 def test_delete_features():
