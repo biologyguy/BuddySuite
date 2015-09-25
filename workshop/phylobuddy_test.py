@@ -148,14 +148,14 @@ def test_write1(phylobuddy, next_hash):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-# ############################# 'cd', '--calculate_distance' ############################# #
+# ###################### 'dis', '--distance' ###################### #
 cd_hashes = ['e39a8aadaec77680ad0d9004bab824ea', '3c49c6a7f06244c0b5d45812f6791519', '7df609f2e6ee613d3bf3c3d2aae26ad4']
 cd_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(cd_hashes)]
 
 
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
-def test_calculate_distance_wrf(phylobuddy, next_hash):
-    tester = str(Pb.calculate_distance(phylobuddy, _method='wrf'))
+def test_distance_wrf(phylobuddy, next_hash):
+    tester = str(Pb.distance(phylobuddy, _method='wrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 cd_hashes = ['c15d06fc5344da3149e19b134ca31c62', '6d087b86aa9f5bc5013113972173fe0f', '7ef096e3c32dbf898d4b1a035d5c9ad4']
@@ -163,8 +163,8 @@ cd_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enume
 
 
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
-def test_calculate_distance_uwrf(phylobuddy, next_hash):
-    tester = str(Pb.calculate_distance(phylobuddy, _method='uwrf'))
+def test_distance_uwrf(phylobuddy, next_hash):
+    tester = str(Pb.distance(phylobuddy, _method='uwrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 cd_hashes = ['68942718c8baf4e4bdf5dd2992fbbf9d', '3dba6b10fdd04505b4e4482d926b67d3', '8d0b3a035015d62916b525f371684bf8']
@@ -172,12 +172,16 @@ cd_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enume
 
 
 @pytest.mark.parametrize("phylobuddy, next_hash", cd_hashes)
-def test_calculate_distance_ed(phylobuddy, next_hash):
-    tester = str(Pb.calculate_distance(phylobuddy, _method='ed'))
+def test_distance_ed(phylobuddy, next_hash):
+    tester = str(Pb.distance(phylobuddy, _method='ed'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 
-# ############################# 'li', '--list_ids' ############################# #
+def test_distance_unknown_method():
+    with pytest.raises(AttributeError):
+        Pb.distance(pb_objects[0], _method='foo')
+
+# ###################### 'li', '--list_ids' ###################### #
 li_hashes = ['514675543e958d5177f248708405224d', '229e5d7cd8bb2bfc300fd45ec18e8424', '514675543e958d5177f248708405224d']
 li_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(li_hashes)]
 
@@ -188,7 +192,7 @@ def test_list_ids(phylobuddy, next_hash):
     assert md5(tester.encode()).hexdigest() == next_hash
 
 
-# ###########################################  'gt', '--generate_trees' ########################################## #
+# ######################  'gt', '--generate_trees' ###################### #
 # Hashes for RAxML version 8.2.3
 @pytest.mark.generate_trees
 def test_raxml_inputs():
@@ -249,7 +253,7 @@ def test_fasttree_multi_param():
     assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
 
 
-# ############################# 'pr', '--prune_taxa' ############################# #
+# ###################### 'pr', '--prune_taxa' ###################### #
 pt_hashes = ['99635c6dbf708f94cf4dfdca87113c44', 'fc03b4f100f038277edf6a9f48913dd0', '001db76033cba463a0f187266855e8d5']
 pt_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(pt_hashes)]
 
@@ -260,7 +264,7 @@ def test_prune_taxa(phylobuddy, next_hash):
     assert phylo_to_hash(phylobuddy) == next_hash
 
 
-# ##############################################  'ri', '--rename_ids' ############################################### #
+# ######################  'ri', '--rename_ids' ###################### #
 ri_hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a',
              '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
 ri_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(ri_hashes)]
@@ -272,7 +276,7 @@ def test_rename_ids(phylobuddy, next_hash):
     assert phylo_to_hash(tester) == next_hash
 
 
-# ############################# 'sp', '--split_polytomies' ############################# #
+# ###################### 'sp', '--split_polytomies' ###################### #
 def test_split_polytomies():
     tester = Pb.PhyloBuddy('(A,(B,C,D));')
     Pb.split_polytomies(tester)

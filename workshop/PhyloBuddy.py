@@ -409,7 +409,30 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
+def consensus_tree(_phylobuddy, _frequency=.5):
+    """
+    Generates a consensus tree based on all the trees in phylobuddy
+    :param _phylobuddy: The PhyloBuddy object to be modified
+    :param _frequency: The frequency threshold of a taxa for it to be included
+    :return: The modified PhyloBuddy object
+    """
+    _trees = TreeList(_phylobuddy.trees)
+    _consensus = _trees.consensus(_frequency=_frequency)
+    _phylobuddy.trees = [_consensus]
+    return _phylobuddy
+
+
+def display_trees(_phylobuddy):
+    """
+    Displays trees in an ETE GUI window, one-by-one.
+    :param _phylobuddy: The PhyloBuddy object whose trees will be displayed.
+    :return:
+    """
+    for _tree in _phylobuddy.trees:
+        _convert_to_ete(_tree).show()
+
+
+def distance(_phylobuddy, _method='weighted_robinson_foulds'):
     """
     Calculates tree distance with various algorithms
     :param _phylobuddy: The PhyloBuddy object containing the trees to be compared
@@ -423,7 +446,7 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
         _method = 'uwrf'
     # elif _method in ['mgk', 'mason_gamer_kellogg']:
     #     _method = 'mgk'
-    elif _method in ['ed', 'euclid', 'euclidean']:
+    elif _method in ['ed', 'euclid', 'euclidean', 'euclidean_distance']:
         _method = 'euclid'
     else:
         raise AttributeError('{0} is an invalid comparison method.'.format(_method))
@@ -455,29 +478,6 @@ def calculate_distance(_phylobuddy, _method='weighted_robinson_foulds'):
                         _output[_key1][_key2] = treecompare.euclidean_distance(_tree1, _tree2)
                         _output[_key2][_key1] = _output[_key1][_key2]
     return _output
-
-
-def consensus_tree(_phylobuddy, _frequency=.5):
-    """
-    Generates a consensus tree based on all the trees in phylobuddy
-    :param _phylobuddy: The PhyloBuddy object to be modified
-    :param _frequency: The frequency threshold of a taxa for it to be included
-    :return: The modified PhyloBuddy object
-    """
-    _trees = TreeList(_phylobuddy.trees)
-    _consensus = _trees.consensus(_frequency=_frequency)
-    _phylobuddy.trees = [_consensus]
-    return _phylobuddy
-
-
-def display_trees(_phylobuddy):
-    """
-    Displays trees in an ETE GUI window, one-by-one.
-    :param _phylobuddy: The PhyloBuddy object whose trees will be displayed.
-    :return:
-    """
-    for _tree in _phylobuddy.trees:
-        _convert_to_ete(_tree).show()
 
 
 def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
@@ -880,18 +880,6 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _exit(tool)
 
 # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Calculate distance
-    if in_args.calculate_distance:
-        output = calculate_distance(phylobuddy, in_args.calculate_distance)
-        _stderr('Tree 1\tTree 2\tValue\n')
-        keypairs = []
-        for key1 in output:
-            for key2 in output[key1]:
-                if (key2, key1) not in keypairs:
-                    keypairs.append((key1, key2))
-                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
-        _exit("calculate_distance")
-
     # Consensus tree
     if in_args.consensus_tree:
         _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree))
@@ -902,6 +890,18 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         display_trees(phylobuddy)
         _exit("display_trees")
 
+    # Distance
+    if in_args.distance:
+        output = distance(phylobuddy, in_args.distance)
+        _stderr('Tree 1\tTree 2\tValue\n')
+        keypairs = []
+        for key1 in output:
+            for key2 in output[key1]:
+                if (key2, key1) not in keypairs:
+                    keypairs.append((key1, key2))
+                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+        _exit("distance")
+
     # Generate Tree
     if in_args.generate_tree:
         alignbuddy = []
@@ -911,7 +911,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         except ImportError:
             _raise_error(ImportError("AlignBuddy is needed to use generate_msa(). Please re-run the installer and "
                                      "add AlignBuddy to your system."), "generate_tree")
-            
+
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                 sys.exit("Warning: No input detected. Process will be aborted.")
