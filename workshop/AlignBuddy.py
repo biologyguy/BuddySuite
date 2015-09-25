@@ -26,7 +26,8 @@ AlignmentBuddy is a general wrapper for popular DNA and protein alignment progra
 and allows maintenance of rich feature annotation following alignment.
 """
 
-# Standard library imports
+# ##################################################### IMPORTS ###################################################### #
+# Standard library
 import sys
 import os
 from copy import deepcopy
@@ -37,7 +38,7 @@ from collections import OrderedDict
 from shutil import *
 from subprocess import Popen, PIPE, CalledProcessError
 
-# Third party package imports
+# Third party
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
@@ -49,7 +50,7 @@ from Bio.SeqFeature import FeatureLocation
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
-# My functions
+# BuddySuite specific
 import buddy_resources as br
 from MyFuncs import TempDir
 
@@ -285,13 +286,13 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def _make_copies(_alignbuddy):
+def _make_copy(_alignbuddy):
     alphabet_list = [_rec.seq.alphabet for _rec in _get_seq_recs(_alignbuddy)]
-    copies = deepcopy(_alignbuddy)
-    copies.alpha = _alignbuddy.alpha
-    for _indx, _rec in enumerate(_get_seq_recs(copies)):
+    _copy = deepcopy(_alignbuddy)
+    _copy.alpha = _alignbuddy.alpha
+    for _indx, _rec in enumerate(_get_seq_recs(_copy)):
         _rec.seq.alphabet = alphabet_list[_indx]
-    return copies
+    return _copy
 
 
 def _phylipseq(_alignbuddy, _relaxed=True):
@@ -897,7 +898,7 @@ def translate_cds(_alignbuddy, quiet=False):  # adding 'quiet' will suppress the
         return pep
 
     codon_alignment(_alignbuddy)
-    copy_alignbuddy = _make_copies(_alignbuddy)
+    copy_alignbuddy = _make_copy(_alignbuddy)
     clean_seq(copy_alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
     for align_indx, _alignment in enumerate(copy_alignbuddy.alignments):
         for rec_indx, _rec in enumerate(_alignment):
@@ -1151,7 +1152,7 @@ def argparse_init():
     if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
         for align_set in in_args.alignments:
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                    sys.exit("Warning: No input detected. Process will be aborted.")
+                sys.exit("Warning: No input detected. Process will be aborted.")
             align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
 
@@ -1200,6 +1201,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         usage.increment("AlignBuddy", VERSION.short(), tool)
         usage.save()
         sys.exit()
+
+    def _raise_error(_err, tool):
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+        _exit(tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Alignment lengths
@@ -1254,11 +1259,13 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         try:
             import SeqBuddy as Sb
         except ImportError:
-            _stderr("SeqBuddy is needed to use generate_msa(). Please install it and try again.")
-            sys.exit()
+            _raise_error(ImportError("SeqBuddy is needed to use generate_msa(). Please install it and try again."),
+                         "generate_alignment")
+
         for seq_set in in_args.alignments:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
+                _raise_error(BufferError("No input detected. Process will be aborted."), "generate_alignment")
+
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records
         if seq_set:
