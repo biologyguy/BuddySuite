@@ -661,9 +661,11 @@ alb_modifiers = {"in_format": {"flag": "f",
 # #################################################### PHYLOBUDDY #################################################### #
 
 pb_flags = {"consensus_tree": {"flag": "ct",
-                               "action": "store",
+                               "action": "append",
+                               "nargs": "?",
                                "type": float,
-                               "help": ""},
+                               "metavar": "min frequency (default 0.5)",
+                               "help": "Generate a majority rules consensus tree"},
             "display_trees": {"flag": "dt",
                               "action": "store_true",
                               "help": ""},

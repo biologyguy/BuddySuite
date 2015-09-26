@@ -411,13 +411,13 @@ def _stdout(message, quiet=False):
 # ################################################ MAIN API FUNCTIONS ################################################ #
 def consensus_tree(_phylobuddy, _frequency=.5):
     """
-    Generates a consensus tree based on all the trees in phylobuddy
-    :param _phylobuddy: The PhyloBuddy object to be modified
-    :param _frequency: The frequency threshold of a taxa for it to be included
+    Generate a majority-rules consensus tree
+    :param _phylobuddy: PhyloBuddy object
+    :param _frequency: The frequency threshold of a node for it to be included in the new tree.
     :return: The modified PhyloBuddy object
     """
     _trees = TreeList(_phylobuddy.trees)
-    _consensus = _trees.consensus(_frequency=_frequency)
+    _consensus = _trees.consensus(min_freq=_frequency)
     _phylobuddy.trees = [_consensus]
     return _phylobuddy
 
@@ -434,7 +434,7 @@ def display_trees(_phylobuddy):
 
 def distance(_phylobuddy, _method='weighted_robinson_foulds'):
     """
-    Calculates tree distance with various algorithms
+    Calculates distance metrics between pairs of trees
     :param _phylobuddy: The PhyloBuddy object containing the trees to be compared
     :param _method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
     :return: A dictionary of dictonaries containing the distances between tree pairs. dict[tree1][tree2]
@@ -882,7 +882,13 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 # ############################################## COMMAND LINE LOGIC ############################################## #
     # Consensus tree
     if in_args.consensus_tree:
-        _print_trees(consensus_tree(phylobuddy, in_args.consensus_tree))
+        frequency = in_args.consensus_tree[0]
+        frequency = 0.5 if not frequency else frequency
+        if not 0 < frequency <= 1:
+            _stderr("Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n")
+            frequency = 0.5
+
+        _print_trees(consensus_tree(phylobuddy, frequency))
         _exit("consensus_tree")
 
     # Display trees
