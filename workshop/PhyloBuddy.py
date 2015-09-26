@@ -113,6 +113,7 @@ def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
 VERSION = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
+OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 
 
 # #################################################### PHYLOBUDDY #################################################### #
@@ -248,7 +249,7 @@ class PhyloBuddy:
 
         tree_list = TreeList()
 
-        if self.out_format in ["newick", "nexus", "nexml"]:
+        if self.out_format in OUTPUT_FORMATS:
             for _tree in self.trees:
                 tree_list.append(_tree)
 
@@ -978,6 +979,20 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     if in_args.rename_ids:
         _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
         _exit("rename_ids")
+
+    # Screw formats
+    if in_args.screw_formats:
+        if in_args.screw_formats not in OUTPUT_FORMATS:
+            _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
+        else:
+            phylobuddy.out_format = in_args.screw_formats
+            if in_args.in_place:  # Need to change the file extension
+                os.remove(in_args.trees[0])
+                in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
+                                   "." + phylobuddy.out_format
+                open(in_args.trees[0], "w").close()
+            _print_trees(phylobuddy)
+        _exit("screw_formats")
 
     # Split polytomies
     if in_args.split_polytomies:
