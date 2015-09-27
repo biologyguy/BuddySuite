@@ -5,12 +5,37 @@ from io import StringIO
 import re
 from copy import deepcopy
 import sys
+import argparse
 
 sys.path.insert(0, "./")
 import buddy_resources as br
 from MyFuncs import TempFile
 import PhyloBuddy as Pb
 import AlignBuddy as Alb
+import MyFuncs
+
+VERSION = Pb.VERSION
+WRITE_FILE = MyFuncs.TempFile()
+
+
+def fmt(prog):
+    return br.CustomHelpFormatter(prog)
+
+parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                 description='''\
+\033[1mPhyloBuddy\033[m
+Put a little bonsai into your phylogeny.
+
+\033[1mUsage examples\033[m:
+PhyloBuddy.py "/path/to/tree_file" -<cmd>
+PhyloBuddy.py "/path/to/tree_file" -<cmd> | PhyloBuddy.py -<cmd>
+PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
+''')
+
+br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+                           "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
+
+in_args = parser.parse_args()
 
 
 def phylo_to_hash(_phylobuddy, mode='hash'):
@@ -20,6 +45,10 @@ def phylo_to_hash(_phylobuddy, mode='hash'):
     return _hash
 
 root_dir = os.getcwd()
+
+
+def command_line_output_hash(output):
+    return md5(output.encode()).hexdigest()
 
 
 def resource(file_name):
@@ -305,3 +334,24 @@ def test_split_polytomies():
     assert str(tester) in ['(A:1.0,(B:1.0,(C:1.0,D:1.0)):1.0):1.0;\n', '(A:1.0,(B:1.0,(D:1.0,C:1.0)):1.0):1.0;\n',
                            '(A:1.0,(C:1.0,(B:1.0,D:1.0)):1.0):1.0;\n', '(A:1.0,(C:1.0,(D:1.0,B:1.0)):1.0):1.0;\n',
                            '(A:1.0,(D:1.0,(C:1.0,B:1.0)):1.0):1.0;\n', '(A:1.0,(D:1.0,(B:1.0,C:1.0)):1.0):1.0;\n']
+
+
+# ################################################# COMMAND LINE UI ################################################## #
+# ###################### 'ct', '--consensus_tree' ###################### #
+def test_consensus_tree_ui(capsys):
+    in_args.consensus_tree = [False]
+    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "f20cbd5aae5971cce8efbda15e4e0b7e"
+
+    in_args.consensus_tree = [0.9]
+    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "447862ed1ed6e98f2fb535ecce70218b"
+
+    in_args.consensus_tree = [1.5]
+    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "f20cbd5aae5971cce8efbda15e4e0b7e"
+
+    in_args.consensus_tree = False
