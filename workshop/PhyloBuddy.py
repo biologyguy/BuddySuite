@@ -847,6 +847,11 @@ def argparse_init():
     phylobuddy = []
     tree_set = ""
 
+    if in_args.in_format and in_args.in_format.lower() not in OUTPUT_FORMATS:
+        _stderr("Error: The format '%s' passed in with the -f flag is not recognized. "
+                "Valid options include %s.\n" % (in_args.in_format, OUTPUT_FORMATS))
+        sys.exit()
+
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
@@ -911,12 +916,16 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             display_trees(phylobuddy)
         except SystemError:
             _stderr("Error: Your system is non-graphical, so display_trees can not work. "
-                    "Please try print_trees instead.")
+                    "Please use print_trees instead.")
         _exit("display_trees")
 
     # Distance
     if in_args.distance:
-        output = distance(phylobuddy, in_args.distance)
+        if in_args.distance[0]:
+            output = distance(phylobuddy, in_args.distance[0])
+        else:
+            output = distance(phylobuddy)
+
         _stderr('Tree 1\tTree 2\tValue\n')
         keypairs = []
         for key1 in output:
@@ -928,6 +937,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
     # Generate Tree
     if in_args.generate_tree:
+        in_args.generate_tree = in_args.generate_tree[0]
         alignbuddy = []
         align_set = None
         try:
@@ -963,6 +973,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
                         break
 
         if not phylo_program:
+            for tool in PHYLO_INFERENCE_TOOLS:
+                if shutil.which(tool):
+                    phylo_program = tool
+                    break
+
+        if not phylo_program:
             _raise_error(AttributeError("A valid phylogenetic inference program was not detected."), "generate_tree")
 
         params = None if not in_args.generate_tree else in_args.generate_tree[0]
@@ -989,27 +1005,21 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         columns = 1 if not in_args.list_ids[0] or in_args.list_ids[0] <= 0 else abs(in_args.list_ids[0])
         output = ""
         for key in listed_ids:
-            count = 1
+            count = 0
             output += '#### {0} ####\n'.format(key)
             if len(listed_ids[key]) == 0:
                 output += 'None\n'
             else:
                 for identifier in listed_ids[key]:
-                    if count < columns:
-                        output += "%s\t" % identifier
-                        count += 1
-                    else:
-                        output += "%s\n" % identifier
-                        count = 1
-            output += '\n'
-        _stdout(output)
-        _exit("list_ids")
+                    if count % columns == 0:
+                        output = "%s\n" % output.strip()
 
-    # Prune taxa
-    if in_args.prune_taxa:
-        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
-        _print_trees(phylobuddy)
-        _exit("prune_taxa")
+                    output += "%s\t" % identifier
+                    count += 1
+
+            output = '%s\n\n' % output.strip()
+        _stdout('%s\n\n' % output.strip())
+        _exit("list_ids")
 
     # Print trees
     if in_args.print_trees:
@@ -1021,6 +1031,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         output += '\n'
         _stdout(output)
         _exit("print_trees")
+
+    # Prune taxa
+    if in_args.prune_taxa:
+        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
+        _print_trees(phylobuddy)
+        _exit("prune_taxa")
 
     # Rename IDs
     if in_args.rename_ids:
