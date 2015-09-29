@@ -1,15 +1,13 @@
 import pytest
 from hashlib import md5
 import os
-from io import StringIO
-import re
-from copy import deepcopy
 import sys
 import argparse
+from copy import deepcopy
 
 sys.path.insert(0, "./")
 import buddy_resources as br
-from MyFuncs import TempFile
+from MyFuncs import TempFile, TempDir
 import PhyloBuddy as Pb
 import AlignBuddy as Alb
 import MyFuncs
@@ -199,6 +197,26 @@ def test_consensus_tree_95(phylobuddy, next_hash):
     tester = Pb.consensus_tree(phylobuddy, _frequency=0.95)
     assert phylo_to_hash(tester) == next_hash
 
+
+# ###################### 'dt', '--display_trees' ###################### #
+# def test_display_trees():
+    # foo = Pb.display_trees(pb_objects[0])
+
+
+def test_display_trees_error():
+    if "DISPLAY" in os.environ:
+        display_value = os.environ["DISPLAY"]
+        del os.environ["DISPLAY"]
+    else:
+        display_value = None
+
+    with pytest.raises(SystemError):
+        Pb.display_trees(pb_objects[0])
+
+    if display_value:
+        os.environ["DISPLAY"] = display_value
+
+
 # ###################### 'dis', '--distance' ###################### #
 hashes = ['e39a8aadaec77680ad0d9004bab824ea', '3c49c6a7f06244c0b5d45812f6791519', '7df609f2e6ee613d3bf3c3d2aae26ad4']
 hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
@@ -232,36 +250,26 @@ def test_distance_unknown_method():
     with pytest.raises(AttributeError):
         Pb.distance(pb_objects[0], _method='foo')
 
-# ###################### 'li', '--list_ids' ###################### #
-li_hashes = ['514675543e958d5177f248708405224d', '229e5d7cd8bb2bfc300fd45ec18e8424', '514675543e958d5177f248708405224d']
-li_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(li_hashes)]
-
-
-@pytest.mark.parametrize("phylobuddy, next_hash", li_hashes)
-def test_list_ids(phylobuddy, next_hash):
-    tester = str(Pb.list_ids(phylobuddy))
-    assert md5(tester.encode()).hexdigest() == next_hash
-
 
 # ######################  'gt', '--generate_trees' ###################### #
-# Hashes for RAxML version 8.2.3
+# Hashes are for RAxML version 8.2.3
 @pytest.mark.generate_trees
 def test_raxml_inputs():
     # Nucleotide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
-    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT')
+    tester = Pb.generate_tree(tester, 'raxml')
     assert phylo_to_hash(tester) == '706ba436f8657ef3aee7875217dd07c0'
     # Peptide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
-    tester = Pb.generate_tree(tester, 'raxml', '-m PROTCATBLOSUM62')
-    assert phylo_to_hash(tester) == '51c8e8da547a50f83110694fbc7b60ec'
+    tester = Pb.generate_tree(tester, 'raxml')
+    assert phylo_to_hash(tester) == 'fc35569091eeba49ac4dcec7fc6890bf'
 
 
 @pytest.mark.generate_trees
 def test_raxml_multi_param():
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
-    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK')
-    assert phylo_to_hash(tester) == 'e66a24882360751ba39595159de45063'
+    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 2')
+    assert phylo_to_hash(tester) == '2bce58a9c6756fa68fd828a307850d7d'
 
 
 # PhyML version 20120412
@@ -286,22 +294,57 @@ def test_phyml_multi_param():
 
 @pytest.mark.generate_trees
 def test_fasttree_inputs():
+    temp_dir = TempDir()
     # Nucleotide
-    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
+    alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
-    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345')
+    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345')
     assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
 
-    tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
-    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345')
+    alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
+    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', keep_temp="%s/new_dir" % temp_dir.path)
     assert phylo_to_hash(tester) == '57eace9bdd2074297cbd2692c1f4cd38'
 
 
 @pytest.mark.generate_trees
 def test_fasttree_multi_param():
+    temp_file = TempFile()
+    tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
+    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
+    assert phylo_to_hash(tester) == '60dc961f90041dd8bc1eab47ffe581c0'
+
+
+def test_generate_trees_edge_cases():
+    temp_file = TempFile()
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
-    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest')
-    assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
+    with pytest.raises(FileExistsError):
+        Pb.generate_tree(tester, "raxml", keep_temp=temp_file.path)
+
+    with pytest.raises(AttributeError):
+        Pb.generate_tree(tester, "foo")
+
+    with pytest.raises(FileNotFoundError):
+        Pb.generate_tree(tester, "raxml", "-m BINCATLG")
+
+    with pytest.raises(RuntimeError):
+        Pb.generate_tree(tester, "fasttree", "-s 12345")
+
+    with pytest.raises(ProcessLookupError):
+        backup_path = os.environ["PATH"]
+        os.environ["PATH"] = ""
+        Pb.generate_tree(tester, "raxml")
+        os.environ["PATH"] = backup_path
+
+
+# ###################### 'li', '--list_ids' ###################### #
+li_hashes = ['514675543e958d5177f248708405224d', '229e5d7cd8bb2bfc300fd45ec18e8424', '514675543e958d5177f248708405224d']
+li_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(li_hashes)]
+
+
+@pytest.mark.parametrize("phylobuddy, next_hash", li_hashes)
+def test_list_ids(phylobuddy, next_hash):
+    tester = str(Pb.list_ids(phylobuddy))
+    assert md5(tester.encode()).hexdigest() == next_hash
 
 
 # ###################### 'pr', '--prune_taxa' ###################### #
@@ -339,19 +382,50 @@ def test_split_polytomies():
 # ################################################# COMMAND LINE UI ################################################## #
 # ###################### 'ct', '--consensus_tree' ###################### #
 def test_consensus_tree_ui(capsys):
-    in_args.consensus_tree = [False]
-    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.consensus_tree = [False]
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "f20cbd5aae5971cce8efbda15e4e0b7e"
 
-    in_args.consensus_tree = [0.9]
-    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    test_in_args.consensus_tree = [0.9]
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "447862ed1ed6e98f2fb535ecce70218b"
 
-    in_args.consensus_tree = [1.5]
-    Pb.command_line_ui(in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    test_in_args.consensus_tree = [1.5]
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "f20cbd5aae5971cce8efbda15e4e0b7e"
 
-    in_args.consensus_tree = False
+
+# ###################### 'gt', '--generate_tree' ###################### #
+def test_generate_tree_ui1(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
+    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
+
+    test_in_args.generate_tree = ["fasttree", "-seed 12345"]
+    Pb.command_line_ui(test_in_args, [], skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "d7f505182dd1a1744b45cc326096f70c"
+
+
+def test_generate_tree_ui2():
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
+    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
+
+    test_in_args.generate_tree = ["fasttree", "-s 12345"]  # Command doesn't exist in fasttree
+    with pytest.raises(SystemExit):
+        Pb.command_line_ui(test_in_args, [])
+
+
+def test_generate_tree_ui3():
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
+    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
+
+    test_in_args.generate_tree = ["foo"]
+    with pytest.raises(SystemExit):
+        Pb.command_line_ui(test_in_args, [])

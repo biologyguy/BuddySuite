@@ -49,6 +49,7 @@ except ImportError:
     confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
         Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
+        Popen("pip install six", shell=True).wait()
         try:
             import ete3
         except ImportError:
@@ -86,8 +87,8 @@ def unroot(_trees):
     return _trees
 
 
-def screw_formats(_phylobuddy, _format):
-    return _phylobuddy, _format
+def delete_metadata(_trees):
+    return _trees
 
 
 def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
@@ -114,6 +115,7 @@ def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
 CONFIG = br.config_values()
 VERSION = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
+PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
 
 # #################################################### PHYLOBUDDY #################################################### #
@@ -345,7 +347,7 @@ def _get_tree_binaries(_tool):
 
     tool_dict = {'raxml': 'http://sco.h-its.org/exelixis/web/software/raxml/index.html',
                  'phyml': 'http://www.atgc-montpellier.fr/phyml/versions.php',
-                 'fastree': 'http://www.microbesonline.org/fasttree/#Install'}
+                 'fasttree': 'http://www.microbesonline.org/fasttree/#Install'}
     return tool_dict[_tool]
 
 
@@ -410,9 +412,9 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def consensus_tree(_phylobuddy, _frequency=.5):
+def consensus_tree(_phylobuddy, _frequency=.5):  # ToDo: Remove the length parameters from the tree
     """
-    Generate a majority-rules consensus tree
+    Create a consensus tree from two or more trees.
     :param _phylobuddy: PhyloBuddy object
     :param _frequency: The frequency threshold of a node for it to be included in the new tree.
     :return: The modified PhyloBuddy object
@@ -426,11 +428,15 @@ def consensus_tree(_phylobuddy, _frequency=.5):
 def display_trees(_phylobuddy):
     """
     Displays trees in an ETE GUI window, one-by-one.
-    :param _phylobuddy: The PhyloBuddy object whose trees will be displayed.
-    :return:
+    :param _phylobuddy: PhyloBuddy object
+    :return: None
     """
+    if "DISPLAY" not in os.environ:
+        raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
+
     for _tree in _phylobuddy.trees:
         _convert_to_ete(_tree).show()
+    return
 
 
 def distance(_phylobuddy, _method='weighted_robinson_foulds'):
@@ -481,38 +487,38 @@ def distance(_phylobuddy, _method='weighted_robinson_foulds'):
     return _output
 
 
-def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
+def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
+    # ToDo Check that this works for other versions of RAxML and PhyML
     """
     Calls tree building tools to generate trees
     :param _alignbuddy: The AlignBuddy object containing the alignments for building the trees
-    :param _tool: The tree building tool to be used (raxml/phyml/fasttree)
-    :param _params: Additional parameters to be passed to the tree building tool
-    :param _keep_temp: Determines if/where the temporary files will be kept
+    :param tool: The tree building tool to be used (raxml/phyml/fasttree)
+    :param params: Additional parameters to be passed to the tree building tool
+    :param keep_temp: Determines if/where the temporary files will be kept
     :return: A PhyloBuddy object containing the trees produced.
     """
-    # NOTE: FastTree segfaults with protein alignments for an unknown reason (may be OSX only?)
 
-    if _params is None:
-        _params = ''
-    _tool = _tool.lower()
+    if params is None:
+        params = ''
+    tool = tool.lower()
 
-    if _keep_temp:  # Store files in temp dir in a non-temporary directory
-        if os.path.exists(_keep_temp):
-            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(_keep_temp))
-            sys.exit()
+    if keep_temp:  # Store files in temp dir in a non-temporary directory
+        if os.path.exists(keep_temp):
+            raise FileExistsError()
 
-    if _tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
-        raise AttributeError("{0} is not a valid alignment tool.".format(_tool))
-    if shutil.which(_tool) is None:  # Tool must be callable from command line
-        _stderr('#### Could not find {0} in $PATH. ####\n'.format(_tool))
-        _stderr('Please go to {0} to install {1}.\n'.format(_get_tree_binaries(_tool), _tool))
-        sys.exit()
+    if tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
+        raise AttributeError("{0} is not a valid alignment tool.".format(tool))
+
+    if shutil.which(tool) is None:  # Tool must be callable from command line
+        raise ProcessLookupError('#### Could not find {0} in $PATH. ####\nInstallation instructions '
+                                 'may be found at {1}.\n'.format(tool, _get_tree_binaries(tool)))
+
     else:
         tmp_dir = TempDir()
         tmp_in = "{0}/tmp.del".format(tmp_dir.path)
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
-            parameters = _params
+            parameters = params
             for _key in _dict:
                 if _dict[_key] is True:  # Flag has an argument
                     _pattern = "{0} [^-]*".format(_key)
@@ -523,85 +529,92 @@ def generate_tree(_alignbuddy, _tool, _params=None, _keep_temp=None):
                 parameters = re.sub(_pattern, '', parameters)
             return parameters
 
-        _params = re.split(' ', _params, )  # Expands paths in _params to absolute paths
-        for _indx, _token in enumerate(_params):
+        params = re.split(' ', params, )  # Expands paths in _params to absolute paths
+        for _indx, _token in enumerate(params):
             if os.path.exists(_token):
-                _params[_indx] = os.path.abspath(_token)
-        _params = ' '.join(_params)
+                params[_indx] = os.path.abspath(_token)
+        params = ' '.join(params)
 
         _alignbuddy.out_format = 'phylip-interleaved'  # Supported by most tree builders
         with open("{0}/tmp.del".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(_alignbuddy))  # Most tree builders require an input file
-        if _tool == 'raxml':
-            _params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
-            if '-T' not in _params:  # Num threads
-                _params += ' -T 2'
-            if '-m' not in _params:  # Tree building model (REQUIRED)
-                _stderr("No tree-building method specified! Use the -m flag!\n")
-                sys.exit()
-            if '-p' not in _params:  # RNG seed
-                _params += ' -p 12345'
-            if '-#' not in _params and '-N' not in _params:  # Number of trees to build
-                _params += ' -# 1'
-            command = '{0} -s {1} {2} -n result -w {3}'.format(_tool, tmp_in, _params, tmp_dir.path)
-        elif _tool == 'phyml':
-            _params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
-                                             '--run_id': True})
-            if '-m' not in _params and '--model' not in _params:  # Tree building model (REQUIRED)
-                _stderr("No tree-building method specified! Use the -m flag!\n")
-                sys.exit()
-            if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
-                                     IUPAC.unambiguous_rna] and ('-d nt' not in _params or
-                                                                 '--datatype nt' not in _params):
-                _params += ' -d nt'  # phyml needs to be told which alphabet to use
-            elif _alignbuddy.alpha == IUPAC.protein and ('-d aa' not in _params or '--datatype aa' not in _params):
-                _params += ' -d aa'
-            command = '{0} -i {1} {2}'.format(_tool, tmp_in, _params)
-        elif _tool == 'fasttree':
-            if '-n ' not in _params and '--multiple' not in _params and len(_alignbuddy.alignments) > 1:
-                _params += ' -n {0}'.format(len(_alignbuddy.alignments))  # Number of alignments to be input
+
+        if tool == 'raxml':
+            params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
+            if '-T' not in params:  # Num threads
+                params += ' -T 2'
+            if '-m' not in params:  # An evolutionary model is required
+                if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                         IUPAC.unambiguous_rna]:
+                    _stderr("Warning: Using default evolutionary model GTRCAT\n")
+                    params += " -m GTRCAT"
+                elif _alignbuddy.alpha == IUPAC.protein:
+                    _stderr("Warning: Using default evolutionary model PROTCATLG\n")
+                    params += " -m PROTCATLG"
+
+            if '-p' not in params:  # RNG seed
+                params += ' -p 12345'
+            if '-#' not in params and '-N' not in params:  # Number of trees to build
+                params += ' -# 1'
+            command = '{0} -s {1} {2} -n result -w {3}'.format(tool, tmp_in, params, tmp_dir.path)
+
+        elif tool == 'phyml':
+            params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
+                                            '--run_id': True})
             if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
                                      IUPAC.unambiguous_rna]:
-                command = '{0} {1} -nt {2}'.format(_tool, _params, tmp_in)  # fasttree must be told what alphabet to use
+                if '-d nt' not in params and '--datatype nt' not in params:
+                    params += ' -d nt'
+
+            elif _alignbuddy.alpha == IUPAC.protein:
+                if '-d aa' not in params and '--datatype aa' not in params:
+                    params += ' -d aa'
+
+            command = '{0} -i {1} {2}'.format(tool, tmp_in, params)
+
+        elif tool == 'fasttree':
+            if '-n ' not in params and '--multiple' not in params and len(_alignbuddy.alignments) > 1:
+                params += ' -n {0}'.format(len(_alignbuddy.alignments))  # Number of alignments to be input
+            if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                     IUPAC.unambiguous_rna]:
+                command = '{0} {1} -nt {2}'.format(tool, params, tmp_in)  # fasttree must be told what alphabet to use
             else:
-                command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
+                command = '{0} {1} {2}'.format(tool, params, tmp_in)
         else:
-            command = '{0} {1} {2}'.format(_tool, _params, tmp_in)
+            raise AttributeError("'%s' is an unknown phylogenetics tool." % tool)  # Should be unreachable
 
         _output = ''
 
         try:
-            if _tool in ['raxml', 'phyml']:  # If tool writes to file
+            if tool in ['raxml', 'phyml']:  # If tool writes to file
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+                if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
+                   and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
+                    raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
                 _output = check_output(command, shell=True, universal_newlines=True)
-        except CalledProcessError:
-            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(_tool))
-            sys.exit()
 
-        if _tool == 'raxml':  # Pull tree from written file
-            num_runs = re.search('-#', _params)
-            if _params[num_runs.end() + 1].isdigit():
-                num_runs = int(_params[num_runs.end() + 1])
-            else:
-                num_runs = int(_params[num_runs.end() + 2])
+        except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
+            raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
+
+        if tool == 'raxml':  # Pull tree from written file
+            num_runs = re.search('-[#N] ([0-9]+)', params)
+            num_runs = int(num_runs.group(1))
             if num_runs > 1:
                 for tree_indx in range(num_runs):
                     with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx)) as result:
                         _output += result.read()
+
             else:
                 with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) as result:
                     _output += result.read()
-        elif _tool == 'phyml':
+
+        elif tool == 'phyml':
             with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)) as result:
                 _output += result.read()
 
-        if _keep_temp:  # Store temp files
-            try:
-                shutil.copytree(tmp_dir.path, _keep_temp)
-            except FileExistsError:
-                # Should never get here
-                pass
+        if keep_temp:  # Store temp files
+            shutil.copytree(tmp_dir.path, keep_temp)
 
         _phylobuddy = PhyloBuddy(_output)
 
@@ -826,7 +839,7 @@ def argparse_init():
   PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
 ''')
 
-    br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
+    br.flags(parser, ("trees", "Supply file path(s) or raw tree string. If piping trees into PhyloBuddy "
                                "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
     in_args = parser.parse_args()
@@ -868,24 +881,24 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _exit(tool, skip=skip_exit):
+    def _exit(_tool, skip=skip_exit):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("PhyloBuddy", VERSION.short(), tool)
+        usage.increment("PhyloBuddy", VERSION.short(), _tool)
         usage.save()
         sys.exit()
 
-    def _raise_error(_err, tool):
+    def _raise_error(_err, _tool):
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
-        _exit(tool)
+        _exit(_tool)
 
 # ############################################## COMMAND LINE LOGIC ############################################## #
     # Consensus tree
     if in_args.consensus_tree:
         frequency = in_args.consensus_tree[0]
         frequency = 0.5 if not frequency else frequency
-        if not 0 < frequency <= 1:
+        if not 0 <= frequency <= 1:
             _stderr("Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n")
             frequency = 0.5
 
@@ -894,7 +907,11 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
     # Display trees
     if in_args.display_trees:
-        display_trees(phylobuddy)
+        try:
+            display_trees(phylobuddy)
+        except SystemError:
+            _stderr("Error: Your system is non-graphical, so display_trees can not work. "
+                    "Please try print_trees instead.")
         _exit("display_trees")
 
     # Distance
@@ -929,11 +946,41 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         else:
             alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.in_format, in_args.out_format)
 
-        params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_trees = generate_tree(alignbuddy, in_args.generate_tree[0], params, in_args.keep_temp)
+        # Glean the argument order being passed in
+        phylo_program = None
+
+        for tool in PHYLO_INFERENCE_TOOLS:
+            breakout = False
+            while True:
+                if breakout:
+                    break
+                breakout = True
+                for arg in in_args.generate_tree:
+                    if tool == arg.lower():
+                        phylo_program = tool
+                        del in_args.generate_tree[in_args.generate_tree.index(arg)]
+                        breakout = False
+                        break
+
+        if not phylo_program:
+            _raise_error(AttributeError("A valid phylogenetic inference program was not detected."), "generate_tree")
+
+        params = None if not in_args.generate_tree else in_args.generate_tree[0]
+        generated_trees = None
+        try:
+            generated_trees = generate_tree(alignbuddy, phylo_program, params, in_args.keep_temp)
+        except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as _e:
+            _raise_error(_e, "generate_tree")
+        except FileNotFoundError as _e:
+            if str(_e) != "Error: {0} failed to generate a tree.".format(phylo_program):
+                raise FileNotFoundError(_e)
+            else:
+                _raise_error(str(_e), "generate_tree")
+
         if in_args.out_format:
             generated_trees.out_format = in_args.out_format
-        _stdout(str(generated_trees))
+
+        _print_trees(generated_trees)
         _exit("generate_tree")
 
     # List ids
