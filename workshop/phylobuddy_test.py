@@ -194,7 +194,7 @@ hashes = [(Pb._make_copy(pb_objects[x]), hashes[x]) for x in range(4)]
 
 @pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_consensus_tree_95(phylobuddy, next_hash):
-    tester = Pb.consensus_tree(phylobuddy, _frequency=0.95)
+    tester = Pb.consensus_tree(phylobuddy, frequency=0.95)
     assert phylo_to_hash(tester) == next_hash
 
 
@@ -224,7 +224,7 @@ hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerat
 
 @pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_distance_wrf(phylobuddy, next_hash):
-    tester = str(Pb.distance(phylobuddy, _method='wrf'))
+    tester = str(Pb.distance(phylobuddy, method='wrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 hashes = ['c15d06fc5344da3149e19b134ca31c62', '6d087b86aa9f5bc5013113972173fe0f', '7ef096e3c32dbf898d4b1a035d5c9ad4']
@@ -233,7 +233,7 @@ hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerat
 
 @pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_distance_uwrf(phylobuddy, next_hash):
-    tester = str(Pb.distance(phylobuddy, _method='uwrf'))
+    tester = str(Pb.distance(phylobuddy, method='uwrf'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 hashes = ['68942718c8baf4e4bdf5dd2992fbbf9d', '3dba6b10fdd04505b4e4482d926b67d3', '8d0b3a035015d62916b525f371684bf8']
@@ -242,13 +242,13 @@ hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerat
 
 @pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_distance_ed(phylobuddy, next_hash):
-    tester = str(Pb.distance(phylobuddy, _method='ed'))
+    tester = str(Pb.distance(phylobuddy, method='ed'))
     assert md5(tester.encode()).hexdigest() == next_hash
 
 
 def test_distance_unknown_method():
     with pytest.raises(AttributeError):
-        Pb.distance(pb_objects[0], _method='foo')
+        Pb.distance(pb_objects[0], method='foo')
 
 
 # ######################  'gt', '--generate_trees' ###################### #
@@ -382,6 +382,12 @@ def test_rename_ids(phylobuddy, next_hash):
     assert phylo_to_hash(tester) == next_hash
 
 
+def test_rename_nodes():
+    tester = Pb.PhyloBuddy(resource("tree_with_node_lables.nwk"))
+    Pb.rename(tester, "Inner", "Outer")
+    assert phylo_to_hash(tester) == "5e02eaa78e25970d7cda0111eef5adba"
+
+
 # ###################### 'sp', '--split_polytomies' ###################### #
 def test_split_polytomies():
     tester = Pb.PhyloBuddy('(A,(B,C,D));')
@@ -493,3 +499,19 @@ def test_print_trees_ui(capsys):
     Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
+
+
+# ###################### 'pt', '--prune_taxa' ###################### #
+def test_prune_taxa_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.prune_taxa = [["fir"]]
+
+    Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "99635c6dbf708f94cf4dfdca87113c44"
+
+    test_in_args.prune_taxa = [["fir", "ovi"]]
+
+    Pb.command_line_ui(test_in_args, pb_objects[1], skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "2a385fa95024323fea412fd2b3c3e91f"
