@@ -412,86 +412,86 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def consensus_tree(_phylobuddy, _frequency=.5):  # ToDo: Remove the length parameters from the tree
+def consensus_tree(phylobuddy, frequency=.5):  # ToDo: Remove the length parameters from the tree
     """
     Create a consensus tree from two or more trees.
-    :param _phylobuddy: PhyloBuddy object
-    :param _frequency: The frequency threshold of a node for it to be included in the new tree.
+    :param phylobuddy: PhyloBuddy object
+    :param frequency: The frequency threshold of a node for it to be included in the new tree.
     :return: The modified PhyloBuddy object
     """
-    _trees = TreeList(_phylobuddy.trees)
-    _consensus = _trees.consensus(min_freq=_frequency)
-    _phylobuddy.trees = [_consensus]
-    return _phylobuddy
+    _trees = TreeList(phylobuddy.trees)
+    _consensus = _trees.consensus(min_freq=frequency)
+    phylobuddy.trees = [_consensus]
+    return phylobuddy
 
 
-def display_trees(_phylobuddy):
+def display_trees(phylobuddy):
     """
     Displays trees in an ETE GUI window, one-by-one.
-    :param _phylobuddy: PhyloBuddy object
+    :param phylobuddy: PhyloBuddy object
     :return: None
     """
     if "DISPLAY" not in os.environ:
         raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
 
-    for _tree in _phylobuddy.trees:
+    for _tree in phylobuddy.trees:
         _convert_to_ete(_tree).show()
     return
 
 
-def distance(_phylobuddy, _method='weighted_robinson_foulds'):
+def distance(phylobuddy, method='weighted_robinson_foulds'):
     """
     Calculates distance metrics between pairs of trees
-    :param _phylobuddy: The PhyloBuddy object containing the trees to be compared
-    :param _method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
+    :param phylobuddy: PhyloBuddy object
+    :param method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
     :return: A dictionary of dictonaries containing the distances between tree pairs. dict[tree1][tree2]
     """
-    _method = _method.lower()
-    if _method in ['wrf', 'weighted_robinson_foulds']:
-        _method = 'wrf'
-    elif _method in ['uwrf', 'sym', 'unweighted_robinson_foulds', 'symmetric']:
-        _method = 'uwrf'
+    method = method.lower()
+    if method in ['wrf', 'weighted_robinson_foulds']:
+        method = 'wrf'
+    elif method in ['uwrf', 'sym', 'unweighted_robinson_foulds', 'symmetric']:
+        method = 'uwrf'
     # elif _method in ['mgk', 'mason_gamer_kellogg']:
     #     _method = 'mgk'
-    elif _method in ['ed', 'euclid', 'euclidean', 'euclidean_distance']:
-        _method = 'euclid'
+    elif method in ['ed', 'euclid', 'euclidean', 'euclidean_distance']:
+        method = 'euclid'
     else:
-        raise AttributeError('{0} is an invalid comparison method.'.format(_method))
+        raise AttributeError('{0} is an invalid comparison method.'.format(method))
 
-    _output = OrderedDict()
-    _keypairs = []
+    output = OrderedDict()
+    keypairs = []
 
-    for indx1, _tree1 in enumerate(_phylobuddy.trees):  # Compares all-by-all
-        for indx2, _tree2 in enumerate(_phylobuddy.trees):
-            if _tree1 is not _tree2:  # Will not compare to itself
-                _key1 = 'tree_{0}'.format(indx1 + 1) if _tree1.label not in [None, ''] else _tree1.label
-                _key2 = 'tree_{0}'.format(indx2 + 1) if _tree2.label not in [None, ''] else _tree2.label
-                if _key1 not in _output.keys():
-                    _output[_key1] = OrderedDict()
-                if _key2 not in _output.keys():
-                    _output[_key2] = OrderedDict()
-                if (_key2, _key1) not in _keypairs:  # Prevent repeated (reversed) searches
-                    _keypairs.append((_key1, _key2))
-                    if _method == 'wrf':
-                        _output[_key1][_key2] = treecompare.weighted_robinson_foulds_distance(_tree1, _tree2)
-                        _output[_key2][_key1] = _output[_key1][_key2]
-                    elif _method == 'uwrf':
-                        _output[_key1][_key2] = treecompare.symmetric_difference(_tree1, _tree2)
-                        _output[_key2][_key1] = _output[_key1][_key2]
+    for indx1, tree1 in enumerate(phylobuddy.trees):  # Compares all-by-all
+        for indx2, tree2 in enumerate(phylobuddy.trees):
+            if tree1 is not tree2:  # Will not compare to itself
+                key1 = 'tree_{0}'.format(indx1 + 1) if tree1.label not in [None, ''] else tree1.label
+                key2 = 'tree_{0}'.format(indx2 + 1) if tree2.label not in [None, ''] else tree2.label
+                if key1 not in output.keys():
+                    output[key1] = OrderedDict()
+                if key2 not in output.keys():
+                    output[key2] = OrderedDict()
+                if (key2, key1) not in keypairs:  # Prevent repeated (reversed) searches
+                    keypairs.append((key1, key2))
+                    if method == 'wrf':
+                        output[key1][key2] = treecompare.weighted_robinson_foulds_distance(tree1, tree2)
+                        output[key2][key1] = output[key1][key2]
+                    elif method == 'uwrf':
+                        output[key1][key2] = treecompare.symmetric_difference(tree1, tree2)
+                        output[key2][key1] = output[key1][key2]
                     # elif _method == 'mgk':
                     #     _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
                     #     _output[_key2][_key1] = _output[_key1][_key2]
                     else:
-                        _output[_key1][_key2] = treecompare.euclidean_distance(_tree1, _tree2)
-                        _output[_key2][_key1] = _output[_key1][_key2]
-    return _output
+                        output[key1][key2] = treecompare.euclidean_distance(tree1, tree2)
+                        output[key2][key1] = output[key1][key2]
+    return output
 
 
-def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
+def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
     # ToDo Check that this works for other versions of RAxML and PhyML
     """
     Calls tree building tools to generate trees
-    :param _alignbuddy: The AlignBuddy object containing the alignments for building the trees
+    :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
     :param tool: The tree building tool to be used (raxml/phyml/fasttree)
     :param params: Additional parameters to be passed to the tree building tool
     :param keep_temp: Determines if/where the temporary files will be kept
@@ -519,36 +519,36 @@ def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
             parameters = params
-            for _key in _dict:
-                if _dict[_key] is True:  # Flag has an argument
-                    _pattern = "{0} [^-]*".format(_key)
+            for key in _dict:
+                if _dict[key] is True:  # Flag has an argument
+                    _pattern = "{0} [^-]*".format(key)
                     # Deletes until it reaches another flag.
                     # May cause issues if flag is right before the file path.
                 else:
-                    _pattern = "{0}".format(_key)
+                    _pattern = "{0}".format(key)
                 parameters = re.sub(_pattern, '', parameters)
             return parameters
 
         params = re.split(' ', params, )  # Expands paths in _params to absolute paths
-        for _indx, _token in enumerate(params):
-            if os.path.exists(_token):
-                params[_indx] = os.path.abspath(_token)
+        for indx, token in enumerate(params):
+            if os.path.exists(token):
+                params[indx] = os.path.abspath(token)
         params = ' '.join(params)
 
-        _alignbuddy.out_format = 'phylip-interleaved'  # Supported by most tree builders
+        alignbuddy.out_format = 'phylip-interleaved'  # Supported by most tree builders
         with open("{0}/tmp.del".format(tmp_dir.path), 'w') as out_file:
-            out_file.write(str(_alignbuddy))  # Most tree builders require an input file
+            out_file.write(str(alignbuddy))  # Most tree builders require an input file
 
         if tool == 'raxml':
             params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
             if '-T' not in params:  # Num threads
                 params += ' -T 2'
             if '-m' not in params:  # An evolutionary model is required
-                if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
-                                         IUPAC.unambiguous_rna]:
+                if alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                        IUPAC.unambiguous_rna]:
                     _stderr("Warning: Using default evolutionary model GTRCAT\n")
                     params += " -m GTRCAT"
-                elif _alignbuddy.alpha == IUPAC.protein:
+                elif alignbuddy.alpha == IUPAC.protein:
                     _stderr("Warning: Using default evolutionary model PROTCATLG\n")
                     params += " -m PROTCATLG"
 
@@ -561,29 +561,29 @@ def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
         elif tool == 'phyml':
             params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
                                             '--run_id': True})
-            if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
-                                     IUPAC.unambiguous_rna]:
+            if alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                    IUPAC.unambiguous_rna]:
                 if '-d nt' not in params and '--datatype nt' not in params:
                     params += ' -d nt'
 
-            elif _alignbuddy.alpha == IUPAC.protein:
+            elif alignbuddy.alpha == IUPAC.protein:
                 if '-d aa' not in params and '--datatype aa' not in params:
                     params += ' -d aa'
 
             command = '{0} -i {1} {2}'.format(tool, tmp_in, params)
 
         elif tool == 'fasttree':
-            if '-n ' not in params and '--multiple' not in params and len(_alignbuddy.alignments) > 1:
-                params += ' -n {0}'.format(len(_alignbuddy.alignments))  # Number of alignments to be input
-            if _alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
-                                     IUPAC.unambiguous_rna]:
+            if '-n ' not in params and '--multiple' not in params and len(alignbuddy.alignments) > 1:
+                params += ' -n {0}'.format(len(alignbuddy.alignments))  # Number of alignments to be input
+            if alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
+                                    IUPAC.unambiguous_rna]:
                 command = '{0} {1} -nt {2}'.format(tool, params, tmp_in)  # fasttree must be told what alphabet to use
             else:
                 command = '{0} {1} {2}'.format(tool, params, tmp_in)
         else:
             raise AttributeError("'%s' is an unknown phylogenetics tool." % tool)  # Should be unreachable
 
-        _output = ''
+        output = ''
 
         try:
             if tool in ['raxml', 'phyml']:  # If tool writes to file
@@ -592,7 +592,7 @@ def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
                    and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
                     raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
-                _output = check_output(command, shell=True, universal_newlines=True)
+                output = check_output(command, shell=True, universal_newlines=True)
 
         except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
             raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
@@ -603,87 +603,87 @@ def generate_tree(_alignbuddy, tool, params=None, keep_temp=None):
             if num_runs > 1:
                 for tree_indx in range(num_runs):
                     with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx)) as result:
-                        _output += result.read()
+                        output += result.read()
 
             else:
                 with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) as result:
-                    _output += result.read()
+                    output += result.read()
 
         elif tool == 'phyml':
             with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)) as result:
-                _output += result.read()
+                output += result.read()
 
         if keep_temp:  # Store temp files
             shutil.copytree(tmp_dir.path, keep_temp)
 
-        _phylobuddy = PhyloBuddy(_output)
+        phylobuddy = PhyloBuddy(output)
 
         _stderr("Returning to PhyloBuddy...\n\n")
 
-        return _phylobuddy
+        return phylobuddy
 
 
-def list_ids(_phylobuddy):
+def list_ids(phylobuddy):
     """
     Returns a dictionary of tree names and node labels
-    :param _phylobuddy: The PhyloBuddy object to be analyzed
+    :param phylobuddy: The PhyloBuddy object to be analyzed
     :return: A dictionary of tree names and node labels
     """
-    _output = OrderedDict()
-    for indx, _tree in enumerate(_phylobuddy.trees):
-        _namespace = TaxonNamespace()
-        for node in _tree:
+    output = OrderedDict()
+    for indx, tree in enumerate(phylobuddy.trees):
+        namespace = TaxonNamespace()
+        for node in tree:
             if node.taxon is not None:
-                _namespace.add_taxon(node.taxon)
-        _key = _tree.label if _tree.label not in [None, ''] else 'tree_{0}'.format(str(indx + 1))
-        _output[_key] = list(_namespace.labels())
-    return _output
+                namespace.add_taxon(node.taxon)
+        key = tree.label if tree.label not in [None, ''] else 'tree_{0}'.format(str(indx + 1))
+        output[key] = list(namespace.labels())
+    return output
 
 
-def prune_taxa(_phylobuddy, *_patterns):
+def prune_taxa(phylobuddy, *patterns):
     """
     Prunes taxa that match one or more regex patterns
-    :param _phylobuddy: The PhyloBuddy object whose trees will be pruned.
-    :param _patterns: One or more regex patterns.
+    :param phylobuddy: The PhyloBuddy object whose trees will be pruned.
+    :param patterns: One or more regex patterns.
     :return: The same PhyloBuddy object after pruning.
     """
-    for _tree in _phylobuddy.trees:
+    for tree in phylobuddy.trees:
         taxa_to_prune = []
-        _namespace = TaxonNamespace()
-        for node in _tree:  # Populate the namespace for easy iteration
+        namespace = TaxonNamespace()
+        for node in tree:  # Populate the namespace for easy iteration
             if node.taxon is not None:
-                _namespace.add_taxon(node.taxon)
-        for _taxon in _namespace.labels():
-            for _pattern in _patterns:
-                if re.search(_pattern, _taxon):  # Sets aside the names of the taxa to be pruned
-                    taxa_to_prune.append(_taxon)
-        for _taxon in taxa_to_prune:  # Removes the nodes from the tree
-            _tree.prune_taxa_with_labels(StringIO(_taxon))
+                namespace.add_taxon(node.taxon)
+        for taxon in namespace.labels():
+            for pattern in patterns:
+                if re.search(pattern, taxon):  # Sets aside the names of the taxa to be pruned
+                    taxa_to_prune.append(taxon)
+        for taxon in taxa_to_prune:  # Removes the nodes from the tree
+            tree.prune_taxa_with_labels(StringIO(taxon))
 
 
-def rename(_phylobuddy, _query, _replace):
+def rename(phylobuddy, query, replace):
     """
     Substitutes matches in node names with a string
-    :param _phylobuddy: The PhyloBuddy object to be modified
-    :param _query: The regex pattern to be searched
-    :param _replace: The string to replace the matches with
+    :param phylobuddy: The PhyloBuddy object to be modified
+    :param query: The regex pattern to be searched
+    :param replace: The string to replace the matches with
     :return: The modified PhyloBuddy object
     """
-    for indx, _tree in enumerate(_phylobuddy.trees):
-        for node in _tree:
+    for indx, tree in enumerate(phylobuddy.trees):
+        for node in tree:
             if node.label is not None:
-                node.label = re.sub(_query, _replace, node.label)
+                node.label = re.sub(query, replace, node.label)
             if node.taxon is not None and node.taxon.label is not None:
-                node.taxon.label = re.sub(_query, _replace, node.taxon.label)
-    return _phylobuddy
+                node.taxon.label = re.sub(query, replace, node.taxon.label)
+    return phylobuddy
 
 
-def show_diff(_phylobuddy):  # Doesn't work.
+def show_diff(phylobuddy):  # Doesn't work.
     sys.exit('show_diff() is not implemented yet.')
     # if len(_phylobuddy.trees) != 2:
     #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
-    _trees = [_convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
-              _convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]
+    trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
+             _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]
 
     paths = []
 
@@ -697,10 +697,10 @@ def show_diff(_phylobuddy):  # Doesn't work.
                 new_list.append(get_all_paths(child, _path_list=new_list))
         else:
             paths.append(new_list)
-    get_all_paths(_phylobuddy.trees[0].seed_node)
+    get_all_paths(phylobuddy.trees[0].seed_node)
     print(paths)
 
-    data = _trees[0].robinson_foulds(_trees[1])
+    data = trees[0].robinson_foulds(trees[1])
     tree1_only = data[3] - data[4]
     tree2_only = data[4] - data[3]
 
@@ -714,111 +714,111 @@ def show_diff(_phylobuddy):  # Doesn't work.
         for _name in tup:
             tree2_only_set.add(_name)
 
-    for _node in _trees[0]:
-        if _node.name in tree1_only_set:
-            _node.add_feature('pb_color', '#ff0000')
+    for node in trees[0]:
+        if node.name in tree1_only_set:
+            node.add_feature('pb_color', '#ff0000')
         else:
-            _node.add_feature('pb_color', '#00ff00')
+            node.add_feature('pb_color', '#00ff00')
 
-    for _node in _trees[1]:
-        if _node.name in tree2_only_set:
-            _node.add_feature('pb_color', '#ff0000')
+    for node in trees[1]:
+        if node.name in tree2_only_set:
+            node.add_feature('pb_color', '#ff0000')
         else:
-            _node.add_feature('pb_color', '#00ff00')
+            node.add_feature('pb_color', '#00ff00')
 
     tmp_dir = TempDir()
-    with open("%s/tree1.tmp" % tmp_dir.path, "w") as _ofile:
-        _ofile.write(re.sub('pb_color', '!color', _trees[0].write(features=[])))
-    with open("%s/tree2.tmp" % tmp_dir.path, "w") as _ofile:
-        _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
+    with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
+        ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
+    with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
+        ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
 
-    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=_phylobuddy.in_format,
-                     _out_format=_phylobuddy.out_format)
-    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=_phylobuddy.in_format,
-                     _out_format=_phylobuddy.out_format)
+    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
+                     _out_format=phylobuddy.out_format)
+    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
+                     _out_format=phylobuddy.out_format)
 
-    _trees = pb1.trees + pb2.trees
+    trees = pb1.trees + pb2.trees
 
-    _phylobuddy = PhyloBuddy(_input=_trees, _in_format=_phylobuddy.in_format, _out_format=_phylobuddy.out_format)
+    phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
 
-    return _phylobuddy
+    return phylobuddy
 
 
-def show_unique_nodes(_phylobuddy):
+def show_unique_nodes(phylobuddy):
     """
     Colors all of the nodes that aren't common between two trees
-    :param _phylobuddy: The PhyloBuddy object to be labeled
+    :param phylobuddy: The PhyloBuddy object to be labeled
     :return: The labeled PhyloBuddy object
     """
-    if len(_phylobuddy.trees) != 2:
+    if len(phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
 
-    _trees = [_convert_to_ete(_phylobuddy.trees[0], ignore_color=True),
-              _convert_to_ete(_phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
+    trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
+             _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
 
-    data = _trees[0].robinson_foulds(_trees[1])
+    data = trees[0].robinson_foulds(trees[1])
     tree1_only = []
     tree2_only = []
 
     common_leaves = data[2]
-    for _names in data[3]:
-        if len(_names) == 1:
-            tree1_only.append(_names[0])
-    for _names in data[4]:
-        if len(_names) == 1:
-            tree2_only.append(_names[0])
+    for names in data[3]:
+        if len(names) == 1:
+            tree1_only.append(names[0])
+    for names in data[4]:
+        if len(names) == 1:
+            tree2_only.append(names[0])
 
-    for _node in _trees[0]:  # Colors the nodes
-        if _node.name in common_leaves:
-            _node.add_feature('pb_color', '#00ff00')
+    for node in trees[0]:  # Colors the nodes
+        if node.name in common_leaves:
+            node.add_feature('pb_color', '#00ff00')
         else:
-            _node.add_feature('pb_color', '#ff0000')
-    for _node in _trees[1]:
-        if _node.name in common_leaves:
-            _node.add_feature('pb_color', '#00ff00')
+            node.add_feature('pb_color', '#ff0000')
+    for node in trees[1]:
+        if node.name in common_leaves:
+            node.add_feature('pb_color', '#00ff00')
         else:
-            _node.add_feature('pb_color', '#ff0000')
+            node.add_feature('pb_color', '#ff0000')
 
     tmp_dir = TempDir()  # Convert back to dendropy
-    with open("%s/tree1.tmp" % tmp_dir.path, "w") as _ofile:
-        _ofile.write(re.sub('pb_color', '!color', _trees[0].write(features=[])))
-    with open("%s/tree2.tmp" % tmp_dir.path, "w") as _ofile:
-        _ofile.write(re.sub('pb_color', '!color', _trees[1].write(features=[])))
+    with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
+        ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
+    with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
+        ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
 
-    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=_phylobuddy.in_format,
-                     _out_format=_phylobuddy.out_format)
-    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=_phylobuddy.in_format,
-                     _out_format=_phylobuddy.out_format)
+    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
+                     _out_format=phylobuddy.out_format)
+    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
+                     _out_format=phylobuddy.out_format)
 
-    _trees = pb1.trees + pb2.trees
+    trees = pb1.trees + pb2.trees
 
-    _phylobuddy = PhyloBuddy(_input=_trees, _in_format=_phylobuddy.in_format, _out_format=_phylobuddy.out_format)
+    phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
 
-    return _phylobuddy
+    return phylobuddy
 
 
-def split_polytomies(_phylobuddy):
+def split_polytomies(phylobuddy):
     """
     Randomly splits polytomies.
-    :param _phylobuddy: The PhyloBuddy object whose trees will be processed.
+    :param phylobuddy: The PhyloBuddy object whose trees will be processed.
     :return: The same PhyloBuddy object after processing.
     """
-    for _tree in _phylobuddy.trees:
-        _tree.resolve_polytomies(rng=random.Random())
-    return _phylobuddy
+    for tree in phylobuddy.trees:
+        tree.resolve_polytomies(rng=random.Random())
+    return phylobuddy
 
 
-def trees_to_ascii(_phylobuddy):
+def trees_to_ascii(phylobuddy):
     """
     Returns an ascii representation of the tree. Scales to terminal window size.
-    :param _phylobuddy: The PhyloBuddy object whose trees will be converted.
+    :param phylobuddy: The PhyloBuddy object whose trees will be converted.
     :return: A string containing ASCII representations of the trees.
     """
-    _output = OrderedDict()
-    for _indx, _tree in enumerate(_phylobuddy.trees):
-        _key = 'tree_{0}'.format(_indx + 1) if _tree.label in [None, ''] else _tree.label
-        _output[_key] = _tree.as_ascii_plot()
-    return _output
+    output = OrderedDict()
+    for indx, tree in enumerate(phylobuddy.trees):
+        key = 'tree_{0}'.format(indx + 1) if tree.label in [None, ''] else tree.label
+        output[key] = tree.as_ascii_plot()
+    return output
 
 
 # ################################################# COMMAND LINE UI ################################################## #
