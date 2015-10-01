@@ -507,7 +507,13 @@ def test_count_residues():
     assert residues['Mle-Panxα8']["% Hyrdophilic"] == 36.93
     assert residues['Mle-Panxα8']["% Hyrdophobic"] == 55.4
 
+
 # ######################'dgn', '--degenerate_sequence'######################
+def test_degenerate_sequence_without_arguments():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.degenerate_sequence(tester)
+    assert seqs_to_hash(tester) == '0638bc6546eebd9d50f771367d6d7855'
+
 dgn_hashes = ['0638bc6546eebd9d50f771367d6d7855', '72373f8356051e2c6b67642451379054',
               '9172ad5947c0961b54dc5adbd03d4249', 'b45ac94ee6a98e495e115bfeb5bd9bcd',
               '76c45b4de8f7527b4139446b4551712b', 'baa5b48938cc5cae953c9083a5b21b12',
@@ -515,32 +521,20 @@ dgn_hashes = ['0638bc6546eebd9d50f771367d6d7855', '72373f8356051e2c6b67642451379
               'd9d0f5cd8f0c25a0042527cc1cea802e', '4b9790f3f4eeeae1a9667b62b93bc961',
               '7ec4365c3571813d63cee4b70ba5dcf5']
 
-
 codon_tables = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13]
-hashes = [(Sb._make_copies(sb_objects[0]), dgn_hash, codon_tables[indx]) for indx, dgn_hash in enumerate(dgn_hashes)]
+hashes = [(Sb._make_copy(sb_objects[0]), dgn_hash, codon_tables[indx]) for indx, dgn_hash in enumerate(dgn_hashes)]
 
 @pytest.mark.parametrize("seqbuddy, dgn_hash, tables", hashes)
 def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):  
     tester = Sb.degenerate_sequence(seqbuddy, table=tables)
     assert seqs_to_hash(tester) == dgn_hash
 
-# shift_hashes = ['aed33dda2f49d6f05af54858e142bb6f', 'ca336db0c1990b1a33afe89f846ec959']
-# frame = [2, 3]
-# hashes = [(Sb._make_copies(sb_objects[0]), shift_hash, frame[indx]) for indx, shift_hash in enumerate(shift_hashes)]
-
-
-# @pytest.mark.parametrize("seqbuddy, shift_hash, frame", hashes)
-# def test_degerate_sequence_reading_frame_shift(seqbuddy, shift_hash, frame):
-#     tester = Sb.degenerate_sequence(seqbuddy,table=1,reading_frame=frame)
-#     assert seqs_to_hash(tester) == shift_hash
 
 # ######################  'df', '--delete_features' ###################### #
 def test_delete_features():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
     tester = Sb.delete_features(tester, 'donor')
     assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
-
-
 
 
 # ######################  'dl', '--delete_large' ###################### #

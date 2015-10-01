@@ -3132,11 +3132,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 'parameter for codon table preference extra parameters will be ignored \n') 
        # if no argument provided will use table 1 first reading frame as default(set above)
         if not degen_args:
-            pass
+             degenerate_sequence(seqbuddy)
         # if argument is provided, set the first given argument as the codon table
         else:
-            table = int(degen_args[0])
-        _print_recs(degenerate_sequence(seqbuddy, table))
+            degenerate_sequence(seqbuddy,degen_args[0])
+        _print_recs(seqbuddy)
         _exit('degenerate_sequence')
 
     # Extract regions
