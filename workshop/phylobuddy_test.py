@@ -144,7 +144,7 @@ def test_stdout(capsys):
     assert out == ""
 
 
-def test_phylobuddy_edges(capsys):
+def test_phylobuddy_edges():
     # If the input list isn't a list of PhyloBuddy objects
     with pytest.raises(TypeError):
         Pb.PhyloBuddy(["Foo", "Bar"])
@@ -170,7 +170,7 @@ pb_objects = [Pb.PhyloBuddy(resource(x)) for x in phylo_files]
 hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a',
           '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
 
-hashes = [(pb_objects[x], hashes[x]) for x in range(len(pb_objects))]
+hashes = [(Pb._make_copy(pb_objects[x]), hashes[x]) for x in range(len(pb_objects))]
 
 
 @pytest.mark.parametrize("phylobuddy,next_hash", hashes)
@@ -251,7 +251,7 @@ def test_display_trees_error():
         display_value = None
 
     with pytest.raises(SystemError):
-        Pb.display_trees(pb_objects[0])
+        Pb.display_trees(Pb._make_copy(pb_objects[0]))
 
     if display_value:
         os.environ["DISPLAY"] = display_value
@@ -288,7 +288,7 @@ def test_distance_ed(phylobuddy, next_hash):
 
 def test_distance_unknown_method():
     with pytest.raises(AttributeError):
-        Pb.distance(pb_objects[0], method='foo')
+        Pb.distance(Pb._make_copy(pb_objects[0]), method='foo')
 
 
 # ######################  'gt', '--generate_trees' ###################### #
@@ -463,6 +463,28 @@ def test_argparse_init(capsys):
     assert "Error: The format 'foo' passed in with the -f flag is not recognized." in err
 
 
+# ###################### INTERNAL FUNCTIONS ###################### #
+def test_print_trees_ui(capsys):
+    # Most of this function is covered repeatedly below, so just test the -t flag
+    test_in_args = deepcopy(in_args)
+    test_in_args.test = True
+    test_in_args.list_ids = [True]
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert err == "*** Test passed ***\n"
+
+
+def test_in_place_ui(capsys):
+    # Some of this function is covered below, so just test an edge
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_place = True
+    test_in_args.trees = [Pb._make_copy(pb_objects[0])]
+    test_in_args.screw_formats = "nexus"
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Warning: The -i flag was passed in, but the positional" in err
+
+
 # ###################### 'ct', '--consensus_tree' ###################### #
 def test_consensus_tree_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -541,12 +563,12 @@ def test_list_ids_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.list_ids = [True]
 
-    Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "4f0857e0211ff0cd058d0cf7cbaf64d5"
 
     test_in_args.list_ids = [4]
-    Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "bf2fbfe1bd52e9b27ae21f5c06e7763a"
 
@@ -561,7 +583,7 @@ def test_print_trees_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.print_trees = True
 
-    Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
 
@@ -601,6 +623,9 @@ def test_screw_formats_ui(capsys):
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "543d2fc90ca1f391312d6b8fe896c59c"
 
+
+def test_screw_formats_fail(capsys):
+    test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "foo"
     Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     foo_out, foo_err = capsys.readouterr()

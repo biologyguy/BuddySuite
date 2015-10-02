@@ -405,11 +405,7 @@ def _make_copy(_phylobuddy):
     :param _phylobuddy: The PhyloBuddy object to be copied
     :return: A copy of the original PhyloBuddy object
     """
-    try:
-        _copy = deepcopy(_phylobuddy)
-    except AttributeError:
-        _stderr("Warning: Deepcopy failed. Attempting workaround. Some metadata may be lost.")
-        _copy = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
+    _copy = deepcopy(_phylobuddy)
     return _copy
 
 
@@ -903,7 +899,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             _stdout("{0}\n".format(str(_phylobuddy).rstrip()))
 
     def _in_place(_output, _path):
-        if not os.path.exists(_path):
+        if not os.path.isfile(str(_path)):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
@@ -1075,7 +1071,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
         else:
             phylobuddy.out_format = in_args.screw_formats
-            if in_args.in_place:  # Need to change the file extension
+            if in_args.in_place and os.path.isfile(str(in_args.trees[0])):
+                # Need to change the file extension
                 os.remove(in_args.trees[0])
                 if "." in os.path.abspath(in_args.trees[0]):
                     in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
