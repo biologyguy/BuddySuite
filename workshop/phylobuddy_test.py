@@ -114,6 +114,9 @@ def test_guess_error():
             Pb.PhyloBuddy(ifile)
 
     # GuessError output
+    test_error = Pb.GuessError("This is a test")
+    assert str(test_error) == "This is a test"
+
     try:
         Pb.PhyloBuddy(resource("unrecognizable.txt"))
     except Pb.GuessError as e:
@@ -139,6 +142,27 @@ def test_stdout(capsys):
     Pb._stdout("Hello std_out", quiet=True)
     out, err = capsys.readouterr()
     assert out == ""
+
+
+def test_phylobuddy_edges(capsys):
+    # If the input list isn't a list of PhyloBuddy objects
+    with pytest.raises(TypeError):
+        Pb.PhyloBuddy(["Foo", "Bar"])
+
+    # Catch figtree metadata
+    assert type(Pb.PhyloBuddy(resource("figtree.nexus"))) == Pb.PhyloBuddy
+    with open(resource("figtree.nexus"), 'r') as ifile:
+        tester = Pb.PhyloBuddy(ifile)
+        assert type(tester) == Pb.PhyloBuddy
+
+    # Unsupported output format
+    tester.out_format = "foo"
+    with pytest.raises(TypeError):
+        str(tester)
+
+    # No trees in PhyloBuddy object
+    tester.trees = []
+    assert str(tester) == "Error: No trees in object.\n"
 
 pb_objects = [Pb.PhyloBuddy(resource(x)) for x in phylo_files]
 
@@ -172,6 +196,22 @@ def test_write1(phylobuddy, next_hash):
     out = "{0}\n".format(temp_file.read().rstrip())
     tester = md5(out.encode()).hexdigest()
     assert tester == next_hash
+
+
+def test_convert_to_ete():
+    tester = Pb._make_copy(pb_objects[0])
+    tester.trees[0].seed_node.annotations.add_new("pb_color", '#ff0000')
+    ete_tree = Pb._convert_to_ete(tester.trees[0])
+    assert ete_tree.pb_color == '#ff0000'
+
+
+def test_format_to_extension():
+    assert Pb._format_to_extension("nexus") == "nex"
+
+
+def test_guess_format():
+    with pytest.raises(Pb.GuessError):
+        Pb._guess_format(dict)
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -388,6 +428,17 @@ def test_rename_nodes():
     assert phylo_to_hash(tester) == "5e02eaa78e25970d7cda0111eef5adba"
 
 
+# ######################  'su', '--show_unique' ###################### #
+def test_show_unique():
+    tester = Pb.PhyloBuddy(resource("compare_trees.newick"))
+    tester = Pb.show_unique(tester)
+    assert phylo_to_hash(tester) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+
+    with pytest.raises(AssertionError):
+        tester = Pb.PhyloBuddy(Pb._make_copy(pb_objects[0]))
+        Pb.show_unique(tester)
+
+
 # ###################### 'sp', '--split_polytomies' ###################### #
 def test_split_polytomies():
     tester = Pb.PhyloBuddy('(A,(B,C,D));')
@@ -398,6 +449,20 @@ def test_split_polytomies():
 
 
 # ################################################# COMMAND LINE UI ################################################## #
+# ###################### argparse_init() ###################### #
+def test_argparse_init(capsys):
+    sys.argv = ['PhyloBuddy.py', resource("compare_trees.newick")]
+    temp_in_args, phylobuddy = Pb.argparse_init()
+    assert command_line_output_hash(str(phylobuddy)) == "d8e14a2bfc8e9c0ac3c524f5fb478c67"
+
+    sys.argv += ["-f", "foo"]
+    with pytest.raises(SystemExit):
+        Pb.argparse_init()
+
+    out, err = capsys.readouterr()
+    assert "Error: The format 'foo' passed in with the -f flag is not recognized." in err
+
+
 # ###################### 'ct', '--consensus_tree' ###################### #
 def test_consensus_tree_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -506,12 +571,75 @@ def test_prune_taxa_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.prune_taxa = [["fir"]]
 
-    Pb.command_line_ui(test_in_args, pb_objects[0], skip_exit=True)
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "99635c6dbf708f94cf4dfdca87113c44"
 
     test_in_args.prune_taxa = [["fir", "ovi"]]
 
-    Pb.command_line_ui(test_in_args, pb_objects[1], skip_exit=True)
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "2a385fa95024323fea412fd2b3c3e91f"
+
+
+# ###################### 'ri', '--rename_ids' ###################### #
+def test_rename_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.rename_ids = ['Mle', 'Phylo']
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "6843a620b725a3a0e0940d4352f2036f"
+
+
+# ###################### 'sf', '--screw_formats' ###################### #
+def test_screw_formats_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = "nexus"
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "543d2fc90ca1f391312d6b8fe896c59c"
+
+    test_in_args.screw_formats = "foo"
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    foo_out, foo_err = capsys.readouterr()
+    assert foo_err == "Error: unknown format 'foo'\n"
+
+
+def test_screw_formats_inplace_ui(capsys):
+    temp_file = TempFile()
+    with open(resource("compare_trees.newick"), "r") as ifile:
+        temp_file.write(ifile.read())
+
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = "nexus"
+    test_in_args.in_place = True
+    test_in_args.trees[0] = temp_file.path
+
+    tester = Pb.PhyloBuddy(temp_file.path)
+    Pb.command_line_ui(test_in_args, tester, skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "File over-written at:" in err
+    check_file = os.path.isfile("%s.nex" % temp_file.path)
+    assert check_file
+
+    test_in_args.trees[0] = "%s.nex" % temp_file.path
+    test_in_args.screw_formats = "newick"
+
+    tester = Pb.PhyloBuddy("%s.nex" % temp_file.path)
+    Pb.command_line_ui(test_in_args, tester, skip_exit=True)
+    nexus_out, nexus_err = capsys.readouterr()
+    assert "File over-written at:" in nexus_err
+    check_file = os.path.isfile("%s.nwk" % temp_file.path)
+    assert check_file
+
+
+# ###################### 'su', '--show_unique' ###################### #
+def test_show_unique_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.show_unique = True
+
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("compare_trees.newick")), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"

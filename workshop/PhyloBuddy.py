@@ -43,6 +43,7 @@ from copy import deepcopy
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio.Alphabet import IUPAC
+
 try:
     import ete3
 except ImportError:
@@ -63,6 +64,7 @@ except ImportError:
     confirm = input("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
         from subprocess import Popen
+
         Popen("pip install dendropy", shell=True).wait()
         try:
             import dendropy
@@ -70,7 +72,6 @@ except ImportError:
             sys.exit("Failed to install dendropy, please see https://pythonhosted.org/DendroPy/ for further details")
     else:
         sys.exit("Aborting. Please see https://pythonhosted.org/DendroPy/ for installation details\n")
-
 
 from dendropy.datamodel.treemodel import Tree
 from dendropy.datamodel.treecollectionmodel import TreeList
@@ -87,12 +88,18 @@ def unroot(_trees):
     return _trees
 
 
+def root(_trees, node=None):
+    # Dendropy 'reroot_at_node()' and 'reroot_at_midpoint' may work
+    return _trees
+
+
 def delete_metadata(_trees):
     return _trees
 
 
 def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
     return _phylobuddy
+
 
 # Compare two trees, and add colour to the nodes that differ. [ ]
 
@@ -276,6 +283,7 @@ class PhyloBuddy:
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
+
     def __init__(self, value):
         self.value = value
 
@@ -332,9 +340,9 @@ def _extract_figtree_metadata(_file_path):
 
 
 def _format_to_extension(_format):
-    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
-                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
-                           'stockholm': 'stklm', 'stklm': 'stklm'}
+    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
+                           'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
+                           'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
 
 
@@ -383,6 +391,12 @@ def _guess_format(_input):
 
     else:
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+
+
+def _order_dendropy_features(node):
+    node.annotations._item_list = sorted(node.annotations._item_list, key=lambda x: x.name)
+    node.annotations._item_set = set(node.annotations._item_list)
+    return node
 
 
 def _make_copy(_phylobuddy):
@@ -589,7 +603,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
             if tool in ['raxml', 'phyml']:  # If tool writes to file
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                 if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
-                   and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
+                        and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
                     raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
                 output = check_output(command, shell=True, universal_newlines=True)
@@ -697,6 +711,7 @@ def show_diff(phylobuddy):  # Doesn't work.
                 new_list.append(get_all_paths(child, _path_list=new_list))
         else:
             paths.append(new_list)
+
     get_all_paths(phylobuddy.trees[0].seed_node)
     print(paths)
 
@@ -744,10 +759,10 @@ def show_diff(phylobuddy):  # Doesn't work.
     return phylobuddy
 
 
-def show_unique_nodes(phylobuddy):
+def show_unique(phylobuddy):  # ToDo: Trees currently need to be rooted or this throws an error. Fix that...
     """
     Colors all of the nodes that aren't common between two trees
-    :param phylobuddy: The PhyloBuddy object to be labeled
+    :param phylobuddy: PhyloBuddy object
     :return: The labeled PhyloBuddy object
     """
     if len(phylobuddy.trees) != 2:
@@ -780,19 +795,30 @@ def show_unique_nodes(phylobuddy):
             node.add_feature('pb_color', '#ff0000')
 
     tmp_dir = TempDir()  # Convert back to dendropy
+
+    # Unnamed nodes are still given a 'name' feature, which is breaking downstream stuff
+    def delete_inner_names(input_tree):
+        output = re.sub('pb_color', '!color', input_tree)
+        output = re.sub("name=:", "", output)
+        output = re.sub("name=\]", "]", output)
+        return output
+
     with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
+        ofile.write(delete_inner_names(trees[0].write(features=[])))
+
     with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
+        ofile.write(delete_inner_names(trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
                      _out_format=phylobuddy.out_format)
     pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
                      _out_format=phylobuddy.out_format)
 
-    trees = pb1.trees + pb2.trees
+    # The 'apply()' method traverses all nodes and executes the provided function with 'node' as the argument
+    pb1.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
+    pb2.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
 
-    phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
+    phylobuddy.trees = pb1.trees + pb2.trees
 
     return phylobuddy
 
@@ -898,7 +924,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
         _exit(_tool)
 
-# ############################################## COMMAND LINE LOGIC ############################################## #
+    # ############################################## COMMAND LINE LOGIC ############################################## #
     # Consensus tree
     if in_args.consensus_tree:
         frequency = in_args.consensus_tree[0]
@@ -1051,11 +1077,28 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             phylobuddy.out_format = in_args.screw_formats
             if in_args.in_place:  # Need to change the file extension
                 os.remove(in_args.trees[0])
-                in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
-                                   "." + phylobuddy.out_format
+                if "." in os.path.abspath(in_args.trees[0]):
+                    in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
+                                       "." + _format_to_extension(phylobuddy.out_format)
+                else:
+                    in_args.trees[0] = os.path.abspath(in_args.trees[0]) + \
+                                       "." + _format_to_extension(phylobuddy.out_format)
+
                 open(in_args.trees[0], "w").close()
             _print_trees(phylobuddy)
         _exit("screw_formats")
+
+    # Show unique
+    if in_args.show_unique:
+        try:
+            _print_trees(show_unique(phylobuddy))
+        except AssertionError as _e:
+            if str(_e) == "PhyloBuddy object should have exactly 2 trees.":
+                _raise_error(_e, "show_unique")
+            else:
+                raise _e
+
+        _exit("show_unique")
 
     # Split polytomies
     if in_args.split_polytomies:
