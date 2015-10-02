@@ -14,6 +14,7 @@ import MyFuncs
 
 VERSION = Pb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
+BACKUP_PATH = os.environ["PATH"]
 
 
 def fmt(prog):
@@ -370,10 +371,9 @@ def test_generate_trees_edge_cases():
         Pb.generate_tree(tester, "fasttree", "-s 12345")
 
     with pytest.raises(ProcessLookupError):
-        backup_path = os.environ["PATH"]
         os.environ["PATH"] = ""
         Pb.generate_tree(tester, "raxml")
-        os.environ["PATH"] = backup_path
+        os.environ["PATH"] = BACKUP_PATH
 
 
 # ###################### 'li', '--list_ids' ###################### #
@@ -443,9 +443,12 @@ def test_show_unique():
 def test_split_polytomies():
     tester = Pb.PhyloBuddy('(A,(B,C,D));')
     Pb.split_polytomies(tester)
-    assert str(tester) in ['(A:1.0,(B:1.0,(C:1.0,D:1.0)):1.0):1.0;\n', '(A:1.0,(B:1.0,(D:1.0,C:1.0)):1.0):1.0;\n',
-                           '(A:1.0,(C:1.0,(B:1.0,D:1.0)):1.0):1.0;\n', '(A:1.0,(C:1.0,(D:1.0,B:1.0)):1.0):1.0;\n',
-                           '(A:1.0,(D:1.0,(C:1.0,B:1.0)):1.0):1.0;\n', '(A:1.0,(D:1.0,(B:1.0,C:1.0)):1.0):1.0;\n']
+    assert str(tester) in ['(A:1.0,(B:1.0,(C:1.0,D:1.0):1e-06):1.0):1.0;\n',
+                           '(A:1.0,(B:1.0,(D:1.0,C:1.0):1e-06):1.0):1.0;\n',
+                           '(A:1.0,(C:1.0,(B:1.0,D:1.0):1e-06):1.0):1.0;\n',
+                           '(A:1.0,(C:1.0,(D:1.0,B:1.0):1e-06):1.0):1.0;\n',
+                           '(A:1.0,(D:1.0,(B:1.0,C:1.0):1e-06):1.0):1.0;\n',
+                           '(A:1.0,(D:1.0,(C:1.0,B:1.0):1e-06):1.0):1.0;\n']
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -526,6 +529,9 @@ def test_distance_ui(capsys):
 # ###################### 'gt', '--generate_tree' ###################### #
 @pytest.mark.generate_trees
 def test_generate_tree_ui1(capsys):
+    if os.environ["PATH"] == "":
+        os.environ["PATH"] = BACKUP_PATH
+
     test_in_args = deepcopy(in_args)
     test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
     test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
@@ -538,6 +544,9 @@ def test_generate_tree_ui1(capsys):
 
 @pytest.mark.generate_trees
 def test_generate_tree_ui2():
+    if os.environ["PATH"] == "":
+        os.environ["PATH"] = BACKUP_PATH
+
     test_in_args = deepcopy(in_args)
     test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
     test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
@@ -668,3 +677,18 @@ def test_show_unique_ui(capsys):
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("compare_trees.newick")), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+
+
+# ###################### 'sp', '--split_polytomies' ###################### #
+def test_split_polytomies_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.split_polytomies = True
+
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(Pb.PhyloBuddy('(A,(B,C,D));')), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert out in ['(A:1.0,(B:1.0,(C:1.0,D:1.0):1e-06):1.0):1.0;\n',
+                   '(A:1.0,(B:1.0,(D:1.0,C:1.0):1e-06):1.0):1.0;\n',
+                   '(A:1.0,(C:1.0,(B:1.0,D:1.0):1e-06):1.0):1.0;\n',
+                   '(A:1.0,(C:1.0,(D:1.0,B:1.0):1e-06):1.0):1.0;\n',
+                   '(A:1.0,(D:1.0,(B:1.0,C:1.0):1e-06):1.0):1.0;\n',
+                   '(A:1.0,(D:1.0,(C:1.0,B:1.0):1e-06):1.0):1.0;\n']

@@ -73,7 +73,7 @@ except ImportError:
     else:
         sys.exit("Aborting. Please see https://pythonhosted.org/DendroPy/ for installation details\n")
 
-from dendropy.datamodel.treemodel import Tree
+from dendropy.datamodel.treemodel import Tree, Node
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
@@ -821,12 +821,34 @@ def show_unique(phylobuddy):  # ToDo: Trees currently need to be rooted or this 
 
 def split_polytomies(phylobuddy):
     """
-    Randomly splits polytomies.
-    :param phylobuddy: The PhyloBuddy object whose trees will be processed.
-    :return: The same PhyloBuddy object after processing.
+    Randomly splits polytomies. This function was drawn almost verbatim from the DendroPy Tree.resolve_polytomies()
+    method. The main difference is that a very small edge_length is assigned to new nodes when a polytomy is split.
+    :param phylobuddy: PhyloBuddy object
+    :return: Modified PhyloBuddy object
     """
+    rng = random.Random()
     for tree in phylobuddy.trees:
-        tree.resolve_polytomies(rng=random.Random())
+        polytomies = []
+        for node in tree.postorder_node_iter():
+            if len(node._child_nodes) > 2:
+                polytomies.append(node)
+        for node in polytomies:
+            to_attach = rng.sample(node._child_nodes, len(node._child_nodes) - 2)
+            for child in to_attach:
+                node.remove_child(child)
+            attachment_points = list(node._child_nodes)
+            while len(to_attach) > 0:
+                next_child = to_attach.pop()
+                next_sib = rng.choice(attachment_points)
+                next_attachment = Node(edge_length=0.000001)
+                p = next_sib._parent_node
+                p.add_child(next_attachment)
+                p.remove_child(next_sib)
+                next_attachment.add_child(next_sib)
+                next_attachment.add_child(next_child)
+                attachment_points.append(next_attachment)
+                attachment_points.append(next_child)
+
     return phylobuddy
 
 
