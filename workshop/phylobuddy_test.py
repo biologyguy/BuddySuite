@@ -411,12 +411,12 @@ def test_prune_taxa(phylobuddy, next_hash):
 
 
 # ######################  'ri', '--rename_ids' ###################### #
-ri_hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a',
-             '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
-ri_hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(ri_hashes)]
+hashes = ['6843a620b725a3a0e0940d4352f2036f', '543d2fc90ca1f391312d6b8fe896c59c', '6ce146e635c20ad62e21a1ed6fddbd3a',
+          '4dfed97b2a23b8957ee5141bf4681fe4', '77d00fdc512fa09bd1146037d25eafa0', '9b1014be1b38d27f6b7ef73d17003dae']
+hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
 
 
-@pytest.mark.parametrize("phylobuddy, next_hash", ri_hashes)
+@pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_rename_ids(phylobuddy, next_hash):
     tester = Pb.rename(phylobuddy, 'Mle', 'Phylo')
     assert phylo_to_hash(tester) == next_hash
@@ -426,6 +426,37 @@ def test_rename_nodes():
     tester = Pb.PhyloBuddy(resource("tree_with_node_lables.nwk"))
     Pb.rename(tester, "Inner", "Outer")
     assert phylo_to_hash(tester) == "5e02eaa78e25970d7cda0111eef5adba"
+
+# ###################### 'rt', '--root' ###################### #
+hashes = ['25ea14c2e89530a0fb48163c0ef2a102', 'e3711259d579cbf0511a5ded66dfd437', '8135cec021240619c27d61288885d8e1',
+          '05a83105f54340839dca64a62a22026e', 'f0e26202274a191c9939835b25c1fae4', 'e97c246dc7ebf4d80363f836beff4a81']
+hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("phylobuddy, next_hash", hashes)
+def test_root_middle(phylobuddy, next_hash):
+    tester = Pb.root(phylobuddy)
+    assert phylo_to_hash(tester) == next_hash
+
+hashes = ['f32bdc34bfe127bb0453a80cf7b01302', 'a7003478d75ad76ef61fcdc643ccdab8', 'c490e3a937b6ee2073c74119984a896e',
+          'eacf232776eea70b5de156328e10ecc7', '53caffda3fed5b9004b79effc6d29c36', '3137d568fe07d88620c08480a15006d3']
+hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("phylobuddy, next_hash", hashes)
+def test_root_leaf(phylobuddy, next_hash):
+    tester = Pb.root(phylobuddy, "firSA25a")
+    assert phylo_to_hash(tester) == next_hash
+
+hashes = ['757489907bd5c82882d084ffcb22cfba', '5a31e678a809ad9a3b3d675da3a70dad', '4e7d156b8e16923eccb0998478f29a01',
+          '05a83105f54340839dca64a62a22026e', 'f0e26202274a191c9939835b25c1fae4', 'e97c246dc7ebf4d80363f836beff4a81']
+hashes = [(Pb._make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("phylobuddy, next_hash", hashes)
+def test_root_mrca(phylobuddy, next_hash):
+    tester = Pb.root(phylobuddy, ["firSA25a", "penSH31b"])
+    assert phylo_to_hash(tester) == next_hash
 
 
 # ######################  'su', '--show_unique' ###################### #
@@ -474,11 +505,11 @@ def test_argparse_init(capsys):
 
 
 # ###################### INTERNAL FUNCTIONS ###################### #
-def test_print_trees_ui(capsys):
+def test_print_trees_internal_ui(capsys):
     # Most of this function is covered repeatedly below, so just test the -t flag
     test_in_args = deepcopy(in_args)
     test_in_args.test = True
-    test_in_args.list_ids = [True]
+    test_in_args.unroot = True
     Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
     assert err == "*** Test passed ***\n"
@@ -630,6 +661,40 @@ def test_rename_ids_ui(capsys):
     assert command_line_output_hash(out) == "6843a620b725a3a0e0940d4352f2036f"
 
 
+# ###################### 'rt', '--root' ###################### #
+def test_root_ui_midpoint(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.root = [[]]
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "25ea14c2e89530a0fb48163c0ef2a102"
+
+    test_in_args.root = [[True]]
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "25ea14c2e89530a0fb48163c0ef2a102"
+
+
+def test_root_ui_leaf(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.root = [["firSA25a"]]
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "f32bdc34bfe127bb0453a80cf7b01302"
+
+
+def test_root_ui_mrca(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.root = [["firSA25a", "penSH31b"]]
+
+    Pb.command_line_ui(test_in_args, Pb._make_copy(pb_objects[0]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "757489907bd5c82882d084ffcb22cfba"
+
+
 # ###################### 'sf', '--screw_formats' ###################### #
 def test_screw_formats_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -709,4 +774,3 @@ def test_unroot_ui(capsys):
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("figtree.nexus")), skip_exit=True)
     out, err = capsys.readouterr()
     assert command_line_output_hash(out) == "518710bd247dab7d8cce26ea97bd74cc"
-
