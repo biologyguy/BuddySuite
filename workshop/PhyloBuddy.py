@@ -84,10 +84,6 @@ import buddy_resources as br
 
 
 # ##################################################### WISH LIST #################################################### #
-def unroot(_trees):
-    return _trees
-
-
 def root(_trees, node=None):
     # Dendropy 'reroot_at_node()' and 'reroot_at_midpoint' may work
     return _trees
@@ -865,6 +861,14 @@ def trees_to_ascii(phylobuddy):
     return output
 
 
+def unroot(phylobuddy):
+    for tree in phylobuddy.trees:
+        tree.is_rooted = False
+        tree.update_bipartitions()
+
+    return phylobuddy
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     import argparse
@@ -1122,6 +1126,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     # Split polytomies
     if in_args.split_polytomies:
         split_polytomies(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("split_polytomies")
+
+    # Unroot
+    if in_args.unroot:
+        unroot(phylobuddy)
         _print_trees(phylobuddy)
         _exit("split_polytomies")
 

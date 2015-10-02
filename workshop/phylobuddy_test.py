@@ -451,6 +451,13 @@ def test_split_polytomies():
                            '(A:1.0,(D:1.0,(C:1.0,B:1.0):1e-06):1.0):1.0;\n']
 
 
+# ###################### 'ur', '--unroot' ###################### #
+def test_unroot():
+    tester = Pb.PhyloBuddy(resource("figtree.nexus"))
+    Pb.unroot(tester)
+    assert phylo_to_hash(tester) == "518710bd247dab7d8cce26ea97bd74cc"
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 # ###################### argparse_init() ###################### #
 def test_argparse_init(capsys):
@@ -692,3 +699,14 @@ def test_split_polytomies_ui(capsys):
                    '(A:1.0,(C:1.0,(D:1.0,B:1.0):1e-06):1.0):1.0;\n',
                    '(A:1.0,(D:1.0,(B:1.0,C:1.0):1e-06):1.0):1.0;\n',
                    '(A:1.0,(D:1.0,(C:1.0,B:1.0):1e-06):1.0):1.0;\n']
+
+
+# ###################### 'ur', '--unroot' ###################### #
+def test_unroot_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.unroot = True
+
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("figtree.nexus")), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert command_line_output_hash(out) == "518710bd247dab7d8cce26ea97bd74cc"
+

@@ -710,6 +710,9 @@ pb_flags = {"consensus_tree": {"flag": "ct",
             "split_polytomies": {"flag": "sp",
                                  "action": "store_true",
                                  "help": "Create a binary tree by splitting polytomies randomly"},
+            "unroot": {"flag": "ur",
+                               "action": "store_true",
+                               "help": "Remove any roots"}
             }
 
 pb_modifiers = {"in_format": {"flag": "f",
