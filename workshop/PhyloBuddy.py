@@ -46,6 +46,7 @@ from Bio.Alphabet import IUPAC
 
 try:
     import ete3
+    from ete3.coretype.tree import TreeError
 except ImportError:
     confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
@@ -53,6 +54,8 @@ except ImportError:
         Popen("pip install six", shell=True).wait()
         try:
             import ete3
+            from ete3.coretype.tree import TreeError
+
         except ImportError:
             sys.exit("Failed to install ETE3, please see http://etetoolkit.org/download/ for further details")
     else:
@@ -255,7 +258,7 @@ class PhyloBuddy:
         if self.out_format != 'nexml':
             _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
         else:
-            _output = tree_list.as_string(schema=self.out_format)
+            _output = tree_list.as_string(schema='nexml')
 
         _output = '{0}\n'.format(_output.rstrip())
 
@@ -700,12 +703,13 @@ def root(phylobuddy, root_nodes=None):
             else:
                 _root(_tree)
         else:
-            # WARNING! There is a bug in DendroPy leading to an infinite loop here. I've fixed it in my copy, but
-            # waiting on the DendroPy folks to fix the repo
+            # WARNING! There is a bug in DendroPy leading to an infinite loop here. The dendropy folks have fixed it
+            # in their development branch but it is not yet in the main branch
             _tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
 
     for tree in phylobuddy.trees:
         _root(tree, root_nodes)
+        tree.is_rooted = True
 
     return phylobuddy
 
@@ -777,7 +781,7 @@ def show_diff(phylobuddy):  # Doesn't work.
     return phylobuddy
 
 
-def show_unique(phylobuddy):  # ToDo: Trees currently need to be rooted or this throws an error. Fix that...
+def show_unique(phylobuddy):
     """
     Colors all of the nodes that aren't common between two trees
     :param phylobuddy: PhyloBuddy object
@@ -789,7 +793,15 @@ def show_unique(phylobuddy):  # ToDo: Trees currently need to be rooted or this 
     trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
              _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
 
-    data = trees[0].robinson_foulds(trees[1])
+    try:
+        data = trees[0].robinson_foulds(trees[1])
+
+    except TreeError as _e:
+        if "Unrooted tree found!" in str(_e):
+            data = trees[0].robinson_foulds(trees[1], unrooted_trees=True)
+        else:
+            raise _e
+
     tree1_only = []
     tree2_only = []
 

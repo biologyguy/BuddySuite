@@ -462,12 +462,19 @@ def test_root_mrca(phylobuddy, next_hash):
 # ######################  'su', '--show_unique' ###################### #
 def test_show_unique():
     tester = Pb.PhyloBuddy(resource("compare_trees.newick"))
-    tester = Pb.show_unique(tester)
+    Pb.show_unique(tester)
     assert phylo_to_hash(tester) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # If only a single tree is present
         tester = Pb.PhyloBuddy(Pb._make_copy(pb_objects[0]))
         Pb.show_unique(tester)
+
+
+def test_show_unique_unrooted():
+    tester = Pb.PhyloBuddy(resource("compare_trees.newick"))
+    Pb.unroot(tester)
+    Pb.show_unique(tester)
+    assert phylo_to_hash(tester) == "2bba16e2c77102ba150adecc352407a9"
 
 
 # ###################### 'sp', '--split_polytomies' ###################### #
