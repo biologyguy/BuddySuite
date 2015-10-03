@@ -17,6 +17,7 @@ import SeqBuddy as Sb
 import MyFuncs
 
 VERSION = Sb.VERSION
+WRITE_FILE = MyFuncs.TempFile()
 
 
 def fmt(prog):
@@ -39,8 +40,6 @@ br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping se
 
 in_args = parser.parse_args()
 
-write_file = MyFuncs.TempFile()
-
 
 def seqs_to_hash(_seqbuddy, mode='hash'):
     if _seqbuddy.out_format in ["gb", "genbank"]:
@@ -52,13 +51,13 @@ def seqs_to_hash(_seqbuddy, mode='hash'):
                 pass
 
     if _seqbuddy.out_format == "phylipi":
-        write_file.write(Sb._phylipi(_seqbuddy, "relaxed"))
+        WRITE_FILE.write(Sb._phylipi(_seqbuddy, "relaxed"))
     elif _seqbuddy.out_format == "phylipis":
-        write_file.write(Sb._phylipi(_seqbuddy, "strict"))
+        WRITE_FILE.write(Sb._phylipi(_seqbuddy, "strict"))
     else:
-        _seqbuddy.write(write_file.path)
+        _seqbuddy.write(WRITE_FILE.path)
 
-    seqs_string = "{0}\n".format(write_file.read().strip())
+    seqs_string = "{0}\n".format(WRITE_FILE.read().strip())
 
     if mode != "hash":
         return seqs_string
@@ -66,8 +65,11 @@ def seqs_to_hash(_seqbuddy, mode='hash'):
     _hash = md5(seqs_string.encode()).hexdigest()
     return _hash
 
-
 root_dir = os.getcwd()
+
+
+def string2hash(_input):
+    return md5(_input.encode()).hexdigest()
 
 
 def resource(file_name):
@@ -95,7 +97,10 @@ def test_instantiate_seqbuddy_from_handle(seq_file):
 @pytest.mark.parametrize("seq_file", seq_files)
 def test_instantiate_seqbuddy_from_raw(seq_file):
     with open(resource(seq_file), 'r') as ifile:
-        assert type(Sb.SeqBuddy(ifile.read())) == Sb.SeqBuddy
+        assert type(Sb.SeqBuddy(ifile.read(), in_format="raw")) == Sb.SeqBuddy
+
+    with open(resource(seq_file), 'r') as ifile:
+        assert type(Sb.SeqBuddy(ifile, in_format="raw")) == Sb.SeqBuddy
 
 
 @pytest.mark.parametrize("seq_file", seq_files)
@@ -106,28 +111,60 @@ def test_instantiate_seqbuddy_from_seqbuddy(seq_file):
 
 
 def test_alpha_arg_dna():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='dna')
+    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='dna')
     assert tester.alpha is IUPAC.ambiguous_dna
 
 
 def test_alpha_arg_rna():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='rna')
+    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='rna')
     assert tester.alpha is IUPAC.ambiguous_rna
 
 
 def test_alpha_arg_prot():
-    tester = Sb.SeqBuddy(resource(seq_files[6]), _alpha='prot')
+    tester = Sb.SeqBuddy(resource(seq_files[6]), alpha='prot')
     assert tester.alpha is IUPAC.protein
 
 
 def test_alpha_arg_guess():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), _alpha='dgasldfkjhgaljhetlfdjkfg')
+    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='dgasldfkjhgaljhetlfdjkfg')
     assert tester.alpha is IUPAC.ambiguous_dna
 
 
-def test_to_string():
-    tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(tester) == md5(str(tester).encode()).hexdigest()
+def test_seqlist_error():
+    with pytest.raises(TypeError):
+        Sb.SeqBuddy([str, dict])
+
+
+# ##################### SeqBuddy methods ###################### ##
+def test_to_dict():
+    tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
+    tester = ''.join(sorted(tester))
+    assert string2hash(tester) == '06f50839f94e8f917311b682837461fd'
+
+    with pytest.raises(RuntimeError):
+        tester = Sb.SeqBuddy(">duplicate_id\nATGCTCGTA\n>duplicate_id\nATGCTCGTCGATGCT\n")
+        tester.to_dict()
+
+
+def test_to_string(capsys):
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    assert string2hash(str(tester)) == "b831e901d8b6b1ba52bad797bad92d14"
+    tester.print()
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    assert string2hash(str(tester)) == "2e02a8e079267bd9add3c39f759b252c"
+
+    tester.out_format = "phylipi"
+    assert string2hash(str(tester)) == "da16cb90b53e9f29ddfe3bf0e3faee22"
+
+    tester.out_format = "phylipis"
+    assert string2hash(str(tester)) == "0b00c1521259b0e1389e58cb5d414048"
+
+    tester.records = []
+    assert str(tester) == "Error: No sequences in object.\n"
+
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
@@ -144,6 +181,12 @@ def test_guesserror_raw_seq():
 def test_guesserror_infile():
     with pytest.raises(Sb.GuessError):
         Sb.SeqBuddy(resource("gibberish.fa"))
+
+
+def test_guesserror_in_handle():
+    with pytest.raises(Sb.GuessError):
+        with open(resource("gibberish.fa"), "r") as ifile:
+            Sb.SeqBuddy(ifile)
 
 
 def test_no__input():
@@ -170,14 +213,6 @@ def test_stderr(capsys):
     Sb._stderr("Hello std_err", quiet=True)
     out, err = capsys.readouterr()
     assert err == ""
-
-
-# ##################### 'to_dict' ###################### ##
-def test_to_dict():
-    tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
-    tester = ''.join(sorted(tester))
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == '06f50839f94e8f917311b682837461fd'
 
 
 # ######################  'phylipi' ###################### #

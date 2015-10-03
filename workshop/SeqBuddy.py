@@ -11,7 +11,7 @@ details at http://www.gnu.org/licenses/.
 
 name: SeqBuddy.py
 date: Nov-20-2014
-version: 2, unstable
+version: 2, alpha
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -141,19 +141,19 @@ def degenerate_dna():
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
-                  "stockholm", "tab", "qual"]
+                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylipi",
+                  "phylipis", "seqxml", "sff", "stockholm", "tab", "qual"]
 
 
 # ##################################################### SEQBUDDY ##################################################### #
 class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
-    def __init__(self, _input, _in_format=None, _out_format=None, _alpha=None):
+    def __init__(self, _input, in_format=None, out_format=None, alpha=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
         in_handle = None
         _raw_seq = None
         in_file = None
-        self.alpha = _alpha
+        self.alpha = alpha
 
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -165,9 +165,9 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             _input.seek(0)
 
         # Raw sequences
-        if _in_format == "raw":
-            _in_format = "fasta"
-            _out_format = "fasta"
+        if in_format == "raw":
+            in_format = "fasta"
+            out_format = "fasta"
             if type(_input) == str:
                 _input = [SeqRecord(Seq(_input), id="raw_input", description="")]
             else:
@@ -187,12 +187,12 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         except TypeError:  # This happens when testing something other than a string.
             pass
 
-        if not _in_format:
+        if not in_format:
             self.in_format = _guess_format(_input)
-            self.out_format = str(self.in_format) if not _out_format else _out_format
+            self.out_format = str(self.in_format) if not out_format else out_format
 
         else:
-            self.in_format = _in_format
+            self.in_format = in_format
 
         if not self.in_format:
             if in_file:
@@ -207,7 +207,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             else:
                 raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
-        self.out_format = self.in_format if not _out_format else _out_format
+        self.out_format = self.in_format if not out_format else out_format
 
         # ####  RECORDS  #### #
         if type(_input) == SeqBuddy:
@@ -258,7 +258,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         return records_dict
 
     def print(self):
-        print(self)
+        print(str(self).strip())
         return
 
     def __str__(self):
@@ -1219,7 +1219,7 @@ def combine_features(_seqbuddy1, _seqbuddy2):  # ToDo: rewrite this to accept an
     if warning_used:
         sys.stderr.write("\n")
 
-    _seqbuddy = SeqBuddy([_new_seqs[_seq_id] for _seq_id in seq_order], _out_format=_seqbuddy1.in_format)
+    _seqbuddy = SeqBuddy([_new_seqs[_seq_id] for _seq_id in seq_order], out_format=_seqbuddy1.in_format)
     _seqbuddy = order_features_by_position(_seqbuddy)
     return _seqbuddy
 
@@ -2510,7 +2510,7 @@ def translate6frames(_seqbuddy):
         _output += [frame1.records[_i], frame2.records[_i], frame3.records[_i],
                     rframe1.records[_i], rframe2.records[_i], rframe3.records[_i]]
 
-    _seqbuddy = SeqBuddy(_output, _out_format=_seqbuddy.out_format)
+    _seqbuddy = SeqBuddy(_output, out_format=_seqbuddy.out_format)
     return _seqbuddy
 
 
