@@ -242,7 +242,7 @@ def test_phylipi():
 # ##################### 'af', 'add_feaure' ###################### ##
 def test_add_feature_pattern():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _pattern='α4')
+    tester = Sb.add_feature(tester, 'test', (1, 100), pattern='α4')
     assert seqs_to_hash(tester) == '7330c5905e216575b8bb8f54db3a0610'
 
 
@@ -297,43 +297,43 @@ def test_add_feature_typerror():
 
 def test_add_feature_pos_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _strand='+')
+    tester = Sb.add_feature(tester, 'test', (1, 100), strand='+')
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
 
 
 def test_add_feature_neg_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _strand='-')
+    tester = Sb.add_feature(tester, 'test', (1, 100), strand='-')
     assert seqs_to_hash(tester) == 'a6c4bb6b402fa69f60229832af2bf354'
 
 
 def test_add_feature_no_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _strand=0)
+    tester = Sb.add_feature(tester, 'test', (1, 100), strand=0)
     assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
 
 
 def test_add_feature_qualifier_dict():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers={'foo': 'bar', 'hello': 'world'})
+    tester = Sb.add_feature(tester, 'test', (1, 100), qualifiers={'foo': 'bar', 'hello': 'world'})
     assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
 
 
 def test_add_feature_qualifier_str():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), _qualifiers='foo=bar, hello:world')
+    tester = Sb.add_feature(tester, 'test', (1, 100), qualifiers='foo=bar, hello:world')
     assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
 
 
 # ######################  'asl', '--ave_seq_length' ###################### #
 @pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects[0:6] if len(x.records) == 13])
 def test_ave_seq_length_dna(seqbuddy):
-    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 1285.15
+    assert round(Sb.ave_seq_length(seqbuddy, clean=True), 2) == 1285.15
 
 
 @pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects[6:12] if len(x.records) == 13])
 def test_ave_seq_length_pep(seqbuddy):
-    assert round(Sb.ave_seq_length(seqbuddy, _clean=True), 2) == 427.38
+    assert round(Sb.ave_seq_length(seqbuddy, clean=True), 2) == 427.38
 
 
 # ######################  'btr', '--back_translate' ###################### #
@@ -702,8 +702,8 @@ def test_restriction_sites():
     assert md5(str(tester[1]).encode()).hexdigest() == "741ca6ca9204a067dce7398f15c6e350"
 
     # Specify a few REs and limit the number of cuts
-    tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]), _enzymes=["EcoRI", "KspI", "TasI", "Bme1390I"],
-                                       _min_cuts=2, _max_cuts=4)
+    tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]), enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I"],
+                                       min_cuts=2, max_cuts=4)
     assert seqs_to_hash(tester[0]) == 'c42b3bf0367557383000b897432fed2d'
     assert md5(str(tester[1]).encode()).hexdigest() == "0d2e5fdba6fed434495481397a91e56a"
 
@@ -956,7 +956,7 @@ hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx
 def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
-    tester = Sb.order_features_alphabetically(seqbuddy, _reverse=True)
+    tester = Sb.order_features_alphabetically(seqbuddy, reverse=True)
     assert seqs_to_hash(tester) == rev_hash
 
 
@@ -989,7 +989,7 @@ hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx
 def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_by_position(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
-    tester = Sb.order_features_by_position(seqbuddy, _reverse=True)
+    tester = Sb.order_features_by_position(seqbuddy, reverse=True)
     assert seqs_to_hash(tester) == rev_hash
 
 
@@ -1008,7 +1008,7 @@ hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx
 def test_order_ids(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_ids(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
-    tester = Sb.order_ids(seqbuddy, _reverse=True)
+    tester = Sb.order_ids(seqbuddy, reverse=True)
     assert seqs_to_hash(tester) == rev_hash
 
 
