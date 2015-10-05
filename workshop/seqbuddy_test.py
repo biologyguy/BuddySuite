@@ -9,6 +9,7 @@ import re
 import sys
 from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
+from Bio.Alphabet import IUPAC
 import argparse
 
 sys.path.insert(0, "./")
@@ -176,6 +177,10 @@ sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 def test_guesserror_raw_seq():
     with pytest.raises(Sb.GuessError):
         Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
+    try:
+        Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
+    except Sb.GuessError as e:
+        assert str(e) == "File not found, or could not determine format from raw input"
 
 
 def test_guesserror_infile():
@@ -194,25 +199,96 @@ def test_no__input():
         Sb.SeqBuddy()
 
 
-# ######################  'stdout and stderr' ###################### #
-def test_stdout(capsys):
-    Sb._stdout("Hello std_out", quiet=False)
-    out, err = capsys.readouterr()
-    assert out == "Hello std_out"
-
-    Sb._stdout("Hello std_out", quiet=True)
-    out, err = capsys.readouterr()
-    assert out == ""
+# ######################  '_make_copy' ###################### #
+def test_make_copy():
+    assert seqs_to_hash(Sb._make_copy(sb_objects[0])) == seqs_to_hash(sb_objects[0])
 
 
-def test_stderr(capsys):
-    Sb._stderr("Hello std_err", quiet=False)
-    out, err = capsys.readouterr()
-    assert err == "Hello std_err"
+# ######################  '_download_blast_binaries' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_dl_blast_bins():
+    for platform in ["darwin", "linux", "win"]:
+        Sb._download_blast_binaries(ignore_pre_install=True, system=platform)
+        if platform != "win":
+            assert os.path.isfile('blastdbcmd')
+            assert os.path.isfile('blastn')
+            assert os.path.isfile('blastp')
+            os.remove("./blastdbcmd")
+            os.remove("./blastn")
+            os.remove("./blastp")
+        else:
+            assert os.path.isfile('blastdbcmd.exe')
+            assert os.path.isfile('blastn.exe')
+            assert os.path.isfile('blastp.exe')
+            os.remove("./blastdbcmd.exe")
+            os.remove("./blastn.exe")
+            os.remove("./blastp.exe")
 
-    Sb._stderr("Hello std_err", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""
+
+# ######################  '_feature_rc' ###################### #
+def test_feature_rc():
+    tester = Sb._make_copy(sb_objects[1])
+    seq1 = tester.records[0]
+    hashed = ["dc71a33b64a766da8653c19f22fc4caa", "9ab8296fb3443198674d90abe3311ba6",
+              "10018d1b15c7f76a6333ac3bf96d2d07", "273463b9eace12d2eeadbf272692d73e",
+              "c452d66d13120cd6eb5f041b7c37dd27", "1811b0695dba1fc3fe431a6ee00ef359"]
+    for feature in zip(seq1.features, hashed):
+        assert string2hash(str(Sb._feature_rc(feature[0], 1203))) == feature[1]
+
+    with pytest.raises(TypeError):
+        feature = seq1.features[0]
+        feature.location = {}
+        Sb._feature_rc(feature, 1203)
+
+
+# ######################  '_format_to_extension' ###################### #
+def test_format_to_extension():
+    ext_dict = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy',
+                'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
+    for i, j in ext_dict.items():
+        assert j == Sb._format_to_extension(i)
+
+
+# ######################  '_guess_alphabet' ###################### #
+def test_guess_alphabet():
+    tester = Sb._make_copy(sb_objects[0])
+    assert Sb._guess_alphabet(tester) == IUPAC.ambiguous_dna
+
+    tester = Sb._make_copy(sb_objects[6])
+    assert Sb._guess_alphabet(tester) == IUPAC.protein
+
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_rna.fa"))
+    assert Sb._guess_alphabet(tester) == IUPAC.ambiguous_rna
+
+    tester = Sb.SeqBuddy(">Seq1", in_format="fasta")
+    assert not Sb._guess_alphabet(tester)
+
+
+# ######################  '_guess_format' ###################### #
+def test_guess_format():
+    assert Sb._guess_format(["foo", "bar"]) == "gb"
+    assert Sb._guess_format(sb_objects[0]) == "fasta"
+    assert Sb._guess_format(resource("Mnemiopsis_cds.fa")) == "fasta"
+    with pytest.raises(SystemExit):
+        Sb._guess_format(resource("blank.fa"))
+    with pytest.raises(Sb.GuessError):
+        Sb._guess_format("foo")
+
+    temp_file = MyFuncs.TempFile()
+    temp_file.write('''\
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<nex:nexml
+    version="0.9"
+    xsi:schemaLocation="http://www.nexml.org/2009 ../xsd/nexml.xsd"
+    xmlns="http://www.nexml.org/2009"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:nex="http://www.nexml.org/2009"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+''')
+
+    assert not Sb._guess_format(temp_file.path)
 
 
 # ######################  'phylipi' ###################### #
@@ -236,6 +312,55 @@ def test_phylipi():
     tester = "{0}\n".format(tester.rstrip())
     tester = md5(tester.encode()).hexdigest()
     assert tester == "5f70d8a339b922f27c308d48280d715f"
+
+
+# ######################  '_shift_features' ###################### #
+@pytest.mark.foo
+def test_shift_features():
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "cc002df59db8a04f47cb5c764f8a1e1f"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    assert string2hash(str(Sb._shift_features(features, -50, 1203))) == "86dcc19cd51ba3acdaf48e8c15bf7f1a"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    features[0].location.parts = []
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "467ee934600573e659053b8117447986"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    features[0].location.parts = [FeatureLocation(3, 50, strand=+1)]
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "94bf6774e97fcecaef858cbdf811def4"
+
+    with pytest.raises(TypeError):
+        tester = Sb._make_copy(sb_objects[1])
+        features = tester.records[0].features
+        features[0].location = [dict]
+        Sb._shift_features(features, 3, 1203)
+
+
+# ######################  '_stdout and _stderr' ###################### #
+def test_stdout(capsys):
+    Sb._stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    Sb._stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+
+def test_stderr(capsys):
+    Sb._stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    Sb._stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #

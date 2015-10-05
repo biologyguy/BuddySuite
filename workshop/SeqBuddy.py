@@ -307,15 +307,25 @@ class GuessError(Exception):
         return self.value
 
 
-def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True):
-    if os.path.exists('.buddysuite'):
-        current_path = '.buddysuite/'
+def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs):
+    """
+    :param blastn: Install blastn? (bool)
+    :param blastp: Install blastp? (bool)
+    :param blastdcmd: Install blastdbcmd? (bool)
+    :param kwargs: Just used for unit test options at the moment
+                   ignore_pre_install: bool
+                   system: {'darwin', 'linux', 'win'}
+    :return:
+    """
+
+    if os.path.isdir(os.path.abspath('~/.buddysuite')) and "ignore_pre_install" not in kwargs:
+        current_path = os.path.abspath('~/.buddysuite')
     else:
         current_path = os.getcwd()
 
     binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
     bins_to_dl = []
-    current_os = sys.platform
+    current_os = sys.platform if "system" not in kwargs else kwargs["system"]
     if current_os.startswith('darwin'):
         if blastdcmd:
             bins_to_dl.append('Darwin_blastdbcmd.zip')
@@ -343,8 +353,8 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True):
     file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
                     'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd.zip': 'blastdbcmd',
                     'Linux_blastn.zip': 'blastn', 'Linux_blastp.zip': 'blastp',
-                    'Win32_blastdbcmd.zip': 'blastdbcmd', 'Win32_blastn.zip': 'blastn',
-                    'Win32_blastp.zip': 'blastp'}
+                    'Win32_blastdbcmd.zip': 'blastdbcmd.exe', 'Win32_blastn.zip': 'blastn.exe',
+                    'Win32_blastp.zip': 'blastp.exe'}
 
     os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
     try:
@@ -354,8 +364,12 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True):
                 shutil.copyfileobj(reader, writer)
             zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
             zip_file.extractall(path=current_path)
-            os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
-                      '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
+            if current_os.startswith('win'):
+                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '.exe', blast_bin)),
+                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
+            else:
+                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
+                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
             os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
             print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
         shutil.rmtree("{0}/__tempdir__".format(current_path))
@@ -385,7 +399,7 @@ def _feature_rc(feature, seq_len):  # BioPython does not properly handle reverse
     return feature
 
 
-def _format_to_extension(_format):
+def _format_to_extension(_format):  # NOTE: If this is added to, be sure to update the unit test!
     format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                            'stockholm': 'stklm', 'stklm': 'stklm'}
@@ -429,7 +443,8 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         # Die if file is empty
         if _input.read() == "":
-            sys.exit("Input file is empty.")
+            _stderr("Input file is empty.")
+            sys.exit()
         _input.seek(0)
 
         # ToDo: Glean CLUSTAL
@@ -2637,30 +2652,32 @@ def argparse_init():
     try:
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected. Process will be aborted.")
+                sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
     except GuessError:
-        sys.exit("Error: SeqBuddy could not understand your input. "
-                 "Check the file path or try specifying an input type with -f")
+        _stderr("Error: SeqBuddy could not understand your input. "
+                "Check the file path or try specifying an input type with -f\n")
+        sys.exit()
 
     return in_args, seqbuddy
 
 
 def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # ############################################# INTERNAL FUNCTION ################################################ #
-    def _print_recs(seqbuddy):
+    def _print_recs(_seqbuddy):
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
-            _in_place(str(seqbuddy), in_args.sequence[0])
+            _in_place(str(_seqbuddy), in_args.sequence[0])
 
         else:
-            _stdout("{0}\n".format(str(seqbuddy).rstrip()))
+            _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
 
     def _in_place(_output, _path):
         if not os.path.exists(_path):
@@ -3082,10 +3099,17 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Guess format
     if in_args.guess_format:
         if str(type(in_args.sequence[0])) == "<class '_io.TextIOWrapper'>":
-            _stdout("{0}\n".format(seqbuddy.in_format))
+            if seqbuddy.in_format:
+                _stdout("{0}\n".format(seqbuddy.in_format))
+            else:
+                _stdout("Unknown\n")
         else:
             for seq_set in in_args.sequence:
-                _stdout("%s\t-->\t%s\n" % (seq_set, SeqBuddy(seq_set).in_format))
+                tester = SeqBuddy(seq_set)
+                if tester.in_format:
+                    _stdout("%s\t-->\t%s\n" % (seq_set, tester.in_format))
+                else:
+                    _stdout("%s\t-->\tUnknown\n" % seq_set)
         _exit("guess_format")
 
     # Hash sequence ids
