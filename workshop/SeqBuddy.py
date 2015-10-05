@@ -315,7 +315,7 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
     :param kwargs: Just used for unit test options at the moment
                    ignore_pre_install: bool
                    system: {'darwin', 'linux', 'win'}
-    :return:
+    :return: True on success, False on failure
     """
 
     if os.path.isdir(os.path.abspath('~/.buddysuite')) and "ignore_pre_install" not in kwargs:
@@ -380,7 +380,13 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
     return True
 
 
-def _feature_rc(feature, seq_len):  # BioPython does not properly handle reverse complement of features, so implement..
+def _feature_rc(feature, seq_len):
+    """
+    BioPython does not properly handle reverse complement of features, so implement it...
+    :param feature: BioPython feature with either a CompoundLocation or FeatureLocation
+    :param seq_len: The full length of the original sequence
+    :return: SeqFeature object
+    """
     if type(feature.location) == CompoundLocation:
         new_compound_location = []
         for sub_feature in feature.location.parts:
@@ -399,16 +405,27 @@ def _feature_rc(feature, seq_len):  # BioPython does not properly handle reverse
     return feature
 
 
-def _format_to_extension(_format):  # NOTE: If this is added to, be sure to update the unit test!
+def _format_to_extension(_format):
+    """
+    This is just a wrapper for the format_to_extension dict (could probably be unwrapped...)
+    NOTE: If this is added to, be sure to update the unit test!
+    :param _format: The long-form format to be converted to short form
+    :return: str
+    """
     format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
                            'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                            'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
 
 
-# Does not attempt to explicitly deal with weird cases (e.g., ambiguous residues).
-# The user will need to specify an alphabet with the -a flag if using many non-standard characters in their sequences.
 def _guess_alphabet(seqbuddy):
+    """
+    Looks through the characters in the SeqBuddy records to determine the most likely alphabet
+    Does not attempt to explicitly deal with weird cases (e.g., ambiguous residues).
+    The user will need to specify an alphabet with the -a flag if using many non-standard characters in their sequences.
+    :param seqbuddy: SeqBuddy object
+    :return: IUPAC alphebet object
+    """
     seq_list = seqbuddy if isinstance(seqbuddy, list) else seqbuddy.records
     seq_list = [str(x.seq) for x in seq_list]
     sequence = "".join(seq_list).upper()
@@ -427,7 +444,13 @@ def _guess_alphabet(seqbuddy):
         return IUPAC.protein
 
 
-def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
+def _guess_format(_input):
+    """
+    Loop through many possible formats that BioPython has a parser for, and return the format that is
+    actually able to return records.
+    :param _input: Duck-typed; can be list, SeqBuddy object, file handle, or file path.
+    :return: str or None
+    """
     # If input is just a list, there is no BioPython in-format. Default to gb.
     if isinstance(_input, list):
         return "gb"
@@ -471,6 +494,12 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
 
 
 def _make_copy(seqbuddy):
+    """
+    Deepcopy a SeqBuddy object. The alphabet objects are not handled properly when deepcopy is called,
+    so need to wrap it.
+    :param seqbuddy: SeqBuddy object
+    :return: SeqBuddy object
+    """
     alphabet_list = [rec.seq.alphabet for rec in seqbuddy.records]
     _copy = deepcopy(seqbuddy)
     _copy.alpha = seqbuddy.alpha
@@ -479,7 +508,15 @@ def _make_copy(seqbuddy):
     return _copy
 
 
-def _phylipi(seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
+def _phylipi(seqbuddy, _format="relaxed"):
+    """
+    Convert sequences to inline Phylip
+    :param seqbuddy: SeqBuddy object
+    :param _format: {"strict", "relaxed"}
+    :return: The sequences formated in phylip format
+    :ToDo: Throw errors when sequences are not the same length or truncation of ids leads to repeat taxa. Also
+    put up a warning when ids are truncated.
+    """
     max_id_length = 0
     max_seq_length = 0
     for rec in seqbuddy.records:
@@ -494,7 +531,14 @@ def _phylipi(seqbuddy, _format="relaxed"):  # _format in ["strict", "relaxed"]
     return output
 
 
-def _shift_features(features, shift, full_seq_len):  # shift is an int, how far the new feature should move from 0
+def _shift_features(features, shift, full_seq_len):
+    """
+    Adjust the location of features
+    :param features: Either a single SeqFeature object, or a list of them
+    :param shift: int, how far the new feature should move from 0
+    :param full_seq_len: The full length of the original sequence
+    :return: List of SeqFeatures
+    """
     if type(features) != list:  # Duck type for single feature input
         features = [features]
 
@@ -537,14 +581,28 @@ def _shift_features(features, shift, full_seq_len):  # shift is an int, how far 
 
 
 def _stderr(message, quiet=False):
+    """
+    Send text to stderr
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
     if not quiet:
         sys.stderr.write(message)
+        sys.stderr.flush()
     return
 
 
 def _stdout(message, quiet=False):
+    """
+    Send text to stdout
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
     if not quiet:
         sys.stdout.write(message)
+        sys.stdout.flush()
     return
 
 
