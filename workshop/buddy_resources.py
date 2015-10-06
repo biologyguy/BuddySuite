@@ -293,17 +293,18 @@ sb_flags = {"annotate": {"flag": "ano",
             "ave_seq_length": {"flag": "asl",
                                "action": "append",
                                "nargs": "?",
-                               "help": "Return the average length of all sequences. Pass in the word "
-                                       "'clean' to remove gaps etc from the sequences before counting."},
+                               "metavar": "'clean'",
+                               "help": "Calculate average sequence length. Specify 'clean' to remove gaps etc first."},
             "back_transcribe": {"flag": "r2d",
                                 "action": "store_true",
                                 "help": "Convert RNA sequences to DNA"},
             "back_translate": {"flag": "btr",
                                "action": "append",
                                "nargs": "*",
+                               "metavar": 'arg',
                                "help": "Convert amino acid sequences into codons. Optionally, "
-                                       "select mode by passing in ['random', 'r', 'optimized', 'o'] "
-                                       "['human', 'h', 'mouse', 'm', 'yeast', 'y', 'ecoli', 'e']"},
+                                       "select mode by passing in [{random, r, optimized, o} ["
+                                       "{human, h, mouse, m, yeast, y, ecoli, e}]]"},
             "bl2seq": {"flag": "bl2s",
                        "action": "store_true",
                        "help": "All-by-all blast among sequences using bl2seq. "

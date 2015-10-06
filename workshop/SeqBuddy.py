@@ -722,10 +722,10 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
 
 def ave_seq_length(seqbuddy, clean=False):
     """
-    Returns the value of the average sequence length
+    Calculate the the average length of sequences in the seqbuddy object
     :param seqbuddy: SeqBuddy object
     :param clean: Specifies if non-sequence characters should be counted as well.
-    :return: The value of the average sequence length
+    :return: average sequence length (float)
     """
     if clean:  # Strip out all gaps and stuff before counting
         clean_seq(seqbuddy)
@@ -742,11 +742,9 @@ def back_translate(seqbuddy, mode='random', species=None):
     :param seqbuddy: SeqBuddy object
     :param mode: The codon selection mode (random/optimized)
     :param species: The model to use for optimized codon selection (human/mouse/yeast/ecoli)
-    :return: The back-translated SeqBuddy object
+    codon preference tables derived from the data at http://www.kazusa.or.jp
+    :return: Modified SeqBuddy object
     """
-    # available modes --> random, optimized
-    # available species --> human, mouse, yeast, ecoli
-    # codon preference tables derived from the data at http://www.kazusa.or.jp
     # Homo sapiens, species=9606
     if mode.upper() not in ['RANDOM', 'R', 'OPTIMIZED', 'O']:
         raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. "
@@ -889,6 +887,7 @@ def back_translate(seqbuddy, mode='random', species=None):
         raise AttributeError("The species requested does not match any lookup tables currently implemented. "
                              "Please leave blank or select from human, mouse, ecoli, or yeast.")
 
+    # Modify the lookup table so each amino acid maps to a single 'optimal' codon
     if mode.upper() in ['OPTIMIZED', 'O']:
         for aa in lookup_table:
             best = ["", 0.]
@@ -896,7 +895,7 @@ def back_translate(seqbuddy, mode='random', species=None):
                 if lookup_table[aa][1][i] > best[1]:
                     best = [lookup_table[aa][0][i], lookup_table[aa][1][i]]
             lookup_table[aa] = ([best[0]], [1.0])
-    originals = deepcopy(seqbuddy)
+    originals = _make_copy(seqbuddy)
     for rec in seqbuddy.records:
         rec.features = []
         dna_seq = ""
@@ -1600,9 +1599,9 @@ def delete_small(seqbuddy, min_value):
 
 def dna2rna(seqbuddy):
     """
-    Back-transcribes DNA into RNA sequences
+    Transcribes DNA into RNA
     :param seqbuddy: SeqBuddy object
-    :return: The back-transcribed SeqBuddy object
+    :return: Modified SeqBuddy object
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -1775,7 +1774,7 @@ def find_repeats(seqbuddy, columns=1):
     # First find replicate IDs
     # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
     # Need to work from a copy though, so sequences aren't overwritten
-    seqbuddy = deepcopy(seqbuddy)
+    seqbuddy = _make_copy(seqbuddy)
     for rec in seqbuddy.records:
         seq = str(rec.seq).encode()
         seq = md5(seq).hexdigest()
@@ -2503,9 +2502,9 @@ def reverse_complement(seqbuddy):
 
 def rna2dna(seqbuddy):
     """
-    Transcribes RNA into DNA sequences.
+    Back-transcribes RNA into cDNA
     :param seqbuddy: SeqBuddy object
-    :return: The transcribed SeqBuddy object
+    :return: Modified SeqBuddy object
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -2583,10 +2582,10 @@ def translate6frames(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: The translated SeqBuddy object
     """
-    frame1, frame2, frame3 = deepcopy(seqbuddy), deepcopy(seqbuddy), deepcopy(seqbuddy)
+    frame1, frame2, frame3 = _make_copy(seqbuddy), _make_copy(seqbuddy), _make_copy(seqbuddy)
     seqbuddy = reverse_complement(seqbuddy)
 
-    rframe1, rframe2, rframe3 = deepcopy(seqbuddy), deepcopy(seqbuddy), deepcopy(seqbuddy)
+    rframe1, rframe2, rframe3 = _make_copy(seqbuddy), _make_copy(seqbuddy), _make_copy(seqbuddy)
 
     frame2 = select_frame(frame2, 2)
     frame3 = select_frame(frame3, 3)
@@ -2637,7 +2636,7 @@ def translate_cds(seqbuddy, quiet=False):  # adding 'quiet' will suppress the er
         except ValueError:
             raise TypeError("Nucleic acid sequence required, not protein.")
 
-    translation = deepcopy(seqbuddy)
+    translation = _make_copy(seqbuddy)
     translation.alpha = IUPAC.protein
     for rec in translation.records:
         rec.features = []
@@ -2876,7 +2875,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Back Transcribe
     if in_args.back_transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_rna:
-            raise ValueError("You need to provide an RNA sequence.")
+            _raise_error(ValueError("You need to provide an RNA sequence."), "back_transcribe")
         _print_recs(rna2dna(seqbuddy))
         _exit("back_transcribe")
 

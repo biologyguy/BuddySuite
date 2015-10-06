@@ -497,10 +497,11 @@ def test_ave_seq_length_pep(seqbuddy):
 # Only fasta and genbank
 hashes = ["1b14489a78bfe8255c777138877b9648", "b6bcb4e5104cb202db0ec4c9fc2eaed2",
           "859ecfb88095f51bfaee6a1d1abeb50f", "ba5c286b79a3514fba0b960ff81af25b",
-          "952a91a4506afb57f27136aa1f2a8af9", "40c4a3e08c811b6bf3be8bedcb5d65a0"]
-organisms = ['human', 'human', 'yeast', 'yeast', 'ecoli', 'ecoli']
+          "952a91a4506afb57f27136aa1f2a8af9", "40c4a3e08c811b6bf3be8bedcb5d65a0",
+          "3a3ee57f8dcde25c99a655494b218928", "bc9f1ec6ec92c30b5053cd9bb6bb6f53"]
+organisms = ['human', 'human', 'yeast', 'yeast', 'ecoli', 'ecoli', 'mouse', 'mouse']
 hashes = [(Sb._make_copy(sb_objects[sb_obj_indx]), organisms[indx], hashes[indx]) for indx, sb_obj_indx in
-          enumerate([6, 7, 6, 7, 6, 7])]
+          enumerate([6, 7, 6, 7, 6, 7, 6, 7])]
 
 
 @pytest.mark.parametrize("seqbuddy,_organism,next_hash", hashes)
@@ -1348,31 +1349,90 @@ def test_translate_pep_exception():
 # ################################################# COMMAND LINE UI ################################################## #
 # ##################### 'ano', '--annotate' ###################### ##
 def test_annotate_ui(capsys):
-    test_in_args1 = deepcopy(in_args)
-    test_in_args1.annotate = ["misc_feature", "1-100,200-250", "+"]
-    Sb.command_line_ui(test_in_args1, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.annotate = ["misc_feature", "1-100,200-250", "+"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b9e36751073152e627f9d2adc0397a9e"
 
-    test_in_args2 = deepcopy(in_args)
-    test_in_args2.annotate = ["misc_feature", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
-    Sb.command_line_ui(test_in_args2, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.annotate = ["misc_feature", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "4f227a5cf240b1726f632b7d504a1560"
 
-    test_in_args4 = deepcopy(in_args)
-    test_in_args4.annotate = ["unknown_feature_that_is_t0o_long", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
-    Sb.command_line_ui(test_in_args4, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.annotate = ["unknown_feature_that_is_t0o_long", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Warning: The provided annotation type is not part of the GenBank format standard" in err
     assert "Warning: Feature type is longer than 16 characters" in err
 
 
+# ######################  'asl', '--ave_seq_length' ###################### #
+def test_ave_seq_length_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.ave_seq_length = [False]
+    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    out, err = capsys.readouterr()
+    assert out == '428.38\n'
+
+    test_in_args.ave_seq_length = ['clean']
+    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    out, err = capsys.readouterr()
+    assert out == '427.38\n'
+
+
+# ######################  'r2d', '--back_transcribe' ###################### #
+def test_back_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.back_transcribe = True
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+
+    out, err = capsys.readouterr()
+    assert "You need to provide an RNA sequence." in err
+
+
+# ######################  'btr', '--back_translate' ###################### #
+def test_back_translate_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.back_translate = [False]
+    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    out, err = capsys.readouterr()
+    assert "Panxα4" in out
+
+    test_in_args = deepcopy(in_args)
+    test_in_args.back_translate = [["human", "o"]]
+    Sb.command_line_ui(test_in_args, sb_objects[7], True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b6bcb4e5104cb202db0ec4c9fc2eaed2"
+
+
+# ######################  'd2r', '--transcribe' ###################### #
+def test_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.transcribe = True
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d2db9b02485e80323c487c1dd6f1425b"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+
+    out, err = capsys.readouterr()
+    assert "You need to provide a DNA sequence." in err
+
+
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
 def test_order_features_alphabetically_ui(capsys):
-    in_args.order_features_alphabetically = [True]
-    Sb.command_line_ui(in_args, Sb._make_copy(sb_objects[0]), True)
-    in_args.order_features_alphabetically = False
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_features_alphabetically = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     tester = Sb.SeqBuddy(out)
     assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
@@ -1380,9 +1440,9 @@ def test_order_features_alphabetically_ui(capsys):
 
 # ######################  'ns', '--num_seqs' ###################### #
 def test_num_seqs_ui(capsys):
-    in_args.num_seqs = True
-    Sb.command_line_ui(in_args, sb_objects[0], True)
-    in_args.num_seqs = False
+    test_in_args = deepcopy(in_args)
+    test_in_args.num_seqs = True
+    Sb.command_line_ui(test_in_args, sb_objects[0], True)
     out, err = capsys.readouterr()
     assert out == '13\n'
 
