@@ -284,11 +284,12 @@ bsi_flags = {"cmd_line": {"flag": "cmd",
 
 bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
-sb_flags = {"add_feature": {"flag": "af",
-                            "nargs": "*",
-                            "help": "Add a feature (annotation) to selected sequences Args: <name>, "
-                            "<location (start1-end1,start2-end2...)>, <strand (+|-)>, "
-                            "<qualifiers (foo=bar,hello=world...)>, <regex_pattern>"},
+sb_flags = {"annotate": {"flag": "ano",
+                         "nargs": "*",
+                         "metavar": "arg",
+                         "help": "Add a feature (annotation) to selected sequences. "
+                                 "Args: <name>, <location (start1-end1,start2-end2...)>, [strand (+|-)], "
+                                 "[qualifier (foo=bar) [qualifier]], [regex_pattern [regex_[pattern]]}"},
             "ave_seq_length": {"flag": "asl",
                                "action": "append",
                                "nargs": "?",

@@ -607,20 +607,24 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def add_feature(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
+def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
     """
-    Adds a feature annotation to all sequences in the SeqBuddy object
+    Adds a feature annotation to sequences in the SeqBuddy object
     :param seqbuddy: SeqBuddy object
-    :param _type: The type attribute of tha annotation
-    :param location: The location of the annotation - (start, end) or [(start1, end1), (start2, end2)]
-    :param strand: The feature's strand - (+/-/None)
-    :param qualifiers: A dictionary of qualifiers, or a string "foo: bar, fizz: buzz"
-    :param pattern: A regex pattern to specify which sequences to add the feature to
-    :return: The annotated SeqBuddy object
+    :param _type: Name/designation of the annotation
+    :param location: The location of the new annotation in the sequence.
+    If a single SeqFeature, use a tuple (start, end) or FeatureLocation object
+    If a CompoundFeature, us a list of tuples [(start1, end1), (start2, end2)] or CompoundFeature object
+    NOTE!!! If feeding in tuples, the 'start' index begins at 1, while Feature objects start at 0.
+    :param strand: The feature's orientation (+/-/None)
+    :param qualifiers: Further information to append to the new feature
+    The argument can be a dictionary or a list ["foo: bar", "fizz: buzz"]
+    :param pattern: List of regex patterns to specify which sequences to add the feature to
+    :return: The updated SeqBuddy object
     """
     # http://www.insdc.org/files/feature_table.html
     old = _make_copy(seqbuddy)
-    if pattern is not None:
+    if pattern:
         recs = pull_recs(seqbuddy, pattern).records
     else:
         recs = seqbuddy.records
@@ -630,22 +634,18 @@ def add_feature(seqbuddy, _type, location, strand=None, qualifiers=None, pattern
             if rec1.id == rec2.id:
                 old.records.remove(rec2)
 
-    if isinstance(location, FeatureLocation):
-        pass
-    elif isinstance(location, CompoundLocation):
-        pass
-    elif isinstance(location, list) or isinstance(location, tuple):
+    if isinstance(location, list) or isinstance(location, tuple):
         locations = []
         if isinstance(location[0], int):
-            locations.append(FeatureLocation(start=location[0], end=location[1]))
+            locations.append(FeatureLocation(start=location[0] - 1, end=location[1]))
         elif isinstance(location[0], tuple) or isinstance(location[0], list):
             for _tup in location:
-                locations.append(FeatureLocation(start=_tup[0], end=_tup[1]))
+                locations.append(FeatureLocation(start=_tup[0] - 1, end=_tup[1]))
         elif isinstance(location[0], str):
             for substr in location:
                 substr = re.sub('[ ()]', '', substr)
                 substr = re.sub('-|\.\.', ',', substr)
-                locations.append(FeatureLocation(start=int(re.split(',', substr)[0]),
+                locations.append(FeatureLocation(start=int(re.split(',', substr)[0]) - 1,
                                                  end=int(re.split(',', substr)[1])))
         location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
             if len(locations) > 1 else locations[0]
@@ -654,39 +654,68 @@ def add_feature(seqbuddy, _type, location, strand=None, qualifiers=None, pattern
         location = re.split(',', location)
         locations = []
         for substr in location:
-            locations.append(FeatureLocation(start=int(substr.split('-')[0]), end=int(substr.split('-')[1])))
+            locations.append(FeatureLocation(start=int(substr.split('-')[0]) - 1, end=int(substr.split('-')[1])))
         location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
             if len(locations) > 1 else locations[0]
+    elif isinstance(location, FeatureLocation) or isinstance(location, CompoundLocation):
+        pass
     else:
         raise TypeError("Input must be list, tuple, or string. Not {0}.".format(type(location)))
 
-    if strand in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1]:
-        strand = 1
-    elif strand in ['-', 'minus', 'anti', 'antisense', 'anti-sense', 'neg', 'negative', '-1', -1]:
-        strand = -1
-    elif strand in ['0', 0]:
-        strand = 0
-    elif strand is None:
-        pass
+    if location.start < 0:
+        if isinstance(location, FeatureLocation):
+            location = FeatureLocation(0, location.end, location.strand)
+        else:
+            first_part = FeatureLocation(0, location.parts[0].end, location.parts[0].strand)
+            location = CompoundLocation([first_part] + location.parts[1:], operator='order')
+
+    if seqbuddy.alpha == IUPAC.ambiguous_dna:
+        if strand in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1]:
+            strand = 1
+        elif strand in ['-', 'minus', 'anti', 'antisense', 'anti-sense', 'neg', 'negative', '-1', -1]:
+            strand = -1
+        elif strand in ['0', 0]:
+            strand = 0
+        elif strand is None:
+            pass
+        else:
+            strand = None
+            _stderr("Warning: strand input not recognized. Value set to None.")
     else:
         strand = None
-        _stderr("Warning: strand input not recognized. Value set to None.")
+    qualifiers = [qualifiers] if isinstance(qualifiers, str) else qualifiers
 
-    if isinstance(qualifiers, dict):
-        pass
-    elif isinstance(qualifiers, str):
-        qualifiers = re.sub(' ', '', qualifiers)
-        qualifiers = re.sub('=', ':', qualifiers)
-        qualifiers = re.split(',', qualifiers)
+    if isinstance(qualifiers, list):
         qual_dict = {}
-        for substr in qualifiers:
-            qual_dict[re.split(':', substr)[0]] = [re.split(':', substr)[1]]
+        for qual in qualifiers:
+            qual = qual.split("=")
+            qual_dict[qual[0]] = "=".join(qual[1:])
         qualifiers = qual_dict
 
+    elif qualifiers and not isinstance(qualifiers, dict):
+        raise TypeError("Qualifiers must a list or dict")
+
     for _rec in recs:
-        _rec.features.append(SeqFeature(location=location, type=_type, strand=strand, qualifiers=qualifiers))
+        copy_loc = deepcopy(location)
+        if len(_rec) < location.end:
+            if isinstance(location, FeatureLocation):
+                copy_loc = FeatureLocation(start=location.start, end=len(_rec), strand=location.strand)
+            else:  # must be CompoundLocation
+                indx = 0
+                for indx, part in enumerate(location.parts):
+                    if part.end > len(_rec):
+                        break
+                if indx > 0:
+                    copy_loc = CompoundLocation(location.parts[:indx + 1], operator='order')
+                    copy_loc.parts[-1] = FeatureLocation(start=location.parts[-1].start, end=len(_rec),
+                                                         strand=location.strand)
+                else:
+                    copy_loc = FeatureLocation(start=location.start, end=len(_rec), strand=location.strand)
+
+        _rec.features.append(SeqFeature(location=copy_loc, type=_type, strand=strand, qualifiers=qualifiers))
 
     seqbuddy.records = recs
+    order_features_by_position(seqbuddy)
     seqbuddy = merge([old, seqbuddy])
     return seqbuddy
 
@@ -2783,45 +2812,60 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Add feature
-    if in_args.add_feature:
-        # _type, _location, _strand=None, _qualifiers=None, _pattern=None
-        strand = None
-        qualifiers = None
-        pattern = None
-        if len(in_args.add_feature) < 2:
-            raise AttributeError("Too few parameters provided. Must provide at least a feature type and location.")
-        elif len(in_args.add_feature) == 5:
-            strand = in_args.add_feature[2]
-            qualifiers = in_args.add_feature[3]
-            pattern = in_args.add_feature[4]
-        elif len(in_args.add_feature) == 4:
-            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
-                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
-                strand = in_args.add_feature[2]
-                if '=' in in_args.add_feature[3] or ':' in in_args.add_feature[3]:
-                    qualifiers = in_args.add_feature[3]
-                else:
-                    pattern = in_args.add_feature[3]
-            else:
-                qualifiers = in_args.add_feature[3]
-                pattern = in_args.add_feature[3]
+    if in_args.annotate:
+        if not in_args.out_format:
+            seqbuddy.out_format = "genbank"
 
-        elif len(in_args.add_feature) == 3:
-            if in_args.add_feature[2] in ['+', 'plus', 'sense', 'pos', 'positive', '1', 1, '-', 'minus', 'anti',
-                                          'antisense', 'anti-sense', 'neg', 'negative', '-1', -1, '0', 0]:
-                strand = in_args.add_feature[2]
-            elif '=' in in_args.add_feature[2] or ':' in in_args.add_feature[2]:
-                qualifiers = in_args.add_feature[2]
+        # _type, location, strand=None, qualifiers=None, pattern=None
+        genbank_features = ['assembly_gap', 'attenuator', 'C_region', 'CAAT_signal', 'CDS', 'centromere', 'D-loop',
+                            'D_segment', 'enhancer', 'exon', 'gap', 'GC_signal', 'gene', 'iDNA', 'intron', 'J_segment',
+                            'LTR', 'mat_peptide', 'misc_binding', 'misc_difference', 'misc_feature', 'misc_recomb',
+                            'misc_RNA', 'misc_signal', 'misc_structure', 'mobile_element', 'modified_base', 'mRNA',
+                            'ncRNA', 'N_region', 'old_sequence', 'operon', 'oriT', 'polyA_signal', 'polyA_site',
+                            'precursor_RNA', 'prim_transcript', 'primer_bind', 'promoter', 'protein_bind', 'RBS',
+                            'regulatory', 'repeat_region', 'rep_origin', 'rRNA', 'S_region', 'sig_peptide', 'source',
+                            'stem_loop', 'STS', 'TATA_signal', 'telomere', 'terminator', 'tmRNA', 'transit_peptide',
+                            'tRNA', 'unsure', 'V_region', 'V_segment', 'variation', "3'UTR", "5'UTR", '-10_signal',
+                            '-35_signal']
+
+        strand_types = ['+', 'plus', 'sense', 'pos', '1', 1, '-', 'minus',
+                        'anti', 'anti-sense', 'neg', '-1', -1, '0', 0]
+        feature_attrs = {"strand": None, "qualifiers": [], "pattern": []}
+
+        def duck_type(arg, **kwargs):  # Feed feature_attrs into kwargs
+            if arg in strand_types:
+                kwargs["strand"] = arg
+            elif re.search(".+[=:].+", arg):
+                kwargs["qualifiers"].append(arg)
             else:
-                pattern = in_args.add_feature[2]
-        elif len(in_args.add_feature) == 2:
-            pass
-        else:
-            raise AttributeError("Invalid parameters were provided.")
-        ftype = in_args.add_feature[0]
-        flocation = in_args.add_feature[1]
-        _print_recs(add_feature(seqbuddy, ftype, flocation, strand=strand, qualifiers=qualifiers, pattern=pattern))
-        _exit("add_feature")
+                kwargs["pattern"].append(arg)
+            return kwargs
+
+        if len(in_args.annotate) < 2:
+            _raise_error(AttributeError("Too few parameters provided. Please provide at least a feature type "
+                                        "and a location.\n"), "annotate")
+        ftype = in_args.annotate[0]
+        if ftype not in genbank_features:
+            _stderr("Warning: The provided annotation type is not part of the GenBank format standard\n\n",
+                    in_args.quiet)
+
+        if len(ftype) > 16:
+            _stderr("Warning: Feature type is longer than 16 characters and "
+                    "will be truncated if printed to GenBank/EMBL format\n\n", in_args.quiet)
+
+        flocation = in_args.annotate[1]
+
+        if len(in_args.annotate) >= 3:
+            for next_arg in in_args.annotate[2:]:
+                feature_attrs = duck_type(next_arg, **feature_attrs)
+
+            if not feature_attrs["qualifiers"]:
+                feature_attrs["qualifiers"] = None
+            if not feature_attrs["pattern"]:
+                feature_attrs["pattern"] = None
+
+        _print_recs(annotate(seqbuddy, ftype, flocation, **feature_attrs))
+        _exit("annotate")
 
     # Average length of sequences
     if in_args.ave_seq_length:

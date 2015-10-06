@@ -11,6 +11,7 @@ from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 import argparse
+from copy import deepcopy
 
 sys.path.insert(0, "./")
 import buddy_resources as br
@@ -315,7 +316,6 @@ def test_phylipi():
 
 
 # ######################  '_shift_features' ###################### #
-@pytest.mark.foo
 def test_shift_features():
     tester = Sb._make_copy(sb_objects[1])
     features = tester.records[0].features
@@ -364,90 +364,122 @@ def test_stderr(capsys):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-# ##################### 'af', 'add_feaure' ###################### ##
-def test_add_feature_pattern():
+# ##################### 'ano', '--annotate' ###################### ##
+def test_annotate_pattern():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), pattern='α4')
-    assert seqs_to_hash(tester) == '7330c5905e216575b8bb8f54db3a0610'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), pattern='α4')
+    assert seqs_to_hash(tester) == '02254c86c8e64c38dbf49b9859addc68'
 
 
-def test_add_feature_no_pattern():
+def test_annotate_no_pattern():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100))
-    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100))
+    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
 
 
-def test_add_feature_compoundlocation():
+def test_annotate_compoundlocation():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', [(1, 100), (200, 250)])
-    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+    tester = Sb.annotate(tester, 'misc_feature', [(1, 100), (200, 250)])
+    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
 
 
-def test_add_feature_nested_tuples():
+def test_annotate_list_str():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', ((1, 100), (200, 250)))
-    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+    tester = Sb.annotate(tester, 'misc_feature', ['1-100', '(200-250)'])
+    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
 
 
-def test_add_feature_list_str():
+def test_annotate_str():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', ['1-100', '(200-250)'])
-    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+    tester = Sb.annotate(tester, 'misc_feature', '1-100, (200-250)')
+    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
 
 
-def test_add_feature_str():
+def test_annotate_fl_obj():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', '1-100, (200-250)')
-    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
+    tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=0, end=100))
+    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
 
 
-def test_add_feature_fl_obj():
+def test_annotate_cl_obj():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', FeatureLocation(start=1, end=100))
-    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+    tester = Sb.annotate(tester, 'misc_feature', CompoundLocation([FeatureLocation(start=0, end=100),
+                                                                   FeatureLocation(start=199, end=250)],
+                                                                  operator='order'))
+    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
 
 
-def test_add_feature_cl_obj():
-    tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', CompoundLocation([FeatureLocation(start=1, end=100),
-                                                              FeatureLocation(start=200, end=250)], operator='order'))
-    assert seqs_to_hash(tester) == '06a9bf7c431709ac7c2be3db1e2a3b9f'
-
-
-def test_add_feature_typerror():
+def test_annotate_typerror():
     with pytest.raises(TypeError):
         tester = Sb._make_copy(sb_objects[1])
-        Sb.add_feature(tester, 'test', 5)
+        Sb.annotate(tester, 'misc_feature', 5)
 
 
-def test_add_feature_pos_strand():
+def test_annotate_pos_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), strand='+')
-    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='+')
+    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
 
 
-def test_add_feature_neg_strand():
+def test_annotate_neg_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), strand='-')
-    assert seqs_to_hash(tester) == 'a6c4bb6b402fa69f60229832af2bf354'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='-')
+    assert seqs_to_hash(tester) == 'd9082eb0f75a7b447ec3cf90131ba8c8'
 
 
-def test_add_feature_no_strand():
+def test_annotate_no_strand():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), strand=0)
-    assert seqs_to_hash(tester) == '1cee76931cca4f99b006e18f88b88574'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand=0)
+    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
 
 
-def test_add_feature_qualifier_dict():
+def test_annotate_qualifier_dict():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), qualifiers={'foo': 'bar', 'hello': 'world'})
-    assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers={'foo': 'bar', 'hello': 'world'})
+    assert seqs_to_hash(tester) == '4a184ce865c3ff5c2b229c000955b6df'
 
 
-def test_add_feature_qualifier_str():
+def test_annotate_qualifier_list():
     tester = Sb._make_copy(sb_objects[1])
-    tester = Sb.add_feature(tester, 'test', (1, 100), qualifiers='foo=bar, hello:world')
-    assert seqs_to_hash(tester) == 'f092a6c792c299da91e8956e68e2ffda'
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers=['foo=bar', 'hello=Blahh, =world'])
+    assert seqs_to_hash(tester) == 'b005e26b15844ad83a32190fd159469a'
+
+
+def test_annotate_qualifier_error():
+    tester = Sb._make_copy(sb_objects[1])
+    with pytest.raises(TypeError):
+        Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers=tuple)
+
+
+def test_annotate_out_of_range():
+    tester = Sb._make_copy(sb_objects[1])
+    tester = Sb.annotate(tester, 'misc_feature', [(-10, 100), (200, 10000)])
+    assert seqs_to_hash(tester) == '31888878e8321f3a3a6feeb4b8d683ff'
+
+    tester = Sb._make_copy(sb_objects[1])
+    tester = Sb.annotate(tester, 'misc_feature', [(1, 10000)])
+    assert seqs_to_hash(tester) == '99436b233e8e041ac167ef0d826fbda3'
+
+    tester = Sb._make_copy(sb_objects[1])
+    tester = Sb.annotate(tester, 'misc_feature', [(1, 10000), (20000, 30000)])
+    assert seqs_to_hash(tester) == '99436b233e8e041ac167ef0d826fbda3'
+
+    tester = Sb._make_copy(sb_objects[1])
+    tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=-10, end=100))
+    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+
+
+def test_annotate_protein():
+    tester = Sb._make_copy(sb_objects[7])
+    tester = Sb.annotate(tester, 'misc_feature', (1, 100))
+    assert seqs_to_hash(tester) == '2f6c1d302c4e856d517200bad114054f'
+
+
+def test_annotate_unrec_strand(capsys):
+    tester = Sb._make_copy(sb_objects[1])
+    Sb.annotate(tester, 'misc_feature', (1, 100), strand='foo')
+    out, err = capsys.readouterr()
+    assert err == "Warning: strand input not recognized. Value set to None."
 
 
 # ######################  'asl', '--ave_seq_length' ###################### #
@@ -1051,15 +1083,6 @@ def test_empty_file():
     with pytest.raises(SystemExit):
         Sb.SeqBuddy(resource("blank.fa"))
 
-
-def test_num_seqs_ui(capsys):
-    in_args.num_seqs = True
-    Sb.command_line_ui(in_args, sb_objects[0], True)
-    in_args.num_seqs = False
-    out, err = capsys.readouterr()
-    assert out == '13\n'
-
-
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
 fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "21547b4b35e49fa37e5c5b858808befb",
               "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
@@ -1084,14 +1107,6 @@ def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_alphabetically(seqbuddy, reverse=True)
     assert seqs_to_hash(tester) == rev_hash
 
-
-def test_order_features_alphabetically_ui(capsys):
-    in_args.order_features_alphabetically = [True]
-    Sb.command_line_ui(in_args, Sb._make_copy(sb_objects[0]), True)
-    in_args.order_features_alphabetically = False
-    out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
 
 # ######################  'ofp', '--order_features_by_position' ###################### #
 fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
@@ -1328,3 +1343,46 @@ def test_translate(seqbuddy, next_hash):
 def test_translate_pep_exception():
     with pytest.raises(TypeError):
         Sb.translate_cds(sb_objects[6])
+
+
+# ################################################# COMMAND LINE UI ################################################## #
+# ##################### 'ano', '--annotate' ###################### ##
+def test_annotate_ui(capsys):
+    test_in_args1 = deepcopy(in_args)
+    test_in_args1.annotate = ["misc_feature", "1-100,200-250", "+"]
+    Sb.command_line_ui(test_in_args1, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b9e36751073152e627f9d2adc0397a9e"
+
+    test_in_args2 = deepcopy(in_args)
+    test_in_args2.annotate = ["misc_feature", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
+    Sb.command_line_ui(test_in_args2, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4f227a5cf240b1726f632b7d504a1560"
+
+    test_in_args4 = deepcopy(in_args)
+    test_in_args4.annotate = ["unknown_feature_that_is_t0o_long", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
+    Sb.command_line_ui(test_in_args4, Sb._make_copy(sb_objects[1]), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Warning: The provided annotation type is not part of the GenBank format standard" in err
+    assert "Warning: Feature type is longer than 16 characters" in err
+
+
+# ######################  '-ofa', '--order_features_alphabetically' ###################### #
+def test_order_features_alphabetically_ui(capsys):
+    in_args.order_features_alphabetically = [True]
+    Sb.command_line_ui(in_args, Sb._make_copy(sb_objects[0]), True)
+    in_args.order_features_alphabetically = False
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
+
+
+# ######################  'ns', '--num_seqs' ###################### #
+def test_num_seqs_ui(capsys):
+    in_args.num_seqs = True
+    Sb.command_line_ui(in_args, sb_objects[0], True)
+    in_args.num_seqs = False
+    out, err = capsys.readouterr()
+    assert out == '13\n'
+
