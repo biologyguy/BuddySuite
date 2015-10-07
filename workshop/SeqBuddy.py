@@ -745,7 +745,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
 
     seqbuddy.records = recs
     order_features_by_position(seqbuddy)
-    seqbuddy = merge([old, seqbuddy])
+    seqbuddy = merge(old, seqbuddy)
     return seqbuddy
 
 
@@ -1117,9 +1117,9 @@ def blast(seqbuddy, blast_db):
 
 def clean_seq(seqbuddy, skip_list=None, ambiguous=True):
     """
-    Removes all non-sequence characters from the sequences
+    Removes all non-sequence characters
     :param seqbuddy: SeqBuddy object
-    :param skip_list: A list of characters to be left alone
+    :param skip_list: Optional list of characters to be left alone
     :param ambiguous: Specifies whether ambiguous characters should be kept or not
     :return: The cleaned SeqBuddy object
     """
@@ -1138,82 +1138,6 @@ def clean_seq(seqbuddy, skip_list=None, ambiguous=True):
                 full_skip = "ATGCUatgcu%s" % skip_list
                 rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)), alphabet=seqbuddy.alpha)
 
-    return seqbuddy
-
-
-def combine_features(seqbuddy1, seqbuddy2):  # ToDo: rewrite this to accept any number of input files.
-    """
-    Merges the feature lists of two SeqBuddy objects
-    :param seqbuddy1: The first SeqBuddy object
-    :param seqbuddy2: The second SeqBuddy object
-    :return: A SeqBuddy object with merged features
-    """
-    # make sure there are no repeat ids
-    unique, rep_ids, rep_seqs, output_str = find_repeats(seqbuddy1)
-    if len(rep_ids) > 0:
-        raise RuntimeError("There are repeat IDs in the first file provided\n%s" % rep_ids)
-
-    unique, rep_ids, rep_seqs, output_str = find_repeats(seqbuddy2)
-    if len(rep_ids) > 0:
-        raise RuntimeError("There are repeat IDs in the second file provided\n%s" % rep_ids)
-
-    seq_dict1 = {}
-    seq_dict2 = {}
-    seq_order = []
-
-    for rec in seqbuddy1.records:
-        seq_dict1[rec.id] = rec
-        seq_order.append(rec.id)
-
-    for rec in seqbuddy2.records:
-        seq_dict2[rec.id] = rec
-        if rec.id not in seq_order:
-            seq_order.append(rec.id)
-
-    # make sure that we're comparing apples to apples across all sequences (i.e., same alphabet)
-    reference_alphabet = sample(seq_dict1.items(), 1)[0][1].seq.alphabet
-    for seq_id in seq_dict1:
-        if type(seq_dict1[seq_id].seq.alphabet) != type(reference_alphabet):
-            raise RuntimeError("You have mixed multiple alphabets into your sequences. Make sure everything is the same"
-                               "\n\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s"
-                               % (seq_id, seq_dict1[seq_id].seq.alphabet, reference_alphabet))
-
-    for seq_id in seq_dict2:
-        if type(seq_dict2[seq_id].seq.alphabet) != type(reference_alphabet):
-            raise RuntimeError("You have mixed multiple alphabets into your sequences. Make sure everything is the same"
-                               "\n\t%s in first set\n\tOffending alphabet: %s\n\tReference alphabet: %s"
-                               % (seq_id, seq_dict2[seq_id].seq.alphabet, reference_alphabet))
-
-    new_seqs = {}
-    warning_used = False
-    for seq_id in seq_dict1:
-        if seq_id in seq_dict2:
-            seq_feats1 = []  # Test list so features common to both records are not duplicated
-            for feature in seq_dict1[seq_id].features:
-                seq_feats1.append("%s-%s-%s" % (feature.location.start, feature.location.end, feature.type))
-            for feature in seq_dict2[seq_id].features:
-                feature_check = "%s-%s-%s" % (feature.location.start, feature.location.end, feature.type)
-                if feature_check in seq_feats1:
-                    continue
-                else:
-                    seq_dict1[seq_id].features.append(feature)
-        else:
-            warning_used = True
-            _stderr("Warning: %s is only in the first set of sequences\n" % seq_id)
-
-        new_seqs[seq_id] = seq_dict1[seq_id]
-
-    for seq_id in seq_dict2:
-        if seq_id not in seq_dict1:
-            warning_used = True
-            _stderr("Warning: %s is only in the first set of sequences\n" % seq_id)
-            new_seqs[seq_id] = seq_dict2[seq_id]
-
-    if warning_used:
-        _stderr("\n")
-
-    seqbuddy = SeqBuddy([new_seqs[_seq_id] for _seq_id in seq_order], out_format=seqbuddy1.in_format)
-    seqbuddy = order_features_by_position(seqbuddy)
     return seqbuddy
 
 
@@ -2093,16 +2017,38 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
     return seqbuddy
 
 
-def merge(seqbuddy_list):
+def merge(*seqbuddy):
     """
-    Combines two or more SeqBuddy objects
-    :param seqbuddy_list: The list of SeqBuddy objects to be merged
-    :return: A single, merged SeqBuddy object
+    Merges the feature lists of SeqBuddy objects
+    :param *seqbuddy: SeqBuddy objects to be combined
+    :return: A new SeqBuddy object
     """
-    output = seqbuddy_list[0]
-    for seqbuddy in seqbuddy_list[1:]:
-        output.records += seqbuddy.records
-    return output
+    def merge_records(rec1, rec2):
+        if str(rec1.seq) != str(rec2.seq):
+            raise RuntimeError("Record mismatch: ID %s" % rec1.id)
+        already_present = False
+        for feat2 in rec2.features:
+            for feat1 in rec1.features:
+                if str(feat2) == str(feat1):
+                    already_present = True
+                    break
+            if not already_present:
+                rec1.features.append(feat2)
+            already_present = False
+        return rec1
+
+    seq_dict = {}
+    for sb in seqbuddy:
+        for seq_id, rec in sb.to_dict().items():
+            if seq_id not in seq_dict:
+                seq_dict[seq_id] = rec
+            else:
+                seq_dict[seq_id] = merge_records(seq_dict[seq_id], rec)
+
+    seqbuddy = SeqBuddy([rec for _id, rec in seq_dict.items()])
+    seqbuddy = order_ids(seqbuddy)
+    seqbuddy = order_features_by_position(seqbuddy)
+    return seqbuddy
 
 
 def molecular_weight(seqbuddy):
@@ -2804,14 +2750,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _print_recs(clean_seq(seqbuddy, ambiguous=True))
         _exit("clean_seq")
 
-    # Combine feature sets from two files into one
-    if in_args.combine_features:
-        file1, file2 = in_args.sequence[:2]
-        file1 = SeqBuddy(file1)
-        file2 = SeqBuddy(file2)
-        _print_recs(combine_features(file1, file2))
-        _exit("combine_features")
-
     # Complement
     if in_args.complement:
         _print_recs(complement(seqbuddy))
@@ -3200,9 +3138,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(map_features_prot2dna(prot, dna))
         _exit("map_features_prot2dna")
 
-    # Merge
+    # Merge together multiple files into a single file
     if in_args.merge:
-        _print_recs(seqbuddy)
+        seqbuddy_objs = [SeqBuddy(x) for x in in_args.sequence]
+        try:
+            _print_recs(merge(*seqbuddy_objs))
+        except RuntimeError as e:
+            _raise_error(e, "merge")
         _exit("merge")
 
     # Calculate Molecular Weight

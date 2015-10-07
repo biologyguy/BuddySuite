@@ -397,37 +397,37 @@ def test_stderr(capsys):
 def test_annotate_pattern():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), pattern='α4')
-    assert seqs_to_hash(tester) == '02254c86c8e64c38dbf49b9859addc68'
+    assert seqs_to_hash(tester) == '527b2730d23d2ae4d708dbc55f560604'
 
 
 def test_annotate_no_pattern():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100))
-    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+    assert seqs_to_hash(tester) == 'e8afc1fd9b0d5833972acfd2b719e42a'
 
 
 def test_annotate_compoundlocation():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', [(1, 100), (200, 250)])
-    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
+    assert seqs_to_hash(tester) == '4a294c1ea5783fe04e909d767e7dfce2'
 
 
 def test_annotate_list_str():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', ['1-100', '(200-250)'])
-    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
+    assert seqs_to_hash(tester) == '4a294c1ea5783fe04e909d767e7dfce2'
 
 
 def test_annotate_str():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', '1-100, (200-250)')
-    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
+    assert seqs_to_hash(tester) == '4a294c1ea5783fe04e909d767e7dfce2'
 
 
 def test_annotate_fl_obj():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=0, end=100))
-    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+    assert seqs_to_hash(tester) == 'e8afc1fd9b0d5833972acfd2b719e42a'
 
 
 def test_annotate_cl_obj():
@@ -435,7 +435,7 @@ def test_annotate_cl_obj():
     tester = Sb.annotate(tester, 'misc_feature', CompoundLocation([FeatureLocation(start=0, end=100),
                                                                    FeatureLocation(start=199, end=250)],
                                                                   operator='order'))
-    assert seqs_to_hash(tester) == 'b9e36751073152e627f9d2adc0397a9e'
+    assert seqs_to_hash(tester) == '4a294c1ea5783fe04e909d767e7dfce2'
 
 
 def test_annotate_typerror():
@@ -447,31 +447,31 @@ def test_annotate_typerror():
 def test_annotate_pos_strand():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='+')
-    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+    assert seqs_to_hash(tester) == 'e8afc1fd9b0d5833972acfd2b719e42a'
 
 
 def test_annotate_neg_strand():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='-')
-    assert seqs_to_hash(tester) == 'd9082eb0f75a7b447ec3cf90131ba8c8'
+    assert seqs_to_hash(tester) == '9de19b80180cdc65ca8a5b8e9c0e61e9'
 
 
 def test_annotate_no_strand():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand=0)
-    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+    assert seqs_to_hash(tester) == 'e8afc1fd9b0d5833972acfd2b719e42a'
 
 
 def test_annotate_qualifier_dict():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers={'foo': 'bar', 'hello': 'world'})
-    assert seqs_to_hash(tester) == '4a184ce865c3ff5c2b229c000955b6df'
+    assert seqs_to_hash(tester) == 'a948567058575491dbb3ed6ebee1f9b6'
 
 
 def test_annotate_qualifier_list():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers=['foo=bar', 'hello=Blahh, =world'])
-    assert seqs_to_hash(tester) == 'b005e26b15844ad83a32190fd159469a'
+    assert seqs_to_hash(tester) == '5f8d9b4874754e50877126994141cc92'
 
 
 def test_annotate_qualifier_error():
@@ -483,25 +483,25 @@ def test_annotate_qualifier_error():
 def test_annotate_out_of_range():
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', [(-10, 100), (200, 10000)])
-    assert seqs_to_hash(tester) == '31888878e8321f3a3a6feeb4b8d683ff'
+    assert seqs_to_hash(tester) == '57f57b5e46c547542ea30e932ec4a42b'
 
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', [(1, 10000)])
-    assert seqs_to_hash(tester) == '99436b233e8e041ac167ef0d826fbda3'
+    assert seqs_to_hash(tester) == 'faa0e801376b3daba753890c18f0f029'
 
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', [(1, 10000), (20000, 30000)])
-    assert seqs_to_hash(tester) == '99436b233e8e041ac167ef0d826fbda3'
+    assert seqs_to_hash(tester) == 'faa0e801376b3daba753890c18f0f029'
 
     tester = Sb._make_copy(sb_objects[1])
     tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=-10, end=100))
-    assert seqs_to_hash(tester) == '71eb498e40ae2c65090e52bc138bcadd'
+    assert seqs_to_hash(tester) == 'e8afc1fd9b0d5833972acfd2b719e42a'
 
 
 def test_annotate_protein():
     tester = Sb._make_copy(sb_objects[7])
     tester = Sb.annotate(tester, 'misc_feature', (1, 100))
-    assert seqs_to_hash(tester) == '2f6c1d302c4e856d517200bad114054f'
+    assert seqs_to_hash(tester) == '34f9601d72d5c37a8fd301ff90088cd8'
 
 
 def test_annotate_unrec_strand(capsys):
@@ -652,16 +652,6 @@ def test_clean_seq():
         tester.write("/dev/null")
         tester = Sb.clean_seq(Sb._make_copy(sb_objects[5]))
         tester.write("/dev/null")
-
-
-# ######################  'cf', '--combine_features' ###################### #
-# Only one test at the moment. Maybe add more later.
-dummy_feats = Sb.SeqBuddy(resource("Mnemiopsis_cds_dummy_features.gb"))
-
-
-def test_combine_features():
-    tester = Sb.combine_features(dummy_feats, sb_objects[1])
-    assert seqs_to_hash(tester) == "11ae234528ba6871035c1a3641d71736"
 
 
 # ######################  'cmp', '--complement' ###################### #
@@ -1108,9 +1098,14 @@ def test_map_features_prot2dna(_prot, _dna, next_hash):
 
 # #####################  'mg', '--merge' ###################### ##
 def test_merge():
-    tester = [Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))]
-    tester = Sb.merge(tester)
-    assert seqs_to_hash(tester) == 'ce306df2c8d57c59baff51733ddb9ddc'
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds_dummy_features.gb"))
+    tester = Sb.merge(tester, Sb._make_copy(sb_objects[1]))
+    assert seqs_to_hash(tester) == "5fb43a869bb9f766625d1336081766fc"
+
+    tester.records[0].seq = tester.records[1].seq
+    with pytest.raises(RuntimeError) as e:
+        Sb.merge(tester, Sb._make_copy(sb_objects[1]))
+    assert "Record mismatch: ID" in str(e.value)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
@@ -1420,13 +1415,13 @@ def test_annotate_ui(capsys):
     test_in_args.annotate = ["misc_feature", "1-100,200-250", "+"]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "b9e36751073152e627f9d2adc0397a9e"
+    assert string2hash(out) == "4a294c1ea5783fe04e909d767e7dfce2"
 
     test_in_args = deepcopy(in_args)
     test_in_args.annotate = ["misc_feature", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "4f227a5cf240b1726f632b7d504a1560"
+    assert string2hash(out) == "42ca93bcf3103124287fffbde49f2b26"
 
     test_in_args = deepcopy(in_args)
     test_in_args.annotate = ["unknown_feature_that_is_t0o_long", "1-100,200-250", "foo=bar", "hello=world", "-", "α4"]
@@ -1521,6 +1516,36 @@ def test_blast_ui(capsys):
         Sb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
     assert "RuntimeError:" in err
+
+
+# ######################  'cs', '--clean_seq' ###################### #
+def test_clean_seq_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.clean_seq = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "dc53f3be7a7c24425dddeea26ea0ebb5"
+
+    test_in_args.clean_seq = ["strict"]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5fd0b78e37c81e0fa727db34a37cc743"
+
+
+# ######################  'mg', '--merge' ###################### #
+def test_merge_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.merge = True
+    test_in_args.sequence = [resource("Mnemiopsis_cds_dummy_features.gb"), resource("Mnemiopsis_cds.gb")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5fb43a869bb9f766625d1336081766fc"
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_cds.gb")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "RuntimeError" in err
 
 
 # ######################  'd2r', '--transcribe' ###################### #
