@@ -440,3 +440,22 @@ def sendmail(sender, recipient, subject, message):
     smtp.sendmail(sender, recipient, msg.as_string())
     smtp.quit()
     return
+
+
+def ask(input_prompt, default="yes"):
+    if default == "yes":
+        yes_list = ["yes", "y", '']
+        no_list = ["no", "n", "abort"]
+    else:
+        yes_list = ["yes", "y"]
+        no_list = ["no", "n", "abort", '']
+
+    _response = input(input_prompt)
+    while True:
+        if _response.lower() in yes_list:
+            return True
+        elif _response.lower() in no_list:
+            return False
+        else:
+            print("Response not understood. Valid options are 'yes' and 'no'.")
+            _response = input(input_prompt)
