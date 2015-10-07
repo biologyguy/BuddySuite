@@ -7,11 +7,13 @@ from hashlib import md5
 import os
 import re
 import sys
+import argparse
+from copy import deepcopy
+
 from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
-import argparse
-from copy import deepcopy
+from unittest import mock
 
 sys.path.insert(0, "./")
 import buddy_resources as br
@@ -20,6 +22,7 @@ import MyFuncs
 
 VERSION = Sb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
+BACKUP_PATH = os.environ["PATH"]
 
 
 def fmt(prog):
@@ -205,23 +208,50 @@ def test_make_copy():
     assert seqs_to_hash(Sb._make_copy(sb_objects[0])) == seqs_to_hash(sb_objects[0])
 
 
+# ######################  '_check_for_blast_bin' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_check_blast_bin(capsys):
+    for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
+        assert Sb._check_for_blast_bin(_bin)
+
+    with mock.patch.dict(os.environ, {"PATH": ""}):
+        with mock.patch('MyFuncs.ask', return_value=False):
+            assert not Sb._check_for_blast_bin("blastp")
+
+        with mock.patch('MyFuncs.ask', return_value=True):
+            with mock.patch("SeqBuddy._download_blast_binaries", return_value=False):
+                assert not Sb._check_for_blast_bin("foo")
+                out, err = capsys.readouterr()
+                assert "Failed to download foo" in err
+
+            assert not Sb._check_for_blast_bin("blastp")
+            out, err = capsys.readouterr()
+            assert "blastp downloaded" in err
+            assert os.path.isfile("./blastp")
+            os.remove("./blastp")
+
+
 # ######################  '_download_blast_binaries' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
 def test_dl_blast_bins():
-    for platform in ["darwin", "linux", "win"]:
+    sys_memory = int(sys.maxsize)
+    for platform in ["darwin", "linux32", "linux64", "win"]:
+        sys.maxsize = 2000000000 if platform == "linux32" else sys_memory
+        platform = "linux" if "linux" in platform else platform
         Sb._download_blast_binaries(ignore_pre_install=True, system=platform)
         if platform != "win":
-            assert os.path.isfile('blastdbcmd')
-            assert os.path.isfile('blastn')
-            assert os.path.isfile('blastp')
+            assert os.path.isfile('./blastdbcmd')
+            assert os.path.isfile('./blastn')
+            assert os.path.isfile('./blastp')
             os.remove("./blastdbcmd")
             os.remove("./blastn")
             os.remove("./blastp")
         else:
-            assert os.path.isfile('blastdbcmd.exe')
-            assert os.path.isfile('blastn.exe')
-            assert os.path.isfile('blastp.exe')
+            assert os.path.isfile('./blastdbcmd.exe')
+            assert os.path.isfile('./blastn.exe')
+            assert os.path.isfile('./blastp.exe')
             os.remove("./blastdbcmd.exe")
             os.remove("./blastn.exe")
             os.remove("./blastp.exe")
@@ -271,8 +301,7 @@ def test_guess_format():
     assert Sb._guess_format(["foo", "bar"]) == "gb"
     assert Sb._guess_format(sb_objects[0]) == "fasta"
     assert Sb._guess_format(resource("Mnemiopsis_cds.fa")) == "fasta"
-    with pytest.raises(SystemExit):
-        Sb._guess_format(resource("blank.fa"))
+    assert Sb._guess_format(resource("blank.fa")) == "empty file"
     with pytest.raises(Sb.GuessError):
         Sb._guess_format("foo")
 
@@ -529,28 +558,65 @@ def test_back_translate_bad_organism():
 
 # ######################  'bl2s', '--bl2seq' ###################### #
 def test_bl2seq_cds():
-    seqbuddy = Sb.SeqBuddy(resource(seq_files[0]))
+    seqbuddy = Sb._make_copy(sb_objects[0])
     result = Sb.bl2seq(seqbuddy)[1]
     assert md5(result.encode()).hexdigest() == '339377aee781fb9d01456f04553e3923'
 
 
 def test_bl2seq_pep():
-    seqbuddy = Sb.SeqBuddy(resource(seq_files[6]))
+    seqbuddy = Sb._make_copy(sb_objects[6])
     result = Sb.bl2seq(seqbuddy)[1]
     assert md5(result.encode()).hexdigest() == '4c722c4db8bd5c066dc76ebb94583a37'
 
 
+def test_bl2_no_binary():
+    os.environ["PATH"] = ""
+    with mock.patch('builtins.input', return_value="n"):
+        with pytest.raises(RuntimeError):
+            seqbuddy = Sb._make_copy(sb_objects[0])
+            Sb.bl2seq(seqbuddy)
+
+        with pytest.raises(RuntimeError):
+            seqbuddy = Sb._make_copy(sb_objects[6])
+            Sb.bl2seq(seqbuddy)
+    os.environ["PATH"] = BACKUP_PATH
+
+
 # ######################  'bl', '--blast' ###################### #
 def test_blastn():
-    seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[0])), '8')
-    tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_cds.n"))
+    tester = Sb.pull_recs(Sb._make_copy(sb_objects[0]), '8')
+    tester = Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
     assert seqs_to_hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
+
+    with pytest.raises(RuntimeError) as e:
+        tester = Sb._make_copy(sb_objects[0])
+        Sb.blast(tester, blast_db=resource("Mnemiopsis_cds.nhr"))
+    assert "The .nhr file of your blast database was not found" in str(e.value)
+
+    with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
+        with pytest.raises(SystemError) as e:
+            Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
+        assert 'blastn not found in system path' in str(e.value)
+
+    tester = Sb.SeqBuddy(">Seq1\nATGCGCGCTACGCTAGCTAGCTAGCTCGCATGCAT")
+    tester = Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
+    assert len(tester.records) == 0
 
 
 def test_blastp():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8')
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_pep.p"))
     assert seqs_to_hash(tester) == "4237c79672c1cf1d4a9bdb160a53a4b9"
+
+    with pytest.raises(RuntimeError) as e:
+        tester = Sb._make_copy(sb_objects[6])
+        Sb.blast(tester, blast_db=resource("Mnemiopsis_cds.phr"))
+    assert "The .phr file of your blast database was not found" in str(e.value)
+
+    with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
+        with pytest.raises(SystemError) as e:
+            Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_pep.n"))
+        assert 'blastp not found in system path' in str(e.value)
 
 
 # ######################  'cs', '--clean_seq'  ###################### #
@@ -1081,8 +1147,9 @@ def test_num_seqs(seqbuddy, num):
 
 
 def test_empty_file():
-    with pytest.raises(SystemExit):
-        Sb.SeqBuddy(resource("blank.fa"))
+    tester = Sb.SeqBuddy(resource("blank.fa"))
+    assert type(tester) == Sb.SeqBuddy
+    assert len(tester.records) == 0
 
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
 fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "21547b4b35e49fa37e5c5b858808befb",
@@ -1402,27 +1469,70 @@ def test_back_transcribe_ui(capsys):
 def test_back_translate_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.back_translate = [False]
-    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert "Panxα4" in out
 
     test_in_args = deepcopy(in_args)
     test_in_args.back_translate = [["human", "o"]]
-    Sb.command_line_ui(test_in_args, sb_objects[7], True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b6bcb4e5104cb202db0ec4c9fc2eaed2"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+
+    out, err = capsys.readouterr()
+    assert err == "TypeError: The input sequence needs to be protein, not nucleotide\n"
+
+
+# ######################  'bl2s', '--bl2seq' ###################### #
+def test_bl2s_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.bl2seq = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "339377aee781fb9d01456f04553e3923"
+
+    os.environ["PATH"] = ""
+    with mock.patch('builtins.input', return_value="n"):
+        with pytest.raises(SystemExit):
+            Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+    out, err = capsys.readouterr()
+    assert "not present in $PATH or working directory" in err
+    os.environ["PATH"] = BACKUP_PATH
+
+
+# ######################  'bl', '--blast' ###################### #
+def test_blast_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.blast = resource("blast/Mnemiopsis_cds")
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a56ec76a64b25b7ca8587c7aa8554412"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("blank.fa")), True)
+    out, err = capsys.readouterr()
+    assert out == "No significant matches found\n"
+
+    with pytest.raises(SystemExit):
+        test_in_args.blast = resource("./Mnemiopsis_cds")
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "RuntimeError:" in err
 
 
 # ######################  'd2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.transcribe = True
-    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "d2db9b02485e80323c487c1dd6f1425b"
 
     with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
 
     out, err = capsys.readouterr()
     assert "You need to provide a DNA sequence." in err
@@ -1442,7 +1552,6 @@ def test_order_features_alphabetically_ui(capsys):
 def test_num_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.num_seqs = True
-    Sb.command_line_ui(test_in_args, sb_objects[0], True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert out == '13\n'
-

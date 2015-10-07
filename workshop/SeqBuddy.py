@@ -61,7 +61,7 @@ from Bio.Data.CodonTable import TranslationError
 from Bio.Data import CodonTable
 
 # BuddySuite specific
-from MyFuncs import run_multicore_function
+import MyFuncs
 import buddy_resources as br
 
 
@@ -109,6 +109,7 @@ def degenerate_dna():
     # https://github.com/carlosp420/degenerate-dna
     # Degen: http://www.phylotools.com/ptdegenoverview.htm
     return
+
 
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Add support for selecting individual sequences to modify
@@ -189,6 +190,8 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         if not in_format:
             self.in_format = _guess_format(sb_input)
+            if self.in_format == "empty file":
+                self.in_format = "fasta"
             self.out_format = str(self.in_format) if not out_format else out_format
 
         else:
@@ -300,11 +303,37 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
+
     def __init__(self, _value):
         self.value = _value
 
     def __str__(self):
         return self.value
+
+
+def _check_for_blast_bin(blast_bin):
+    """
+    Check the user's system for the blast bin in $PATH, try to download if not.
+    :param blast_bin: the name of the binary to look for (str)
+    :return: success or failure (bool)
+    """
+    if which(blast_bin):
+        return True
+
+    current_dir = os.getcwd()
+    script_location = os.path.realpath(__file__)
+    script_location = re.sub('SeqBuddy\.py', '', script_location)
+
+    prompt = MyFuncs.ask("%s binary not found. Try to download it? [yes]/no: " % blast_bin)
+    if prompt:
+        os.chdir(script_location)
+        if _download_blast_binaries(**{blast_bin: True}):
+            _stderr("%s downloaded.\n" % blast_bin)
+        else:
+            _stderr("Failed to download %s.\n" % blast_bin)
+        os.chdir(current_dir)
+
+    return False if not which(blast_bin) else True
 
 
 def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs):
@@ -334,12 +363,13 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
         if blastp:
             bins_to_dl.append('Darwin_blastp.zip')
     elif current_os.startswith('linux'):
+        system_bits = "32" if sys.maxsize < 3000000000 else "64"
         if blastdcmd:
-            bins_to_dl.append('Linux_blastdbcmd.zip')
+            bins_to_dl.append('Linux_blastdbcmd%s.zip' % system_bits)
         if blastn:
-            bins_to_dl.append('Linux_blastn.zip')
+            bins_to_dl.append('Linux_blastn%s.zip' % system_bits)
         if blastp:
-            bins_to_dl.append('Linux_blastp.zip')
+            bins_to_dl.append('Linux_blastp%s.zip' % system_bits)
     elif current_os.startswith('win'):
         if blastdcmd:
             bins_to_dl.append('Win32_blastdbcmd.zip')
@@ -351,10 +381,11 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
         return False
 
     file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
-                    'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd.zip': 'blastdbcmd',
-                    'Linux_blastn.zip': 'blastn', 'Linux_blastp.zip': 'blastp',
-                    'Win32_blastdbcmd.zip': 'blastdbcmd.exe', 'Win32_blastn.zip': 'blastn.exe',
-                    'Win32_blastp.zip': 'blastp.exe'}
+                    'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd32.zip': 'blastdbcmd',
+                    'Linux_blastn32.zip': 'blastn', 'Linux_blastp32.zip': 'blastp',
+                    'Linux_blastdbcmd64.zip': 'blastdbcmd', 'Linux_blastn64.zip': 'blastn',
+                    'Linux_blastp64.zip': 'blastp', 'Win32_blastdbcmd.zip': 'blastdbcmd.exe',
+                    'Win32_blastn.zip': 'blastn.exe', 'Win32_blastp.zip': 'blastp.exe'}
 
     os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
     try:
@@ -464,10 +495,8 @@ def _guess_format(_input):
         _input = open(_input, "r")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-        # Die if file is empty
         if _input.read() == "":
-            _stderr("Input file is empty.")
-            sys.exit()
+            return "empty file"
         _input.seek(0)
 
         # ToDo: Glean CLUSTAL
@@ -923,55 +952,6 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     # Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     # threshold may need to be increased quite a bit to return short alignments
 
-    current_dir = os.getcwd()
-    script_location = os.path.realpath(__file__)
-    script_location = re.sub('SeqBuddy\.py', '', script_location)
-
-    if not which("blastp") and seqbuddy.alpha not in [IUPAC.protein]:
-        _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
-        prompt = input()
-        while True:
-            if prompt.lower() in ['yes', 'y', '']:
-                os.chdir(script_location)
-                if _download_blast_binaries(blastdcmd=False, blastn=False, blastp=True):
-                    _stderr("Blastp downloaded.\n")
-                else:
-                    _stderr("Failed to download blastp.\n")
-                break
-            elif prompt.lower() in ['no', 'n']:
-                break
-            else:
-                _stderr("Input not understood.\n")
-                _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
-                prompt = input()
-        os.chdir(current_dir)
-        if not which("blastp"):
-            raise RuntimeError("Blastp not present in $PATH or working directory.")
-        sys.exit()
-
-    elif not which("blastn") and seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
-                                                        IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-        _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
-        prompt = input()
-        while True:
-            if prompt.lower() in ['yes', 'y', '']:
-                os.chdir(script_location)
-                if _download_blast_binaries(blastdcmd=False, blastn=False, blastp=True):
-                    _stderr("Blastn downloaded.\n")
-                else:
-                    _stderr("Failed to download blastn.\n")
-                break
-            elif prompt.lower() in ['no', 'n']:
-                break
-            else:
-                _stderr("Input not understood.\n")
-                _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
-                prompt = input()
-        os.chdir(current_dir)
-        if not which("blastn"):
-            raise RuntimeError("Blastn not present in $PATH or working directory.")
-        sys.exit()
-
     def mc_blast(_query, _args):
         _subject_file = _args[0]
 
@@ -1000,9 +980,14 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
                 _ofile.write(_result)
         return
 
+    if seqbuddy.alpha == IUPAC.protein and not _check_for_blast_bin("blastp"):
+        raise RuntimeError("Blastp not present in $PATH or working directory.")
+
+    elif seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna] \
+            and not _check_for_blast_bin("blastn"):
+        raise RuntimeError("Blastn not present in $PATH or working directory.")
+
     blast_bin = "blastp" if seqbuddy.alpha == IUPAC.protein else "blastn"
-    if not which(blast_bin):
-        raise RuntimeError("%s not present in $PATH or working directory." % blast_bin)  # ToDo: Implement -p flag
 
     from multiprocessing import Lock
     lock = Lock()
@@ -1014,8 +999,8 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     for subject in seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
-
-        run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)  # Todo Benchmark
+        # Todo Benchmark
+        MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
 
         seqs_copy = seqs_copy[1:]
 
@@ -1058,26 +1043,22 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     return [output_dict, output_str]
 
 
-def blast(seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow weird binary names to work
+def blast(seqbuddy, blast_db):
     """
-    Runs a BLAST search for all of the sequences in the SeqBuddy object against a specified database.
+    ToDo: - Implement makeblastdb
+          - Allow extra blast parameters
+
+    Runs a BLAST search against a specified database, returning all significant matches.
     :param seqbuddy: SeqBuddy object
     :param blast_db: The location of the BLAST database to run the sequences against
-    :param blast_path: The location of the blastn/blastp executable
-    :param blastdbcmd: The location of the blastdbcmd executable
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
-    if not blast_path:
-        blast_path = which("blastp") if seqbuddy.alpha == IUPAC.protein else which("blastn")
+    blast_bin = "blastp" if seqbuddy.alpha == IUPAC.protein else "blastn"
+    if not _check_for_blast_bin(blast_bin):
+        raise SystemError("%s not found in system path." % blast_bin)
 
-    current_dir = os.getcwd()
-    script_location = os.path.realpath(__file__)
-    script_location = re.sub(str(__file__), '', script_location)
-
-    blast_check = Popen("%s -version" % blast_path, stdout=PIPE, shell=True).communicate()
-    blast_check = re.search("([a-z])*[^:]", blast_check[0].decode("utf-8"))
-    if blast_check:
-        blast_check = blast_check.group(0)
+    if not _check_for_blast_bin("blastdbcmd"):
+        raise SystemError("blastdbcmd not found in system path.")
 
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
@@ -1086,110 +1067,28 @@ def blast(seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow 
     if blast_db[-2:] in [".p", ".n"]:
         blast_db = blast_db[:-2]
 
-    if blast_db[-3:] in extensions[blast_check]:
+    if blast_db[-3:] in extensions[blast_bin]:
         blast_db = blast_db[:-4]
 
     blast_db = os.path.abspath(blast_db)
 
     # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
-    # Check to make sure blast is in $PATH and ensure that the blast_db is present
-
-    if blast_check == "blastp":
-        if not which(blast_path):
-            _stderr("Blastp binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
-            prompt = input()
-            while True:
-                if prompt.lower() in ['yes', 'y', '']:
-                    os.chdir(script_location)
-                    if _download_blast_binaries(blastdcmd=False, blastn=False, blastp=True):
-                        _stderr("Blastp downloaded.\n")
-                    else:
-                        _stderr("Failed to download blastp.\n")
-                    break
-                elif prompt.lower() in ['no', 'n']:
-                    break
-                else:
-                    _stderr("Input not understood.\n")
-                    _stderr("Would you like to download blastp? (program will be aborted) [yes]/no\n")
-                    prompt = input()
-            os.chdir(current_dir)
-            if not which("blastp"):
-                raise FileNotFoundError("blastp binary not found")
-            return
-
-        if not os.path.isfile("%s.pin" % blast_db) or not os.path.isfile("%s.phr" % blast_db) \
-                or not os.path.isfile("%s.psq" % blast_db):
-            raise RuntimeError("Blastp database not found at '%s'" % blast_db)
-    elif blast_check == "blastn":
-        if not which(blast_path):
-            _stderr("Blastn binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
-            prompt = input()
-            while True:
-                if prompt.lower() in ['yes', 'y', '']:
-                    os.chdir(script_location)
-                    if _download_blast_binaries(blastdcmd=False, blastn=True, blastp=False):
-                        _stderr("Blastn downloaded.\n")
-                    else:
-                        _stderr("Failed to download blastn.\n")
-                    break
-                elif prompt.lower() in ['no', 'n']:
-                    break
-                else:
-                    _stderr("Input not understood.\n")
-                    _stderr("Would you like to download blastn? (program will be aborted) [yes]/no\n")
-                    prompt = input()
-            os.chdir(current_dir)
-            if not which("blastn"):
-                raise FileNotFoundError("blastn binary not found")
-            return
-
-        if not os.path.isfile("%s.nin" % blast_db) or not os.path.isfile("%s.nhr" % blast_db) \
-                or not os.path.isfile("%s.nsq" % blast_db):
-            raise RuntimeError("Blastn database not found at '%s'" % blast_db)
-    else:
-        raise RuntimeError("Blast binary doesn't seem to work, at %s" % blast_path)
-
-    if not blastdbcmd:
-        blastdbcmd = "blastdbcmd"
-
-    if not which(blastdbcmd):
-        _stderr("Blastdbcmd binary not found. Would you like to download it? (program will be aborted) [yes]/no\n")
-        prompt = input()
-        while True:
-            if prompt.lower() in ['yes', 'y', '']:
-                os.chdir(script_location)
-                if _download_blast_binaries(blastdcmd=True, blastn=False, blastp=False):
-                    _stderr("Blastdbcmd downloaded.\n")
-                else:
-                    _stderr("Failed to download blastdbcmd.\n")
-                break
-            elif prompt.lower() in ['no', 'n']:
-                break
-            else:
-                _stderr("Input not understood.\n")
-                _stderr("Would you like to download blastdbcmd? (program will be aborted) [yes]/no\n")
-                prompt = input()
-        os.chdir(current_dir)
-        if not which("blastdbcmd"):
-            raise FileNotFoundError("blastdbcmd")
-        return
-
-    # Check that compelte blastdb is present and was made with the -parse_seqids flag
-    for extension in extensions[blast_check]:
+    # Check that complete blastdb is present and was made with the -parse_seqids flag
+    for extension in extensions[blast_bin]:
         if not os.path.isfile("%s.%s" % (blast_db, extension)):
             raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
                                "used with makeblastdb." % extension)
 
     seqbuddy = clean_seq(seqbuddy)  # in case there are gaps or something in the sequences
 
-    tmp_dir = TemporaryDirectory()
-    with open("%s/tmp.fa" % tmp_dir.name, "w") as ofile:
+    tmp_dir = MyFuncs.TempDir()
+    with open("%s/tmp.fa" % tmp_dir.path, "w") as ofile:
         SeqIO.write(seqbuddy.records, ofile, "fasta")
 
     Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 4 -evalue 0.01 -outfmt 6" %
-          (blast_path, blast_db, tmp_dir.name, tmp_dir.name), shell=True).wait()
+          (blast_bin, blast_db, tmp_dir.path, tmp_dir.path), shell=True).wait()
 
-    with open("%s/out.txt" % tmp_dir.name, "r") as ifile:
+    with open("%s/out.txt" % tmp_dir.path, "r") as ifile:
         blast_results = ifile.read()
         records = blast_results.split("\n")
 
@@ -1204,21 +1103,14 @@ def blast(seqbuddy, blast_db, blast_path=None, blastdbcmd=None):  # ToDo: Allow 
 
         hit_ids.append(hit_id)
 
-    if len(hit_ids) == 0:
-        sys.stderr.write("No matches identified.\n")
-        return None
+    with open("%s/seqs.fa" % tmp_dir.path, "w") as ofile:
+        for hit_id in hit_ids:
+            hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (blast_db, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = hit[0].decode("utf-8")
+            hit = re.sub("lcl\|", "", hit)
+            ofile.write("%s\n" % hit)
 
-    ofile = open("%s/seqs.fa" % tmp_dir.name, "w")
-    for hit_id in hit_ids:
-        hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (blast_db, hit_id), stdout=PIPE, shell=True).communicate()
-        hit = hit[0].decode("utf-8")
-        hit = re.sub("lcl\|", "", hit)
-        ofile.write("%s\n" % hit)
-
-    ofile.close()
-
-    with open("%s/seqs.fa" % tmp_dir.name, "r") as ifile:
-        new_seqs = SeqBuddy(ifile)
+    new_seqs = SeqBuddy("%s/seqs.fa" % tmp_dir.path)
 
     return new_seqs
 
@@ -1307,18 +1199,18 @@ def combine_features(seqbuddy1, seqbuddy2):  # ToDo: rewrite this to accept any 
                     seq_dict1[seq_id].features.append(feature)
         else:
             warning_used = True
-            sys.stderr.write("Warning: %s is only in the first set of sequences\n" % seq_id)
+            _stderr("Warning: %s is only in the first set of sequences\n" % seq_id)
 
         new_seqs[seq_id] = seq_dict1[seq_id]
 
     for seq_id in seq_dict2:
         if seq_id not in seq_dict1:
             warning_used = True
-            sys.stderr.write("Warning: %s is only in the first set of sequences\n" % seq_id)
+            _stderr("Warning: %s is only in the first set of sequences\n" % seq_id)
             new_seqs[seq_id] = seq_dict2[seq_id]
 
     if warning_used:
-        sys.stderr.write("\n")
+        _stderr("\n")
 
     seqbuddy = SeqBuddy([new_seqs[_seq_id] for _seq_id in seq_order], out_format=seqbuddy1.in_format)
     seqbuddy = order_features_by_position(seqbuddy)
@@ -1784,7 +1676,7 @@ def find_repeats(seqbuddy, columns=1):
         elif rec.id in unique_seqs:
             repeat_ids[rec.id] = [rec]
             repeat_ids[rec.id].append(unique_seqs[rec.id])
-            del(unique_seqs[rec.id])
+            del (unique_seqs[rec.id])
         else:
             unique_seqs[rec.id] = rec
 
@@ -1807,7 +1699,7 @@ def find_repeats(seqbuddy, columns=1):
 
     for key in del_keys:
         if key in unique_seqs:
-            del(unique_seqs[key])
+            del (unique_seqs[key])
 
     for key, value in repeat_ids.items():  # find duplicates in the repeat ID list
         for rep_seq in value:
@@ -1942,14 +1834,14 @@ def hash_sequence_ids(seqbuddy, hash_length=10):
     hash_list = []
     seq_ids = []
     if type(hash_length) != int or hash_length < 1:
-        sys.stderr.write("Warning: The hash_length parameter was passed in with the value %s. This is not an integer"
-                         " greater than 0, so the hash length as been set to 10.\n\n" % hash_length)
+        _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not an integer"
+                " greater than 0, so the hash length as been set to 10.\n\n" % hash_length)
         hash_length = 10
 
     if 32 ** hash_length <= len(seqbuddy.records) * 2:
         holder = ceil(log(len(seqbuddy.records) * 2, 32))
-        sys.stderr.write("Warning: The hash_length parameter was passed in with the value %s. This is too small to "
-                         "properly cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder))
+        _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to "
+                "properly cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder))
         hash_length = holder
 
     for i in range(len(seqbuddy.records)):
@@ -2066,6 +1958,7 @@ def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
     :param protseqbuddy: A protein SeqBuddy
     :return: A protein SeqBuddy with the DNA SeqBuddy's features
     """
+
     def _feature_map(feature):
         if type(feature.location) == CompoundLocation:
             new_compound_location = []
@@ -2094,13 +1987,13 @@ def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
     for seq_id, dna_rec in dna_dict.items():
         if seq_id not in prot_dict:
             stderr_written = True
-            sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
+            _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
             continue
 
         # len(cds) or len(cds minus stop)
         if len(prot_dict[seq_id].seq) * 3 not in [len(dna_rec.seq), len(dna_rec.seq) - 3]:
-            sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                             (seq_id, len(dna_rec.seq), len(prot_dict[seq_id].seq)))
+            _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                    (seq_id, len(dna_rec.seq), len(prot_dict[seq_id].seq)))
         new_seqs[seq_id] = prot_dict[seq_id]
         prot_feature_hashes = []
         for feat in prot_dict[seq_id].features:
@@ -2114,11 +2007,11 @@ def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
     for seq_id, prot_rec in prot_dict.items():
         if seq_id not in dna_dict:
             stderr_written = True
-            sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
+            _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
             new_seqs[seq_id] = prot_rec
 
     if stderr_written:
-        sys.stderr.write("\n")
+        _stderr("\n")
 
     seqs_list = [new_seqs[_rec.id] for _rec in protseqbuddy.records]
     seqbuddy = SeqBuddy(seqs_list)
@@ -2133,6 +2026,7 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
     :param dnaseqbuddy: A DNA SeqBuddy
     :return: A DNA SeqBuddy with the protein SeqBuddy's features
     """
+
     def _feature_map(feature):
         if type(feature.location) == CompoundLocation:
             new_compound_location = []
@@ -2161,13 +2055,13 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
     for seq_id, prot_rec in prot_dict.items():
         if seq_id not in dna_dict:
             stderr_written = True
-            sys.stderr.write("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
+            _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
             continue
 
         # len(cds) or len(cds minus stop)
         if len(prot_rec.seq) * 3 not in [len(dna_dict[seq_id].seq), len(dna_dict[seq_id].seq) - 3]:
-            sys.stderr.write("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                             (seq_id, len(prot_rec.seq), len(dna_dict[seq_id].seq)))
+            _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                    (seq_id, len(prot_rec.seq), len(dna_dict[seq_id].seq)))
         new_seqs[seq_id] = dna_dict[seq_id]
         dna_feature_hashes = []
         for feat in dna_dict[seq_id].features:
@@ -2187,11 +2081,11 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
     for seq_id, dna_rec in dna_dict.items():
         if seq_id not in prot_dict:
             stderr_written = True
-            sys.stderr.write("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
+            _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
             new_seqs[seq_id] = dna_rec
 
     if stderr_written:
-        sys.stderr.write("\n")
+        _stderr("\n")
 
     seqs_list = [new_seqs[_rec.id] for _rec in dnaseqbuddy.records]
     seqbuddy = SeqBuddy(seqs_list)
@@ -2623,14 +2517,14 @@ def translate_cds(seqbuddy, quiet=False):  # adding 'quiet' will suppress the er
     :param quiet: Suppress error messages and warnings
     :return: The translated SeqBuddy object
     """
+
     def trans(in_seq):
         try:
             in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
             return in_seq
 
         except TranslationError as _e1:
-            if not quiet:
-                sys.stderr.write("Warning: %s in %s\n" % (_e1, in_seq.id))
+            _stderr("Warning: %s in %s\n" % (_e1, in_seq.id), quiet)
             return _e1
 
         except ValueError:
@@ -2775,28 +2669,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _get_blast_binaries():
-        blastp = None
-        blastn = None
-        blastdbcmd = None
-        if in_args.params:
-            for _param in in_args.params:
-                binary = Popen("%s -version" % _param, stdout=PIPE, shell=True).communicate()
-                binary = re.search("([a-z])*[^:]", binary[0].decode("utf-8"))
-                binary = binary.group(0)
-                if binary == "blastp":
-                    blastp = _param
-                elif binary == "blastn":
-                    blastn = _param
-                elif binary == "blastdbcmd":
-                    blastdbcmd = _param
-
-        blastp = blastp if blastp else which("blastp")
-        blastn = blastn if blastn else which("blastn")
-        blastdbcmd = blastdbcmd if blastdbcmd else which("blastdbcmd")
-
-        return {"blastdbcmd": blastdbcmd, "blastp": blastp, "blastn": blastn}
-
     def _raise_error(_err, tool):
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
         _exit(tool)
@@ -2892,30 +2764,37 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         else:
             mode = "RANDOM"
             species = None
+
+        if seqbuddy.alpha != IUPAC.protein:
+            _raise_error(TypeError("The input sequence needs to be protein, not nucleotide"), "back_translate")
+
         _print_recs(back_translate(seqbuddy, mode, species))
         _exit("back_translate")
 
     # BL2SEQ
     if in_args.bl2seq:
-        output = bl2seq(seqbuddy)
-        _stdout(output[1])
+        try:
+            output = bl2seq(seqbuddy)
+            _stdout(output[1])
+        except RuntimeError as e:
+            if "not present in $PATH or working directory" in str(e):
+                _raise_error(e, "bl2seq")
+            else:
+                raise e
         _exit("bl2seq")
 
-    # BLAST  ToDo: Determine if this can be refactored
+    # BLAST
     if in_args.blast:
-        blast_binaries = _get_blast_binaries()
-        blast_binary_path = blast_binaries["blastp"] if seqbuddy.alpha == IUPAC.protein else blast_binaries["blastn"]
         try:
-            blast_res = blast(seqbuddy, in_args.blast, blast_path=blast_binary_path,
-                              blastdbcmd=blast_binaries["blastdbcmd"])
+            blast_res = blast(seqbuddy, in_args.blast)
+            if len(blast_res.records) > 0:
+                _print_recs(blast_res)
+            else:
+                _stdout("No significant matches found\n")
+            _exit("blast")
 
-        except FileNotFoundError as e:
-            raise FileNotFoundError("%s binary not found, explicitly set with the -p flag.\nTo pass in the path to "
-                                    "both blast(p/n) and blastdbcmd, separate them with a space." % e)
-
-        if blast_res:
-            _print_recs(blast_res)
-        _exit("blast")
+        except (RuntimeError, SystemError) as e:
+            _raise_error(e, "blast")
 
     # Clean Seq
     if in_args.clean_seq:
@@ -3008,15 +2887,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             delete_records(new_list, next_pattern)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
-                counter = 1
-                output = "# ####################### Deleted records ######################## #\n"
-                for seq in deleted_seqs:
-                    output += "%s\t" % seq.id
-                    if counter % columns == 0:
-                        output = "%s\n" % output.strip()
-                    counter += 1
-                output = "%s\n# ################################################################ #\n" % output.strip()
-                _stderr(output)
+            counter = 1
+            output = "# ####################### Deleted records ######################## #\n"
+            for seq in deleted_seqs:
+                output += "%s\t" % seq.id
+                if counter % columns == 0:
+                    output = "%s\n" % output.strip()
+                counter += 1
+            output = "%s\n# ################################################################ #\n" % output.strip()
+            _stderr(output)
 
         if len(deleted_seqs) == 0:
             _stderr("# ################################################################ #\n")
@@ -3350,14 +3229,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
         reverse = True if in_args.order_features_alphabetically[0] \
-            and in_args.order_features_alphabetically[0] == "rev" else False
+                          and in_args.order_features_alphabetically[0] == "rev" else False
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
         _exit("order_features_alphabetically")
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
         reverse = True if in_args.order_features_by_position[0] \
-            and in_args.order_features_by_position[0] == "rev" else False
+                          and in_args.order_features_by_position[0] == "rev" else False
         _print_recs(order_features_by_position(seqbuddy, reverse))
         _exit("order_features_by_position")
 
@@ -3487,7 +3366,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Transcribe
     if in_args.transcribe:
         if seqbuddy.alpha != IUPAC.ambiguous_dna:
-            raise ValueError("You need to provide a DNA sequence.")
+            _raise_error(ValueError("You need to provide a DNA sequence."), "transcribe")
         _print_recs(dna2rna(seqbuddy))
         _exit("transcribe")
 
@@ -3512,6 +3391,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.uppercase:
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
+
 
 if __name__ == '__main__':
     try:

@@ -308,12 +308,12 @@ sb_flags = {"annotate": {"flag": "ano",
             "bl2seq": {"flag": "bl2s",
                        "action": "store_true",
                        "help": "All-by-all blast among sequences using bl2seq. "
-                               "Only Returns top hit from each search"},
+                               "Only Returns the top hit from each search"},
             "blast": {"flag": "bl",
                       "action": "store",
-                      "metavar": "<BLAST database",
-                      "help": "BLAST your sequence file using common settings, "
-                              "return the hits from blastdb"},
+                      "metavar": "path/to/blast_db",
+                      "help": "Search a BLAST database with your sequence file using common settings, "
+                              "returning the hits"},
             "clean_seq": {"flag": "cs",
                           "action": "append",
                           "nargs": "?",
