@@ -1156,10 +1156,10 @@ def complement(seqbuddy):
 
 def concat_seqs(seqbuddy, clean=False):
     """
-    Concatenates all of the sequences in the SeqBuddy object into one
+    Concatenates sequences into a single record
     :param seqbuddy: SeqBuddy object
-    :param clean: Specifies whether non-sequence characters should be cleaned
-    :return: The concatenated SeqBuddy object
+    :param clean: Specifies whether non-sequence characters should be removed
+    :return: modified SeqBuddy object
     """
     if clean:
         clean_seq(seqbuddy)
@@ -1202,14 +1202,13 @@ def count_codons(seqbuddy):
     for rec in seqbuddy.records:
         sequence = rec.seq
         if len(sequence) % 3 != 0:
-            _stderr("Warning: {0} length not a multiple of 3. Sequence will be truncated.\n".format(rec.id))
             while len(sequence) % 3 != 0:
                 sequence = sequence[:-1]
-        data_table = OrderedDict()
+        data_table = {}
         num_codons = len(sequence) / 3
         while len(sequence) > 0:
             codon = str(sequence[:3]).upper()
-            if codon in data_table.keys():
+            if codon in data_table:
                 data_table[codon][1] += 1
             else:
                 if codon.upper() in ['ATG', 'AUG']:
@@ -1237,7 +1236,7 @@ def count_codons(seqbuddy):
 
 def count_residues(seqbuddy):
     """
-    Count the number of each type of residue in the SeqBuddy object
+    Generate frequency statistics for residue composition
     :param seqbuddy: SeqBuddy object
     :return: A tuple containing an annotated SeqBuddy object and a dictionary - dict[id][residue]
     """
@@ -2023,6 +2022,7 @@ def merge(*seqbuddy):
     :param *seqbuddy: SeqBuddy objects to be combined
     :return: A new SeqBuddy object
     """
+
     def merge_records(rec1, rec2):
         if str(rec1.seq) != str(rec2.seq):
             raise RuntimeError("Record mismatch: ID %s" % rec1.id)
@@ -2615,7 +2615,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
 
-    def _raise_error(_err, tool):
+    def _raise_error(_err, tool, check_string=None):
+        if check_string:
+            if type(check_string) == str:
+                check_string = [check_string]
+            for _string in check_string:
+                if _string not in str(_err):
+                    raise _err
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
         _exit(tool)
 
@@ -2720,13 +2726,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # BL2SEQ
     if in_args.bl2seq:
         try:
-            output = bl2seq(seqbuddy)
-            _stdout(output[1])
+            residue_breakdown = bl2seq(seqbuddy)
+            _stdout(residue_breakdown[1])
         except RuntimeError as e:
-            if "not present in $PATH or working directory" in str(e):
-                _raise_error(e, "bl2seq")
-            else:
-                raise e
+            _raise_error(e, "bl2seq", "not present in $PATH or working directory")
         _exit("bl2seq")
 
     # BLAST
@@ -2752,7 +2755,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Complement
     if in_args.complement:
-        _print_recs(complement(seqbuddy))
+        try:
+            _print_recs(complement(seqbuddy))
+        except TypeError as e:
+            _raise_error(e, "complement", "Nucleic acid sequence required, not protein.")
         _exit("complement")
 
     # Concatenate sequences
@@ -2767,31 +2773,37 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Codon counter
     if in_args.count_codons:
         try:
+            if in_args.count_codons[0] and str(in_args.count_codons[0].lower()) in "concatenate":
+                seqbuddy = concat_seqs(seqbuddy)
             codon_table = count_codons(seqbuddy)[1]
             for sequence_id in codon_table:
                 _stdout('#### {0} ####\n'.format(sequence_id))
-                _stdout('Codon\tAmino Acid\tNum\tPercent\n')
+                _stdout('Codon\tAA\tNum\tPercent\n')
                 for codon in codon_table[sequence_id]:
                     data = codon_table[sequence_id][codon]
                     _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
                 _stdout('\n')
         except TypeError as e:
-            _raise_error(e, "count_codons")
+            _raise_error(e, "count_codons", "Nucleic acid sequence required, not protein or other.")
         _exit("count_codons")
 
     # Count residues
     if in_args.count_residues:
-        output = count_residues(seqbuddy)[1]
-        for sequence in output:
-            print(sequence)
-            sorted_residues = OrderedDict(sorted(output[sequence].items()))
+        if in_args.count_residues[0] and str(in_args.count_residues[0].lower()) in "concatenate":
+            seqbuddy = concat_seqs(seqbuddy)
+        residue_breakdown = count_residues(seqbuddy)[1]
+        output = ""
+        for sequence in residue_breakdown:
+            output += "%s\n" % str(sequence)
+            sorted_residues = OrderedDict(sorted(residue_breakdown[sequence].items()))
             for residue in sorted_residues:
                 try:
-                    print("{0}:\t{1}\t{2} %".format(residue, output[sequence][residue][0],
-                                                    round(output[sequence][residue][1] * 100, 2)))
+                    output += "{0}:\t{1}\t{2} %\n".format(residue, residue_breakdown[sequence][residue][0],
+                                                          round(residue_breakdown[sequence][residue][1] * 100, 2))
                 except TypeError:
-                    print("{0}:\t{1}".format(residue, output[sequence][residue]))
-            print()
+                    output += "{0}:\t{1}\n".format(residue, residue_breakdown[sequence][residue])
+            output += "\n"
+        _stdout(output)
         _exit("count_residues")
 
     # Delete features
@@ -2826,14 +2838,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
-            output = "# ####################### Deleted records ######################## #\n"
+            residue_breakdown = "# ####################### Deleted records ######################## #\n"
             for seq in deleted_seqs:
-                output += "%s\t" % seq.id
+                residue_breakdown += "%s\t" % seq.id
                 if counter % columns == 0:
-                    output = "%s\n" % output.strip()
+                    residue_breakdown = "%s\n" % residue_breakdown.strip()
                 counter += 1
-            output = "%s\n# ################################################################ #\n" % output.strip()
-            _stderr(output)
+            residue_breakdown = "%s\n# ################################################################ #\n" % residue_breakdown.strip()
+            _stderr(residue_breakdown)
 
         if len(deleted_seqs) == 0:
             _stderr("# ################################################################ #\n")
@@ -2910,10 +2922,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Find CpG
     if in_args.find_CpG:
-        output = find_cpg(seqbuddy)
-        if output[1]:
+        residue_breakdown = find_cpg(seqbuddy)
+        if residue_breakdown[1]:
             out_string = ""
-            for key, value in output[1].items():
+            for key, value in residue_breakdown[1].items():
                 if value:
                     value = ["%s-%s" % (x[0], x[1]) for x in value]
                     out_string += "{0}: {1}\n".format(key, ", ".join(value))
@@ -2927,14 +2939,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find pattern
     if in_args.find_pattern:
         for pattern in in_args.find_pattern:
-            output = find_pattern(seqbuddy, pattern)
+            residue_breakdown = find_pattern(seqbuddy, pattern)
             out_string = ""
             num_matches = 0
-            for key in output[1]:
+            for key in residue_breakdown[1]:
                 out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[1][key]]))
-                num_matches += len(output[1][key])
+                num_matches += len(residue_breakdown[1][key])
             _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(output[1]), pattern), in_args.quiet)
+                    "pattern '{2}' ####\n".format(num_matches, len(residue_breakdown[1]), pattern), in_args.quiet)
             _stderr("%s\n" % out_string, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
@@ -2977,14 +2989,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             min_cuts = temp
 
         clean_seq(seqbuddy)
-        output = []
+        residue_breakdown = []
         try:
-            output = find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
+            residue_breakdown = find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
         out_string = ''
-        for tup in output[1]:
+        for tup in residue_breakdown[1]:
             out_string += "{0}\n".format(tup[0])
             restriction_list = tup[1]
             restriction_list = [[key, value] for key, value in restriction_list.items()]
@@ -3170,15 +3182,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
-        reverse = True if in_args.order_features_alphabetically[0] \
-                          and in_args.order_features_alphabetically[0] == "rev" else False
+        ofa = in_args.order_features_alphabetically
+        reverse = True if ofa[0] and ofa[0] == "rev" else False
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
         _exit("order_features_alphabetically")
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
-        reverse = True if in_args.order_features_by_position[0] \
-                          and in_args.order_features_by_position[0] == "rev" else False
+        ofp = in_args.order_features_by_position
+        reverse = True if ofp[0] and ofp[0] == "rev" else False
         _print_recs(order_features_by_position(seqbuddy, reverse))
         _exit("order_features_by_position")
 
@@ -3231,11 +3243,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Raw Seq
     if in_args.raw_seq:
-        output = raw_seq(seqbuddy)
+        residue_breakdown = raw_seq(seqbuddy)
         if in_args.in_place:
-            _in_place(output, in_args.sequence[0])
+            _in_place(residue_breakdown, in_args.sequence[0])
         else:
-            _stdout(output)
+            _stdout(residue_breakdown)
         _exit("raw_seq")
 
     # Renaming

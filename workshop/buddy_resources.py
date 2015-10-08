@@ -286,7 +286,7 @@ bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
 sb_flags = {"annotate": {"flag": "ano",
                          "nargs": "*",
-                         "metavar": "arg",
+                         "metavar": "args",
                          "help": "Add a feature (annotation) to selected sequences. "
                                  "Args: <name>, <location (start1-end1,start2-end2...)>, [strand (+|-)], "
                                  "[qualifier (foo=bar) [qualifier]], [regex_pattern [regex_[pattern]]}"},
@@ -303,8 +303,8 @@ sb_flags = {"annotate": {"flag": "ano",
                                "nargs": "*",
                                "metavar": 'arg',
                                "help": "Convert amino acid sequences into codons. Optionally, "
-                                       "select mode by passing in [{random, r, optimized, o} ["
-                                       "{human, h, mouse, m, yeast, y, ecoli, e}]]"},
+                                       "select mode by passing in [{random, r, optimized, o}] "
+                                       "[{human, h, mouse, m, yeast, y, ecoli, e}]"},
             "bl2seq": {"flag": "bl2s",
                        "action": "store_true",
                        "help": "All-by-all blast among sequences using bl2seq. "
@@ -332,15 +332,19 @@ sb_flags = {"annotate": {"flag": "ano",
                                     "the word 'clean' to remove stops, gaps, etc., from the sequences "
                                     "before concatenating."},
             "count_codons": {"flag": "cc",
-                             "action": "store_true",
+                             "action": "append",
+                             "nargs": "?",
+                             "metavar": "'concatenate'",
                              "help": "Return codon frequency statistics."},
             "count_residues": {"flag": "cr",
-                               "action": "store_true",
+                               "action": "append",
+                               "nargs": "?",
+                               "metavar": "'concatenate'",
                                "help": "Generate a table of sequence compositions."},
             "delete_features": {"flag": "df",
                                 "action": "store",
                                 "nargs": "+",
-                                "metavar": "<regex pattern>",
+                                "metavar": "<regex (str)>",
                                 "help": "Remove specified features from all records"},
             "delete_large": {"flag": "dlg",
                              "action": "store",

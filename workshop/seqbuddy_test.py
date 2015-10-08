@@ -689,10 +689,18 @@ def test_concat_seqs(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 
+def test_concat_seqs_clean():
+    tester = Sb.concat_seqs(Sb._make_copy(sb_objects[2]), clean=True)
+    assert seqs_to_hash(tester) == "2e46edb78e60a832a473397ebec3d187"
+
+
 # ##################### 'cc', 'count_codons' ###################### ##
 def test_count_codons_dna():
-    tester = Sb.count_codons(Sb._make_copy(sb_objects[0]))[1]
-    assert md5(str(tester).encode()).hexdigest() == '829c9cf42887880767548eb39d747d35'
+    tester = Sb._make_copy(sb_objects[0])
+    tester.records[0].seq = tester.records[0].seq[:-4]
+    counter = Sb.count_codons(tester)
+    assert seqs_to_hash(counter[0]) == '4dbd9a5c68d85bb200c75b309fdaeeca'
+    assert string2hash(str(counter[1])) == '8d47313f3db02aee48575ff8ff4741b4'
 
 
 def test_count_codons_rna():
@@ -705,7 +713,7 @@ def test_count_codons_dna_badchar():
     assert md5(str(tester).encode()).hexdigest() == '9aba116675fe0e9eaaf43e5c6e0ba99d'
 
 
-def test_pep_exception():
+def test_count_codons_pep_exception():
     tester = Sb._make_copy(sb_objects[6])
     with pytest.raises(TypeError):
         Sb.count_codons(tester)
@@ -714,6 +722,10 @@ def test_pep_exception():
 # ######################  'cr', '--count_residues' ###################### #
 def test_count_residues():
     # Unambiguous DNA
+    tester = Sb.SeqBuddy(">seq1\nACGCGAAGCGAACGCGCAGACGACGCGACGACGACGACGCA", in_format="fasta")
+    tester, residues = Sb.count_residues(tester)
+    assert residues['seq1']['A'] == [13, 0.3170731707317073]
+
     tester = Sb._make_copy(sb_objects[0])
     tester, residues = Sb.count_residues(tester)
     assert residues['Mle-Panxα6']['G'] == [265, 0.21703521703521703]
@@ -759,7 +771,7 @@ def test_count_residues():
 
 # ######################  'df', '--delete_features' ###################### #
 def test_delete_features():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Sb._make_copy(sb_objects[1])
     tester = Sb.delete_features(tester, 'donor')
     assert seqs_to_hash(tester) == 'f84df6a77063c7def13babfaa0555bbf'
 
@@ -1435,12 +1447,12 @@ def test_annotate_ui(capsys):
 def test_ave_seq_length_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.ave_seq_length = [False]
-    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert out == '428.38\n'
 
     test_in_args.ave_seq_length = ['clean']
-    Sb.command_line_ui(test_in_args, sb_objects[6], True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert out == '427.38\n'
 
@@ -1530,6 +1542,78 @@ def test_clean_seq_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "5fd0b78e37c81e0fa727db34a37cc743"
+
+
+# ######################  'cmp', '--complement' ###################### #
+def test_complement_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.complement = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "e4a358ca57aca0bbd220dc6c04c88795"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
+
+
+# ######################  'cts', '--concat_seqs' ###################### #
+def test_concat_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.concat_seqs = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7421c27be7b41aeedea73ff41869ac47"
+
+    test_in_args.concat_seqs = ["clean"]
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[2]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "15b9c79dea034cef74e3a622bd357705"
+
+
+# ######################  'cc', '--count_codons' ###################### #
+def test_count_codons_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.count_codons = ["foo"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5661f0ce92bb6cfba4519a61e0a838ed"
+
+    test_in_args.count_codons = ["conc"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3e76bd510de4a61efb17ffc186ef9e68"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein" in err
+
+
+# ######################  'cr', '--count_residues' ###################### #
+def test_count_residues_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.count_residues = ["foo"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "c9bc54835fb54232d4d346d04344bf8b"
+
+    test_in_args.count_residues = ["conc"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "c7062408f939f4b310f2f97c3e94eb37"
+
+
+# ######################  'df', '--delete_features' ###################### #
+def test_delete_features_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_features = ["donor"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f84df6a77063c7def13babfaa0555bbf"
 
 
 # ######################  'mg', '--merge' ###################### #
