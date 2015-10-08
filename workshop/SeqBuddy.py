@@ -1314,7 +1314,7 @@ def delete_features(seqbuddy, pattern):
 
 def delete_large(seqbuddy, max_value):
     """
-    Deletes records larger than a certain size
+    Deletes records with sequences larger than a certain size
     :param seqbuddy: SeqBuddy object
     :param max_value: The maximum threshold for sequence length
     :return: The modified SeqBuddy object
@@ -1329,32 +1329,41 @@ def delete_large(seqbuddy, max_value):
 
 def delete_metadata(seqbuddy):
     """
-    Removes all of the metadata from the records
+    Removes all metadata from records
     :param seqbuddy: SeqBuddy object
-    :return: The stripped SeqBuddy object
+    :return: The modified SeqBuddy object
     """
-    new_seqs = []
+    temp_seqbuddy = SeqBuddy(">seq1\nATGCGCTAGCATGTCA", in_format="fasta")
     for rec in seqbuddy.records:
-        new_seqs.append(SeqRecord(Seq(str(rec.seq), alphabet=seqbuddy.alpha), id=rec.id, name='', description=''))
-    seqbuddy.records = new_seqs
+        rec.name = ''
+        rec.description = ''
+        rec.annotations = temp_seqbuddy.records[0].annotations
+        rec.features = temp_seqbuddy.records[0].features
     return seqbuddy
 
 
-def delete_records(seqbuddy, search_str):
+def delete_records(seqbuddy, patterns):
     """
     Deletes records with IDs matching a regex pattern
     :param seqbuddy: SeqBuddy object
-    :param search_str: The regex pattern to search with
+    :param patterns: A single regex pattern, or list of patterns, to search with
     :return: The modified SeqBuddy object
     """
+    if type(patterns) == str:
+        patterns = [patterns]
+    if type(patterns) != list:
+        raise ValueError("'patterns' must be a list or a string.")
+
     retained_records = []
-    deleted = pull_recs(copy(seqbuddy), search_str).records
-    for rec in seqbuddy.records:
-        if rec in deleted:
-            continue
-        else:
-            retained_records.append(rec)
-    seqbuddy.records = retained_records
+    for pattern in patterns:
+        deleted = [rec.id for rec in pull_recs(_make_copy(seqbuddy), pattern).records]
+        for rec in seqbuddy.records:
+            if rec.id in deleted:
+                continue
+            else:
+                retained_records.append(rec)
+        seqbuddy.records = retained_records
+        retained_records = []
     return seqbuddy
 
 
@@ -2825,16 +2834,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Delete records
     if in_args.delete_records:
-        if in_args.params:
-            columns = int(in_args.params[0])
-        else:
+        try:
+            if len(in_args.delete_records) == 1:
+                columns = 1
+            else:
+                columns = int(in_args.delete_records[-1])
+                del in_args.delete_records[-1]
+        except ValueError:
             columns = 1
 
-        new_list = SeqBuddy(list(seqbuddy.records))
         deleted_seqs = []
         for next_pattern in in_args.delete_records:
-            deleted_seqs += pull_recs(copy(new_list), next_pattern).records
-            delete_records(new_list, next_pattern)
+            deleted_seqs += pull_recs(_make_copy(seqbuddy), next_pattern).records
+
+        seqbuddy = delete_records(seqbuddy, in_args.delete_records)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
@@ -2852,8 +2865,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _stderr("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
             _stderr("# ################################################################ #\n")
 
-        new_list.out_format = in_args.out_format if in_args.out_format else seqbuddy.out_format
-        _print_recs(new_list)
+        _print_recs(seqbuddy)
         _exit("delete_records")
 
     # Delete repeats

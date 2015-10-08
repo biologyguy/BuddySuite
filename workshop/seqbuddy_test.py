@@ -778,7 +778,7 @@ def test_delete_features():
 
 # ######################  'dl', '--delete_large' ###################### #
 def test_delete_large():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb._make_copy(sb_objects[0])
     tester = Sb.delete_large(tester, 1285)
     assert seqs_to_hash(tester) == '25859dc69d46651a1e04a70c07741b35'
 
@@ -807,6 +807,15 @@ dr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in 
 def test_delete_records(seqbuddy, next_hash):
     tester = Sb.delete_records(seqbuddy, 'α2')
     assert seqs_to_hash(tester) == next_hash
+
+
+def test_delete_records2():
+    tester = Sb.delete_records(Sb._make_copy(sb_objects[0]), ['α1', 'α2'])
+    assert seqs_to_hash(tester) == "eca4f181dae3d7998464ff71e277128f"
+
+    with pytest.raises(ValueError) as e:
+        Sb.delete_records(Sb._make_copy(sb_objects[0]), dict)
+    assert "'patterns' must be a list or a string." in str(e.value)
 
 
 # #####################  'drp', '--delete_repeats' ###################### ##
@@ -1614,6 +1623,52 @@ def test_delete_features_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "f84df6a77063c7def13babfaa0555bbf"
+
+
+# ######################  'dlg', '--delete_large' ###################### #
+def test_delete_large_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_large = 1285
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "25859dc69d46651a1e04a70c07741b35"
+
+
+# ######################  'dm', '--delete_metadata' ###################### #
+def test_delete_metadata_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_metadata = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "544ab887248a398d6dd1aab513bae5b1"
+
+
+# ######################  'dm', '--delete_metadata' ###################### #
+def test_delete_records_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_records = ['α1']
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "54e810265a6ecf7a3d140fc806597f93"
+    assert string2hash(err) == "4f420c9128e515dc24031b5075c034e3"
+
+    test_in_args.delete_records = ['α1', 'α2']
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
+    assert string2hash(err) == "b3983fac3c2cf15f83650a34a17151da"
+
+    test_in_args.delete_records = ['α1', 'α2', "3"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
+    assert string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
+
+    test_in_args.delete_records = ['foo']
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+    assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
 
 # ######################  'mg', '--merge' ###################### #
