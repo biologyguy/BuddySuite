@@ -248,6 +248,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         for seq in sequences:
             seq.seq.alphabet = self.alpha
 
+        # The NEXUS parser adds '.copy' to any repeat taxa, strip that off...
+        if self.in_format == "nexus":
+            for rec in sequences:
+                rec.id = re.sub("\.copy[0-9]*$", "", rec.id)
+
         self.records = sequences
 
     def to_dict(self):
@@ -309,6 +314,26 @@ class GuessError(Exception):
 
     def __str__(self):
         return self.value
+
+
+def _add_buddy_data(rec, key=None, data=None):
+    """
+    Append the buddy_data attribute (an OrderedDict()) to a BioPython.SeqRecord object
+    :param rec: The SeqRecord object
+    :param key: New Dict key
+    :param data: Data to be put in the key location
+    :return: Modified SeqRecord obj
+    """
+    if not hasattr(rec, 'buddy_data'):
+        rec.buddy_data = OrderedDict()
+
+    if key:
+        if data:
+            rec.buddy_data[key] = data
+        else:
+            if key not in rec.buddy_data:
+                rec.buddy_data[key] = None
+    return rec
 
 
 def _check_for_blast_bin(blast_bin):
@@ -1230,7 +1255,7 @@ def count_codons(seqbuddy):
         try:
             rec.buddy_data['Codon_frequency'] = output[rec.id]
         except AttributeError:
-            rec.buddy_data = {'Codon_frequency': output[rec.id]}
+            rec.buddy_data = OrderedDict({'Codon_frequency': output[rec.id]})
     return seqbuddy, output
 
 
@@ -1379,7 +1404,7 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
         unique, rep_ids, rep_seqs, output_str = find_repeats(seqbuddy)
         if len(rep_ids) > 0:
             for rep_id in rep_ids:
-                store_one_copy = pull_recs(copy(seqbuddy), "^%s$" % rep_id).records[0]
+                store_one_copy = pull_recs(_make_copy(seqbuddy), "^%s$" % rep_id).records[0]
                 delete_records(seqbuddy, "^%s$" % rep_id)
                 seqbuddy.records.append(store_one_copy)
 
@@ -1408,7 +1433,7 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
 
 def delete_small(seqbuddy, min_value):
     """
-    Deletes records smaller than a certain size
+    Deletes records with sequence smaller than a certain size
     :param seqbuddy: SeqBuddy object
     :param min_value: The minimum threshold for sequence length
     :return: The modified SeqBuddy object
@@ -1447,8 +1472,7 @@ def extract_range(seqbuddy, start, end):
     # Don't use the standard index-starts-at-0... end must be left for the range to be inclusive
     start, end = int(start) - 1, int(end)
     if end < start:
-        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
-                         "of range.")
+        raise ValueError("The value given for end of range is smaller than for the start of range.")
 
     for rec in seqbuddy.records:
         rec.seq = Seq(str(rec.seq)[start:end], alphabet=rec.seq.alphabet)
@@ -1492,6 +1516,7 @@ def find_cpg(seqbuddy):
         in_seq = in_seq.upper()
         observed_cpg = len(re.findall("CG", in_seq)) * len(in_seq)
         expected = (len(re.findall("[CG]", in_seq)) / 2) ** 2
+        expected = 1 if not expected else expected  # Prevent DivByZero
         return observed_cpg / expected
 
     def cg_percent(in_seq):  # Returns the CG % of a sequence
@@ -1561,25 +1586,38 @@ def find_cpg(seqbuddy):
     return seqbuddy, output
 
 
-def find_pattern(seqbuddy, pattern):  # TODO ambiguous letters mode
+def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
     """
-    Finds occurences of a pattern in a SeqBuddy object
+    Finds ﻿occurrences of a sequence pattern
     :param seqbuddy: SeqBuddy object
-    :param pattern: The regex pattern to search with
-    :return: A tuple containing an annotated SeqBuddy object and a dictionary of matches dict[id]
+    :param pattern: regex patterns
+    :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patters"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
-    pattern = pattern.upper()
-    output = OrderedDict()
-    for rec in seqbuddy.records:
-        indices = []
-        matches = re.finditer(pattern, str(rec.seq).upper())
-        for match in matches:
-            indices.append(match.start())
-            rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                           type='match', qualifiers={'regex': pattern, 'added_by': 'SeqBuddy'}))
-        output[rec.id] = indices
-    return seqbuddy, output
+    lowercase(seqbuddy)
+    for pattern in patterns:
+        for rec in seqbuddy.records:
+            _add_buddy_data(rec, 'find_patterns')
+            indices = []
+            matches = re.finditer(pattern, str(rec.seq), flags=re.IGNORECASE)
+            new_seq = ""
+            last_match = 0
+            for match in matches:
+                indices.append(match.start())
+                rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
+                                               type='match', qualifiers={'regex': pattern, 'added_by': 'SeqBuddy'}))
+                if match.start() > 0:
+                    new_seq += str(rec.seq[last_match:match.start() - 1])
+                new_seq += str(rec.seq[match.start():match.end()]).upper()
+                last_match = match.end() + 1
+            new_seq += str(rec.seq[last_match:])
+            rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+
+            if not rec.buddy_data['find_patterns']:
+                rec.buddy_data['find_patterns'] = OrderedDict({pattern: indices})
+            else:
+                rec.buddy_data['find_patterns'][pattern] = indices
+    return seqbuddy
 
 
 # TODO do string formatting in command line ui
@@ -1591,9 +1629,9 @@ def find_repeats(seqbuddy, columns=1):
     :return: A tuple containing the unique records, the repeat IDs, the repeat sequences, and the string output
     """
     columns = 1 if columns == 0 else abs(columns)
-    unique_seqs = {}
-    repeat_ids = {}
-    repeat_seqs = {}
+    unique_seqs = OrderedDict()
+    repeat_ids = OrderedDict()
+    repeat_seqs = OrderedDict()
 
     # First find replicate IDs
     # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
@@ -2631,7 +2669,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             for _string in check_string:
                 if _string not in str(_err):
                     raise _err
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(tool)
 
     def _exit(tool, skip=skip_exit):
@@ -2858,27 +2896,33 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     residue_breakdown = "%s\n" % residue_breakdown.strip()
                 counter += 1
             residue_breakdown = "%s\n# ################################################################ #\n" % residue_breakdown.strip()
-            _stderr(residue_breakdown)
+            _stderr(residue_breakdown, in_args.quiet)
 
         if len(deleted_seqs) == 0:
-            _stderr("# ################################################################ #\n")
-            _stderr("# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records))
-            _stderr("# ################################################################ #\n")
-
+            stderr_out = "# ################################################################ #\n"
+            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records)
+            stderr_out += "# ################################################################ #\n"
+            _stderr(stderr_out, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("delete_records")
 
     # Delete repeats
     if in_args.delete_repeats:
-        if in_args.delete_repeats[0]:
-            columns = int(in_args.delete_repeats[0])
-        else:
-            columns = 1
+        dlt_repeats = in_args.delete_repeats[0]
+        columns = 1
+        scope = "all"
+        if dlt_repeats:
+            for arg in dlt_repeats:
+                try:
+                    columns = int(arg)
+                except ValueError:
+                    for scope_option in ["all", "ids", "seqs"]:
+                        scope = scope_option if scope_option.startswith(arg) else scope
 
         unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy)
         stderr_output = ""
-        if len(rep_ids) > 0:
-            stderr_output += "# Records with duplicate ids deleted (first instance retained)\n"
+        if len(rep_ids) > 0 and scope in ["all", "ids"]:
+            stderr_output += "# Records with duplicate ids deleted\n"
             counter = 1
             for seq in rep_ids:
                 stderr_output += "%s\t" % seq
@@ -2895,8 +2939,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             for rep_seq_id in rep_seqs[seq]:
                 rep_seq_ids[-1].append(rep_seq_id)
 
-        if len(rep_seq_ids) > 0:
-            stderr_output += "# Records with duplicate sequence deleted (first instance retained)\n"
+        if len(rep_seq_ids) > 0 and scope in ["all", "seqs"]:
+            stderr_output += "# Records with duplicate sequence deleted\n"
             counter = 1
             for rep_seqs in rep_seq_ids:
                 stderr_output += "["
@@ -2908,18 +2952,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 counter += 1
             stderr_output = "%s\n" % stderr_output.strip(", ")
 
-        if stderr_output != "" and in_args.quiet:
-            _print_recs(delete_repeats(seqbuddy, 'seqs'))
-
-        elif stderr_output != "":
-            _stderr("# ################################################################ #\n")
-            _stderr("%s\n" % stderr_output.strip())
-            _stderr("# ################################################################ #\n\n")
-
-            _print_recs(delete_repeats(seqbuddy, 'seqs'))
+        if stderr_output != "":
+            stderr_output = "# ################################################################ #\n%s\n" \
+                            "# ################################################################ #\n\n" \
+                            % stderr_output.strip()
+            _stderr(stderr_output, in_args.quiet)
 
         else:
-            _stderr("No duplicate records found\n")
+            _stderr("No duplicate records found\n", in_args.quiet)
+
+        _print_recs(delete_repeats(seqbuddy, 'seqs'))
         _exit("delete_repeats")
 
     # Delete sequences below threshold
@@ -2929,36 +2971,56 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Extract regions
     if in_args.extract_region:
-        _print_recs(extract_range(seqbuddy, *in_args.extract_region))
+        try:
+            extract_range(seqbuddy, *in_args.extract_region)
+            _print_recs(seqbuddy)
+        except ValueError as e:
+            _raise_error(e, "extract_region", "The value given for end of range is smaller than for the start")
+
         _exit("extract_region")
 
     # Find CpG
     if in_args.find_CpG:
-        residue_breakdown = find_cpg(seqbuddy)
-        if residue_breakdown[1]:
-            out_string = ""
+        try:
+            residue_breakdown = find_cpg(seqbuddy)
+            islands = False
             for key, value in residue_breakdown[1].items():
                 if value:
-                    value = ["%s-%s" % (x[0], x[1]) for x in value]
-                    out_string += "{0}: {1}\n".format(key, ", ".join(value))
-            _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
-                    out_string.strip(), in_args.quiet)
-        else:
-            _stderr("# No Islands identified\n\n", in_args.quiet)
-        _print_recs(seqbuddy)
-        _exit("find_CpG")
+                    islands = True
+                    break
+
+            if islands:
+                out_string = ""
+                for key, value in residue_breakdown[1].items():
+                    if value:
+                        value = ["%s-%s" % (x[0], x[1]) for x in value]
+                        out_string += "{0}: {1}\n".format(key, ", ".join(value))
+                _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
+                        out_string.strip(), in_args.quiet)
+            else:
+                _stderr("# No Islands identified\n\n", in_args.quiet)
+            _print_recs(seqbuddy)
+            _exit("find_CpG")
+
+        except TypeError as e:
+            _raise_error(e, "find_CpG", "DNA sequence required, not protein or RNA.")
 
     # Find pattern
     if in_args.find_pattern:
+        find_pattern(seqbuddy, *in_args.find_pattern)
         for pattern in in_args.find_pattern:
-            residue_breakdown = find_pattern(seqbuddy, pattern)
             out_string = ""
             num_matches = 0
-            for key in residue_breakdown[1]:
-                out_string += "{0}: {1}\n".format(key, ", ".join([str(x) for x in output[1][key]]))
-                num_matches += len(residue_breakdown[1][key])
+            for rec in seqbuddy.records:
+                indices = rec.buddy_data['find_patterns'][pattern]
+                if not len(indices):
+                    out_string += "{0}: None\n".format(rec.id)
+                else:
+                    out_string += "{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices]))
+                    num_matches += len(indices)
+
             _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(residue_breakdown[1]), pattern), in_args.quiet)
+                    "pattern '{2}' ####\n".format(num_matches, len(seqbuddy.records), pattern), in_args.quiet)
             _stderr("%s\n" % out_string, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
