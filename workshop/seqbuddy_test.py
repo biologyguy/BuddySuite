@@ -826,7 +826,6 @@ def test_delete_repeats_ids():
     assert len(tester[1]) == 0
     assert len(tester[2]) == 0
 
-
 def test_delete_repeats_seqs():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
     tester = Sb.delete_repeats(tester)
@@ -899,13 +898,12 @@ def test_find_cpg():
 
 # #####################  'fp', '--find_pattern' ###################### ##
 def test_find_pattern():
-    tester = Sb._make_copy(sb_objects[1])
-    assert Sb.find_pattern(tester, "ATGGT")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
-    assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
-    assert Sb.find_pattern(tester, "ATggT")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
-    assert seqs_to_hash(tester) == "af143e56752595457e3da9869d2ee6de"
-    assert Sb.find_pattern(tester, "ATg{2}T")[1]["Mle-Panxα6"] == [389, 517, 560, 746, 813]
-    assert seqs_to_hash(tester) == "f0f46b147a85c65e5e35e00dfbf9ad38"
+    tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATGGT")
+    assert seqs_to_hash(tester) == "a2e110d3ba14ea5d1b236a8abef7341a"
+    tester =  Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T")
+    assert seqs_to_hash(tester) == "c8a3e2e8b97f47c5cc41f04a44243e34"
+    tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T", "tga.{1,6}tg")
+    assert seqs_to_hash(tester) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
 
 
 # #####################  'frp', '--find_repeats' ###################### ##
@@ -1409,7 +1407,7 @@ def test_translate6frames(seqbuddy, next_hash):
 
 def test_translate6frames_pep_exception():
     with pytest.raises(TypeError):
-        Sb.translate6frames(sb_objects[6])
+        Sb.translate6frames(Sb._make_copy(sb_objects[6]))
 
 
 # ######################  'tr', '--translate' ###################### #
@@ -1426,7 +1424,7 @@ def test_translate(seqbuddy, next_hash):
 
 def test_translate_pep_exception():
     with pytest.raises(TypeError):
-        Sb.translate_cds(sb_objects[6])
+        Sb.translate_cds(Sb._make_copy(sb_objects[6]))
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1643,7 +1641,7 @@ def test_delete_metadata_ui(capsys):
     assert string2hash(out) == "544ab887248a398d6dd1aab513bae5b1"
 
 
-# ######################  'dm', '--delete_metadata' ###################### #
+# ######################  'dr', '--delete_records' ###################### #
 def test_delete_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_records = ['α1']
@@ -1669,6 +1667,87 @@ def test_delete_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
+
+
+# ######################  'drp', '--delete_repeats' ###################### #
+def test_delete_repeats_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_repeats = [None]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "03d257a8242469173fd3a314f8fecf92"
+    assert string2hash(err) == "f05dba6e411e011bd684a13c72468a53"
+
+    test_in_args.delete_repeats = [None]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5f101b52693ab391ed85f9e4375a16f5"
+    assert string2hash(err) == "db2b2fd88be453216d47325cf5c6aa35"
+
+    test_in_args.delete_repeats = [[2, "all"]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+    assert err == "No duplicate records found\n"
+
+    test_in_args.quiet = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert not err
+
+
+# ######################  'ds', '--delete_small' ###################### #
+def test_delete_small_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_small = 1285
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "196adf08d4993c51050289e5167dacdf"
+
+
+# ######################  'er', '--extract_region' ###################### #
+def test_extract_region_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.extract_region = [50, 300]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3e791c6a6683516aff9572c24f38f0b3"
+
+    with pytest.raises(SystemExit):
+        test_in_args.extract_region = [300, 50]
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]))
+    out, err = capsys.readouterr()
+    assert "The value given for end of range is smaller than for" in err
+
+
+# ######################  'fcpg', '--find_cpg' ###################### #
+def test_find_cpg_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_CpG = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ce6aff066c03651401db627951862154"
+    assert string2hash(err) == "1fc07e5884a2a4c1344865f385b1dc79"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(">seq1\nATGCCTAGCTAGCT", in_format="fasta"), True)
+    out, err = capsys.readouterr()
+    assert err == "# No Islands identified\n\n"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "DNA sequence required, not protein or RNA" in err
+
+
+# ######################  'fp', '--find_pattern' ###################### #
+def test_find_pattern_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
+    assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
 
 
 # ######################  'mg', '--merge' ###################### #
