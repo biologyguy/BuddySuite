@@ -723,50 +723,53 @@ def test_count_codons_pep_exception():
 def test_count_residues():
     # Unambiguous DNA
     tester = Sb.SeqBuddy(">seq1\nACGCGAAGCGAACGCGCAGACGACGCGACGACGACGACGCA", in_format="fasta")
-    tester, residues = Sb.count_residues(tester)
-    assert residues['seq1']['A'] == [13, 0.3170731707317073]
+    tester = Sb.count_residues(tester).to_dict()
+    assert tester["seq1"].buddy_data["res_count"]['A'] == [13, 0.3170731707317073]
 
     tester = Sb._make_copy(sb_objects[0])
-    tester, residues = Sb.count_residues(tester)
-    assert residues['Mle-Panxα6']['G'] == [265, 0.21703521703521703]
-    assert tester.records[0].buddy_data["Residue_frequency"]["G"] == [282, 0.2344139650872818]
-    assert "% Ambiguous" not in residues['Mle-Panxα6'] and "U" not in residues['Mle-Panxα6']
+    Sb.count_residues(tester)
+    res_count = tester.to_dict()['Mle-Panxα6'].buddy_data["res_count"]
+    assert res_count['G'] == [265, 0.21703521703521703]
+    assert "% Ambiguous" not in res_count and "U" not in res_count
 
     # Unambiguous RNA
     Sb.dna2rna(tester)
-    tester, residues = Sb.count_residues(tester)
-    assert residues['Mle-Panxα6']['U'] == [356, 0.2915642915642916]
-    assert tester.records[0].buddy_data["Residue_frequency"]["U"] == [312, 0.2593516209476309]
-    assert "% Ambiguous" not in residues['Mle-Panxα6'] and "T" not in residues['Mle-Panxα6']
+    Sb.count_residues(tester)
+    res_count = tester.to_dict()['Mle-Panxα6'].buddy_data["res_count"]
+    assert res_count['U'] == [356, 0.2915642915642916]
+    assert "% Ambiguous" not in res_count and "T" not in res_count
 
     # Ambiguous DNA
     tester = Sb._make_copy(sb_objects[12])
-    tester, residues = Sb.count_residues(tester)
-    assert "U" not in residues['Mle-Panxα6']
-    assert residues['Mle-Panxα6']['Y'] == [1, 0.000819000819000819]
-    assert tester.records[0].buddy_data["Residue_frequency"]["Y"] == [1, 0.0008312551953449709]
-    assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
+    Sb.count_residues(tester)
+    res_count = tester.to_dict()['Mle-Panxα6'].buddy_data["res_count"]
+    assert "U" not in res_count
+    assert res_count['Y'] == [1, 0.000819000819000819]
+    assert res_count['% Ambiguous'] == 0.98
 
     # Ambiguous RNA
     tester = Sb._make_copy(sb_objects[13])
-    tester, residues = Sb.count_residues(tester)
-    assert "T" not in residues['Mle-Panxα6']
-    assert residues['Mle-Panxα6']['U'] == [353, 0.2891072891072891]
-    assert tester.records[0].buddy_data["Residue_frequency"]["Y"] == [1, 0.0008312551953449709]
-    assert residues['Mle-Panxα6']['% Ambiguous'] == 0.98
+    Sb.count_residues(tester)
+    res_count = tester.to_dict()['Mle-Panxα6'].buddy_data["res_count"]
+    assert "T" not in res_count
+    assert res_count['U'] == [353, 0.2891072891072891]
+    assert res_count["Y"] == [1, 0.000819000819000819]
+    assert res_count['% Ambiguous'] == 0.98
 
     # Protein
     tester = Sb._make_copy(sb_objects[6])
-    tester, residues = Sb.count_residues(tester)
-    assert residues['Mle-Panxα6']['P'] == [17, 0.04176904176904177]
-    assert tester.records[0].buddy_data["Residue_frequency"]["G"] == [28, 0.06947890818858561]
-    assert "% Ambiguous" not in residues['Mle-Panxα6']
-    assert residues['Mle-Panxα8']["% Ambiguous"] == 1.2
-    assert residues['Mle-Panxα8']["% Positive"] == 12.23
-    assert residues['Mle-Panxα8']["% Negative"] == 12.71
-    assert residues['Mle-Panxα8']["% Uncharged"] == 73.62
-    assert residues['Mle-Panxα8']["% Hyrdophilic"] == 36.93
-    assert residues['Mle-Panxα8']["% Hyrdophobic"] == 55.4
+    Sb.count_residues(tester)
+    res_count = tester.to_dict()['Mle-Panxα6'].buddy_data["res_count"]
+    assert res_count['P'] == [17, 0.04176904176904177]
+    assert res_count["G"] == [23, 0.056511056511056514]
+    assert "% Ambiguous" not in res_count
+    res_count = tester.to_dict()['Mle-Panxα8'].buddy_data["res_count"]
+    assert res_count["% Ambiguous"] == 1.2
+    assert res_count["% Positive"] == 12.23
+    assert res_count["% Negative"] == 12.71
+    assert res_count["% Uncharged"] == 73.62
+    assert res_count["% Hyrdophilic"] == 36.93
+    assert res_count["% Hyrdophobic"] == 55.4
 
 
 # ######################  'df', '--delete_features' ###################### #
@@ -892,7 +895,7 @@ def test_extract_range_end_less_than_start():
 # #####################  'fcpg', '--find_CpG' ###################### ##
 def test_find_cpg():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
-    tester = Sb.find_cpg(tester)[0]
+    tester = Sb.find_cpg(tester)
     assert seqs_to_hash(tester) == "ce6aff066c03651401db627951862154"
 
 

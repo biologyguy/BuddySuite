@@ -1263,9 +1263,8 @@ def count_residues(seqbuddy):
     """
     Generate frequency statistics for residue composition
     :param seqbuddy: SeqBuddy object
-    :return: A tuple containing an annotated SeqBuddy object and a dictionary - dict[id][residue]
+    :return: annotated SeqBuddy object. Residue counts are appended to buddy_data in the SeqRecord obects
     """
-    output = OrderedDict()
     for rec in seqbuddy.records:
         resid_count = {}
         seq = str(rec.seq).upper()
@@ -1312,13 +1311,8 @@ def count_residues(seqbuddy):
             if "T" not in resid_count and "U" not in resid_count:
                 resid_count["T"] = [0, 0]
 
-        try:
-            rec.buddy_data['Residue_frequency'] = resid_count
-        except AttributeError:
-            rec.buddy_data = {'Residue_frequency': resid_count}
-
-        output[rec.id] = resid_count
-    return seqbuddy, output
+        _add_buddy_data(rec, "res_count", OrderedDict(sorted(resid_count.items())))
+    return seqbuddy
 
 
 def delete_features(seqbuddy, pattern):
@@ -1503,13 +1497,12 @@ def find_cpg(seqbuddy):
     """
     Predicts locations of CpG islands in DNA sequences
     :param seqbuddy: SeqBuddy object
-    :return: A tuple containing an SeqBuddy object and a dict of indices - dict[id]
+    :return: Modified SeqBuddy object (buddy_data["cpgs"] appended to all records)
     """
     seqbuddy = clean_seq(seqbuddy)
     if seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         raise TypeError("DNA sequence required, not protein or RNA.")
 
-    output = OrderedDict()
     records = []
 
     def cpg_calc(in_seq):  # Returns observed/expected value of a sequence
@@ -1581,9 +1574,9 @@ def find_cpg(seqbuddy):
                         letter_annotations=rec.letter_annotations)
 
         records.append(rec)
-        output[rec.id] = indices
+        _add_buddy_data(rec, "cpgs", indices)
     seqbuddy.records = records
-    return seqbuddy, output
+    return seqbuddy
 
 
 def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
@@ -2838,17 +2831,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.count_residues:
         if in_args.count_residues[0] and str(in_args.count_residues[0].lower()) in "concatenate":
             seqbuddy = concat_seqs(seqbuddy)
-        residue_breakdown = count_residues(seqbuddy)[1]
+
+        count_residues(seqbuddy)
         output = ""
-        for sequence in residue_breakdown:
-            output += "%s\n" % str(sequence)
-            sorted_residues = OrderedDict(sorted(residue_breakdown[sequence].items()))
-            for residue in sorted_residues:
+        for rec in seqbuddy.records:
+            output += "%s\n" % str(rec.id)
+            for residue, counts in rec.buddy_data["res_count"].items():
                 try:
-                    output += "{0}:\t{1}\t{2} %\n".format(residue, residue_breakdown[sequence][residue][0],
-                                                          round(residue_breakdown[sequence][residue][1] * 100, 2))
+                    output += "{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2))
                 except TypeError:
-                    output += "{0}:\t{1}\n".format(residue, residue_breakdown[sequence][residue])
+                    output += "{0}:\t{1}\n".format(residue, counts)
             output += "\n"
         _stdout(output)
         _exit("count_residues")
@@ -2982,19 +2974,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find CpG
     if in_args.find_CpG:
         try:
-            residue_breakdown = find_cpg(seqbuddy)
+            find_cpg(seqbuddy)
             islands = False
-            for key, value in residue_breakdown[1].items():
-                if value:
+            for rec in seqbuddy.records:
+                if rec.buddy_data["cpgs"]:
                     islands = True
                     break
 
             if islands:
                 out_string = ""
-                for key, value in residue_breakdown[1].items():
-                    if value:
-                        value = ["%s-%s" % (x[0], x[1]) for x in value]
-                        out_string += "{0}: {1}\n".format(key, ", ".join(value))
+                for rec in seqbuddy.records:
+                    if rec.buddy_data["cpgs"]:
+                        value = ["%s-%s" % (x[0], x[1]) for x in rec.buddy_data["cpgs"]]
+                        out_string += "{0}: {1}\n".format(rec.id, ", ".join(value))
+
                 _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
                         out_string.strip(), in_args.quiet)
             else:
