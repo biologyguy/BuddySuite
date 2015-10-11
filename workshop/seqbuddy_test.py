@@ -1771,12 +1771,12 @@ def test_guess_format_ui(capsys):
     tester = Sb.SeqBuddy(text_io)
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert out == "embl\n"
+    assert out == "PIPE\t-->\tembl\n"
 
     tester.in_format = None
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert out == "Unknown\n"
+    assert out == "PIPE\t-->\tUnknown\n"
 
 
 # ######################  'hsi', '--hash_seq_ids' ###################### #

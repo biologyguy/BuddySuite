@@ -3094,13 +3094,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Guess format
     if in_args.guess_format:
-        if str(type(in_args.sequence[0])) == "<class '_io.TextIOWrapper'>":
-            if seqbuddy.in_format:
-                _stdout("{0}\n".format(seqbuddy.in_format))
+        for seq_set in in_args.sequence:
+            if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
+                if seqbuddy.in_format:
+                    _stdout("PIPE\t-->\t%s\n" % seqbuddy.in_format)
+                else:
+                    _stdout("PIPE\t-->\tUnknown\n")
             else:
-                _stdout("Unknown\n")
-        else:
-            for seq_set in in_args.sequence:
                 file_format = _guess_format(seq_set)
                 seq_set = seq_set.split("/")[-1]
                 if not file_format:
