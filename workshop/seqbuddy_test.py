@@ -1756,6 +1756,33 @@ def test_find_pattern_ui(capsys):
 
 
 # ######################  'gf', '--guess_format' ###################### #
+def test_guess_alpha_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.guess_alphabet = True
+    paths = ["Mnemiopsis_%s.fa" % x for x in ["cds", "pep", "rna"]]
+    test_in_args.sequence = [resource(x) for x in paths]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "c381aa18aeb487c9fc2d9a0202fd400b"
+
+    text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
+    test_in_args.sequence = [text_io]
+    tester = Sb.SeqBuddy(text_io)
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == "PIPE\t-->\tdna\n"
+
+    temp_file = MyFuncs.TempFile()
+    temp_file.write(">seq1\n123456789")
+    text_io = io.open(temp_file.path, "r")
+    test_in_args.sequence = [text_io]
+    tester = Sb.SeqBuddy(text_io)
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == "PIPE\t-->\tUndetermined\n"
+
+
+# ######################  'gf', '--guess_format' ###################### #
 def test_guess_format_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_format = True

@@ -494,10 +494,13 @@ def _guess_alphabet(seqbuddy):
         return IUPAC.ambiguous_rna
 
     percent_dna = len(re.findall("[ATCG]", sequence)) / float(len(sequence))
+    percent_protein = len(re.findall("[ACDEFGHIKLMNPQRSTVWXY]", sequence)) / float(len(sequence))
     if percent_dna > 0.85:  # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
         return IUPAC.ambiguous_dna
-    else:
+    elif percent_protein > 0.85:
         return IUPAC.protein
+    else:
+        return None
 
 
 def _guess_format(_input):
@@ -3081,7 +3084,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         for seq_set in in_args.sequence:
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
                 seqbuddy = SeqBuddy(seq_set)
+                seq_set = seq_set.split("/")[-1]
                 _stdout("%s\t-->\t" % seq_set)
+            else:
+                _stdout("PIPE\t-->\t")
+
             if seqbuddy.alpha == IUPAC.protein:
                 _stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
