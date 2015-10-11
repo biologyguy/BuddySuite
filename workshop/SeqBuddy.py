@@ -2603,7 +2603,7 @@ def argparse_init():
   SeqBuddy.py "/path/to/seq_file" -<cmd>
   SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
   SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
-''')
+''',)
 
     br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
                                   "into SeqBuddy this argument can be left blank."),
@@ -2623,10 +2623,10 @@ def argparse_init():
             seqbuddy += seq_set.records
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
-    except GuessError:
-        _stderr("Error: SeqBuddy could not understand your input. "
-                "Check the file path or try specifying an input type with -f\n")
-        sys.exit()
+    except GuessError as e:
+        if not in_args.guess_format and not in_args.guess_alphabet:
+            _stderr("%s\n" % e, in_args.quiet)
+        seqbuddy = SeqBuddy("", in_format="raw")
 
     return in_args, seqbuddy
 
@@ -3101,11 +3101,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 _stdout("Unknown\n")
         else:
             for seq_set in in_args.sequence:
-                tester = SeqBuddy(seq_set)
-                if tester.in_format:
-                    _stdout("%s\t-->\t%s\n" % (seq_set, tester.in_format))
-                else:
+                file_format = _guess_format(seq_set)
+                seq_set = seq_set.split("/")[-1]
+                if not file_format:
                     _stdout("%s\t-->\tUnknown\n" % seq_set)
+                else:
+                    _stdout("%s\t-->\t%s\n" % (seq_set, file_format))
+
         _exit("guess_format")
 
     # Hash sequence ids

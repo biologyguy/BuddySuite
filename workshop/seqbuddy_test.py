@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import argparse
+import io
 from copy import deepcopy
 
 from Bio.Alphabet import IUPAC
@@ -1752,6 +1753,30 @@ def test_find_pattern_ui(capsys):
 
     assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
     assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
+
+
+# ######################  'gf', '--guess_format' ###################### #
+def test_guess_format_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.guess_format = True
+    paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "seqxml", "stklm"]]
+    paths.append("gibberish.fa")
+    test_in_args.sequence = [resource(x) for x in paths]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "1fbee52b607dea0c8c767d9b3bb7e8b1"
+
+    text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
+    test_in_args.sequence = [text_io]
+    tester = Sb.SeqBuddy(text_io)
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == "embl\n"
+
+    tester.in_format = None
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == "Unknown\n"
 
 
 # ######################  'hsi', '--hash_seq_ids' ###################### #
