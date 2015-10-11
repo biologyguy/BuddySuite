@@ -639,7 +639,7 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
                 _params[_indx] = os.path.abspath(_token)
         _params = ' '.join(_params)
 
-        hash_table = hash_sequence_ids(_seqbuddy, 8)[1]
+        hash_sequence_ids(_seqbuddy, 8)
 
         _output = ''
 
@@ -719,8 +719,8 @@ def generate_msa(_seqbuddy, _tool, _params=None, _keep_temp=None, _quiet=False):
             _output = contents
         _alignbuddy = AlignBuddy(_output)
 
-        for _hash in hash_table:
-            rename(_alignbuddy, _hash, hash_table[_hash])
+        for _hash, sb_rec in _seqbuddy.hash_map.items():
+            rename(_alignbuddy, _hash, sb_rec)
             for _alignment in _alignbuddy.alignments:
                 for _rec in _alignment:
                     if _hash in _rec.annotations:

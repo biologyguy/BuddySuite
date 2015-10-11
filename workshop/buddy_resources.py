@@ -411,7 +411,7 @@ sb_flags = {"annotate": {"flag": "ano",
                              "nargs": "?",
                              "type": int,
                              "metavar": "hash length (int)",
-                             "help": "Rename all the identifiers in a sequence list to a fixed length hash. "
+                             "help": "Rename all sequence IDs to fixed length hashes. "
                                      "Default length is 10."},
             "insert_seq": {"flag": "is",
                            "action": "store",

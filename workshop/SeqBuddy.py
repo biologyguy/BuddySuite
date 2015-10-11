@@ -1791,21 +1791,23 @@ def hash_sequence_ids(seqbuddy, hash_length=10):
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
-    :param hash_length: Specifies the length of the random hashes
-    :return: A tuple containing: the hashed SeqBuddy, a dictionary mapping hashes to IDs, and a string representation
+    :param hash_length: Specifies the length of the new hashed IDs
+    :return: The modified SeqBuddy object, with a new attribute `hash_map` added
     """
     hash_list = []
     seq_ids = []
-    if type(hash_length) != int or hash_length < 1:
-        _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not an integer"
-                " greater than 0, so the hash length as been set to 10.\n\n" % hash_length)
-        hash_length = 10
+
+    try:
+        hash_length = int(hash_length)
+    except ValueError:
+        raise TypeError("Hash length argument must be an integer, not %s" % type(hash_length))
+
+    if hash_length < 1:
+        raise ValueError("Hash length must be greater than 0")
 
     if 32 ** hash_length <= len(seqbuddy.records) * 2:
-        holder = ceil(log(len(seqbuddy.records) * 2, 32))
-        _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to "
-                "properly cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder))
-        hash_length = holder
+        raise ValueError("Insufficient number of hashes available to cover all sequences. "
+                         "Hash length must be increased.")
 
     for i in range(len(seqbuddy.records)):
         new_hash = ""
@@ -1824,11 +1826,8 @@ def hash_sequence_ids(seqbuddy, hash_length=10):
     for i in range(len(hash_list)):
         hash_map[hash_list[i]] = seq_ids[i]
 
-    hash_table = "# Hash table\n"
-    for _seq in hash_map:
-        hash_table += "%s,%s\n" % (_seq, hash_map[_seq])
-
-    return [seqbuddy, hash_map, hash_table]
+    seqbuddy.hash_map = hash_map
+    return seqbuddy
 
 
 def insert_sequence(seqbuddy, sequence, location):
@@ -3111,8 +3110,31 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Hash sequence ids
     if in_args.hash_seq_ids:
-        hash_length = in_args.hash_seq_ids[0] if in_args.hash_seq_ids[0] else 10
-        seqbuddy, hash_map, hash_table = hash_sequence_ids(seqbuddy, hash_length)
+        if in_args.hash_seq_ids[0] == 0:
+            hash_length = 0
+        elif not in_args.hash_seq_ids[0]:
+            hash_length = 10
+        else:
+            hash_length = in_args.hash_seq_ids[0]
+
+        if hash_length < 1:
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            hash_length = 10
+
+        if 32 ** hash_length <= len(seqbuddy.records) * 2:
+            holder = ceil(log(len(seqbuddy.records) * 2, 32))
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
+                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            hash_length = holder
+
+        hash_sequence_ids(seqbuddy, hash_length)
+
+        hash_table = "# Hash table\n"
+        for _hash, orig_id in seqbuddy.hash_map.items():
+            hash_table += "%s,%s\n" % (_hash, orig_id)
+        hash_table += "\n"
+
         _stderr(hash_table, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("hash_seq_ids")

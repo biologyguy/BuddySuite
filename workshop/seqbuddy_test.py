@@ -948,29 +948,30 @@ def test_restriction_sites():
 
 
 # ######################  'hsi', '--hash_sequence_ids' ###################### #
-def test_hash_seq_ids_zero():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.hash_sequence_ids(tester, 0)
-    assert len(tester[0].records[0].id) == 10
+def test_hash_seq_ids():
+    tester = Sb.SeqBuddy(Sb._make_copy(sb_objects[0]))
+    Sb.hash_sequence_ids(tester)
+    assert len(tester.records[0].id) == 10
 
-
-def test_hash_seq_ids_too_short():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester.records *= 10
-    tester = Sb.hash_sequence_ids(tester, 1)
-    assert len(tester[0].records[0].id) == 2
-
-
-def test_hash_seq_ids_default():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.hash_sequence_ids(tester)
-    assert len(tester[0].records[0].id) == 10
-
-
-def test_hash_seq_ids_25():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.hash_sequence_ids(tester, 25)
-    assert len(tester[0].records[0].id) == 25
+    assert len(tester.records[0].id) == 25
+    assert len(tester.hash_map) == 13
+
+
+def test_hash_seq_ids_errors():
+    tester = Sb.SeqBuddy(Sb._make_copy(sb_objects[0]))
+    with pytest.raises(TypeError) as e:
+        Sb.hash_sequence_ids(tester, "foo")
+    assert str(e.value) == "Hash length argument must be an integer, not <class 'str'>"
+
+    with pytest.raises(ValueError) as e:
+        Sb.hash_sequence_ids(tester, 0)
+    assert str(e.value) == "Hash length must be greater than 0"
+
+    tester.records *= 10
+    with pytest.raises(ValueError) as e:
+        Sb.hash_sequence_ids(tester, 1)
+    assert "Insufficient number of hashes available to cover all sequences." in str(e.value)
 
 
 # ##################### 'is', 'insert_seqs' ###################### ##
@@ -1751,6 +1752,29 @@ def test_find_pattern_ui(capsys):
 
     assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
     assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
+
+
+# ######################  'hsi', '--hash_seq_ids' ###################### #
+def test_hash_seq_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.hash_seq_ids = [None]
+    tester = Sb._make_copy(sb_objects[0])
+    ids = [rec.id for rec in tester.records]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for indx, rec in enumerate(tester.records):
+        assert rec.id != ids[indx]
+        assert ids[indx] == tester.hash_map[rec.id]
+
+    test_in_args.hash_seq_ids = [0]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "Warning: The hash_length parameter was passed in with the value 0. This is not a positive integer" in err
+
+    tester.records *= 10
+    test_in_args.hash_seq_ids = [1]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "cover all sequences, so it has been increased to 2" in err
 
 
 # ######################  'mg', '--merge' ###################### #
