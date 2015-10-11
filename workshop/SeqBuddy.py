@@ -3083,7 +3083,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.guess_alphabet:
         for seq_set in in_args.sequence:
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
-                seqbuddy = SeqBuddy(seq_set)
+                try:
+                    seqbuddy = SeqBuddy(seq_set)
+                except Exception:
+                    seqbuddy = SeqBuddy("", in_format="raw")
                 seq_set = seq_set.split("/")[-1]
                 _stdout("%s\t-->\t" % seq_set)
             else:
@@ -3108,7 +3111,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 else:
                     _stdout("PIPE\t-->\tUnknown\n")
             else:
-                file_format = _guess_format(seq_set)
+                try:
+                    file_format = _guess_format(seq_set)
+                except Exception:
+                    file_format = None
+
                 seq_set = seq_set.split("/")[-1]
                 if not file_format:
                     _stdout("%s\t-->\tUnknown\n" % seq_set)

@@ -1760,10 +1760,11 @@ def test_guess_alpha_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_alphabet = True
     paths = ["Mnemiopsis_%s.fa" % x for x in ["cds", "pep", "rna"]]
+    paths += ["gibberish.fa", "figtree.nexus"]
     test_in_args.sequence = [resource(x) for x in paths]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "c381aa18aeb487c9fc2d9a0202fd400b"
+    assert string2hash(out) == "3a2edec76860e60f4f5b8b16b6d32b82"
 
     text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
     test_in_args.sequence = [text_io]
@@ -1787,11 +1788,11 @@ def test_guess_format_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_format = True
     paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "seqxml", "stklm"]]
-    paths.append("gibberish.fa")
+    paths += ["gibberish.fa", "figtree.nexus"]
     test_in_args.sequence = [resource(x) for x in paths]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "1fbee52b607dea0c8c767d9b3bb7e8b1"
+    assert string2hash(out) == "cba4256d28be484b892fe2eb9b02bf99"
 
     text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
     test_in_args.sequence = [text_io]
