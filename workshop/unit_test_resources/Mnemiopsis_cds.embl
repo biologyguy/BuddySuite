@@ -1,0 +1,788 @@
+ID   Mle-Panxα9; ; ; DNA; ; UNC; 1203 BP.
+XX
+AC   Mle-Panxα9;
+XX
+DE   cDNA - ML47742a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..45,46..198,199..322,323..494,495..847,848..1203)
+FT                   /created_by="User"
+FT                   /label="ML47742a"
+FT                   /modified_by="User"
+FT   splice_donor    36..45
+FT                   /created_by="User"
+FT                   /label="47%"
+FT   TMD1            79..141
+FT   TMD2            388..450
+FT   TMD3            640..702
+FT   TMD4            901..993
+XX
+SQ   Sequence 1203 BP; 304 A; 305 C; 282 G; 312 T; 0 other;
+     atgttagaca tactttcaaa gtttaaagga gttactcctt ttaaaggtat aacgatagat        60
+     gacgggtggg atcaactcaa tcggagtttt atgttcgtcc tgctcgttgt catgggaacg       120
+     actgtcactg tccggcaata caccggcagt gtcatcagtt gtgacggctt caaaaagttt       180
+     ggatccactt ttgcggagga ttactgttgg acccagggac tgtacacagt tttagaagga       240
+     tatgaccaac ccagccaaaa tatcccttac ccaggcctcc ttccagacga ggcaccaccc       300
+     tgtacaccag tcagactcaa ggacggtacg aggttaaagt gcccagaccc tgatcagttg       360
+     ttgtcaccga cgcggatatc ccacctatgg taccagtggg tcccttttta cttctggttg       420
+     gcggctgctg ccttcttcat gccctacctt ctgtacaaga attttggcat gggagatatc       480
+     aagcctctcg tgagattact acacaatcca gtagaatcag accaggagtt aaagaagatg       540
+     acagacaagg ctgcaacatg gctgttctac aagtttgacc tgtacatgag cgaacagtcg       600
+     ctcctagcaa gtctcaccag aaaacacggt cttggtctat ccatggtctt tgtaaagatc       660
+     ctatacgccg cagtgtcgtt cgggtgtttc ctcctgaccg ctgagatgtt ctcaattgga       720
+     gattttaaaa cctatggatc agaatggatc aagaagttaa agttggaaga taatctagct       780
+     acggaggaaa aggataaact ttttcctaag atggtggcat gtgaagtgaa acgctggggt       840
+     gcatcaggta ttgaggagga acaagggatg tgtgtcctgg cccccaacgt aatcaaccaa       900
+     tacctcttcc ttattctctg gttctgtctg gtattcgtga tgttctgcaa cattgtctcc       960
+     atattcgcct ccctcatcaa gctcctcttc acctacggct cctaccgccg cctcctttcc      1020
+     accgccttcc tgagggacga ctccgccatc aaacacatgt acttcaacgt ggggtcgtca      1080
+     gggagattga tattgcacgt gctggcgaac aacaccgccc cgcgcgtctt cgaggacatc      1140
+     ctgctgaccc tggcccccaa gctgatccaa cggaaactca gaggtaacgg aaaagctttg      1200
+     tag                                                                    1203
+//
+ID   Mle-Panxα7A; ; ; DNA; ; UNC; 1875 BP.
+XX
+AC   Mle-Panxα7A;
+XX
+DE   cDNA - ML218922a-1.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..143,144..292,293..407,408..528,529..675,676..862,
+FT                   863..1875)
+FT                   /created_by="User"
+FT                   /label="ML218922a"
+FT                   /modified_by="User"
+FT   TMD1            88..150
+FT   TMD2            403..465
+FT   TMD3            631..723
+FT   splice_donor    853..862
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_acceptor complement(863..872)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(871..880)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(874..883)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT                   /modified_by="User"
+FT   splice_acceptor complement(881..890)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD4            916..1008
+FT   splice_acceptor complement(1053..1062)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1056..1065)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT                   /modified_by="User"
+FT   splice_acceptor complement(1061..1070)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1162..1171)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1169..1178)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1174..1183)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1195..1204)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1365..1374)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1369..1378)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(1372..1381)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_donor    1413..1422
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_donor    1541..1550
+FT                   /created_by="User"
+FT                   /label="Donor"
+XX
+SQ   Sequence 1875 BP; 534 A; 405 C; 431 G; 505 T; 0 other;
+     atgggggtgg aaattctgtt tcccataatc aacagagcca ccgctccgat caagtctgtt        60
+     aacatcgacg atttgagtag tcagctcaac cgaactttta tgttttactt atcgctgact       120
+     ttcgccatca ctatcaccat caggcagcag ctaggcggag cgtacattgc ttgtgacgga       180
+     ttctccagag acgaggaata tgaacggttt gcagaggagt ggtgctggag tagtggaatc       240
+     tacactatca aggaggctta tgagatgagc aacagagtca gcccttatcc gggaataatc       300
+     ccagaaaatc taccagcctg tatagagatg gagctgatat ctgggggcag agtagagtgt       360
+     cctgaagaga aagacgtcaa gcctttcacc aggatatacc aatcttggta cccatttgtg       420
+     atgttttact attggctgac tgctttgatg tttttcttgc cgtaccagct ttacaaggtc       480
+     tttggttttg aagacgtcaa agcggttgta gctatgttgc agaacccggt agaggatggc       540
+     tttgagaaga aggagctgat aaaaaggggt tcagtgtggc tgtatcttaa atctacaatg       600
+     accctttcca acccttcagt ttactcgagc ttcatcgtga aacacagcct agctttctac       660
+     gctcttactg tcaaggttat gtatttgggg aacacacttc ttatgtactg gctgactcac       720
+     aaaatgttca agtttggatc gtttgcggag tacggtcttc tctgggacac aagaaaccca       780
+     cttaacaacg tccagagcct tgttcaagag aaattgttcc caaaagttgc agcgtgcgaa       840
+     gtaaagcgct ttggtgcatc gggacttgag gaggaccaag gtatgtgcat gctggctcta       900
+     aacgtcctta accagtacct cttcttaatc ttctggttct gtctcctttt cgtgacaata       960
+     gtcaacacca tatccctcct cctcaccctc cttaacatca tctctccttg ctttatgctc      1020
+     caacagtttc tcctggcctc ctctcttgat aggagtccag ctgtcggtgt catatccaag      1080
+     ctgtatcttg actgtggttc ctcgctaagg ttcatcatga ctatatttgc ttggaatgta      1140
+     gacccaaaat tgtttgggga gattttagta cagctcaact ctctccttgc caaggatgaa      1200
+     tcgcccaggg ctgaagtgct gaagcggcgt tcaaaaaaag tgaaagttcc aagtccaaga      1260
+     aagcctaaac tcttatttca tgaagaaatt aagaaaaagt taataaagag gactgaacga      1320
+     aaagatgata acctaaccaa tttcacgaat atgtcgaaaa ttagcaagaa gtttgaaggc      1380
+     ctcaaaaaaa gaaatctcct tcagacgaaa agcatcatta atgtaagcgt tcctaagaaa      1440
+     atgagcgagt tagaagtaga agaagatttc attcttactc ctactgaaga aagtggtatc      1500
+     caaaacaacc ctgacaccaa gtatgctcaa gaggatgtac tggactcaga gtacgtagtg      1560
+     gtggaacaat cagtcccaga aacaatgaca gagcaggaat cagtggagga atcagtccca      1620
+     gagataagta aagctgagca agaaggcggg agctcagatc acatcgatgt tgaggagacc      1680
+     ccgccagcat cagatgttga tcgcgaagtc aactctccga ttgttcagca cgaatatcag      1740
+     gttcagatcg acttggtttc cgacgatgga agcgcccatc gtttatcgtc agatgaagct      1800
+     ctttttccgc tgcggatccc tattgtgaaa ttgaatggcg atgttctgtc attaagatcc      1860
+     gagagtttgc agtaa                                                       1875
+//
+ID   Mle-Panxα1; ; ; DNA; ; UNC; 1341 BP.
+XX
+AC   Mle-Panxα1;
+XX
+DE   cDNA - ML078817.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..572,573..1341)
+FT                   /created_by="User"
+FT                   /label="ML078817"
+FT   TMD1            91..153
+FT   TMD2            373..435
+FT   TMD3            625..687
+FT   TMD4            871..963
+XX
+SQ   Sequence 1341 BP; 347 A; 310 C; 319 G; 365 T; 0 other;
+     atgtactgga tatttgagat ttgtcaagag ataaagcgag ctcaatcctg ccgaaagttc        60
+     gcgatagacg gaccattcga ctggacgaac cggattatca tgccaacact catggtaatc       120
+     tgctgctttc tccaaacctt caccttcatg ttcggcagca acatcagctg tatcggcttc       180
+     gagaagttgg aaaggaactt tgtggaggag tactgctgga cccagggtat ctatacaagc       240
+     aaggctgcgt ataacatgcc attacatact ccctacccgg ggattgcccc ctgtgtgccc       300
+     gagtatgatc ccgtgactca gaagtattgg ttaccctgtg gggtggagga agaagacaag       360
+     gcttatcatt tgtggtatca gtgggttccg ttttactttc tcgctgtggc cgtgggttat       420
+     tatttgccat ttcttatctt gaagggttca aagctgcatc aggtgaagcc gctgattacg       480
+     tatttgatga accagaggaa cctggagact gatcctaacc atttggtagg aaagctatcg       540
+     cattggatct tcagacagct tgtttattca aggtttgcgg ccacctctac aatcagaatg       600
+     tactggcacg actgggggct tgtcctcctt gtttgctctg taaagatcct ctaccttacc       660
+     gtctctctta tccacctctt tgccactgcc aagatgttcc acatcggcaa ctggtttacg       720
+     tacgggatca tgttcgcgcg gcgcagcaac agtcacacta cccacgttaa ggatgtgttc       780
+     ttcccgaaga tggtggcctg taagatcgag acatggagtt tcacagggaa gaatcatctt       840
+     cacgggatgt gtgttttagc tctgaacgtg atgaaccaat atttgttttt gatcgtgtgg       900
+     tacgtcaacg taatcatcat cttcctcaac agtatcagct gtatttacac tatagtcaag       960
+     ttttgtagcc ctaacatcgt tcaccaccgg atagtcaact cctcctcctt agacgaccac      1020
+     catgacttta cccggatgtt tggttatgtg ggaccttccg gacggataat cctggctaaa      1080
+     atgtcggaac atatgccggg gtacatgctg aaacaagtag ccaagaaggt gacagagaag      1140
+     atagatatag agaatgaaaa gaatagaggg agagccccga ctattaagtt taccaaggtt      1200
+     aacggtcagc cctcagagct ggccagacag cctctcatgc acctgaacgc tctgatgtta      1260
+     gggatggttc ctcagaatct accagaacct aaaattcaga atatccaacg gtcgcagaaa      1320
+     aaagtacggt ttctggttta a                                                1341
+//
+ID   Mle-Panxα3; ; ; DNA; ; UNC; 1236 BP.
+XX
+AC   Mle-Panxα3;
+XX
+DE   cDNA - ML036514a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..151,152..334,335..456,457..549,550..726,727..845,
+FT                   846..1036,1037..1236)
+FT                   /created_by="User"
+FT                   /label="ML036514a"
+FT                   /modified_by="User"
+FT   TMD1            85..147
+FT   TMD2            394..456
+FT   TMD3            652..714
+FT   TMD4            904..996
+XX
+SQ   Sequence 1236 BP; 334 A; 294 C; 295 G; 313 T; 0 other;
+     atgttgttgc tcggctcact cggaacgatc aagaacttga gcatcttcaa agacctgtcc        60
+     ttggacgact ggctggatca gatgaacagg accttcatgt ttctactgct ctgtttcatg       120
+     ggaacaattg tcgccgttag tcagtacact ggtaaaaaca tatcttgcga tggctttacg       180
+     aagttcggag aagatttctc gcaagactac tgctggaccc agggcttgta cacgattaaa       240
+     gaagcgtacg acttgcccga gtcccagatc ccgtatcctg ggattatccc tgaaaacgtg       300
+     ccggcatgta gagagcacgc tctgaaaaac ggaggaaaga tagtctgccc tcctgaagat       360
+     caagtgaagc ccctgacccg ggctcgacat ctctggtacc agtggatacc tttctacttc       420
+     tgggtgatag ctccagtctt ctatctccct tacatgtttg tgaaaaggat gggacttgac       480
+     agaatgaaac ctctgttgaa gatcatgagc gactactacc actgcactac agagacacct       540
+     tcagaggaga taatagtgaa gtgtgcagac tgggtataca acagtatagt agacaggctg       600
+     tcagagggca gcagctggac aagctggaga aacagacacg gtcttggtct ggctgtcttg       660
+     gtcagcaagt tcatgtatct cggaggtagt gtcctcgtca tgatgatgac cactctcatg       720
+     ttccaggttg gtgatttcaa gacgtacggt atagagtggt tgaggcagtt ccctaatcca       780
+     gaaaactatt cgacctcagt taaacacaaa ctattcccca aaatggtagc ctgtgagata       840
+     aaacgatggg gcactaccgg gctagaagag gagaatggaa tgtgtgtcct tgccccgaat       900
+     gtcatctacc agtacatttt tctaatcatg tggttcgctc tagccatcac catatgcacc       960
+     aacttcggca acatattttt ctatctcttc aagctgacag ccactagata cacttacaac      1020
+     aaattggtgg ccacaggaca tttctcccac aagcacccag gttggaagtt catgtactac      1080
+     cggattggga cgtcaggtcg cgttctcctg aacattgtcg ctcaaaacac gaaccctatc      1140
+     attttcgggg ctatcatgga aaaactgaca ccttcagtca ttaagcattt gaggataggt      1200
+     cacgtgcccg gggagtattt aacggaccca gcatag                                1236
+//
+ID   Mle-Panxα12; ; ; DNA; ; UNC; 1209 BP.
+XX
+AC   Mle-Panxα12;
+XX
+DE   cDNA - ML25997a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..61,62..151,152..277,278..377,378..526,527..680,
+FT                   681..850,851..923,924..1048,1049..1209)
+FT                   /created_by="User"
+FT                   /label="ML25997a"
+FT   TMD1            82..144
+FT   TMD2            391..453
+FT   TMD3            643..705
+FT   TMD4            895..987
+XX
+SQ   Sequence 1209 BP; 288 A; 324 C; 276 G; 321 T; 0 other;
+     atggttattg acatcctctc cggttttaag gggatcacgc ccttcaaagg catcacttta        60
+     gacgatggat gggatcaaat caacaggagt tttatgttcg ttctgtgcgt tttaatggga       120
+     acggtggtga cggtgcggca gtacgcggga ggaattatat catgtgacgg cttcaccaaa       180
+     tactcgggct cgtttagcga ggattactgt tggacacagg gtctttacac catcaaggaa       240
+     gcctatgatc tcctcaccat gaatgtgcct tatccaggtg tcatccctga ggacatgccc       300
+     acctgtatcg agcgggaact tataaatgga ggccgagtgt cctgccccga ccctgaaaca       360
+     gtcaaaccac ccacaagagt ctaccactta tggtaccaat gggttccatt ctacttctgg       420
+     ctcgcagctg ccgccttctt cttcccttat ctcatctaca aacatttcgg cgttggcgac       480
+     ctcaaacccc tcatccaaat gctccacaac cctattgttg acgaaggtga ccagaactgc       540
+     atggccgaaa aagctagcat gtggctcttc tacaaactga acgttttcat gaacgagaac       600
+     acaatcttcg ctatcctgac tgaaaaacac cgacttttct tcattgttat gctcgtcaag       660
+     gtgctctatc tgatcatcag tattctggcc ctctacctta cggacgagat gttccacatc       720
+     ggctcctttg tctcgtacgg gagcgagtgg gcgacctccc tgcccgaggg agacaacgag       780
+     acgactctcg ttaaagacaa actcttcccc aagatggtcg cttgtgagat caaacgatgg       840
+     ggacctaccg gtctcgagga ggaacagggc atgtgtgtgt tggctcccaa cgttatcaac       900
+     caatatctct tcctcatcct ctggttcgcc attattttct gcattgcttg caactgtttg       960
+     tccgtcctct tcgcccttac aaagctggtc ttcgtcttgg gctcctacaa gaggctccta      1020
+     gccagtgctt tcctcaagga tgaactccac tacaaacaca tgttcttcaa cattggtaca      1080
+     agtggacgag ttctcctaca aatcgttgcg acgaatgtgt caccgcgggt cttcgagtcc      1140
+     atcatggcta accttgcgac caagttgata gctgaacgtt tgaagggaaa cggcaaaggt      1200
+     agcgtctag                                                              1209
+//
+ID   Mle-Panxα11; ; ; DNA; ; UNC; 1197 BP.
+XX
+AC   Mle-Panxα11;
+XX
+DE   cDNA - ML25999a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..32,33..148,149..310,311..435,436..625,626..760,
+FT                   761..907,908..1023,1024..1197)
+FT                   /created_by="User"
+FT                   /label="ML25999a"
+FT   TMD1            82..144
+FT   splice_acceptor complement(311..320)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD2            364..426
+FT   TMD3            616..678
+FT   TMD4            868..960
+XX
+SQ   Sequence 1197 BP; 281 A; 323 C; 284 G; 309 T; 0 other;
+     atgctgatct cgagcttagt tcagttcagc aggttatctc cttttaagga gataactata        60
+     gatgacgggt gggaccaact taacaggagt ttcatgttcg ttctgatggt tatctgtgga       120
+     actatcgtca ctgtccgaca acatacaggt aacatcatct cgtgtaacgg tttcacaaaa       180
+     tacgacggat ccttctccga ggactactgc tggacgcagg gactctacac gatcagggag       240
+     gcgtaccacg tgagcgacgt caacgtccct tatcccggag ttatcccgga ggagatccca       300
+     ctctgtctag gagacaattg tgataagcta gcaaacagca acaccactcg agtgtatcat       360
+     ctgtggtacc agtggatccc cttctacttc tggctcgctt ccgccgcctt cttcctccct       420
+     tatctgatct acaagagata cggatttgga gatatcaagc ctctgatcca catgctgtac       480
+     aatcctctcg acggggacga aggagtgaag gcagattcgg agaaggcctc aatctggctt       540
+     tatcacagat tctctatcta catgaacgag cattccatgt acgccaactt tatggagaga       600
+     cacggaatcg gcattctcgt tatcgctatc aaggtgatgt acctgatcat ctccgtccta       660
+     ctcatggtca tgaccgccat gatgttcgag ctggctgact tcaagcagta cggtattgtg       720
+     tgggcccaac agtggcctga ccctcctgcc aatgtcacag gaatcaagga cctgctcttc       780
+     cccaagatgg ttgcttgcga gatcaagaga tggggaccta ctggtctgga ggacgagaac       840
+     ggaatgtgtg tcctggcccc caacgtcatc aaccagtaca tattcctcat cctctggtgg       900
+     gcccttgttt tcaccattgt ctctaacgtt ttcaacgtac tggctggagt tataagaatc       960
+     gtcttcatct atggttctta ccgccggatg ttggctagcg ctttcctcag agatgatcct      1020
+     cattacaaga aggtctacta caagatcggc acctccggtc gggttatcct gaacatgctg      1080
+     gcagcctcca tctctccgac ctgcttccag gagatcatga acaacgtctg tccgcgtctc      1140
+     atccgggccc acgtctccaa gaagggacga aacctgggcg acgaccccct gttgtag         1197
+//
+ID   Mle-Panxα4; ; ; DNA; ; UNC; 1275 BP.
+XX
+AC   Mle-Panxα4;
+XX
+DE   cDNA and genomic - ML129317a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   TMD1            82..144
+FT   TMD2            391..453
+FT   TMD3            643..705
+FT   TMD4            913..1005
+XX
+SQ   Sequence 1275 BP; 332 A; 304 C; 296 G; 343 T; 0 other;
+     atggttattg agctgctagc tggatacaaa ggtctgtccc cgtttaaaga cgcgactgtt        60
+     gacgactcat gggaccaaat aaaccgatgt tacgtgttca tcgccatggt ggtgatgggt       120
+     gctgtgacta caatgaggca atactctgga acattgattg catgtgacgg gttcacgaag       180
+     ttccaccctc agtttgcaga agattactgc tggagcatag gaatgtacac ggtacgcgag       240
+     gcctatgact tgcccagcag tatggttgca taccccggag tgataccctg ggatatgcct       300
+     gcatgtgttc cacgtctcct gaagaacgga accaggacca aatgtggcag tgagaaggac       360
+     gttatgccct cagagaaaat ctaccacttg tggtaccagt gggcaagttt ctacttctgg       420
+     atagtggcta tactgtacta cgcgccgtat ataatgttca aacagttggg agggggagag       480
+     tacaagcccc tgatcaagct actttgtctt gcgtctggat ctcctgaaca acagatgcag       540
+     gacatccagg agcgtgtcgt caagtggctt ttcttcaggt ttaagaccta catattcgct       600
+     aagggttact acgcgtggct acgtaaaaac agtttcagta tcgctatcgg cgtgacaaaa       660
+     ttgtcctatc tcctgataac tatccttgtg ttctacttaa caggcttcat gttcgaatat       720
+     ggctctaaca cgtggtaccg gtacggtgct gactggtacg gtaccagatt ctcctcgtac       780
+     cacgaaacta acaactcaat cacactcaca aaggacatca tcttcccaaa gatggtagcg       840
+     tgtgagatca agcgatgggg tccctcaggg attgaggttg agaccgctca gtgcgtactt       900
+     gccccgaatg tgctctacca gtaccttttc ctctttactt ggtacctcct gatcgcggta       960
+     ttcttcacta acctcatcag ttgtttcctc cacatttctg agatgttctt ctctaacggt      1020
+     acgtacaaca ggatgataga tcaaggaatg ttgccagaca agcccagtta tcggtacgtc      1080
+     ttcatgaaca ttggcgccgg tggcagagag atagtccaga ttctaacaga caattccaac      1140
+     cccctcttgt ttagcaagat atttgacgat cttaccaatt tactaatcac tacttccaaa      1200
+     aacgctgacg tcattgaaaa cctgtcgaag ttggattcct ccgtaattga actaggcagc      1260
+     aaagactcaa tctaa                                                       1275
+//
+ID   Mle-Panxα8; ; ; DNA; ; UNC; 1251 BP.
+XX
+AC   Mle-Panxα8;
+XX
+DE   cDNA - ML07312a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   gene            <1..180
+FT                   /created_by="User"
+FT                   /label="ML07312a"
+FT   CDS             order(1..180,181..277,278..377,378..469,470..560,561..768,
+FT                   769..853,854..1191,1192..1251)
+FT                   /Innexin_02=""
+FT                   /created_by="User"
+FT                   /label="Innexin 02"
+FT                   /modified_by="User"
+FT   TMD1            82..144
+FT   TMD2            391..453
+FT   TMD3            640..702
+FT   TMD4            898..990
+XX
+SQ   Sequence 1251 BP; 307 A; 291 C; 306 G; 336 T; 11 other;
+     atggtgctgg aagtgctcgc tctcttcccc cggctagccc ccttcaaagt gataactctg        60
+     gatgacgtgt gggaccagtg gaaccggagc ttcatgttca tcatgacggt cctgtttgga       120
+     agtatagtga ctatacggtc ttacacggga agtgttatag aatgtgatgg ctttcttaag       180
+     gtaccagtgg agtttgctaa agattattgt tggacacagg gaatctacac tctcagagaa       240
+     ggatacgatt atcacagttc tctcttgcca tatcccgggg tgtttcctga agacgctcct       300
+     ggctgtttag acaaagtatt agacaatgga ggaagggtta tttgtcccat ggataaaaag       360
+     tacagaaagt atcagagggt ttaccattcc tggtatcagt tcactgcttt ctacttttgg       420
+     acagcatcct gcgctttctt ccttccttac atgatgttta agttttttgg aatgggtgat       480
+     ttgaagccgg tgatatccat gttacacaat cctgtggaga ccgctgaaga gttggatatg       540
+     ctcacgaaga aagctgccag atggctgtac gtgcgagtcc acgcctacat ccacactgac       600
+     caatactacg gcaagagggt ggagaaacac ctcctcttct tctccataat gctaaccaag       660
+     tcgtgctatc tcctcttctc agtgctgctc ttctggctta ctgagaaaat gtttcacatc       720
+     ggcagtttct tcagttacgg tgtcgactgg gctgcagagg agcctgagcc tggtgaagat       780
+     tataaaacac tcatacaaga caagctcttc ccaaaaatgg catcttgtga aataaaaaga       840
+     tggggaacta cagggataga ggaagagcaa ggaatgtgtg ttctagcagc taacgtcatc       900
+     aaccaatatc tcttcctcat cttctgggga gggatggtcg tcaccatcat cgtcaacgtc       960
+     ctctctgttc tcatcgccct cagcaacctc tgttttatcc agggagcata ccggaatctc      1020
+     ctcgctactg ccttcctccg ggacgaacct gcttactcgg aaatctggag aaaatccgga      1080
+     acctccgggc gggtcatctt gcagctgatc gccaagaatg tgaaccccaa nnnnnnnnnn      1140
+     ncacgtgctg aacgagctgg tgaacttgct gaggttggcg gagaggtcag gtgccttgtg      1200
+     gagcgatgtt tttccttgaa caggccgcat ataccacacc tggtgaagtg a               1251
+//
+ID   Mle-Panxα6; ; ; DNA; ; UNC; 1221 BP.
+XX
+AC   Mle-Panxα6;
+XX
+DE   cDNA - ML25993a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..127,128..277,278..377,378..513,514..676,677..768,
+FT                   769..850,851..1221)
+FT                   /created_by="User"
+FT                   /label="ML25993"
+FT                   /modified_by="User"
+FT   TMD1            82..144
+FT   splice_acceptor complement(315..324)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT                   /modified_by="User"
+FT   TMD2            391..453
+FT   splice_acceptor complement(434..443)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(455..464)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD3            643..705
+FT   splice_acceptor complement(851..860)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD4            895..987
+FT   splice_donor    991..1000
+FT                   /created_by="User"
+FT                   /label="Donor"
+XX
+SQ   Sequence 1221 BP; 337 A; 263 C; 265 G; 356 T; 0 other;
+     atgttattgg agatattagc gaacttcaaa ggagcgacac ctttcaaaga aatagttcta        60
+     gatgacaagt gggaccagat taaccgatgt tacatgttcc tgctgtgtgt gattttcgga       120
+     actgtcgtga cattcagaca gtataccggt ggtatcattg cttgtgacgg tctgacaaag       180
+     ttctcagctg cctttgcgga ggactattgc tggacgcagg gtctttatac cataaaggag       240
+     gcgtatgaca tagtggataa ttccttacct tacccaggac tgctaccgga agatgcgcct       300
+     ccctgtctct ccagacgatt agtgtctggt ggaagaatag aatgtcctcc tgctgacctg       360
+     tacttggaac caacaagggt tcatcacaca tggtatcagt ggataccgtt ttacttttgg       420
+     gtcatatcca tagcgttcat tggtccttac atagtctaca agcagctggg tgtcaacgaa       480
+     ctgaagccta ttctggcaat gcttcataac ccggttgatg gtgacgatgt tacaaaggat       540
+     caaataagca aagtctcaag atggttagct atcaagctga acatctttat ccaagaaaaa       600
+     tctacctatg ccaagatcac tcagagccat aggatgttta ttctaatctt tttaactaaa       660
+     atattctatc ttggagtaag tttggctaca atgtatttta ctgacaccat gtttgaatcc       720
+     ggccgctacc ttacttacgg cagcgaatgg ttcgcatctc tcgataagca atcaaactac       780
+     acaagttttg tgcgagacag actgttcccg aaaatggtgg catgtgagat caagagatgg       840
+     ggtccttcag gtatggagga ggaacaaggg atgtgtgttc ttgctccgaa cgtgatgaac       900
+     caatatctct tcctcatctt ctggttcgca ctcgtcttca ccatcttctc caacaccttc       960
+     tccatcttct tctccgtttc gacccactgt tttattgacg gtgggtacca gaggtttatc      1020
+     cagagctgct ttctaaaaga aaacagcaaa ctgaagttca tctatttcaa ttgtgggact      1080
+     actggccgga cttatctgca tctaattgcc aaaaacgtta accctcggat ttttgaacag      1140
+     ctcatcatca aacttagtgc agatttagtt gaggagaaaa ataagcaaca cttaaagggg      1200
+     tcaaaggaca tactagtttg a                                                1221
+//
+ID   Mle-Panxα10B; ; ; DNA; ; UNC; 1077 BP.
+XX
+AC   Mle-Panxα10B;
+XX
+DE   cDNA - ML32831a-2.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..84,85..237,238..371,372..724,725..1060,1061..1077)
+FT                   /created_by="User"
+FT                   /label="ML32831a"
+FT   splice_donor    75..84
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_acceptor complement(85..94)
+FT                   /created_by="User"
+FT                   /label="36%"
+FT                   /modified_by="User"
+FT   splice_acceptor complement(98..107)
+FT                   /created_by="User"
+FT                   /label="7%"
+FT                   /modified_by="User"
+FT   TMD1            118..180
+FT   splice_acceptor complement(126..135)
+FT                   /created_by="User"
+FT                   /label="20%"
+FT   splice_donor    228..237
+FT                   /created_by="User"
+FT                   /label=""
+FT   splice_acceptor complement(238..247)
+FT                   /created_by="User"
+FT                   /label="26%"
+FT   splice_donor    362..371
+FT                   /created_by="User"
+FT                   /label="67%"
+FT                   /modified_by="User"
+FT   splice_acceptor complement(372..381)
+FT                   /created_by="User"
+FT                   /label="42%"
+FT   splice_acceptor complement(389..398)
+FT                   /created_by="User"
+FT                   /label="31%"
+FT   TMD2            523..585
+FT   splice_donor    715..724
+FT                   /created_by="User"
+FT                   /label="72%"
+FT                   /modified_by="User"
+FT   TMD3            778..822
+FT   TMD4            826..870
+FT   splice_donor    1051..1060
+FT                   /created_by="User"
+FT                   /label="90%"
+XX
+SQ   Sequence 1077 BP; 285 A; 271 C; 250 G; 271 T; 0 other;
+     atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac        60
+     aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat       120
+     cggagtttta tgttcggcct gctcgttgtc atgggaacga ctgtcactgt ccggcaatac       180
+     accggcagtg tcatcagttg tgacggcttc aaaaagtttg gatctacttt tgcggaggat       240
+     tactgttgga cccagggaca gtacacagtt ttagaaggat atgaccaacc caaccaaaat       300
+     atcccctgcc cagtacccag gcctccttcc agacgaggct ccaccctgaa caccatgagt       360
+     cagactcaag gatttctaca caatccagta gaatcagacc aggaattgaa gaagatgaca       420
+     gacaaggccg caacctggct gttctacaag tttgacctgt acatgagcga acagtcgctc       480
+     ctagcaagtc tgaccaataa acacggtctt ggtctatctg tggtctttgt aaagatccta       540
+     tatgccgcag tttcgttcgg gtgttttctc ctgaccgctg atatgttctc aattggagat       600
+     ttcaaaacct atggatcaga atggattaat aagttgaagt tggaagataa tctagctacg       660
+     gaggaaaagg ataagctttt tcctaaaatg gtggcatgtg aagtgaaacg ctggggtgca       720
+     tcaggtattg aagaggaaca agggatgtgt gtcctggccc ccaacgtaat caaccaatac       780
+     ctattcctta ttctctggtt ctgtctggta ttcgtgatgt tctgcaacat tgtctccata       840
+     ttcgcctccc tcatcaagct cctcttcacc tacggctcct accgccgtct cctttccacc       900
+     gccttcctga gggacgactc cgccatcaaa cacatgtact tcaacgtggg gtcgtcaggg       960
+     agattgatat tgcacgtgct ggcgaacaac accgccccgc gcgtcttcga ggacatcctg      1020
+     ctgaccctgg cccccaagct gatccaacgg aaactcagag ctaaggacta tgactaa         1077
+//
+ID   Mle-Panxα5; ; ; DNA; ; UNC; 1218 BP.
+XX
+AC   Mle-Panxα5;
+XX
+DE   cDNA - ML223536a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..148,149..283,284..405,406..1218)
+FT                   /created_by="User"
+FT                   /label="ML223536a"
+FT                   /modified_by="User"
+FT   TMD1            82..144
+FT   TMD2            397..459
+FT   TMD3            652..714
+FT   TMD4            904..996
+XX
+SQ   Sequence 1218 BP; 307 A; 286 C; 286 G; 339 T; 0 other;
+     atgatctact gggtgtgggc ggtgtttaaa cggatggcac ctttcaaggt ggtcactctt        60
+     gacgacaggt gggaccagat gaaccgcagc ttcatgatgc cgctaaccat gtccttcgct       120
+     tatctcatcg actatgggat cattgcagga tccacaatca agtgcactgg atttgaagat       180
+     tccttccgat cggaagcttt tgtagacgag tactgttgga ctcagggaat ctatacactg       240
+     agagaagcgt acgatctcga gaacacaaaa ataccctacc caggtataat accggaggga       300
+     ttcccgaact gcatgcctta tgaaagatgg gatgggatga aagtggaatg tcccaaggag       360
+     gaacagtacc tgaaacccac tcgggtttat cacctatact atcagcacat ccaactctac       420
+     ttctggctgg tgtgcacact cttctacctc ccctacatgg tgggaatctg tctaggtttc       480
+     aactacacca aacctctcat caatcttctc cacaaccctc tcaccagaga cgaggaggag       540
+     ctcgaggctc tgctggacaa agctgcccgg tctctgagac tccgtctgga tatttactcc       600
+     gaccagaaat cctggtttga tctgctctac cgacgacata caatgttgta tctcctcttc       660
+     tttatcaagc tgcagtacct tggattttct gtagcgattc ttggtctcac tcaagccaag       720
+     tttaagatcg gcaactttgt aacgtatggg tttgagtggg ttgggagtca agtccctaac       780
+     ggctccacct atactctagt tcaacacaaa ctcttcccaa agatggctgc ctgtgagatc       840
+     aaacgctggg gagcatcagg tttagacgtt ttgagaggga tgtgtgttct tccccaaaat       900
+     gtttcaaact catacatctt tctcgtattc tggatttttc ttctgctcac catcctgggc       960
+     aatgtcatag ggtgcatcct gaccgtgaaa cagtacttgg tgaaatcaga gggttacagc      1020
+     aagcttgttg cctgtacttt ctggaatgat tggaatctga gacatttgta ttggaatgta      1080
+     ggggggtcag gccgggtgat tcttcatcat ctggcagata acctccatcc ctgtactttt      1140
+     gagaaactta ttaggaggta ctggtggctg aagaggaacg agtatgtcca gtataatgga      1200
+     catctaaaga cttcttag                                                    1218
+//
+ID   Mle-Panxα2; ; ; DNA; ; UNC; 1314 BP.
+XX
+AC   Mle-Panxα2;
+XX
+DE   cDNA - ML25998a.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..144,145..307,308..555,556..688,689..810,811..1314)
+FT                   /created_by="User"
+FT                   /label=""
+FT                   /modified_by="User"
+FT   TMD1            85..147
+FT   splice_donor    135..144
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_acceptor complement(145..154)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(152..161)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(183..192)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(185..194)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT                   /modified_by="User"
+FT   splice_donor    298..307
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_acceptor complement(348..357)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(352..361)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(376..385)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(388..397)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   splice_acceptor complement(392..401)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD2            421..483
+FT   splice_acceptor complement(495..504)
+FT                   /created_by="User"
+FT                   /label="Acceptor"
+FT   TMD3            682..744
+FT   TMD4            931..1023
+XX
+SQ   Sequence 1314 BP; 361 A; 299 C; 288 G; 366 T; 0 other;
+     atggtattgg atctcatttc tggaagcttg aatggctttt taaagatcaa gtcagttagc        60
+     atcgacgatc agtgggacca gattaacaga acctatttgg tcatgttttg tattttatct       120
+     ggtacaatca tgacctttaa acagaattta ggatcaataa tacactgtat atcggatgca       180
+     agaggcgacg acagttcgtt tgcggatgct catgcgacat ttgtgcaaga ctattgtgct       240
+     gctcaagggc tgtacacttt aaaagaagtg tatgacaagt cttggccaga tgaaattcct       300
+     tacccaggta ttctccaaat gaaaacaatc ggttgtttcc cggggagaca gttcaaaaac       360
+     ggaaccccca tccagtgccc ggacgagaaa gatctgaaac ccttcacaac ggtctatcat       420
+     gtctggtaca tgttcgtacc gttctacttc tgcgctgttg gcatcgcttt ttacttcccc       480
+     tacacggttt tcagacacct cagcggcatc tacgacatca agcctatgtt gaacagcctt       540
+     gccctcgaca ttggggccta cacggaggag gacataagtc gacgtataga caatgtctcg       600
+     aggtggttgt acatcaagtt ggatccctac atgaacaaca tgcttcctta tactcagata       660
+     gttcacaaac attccatctt ttacacggtg atgttggtga aggtgatgta cctagctacc       720
+     agtgtttcta ttttttacgc cactcaccgg atattcgacc aaggaaactt tgcactctac       780
+     ggatacgatg ttctaatgag cataccacag gaaacaagct ataaagtgat ggacacaatc       840
+     ttccctaaaa tggttggctg tgagatcaac atgtggggcc ggactggcga acagagcgaa       900
+     tctcttctgt gtgtcctccc tcaaaacatc ggcaaccaat acttcttcct tatattctgg       960
+     tttctcctga ttctcaccat actttccaac tgtatctctg taatagtgac catattcaga      1020
+     tttatattcg ttagtgggag ctacaaaagg ttcctggcta ccagcctctt gaatcacgaa      1080
+     gaacgataca agctggtgtt tacacatgtc ggcacgactg gaagatacat tttactgctc      1140
+     tgtgccgatc atagcaaccc caaaatattc gaggatcttc tagagatcgt ctgttccctt      1200
+     ctcatagcaa actatcacaa aagaaagagg agtcgggata agggacacag tcgagcggag      1260
+     ggggtaggga ctaaagggcg acacggtctg tcttttgtgg actcaaccgt gtga            1314
+//
+ID   Mle-Panxα10A; ; ; DNA; ; UNC; 1290 BP.
+XX
+AC   Mle-Panxα10A;
+XX
+DE   cDNA - ML32831a-1.
+XX
+KW   
+XX
+OS   . . .
+OC   .
+XX
+FH   Key             Location/Qualifiers
+FT   CDS             order(1..84,85..237,238..312,313..412,413..584,585..937,
+FT                   938..1273,1274..1290)
+FT                   /created_by="User"
+FT                   /label="ML32831a"
+FT                   /modified_by="User"
+FT   splice_donor    75..84
+FT                   /created_by="User"
+FT                   /label="Donor"
+FT   splice_acceptor complement(85..94)
+FT                   /created_by="User"
+FT                   /label="36%"
+FT                   /modified_by="User"
+FT   splice_acceptor complement(98..107)
+FT                   /created_by="User"
+FT                   /label="7%"
+FT                   /modified_by="User"
+FT   TMD1            118..180
+FT   splice_acceptor complement(126..135)
+FT                   /created_by="User"
+FT                   /label="20%"
+FT   splice_donor    228..237
+FT                   /created_by="User"
+FT                   /label=""
+FT   splice_acceptor complement(238..247)
+FT                   /created_by="User"
+FT                   /label="26%"
+FT   splice_acceptor complement(355..364)
+FT                   /created_by="User"
+FT                   /label="18%"
+FT   splice_acceptor complement(358..367)
+FT                   /created_by="User"
+FT                   /label="17%"
+FT   splice_donor    403..412
+FT                   /created_by="User"
+FT                   /label="91%"
+FT                   /modified_by="User"
+FT   splice_donor    <413..415
+FT                   /created_by="User"
+FT                   /label="34%"
+FT   TMD2            478..540
+FT   splice_acceptor complement(487..496)
+FT                   /created_by="User"
+FT                   /label="7%"
+FT   splice_donor    575..584
+FT                   /created_by="User"
+FT                   /label="71%"
+FT   splice_acceptor complement(585..594)
+FT                   /created_by="User"
+FT                   /label="42%"
+FT   splice_acceptor complement(602..611)
+FT                   /created_by="User"
+FT                   /label="31%"
+FT   TMD3            730..792
+FT   splice_donor    928..937
+FT                   /created_by="User"
+FT                   /label="72%"
+FT                   /modified_by="User"
+FT   TMD4            991..1083
+FT   splice_donor    1264..1273
+FT                   /created_by="User"
+FT                   /label="90%"
+XX
+SQ   Sequence 1290 BP; 319 A; 325 C; 309 G; 337 T; 0 other;
+     atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac        60
+     aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat       120
+     cggagtttta tgttcggcct gctcgttgtc atgggaacga ctgtcactgt ccggcaatac       180
+     accggcagtg tcatcagttg tgacggcttc aaaaagtttg gatctacttt tgcggaggat       240
+     tactgttgga cccagggaca gtacacagtt ttagaaggat atgaccaacc caaccaaaat       300
+     atcccctgcc cattgcccgc tgcgtttgct ccgtaccccg ggattttccc ggaggagcta       360
+     tcgcactgtc tggttggcgc tcgtaaagcc ggccagtctg aggacctgat taacggtacg       420
+     aggttaaagt gcccagaccc tgatcagttg ttgtcaccga cgcggatatc ccacctatgg       480
+     taccagtggg tcccttttta cttctggctg gcggctgctg ccttcttcat gccctaccta       540
+     ttgtacaaga attttggcat aggagatatc aagcctctcg tgagatttct acacaatcca       600
+     gtagaatcag accaggaatt gaagaagatg acagacaagg ccgcaacctg gctgttctac       660
+     aagtttgacc tgtacatgag cgaacagtcg ctcctagcaa gtctgaccaa taaacacggt       720
+     cttggtctat ctgtggtctt tgtaaagatc ctatatgccg cagtttcgtt cgggtgtttt       780
+     ctcctgaccg ctgatatgtt ctcaattgga gatttcaaaa cctatggatc agaatggatt       840
+     aataagttga agttggaaga taatctagct acggaggaaa aggataagct ttttcctaaa       900
+     atggtggcat gtgaagtgaa acgctggggt gcatcaggta ttgaagagga acaagggatg       960
+     tgtgtcctgg cccccaacgt aatcaaccaa tacctattcc ttattctctg gttctgtctg      1020
+     gtattcgtga tgttctgcaa cattgtctcc atattcgcct ccctcatcaa gctcctcttc      1080
+     acctacggct cctaccgccg tctcctttcc accgccttcc tgagggacga ctccgccatc      1140
+     aaacacatgt acttcaacgt ggggtcgtca gggagattga tattgcacgt gctggcgaac      1200
+     aacaccgccc cgcgcgtctt cgaggacatc ctgctgaccc tggcccccaa gctgatccaa      1260
+     cggaaactca gagctaagga ctatgactaa                                       1290
+//
