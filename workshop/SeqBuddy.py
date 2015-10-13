@@ -1694,7 +1694,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     :param enzyme_group: "commercial", "all", or a list of specific enzyme names
     :param min_cuts: The minimum cut threshold
     :param max_cuts: The maximum cut threshold
-    :return: Returns a tuple containing an annotated SeqBuddy object, and a dictionary of restriction sites dict[id][re]
+    :return: annotated SeqBuddy object, and a dictionary of restriction sites added as the `restriction_sites` attribute
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
@@ -1754,8 +1754,8 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
         sites.append((rec.id, rec.res_sites))
     order_features_alphabetically(seqbuddy)
-
-    return [seqbuddy, sites]
+    seqbuddy.restriction_sites = sites
+    return seqbuddy
 
 
 # TODO do string formatting in command line ui
@@ -2992,7 +2992,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find repeat sequences or ids
     if in_args.find_repeats:
         columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
-        find_repeats(seqbuddy, columns)
+        find_repeats(seqbuddy)
 
         output_str = ""
         if len(seqbuddy.repeat_ids) > 0:
@@ -3035,6 +3035,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find restriction sites
     if in_args.find_restriction_sites:
         min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
+        if not in_args.out_format:
+            seqbuddy.out_format = "gb"
+
         in_args.find_restriction_sites = in_args.find_restriction_sites[0]
         for param in in_args.find_restriction_sites:
             try:
@@ -3045,32 +3048,30 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 if not min_cuts:
                     min_cuts = param
                 elif not max_cuts:
+                    max_cuts = param if param >= min_cuts else min_cuts
+                    min_cuts = param if param <= min_cuts else min_cuts
+                elif param > max_cuts:
                     max_cuts = param
-                else:
-                    _raise_error(ValueError("To many integers in parameter list for find_restriction_sites."),
-                                 "find_restriction_sites")
+                elif param < min_cuts:
+                    min_cuts = param
+
             elif param in ['alpha', 'position']:
                 order = param
             else:
                 _enzymes.append(param)
 
         _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
-        max_cuts = int(min_cuts) if min_cuts and not max_cuts else max_cuts
+        max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
         min_cuts = 1 if not min_cuts else min_cuts
-        if max_cuts and min_cuts > max_cuts:
-            temp = int(max_cuts)
-            max_cuts = int(min_cuts)
-            min_cuts = temp
 
         clean_seq(seqbuddy)
-        residue_breakdown = []
         try:
-            residue_breakdown = find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
+            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
-        out_string = ''
-        for tup in residue_breakdown[1]:
+        out_string = '# ### Restriction Sites (indexed at cut-site) ### #\n'
+        for tup in seqbuddy.restriction_sites:
             out_string += "{0}\n".format(tup[0])
             restriction_list = tup[1]
             restriction_list = [[key, value] for key, value in restriction_list.items()]
@@ -3079,9 +3080,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
             for _enzyme in restriction_list:
                 cut_sites = [str(x) for x in _enzyme[1]]
-                out_string += "{0}:\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
+                out_string += "{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
             out_string += "\n"
-        _stdout(out_string)
+        out_string = "%s\n# ############################################### #\n\n" % out_string.strip()
+        _stderr(out_string, quiet=in_args.quiet)
+        _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
     # Guess alphabet
@@ -3090,7 +3093,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
                 try:
                     seqbuddy = SeqBuddy(seq_set)
-                except Exception:
+                except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
                     seqbuddy = SeqBuddy("", in_format="raw")
                 seq_set = seq_set.split("/")[-1]
                 _stdout("%s\t-->\t" % seq_set)
@@ -3118,7 +3121,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             else:
                 try:
                     file_format = _guess_format(seq_set)
-                except Exception:
+                except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
                     file_format = None
 
                 seq_set = seq_set.split("/")[-1]

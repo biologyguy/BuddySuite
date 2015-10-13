@@ -398,8 +398,9 @@ sb_flags = {"annotate": {"flag": "ano",
                                        "action": "append",
                                        "nargs": "*",
                                        "metavar": "",
-                                       "help": "Identify restriction sites. Args: enzymes "
-                                               "{specific enzymes, commercial, all}, max cuts, min cuts"},
+                                       "help": "Identify restriction sites. Args: [enzymes "
+                                               "{specific enzymes, commercial, all}], [Num cuts (int) [num cuts]], "
+                                               "[order {alpha, position}]"},
             "guess_alphabet": {"flag": "ga",
                                "action": "store_true",
                                "help": "Glean the alphabet type of input file(s)"},

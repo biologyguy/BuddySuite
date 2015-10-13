@@ -916,21 +916,38 @@ def test_find_repeats():
 
 
 # ######################  'frs', '--find_restriction_sites' ###################### #
-def test_restriction_sites():
+def test_restriction_sites(capsys):
     # No arguments passed in = commercial REs and any number of cut sites
     tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]))
-    assert seqs_to_hash(tester[0]) == 'fce4c8bee040d5ea6fa4bf9985f7310f'
-    assert md5(str(tester[1]).encode()).hexdigest() == "741ca6ca9204a067dce7398f15c6e350"
+    assert seqs_to_hash(tester) == 'fce4c8bee040d5ea6fa4bf9985f7310f'
+    assert md5(str(tester.restriction_sites).encode()).hexdigest() == "741ca6ca9204a067dce7398f15c6e350"
+
+    # All enzymes
+    tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]), enzyme_group=["all"])
+    assert seqs_to_hash(tester) == '254e854862142c54a53079ae224b4180'
+    assert md5(str(tester.restriction_sites).encode()).hexdigest() == "0a5012b1a3d83f719cdd8cecf48258f4"
 
     # Specify a few REs and limit the number of cuts
-    tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]), enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I"],
-                                       min_cuts=2, max_cuts=4)
-    assert seqs_to_hash(tester[0]) == 'c42b3bf0367557383000b897432fed2d'
-    assert md5(str(tester[1]).encode()).hexdigest() == "0d2e5fdba6fed434495481397a91e56a"
+    tester = Sb.find_restriction_sites(Sb._make_copy(sb_objects[1]), min_cuts=2, max_cuts=4,
+                                       enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I", "FooBR"])
+    out, err = capsys.readouterr()
+    assert seqs_to_hash(tester) == 'c42b3bf0367557383000b897432fed2d'
+    assert md5(str(tester.restriction_sites).encode()).hexdigest() == "0d2e5fdba6fed434495481397a91e56a"
+    assert "Warning: FooBR not a known enzyme" in err
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as e:
         Sb.find_restriction_sites(sb_objects[7])
+    assert str(e.value) == "Unable to identify restriction sites in protein sequences."
 
+    with pytest.raises(ValueError) as e:
+        Sb.find_restriction_sites(tester, min_cuts=4, max_cuts=2)
+    assert str(e.value) == "min_cuts parameter has been set higher than max_cuts."
+
+    # 2-cutters and non-cutters
+    Sb.find_restriction_sites(tester, enzyme_group=["AjuI", "AlwFI"])
+    out, err = capsys.readouterr()
+    assert "Warning: Double-cutters not supported." in err
+    assert "Warning: No-cutters not supported." in err
 
 # ######################  'hsi', '--hash_sequence_ids' ###################### #
 def test_hash_seq_ids():
@@ -1750,6 +1767,22 @@ def test_find_repeats_ui(capsys):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b34b99828596a5a46c6ab244c6ccc6f6"
+
+
+# ######################  'frs', '--find_restriction_sites' ###################### #
+@pytest.mark.foo
+def test_find_restriction_sites_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b06ef2b0a4814fc43a0688f05825486a"
+    assert string2hash(err) == "a240a6db9dfc1f2257faa80bc4b1445b"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "Unable to identify restriction sites in protein sequences." in err
 
 
 # ######################  'gf', '--guess_format' ###################### #
