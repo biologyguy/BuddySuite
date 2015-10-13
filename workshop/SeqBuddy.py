@@ -256,9 +256,9 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         self.records = sequences
 
     def to_dict(self):
-        unique, rep_ids, rep_seqs, output_str = find_repeats(self)
-        if len(rep_ids) > 0:
-            raise RuntimeError("There are repeat IDs in self.records\n%s" % rep_ids)
+        sb_copy = find_repeats(_make_copy(self))
+        if len(sb_copy.repeat_ids) > 0:
+            raise RuntimeError("There are repeat IDs in self.records\n%s" % sb_copy.repeat_ids)
 
         records_dict = {}
         for rec in self.records:
@@ -1398,33 +1398,36 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
     """
     # First, remove duplicate IDs
     if scope in ['all', 'ids']:
-        unique, rep_ids, rep_seqs, output_str = find_repeats(seqbuddy)
-        if len(rep_ids) > 0:
-            for rep_id in rep_ids:
+        find_repeats(seqbuddy)
+        if len(seqbuddy.repeat_ids) > 0:
+            for rep_id in seqbuddy.repeat_ids:
                 store_one_copy = pull_recs(_make_copy(seqbuddy), "^%s$" % rep_id).records[0]
                 delete_records(seqbuddy, "^%s$" % rep_id)
                 seqbuddy.records.append(store_one_copy)
 
     # Then remove duplicate sequences
     if scope in ['all', 'seqs']:
-        unique, rep_ids, rep_seqs, output_str = find_repeats(seqbuddy)
-        if len(rep_seqs) > 0:
+        find_repeats(seqbuddy)
+        if len(seqbuddy.repeat_seqs) > 0:
             rep_seq_ids = []
-            for seq in rep_seqs:
+            for seq in seqbuddy.repeat_seqs:
                 rep_seq_ids.append([])
-                for rep_seq_id in rep_seqs[seq]:
+                for rep_seq_id in seqbuddy.repeat_seqs[seq]:
                     rep_seq_ids[-1].append(rep_seq_id)
 
             repeat_regex = ""
 
-            for rep_seqs in rep_seq_ids:
-                for rep_seq in rep_seqs[1:]:
+            for repeat_seqs in rep_seq_ids:
+                for rep_seq in repeat_seqs[1:]:
                     rep_seq = re.sub("([|.*?^\[\]()])", r"\\\1", rep_seq)
                     repeat_regex += "^%s$|" % rep_seq
 
             repeat_regex = repeat_regex[:-1]
             delete_records(seqbuddy, repeat_regex)
 
+    seqbuddy.repeat_seqs = OrderedDict()
+    seqbuddy.repeat_ids = OrderedDict()
+    seqbuddy.unique_seqs = OrderedDict([(x.id, x) for x in seqbuddy.records])
     return seqbuddy
 
 
@@ -1616,15 +1619,12 @@ def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
     return seqbuddy
 
 
-# TODO do string formatting in command line ui
-def find_repeats(seqbuddy, columns=1):
+def find_repeats(seqbuddy):
     """
     Finds sequences with identical IDs or sequences
     :param seqbuddy: SeqBuddy object
-    :param columns: The number of columns to be output
-    :return: A tuple containing the unique records, the repeat IDs, the repeat sequences, and the string output
+    :return: modified seqbuddy object with three new attributes --> unique_seqs, repeat_ids, and repeat_seqs
     """
-    columns = 1 if columns == 0 else abs(columns)
     unique_seqs = OrderedDict()
     repeat_ids = OrderedDict()
     repeat_seqs = OrderedDict()
@@ -1632,8 +1632,8 @@ def find_repeats(seqbuddy, columns=1):
     # First find replicate IDs
     # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
     # Need to work from a copy though, so sequences aren't overwritten
-    seqbuddy = _make_copy(seqbuddy)
-    for rec in seqbuddy.records:
+    seqbuddy_copy = _make_copy(seqbuddy)
+    for rec in seqbuddy_copy.records:
         seq = str(rec.seq).encode()
         seq = md5(seq).hexdigest()
         rec.seq = Seq(seq)
@@ -1680,41 +1680,10 @@ def find_repeats(seqbuddy, columns=1):
                 else:
                     repeat_seqs[rep_seq].append(key)
 
-    output_str = ""
-    if len(repeat_ids) > 0:
-        output_str += "#### Records with duplicate IDs: ####\n"
-        counter = 1
-        for next_id in repeat_ids:
-            output_str += "%s\t" % next_id
-            if counter % columns == 0:
-                output_str = "%s\n" % output_str.strip()
-            counter += 1
-
-        output_str = "%s\n\n" % output_str.strip()
-
-    else:
-        output_str += "#### No records with duplicate IDs ####\n\n"
-
-    if len(repeat_seqs) > 0:
-        output_str += "#### Records with duplicate sequences: ####\n"
-        counter = 1
-        for next_id in repeat_seqs:
-            output_str += "["
-            for seq_id in repeat_seqs[next_id]:
-                output_str += "%s, " % seq_id
-            output_str = "%s], " % output_str.strip(", ")
-
-            if counter % columns == 0:
-                output_str = "%s\n" % output_str.strip(", ")
-
-            counter += 1
-
-        output_str = "%s\n\n" % output_str.strip(", ")
-    else:
-        output_str += "#### No records with duplicate sequences ####\n\n"
-
-    output_str = "{0}\n".format(output_str.strip())
-    return [unique_seqs, repeat_ids, repeat_seqs, output_str]
+    seqbuddy.unique_seqs = unique_seqs
+    seqbuddy.repeat_ids = repeat_ids
+    seqbuddy.repeat_seqs = repeat_seqs
+    return seqbuddy
 
 
 # ToDo: Make sure cut sites are not already in the features list
@@ -2913,32 +2882,32 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     for scope_option in ["all", "ids", "seqs"]:
                         scope = scope_option if scope_option.startswith(arg) else scope
 
-        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy)
+        find_repeats(seqbuddy)
         stderr_output = ""
-        if len(rep_ids) > 0 and scope in ["all", "ids"]:
+        if len(seqbuddy.repeat_ids) > 0 and scope in ["all", "ids"]:
             stderr_output += "# Records with duplicate ids deleted\n"
             counter = 1
-            for seq in rep_ids:
+            for seq in seqbuddy.repeat_ids:
                 stderr_output += "%s\t" % seq
                 if counter % columns == 0:
                     stderr_output = "%s\n" % stderr_output.strip()
                 counter += 1
             stderr_output = "%s\n\n" % stderr_output.strip()
             seqbuddy = delete_repeats(seqbuddy, 'ids')
-            unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy)
+            find_repeats(seqbuddy)
 
         rep_seq_ids = []
-        for seq in rep_seqs:
+        for seq in seqbuddy.repeat_seqs:
             rep_seq_ids.append([])
-            for rep_seq_id in rep_seqs[seq]:
+            for rep_seq_id in seqbuddy.repeat_seqs[seq]:
                 rep_seq_ids[-1].append(rep_seq_id)
 
         if len(rep_seq_ids) > 0 and scope in ["all", "seqs"]:
             stderr_output += "# Records with duplicate sequence deleted\n"
             counter = 1
-            for rep_seqs in rep_seq_ids:
+            for repeat_seqs in rep_seq_ids:
                 stderr_output += "["
-                for rep_seq in rep_seqs:
+                for rep_seq in repeat_seqs:
                     stderr_output += "%s, " % rep_seq
                 stderr_output = "%s], " % stderr_output.strip(", ")
                 if counter % columns == 0:
@@ -3023,8 +2992,44 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find repeat sequences or ids
     if in_args.find_repeats:
         columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
-        unique, rep_ids, rep_seqs, out_string = find_repeats(seqbuddy, columns)
-        _stdout(out_string)
+        find_repeats(seqbuddy, columns)
+
+        output_str = ""
+        if len(seqbuddy.repeat_ids) > 0:
+            output_str += "#### Records with duplicate IDs: ####\n"
+            counter = 1
+            for next_id in seqbuddy.repeat_ids:
+                output_str += "%s\t" % next_id
+                if counter % columns == 0:
+                    output_str = "%s\n" % output_str.strip()
+                counter += 1
+
+            output_str = "%s\n\n" % output_str.strip()
+
+        else:
+            output_str += "#### No records with duplicate IDs ####\n\n"
+
+        if len(seqbuddy.repeat_seqs) > 0:
+            output_str += "#### Records with duplicate sequences: ####\n"
+            counter = 1
+            for next_id in seqbuddy.repeat_seqs:
+                output_str += "["
+                for seq_id in seqbuddy.repeat_seqs[next_id]:
+                    output_str += "%s, " % seq_id
+                output_str = "%s], " % output_str.strip(", ")
+
+                if counter % columns == 0:
+                    output_str = "%s\n" % output_str.strip(", ")
+
+                counter += 1
+
+            output_str = "%s\n\n" % output_str.strip(", ")
+        else:
+            output_str += "#### No records with duplicate sequences ####\n\n"
+
+        output_str = "{0}\n".format(output_str.strip())
+
+        _stdout(output_str)
         _exit("find_repeats")
 
     # Find restriction sites

@@ -823,19 +823,12 @@ def test_delete_records2():
 
 
 # #####################  'drp', '--delete_repeats' ###################### ##
-def test_delete_repeats_ids():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa"))
+def test_delete_repeats():
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
     tester = Sb.delete_repeats(tester)
     tester = Sb.find_repeats(tester)
-    assert len(tester[1]) == 0
-    assert len(tester[2]) == 0
-
-def test_delete_repeats_seqs():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
-    tester = Sb.delete_repeats(tester)
-    tester = Sb.find_repeats(tester)
-    assert len(tester[1]) == 0
-    assert len(tester[2]) == 0
+    assert len(tester.repeat_ids) == 0
+    assert len(tester.repeat_seqs) == 0
 
 
 # ######################  'ds', '--delete_small' ###################### #
@@ -911,24 +904,15 @@ def test_find_pattern():
 
 
 # #####################  'frp', '--find_repeats' ###################### ##
-def test_find_repeats_ids():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa"))
-    assert 'Mle-Panxα12' in Sb.find_repeats(tester)[1]
+def test_find_repeats():
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    tester.unique_seqs, tester.repeat_ids, tester.repeat_seqs = {}, {}, {}
+    Sb.find_repeats(tester)
+    assert 'Seq1' in tester.unique_seqs
+    assert 'Seq12' in tester.repeat_ids
 
-
-def test_find_repeats_seqs():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa"))
-    result = Sb.find_repeats(tester)[2]
-    for key in result:
-        assert 'Mle-Panxα1' in result[key]
-        assert 'Mle-Dupα' in result[key]
-
-
-def test_find_repeats_none():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
-    tester = Sb.find_repeats(tester)
-    assert len(tester[1]) == 0
-    assert len(tester[2]) == 0
+    for key in tester.repeat_seqs:
+        assert 'Seq12' in tester.repeat_seqs[key] or 'Seq10A' in tester.repeat_seqs[key]
 
 
 # ######################  'frs', '--find_restriction_sites' ###################### #
@@ -1678,16 +1662,10 @@ def test_delete_records_ui(capsys):
 def test_delete_repeats_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_repeats = [None]
-    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_dup_id.fa")), True)
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Duplicate_seqs.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "03d257a8242469173fd3a314f8fecf92"
-    assert string2hash(err) == "f05dba6e411e011bd684a13c72468a53"
-
-    test_in_args.delete_repeats = [None]
-    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_dup_seq.fa")), True)
-    out, err = capsys.readouterr()
-    assert string2hash(out) == "5f101b52693ab391ed85f9e4375a16f5"
-    assert string2hash(err) == "db2b2fd88be453216d47325cf5c6aa35"
+    assert string2hash(out) == "df8e5f139ff41e1d81a082b83c208e12"
+    assert string2hash(err) == "3c27f0df0e892a1c66ed8fef047162ae"
 
     test_in_args.delete_repeats = [[2, "all"]]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
@@ -1753,6 +1731,25 @@ def test_find_pattern_ui(capsys):
 
     assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
     assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
+
+
+# ######################  'frp', '--find_repeats' ###################### #
+def test_find_repeats_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_repeats = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert "#### No records with duplicate IDs ####" in out and "#### No records with duplicate sequences ####" in out
+
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "58a57c8151c3591fbac2b94353038a55"
+
+    test_in_args.find_repeats = [2]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b34b99828596a5a46c6ab244c6ccc6f6"
 
 
 # ######################  'gf', '--guess_format' ###################### #
