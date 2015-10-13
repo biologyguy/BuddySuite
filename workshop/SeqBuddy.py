@@ -1802,7 +1802,7 @@ def hash_sequence_ids(seqbuddy, hash_length=10):
     return seqbuddy
 
 
-def insert_sequence(seqbuddy, sequence, location):
+def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     """
     Add a specific sequence at a defined location in all records. E.g., adding a barcode (zero-indexed)
     :param seqbuddy: SeqBuddy object
@@ -1810,20 +1810,25 @@ def insert_sequence(seqbuddy, sequence, location):
     :param location: The location to insert the sequences at
     :return: The modified SeqBuddy object
     """
-    if type(location) is int:
-        for rec in seqbuddy.records:
-            new_seq = rec.seq[:location] + sequence + rec.seq[location:]
-            rec.seq = new_seq
-    elif 'start' in location:
-        for rec in seqbuddy.records:
-            new_seq = sequence + rec.seq
-            rec.seq = new_seq
-    elif 'end' in location:
-        for rec in seqbuddy.records:
-            new_seq = rec.seq + sequence
-            rec.seq = new_seq
+    if regexes:
+        recs_to_update = pull_recs(_make_copy(seqbuddy), regexes).to_dict()
     else:
-        raise TypeError("Location must be 'start', 'end', or int.")
+        recs_to_update = seqbuddy.to_dict()
+
+    for seq_id, rec in recs_to_update.items():
+        if location >= 0:
+            new_seq = str(rec.seq)[:location] + sequence + str(rec.seq)[location:]
+        elif location == -1:
+            new_seq = str(rec.seq) + sequence
+        else:
+            new_seq = str(rec.seq)[:location + 1] + sequence + str(rec.seq)[location + 1:]
+
+        rec.seq = Seq(new_seq, rec.seq.alphabet)
+
+    for indx, rec in enumerate(seqbuddy.records):
+        if rec.id in recs_to_update:
+            seqbuddy.records[indx] = recs_to_update[rec.id]
+
     return seqbuddy
 
 
@@ -3165,13 +3170,39 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Insert Seq
     if in_args.insert_seq:
-        location = in_args.insert_seq[1]
-        if location not in ['start', 'end']:
+        args = in_args.insert_seq[0]
+        sequence = ""
+        location = 0
+        try:
+            int(args[0])
+            _raise_error(AttributeError("The first argment must be your insert sequence, not location."), "insert_seq")
+        except ValueError:
+            sequence = args[0]
+
+        try:
+            location = int(args[1])
+        except ValueError:
+            _raise_error(AttributeError("The second argment must be location, not insert sequence or regex."),
+                         "insert_seq")
+
+        regex = args[2:]
+        _print_recs(insert_sequence(seqbuddy, sequence, location, regex))
+        _exit("insert_seq")
+
+        for arg in in_args.insert_seq:
             try:
-                location = int(location)
-            except ValueError("Location must be start, end, or integer index") as e:
-                _raise_error(e, "insert_seq")
-        _print_recs(insert_sequence(seqbuddy, in_args.insert_seq[0], location))
+                location = int(arg)
+            except ValueError:
+                if "front".startswith(arg) or "rear".startswith(arg):
+                    location = arg
+                else:
+                    sequence = arg
+
+        if not location or not sequence:
+            _raise_error(AttributeError("Provide the insert location {front, rear, index (int)} "
+                                        "and insert sequence (str)."), "insert_seq")
+
+        _print_recs(insert_sequence(seqbuddy, sequence, location))
         _exit("insert_seq")
 
     # Calculate Isoelectric Point
