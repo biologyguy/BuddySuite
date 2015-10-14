@@ -1006,16 +1006,6 @@ def test_isoelectric_point(seqbuddy):
         Sb.isoelectric_point(Sb._make_copy(sb_objects[0]))
 
 
-# ##################### 'lf', 'list_features' ###################### ##
-def test_list_features():
-    tester = Sb._make_copy(sb_objects[1])
-    output = Sb.list_features(tester)
-    for record in tester.records:
-        assert record.id in output
-        if output[record.id] is not None:
-            assert output[record.id] == record.features
-
-
 # ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
 uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
              "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
@@ -1869,6 +1859,19 @@ def test_list_ids_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "53d5d7afd8f15a1a0957f5d5a29cbdc4"
+
+
+# ######################  'lf', '--list_features' ###################### #
+def test_list_features_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_features = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b99acb13c76f86bcd4e8dc15b97fa11d"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4e37613d1916aa7653d3fec37fc9e368"
 
 
 # ######################  'mg', '--merge' ###################### #

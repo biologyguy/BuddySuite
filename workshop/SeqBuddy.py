@@ -1861,18 +1861,6 @@ def isoelectric_point(seqbuddy):
     return seqbuddy
 
 
-def list_features(seqbuddy):
-    """
-    Returns a dictionary of sequence features
-    :param seqbuddy: SeqBuddy object
-    :return: A dictionary of sequence features - dict[id] = list(features)
-    """
-    output = OrderedDict()
-    for rec in seqbuddy.records:
-        output[rec.id] = rec.features if len(rec.features) > 0 else None
-    return output
-
-
 def lowercase(seqbuddy):
     """
     Converts all sequence residues to lowercase.
@@ -2788,13 +2776,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             if in_args.count_codons[0] and str(in_args.count_codons[0].lower()) in "concatenate":
                 seqbuddy = concat_seqs(seqbuddy)
             codon_table = count_codons(seqbuddy)[1]
+            output = ""
             for sequence_id in codon_table:
-                _stdout('#### {0} ####\n'.format(sequence_id))
-                _stdout('Codon\tAA\tNum\tPercent\n')
+                output += '#### {0} ####\n'.format(sequence_id)
+                output += 'Codon\tAA\tNum\tPercent\n'
                 for codon in codon_table[sequence_id]:
                     data = codon_table[sequence_id][codon]
-                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
-                _stdout('\n')
+                    output += '{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2])
+                output += '\n'
+            _stdout(output)
         except TypeError as e:
             _raise_error(e, "count_codons", "Nucleic acid sequence required, not protein or other.")
         _exit("count_codons")
@@ -2954,14 +2944,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     break
 
             if islands:
-                out_string = ""
+                output = ""
                 for rec in seqbuddy.records:
                     if rec.buddy_data["cpgs"]:
                         value = ["%s-%s" % (x[0], x[1]) for x in rec.buddy_data["cpgs"]]
-                        out_string += "{0}: {1}\n".format(rec.id, ", ".join(value))
+                        output += "{0}: {1}\n".format(rec.id, ", ".join(value))
 
                 _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
-                        out_string.strip(), in_args.quiet)
+                        output.strip(), in_args.quiet)
             else:
                 _stderr("# No Islands identified\n\n", in_args.quiet)
             _print_recs(seqbuddy)
@@ -2974,19 +2964,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.find_pattern:
         find_pattern(seqbuddy, *in_args.find_pattern)
         for pattern in in_args.find_pattern:
-            out_string = ""
+            output = ""
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
                 if not len(indices):
-                    out_string += "{0}: None\n".format(rec.id)
+                    output += "{0}: None\n".format(rec.id)
                 else:
-                    out_string += "{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices]))
+                    output += "{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices]))
                     num_matches += len(indices)
 
             _stderr("#### {0} matches found across {1} sequences for "
                     "pattern '{2}' ####\n".format(num_matches, len(seqbuddy.records), pattern), in_args.quiet)
-            _stderr("%s\n" % out_string, in_args.quiet)
+            _stderr("%s\n" % output, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
 
@@ -3071,9 +3061,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
-        out_string = '# ### Restriction Sites (indexed at cut-site) ### #\n'
+        output = '# ### Restriction Sites (indexed at cut-site) ### #\n'
         for tup in seqbuddy.restriction_sites:
-            out_string += "{0}\n".format(tup[0])
+            output += "{0}\n".format(tup[0])
             restriction_list = tup[1]
             restriction_list = [[key, value] for key, value in restriction_list.items()]
             restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
@@ -3081,15 +3071,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
             for _enzyme in restriction_list:
                 cut_sites = [str(x) for x in _enzyme[1]]
-                out_string += "{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
-            out_string += "\n"
-        out_string = "%s\n# ############################################### #\n\n" % out_string.strip()
-        _stderr(out_string, quiet=in_args.quiet)
+                output += "{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
+            output += "\n"
+        output = "%s\n# ############################################### #\n\n" % output.strip()
+        _stderr(output, quiet=in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
     # Guess alphabet
     if in_args.guess_alphabet:
+        output = ""
         for seq_set in in_args.sequence:
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
                 try:
@@ -3097,28 +3088,30 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
                     seqbuddy = SeqBuddy("", in_format="raw")
                 seq_set = seq_set.split("/")[-1]
-                _stdout("%s\t-->\t" % seq_set)
+                output += "%s\t-->\t" % seq_set
             else:
-                _stdout("PIPE\t-->\t")
+                output += "PIPE\t-->\t"
 
             if seqbuddy.alpha == IUPAC.protein:
-                _stdout("prot\n")
+                output += "prot\n"
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                _stdout("dna\n")
+                output += "dna\n"
             elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                _stdout("rna\n")
+                output += "rna\n"
             else:
-                _stdout("Undetermined\n")
+                output += "Undetermined\n"
+        _stdout(output)
         _exit("guess_alphabet")
 
     # Guess format
     if in_args.guess_format:
+        output = ""
         for seq_set in in_args.sequence:
             if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
                 if seqbuddy.in_format:
-                    _stdout("PIPE\t-->\t%s\n" % seqbuddy.in_format)
+                    output += "PIPE\t-->\t%s\n" % seqbuddy.in_format
                 else:
-                    _stdout("PIPE\t-->\tUnknown\n")
+                    output += "PIPE\t-->\tUnknown\n"
             else:
                 try:
                     file_format = _guess_format(seq_set)
@@ -3127,10 +3120,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
                 seq_set = seq_set.split("/")[-1]
                 if not file_format:
-                    _stdout("%s\t-->\tUnknown\n" % seq_set)
+                    output += "%s\t-->\tUnknown\n" % seq_set
                 else:
-                    _stdout("%s\t-->\t%s\n" % (seq_set, file_format))
-
+                    output += "%s\t-->\t%s\n" % (seq_set, file_format)
+        _stdout(output)
         _exit("guess_format")
 
     # Hash sequence ids
@@ -3198,42 +3191,45 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         isoelectric_point(seqbuddy)
         _stderr("ID\tpI\n")
+        output = ""
         for rec in seqbuddy.records:
-            _stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
-
+            output += "{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3))
+        _stdout(output)
         _exit("isoelectric_point")
 
     # List features
     if in_args.list_features:
-        feature_table = list_features(seqbuddy)
-        for rec_id in feature_table:
-            _stdout('#### {0} ####\n'.format(rec_id))
-            out_string = ''
-            if feature_table[rec_id] is not None:
-                for feat in feature_table[rec_id]:
-                    out_string += '{0}\n'.format(feat.type)
+        output = ""
+        for rec in seqbuddy.records:
+            output += '#### {0} ####\n'.format(rec.id)
+            if len(rec.features) > 0:
+                for feat in rec.features:
+                    output += '{0}\n'.format(feat.type)
                     if isinstance(feat.location, CompoundLocation):
-                        out_string += '\tLocations:\n'
+                        output += '\tLocations:\n'
                         for part in feat.location.parts:
-                            out_string += '\t\t{0}-{1}\n'.format(part.start, part.end)
+                            output += '\t\t{0}-{1}\n'.format(part.start, part.end)
                     elif isinstance(feat.location, FeatureLocation):
-                        out_string += '\tLocation:\n'
-                        out_string += '\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end)
+                        output += '\tLocation:\n'
+                        output += '\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end)
                     if feat.strand == 1:
-                        out_string += '\tStrand: Sense(+)\n'
+                        output += '\tStrand: Sense(+)\n'
                     elif feat.strand == -1:
-                        out_string += '\tStrand: Antisense(-)\n'
+                        output += '\tStrand: Antisense(-)\n'
                     if str(feat.id) != '<unknown id>':
-                        out_string += '\tID: {0}\n'.format(feat.id)
+                        output += '\tID: {0}\n'.format(feat.id)
                     if len(feat.qualifiers) > 0:
-                        out_string += '\tQualifiers:\n'
-                        for key in feat.qualifiers:
-                            out_string += '\t\t{0}: {1}\n'.format(key, str(feat.qualifiers[key]).strip("[]'"))
+                        output += '\tQualifiers:\n'
+                        qualifs = OrderedDict(sorted(feat.qualifiers.items()))
+                        for key, qual in qualifs.items():
+                            output += '\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'"))
                     if feat.ref is not None:
-                        out_string += '\ref: {0}'.format(feat.ref)
+                        output += '\ref: {0}'.format(feat.ref)
             else:
-                out_string = 'None\n'
-            _stdout('%s\n' % out_string)
+                output += 'None\n'
+
+            output = "%s\n\n" % output.strip()
+        _stdout(output)
         _exit("list_features")
 
     # List identifiers
