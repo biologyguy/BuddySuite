@@ -429,8 +429,8 @@ sb_flags = {"annotate": {"flag": "ano",
                          "action": "append",
                          "nargs": "?",
                          "type": int,
-                         "metavar": "Number columns (int)",
-                         "help": "Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                         "metavar": "Columns (int)",
+                         "help": "Output the sequence identifiers. Optionally, pass in an integer to "
                                  "specify the # of columns to write"},
             "lowercase": {"flag": "lc",
                           "action": "store_true",

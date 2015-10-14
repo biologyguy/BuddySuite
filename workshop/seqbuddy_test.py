@@ -1016,33 +1016,6 @@ def test_list_features():
             assert output[record.id] == record.features
 
 
-# ######################  'li', '--list_ids' ###################### #
-# first test that 1 column works for all file types
-hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
-          "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_list_ids_one_col(seqbuddy, next_hash):
-    tester = Sb.list_ids(seqbuddy, 1)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
-
-# Now test different numbers of columns
-hashes = ["6fcee2c407bc4f7f70e0ae2a7e101761", "1c4a395d8aa3496d990c611c3b6c4d0a", "6fcee2c407bc4f7f70e0ae2a7e101761",
-          "bd177e4db7dd772c5c42199b0dff49a5", "6b595a436a38e353a03e36a9af4ba1f9", "c57028374ed3fc474009e890acfb041e"]
-columns = [-2, 0, 2, 5, 10, 100]
-hashes = [(sb_objects[0], value, columns[indx]) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash,cols", hashes)
-def test_list_ids_multi_col(seqbuddy, next_hash, cols):
-    tester = Sb.list_ids(seqbuddy, cols)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
-
-
 # ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
 uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
              "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
@@ -1223,8 +1196,9 @@ def test_order_ids(seqbuddy, fwd_hash, rev_hash):
 @pytest.mark.parametrize("seqbuddy", sb_objects)
 def test_pull_random_recs(seqbuddy):
     tester = Sb.pull_random_recs(Sb._make_copy(seqbuddy))
+    orig_seqs = tester.to_dict()
     assert len(tester.records) == 1
-    assert tester.records[0].id in Sb.list_ids(seqbuddy)
+    assert tester.records[0].id in orig_seqs
 
 
 # #####################  'pre', '--pull_record_ends' ###################### ##
@@ -1886,6 +1860,15 @@ def test_isoelectric_point_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "d1ba12963ee508bc64b64f63464bfb4a"
     assert err == "ID\tpI\n"
+
+
+# ######################  'li', '--list_ids' ###################### #
+def test_list_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_ids = [3]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "53d5d7afd8f15a1a0957f5d5a29cbdc4"
 
 
 # ######################  'mg', '--merge' ###################### #

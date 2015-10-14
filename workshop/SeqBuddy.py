@@ -1873,23 +1873,6 @@ def list_features(seqbuddy):
     return output
 
 
-def list_ids(seqbuddy, columns=1):  # TODO Make this return a list
-    """
-    Returns a list of sequence IDs
-    :param seqbuddy: SeqBuddy object
-    :return: A string listing sequence IDs
-    """
-    columns = 1 if columns == 0 else abs(columns)
-    output = ""
-    counter = 1
-    for rec in seqbuddy.records:
-        output += "%s\t" % rec.id
-        if counter % columns == 0:
-            output = "%s\n" % output.strip()
-        counter += 1
-    return "%s\n" % output.strip()
-
-
 def lowercase(seqbuddy):
     """
     Converts all sequence residues to lowercase.
@@ -3255,8 +3238,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # List identifiers
     if in_args.list_ids:
-        columns = 1 if not in_args.list_ids[0] else in_args.list_ids[0]
-        _stdout(list_ids(seqbuddy, columns))
+        columns = 1 if not in_args.list_ids[0] else abs(in_args.list_ids[0])
+        output = ""
+        for indx, rec in enumerate(seqbuddy.records):
+            output += "%s\t" % rec.id
+            if (indx + 1) % columns == 0:
+                output = "%s\n" % output.strip()
+        _stdout("%s\n" % output.strip())
         _exit("list_ids")
 
     # Lowercase
@@ -3410,7 +3398,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _exit("reverse_complement")
 
     # Screw formats
-    if in_args.screw_formats:
+    if in_args.screw_formats:  # ToDo: Implement 'raw'
         if in_args.screw_formats not in OUTPUT_FORMATS:
             _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
         else:
