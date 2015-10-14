@@ -710,7 +710,7 @@ def test_count_codons_rna():
 
 
 def test_count_codons_dna_badchar():
-    tester = Sb.count_codons(Sb.insert_sequence(Sb._make_copy(sb_objects[0]), 'PPP', 'end'))[1]
+    tester = Sb.count_codons(Sb.insert_sequence(Sb._make_copy(sb_objects[0]), 'PPP', -1))[1]
     assert md5(str(tester).encode()).hexdigest() == '9aba116675fe0e9eaaf43e5c6e0ba99d'
 
 
@@ -949,6 +949,7 @@ def test_restriction_sites(capsys):
     assert "Warning: Double-cutters not supported." in err
     assert "Warning: No-cutters not supported." in err
 
+
 # ######################  'hsi', '--hash_sequence_ids' ###################### #
 def test_hash_seq_ids():
     tester = Sb.SeqBuddy(Sb._make_copy(sb_objects[0]))
@@ -976,40 +977,26 @@ def test_hash_seq_ids_errors():
     assert "Insufficient number of hashes available to cover all sequences." in str(e.value)
 
 
-# ##################### 'is', 'insert_seqs' ###################### ##
+# ##################### 'is', 'insert_seq' ###################### ##
 def test_insert_seqs_start():
     tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'start')) == 'f65fee08b892af5ef93caa1bf3cb3980'
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA')) == 'f65fee08b892af5ef93caa1bf3cb3980'
 
-
-def test_insert_seqs_end():
-    tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 'end')) == '792397e2e32e95b56ddc15b8b2310ec0'
-
-
-def test_insert_seqs_index():
-    tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100)) == 'da2b2e0efb5807a51e925076857b189d'
-
-
-def test_insert_seqs_endminus():
-    tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -25)) == '0f4115d81cc5fa2cc381f17bada0f0ce'
-
-
-def test_insert_seqs_startplus():
-    tester = Sb._make_copy(sb_objects[0])
-    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 25)) == 'cb37efd3069227476306f9129efd4d05'
-
-
-def test_insert_seqs_endminus_extreme():
     tester = Sb._make_copy(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -9000)) == 'f65fee08b892af5ef93caa1bf3cb3980'
 
+    tester = Sb._make_copy(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -1)) == '792397e2e32e95b56ddc15b8b2310ec0'
 
-def test_insert_seqs_startplus_extreme():
     tester = Sb._make_copy(sb_objects[0])
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 9000)) == '792397e2e32e95b56ddc15b8b2310ec0'
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100, ["α[23]", "ML223536a"])
+    assert seqs_to_hash(tester) == 'edcd7934eb026ac3ea4b603ac85ca79f'
+
+    tester = Sb._make_copy(sb_objects[0])
+    assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -25)) == '29cab1e72ba95572c3aec469270071e9'
 
 
 # ######################  'ip', '--isoelectric_point' ###################### #
@@ -1858,6 +1845,37 @@ def test_hash_seq_ids_ui(capsys):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert "cover all sequences, so it has been increased to 2" in err
+
+
+# ######################  'is', '--insert_seq' ###################### #
+def test_insert_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.insert_seq = [["DYKDDDDK"]]
+    tester = Sb._make_copy(sb_objects[6])
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "The insert_seq tool requires at least two arguments (sequence and position)" in err
+
+    test_in_args.insert_seq = [[4, "DYKDDDDK"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "The first argment must be your insert sequence, not location." in err
+
+    test_in_args.insert_seq = [["DYKDDDDK", "Foo"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "The second argment must be location, not insert sequence or regex." in err
+
+    test_in_args.insert_seq = [["DYKDDDDK", "10", "α[23]", "ML25993a"]]
+    tester = Sb._make_copy(sb_objects[6])
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    with open("temp.del", "w") as ofile:
+        ofile.write(out)
+    assert string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 
 # ######################  'mg', '--merge' ###################### #

@@ -3171,6 +3171,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Insert Seq
     if in_args.insert_seq:
         args = in_args.insert_seq[0]
+        if len(args) < 2:
+            _raise_error(AttributeError("The insert_seq tool requires at least two arguments (sequence and position)"),
+                         "insert_seq")
+
         sequence = ""
         location = 0
         try:
@@ -3185,24 +3189,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _raise_error(AttributeError("The second argment must be location, not insert sequence or regex."),
                          "insert_seq")
 
-        regex = args[2:]
+        regex = [] if len(args) < 2 else args[2:]
+
         _print_recs(insert_sequence(seqbuddy, sequence, location, regex))
-        _exit("insert_seq")
-
-        for arg in in_args.insert_seq:
-            try:
-                location = int(arg)
-            except ValueError:
-                if "front".startswith(arg) or "rear".startswith(arg):
-                    location = arg
-                else:
-                    sequence = arg
-
-        if not location or not sequence:
-            _raise_error(AttributeError("Provide the insert location {front, rear, index (int)} "
-                                        "and insert sequence (str)."), "insert_seq")
-
-        _print_recs(insert_sequence(seqbuddy, sequence, location))
         _exit("insert_seq")
 
     # Calculate Isoelectric Point
