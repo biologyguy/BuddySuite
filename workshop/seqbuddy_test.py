@@ -1006,7 +1006,7 @@ def test_isoelectric_point(seqbuddy):
         Sb.isoelectric_point(Sb._make_copy(sb_objects[0]))
 
 
-# ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
+# ######################  'lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
 uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
              "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
              "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
@@ -1872,6 +1872,22 @@ def test_list_features_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "4e37613d1916aa7653d3fec37fc9e368"
+
+
+# ######################  'lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
+def test_lower_and_upper_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.uppercase = True
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "25073539df4a982b7f99c72dd280bb8f"
+
+    test_in_args.uppercase = False
+    test_in_args.lowercase = True
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
 
 
 # ######################  'mg', '--merge' ###################### #

@@ -1863,7 +1863,7 @@ def isoelectric_point(seqbuddy):
 
 def lowercase(seqbuddy):
     """
-    Converts all sequence residues to lowercase.
+    Converts all sequence characters to lowercase.
     :param seqbuddy: SeqBuddy object
     :return: The modified SeqBuddy object
     """
@@ -2536,7 +2536,7 @@ def translate_cds(seqbuddy, quiet=False):
 
 def uppercase(seqbuddy):
     """
-    Converts all sequence residues to uppercase.
+    Converts all sequence characters to uppercase.
     :param seqbuddy: SeqBuddy object
     :return: The modified SeqBuddy object
     """
