@@ -643,17 +643,10 @@ def test_clean_seq():
     tester = Sb.clean_seq(tester, ambiguous=False)
     assert seqs_to_hash(tester) == "ef61174330f2d9cf5da4f087d12ca201"
 
-    # Alignment formats should raise an error because seq lengths change
-    with pytest.raises(ValueError):
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[2]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[3]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[4]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[5]))
-        tester.write("/dev/null")
-
+    # Alignment formats are converted to fasta to prevent errors with sequence lengths
+    for tester in sb_objects[2:5]:
+        tester = Sb.clean_seq(Sb._make_copy(tester))
+        seqs_to_hash(tester) == "aa92396a9bb736ae6a669bdeaee36038"
 
 # ######################  'cmp', '--complement' ###################### #
 hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
@@ -1000,18 +993,17 @@ def test_insert_seqs_start():
 
 
 # ######################  'ip', '--isoelectric_point' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in [sb_objects[6], sb_objects[7], sb_objects[8],
-                                                                 sb_objects[10], sb_objects[11]]])
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in [sb_objects[6], sb_objects[7],
+                                                                 sb_objects[8], sb_objects[10], sb_objects[11]]])
 def test_isoelectric_point(seqbuddy):
-    output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
-    assert output[1]["Mle-Panxα12"] == 6.0117797852
+    tester = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
+    tester = tester.to_dict()
+    assert tester["Mle-Panxα12"].features[-1].qualifiers["value"] == 6.0117797852
     if seqbuddy.out_format == "gb":
         assert seqs_to_hash(seqbuddy) == "d3d22b310411419ad9383a83e0ab5893"
 
-
-def test_isoelectric_point_type_error():
     with pytest.raises(TypeError):
-        Sb.isoelectric_point(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))
+        Sb.isoelectric_point(Sb._make_copy(sb_objects[0]))
 
 
 # ##################### 'lf', 'list_features' ###################### ##
@@ -1404,9 +1396,9 @@ def test_translate6frames_pep_exception():
 
 
 # ######################  'tr', '--translate' ###################### #
-hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", ]
-# NOTE: the first 6 sb_objects are DNA.
+hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", "9e6634c1b8adfba6b64d30caf94103c5"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes.append((Sb._make_copy(sb_objects[13]), "6cf365fb1722bf691cb14df99ce4c163"))
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -1415,9 +1407,13 @@ def test_translate(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_translate_pep_exception():
+def test_translate_edges_and_exceptions():
     with pytest.raises(TypeError):
         Sb.translate_cds(Sb._make_copy(sb_objects[6]))
+
+    tester = Sb.SeqBuddy("ATTCGTTAACGCTAGCGTCG", in_format="raw")
+    tester = Sb.translate_cds(tester)
+    assert str(tester) == ">raw_input\nIR*R*R\n"
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1757,7 +1753,6 @@ def test_find_repeats_ui(capsys):
 
 
 # ######################  'frs', '--find_restriction_sites' ###################### #
-@pytest.mark.foo
 def test_find_restriction_sites_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
@@ -1878,6 +1873,21 @@ def test_insert_seqs_ui(capsys):
     assert string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 
+# ######################  'ip', '--isoelectric_point' ###################### #
+def test_isoelectric_point_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.isoelectric_point = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "2b0de14da980b6b2c155c34f41da814e"
+    assert string2hash(err) == "402411565abc86649581bf7ab65535b8"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d1ba12963ee508bc64b64f63464bfb4a"
+    assert err == "ID\tpI\n"
+
+
 # ######################  'mg', '--merge' ###################### #
 def test_merge_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1907,6 +1917,34 @@ def test_transcribe_ui(capsys):
 
     out, err = capsys.readouterr()
     assert "You need to provide a DNA sequence." in err
+
+
+# ######################  'tr', '--translate' ###################### #
+#@pytest.mark.foo
+def test_translate_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.translate = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3de7b7be2f2b92cf166b758625a1f316"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "6cf365fb1722bf691cb14df99ce4c163"
+    assert string2hash(err) == "17d178fafb447503d385ae6823f9678a"
+
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == 'TypeError: Record Mle-Panxα12 is protein.\n'
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
 
 
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #

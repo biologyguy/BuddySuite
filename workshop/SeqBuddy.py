@@ -59,6 +59,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 from Bio.Data import CodonTable
+from Bio.Nexus.Trees import TreeError
 
 # BuddySuite specific
 import MyFuncs
@@ -292,7 +293,15 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         else:
             tmp_dir = TemporaryDirectory()
             with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
-                SeqIO.write(self.records, _ofile, self.out_format)
+                try:
+                    SeqIO.write(self.records, _ofile, self.out_format)
+                except ValueError as e:
+                    if "Sequences must all be the same length" in str(e):
+                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
+                                "Format changed to fasta to accommodate proper printing of records.\n")
+                        SeqIO.write(self.records, _ofile, "fasta")
+                    else:
+                        raise e
 
             with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
                 output = ifile.read()
@@ -543,6 +552,8 @@ def _guess_format(_input):
             except ValueError:
                 continue
             except SAXParseException:  # Thrown by seqxml parser
+                continue
+            except TreeError:  # Thrown by NEXUS tree files
                 continue
         return None  # Unable to determine format from file handle
 
@@ -1153,18 +1164,18 @@ def clean_seq(seqbuddy, skip_list=None, ambiguous=True):
     """
     skip_list = "" if not skip_list else "".join(skip_list)
     for rec in seqbuddy.records:
-        if seqbuddy.alpha == IUPAC.protein:
+        if rec.seq.alphabet == IUPAC.protein:
             full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
-                          alphabet=seqbuddy.alpha)
+                          alphabet=rec.seq.alphabet)
         else:
             if ambiguous:
                 full_skip = "ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s" % skip_list
                 rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
-                              alphabet=seqbuddy.alpha)
+                              alphabet=rec.seq.alphabet)
             else:
                 full_skip = "ATGCUatgcu%s" % skip_list
-                rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)), alphabet=seqbuddy.alpha)
+                rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)), alphabet=rec.seq.alphabet)
 
     return seqbuddy
 
@@ -1834,9 +1845,9 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
 
 def isoelectric_point(seqbuddy):
     """
-    Calculate the isoelectric point of each sequence
+    Calculate the isoelectric points
     :param seqbuddy: SeqBuddy object
-    :return: A tuple containing an annotated SeqBuddy object and a dictionary of isoelectric point values - dict[id]
+    :return: SeqBuddy object with isoelectric point appended to each record as the last feature in the feature list
     """
     if seqbuddy.alpha is not IUPAC.protein:
         raise TypeError("Protein sequence required, not nucleic acid.")
@@ -1847,7 +1858,7 @@ def isoelectric_point(seqbuddy):
         isoelectric_points[rec.id] = iso_point
         rec.features.append(SeqFeature(location=FeatureLocation(start=1, end=len(rec.seq)), type='pI',
                                        qualifiers={'value': iso_point}))
-    return seqbuddy, isoelectric_points
+    return seqbuddy
 
 
 def list_features(seqbuddy):
@@ -1919,7 +1930,7 @@ def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
 
     protseqbuddy = clean_seq(protseqbuddy, "*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
-    prot_dict = SeqIO.to_dict(protseqbuddy.records)
+    prot_dict = SeqIO.to_dict(protseqbuddy.records) # ToDo: This needs to become a list of records, and work by index... Key conflicts bad
     dna_dict = SeqIO.to_dict(dnaseqbuddy.records)
     new_seqs = {}
     stderr_written = False
@@ -1987,7 +1998,7 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
 
     protseqbuddy = clean_seq(protseqbuddy, "*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
-    prot_dict = SeqIO.to_dict(protseqbuddy.records)
+    prot_dict = SeqIO.to_dict(protseqbuddy.records) # ToDo: This needs to become a list of records, and work by index... Key conflicts bad
     dna_dict = SeqIO.to_dict(dnaseqbuddy.records)
     new_seqs = {}
     stderr_written = False
@@ -2471,32 +2482,35 @@ def translate6frames(seqbuddy):
     return seqbuddy
 
 
-# ToDo: Deal with alignments...
-def translate_cds(seqbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+def translate_cds(seqbuddy, quiet=False):
     """
     Translates a nucleotide sequence into a protein sequence.
     :param seqbuddy: SeqBuddy object
-    :param quiet: Suppress error messages and warnings
+    :param quiet: Suppress the errors thrown by translate(cds=True)
     :return: The translated SeqBuddy object
     """
-
     def trans(in_seq):
         try:
             in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
             return in_seq
 
-        except TranslationError as _e1:
-            _stderr("Warning: %s in %s\n" % (_e1, in_seq.id), quiet)
-            return _e1
+        except TranslationError as e1:
+            _stderr("Warning: %s in %s\n" % (e1, in_seq.id), quiet)
+            return e1
 
-        except ValueError:
-            raise TypeError("Nucleic acid sequence required, not protein.")
+        except ValueError as e1:
+            if "Proteins cannot be translated" in str(e1):
+                raise TypeError("Record %s is protein." % in_seq.id)
+            else:
+                raise e1  # Hopefully never get here.
 
-    translation = _make_copy(seqbuddy)
-    translation.alpha = IUPAC.protein
-    for rec in translation.records:
+    clean_seq(seqbuddy)
+    translated_sb = _make_copy(seqbuddy)
+    for rec in translated_sb.records:
         rec.features = []
         temp_seq = deepcopy(rec)
+        temp_seq.seq.alphabet = rec.seq.alphabet
+
         while True:  # Modify a copy of the sequence as needed to complete the cds translation
             test_trans = trans(temp_seq)
             # success
@@ -2538,16 +2552,12 @@ def translate_cds(seqbuddy, quiet=False):  # adding 'quiet' will suppress the er
                         temp_seq.seq = Seq(new_seq, alphabet=temp_seq.seq.alphabet)
                 continue
 
-            break
+            break  # Should be unreachable
 
-        try:
-            rec.seq = rec.seq.translate()
-            rec.seq.alphabet = IUPAC.protein
+        rec.seq = rec.seq.translate()
+        rec.seq.alphabet = IUPAC.protein
 
-        except TranslationError as e1:
-            raise TranslationError("%s failed to translate  --> %s\n" % (rec.id, e1))
-
-    output = map_features_dna2prot(seqbuddy, translation)
+    output = map_features_dna2prot(seqbuddy, translated_sb)
     output.out_format = seqbuddy.out_format
     seqbuddy = output
     return seqbuddy
@@ -2601,9 +2611,8 @@ def argparse_init():
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
     except GuessError as e:
-        if not in_args.guess_format and not in_args.guess_alphabet:
-            _stderr("%s\n" % e, in_args.quiet)
-        seqbuddy = SeqBuddy("", in_format="raw")
+        _stderr("GuessError: %s\n" % e, in_args.quiet)
+        sys.exit()
 
     return in_args, seqbuddy
 
@@ -2635,9 +2644,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         if check_string:
             if type(check_string) == str:
                 check_string = [check_string]
+            re_raise = True
             for _string in check_string:
-                if _string not in str(_err):
-                    raise _err
+                if _string in str(_err):
+                    re_raise = False
+                    break
+            if re_raise:
+                raise _err
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(tool)
 
@@ -3194,15 +3207,17 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(insert_sequence(seqbuddy, sequence, location, regex))
         _exit("insert_seq")
 
-    # Calculate Isoelectric Point
+    # Isoelectric Point
     if in_args.isoelectric_point:
-        try:
-            isoelectric_points = isoelectric_point(seqbuddy)[1]
-            _stderr("ID\tpI\n")
-            for rec_id in isoelectric_points:
-                print("{0}\t{1}".format(rec_id, isoelectric_points[rec_id]))
-        except ValueError as e:
-            _raise_error(e, "isoelectric_point")
+        if seqbuddy.alpha != IUPAC.protein:
+            _stderr("Nucleic acid sequences detected, converting to protein.\n\n")
+            seqbuddy = translate_cds(seqbuddy, quiet=in_args.quiet)
+
+        isoelectric_point(seqbuddy)
+        _stderr("ID\tpI\n")
+        for rec in seqbuddy.records:
+            _stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
+
         _exit("isoelectric_point")
 
     # List features
@@ -3460,8 +3475,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Translate CDS
     if in_args.translate:
         if seqbuddy.alpha == IUPAC.protein:
-            raise ValueError("You need to supply DNA or RNA sequences to translate")
-        _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
+            _raise_error(TypeError("Nucleic acid sequence required, not protein."), "translate")
+        try:
+            _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
+        except TypeError as e:
+            _raise_error(e, "translate", ["Nucleic acid sequence required, not protein.", " is protein."])
         _exit("translate")
 
     # Translate 6 reading frames
