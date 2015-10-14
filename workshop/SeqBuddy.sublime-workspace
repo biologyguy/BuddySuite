@@ -1,1 +1,483 @@
-{}
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"degn",
+				"degen_args"
+			],
+			[
+				"para",
+				"parameters"
+			],
+			[
+				"dg",
+				"dgn_dict_13"
+			],
+			[
+				"billing",
+				"billing_info_block"
+			],
+			[
+				"bl",
+				"block_start"
+			],
+			[
+				"bloc",
+				"block_end"
+			],
+			[
+				"block",
+				"block_end"
+			],
+			[
+				"e",
+				"e"
+			],
+			[
+				"co",
+				"convert_pdf_to_txt"
+			],
+			[
+				"test",
+				"test"
+			],
+			[
+				"check",
+				"check_numbers"
+			],
+			[
+				"ex",
+				"except"
+			],
+			[
+				"deg",
+				"degenerate_sequence"
+			],
+			[
+				"used",
+				"used"
+			],
+			[
+				"exit",
+				"exit"
+			],
+			[
+				"s",
+				"StringIO"
+			],
+			[
+				"sequence",
+				"sequence"
+			],
+			[
+				"shift",
+				"shift_hash"
+			],
+			[
+				"seqs",
+				"seqs_to_hash"
+			],
+			[
+				"table",
+				"table"
+			],
+			[
+				"seq_len",
+				"seq_length"
+			],
+			[
+				"seq",
+				"seqbuddy"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "SeqBuddy.py",
+			"settings":
+			{
+				"buffer_size": 153125,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/jeremy/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+			"settings":
+			{
+				"buffer_size": 147,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "buddy_resources.py",
+			"settings":
+			{
+				"buffer_size": 40712,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "seqbuddy_test.py",
+			"settings":
+			{
+				"buffer_size": 50663,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 222.0,
+		"last_filter": "ista",
+		"selected_items":
+		[
+			[
+				"ista",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 449.0
+	},
+	"console":
+	{
+		"height": 139.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/jeremy/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+		"/home/jeremy/.config/sublime-text-3/Packages/Default/Preferences.sublime-settings",
+		"/home/jeremy/Dropbox/python/BuddySuite/workshop/seqbuddy_test.py",
+		"/home/jeremy/Dropbox/python/BuddySuite/workshop/buddy_resources.py",
+		"/home/jeremy/Dropbox/python/BuddySuite/workshop/SeqBuddy.py",
+		"/home/jeremy/Dropbox/python/BuddySuite/workshop/MyFuncs.py",
+		"/home/jeremy/Desktop/pdfminer3k.html",
+		"/home/jeremy/Desktop/test.fa",
+		"/home/jeremy/Desktop/new_project.sh",
+		"/home/jeremy/Desktop/error_output.txt",
+		"/home/jeremy/Dropbox/python/Verizon/bill_parse.py",
+		"/home/jeremy/Desktop/SeqBuddybackup.py",
+		"/home/jeremy/Downloads/pdfminer3k-1.3.0/setup.py",
+		"/home/jeremy/miniconda3/envs/py3k/lib/python3.4/site-packages/pdfminer/pdfparser.py",
+		"/home/jeremy/Desktop/Actin/yeast_actin.fa",
+		"/home/jeremy/Desktop/output.txt",
+		"/home/jeremy/Dropbox/python/BuddySuite/workshop/unit_test_resources/Mnemiopsis_cds.fa",
+		"/home/jeremy/Desktop/output2.txt",
+		"/home/jeremy/Desktop/md55.txt",
+		"/home/jeremy/Desktop/md5.txt",
+		"/home/jeremy/Desktop/md5/md5.txt",
+		"/home/jeremy/Desktop/md5.txt."
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"addop",
+			"def deg",
+			"make_cop",
+			"_exit",
+			"warning",
+			"warn",
+			"transc",
+			"_exit",
+			"return _seq",
+			"return( _seq",
+			"return(_seq",
+			"_exit",
+			"try",
+			"raise",
+			"sys.exit",
+			"degenerate_seq",
+			"sys.e",
+			"def degenerate",
+			"degen",
+			"arg",
+			"degenerate_sequence",
+			"sys.path",
+			"sys.p",
+			"DEG",
+			"DEGEN",
+			"DEG",
+			"head",
+			"<<<",
+			"head",
+			"*",
+			"#                     ",
+			"dgn",
+			"degenerate",
+			"action",
+			"head",
+			"_print",
+			"d2r",
+			"degenerate",
+			"def degenerate",
+			"deg",
+			"degnerate",
+			"head",
+			"<<<<",
+			"< head",
+			" ftype = in_args.add_feature[0]",
+			"< head",
+			"head",
+			"<<<<"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "SeqBuddy.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 153125,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4539,
+								4539
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1625.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/jeremy/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 147,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								95,
+								95
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "buddy_resources.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 40712,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15048,
+								15048
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 5637.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "seqbuddy_test.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 50663,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								19410,
+								19410
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 8245.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 25.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.autopep8":
+	{
+		"height": 112.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "SeqBuddy.sublime-project",
+	"replace":
+	{
+		"height": 46.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
