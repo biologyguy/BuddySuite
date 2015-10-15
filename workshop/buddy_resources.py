@@ -435,16 +435,16 @@ sb_flags = {"annotate": {"flag": "ano",
             "lowercase": {"flag": "lc",
                           "action": "store_true",
                           "help": "Convert all sequences to lowercase"},
-            "map_features_dna2prot": {"flag": "fd2p",
-                                      "action": "store_true",
-                                      "help": "Take the features annotated onto nucleotide sequences "
-                                              "and map to protein sequences. Both a protein and "
-                                              "cDNA file must be passed in"},
-            "map_features_prot2dna": {"flag": "fp2d",
-                                      "action": "store_true",
-                                      "help": "Take the features annotated onto protein sequences "
-                                              "and map to cDNA sequences. Both a protein and "
-                                              "cDNA file must be passed in"},
+            "map_features_nucl2prot": {"flag": "fn2p",
+                                       "action": "store_true",
+                                       "help": "Take the features annotated onto nucleotide sequences "
+                                               "and map to protein sequences. Both a protein and "
+                                               "cDNA file must be passed in"},
+            "map_features_prot2nucl": {"flag": "fp2n",
+                                       "action": "store_true",
+                                       "help": "Take the features annotated onto protein sequences "
+                                               "and map to cDNA sequences. Both a protein and "
+                                               "cDNA file must be passed in"},
             "merge": {"flag": "mrg",
                       "action": "store_true",
                       "help": "Merge multiple copies of sequence records together, "

@@ -259,9 +259,10 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
     def to_dict(self):
         sb_copy = find_repeats(_make_copy(self))
         if len(sb_copy.repeat_ids) > 0:
-            raise RuntimeError("There are repeat IDs in self.records\n%s" % sb_copy.repeat_ids)
+            raise RuntimeError("There are repeat IDs in self.records\n%s" %
+                               ", ".join([key for key, recs in sb_copy.repeat_ids.items()]))
 
-        records_dict = {}
+        records_dict = OrderedDict()
         for rec in self.records:
             records_dict[rec.id] = rec
         return records_dict
@@ -977,7 +978,7 @@ def back_translate(seqbuddy, mode='random', species=None):
                     break
             rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
 
-    mapped_featuresseqbuddy = map_features_prot2dna(originals, seqbuddy)
+    mapped_featuresseqbuddy = map_features_prot2nucl(originals, seqbuddy, mode="list")
     mapped_featuresseqbuddy.out_format = seqbuddy.out_format
     return mapped_featuresseqbuddy
 
@@ -1872,11 +1873,15 @@ def lowercase(seqbuddy):
     return seqbuddy
 
 
-def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
+def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
     """
-    Applies DNA features to protein sequences
+    Applies cDNA/mRNA features to protein sequences
     :param dnaseqbuddy: A DNA SeqBuddy object with features to map
     :param protseqbuddy: A protein SeqBuddy
+    :param mode: Specify how sequences should be matched up {list, key}
+            - list = records are mapped in index order
+            - key = records are converted to a dict and matched by key
+    :param quiet: Suppress _stderr messages
     :return: A protein SeqBuddy with the DNA SeqBuddy's features
     """
 
@@ -1901,50 +1906,71 @@ def map_features_dna2prot(dnaseqbuddy, protseqbuddy):
 
     protseqbuddy = clean_seq(protseqbuddy, "*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
-    prot_dict = SeqIO.to_dict(protseqbuddy.records) # ToDo: This needs to become a list of records, and work by index... Key conflicts bad
-    dna_dict = SeqIO.to_dict(dnaseqbuddy.records)
-    new_seqs = {}
     stderr_written = False
-    for seq_id, dna_rec in dna_dict.items():
-        if seq_id not in prot_dict:
-            stderr_written = True
-            _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
+    if mode == "list":
+        if len(protseqbuddy.records) != len(dnaseqbuddy.records):
+            raise ValueError("The two input files do not contain the same number of sequences")
+
+        record_map = list(zip(dnaseqbuddy.records, protseqbuddy.records))
+
+    elif mode == "key":
+        prot_dict = protseqbuddy.to_dict()
+        nucl_dict = dnaseqbuddy.to_dict()
+
+        record_map = []
+        for seq_id, nucl_rec in nucl_dict.items():
+            if seq_id not in prot_dict:
+                stderr_written = True
+                _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
+                continue
+            else:
+                record_map.append((nucl_rec, prot_dict[seq_id]))
+
+        for seq_id, prot_rec in prot_dict.items():
+            if seq_id not in nucl_dict:
+                stderr_written = True
+                _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
+                record_map.append((None, prot_rec))
+    else:
+        raise ValueError("'mode' must be either 'key' or 'position'.")
+
+    for nucl_rec, prot_rec in record_map:
+        # len(cds) or len(cds minus stop)
+        if not nucl_rec:
             continue
 
-        # len(cds) or len(cds minus stop)
-        if len(prot_dict[seq_id].seq) * 3 not in [len(dna_rec.seq), len(dna_rec.seq) - 3]:
+        if len(prot_rec.seq) * 3 not in [len(nucl_rec.seq), len(nucl_rec.seq) - 3]:
             _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                    (seq_id, len(dna_rec.seq), len(prot_dict[seq_id].seq)))
-        new_seqs[seq_id] = prot_dict[seq_id]
+                    (nucl_rec.id, len(nucl_rec.seq), len(prot_rec.seq)), quiet)
+
         prot_feature_hashes = []
-        for feat in prot_dict[seq_id].features:
+        for feat in prot_rec.features:
             prot_feature_hashes.append(md5(str(feat).encode()).hexdigest())
 
-        for feat in dna_rec.features:
+        for feat in nucl_rec.features:
             feat = _feature_map(feat)
             if md5(str(feat).encode()).hexdigest() not in prot_feature_hashes:
-                prot_dict[seq_id].features.append(feat)
-
-    for seq_id, prot_rec in prot_dict.items():
-        if seq_id not in dna_dict:
-            stderr_written = True
-            _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
-            new_seqs[seq_id] = prot_rec
+                prot_rec.features.append(feat)
 
     if stderr_written:
-        _stderr("\n")
+        _stderr("\n", quiet)
 
-    seqs_list = [new_seqs[_rec.id] for _rec in protseqbuddy.records]
+    seqs_list = [prot for nucl, prot in record_map]
     seqbuddy = SeqBuddy(seqs_list)
-    seqbuddy.out_format = "gb"
+    seqbuddy.out_format = dnaseqbuddy.out_format
+    seqbuddy.in_format = dnaseqbuddy.in_format
     return seqbuddy
 
 
-def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
+def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
     """
-    Applies protein features to DNA sequences
+    Applies protein features to cDNA/mRNA sequences
     :param protseqbuddy: A protein SeqBuddy object with features to map
     :param dnaseqbuddy: A DNA SeqBuddy
+    :param mode: Specify how sequences should be matched up {list, key}
+            - list = records are mapped in index order
+            - key = records are converted to a dict and matched by key
+    :param quiet: Suppress _stderr messages
     :return: A DNA SeqBuddy with the protein SeqBuddy's features
     """
 
@@ -1969,23 +1995,46 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
 
     protseqbuddy = clean_seq(protseqbuddy, "*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
-    prot_dict = SeqIO.to_dict(protseqbuddy.records) # ToDo: This needs to become a list of records, and work by index... Key conflicts bad
-    dna_dict = SeqIO.to_dict(dnaseqbuddy.records)
-    new_seqs = {}
     stderr_written = False
-    for seq_id, prot_rec in prot_dict.items():
-        if seq_id not in dna_dict:
-            stderr_written = True
-            _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id)
+    if mode == "list":
+        if len(protseqbuddy.records) != len(dnaseqbuddy.records):
+            raise ValueError("The two input files do not contain the same number of sequences")
+
+        record_map = list(zip(protseqbuddy.records, dnaseqbuddy.records))
+
+    elif mode == "key":
+        prot_dict = protseqbuddy.to_dict()
+        nucl_dict = dnaseqbuddy.to_dict()
+
+        record_map = []
+        for seq_id, prot_rec in prot_dict.items():
+            if seq_id not in nucl_dict:
+                stderr_written = True
+                _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
+                continue
+            else:
+                record_map.append((prot_rec, nucl_dict[seq_id]))
+
+        for seq_id, dna_rec in nucl_dict.items():
+            if seq_id not in prot_dict:
+                stderr_written = True
+                _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
+                record_map.append((None, dna_rec))
+
+    else:
+        raise ValueError("'mode' must be either 'key' or 'position'.")
+
+    for prot_rec, nucl_rec in record_map:
+        # len(cds) or len(cds minus stop)
+        if not prot_rec:
             continue
 
-        # len(cds) or len(cds minus stop)
-        if len(prot_rec.seq) * 3 not in [len(dna_dict[seq_id].seq), len(dna_dict[seq_id].seq) - 3]:
+        if len(prot_rec.seq) * 3 not in [len(nucl_rec.seq), len(nucl_rec.seq) - 3]:
             _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                    (seq_id, len(prot_rec.seq), len(dna_dict[seq_id].seq)))
-        new_seqs[seq_id] = dna_dict[seq_id]
+                    (prot_rec.id, len(prot_rec.seq), len(nucl_rec.seq)), quiet)
+
         dna_feature_hashes = []
-        for feat in dna_dict[seq_id].features:
+        for feat in nucl_rec.features:
             dna_feature_hashes.append(md5(str(feat).encode()).hexdigest())
 
         for feat in prot_rec.features:
@@ -1997,20 +2046,15 @@ def map_features_prot2dna(protseqbuddy, dnaseqbuddy):
             feat.strand = 1
             prot_feature_hashes.append(md5(str(feat).encode()).hexdigest())
             if not set(prot_feature_hashes) & set(dna_feature_hashes):
-                dna_dict[seq_id].features.append(feat)
-
-    for seq_id, dna_rec in dna_dict.items():
-        if seq_id not in prot_dict:
-            stderr_written = True
-            _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id)
-            new_seqs[seq_id] = dna_rec
+                nucl_rec.features.append(feat)
 
     if stderr_written:
-        _stderr("\n")
+        _stderr("\n", quiet)
 
-    seqs_list = [new_seqs[_rec.id] for _rec in dnaseqbuddy.records]
+    seqs_list = [nucl for prot, nucl in record_map]
     seqbuddy = SeqBuddy(seqs_list)
-    seqbuddy.out_format = "gb"
+    seqbuddy.out_format = protseqbuddy.out_format
+    seqbuddy.in_format = protseqbuddy.in_format
     return seqbuddy
 
 
@@ -2528,7 +2572,7 @@ def translate_cds(seqbuddy, quiet=False):
         rec.seq = rec.seq.translate()
         rec.seq.alphabet = IUPAC.protein
 
-    output = map_features_dna2prot(seqbuddy, translated_sb)
+    output = map_features_nucl2prot(seqbuddy, translated_sb, mode="list")
     output.out_format = seqbuddy.out_format
     seqbuddy = output
     return seqbuddy
@@ -2636,9 +2680,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Add feature
     if in_args.annotate:
-        if not in_args.out_format:
-            seqbuddy.out_format = "genbank"
-
         # _type, location, strand=None, qualifiers=None, pattern=None
         genbank_features = ['assembly_gap', 'attenuator', 'C_region', 'CAAT_signal', 'CDS', 'centromere', 'D-loop',
                             'D_segment', 'enhancer', 'exon', 'gap', 'GC_signal', 'gene', 'iDNA', 'intron', 'J_segment',
@@ -2687,7 +2728,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
 
-        _print_recs(annotate(seqbuddy, ftype, flocation, **feature_attrs))
+        seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
+        if in_args.out_format:
+            seqbuddy.out_format = in_args.out_format
+        _print_recs(seqbuddy)
         _exit("annotate")
 
     # Average length of sequences
@@ -3249,12 +3293,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _exit("lowercase")
 
     # Map features from cDNA over to protein
-    if in_args.map_features_dna2prot:
+    if in_args.map_features_nucl2prot:
+        if len(in_args.sequence) < 2:
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_nucl2prot")
         file1, file2 = in_args.sequence[:2]
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-        if file1.alpha == file2.alpha:
-            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_dna2prot")
+        if file1.alpha == file2.alpha or (file1.alpha != IUPAC.protein and file2.alpha != IUPAC.protein):
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_nucl2prot")
         if file1.alpha == IUPAC.protein:
             prot = file1
             dna = file2
@@ -3262,16 +3308,25 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
             prot = file2
             dna = file1
-        _print_recs(map_features_dna2prot(dna, prot))
-        _exit("map_features_dna2prot")
+        try:
+            seqbuddy = map_features_nucl2prot(dna, prot, quiet=in_args.quiet)
+        except RuntimeError as e:
+            _raise_error(e, "map_features_nucl2prot", "There are repeat IDs in self.records")
+
+        if in_args.out_format:
+            seqbuddy.out_format = in_args.out_format
+        _print_recs(seqbuddy)
+        _exit("map_features_nucl2prot")
 
     # Map features from protein over to cDNA
-    if in_args.map_features_prot2dna:
+    if in_args.map_features_prot2nucl:
+        if len(in_args.sequence) < 2:
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_nucl2prot")
         file1, file2 = in_args.sequence[:2]
         file1 = SeqBuddy(file1)
         file2 = SeqBuddy(file2)
-        if file1.alpha == file2.alpha:  # ToDo: Clean up ValueError
-            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_prot2dna")
+        if file1.alpha == file2.alpha or (file1.alpha != IUPAC.protein and file2.alpha != IUPAC.protein):
+            _raise_error(ValueError("You must provide one DNA file and one protein file"), "map_features_nucl2prot")
         if file1.alpha != IUPAC.protein:
             dna = file1
             prot = file2
@@ -3279,8 +3334,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             in_args.sequence[0] = in_args.sequence[1]  # in case the -i flag is thrown
             dna = file2
             prot = file1
-        _print_recs(map_features_prot2dna(prot, dna))
-        _exit("map_features_prot2dna")
+        try:
+            seqbuddy = map_features_prot2nucl(prot, dna, quiet=in_args.quiet)
+        except RuntimeError as e:
+            _raise_error(e, "map_features_nucl2prot", "There are repeat IDs in self.records")
+
+        if in_args.out_format:
+            seqbuddy.out_format = in_args.out_format
+        _print_recs(seqbuddy)
+        _exit("map_features_prot2nucl")
 
     # Merge together multiple files into a single file
     if in_args.merge:

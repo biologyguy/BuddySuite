@@ -144,8 +144,7 @@ def test_seqlist_error():
 # ##################### SeqBuddy methods ###################### ##
 def test_to_dict():
     tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
-    tester = ''.join(sorted(tester))
-    assert string2hash(tester) == '06f50839f94e8f917311b682837461fd'
+    assert string2hash(tester) == '2311d1712d41c5ec9c23ad107c8a06c3'
 
     with pytest.raises(RuntimeError):
         tester = Sb.SeqBuddy(">duplicate_id\nATGCTCGTA\n>duplicate_id\nATGCTCGTCGATGCT\n")
@@ -1028,39 +1027,93 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
     assert seqs_to_hash(tester) == lc_hash
 
 
-# ######################  'fd2p', '--map_features_dna2prot' ###################### #
+# ######################  'fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
-hashes = ["5216ef85afec36d5282578458a41169a", "a8f7c129cf57a746c20198bf0a6b9cf4", "0deeea532d6dcbc0486e9b74d0d6aca8",
-          "d595fabb157d5c996357b6a7058af4e8", "bb06e94456f99efc2068f5a52f0e0462", "a287e0054df7f5df76e792e0e0ab6756"]
+hashes = ["ac4bb651480b9e548a33e4044dacfd3b", "0d81710d233a27c36ac310007b84ba5a", "5fdc30f6f9b41085de71cc8d44f7f464",
+          "d9460ef23768917062356e03cefd628e", "b2be40ce28a672479452abbda4bee0d6", "695299783fe84f442773f94870bd3d43"]
 prot_indx = [6, 7, 8, 9, 10, 11]
 hashes = [(Sb._make_copy(sb_objects[1]), Sb._make_copy(sb_objects[prot_indx[indx]]), value)
           for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[0]), Sb._make_copy(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
+hashes.append((Sb._make_copy(sb_objects[0]), Sb._make_copy(sb_objects[6]), "39390faec72a113059c9909314c81fe0"))
 
 
 @pytest.mark.parametrize("_dna,_prot,next_hash", hashes)
-def test_map_features_dna2prot(_dna, _prot, next_hash):
+def test_map_features_nucl2prot(_dna, _prot, next_hash):
     _prot.alpha = IUPAC.protein
     _dna.alpha = IUPAC.ambiguous_dna
-    tester = Sb.map_features_dna2prot(_dna, _prot)
+    tester = Sb.map_features_nucl2prot(_dna, _prot)
     assert seqs_to_hash(tester) == next_hash
 
 
-# ######################  'fp2d', '--map_features_prot2dna' ###################### #
+def test_map_features_nucl2prot_2():
+    tester = Sb._make_copy(sb_objects[1])
+    Sb.pull_record_ends(tester, 1300, "front")
+    tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
+    mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]))
+    assert seqs_to_hash(mapped) == "a6521e59f20f227b6296dd39e2116205"
+
+    Sb.rename(tester, "α4", "A4")
+    tester.write("temp.del")
+    mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[7]))
+    assert seqs_to_hash(mapped) == "ded472ce7ebcc285283a68a8b43277dc"
+
+    tester.records[0].features[0].location = {}
+    with pytest.raises(TypeError) as e:
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]))
+    assert "_feature_map requires a feature with either FeatureLocation or CompoundLocation" in str(e.value)
+
+    tester.records[0].features[0].location = tester.records[1].features[0].location
+    with pytest.raises(ValueError) as e:
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="foo")
+    assert "'mode' must be either 'key' or 'position'" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        Sb.pull_recs(tester, "α[1-8]")
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="list")
+    assert "The two input files do not contain the same number of sequences" in str(e.value)
+
+# ######################  'fp2n', '--map_features_prot2nucl' ###################### #
 # Map the genbank protein file to all dna files, and the fasta protein file to fasta DNA
-hashes = ["3ebc92ca11505489cab2453d2ebdfcf2", "6b4dd3fc66cb7419acaf064b589f4dd1",
-          "8d403750ef83d60e31de0dee79a8f5d1", "74c6c4b5531c41f55f7349ed6c6b2f43",
-          "9133ab0becbec95ce7ed31e02dc17ef5", "3ebc92ca11505489cab2453d2ebdfcf2"]
+hashes = ["42bcb91cb0cb8b93108d9ec46e6e2ad2", "bcd0a0a7da642ffcd7bc9779e3493516",
+          "b5483c22d5aec1594bedd8cc38ca310d", "4296e68ee3eff7af14285f909721451c",
+          "130bef5e289360d0a9937546e9f43347", "42bcb91cb0cb8b93108d9ec46e6e2ad2"]
 dna_indx = [0, 1, 2, 3, 4, 5]
 hashes = [(Sb._make_copy(sb_objects[7]), Sb._make_copy(sb_objects[dna_indx[indx]]), value)
           for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[6]), Sb._make_copy(sb_objects[0]), "720f36544f9c11855ac2673e63282f89"))
+hashes.append((Sb._make_copy(sb_objects[6]), Sb._make_copy(sb_objects[0]), "7d06bff40d5ad27a6e23e725d09293a3"))
 
 
 @pytest.mark.parametrize("_prot,_dna,next_hash", hashes)
-def test_map_features_prot2dna(_prot, _dna, next_hash):
-    tester = Sb.map_features_prot2dna(_prot, _dna)
+def test_map_features_prot2nucl(_prot, _dna, next_hash):
+    tester = Sb.map_features_prot2nucl(_prot, _dna)
     assert seqs_to_hash(tester) == next_hash
+
+
+def test_map_features_prot2nucl_2():
+    tester = Sb._make_copy(sb_objects[7])
+    Sb.pull_record_ends(tester, 450, "front")
+    tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
+    mapped = Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[0]))
+    assert seqs_to_hash(mapped) == "8a529f320d78713155afdacc70e4dcaa"
+
+    Sb.rename(tester, "α4", "A4")
+    mapped = Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[1]))
+    assert seqs_to_hash(mapped) == "bd6585b58d4e1d0a0eaf8a7660da8027"
+
+    tester.records[0].features[0].location = {}
+    with pytest.raises(TypeError) as e:
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[0]))
+    assert "_feature_map requires a feature with either FeatureLocation or CompoundLocation" in str(e.value)
+
+    tester.records[0].features[0].location = tester.records[1].features[0].location
+    with pytest.raises(ValueError) as e:
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="foo")
+    assert "'mode' must be either 'key' or 'position'" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        Sb.pull_recs(tester, "α[1-8]")
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="list")
+    assert "The two input files do not contain the same number of sequences" in str(e.value)
 
 
 # #####################  'mg', '--merge' ###################### ##
@@ -1890,6 +1943,88 @@ def test_lower_and_upper_ui(capsys):
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
 
 
+# ######################  'fn2p', '--map_features_nucl2prot' ###################### #
+def test_map_features_nucl2prot_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.map_features_nucl2prot = True
+    test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Mnemiopsis_pep.fa")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ac4bb651480b9e548a33e4044dacfd3b"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.fa"), resource("Mnemiopsis_cds.gb")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ac4bb651480b9e548a33e4044dacfd3b"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.fa"), resource("Mnemiopsis_cds.gb")]
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a6d58c94c83409e43b4745ca8329a73b"
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Duplicate_seqs.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are repeat IDs in self.records" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Mnemiopsis_cds.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+
+# ######################  'fp2n', '--map_features_prot2nucl' ###################### #
+def test_map_features_prot2nucl_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.map_features_prot2nucl = True
+    test_in_args.sequence = [resource("Mnemiopsis_cds.fa"), resource("Mnemiopsis_pep.gb")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "42bcb91cb0cb8b93108d9ec46e6e2ad2"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_cds.fa")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "42bcb91cb0cb8b93108d9ec46e6e2ad2"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_cds.fa")]
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a393c70ee7ba994b14c4e6b2c2238629"
+
+    with pytest.raises(SystemExit):
+        temp_file = MyFuncs.TempFile()
+        duplicate_seqs = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+        Sb.back_translate(duplicate_seqs)
+        duplicate_seqs.write(temp_file.path)
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), temp_file.path]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are repeat IDs in self.records" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_pep.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+
 # ######################  'mg', '--merge' ###################### #
 def test_merge_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1922,7 +2057,6 @@ def test_transcribe_ui(capsys):
 
 
 # ######################  'tr', '--translate' ###################### #
-#@pytest.mark.foo
 def test_translate_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.translate = True
