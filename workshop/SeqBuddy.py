@@ -2240,31 +2240,24 @@ def pull_random_recs(seqbuddy, count=1):
     return seqbuddy
 
 
-def pull_record_ends(seqbuddy, amount, which_end):
+def pull_record_ends(seqbuddy, amount):
     """
     Retrieves subsequences from the ends of the sequences
     :param seqbuddy: SeqBuddy object
-    :param amount: The number of residues to be pulled
-    :param which_end: Which end to pull from (front/rear)
+    :param amount: The number of residues to be pulled (negative numbers from rear)
     :return: The modified SeqBuddy object
     """
     amount = int(amount)
-    if amount < 0:
-        raise ValueError("Positive integer required for 'amount' argument in pull_record_ends.")
-
     seq_ends = []
     for rec in seqbuddy.records:
-        if which_end == 'front':
+        if amount >= 0:
             rec.seq = Seq(str(rec.seq)[:amount], alphabet=rec.seq.alphabet)
             rec.features = _shift_features(rec.features, 0, len(str(rec.seq)))
 
-        elif which_end == "rear":
-            shift = -1 * (len(str(rec.seq)) - amount)
-            rec.features = _shift_features(rec.features, shift, len(str(rec.seq)))
-            rec.seq = rec.seq[-1 * amount:]
-
         else:
-            raise AttributeError("You must pick 'front' or 'rear' for the 'which_end' argument in pull_record_ends.")
+            shift = -1 * (len(str(rec.seq)) + amount)
+            rec.features = _shift_features(rec.features, shift, len(str(rec.seq)))
+            rec.seq = rec.seq[amount:]
 
         seq_ends.append(rec)
 
@@ -3414,20 +3407,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Pull record ends
     if in_args.pull_record_ends:
-        try:
-            _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))
-            _exit("pull_record_ends")
-        except ValueError:
-            pass
-        except AttributeError:
-            pass
-        try:
-            _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends[1], in_args.pull_record_ends[0]))
-        except ValueError:
-            _raise_error(ValueError("Arguments are <amount (int)> <front|rear>"), "pull_record_ends")
-        except AttributeError:
-            _raise_error(AttributeError("Choose 'front' or 'rear' to specify where the sequence "
-                                        "should come from in pull_record_ends"), "pull_record_ends")
+        _print_recs(pull_record_ends(seqbuddy, in_args.pull_record_ends))
         _exit("pull_record_ends")
 
     # Pull records

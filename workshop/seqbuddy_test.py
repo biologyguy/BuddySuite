@@ -1047,7 +1047,7 @@ def test_map_features_nucl2prot(_dna, _prot, next_hash):
 
 def test_map_features_nucl2prot_2():
     tester = Sb._make_copy(sb_objects[1])
-    Sb.pull_record_ends(tester, 1300, "front")
+    Sb.pull_record_ends(tester, 1300)
     tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
     mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]))
     assert seqs_to_hash(mapped) == "a6521e59f20f227b6296dd39e2116205"
@@ -1091,7 +1091,7 @@ def test_map_features_prot2nucl(_prot, _dna, next_hash):
 
 def test_map_features_prot2nucl_2():
     tester = Sb._make_copy(sb_objects[7])
-    Sb.pull_record_ends(tester, 450, "front")
+    Sb.pull_record_ends(tester, 450)
     tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
     mapped = Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[0]))
     assert seqs_to_hash(mapped) == "8a529f320d78713155afdacc70e4dcaa"
@@ -1258,34 +1258,18 @@ def test_pull_random_recs(seqbuddy):
 
 
 # #####################  'pre', '--pull_record_ends' ###################### ##
-def test_pull_record_ends_front():
+def test_pull_record_ends():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10, 'front')
+    tester = Sb.pull_record_ends(tester, 10)
     assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
 
-
-def test_pull_record_ends_back():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10, 'rear')
+    tester = Sb.pull_record_ends(tester, -10)
     assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
 
-
-def test_pull_record_ends_zero():
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(Sb._make_copy(seqbuddy), 0, 'rear')
-    assert seqs_to_hash(tester) == seqs_to_hash(seqbuddy)
-
-
-def test_pull_record_ends_neg():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(ValueError):
-        Sb.pull_record_ends(Sb._make_copy(seqbuddy), -1, 'rear')
-
-
-def test_pull_record_ends_wrong_end():
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    with pytest.raises(AttributeError):
-        Sb.pull_record_ends(Sb._make_copy(seqbuddy), 100, 'fghhgj')
+        Sb.pull_record_ends(Sb._make_copy(seqbuddy), 'foo')
 
 
 # ######################  'pr', '--pull_records' ###################### #
@@ -2140,6 +2124,20 @@ def test_pull_random_recs_ui(capsys):
     tester = Sb.SeqBuddy(out)
     assert len(tester.records) == 13
     assert sorted([rec.id for rec in tester.records]) == sorted([rec.id for rec in sb_objects[0].records])
+
+
+# ######################  '-pr', '--pull_record_ends' ###################### #
+def test_pull_record_ends_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_record_ends = 10
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "754d6868030d1122b35386118612db72"
+
+    test_in_args.pull_record_ends = -10
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "9cfc91c3fdc5cd9daabce0ef9bac2db7"
 
 
 # ######################  '-pr', '--pull_records' ###################### #
