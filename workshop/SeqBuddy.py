@@ -2272,11 +2272,11 @@ def pull_record_ends(seqbuddy, amount, which_end):
     return seqbuddy
 
 
-def pull_recs(seqbuddy, search):  # search can be a list of regex expressions or single string
+def pull_recs(seqbuddy, search):
     """
     Retrieves sequences with names/IDs matching a search pattern
     :param seqbuddy: SeqBuddy object
-    :param search: The regex pattern to search with
+    :param search: List of regex expressions or single regex
     :return: The modified SeqBuddy object
     """
     search = "|".join(search) if type(search) == list else search
@@ -3412,7 +3412,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(pull_random_recs(seqbuddy, count))
         _exit("pull_random_record")
 
-    # Pull sequence ends
+    # Pull record ends
     if in_args.pull_record_ends:
         try:
             _print_recs(pull_record_ends(seqbuddy, *in_args.pull_record_ends))

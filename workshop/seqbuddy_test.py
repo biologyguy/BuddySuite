@@ -1288,7 +1288,7 @@ def test_pull_record_ends_wrong_end():
         Sb.pull_record_ends(Sb._make_copy(seqbuddy), 100, 'fghhgj')
 
 
-# ######################  'pr', '--pull_recs' ###################### #
+# ######################  'pr', '--pull_records' ###################### #
 pr_hashes = ["5b4154c2662b66d18776cdff5af89fc0", "e196fdc5765ba2c47f97807bafb6768c", "bc7dbc612bc8139eba58bf896b7eaf2f",
              "e33828908fa836f832ee915957823039", "e33828908fa836f832ee915957823039", "b006b40ff17ba739929448ae2f9133a6"]
 pr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(pr_hashes)]
@@ -2125,7 +2125,6 @@ def test_order_ids_randomly_ui(capsys):
 
 
 # ######################  '-prr', '--pull_random_recs' ###################### #
-@pytest.mark.foo
 def test_pull_random_recs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.pull_random_record = [True]
@@ -2143,7 +2142,21 @@ def test_pull_random_recs_ui(capsys):
     assert sorted([rec.id for rec in tester.records]) == sorted([rec.id for rec in sb_objects[0].records])
 
 
-# ######################  'd2r', '--transcribe' ###################### #
+# ######################  '-pr', '--pull_records' ###################### #
+def test_pull_records_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_records = ["α1"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "db52337c628fd8d8d70a5581355c51a5"
+
+    test_in_args.pull_records = ["α1", "α2"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+
+# ######################  '-d2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.transcribe = True
