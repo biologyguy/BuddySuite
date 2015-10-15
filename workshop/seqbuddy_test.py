@@ -1235,6 +1235,19 @@ def test_order_ids(seqbuddy, fwd_hash, rev_hash):
     assert seqs_to_hash(tester) == rev_hash
 
 
+# ######################  'oir', '--order_ids_randomly' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
+def test_shuffle(seqbuddy):
+    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
+    # for i in range(3):  # Sometimes the shuffle doesn't actually work, so repeat a few times if necessary
+    #    if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
+    #        break
+    #    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
+
+    assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
+    assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
+
+
 # #####################  'prr', '--pull_random_recs' ###################### ##
 @pytest.mark.parametrize("seqbuddy", sb_objects)
 def test_pull_random_recs(seqbuddy):
@@ -1364,19 +1377,6 @@ def test_shuffle_seqs():
     assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
     for indx, record in enumerate(tester1.records):
         assert sorted(record.seq) == sorted(tester2.records[indx].seq)
-
-
-# ######################  'sh', '--shuffle' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
-def test_shuffle(seqbuddy):
-    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-    for i in range(3):  # Sometimes shuffle doesn't actually shuffle, so repeat a few times if necessary
-        if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
-            break
-        tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-
-    assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
-    assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
 
 
 # #####################  'sbt', '--split_by_taxa' ###################### ##
@@ -2076,14 +2076,12 @@ def test_order_features_alphabetically_ui(capsys):
     test_in_args.order_features_alphabetically = [True]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == '21547b4b35e49fa37e5c5b858808befb'
+    assert string2hash(out) == '21547b4b35e49fa37e5c5b858808befb'
 
     test_in_args.order_features_alphabetically = ["rev"]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == '3b718ec3cb794bcb658d900e517110cc'
+    assert string2hash(out) == '3b718ec3cb794bcb658d900e517110cc'
 
 
 # ######################  '-ofp', '--order_features_by_position' ###################### #
@@ -2092,14 +2090,12 @@ def test_order_features_by_position_ui(capsys):
     test_in_args.order_features_by_position = [True]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == '2e02a8e079267bd9add3c39f759b252c'
+    assert string2hash(out) == '2e02a8e079267bd9add3c39f759b252c'
 
     test_in_args.order_features_by_position = ["rev"]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == '4345a14fe27570b3c837c30a8cb55ea9'
+    assert string2hash(out) == '4345a14fe27570b3c837c30a8cb55ea9'
 
 
 # ######################  '-oi', '--order_ids' ###################### #
@@ -2108,14 +2104,25 @@ def test_order_ids_ui(capsys):
     test_in_args.order_ids = [True]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == '2f9bc0dd9d79fd8160a621280be0b0aa'
+    assert string2hash(out) == '2f9bc0dd9d79fd8160a621280be0b0aa'
 
     test_in_args.order_ids = ["rev"]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == 'dd269961d4d5301d1bf87e0093568851'
+    assert string2hash(out) == 'dd269961d4d5301d1bf87e0093568851'
+
+
+# ######################  '-oir', '--order_ids_randomly' ###################### #
+@pytest.mark.foo
+def test_order_ids_randomly_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_ids_randomly = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) != seqs_to_hash(sb_objects[0])
+
+    tester = Sb.order_ids(Sb.SeqBuddy(out))
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids(Sb._make_copy(sb_objects[0])))
 
 
 # ######################  'd2r', '--transcribe' ###################### #

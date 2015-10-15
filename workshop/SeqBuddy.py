@@ -2212,9 +2212,9 @@ def order_ids(seqbuddy, reverse=False):
 
 def order_ids_randomly(seqbuddy):
     """
-    Randomly reorders the sequences in seqbuddy.records
+    Randomly reorders seqbuddy.records
     :param seqbuddy: SeqBuddy object
-    :return: The shuffled SeqBuddy object
+    :return: The reordered SeqBuddy object
     """
     output = []
     for _ in range(len(seqbuddy.records)):
