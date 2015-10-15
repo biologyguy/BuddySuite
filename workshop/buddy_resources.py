@@ -458,11 +458,13 @@ sb_flags = {"annotate": {"flag": "ano",
             "order_features_alphabetically": {"flag": "ofa",
                                               "action": "append",
                                               "nargs": "?",
+                                              "metavar": "'rev'",
                                               "help": "Change the output order of sequence features, based "
                                                       "on feature name. Pass in 'rev' to reverse order"},
             "order_features_by_position": {"flag": "ofp",
                                            "action": "append",
                                            "nargs": "?",
+                                           "metavar": "'rev'",
                                            "help": "Change the output order of sequence features, based on "
                                                    "sequence position. Pass in 'rev' to reverse order"},
             "order_ids": {"flag": "oi",

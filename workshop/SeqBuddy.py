@@ -3379,20 +3379,29 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Order sequence features alphabetically
     if in_args.order_features_alphabetically:
         ofa = in_args.order_features_alphabetically
-        reverse = True if ofa[0] and ofa[0] == "rev" else False
+        if ofa[0] and type(ofa[0]) == str:
+            reverse = True if "reverse".startswith(ofa[0].lower()) else False
+        else:
+            reverse = False
         _print_recs(order_features_alphabetically(seqbuddy, reverse))
         _exit("order_features_alphabetically")
 
     # Order sequence features by their position in the sequence
     if in_args.order_features_by_position:
         ofp = in_args.order_features_by_position
-        reverse = True if ofp[0] and ofp[0] == "rev" else False
+        if ofp[0] and type(ofp[0]) == str:
+            reverse = True if "reverse".startswith(ofp[0].lower()) else False
+        else:
+            reverse = False
         _print_recs(order_features_by_position(seqbuddy, reverse))
         _exit("order_features_by_position")
 
     # Order ids
     if in_args.order_ids:
-        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
+        if in_args.order_ids[0] and type(in_args.order_ids[0]) == str:
+            reverse = True if "reverse".startswith(in_args.order_ids[0].lower()) else False
+        else:
+            reverse = False
         _print_recs(order_ids(seqbuddy, reverse=reverse))
         _exit("order_ids")
 

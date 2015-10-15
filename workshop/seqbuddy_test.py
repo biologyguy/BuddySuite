@@ -2079,6 +2079,12 @@ def test_order_features_alphabetically_ui(capsys):
     tester = Sb.SeqBuddy(out)
     assert seqs_to_hash(tester) == '21547b4b35e49fa37e5c5b858808befb'
 
+    test_in_args.order_features_alphabetically = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == '3b718ec3cb794bcb658d900e517110cc'
+
 
 # ######################  '-ofp', '--order_features_by_position' ###################### #
 def test_order_features_by_position_ui(capsys):
@@ -2088,6 +2094,28 @@ def test_order_features_by_position_ui(capsys):
     out, err = capsys.readouterr()
     tester = Sb.SeqBuddy(out)
     assert seqs_to_hash(tester) == '2e02a8e079267bd9add3c39f759b252c'
+
+    test_in_args.order_features_by_position = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == '4345a14fe27570b3c837c30a8cb55ea9'
+
+
+# ######################  '-oi', '--order_ids' ###################### #
+def test_order_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_ids = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == '2f9bc0dd9d79fd8160a621280be0b0aa'
+
+    test_in_args.order_ids = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == 'dd269961d4d5301d1bf87e0093568851'
 
 
 # ######################  'd2r', '--transcribe' ###################### #
