@@ -1183,7 +1183,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "3b718ec3cb794bcb658d900e51711
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
 def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
@@ -1208,7 +1208,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4345a14fe27570b3c837c30a8cb55
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
 def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_by_position(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
@@ -2074,10 +2074,20 @@ def test_num_seqs_ui(capsys):
 def test_order_features_alphabetically_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.order_features_alphabetically = [True]
-    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
     tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
+    assert seqs_to_hash(tester) == '21547b4b35e49fa37e5c5b858808befb'
+
+
+# ######################  '-ofp', '--order_features_by_position' ###################### #
+def test_order_features_by_position_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_features_by_position = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == '2e02a8e079267bd9add3c39f759b252c'
 
 
 # ######################  'd2r', '--transcribe' ###################### #
