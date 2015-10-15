@@ -2113,7 +2113,6 @@ def test_order_ids_ui(capsys):
 
 
 # ######################  '-oir', '--order_ids_randomly' ###################### #
-@pytest.mark.foo
 def test_order_ids_randomly_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.order_ids_randomly = [True]
@@ -2123,6 +2122,25 @@ def test_order_ids_randomly_ui(capsys):
 
     tester = Sb.order_ids(Sb.SeqBuddy(out))
     assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids(Sb._make_copy(sb_objects[0])))
+
+
+# ######################  '-prr', '--pull_random_recs' ###################### #
+@pytest.mark.foo
+def test_pull_random_recs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_random_record = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert len(tester.records) == 1
+    assert tester.records[0].id in sb_objects[0].to_dict()
+
+    test_in_args.pull_random_record = [20]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert len(tester.records) == 13
+    assert sorted([rec.id for rec in tester.records]) == sorted([rec.id for rec in sb_objects[0].records])
 
 
 # ######################  'd2r', '--transcribe' ###################### #

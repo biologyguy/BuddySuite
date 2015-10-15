@@ -2226,20 +2226,16 @@ def order_ids_randomly(seqbuddy):
 
 def pull_random_recs(seqbuddy, count=1):
     """
-    Return a random set of sequences (without replacement)
+    Return a random record or subset of records (without replacement)
     :param seqbuddy: SeqBuddy object
-    :param count: The number of random records to pull
+    :param count (int): The number of random records to pull
     :return: The original SeqBuddy object with only the selected records remaining
     """
-    if type(count) != int:
-        raise TypeError("_count parameter requires an integer as input.")
-
     count = abs(count) if abs(count) <= len(seqbuddy.records) else len(seqbuddy.records)
     random_recs = []
     for i in range(count):
         rand_index = randint(0, len(seqbuddy.records) - 1)
         random_recs.append(seqbuddy.records.pop(rand_index))
-
     seqbuddy.records = random_recs
     return seqbuddy
 
