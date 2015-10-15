@@ -1132,23 +1132,23 @@ def test_merge():
 def test_molecular_weight():
     # Unambiguous DNA
     tester = Sb.molecular_weight(Sb._make_copy(sb_objects[1]))
-    assert tester[1]['masses_ds'][0] == 743477.1
-    assert tester[1]['masses_ss'][0] == 371242.6
-    assert seqs_to_hash(tester[0]) == "e080cffef0ec6c5e8eada6f57bbc35f9"
+    assert tester.molecular_weights['masses_ds'][0] == 743477.1
+    assert tester.molecular_weights['masses_ss'][0] == 371242.6
+    assert seqs_to_hash(tester) == "e080cffef0ec6c5e8eada6f57bbc35f9"
     # Ambiguous DNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))[1]
-    assert tester['masses_ds'][0] == 743477.08
-    assert tester['masses_ss'][0] == 371202.59
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))
+    assert tester.molecular_weights['masses_ds'][0] == 743477.08
+    assert tester.molecular_weights['masses_ss'][0] == 371202.59
     # Unambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))[1]
-    assert tester['masses_ss'][0] == 387372.6
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))
+    assert tester.molecular_weights['masses_ss'][0] == 387372.6
     # Ambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))[1]
-    assert tester['masses_ss'][0] == 387371.6
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))
+    assert tester.molecular_weights['masses_ss'][0] == 387371.6
     # Protein
     tester = Sb.molecular_weight(Sb._make_copy(sb_objects[7]))
-    assert tester[1]['masses_ss'][0] == 45692.99
-    assert seqs_to_hash(tester[0]) == "fb1a66b7eb576c0584fc7988c45b6a18"
+    assert tester.molecular_weights['masses_ss'][0] == 45692.99
+    assert seqs_to_hash(tester) == "fb1a66b7eb576c0584fc7988c45b6a18"
 
 
 # ######################  'ns', '--num_seqs' ###################### #
@@ -2041,6 +2041,45 @@ def test_merge_ui(capsys):
     assert "RuntimeError" in err
 
 
+# ######################  'mw', '--molecular_weight' ###################### #
+def test_molecular_weight_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.molecular_weight = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7a456f37b9d7a780dfe81e453f2e9525"
+    assert err == "ID\tssDNA\tdsDNA\n"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d1014a98fe227f8847ed7478bbdfc857"
+    assert err == "ID\tProtein\n"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[13]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "55ff25f26504c5360557c2dfeb041036"
+    assert err == "ID\tssRNA\n"
+
+
+# ######################  'ns', '--num_seqs' ###################### #
+def test_num_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.num_seqs = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert out == '13\n'
+
+
+# ######################  '-ofa', '--order_features_alphabetically' ###################### #
+def test_order_features_alphabetically_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_features_alphabetically = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
+
+
 # ######################  'd2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -2081,22 +2120,3 @@ def test_translate_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
-
-
-# ######################  '-ofa', '--order_features_alphabetically' ###################### #
-def test_order_features_alphabetically_ui(capsys):
-    test_in_args = deepcopy(in_args)
-    test_in_args.order_features_alphabetically = [True]
-    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
-    out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
-
-
-# ######################  'ns', '--num_seqs' ###################### #
-def test_num_seqs_ui(capsys):
-    test_in_args = deepcopy(in_args)
-    test_in_args.num_seqs = True
-    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
-    out, err = capsys.readouterr()
-    assert out == '13\n'

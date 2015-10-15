@@ -2097,7 +2097,7 @@ def molecular_weight(seqbuddy):
     """
     Calculates the mass of each sequence in daltons
     :param seqbuddy: SeqBuddy object
-    :return: A tuple containing an annotated SeqBuddy object and a dictionary of molecular weight values -
+    :return: SeqBuddy object with appended molecular_weights dictionary -
     dict[id][(ssRNA_value/ssDNA_value, dsDNA_value/peptide_value)]
     """
 
@@ -2153,7 +2153,8 @@ def molecular_weight(seqbuddy):
         output['ids'].append(rec.id)
         mw_feature = SeqFeature(location=FeatureLocation(start=1, end=len(rec.seq)), type='mw', qualifiers=qualifiers)
         rec.features.append(mw_feature)
-    return seqbuddy, output
+    seqbuddy.molecular_weights = output
+    return seqbuddy
 
 
 def num_seqs(seqbuddy):
@@ -3353,23 +3354,24 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _raise_error(e, "merge")
         _exit("merge")
 
-    # Calculate Molecular Weight
+    # Molecular Weight
     if in_args.molecular_weight:
-        lists = molecular_weight(seqbuddy)[1]
+        molecular_weight(seqbuddy)
+        mws = seqbuddy.molecular_weights
         if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
             _stderr("ID\tssDNA\tdsDNA\n")
         elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
             _stderr("ID\tssRNA\n")
         else:
             _stderr("ID\tProtein\n")
-        for indx, value in enumerate(lists['ids']):
-            if len(lists['masses_ds']) != 0:
-                print("{0}\t{1}\t{2}".format(value, lists['masses_ss'][indx], lists['masses_ds'][indx]))
+        for indx, value in enumerate(mws['ids']):
+            if len(mws['masses_ds']) != 0:
+                print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
             else:
-                print("{0}\t{1}".format(value, lists['masses_ss'][indx]))
+                print("{0}\t{1}".format(value, mws['masses_ss'][indx]))
         _exit("molecular_weight")
 
-    # Count number of sequences in a file
+    # Number of sequences
     if in_args.num_seqs:
         _stdout("%s\n" % num_seqs(seqbuddy))
         _exit("num_seqs")
