@@ -23,6 +23,7 @@ import MyFuncs
 
 VERSION = Sb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
+TEMP_DIR = MyFuncs.TempDir()
 BACKUP_PATH = os.environ["PATH"]
 
 
@@ -166,6 +167,9 @@ def test_to_string(capsys):
 
     tester.out_format = "phylipis"
     assert string2hash(str(tester)) == "0b00c1521259b0e1389e58cb5d414048"
+
+    tester.out_format = "raw"
+    assert string2hash(str(tester)) == "e4a00cbc145bc6b95d02e30cfcb925e9"
 
     tester.records = []
     assert str(tester) == "Error: No sequences in object.\n"
@@ -1305,26 +1309,10 @@ def test_pull_recs(seqbuddy, next_hash):
 
 
 # #####################  'prg', '--purge' ###################### ##
-@pytest.mark.foo
 def test_purge():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
     Sb.purge(tester, 200)
     assert seqs_to_hash(tester) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
-
-
-# ######################  'rs', '--raw_seq' ###################### #
-hashes = ["6f0ff2d43706380d92817e644e5b78a5", "5d00d481e586e287f32d2d29916374ca", "6f0ff2d43706380d92817e644e5b78a5",
-          "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
-          "cdfe71aefecc62c5f5f2f45e9800922c", "4dd913ee3f73ba4bb5dc90d612d8447f", "cdfe71aefecc62c5f5f2f45e9800922c",
-          "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
-hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_raw_seq(seqbuddy, next_hash):
-    tester = Sb.raw_seq(seqbuddy)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
 
 
 # ######################  'ri', '--rename_ids' ###################### #
@@ -2191,7 +2179,6 @@ def test_pull_records_ui(capsys):
 
 
 # ######################  '-prg', '--purge' ###################### #
-@pytest.mark.foo
 def test_purge_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.purge = 200
@@ -2199,6 +2186,39 @@ def test_purge_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c"
     assert string2hash(err) == "fbfde496ae179f83e3d096da15d90920"
+
+
+# ######################  '-sf', '--screw_formats' ###################### #
+hashes = [("fasta", "98a3a08389284461ea9379c217e99770"), ("gb", "73858af4bec0e4e52ce8ead542150b70"),
+          ("nexus", "cb1169c2dd357771a97a02ae2160935d"), ("phylip", "52c23bd793c9761b7c0f897d3d757c12"),
+          ("phylipi", "c5fb6a5ce437afa1a4004e4f8780ad68"), ("phylipis", "270f1bac51b2e29c0e163d261795c5fe"),
+          ("stockholm", "a50943ccd028b6f5fa658178fa8cf54d"), ("raw", "36b2ff58404c0bad5fc4acce981eeaee")]
+
+
+@pytest.mark.parametrize("_format,next_hash", hashes)
+def test_screw_formats_ui(_format, next_hash, capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = _format
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[2]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == next_hash
+
+
+@pytest.mark.foo
+def test_screw_formats_ui2(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = "foo"
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "Error: unknown format" in err
+
+    sb_objects[0].write("%s/seq.fa" % TEMP_DIR.path)
+    test_in_args.sequence = ["%s/seq.fa" % TEMP_DIR.path]
+    test_in_args.screw_formats = "genbank"
+    test_in_args.in_place = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    assert os.path.isfile("%s/seq.genbank" % TEMP_DIR.path)
 
 
 # ######################  '-d2r', '--transcribe' ###################### #

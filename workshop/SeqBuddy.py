@@ -144,7 +144,7 @@ def degenerate_dna():
 VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylipi",
-                  "phylipis", "seqxml", "sff", "stockholm", "tab", "qual"]
+                  "phylipis", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
 
 
 # ##################################################### SEQBUDDY ##################################################### #
@@ -291,9 +291,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         elif self.out_format == "phylipis":
             output = _phylipi(self, "strict")
 
+        elif self.out_format == "raw":
+            output = "\n\n".join([str(rec.seq) for rec in self.records])
         else:
-            tmp_dir = TemporaryDirectory()
-            with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
+            tmp_dir = MyFuncs.TempDir()
+            with open("%s/seqs.tmp" % tmp_dir.path, "w") as _ofile:
                 try:
                     SeqIO.write(self.records, _ofile, self.out_format)
                 except ValueError as e:
@@ -301,10 +303,14 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
                         _stderr("Warning: Alignment format detected but sequences are different lengths. "
                                 "Format changed to fasta to accommodate proper printing of records.\n")
                         SeqIO.write(self.records, _ofile, "fasta")
+                    elif "Repeated name" in str(e) and self.out_format == "phylip":
+                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
+                                "Format changed to phylip-relaxed.\n")
+                        SeqIO.write(self.records, _ofile, "phylip-relaxed")
                     else:
                         raise e
 
-            with open("%s/seqs.tmp" % tmp_dir.name, "r") as ifile:
+            with open("%s/seqs.tmp" % tmp_dir.path, "r") as ifile:
                 output = ifile.read()
 
         return output
@@ -2345,20 +2351,6 @@ def purge(seqbuddy, threshold):
     return seqbuddy
 
 
-def raw_seq(seqbuddy):  # TODO Make this return a dict
-    """
-    Returns the raw sequence data from the SeqBuddy object
-    :param seqbuddy: SeqBuddy object
-    :return: A string containing the raw sequences
-    """
-    seqbuddy = clean_seq(seqbuddy)
-    output = ""
-    for _rec in seqbuddy.records:
-        output += "%s\n\n" % _rec.seq
-
-    return "%s\n" % output.strip()
-
-
 def rename(seqbuddy, query, replace="", num=0):  # TODO Allow a replacement pattern increment (like numbers)
     """
     Rename sequence IDs
@@ -2910,14 +2902,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
-            residue_breakdown = "# ####################### Deleted records ######################## #\n"
+            raw = "# ####################### Deleted records ######################## #\n"
             for seq in deleted_seqs:
-                residue_breakdown += "%s\t" % seq.id
+                raw += "%s\t" % seq.id
                 if counter % columns == 0:
-                    residue_breakdown = "%s\n" % residue_breakdown.strip()
+                    raw = "%s\n" % raw.strip()
                 counter += 1
-            residue_breakdown = "%s\n# ################################################################ #\n" % residue_breakdown.strip()
-            _stderr(residue_breakdown, in_args.quiet)
+            raw = "%s\n# ################################################################ #\n" % raw.strip()
+            _stderr(raw, in_args.quiet)
 
         if len(deleted_seqs) == 0:
             stderr_out = "# ################################################################ #\n"
@@ -3469,15 +3461,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(seqbuddy)
         _exit("purge")
 
-    # Raw Seq
-    if in_args.raw_seq:
-        residue_breakdown = raw_seq(seqbuddy)
-        if in_args.in_place:
-            _in_place(residue_breakdown, in_args.sequence[0])
-        else:
-            _stdout(residue_breakdown)
-        _exit("raw_seq")
-
     # Renaming
     if in_args.rename_ids:
         num = 0 if not in_args.params else int(in_args.params[0])
@@ -3490,9 +3473,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _exit("reverse_complement")
 
     # Screw formats
-    if in_args.screw_formats:  # ToDo: Implement 'raw'
-        if in_args.screw_formats not in OUTPUT_FORMATS:
-            _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
+    if in_args.screw_formats:
+        if in_args.screw_formats.lower() not in OUTPUT_FORMATS:
+            _raise_error(IOError("Error: unknown format '%s'\n" % in_args.screw_formats), "screw_formats")
+
         else:
             seqbuddy.out_format = in_args.screw_formats
             if in_args.in_place:  # Need to change the file extension
