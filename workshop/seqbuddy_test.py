@@ -1027,6 +1027,13 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
     assert seqs_to_hash(tester) == lc_hash
 
 
+# ######################  'mui', '--make_unique_ids' ###################### #
+def test_make_unique_ids():
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.make_unique_ids(tester)
+    assert seqs_to_hash(tester) == "3f84819b81185d49a7357947ca7f0707"
+
+
 # ######################  'fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
 hashes = ["ac4bb651480b9e548a33e4044dacfd3b", "0d81710d233a27c36ac310007b84ba5a", "5fdc30f6f9b41085de71cc8d44f7f464",
@@ -1940,6 +1947,16 @@ def test_lower_and_upper_ui(capsys):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+
+# ######################  'mui', '--make_unique_ids' ###################### #
+def test_make_unique_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.make_unique_ids = True
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3f84819b81185d49a7357947ca7f0707"
 
 
 # ######################  'fn2p', '--map_features_nucl2prot' ###################### #

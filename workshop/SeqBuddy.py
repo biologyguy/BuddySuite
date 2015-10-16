@@ -1873,6 +1873,28 @@ def lowercase(seqbuddy):
     return seqbuddy
 
 
+def make_unique_ids(seqbuddy):
+    """
+    Rename all repeat IDs
+    Note: the edge case where a new ID creates a new conflict is not handled
+    :param seqbuddy: SeqBuddy object
+    :return: The modified SeqBuddy object
+    """
+    ids = OrderedDict()
+    for rec in seqbuddy.records:
+        ids.setdefault(rec.id, [])
+        ids[rec.id].append(rec)
+
+    records = []
+    for key, recs in ids.items():
+        if len(recs) > 1:
+            for indx, rec in enumerate(recs):
+                rec.id = "%s-%s" % (rec.id, indx + 1)
+        records += recs
+    seqbuddy.records = records
+    return seqbuddy
+
+
 def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
     """
     Applies cDNA/mRNA features to protein sequences
@@ -3305,6 +3327,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.lowercase:
         _print_recs(lowercase(seqbuddy))
         _exit("lowercase")
+
+    # Make unique IDs
+    if in_args.make_unique_ids:
+        _print_recs(make_unique_ids(seqbuddy))
+        _exit("make_unique_ids")
 
     # Map features from cDNA over to protein
     if in_args.map_features_nucl2prot:
