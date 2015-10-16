@@ -362,8 +362,9 @@ class SafetyValve:  # Use this class if you're afraid of an infinite loop
         self.global_reps -= 1
         self.counter += 1
         if self.global_reps == 0:
-            exit("Error: You just popped your global_reps safety valve. %s" % message)
-    
+            raise RuntimeError("Error: You just popped your global_reps safety valve. %s" % message)
+        return True
+
     def test(self, state, message=""):  # test() keeps track of some variable 'state' to see if its value keeps changing
         if self.state == str(state):
             self.state_reps -= 1
@@ -372,7 +373,8 @@ class SafetyValve:  # Use this class if you're afraid of an infinite loop
             self.state = str(state)
             
         if self.state_reps == 0:
-            exit("Error: You just popped your state_reps safety valve. %s" % message)
+            raise RuntimeError("Error: You just popped your state_reps safety valve. %s" % message)
+        return True
 
 
 # Pulled this function off of Stack Overflow -- posted by nosklo
