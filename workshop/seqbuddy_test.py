@@ -557,16 +557,14 @@ def test_back_translate_bad_organism():
 
 
 # ######################  'bl2s', '--bl2seq' ###################### #
-def test_bl2seq_cds():
+def test_bl2seq():
     seqbuddy = Sb._make_copy(sb_objects[0])
-    result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == '339377aee781fb9d01456f04553e3923'
+    result = Sb.bl2seq(seqbuddy)
+    assert string2hash(str(result)) == '87dbd3baeb59285ad25e6473c87bb5bb'
 
-
-def test_bl2seq_pep():
     seqbuddy = Sb._make_copy(sb_objects[6])
-    result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == '4c722c4db8bd5c066dc76ebb94583a37'
+    result = Sb.bl2seq(seqbuddy)
+    assert string2hash(str(result)) == '248d4c53d7947c4c8dfd7c415bfbfbf2'
 
 
 def test_bl2_no_binary():
@@ -1519,6 +1517,11 @@ def test_bl2s_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "339377aee781fb9d01456f04553e3923"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Duplicate_seqs.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d24495bd87371cd0720084b5d723a4fc"
+    assert err == "Warning: There are records with duplicate ids which will be renamed.\n"
 
     os.environ["PATH"] = ""
     with mock.patch('builtins.input', return_value="n"):

@@ -987,7 +987,7 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     """
     Does an all-by-all analysis of the sequences
     :param seqbuddy: SeqBuddy object
-    :return: A tuple containing a table of results and a string output
+    :return: OrderedDict of results dict[key][matches]
     """
     # Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     # threshold may need to be increased quite a bit to return short alignments
@@ -1034,14 +1034,14 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     tmp_dir = TemporaryDirectory()
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
+    make_unique_ids(seqbuddy)
     seqs_copy = seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.name
     for subject in seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
-        # Todo Benchmark
-        MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
 
+        MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
     with open("%s/blast_results.txt" % tmp_dir.name, "r") as _ifile:
@@ -1053,34 +1053,20 @@ def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
     output_dict = {}
     for match in output_list:
         query, subj, ident, length, evalue, bit_score = match
-        if query not in output_dict:
-            output_dict[query] = {subj: [float(ident), int(length), float(evalue), float(bit_score)]}
-        else:
-            output_dict[query][subj] = [float(ident), int(length), float(evalue), float(bit_score)]
+        output_dict.setdefault(query, {})
+        output_dict[query][subj] = [float(ident), int(length), float(evalue), float(bit_score)]
 
-        if subj not in output_dict:
-            output_dict[subj] = {query: [float(ident), int(length), float(evalue), float(bit_score)]}
-        else:
-            output_dict[subj][query] = [float(ident), int(length), float(evalue), float(bit_score)]
+        output_dict.setdefault(subj, {})
+        output_dict[subj][query] = [float(ident), int(length), float(evalue), float(bit_score)]
 
-    output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+    for key, value in output_dict.items():
+        output_dict[key] = [(x, y) for x, y in output_dict[key].items()]
+        output_dict[key] = OrderedDict(sorted(output_dict[key], key=lambda l: l[0]))
 
-    output_list = [(key, value) for key, value in output_dict.items()]
-    output_list = sorted(output_list, key=lambda l: l[0])
+    output_dict = [(key, value) for key, value in output_dict.items()]
+    output_dict = OrderedDict(sorted(output_dict, key=lambda l: l[0]))
 
-    ids_already_seen = []
-    for query_id, query_values in output_list:
-        ids_already_seen.append(query_id)
-        query_values = [(key, value) for key, value in query_values.items()]
-        query_values = sorted(query_values, key=lambda l: l[0])
-        for subj_id, subj_values in query_values:
-            if subj_id in ids_already_seen:
-                continue
-
-            ident, length, evalue, bit_score = subj_values
-            output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
-
-    return [output_dict, output_str]
+    return output_dict
 
 
 def blast(seqbuddy, blast_db):
@@ -2336,7 +2322,7 @@ def purge(seqbuddy, threshold):  # ToDo: Implement a way to return a certain # o
     """
     keep_set = {}
     purged = []
-    blast_res = bl2seq(seqbuddy)[0]
+    blast_res = bl2seq(seqbuddy)
     blast_res = [(_key, _value) for _key, _value in blast_res.items()]
     blast_res = sorted(blast_res, key=lambda l: l[0])
     for query_id, match_list in blast_res:
@@ -2805,9 +2791,23 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # BL2SEQ
     if in_args.bl2seq:
+        if len(find_repeats(seqbuddy).repeat_ids):
+            _stderr("Warning: There are records with duplicate ids which will be renamed.\n", quiet=in_args.quiet)
         try:
-            residue_breakdown = bl2seq(seqbuddy)
-            _stdout(residue_breakdown[1])
+            output_dict = bl2seq(seqbuddy)
+            output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+            ids_already_seen = []
+            for query_id, query_values in output_dict.items():
+                ids_already_seen.append(query_id)
+                query_values = [(key, value) for key, value in query_values.items()]
+                query_values = sorted(query_values, key=lambda l: l[0])
+                for subj_id, subj_values in query_values:
+                    if subj_id in ids_already_seen:
+                        continue
+
+                    ident, length, evalue, bit_score = subj_values
+                    output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
+            _stdout(output_str)
         except RuntimeError as e:
             _raise_error(e, "bl2seq", "not present in $PATH or working directory")
         _exit("bl2seq")
