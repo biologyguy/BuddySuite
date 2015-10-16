@@ -1237,15 +1237,26 @@ def test_order_ids(seqbuddy, fwd_hash, rev_hash):
 
 # ######################  'oir', '--order_ids_randomly' ###################### #
 @pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
-def test_shuffle(seqbuddy):
+def test_order_ids_randomly(seqbuddy):
     tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-    # for i in range(3):  # Sometimes the shuffle doesn't actually work, so repeat a few times if necessary
-    #    if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
-    #        break
-    #    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-
     assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
     assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
+
+
+def test_order_ids_randomly2():
+    tester = Sb._make_copy(sb_objects[0])
+    for _ in range(15):  # This will fail to repeat the while loop only ~5% of the time
+        Sb.pull_recs(tester, "α[789]")
+        assert seqs_to_hash(tester) != seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    Sb.pull_recs(tester, "α[89]")
+    assert seqs_to_hash(tester) != seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    Sb.pull_recs(tester, "α[9]")
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    tester = Sb.SeqBuddy(tester.records * 3)
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids_randomly(tester))
 
 
 # #####################  'prr', '--pull_random_recs' ###################### ##
@@ -1259,13 +1270,17 @@ def test_pull_random_recs(seqbuddy):
 
 # #####################  'pre', '--pull_record_ends' ###################### ##
 def test_pull_record_ends():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10)
-    assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), 10)
+    assert seqs_to_hash(tester) == 'd46867e4ca7a9f474c45473fc3495413'
 
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, -10)
-    assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), 2000)
+    assert seqs_to_hash(tester) == '908744b00d9f3392a64b4b18f0db9fee'
+
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), -10)
+    assert seqs_to_hash(tester) == 'd7970570d65872993df8a3e1d80f9ff5'
+
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), -2000)
+    assert seqs_to_hash(tester) == '908744b00d9f3392a64b4b18f0db9fee'
 
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(ValueError):

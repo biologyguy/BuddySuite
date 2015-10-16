@@ -2212,14 +2212,38 @@ def order_ids(seqbuddy, reverse=False):
 
 def order_ids_randomly(seqbuddy):
     """
-    Randomly reorders seqbuddy.records
+    Reorders seqbuddy.records. The order will always be changed if more than 2 recs are fed in.
     :param seqbuddy: SeqBuddy object
     :return: The reordered SeqBuddy object
     """
+    if len(seqbuddy.records) < 2:
+        return seqbuddy
+    elif len(seqbuddy.records) == 2:
+        seqbuddy.records.reverse()
+        return seqbuddy
+
+    # make sure that every record isn't identical
+    differences = False
+    for indx, rec in enumerate(seqbuddy.records[1:]):
+        if "%s%s" % (rec.id, rec.seq) != "%s%s" % (seqbuddy.records[indx - 1].id, seqbuddy.records[indx - 1].seq):
+            differences = True
+            break
+
+    if not differences:
+        return seqbuddy
+
     output = []
-    for _ in range(len(seqbuddy.records)):
-        random_index = randint(1, len(seqbuddy.records)) - 1
-        output.append(seqbuddy.records.pop(random_index))
+    valve = MyFuncs.SafetyValve(global_reps=1000)
+    while valve.step("order_ids_randomly() was unable to reorder your sequences. This shouldn't happen, so please"
+                     "contact the developers to let then know about this error."):
+        sb_copy = _make_copy(seqbuddy)
+        for _ in range(len(sb_copy.records)):
+            random_index = randint(1, len(sb_copy.records)) - 1
+            output.append(sb_copy.records.pop(random_index))
+        if ["%s%s" % (rec.id, rec.seq) for rec in seqbuddy.records] != ["%s%s" % (rec.id, rec.seq) for rec in output]:
+            break
+        output = []
+
     seqbuddy.records = output
     return seqbuddy
 
