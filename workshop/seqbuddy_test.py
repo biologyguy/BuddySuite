@@ -144,8 +144,7 @@ def test_seqlist_error():
 # ##################### SeqBuddy methods ###################### ##
 def test_to_dict():
     tester = str(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")).to_dict())
-    tester = ''.join(sorted(tester))
-    assert string2hash(tester) == '06f50839f94e8f917311b682837461fd'
+    assert string2hash(tester) == '2311d1712d41c5ec9c23ad107c8a06c3'
 
     with pytest.raises(RuntimeError):
         tester = Sb.SeqBuddy(">duplicate_id\nATGCTCGTA\n>duplicate_id\nATGCTCGTCGATGCT\n")
@@ -643,17 +642,10 @@ def test_clean_seq():
     tester = Sb.clean_seq(tester, ambiguous=False)
     assert seqs_to_hash(tester) == "ef61174330f2d9cf5da4f087d12ca201"
 
-    # Alignment formats should raise an error because seq lengths change
-    with pytest.raises(ValueError):
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[2]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[3]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[4]))
-        tester.write("/dev/null")
-        tester = Sb.clean_seq(Sb._make_copy(sb_objects[5]))
-        tester.write("/dev/null")
-
+    # Alignment formats are converted to fasta to prevent errors with sequence lengths
+    for tester in sb_objects[2:5]:
+        tester = Sb.clean_seq(Sb._make_copy(tester))
+        seqs_to_hash(tester) == "aa92396a9bb736ae6a669bdeaee36038"
 
 # ######################  'cmp', '--complement' ###################### #
 hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
@@ -1022,58 +1014,20 @@ def test_insert_seqs_start():
 
 
 # ######################  'ip', '--isoelectric_point' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in [sb_objects[6], sb_objects[7], sb_objects[8],
-                                                                 sb_objects[10], sb_objects[11]]])
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in [sb_objects[6], sb_objects[7],
+                                                                 sb_objects[8], sb_objects[10], sb_objects[11]]])
 def test_isoelectric_point(seqbuddy):
-    output = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
-    assert output[1]["Mle-Panxα12"] == 6.0117797852
+    tester = Sb.isoelectric_point(Sb.clean_seq(seqbuddy))
+    tester = tester.to_dict()
+    assert tester["Mle-Panxα12"].features[-1].qualifiers["value"] == 6.0117797852
     if seqbuddy.out_format == "gb":
         assert seqs_to_hash(seqbuddy) == "d3d22b310411419ad9383a83e0ab5893"
 
-
-def test_isoelectric_point_type_error():
     with pytest.raises(TypeError):
-        Sb.isoelectric_point(Sb.SeqBuddy(resource("/Mnemiopsis_cds.fa")))
+        Sb.isoelectric_point(Sb._make_copy(sb_objects[0]))
 
 
-# ##################### 'lf', 'list_features' ###################### ##
-def test_list_features():
-    tester = Sb._make_copy(sb_objects[1])
-    output = Sb.list_features(tester)
-    for record in tester.records:
-        assert record.id in output
-        if output[record.id] is not None:
-            assert output[record.id] == record.features
-
-
-# ######################  'li', '--list_ids' ###################### #
-# first test that 1 column works for all file types
-hashes = ["1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a",
-          "78a9289ab2d508a13c76cf9f5a308cc5", "1c4a395d8aa3496d990c611c3b6c4d0a", "1c4a395d8aa3496d990c611c3b6c4d0a"]
-hashes = [(sb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_list_ids_one_col(seqbuddy, next_hash):
-    tester = Sb.list_ids(seqbuddy, 1)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
-
-# Now test different numbers of columns
-hashes = ["6fcee2c407bc4f7f70e0ae2a7e101761", "1c4a395d8aa3496d990c611c3b6c4d0a", "6fcee2c407bc4f7f70e0ae2a7e101761",
-          "bd177e4db7dd772c5c42199b0dff49a5", "6b595a436a38e353a03e36a9af4ba1f9", "c57028374ed3fc474009e890acfb041e"]
-columns = [-2, 0, 2, 5, 10, 100]
-hashes = [(sb_objects[0], value, columns[indx]) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash,cols", hashes)
-def test_list_ids_multi_col(seqbuddy, next_hash, cols):
-    tester = Sb.list_ids(seqbuddy, cols)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
-
-
-# ######################  'uc', '--uppercase'  and 'lc', '--lowercase' ###################### #
+# ######################  'lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
 uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
              "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
              "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
@@ -1095,39 +1049,93 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
     assert seqs_to_hash(tester) == lc_hash
 
 
-# ######################  'fd2p', '--map_features_dna2prot' ###################### #
+# ######################  'fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
-hashes = ["5216ef85afec36d5282578458a41169a", "a8f7c129cf57a746c20198bf0a6b9cf4", "0deeea532d6dcbc0486e9b74d0d6aca8",
-          "d595fabb157d5c996357b6a7058af4e8", "bb06e94456f99efc2068f5a52f0e0462", "a287e0054df7f5df76e792e0e0ab6756"]
+hashes = ["ac4bb651480b9e548a33e4044dacfd3b", "0d81710d233a27c36ac310007b84ba5a", "5fdc30f6f9b41085de71cc8d44f7f464",
+          "d9460ef23768917062356e03cefd628e", "b2be40ce28a672479452abbda4bee0d6", "695299783fe84f442773f94870bd3d43"]
 prot_indx = [6, 7, 8, 9, 10, 11]
 hashes = [(Sb._make_copy(sb_objects[1]), Sb._make_copy(sb_objects[prot_indx[indx]]), value)
           for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[0]), Sb._make_copy(sb_objects[6]), "854566b485af0f277294bbfb15f7dd0a"))
+hashes.append((Sb._make_copy(sb_objects[0]), Sb._make_copy(sb_objects[6]), "39390faec72a113059c9909314c81fe0"))
 
 
 @pytest.mark.parametrize("_dna,_prot,next_hash", hashes)
-def test_map_features_dna2prot(_dna, _prot, next_hash):
+def test_map_features_nucl2prot(_dna, _prot, next_hash):
     _prot.alpha = IUPAC.protein
     _dna.alpha = IUPAC.ambiguous_dna
-    tester = Sb.map_features_dna2prot(_dna, _prot)
+    tester = Sb.map_features_nucl2prot(_dna, _prot)
     assert seqs_to_hash(tester) == next_hash
 
 
-# ######################  'fp2d', '--map_features_prot2dna' ###################### #
+def test_map_features_nucl2prot_2():
+    tester = Sb._make_copy(sb_objects[1])
+    Sb.pull_record_ends(tester, 1300)
+    tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
+    mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]))
+    assert seqs_to_hash(mapped) == "a6521e59f20f227b6296dd39e2116205"
+
+    Sb.rename(tester, "α4", "A4")
+    tester.write("temp.del")
+    mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[7]))
+    assert seqs_to_hash(mapped) == "ded472ce7ebcc285283a68a8b43277dc"
+
+    tester.records[0].features[0].location = {}
+    with pytest.raises(TypeError) as e:
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]))
+    assert "_feature_map requires a feature with either FeatureLocation or CompoundLocation" in str(e.value)
+
+    tester.records[0].features[0].location = tester.records[1].features[0].location
+    with pytest.raises(ValueError) as e:
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="foo")
+    assert "'mode' must be either 'key' or 'position'" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        Sb.pull_recs(tester, "α[1-8]")
+        Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="list")
+    assert "The two input files do not contain the same number of sequences" in str(e.value)
+
+# ######################  'fp2n', '--map_features_prot2nucl' ###################### #
 # Map the genbank protein file to all dna files, and the fasta protein file to fasta DNA
-hashes = ["3ebc92ca11505489cab2453d2ebdfcf2", "6b4dd3fc66cb7419acaf064b589f4dd1",
-          "8d403750ef83d60e31de0dee79a8f5d1", "74c6c4b5531c41f55f7349ed6c6b2f43",
-          "9133ab0becbec95ce7ed31e02dc17ef5", "3ebc92ca11505489cab2453d2ebdfcf2"]
+hashes = ["42bcb91cb0cb8b93108d9ec46e6e2ad2", "bcd0a0a7da642ffcd7bc9779e3493516",
+          "b5483c22d5aec1594bedd8cc38ca310d", "4296e68ee3eff7af14285f909721451c",
+          "130bef5e289360d0a9937546e9f43347", "42bcb91cb0cb8b93108d9ec46e6e2ad2"]
 dna_indx = [0, 1, 2, 3, 4, 5]
 hashes = [(Sb._make_copy(sb_objects[7]), Sb._make_copy(sb_objects[dna_indx[indx]]), value)
           for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[6]), Sb._make_copy(sb_objects[0]), "720f36544f9c11855ac2673e63282f89"))
+hashes.append((Sb._make_copy(sb_objects[6]), Sb._make_copy(sb_objects[0]), "7d06bff40d5ad27a6e23e725d09293a3"))
 
 
 @pytest.mark.parametrize("_prot,_dna,next_hash", hashes)
-def test_map_features_prot2dna(_prot, _dna, next_hash):
-    tester = Sb.map_features_prot2dna(_prot, _dna)
+def test_map_features_prot2nucl(_prot, _dna, next_hash):
+    tester = Sb.map_features_prot2nucl(_prot, _dna)
     assert seqs_to_hash(tester) == next_hash
+
+
+def test_map_features_prot2nucl_2():
+    tester = Sb._make_copy(sb_objects[7])
+    Sb.pull_record_ends(tester, 450)
+    tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
+    mapped = Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[0]))
+    assert seqs_to_hash(mapped) == "8a529f320d78713155afdacc70e4dcaa"
+
+    Sb.rename(tester, "α4", "A4")
+    mapped = Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[1]))
+    assert seqs_to_hash(mapped) == "bd6585b58d4e1d0a0eaf8a7660da8027"
+
+    tester.records[0].features[0].location = {}
+    with pytest.raises(TypeError) as e:
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[0]))
+    assert "_feature_map requires a feature with either FeatureLocation or CompoundLocation" in str(e.value)
+
+    tester.records[0].features[0].location = tester.records[1].features[0].location
+    with pytest.raises(ValueError) as e:
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="foo")
+    assert "'mode' must be either 'key' or 'position'" in str(e.value)
+
+    with pytest.raises(ValueError) as e:
+        Sb.pull_recs(tester, "α[1-8]")
+        Sb.map_features_prot2nucl(Sb._make_copy(tester), Sb._make_copy(sb_objects[6]), mode="list")
+    assert "The two input files do not contain the same number of sequences" in str(e.value)
 
 
 # #####################  'mg', '--merge' ###################### ##
@@ -1146,23 +1154,23 @@ def test_merge():
 def test_molecular_weight():
     # Unambiguous DNA
     tester = Sb.molecular_weight(Sb._make_copy(sb_objects[1]))
-    assert tester[1]['masses_ds'][0] == 743477.1
-    assert tester[1]['masses_ss'][0] == 371242.6
-    assert seqs_to_hash(tester[0]) == "e080cffef0ec6c5e8eada6f57bbc35f9"
+    assert tester.molecular_weights['masses_ds'][0] == 743477.1
+    assert tester.molecular_weights['masses_ss'][0] == 371242.6
+    assert seqs_to_hash(tester) == "e080cffef0ec6c5e8eada6f57bbc35f9"
     # Ambiguous DNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))[1]
-    assert tester['masses_ds'][0] == 743477.08
-    assert tester['masses_ss'][0] == 371202.59
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_dna.fa")))
+    assert tester.molecular_weights['masses_ds'][0] == 743477.08
+    assert tester.molecular_weights['masses_ss'][0] == 371202.59
     # Unambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))[1]
-    assert tester['masses_ss'][0] == 387372.6
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")))
+    assert tester.molecular_weights['masses_ss'][0] == 387372.6
     # Ambiguous RNA
-    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))[1]
-    assert tester['masses_ss'][0] == 387371.6
+    tester = Sb.molecular_weight(Sb.SeqBuddy(resource("ambiguous_rna.fa")))
+    assert tester.molecular_weights['masses_ss'][0] == 387371.6
     # Protein
     tester = Sb.molecular_weight(Sb._make_copy(sb_objects[7]))
-    assert tester[1]['masses_ss'][0] == 45692.99
-    assert seqs_to_hash(tester[0]) == "fb1a66b7eb576c0584fc7988c45b6a18"
+    assert tester.molecular_weights['masses_ss'][0] == 45692.99
+    assert seqs_to_hash(tester) == "fb1a66b7eb576c0584fc7988c45b6a18"
 
 
 # ######################  'ns', '--num_seqs' ###################### #
@@ -1197,7 +1205,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "3b718ec3cb794bcb658d900e51711
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
 def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_alphabetically(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
@@ -1222,7 +1230,7 @@ rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4345a14fe27570b3c837c30a8cb55
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
-@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)  # modifies in place?
+@pytest.mark.parametrize("seqbuddy,fwd_hash,rev_hash", hashes)
 def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
     tester = Sb.order_features_by_position(seqbuddy)
     assert seqs_to_hash(tester) == fwd_hash
@@ -1249,46 +1257,44 @@ def test_order_ids(seqbuddy, fwd_hash, rev_hash):
     assert seqs_to_hash(tester) == rev_hash
 
 
+# ######################  'oir', '--order_ids_randomly' ###################### #
+@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
+def test_shuffle(seqbuddy):
+    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
+    # for i in range(3):  # Sometimes the shuffle doesn't actually work, so repeat a few times if necessary
+    #    if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
+    #        break
+    #    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
+
+    assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
+    assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
+
+
 # #####################  'prr', '--pull_random_recs' ###################### ##
 @pytest.mark.parametrize("seqbuddy", sb_objects)
 def test_pull_random_recs(seqbuddy):
     tester = Sb.pull_random_recs(Sb._make_copy(seqbuddy))
+    orig_seqs = tester.to_dict()
     assert len(tester.records) == 1
-    assert tester.records[0].id in Sb.list_ids(seqbuddy)
+    assert tester.records[0].id in orig_seqs
 
 
 # #####################  'pre', '--pull_record_ends' ###################### ##
-def test_pull_record_ends_front():
+def test_pull_record_ends():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10, 'front')
+    tester = Sb.pull_record_ends(tester, 10)
     assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
 
-
-def test_pull_record_ends_back():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10, 'rear')
+    tester = Sb.pull_record_ends(tester, -10)
     assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
 
-
-def test_pull_record_ends_zero():
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(Sb._make_copy(seqbuddy), 0, 'rear')
-    assert seqs_to_hash(tester) == seqs_to_hash(seqbuddy)
-
-
-def test_pull_record_ends_neg():
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(ValueError):
-        Sb.pull_record_ends(Sb._make_copy(seqbuddy), -1, 'rear')
+        Sb.pull_record_ends(Sb._make_copy(seqbuddy), 'foo')
 
 
-def test_pull_record_ends_wrong_end():
-    seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    with pytest.raises(AttributeError):
-        Sb.pull_record_ends(Sb._make_copy(seqbuddy), 100, 'fghhgj')
-
-
-# ######################  'pr', '--pull_recs' ###################### #
+# ######################  'pr', '--pull_records' ###################### #
 pr_hashes = ["5b4154c2662b66d18776cdff5af89fc0", "e196fdc5765ba2c47f97807bafb6768c", "bc7dbc612bc8139eba58bf896b7eaf2f",
              "e33828908fa836f832ee915957823039", "e33828908fa836f832ee915957823039", "b006b40ff17ba739929448ae2f9133a6"]
 pr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(pr_hashes)]
@@ -1379,19 +1385,6 @@ def test_shuffle_seqs():
         assert sorted(record.seq) == sorted(tester2.records[indx].seq)
 
 
-# ######################  'sh', '--shuffle' ###################### #
-@pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
-def test_shuffle(seqbuddy):
-    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-    for i in range(3):  # Sometimes shuffle doesn't actually shuffle, so repeat a few times if necessary
-        if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
-            break
-        tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-
-    assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
-    assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
-
-
 # #####################  'sbt', '--split_by_taxa' ###################### ##
 def test_split_by_taxa():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
@@ -1426,9 +1419,9 @@ def test_translate6frames_pep_exception():
 
 
 # ######################  'tr', '--translate' ###################### #
-hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", ]
-# NOTE: the first 6 sb_objects are DNA.
+hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", "9e6634c1b8adfba6b64d30caf94103c5"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
+hashes.append((Sb._make_copy(sb_objects[13]), "6cf365fb1722bf691cb14df99ce4c163"))
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -1437,9 +1430,13 @@ def test_translate(seqbuddy, next_hash):
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_translate_pep_exception():
+def test_translate_edges_and_exceptions():
     with pytest.raises(TypeError):
         Sb.translate_cds(Sb._make_copy(sb_objects[6]))
+
+    tester = Sb.SeqBuddy("ATTCGTTAACGCTAGCGTCG", in_format="raw")
+    tester = Sb.translate_cds(tester)
+    assert str(tester) == ">raw_input\nIR*R*R\n"
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1788,7 +1785,6 @@ def test_find_repeats_ui(capsys):
 
 
 # ######################  'frs', '--find_restriction_sites' ###################### #
-@pytest.mark.foo
 def test_find_restriction_sites_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
@@ -1909,6 +1905,141 @@ def test_insert_seqs_ui(capsys):
     assert string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 
+# ######################  'ip', '--isoelectric_point' ###################### #
+def test_isoelectric_point_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.isoelectric_point = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "2b0de14da980b6b2c155c34f41da814e"
+    assert string2hash(err) == "402411565abc86649581bf7ab65535b8"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d1ba12963ee508bc64b64f63464bfb4a"
+    assert err == "ID\tpI\n"
+
+
+# ######################  'li', '--list_ids' ###################### #
+def test_list_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_ids = [3]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "53d5d7afd8f15a1a0957f5d5a29cbdc4"
+
+
+# ######################  'lf', '--list_features' ###################### #
+def test_list_features_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_features = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b99acb13c76f86bcd4e8dc15b97fa11d"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4e37613d1916aa7653d3fec37fc9e368"
+
+
+# ######################  'lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
+def test_lower_and_upper_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.uppercase = True
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "25073539df4a982b7f99c72dd280bb8f"
+
+    test_in_args.uppercase = False
+    test_in_args.lowercase = True
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+
+# ######################  'fn2p', '--map_features_nucl2prot' ###################### #
+def test_map_features_nucl2prot_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.map_features_nucl2prot = True
+    test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Mnemiopsis_pep.fa")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ac4bb651480b9e548a33e4044dacfd3b"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.fa"), resource("Mnemiopsis_cds.gb")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ac4bb651480b9e548a33e4044dacfd3b"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.fa"), resource("Mnemiopsis_cds.gb")]
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a6d58c94c83409e43b4745ca8329a73b"
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Duplicate_seqs.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are repeat IDs in self.records" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_cds.gb"), resource("Mnemiopsis_cds.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+
+# ######################  'fp2n', '--map_features_prot2nucl' ###################### #
+def test_map_features_prot2nucl_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.map_features_prot2nucl = True
+    test_in_args.sequence = [resource("Mnemiopsis_cds.fa"), resource("Mnemiopsis_pep.gb")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "42bcb91cb0cb8b93108d9ec46e6e2ad2"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_cds.fa")]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "42bcb91cb0cb8b93108d9ec46e6e2ad2"
+
+    test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_cds.fa")]
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a393c70ee7ba994b14c4e6b2c2238629"
+
+    with pytest.raises(SystemExit):
+        temp_file = MyFuncs.TempFile()
+        duplicate_seqs = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+        Sb.back_translate(duplicate_seqs)
+        duplicate_seqs.write(temp_file.path)
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), temp_file.path]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are repeat IDs in self.records" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+    with pytest.raises(SystemExit):
+        test_in_args.sequence = [resource("Mnemiopsis_pep.gb"), resource("Mnemiopsis_pep.fa")]
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "You must provide one DNA file and one protein file" in err
+
+
 # ######################  'mg', '--merge' ###################### #
 def test_merge_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1925,7 +2056,136 @@ def test_merge_ui(capsys):
     assert "RuntimeError" in err
 
 
-# ######################  'd2r', '--transcribe' ###################### #
+# ######################  'mw', '--molecular_weight' ###################### #
+def test_molecular_weight_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.molecular_weight = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7a456f37b9d7a780dfe81e453f2e9525"
+    assert err == "ID\tssDNA\tdsDNA\n"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d1014a98fe227f8847ed7478bbdfc857"
+    assert err == "ID\tProtein\n"
+
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[13]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "55ff25f26504c5360557c2dfeb041036"
+    assert err == "ID\tssRNA\n"
+
+
+# ######################  'ns', '--num_seqs' ###################### #
+def test_num_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.num_seqs = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert out == '13\n'
+
+
+# ######################  '-ofa', '--order_features_alphabetically' ###################### #
+def test_order_features_alphabetically_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_features_alphabetically = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '21547b4b35e49fa37e5c5b858808befb'
+
+    test_in_args.order_features_alphabetically = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '3b718ec3cb794bcb658d900e517110cc'
+
+
+# ######################  '-ofp', '--order_features_by_position' ###################### #
+def test_order_features_by_position_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_features_by_position = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '2e02a8e079267bd9add3c39f759b252c'
+
+    test_in_args.order_features_by_position = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '4345a14fe27570b3c837c30a8cb55ea9'
+
+
+# ######################  '-oi', '--order_ids' ###################### #
+def test_order_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_ids = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '2f9bc0dd9d79fd8160a621280be0b0aa'
+
+    test_in_args.order_ids = ["rev"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == 'dd269961d4d5301d1bf87e0093568851'
+
+
+# ######################  '-oir', '--order_ids_randomly' ###################### #
+def test_order_ids_randomly_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_ids_randomly = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) != seqs_to_hash(sb_objects[0])
+
+    tester = Sb.order_ids(Sb.SeqBuddy(out))
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids(Sb._make_copy(sb_objects[0])))
+
+
+# ######################  '-prr', '--pull_random_recs' ###################### #
+def test_pull_random_recs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_random_record = [True]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert len(tester.records) == 1
+    assert tester.records[0].id in sb_objects[0].to_dict()
+
+    test_in_args.pull_random_record = [20]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    tester = Sb.SeqBuddy(out)
+    assert len(tester.records) == 13
+    assert sorted([rec.id for rec in tester.records]) == sorted([rec.id for rec in sb_objects[0].records])
+
+
+# ######################  '-pr', '--pull_record_ends' ###################### #
+def test_pull_record_ends_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_record_ends = 10
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "754d6868030d1122b35386118612db72"
+
+    test_in_args.pull_record_ends = -10
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "9cfc91c3fdc5cd9daabce0ef9bac2db7"
+
+
+# ######################  '-pr', '--pull_records' ###################### #
+def test_pull_records_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_records = ["α1"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "db52337c628fd8d8d70a5581355c51a5"
+
+    test_in_args.pull_records = ["α1", "α2"]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+
+# ######################  '-d2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.transcribe = True
@@ -1940,20 +2200,28 @@ def test_transcribe_ui(capsys):
     assert "You need to provide a DNA sequence." in err
 
 
-# ######################  '-ofa', '--order_features_alphabetically' ###################### #
-def test_order_features_alphabetically_ui(capsys):
+# ######################  'tr', '--translate' ###################### #
+def test_translate_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.order_features_alphabetically = [True]
+    test_in_args.translate = True
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
-    tester = Sb.SeqBuddy(out)
-    assert seqs_to_hash(tester) == 'b831e901d8b6b1ba52bad797bad92d14'
+    assert string2hash(out) == "3de7b7be2f2b92cf166b758625a1f316"
 
-
-# ######################  'ns', '--num_seqs' ###################### #
-def test_num_seqs_ui(capsys):
-    test_in_args = deepcopy(in_args)
-    test_in_args.num_seqs = True
-    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
     out, err = capsys.readouterr()
-    assert out == '13\n'
+    assert string2hash(out) == "6cf365fb1722bf691cb14df99ce4c163"
+    assert string2hash(err) == "17d178fafb447503d385ae6823f9678a"
+
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == 'TypeError: Record Mle-Panxα12 is protein.\n'
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
