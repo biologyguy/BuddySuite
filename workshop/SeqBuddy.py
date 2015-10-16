@@ -2255,7 +2255,7 @@ def pull_record_ends(seqbuddy, amount):
             rec.features = _shift_features(rec.features, 0, len(str(rec.seq)))
 
         else:
-            shift = -1 * (len(str(rec.seq)) + amount)
+            shift = -1 * (len(str(rec.seq)) + amount) if abs(amount) <= len(str(rec.seq)) else 0
             rec.features = _shift_features(rec.features, shift, len(str(rec.seq)))
             rec.seq = rec.seq[amount:]
 
