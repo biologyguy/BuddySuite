@@ -2338,8 +2338,8 @@ def purge(seqbuddy, threshold):
     new_records = []
     for rec in seqbuddy.records:
         if rec.id in keep_dict:
-            new_records.append(rec)
             _add_buddy_data(rec, "purge_set", keep_dict[rec.id])
+            new_records.append(rec)
 
     seqbuddy.records = new_records
     return seqbuddy
@@ -3456,12 +3456,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Purge
     if in_args.purge:
         purge(seqbuddy, in_args.purge)
-
         record_map = "### Deleted record mapping ###\n"
         for rec in seqbuddy.records:
             record_map += "%s\n" % rec.id
-            for del_seq_id in rec.buddy_data["purge_set"]:
-                record_map += "%s, " % del_seq_id
+            if rec.buddy_data["purge_set"]:
+                for del_seq_id in rec.buddy_data["purge_set"]:
+                    record_map += "%s, " % del_seq_id
             record_map = record_map.strip(", ") + "\n\n"
         record_map = record_map.strip() + "\n##############################\n\n"
 
