@@ -2313,49 +2313,36 @@ def pull_recs(seqbuddy, search):
     return seqbuddy
 
 
-def purge(seqbuddy, threshold):  # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
+def purge(seqbuddy, threshold):
     """
     Deletes highly similar sequences
+    ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
+        - This would probably be a different flag in the UI
     :param seqbuddy: SeqBuddy object
     :param threshold: Sets the similarity threshold
     :return: The purged SeqBuddy object
     """
-    keep_set = {}
+    keep_dict = {}
     purged = []
-    blast_res = bl2seq(seqbuddy)
-    blast_res = [(_key, _value) for _key, _value in blast_res.items()]
-    blast_res = sorted(blast_res, key=lambda l: l[0])
-    for query_id, match_list in blast_res:
+    for query_id, match_list in bl2seq(seqbuddy).items():
         if query_id in purged:
             continue
         else:
-            keep_set[query_id] = []
+            keep_dict[query_id] = []
             for subj_id in match_list:
                 ident, length, evalue, bit_score = match_list[subj_id]
 
                 if bit_score >= threshold:
                     purged.append(subj_id)
-                    keep_set[query_id].append(subj_id)
-
-    output = []
+                    keep_dict[query_id].append(subj_id)
+    new_records = []
     for rec in seqbuddy.records:
-        if rec.id in keep_set:
-            output.append(rec)
+        if rec.id in keep_dict:
+            new_records.append(rec)
+            _add_buddy_data(rec, "purge_set", keep_dict[rec.id])
 
-    seqbuddy.records = output
-    # TODO do string formatting in command line ui
-    record_map = "### Deleted record mapping ###\n"
-    keep_set = [(key, sorted(value)) for key, value in keep_set.items()]
-    keep_set = sorted(keep_set, key=lambda l: l[0])
-    for seq_id, seq_list in keep_set:
-        record_map += "%s\n" % seq_id
-        for del_seq_id in seq_list:
-            record_map += "%s, " % del_seq_id
-        record_map = record_map.strip(", ") + "\n\n"
-
-    record_map = record_map.strip() + "\n##############################\n\n"
-
-    return [seqbuddy, purged, record_map]
+    seqbuddy.records = new_records
+    return seqbuddy
 
 
 def raw_seq(seqbuddy):  # TODO Make this return a dict
@@ -2718,13 +2705,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                         'anti', 'anti-sense', 'neg', '-1', -1, '0', 0]
         feature_attrs = {"strand": None, "qualifiers": [], "pattern": []}
 
-        def duck_type(arg, **kwargs):  # Feed feature_attrs into kwargs
-            if arg in strand_types:
-                kwargs["strand"] = arg
-            elif re.search(".+[=:].+", arg):
-                kwargs["qualifiers"].append(arg)
+        def duck_type(_arg, **kwargs):  # Feed feature_attrs into kwargs
+            if _arg in strand_types:
+                kwargs["strand"] = _arg
+            elif re.search(".+[=:].+", _arg):
+                kwargs["qualifiers"].append(_arg)
             else:
-                kwargs["pattern"].append(arg)
+                kwargs["pattern"].append(_arg)
             return kwargs
 
         if len(in_args.annotate) < 2:
@@ -3468,9 +3455,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Purge
     if in_args.purge:
-        purged_seqs, deleted, record_map = purge(seqbuddy, in_args.purge)
+        purge(seqbuddy, in_args.purge)
+
+        record_map = "### Deleted record mapping ###\n"
+        for rec in seqbuddy.records:
+            record_map += "%s\n" % rec.id
+            for del_seq_id in rec.buddy_data["purge_set"]:
+                record_map += "%s, " % del_seq_id
+            record_map = record_map.strip(", ") + "\n\n"
+        record_map = record_map.strip() + "\n##############################\n\n"
+
         _stderr(record_map, in_args.quiet)
-        _print_recs(purged_seqs)
+        _print_recs(seqbuddy)
         _exit("purge")
 
     # Raw Seq

@@ -1305,10 +1305,11 @@ def test_pull_recs(seqbuddy, next_hash):
 
 
 # #####################  'prg', '--purge' ###################### ##
+@pytest.mark.foo
 def test_purge():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
-    tester = Sb.purge(tester, 200)
-    assert seqs_to_hash(tester[0]) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
+    Sb.purge(tester, 200)
+    assert seqs_to_hash(tester) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
 
 
 # ######################  'rs', '--raw_seq' ###################### #
@@ -2187,6 +2188,17 @@ def test_pull_records_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+
+# ######################  '-prg', '--purge' ###################### #
+@pytest.mark.foo
+def test_purge_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.purge = 200
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c"
+    assert string2hash(err) == "fbfde496ae179f83e3d096da15d90920"
 
 
 # ######################  '-d2r', '--transcribe' ###################### #
