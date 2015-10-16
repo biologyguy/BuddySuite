@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"string",
+				"string2hash"
+			],
+			[
 				"degn",
 				"degen_args"
 			],
@@ -99,15 +103,7 @@
 			"file": "SeqBuddy.py",
 			"settings":
 			{
-				"buffer_size": 153125,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/jeremy/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
-			"settings":
-			{
-				"buffer_size": 147,
+				"buffer_size": 153151,
 				"line_ending": "Unix"
 			}
 		},
@@ -115,7 +111,7 @@
 			"file": "buddy_resources.py",
 			"settings":
 			{
-				"buffer_size": 40712,
+				"buffer_size": 41958,
 				"line_ending": "Unix"
 			}
 		},
@@ -123,7 +119,7 @@
 			"file": "seqbuddy_test.py",
 			"settings":
 			{
-				"buffer_size": 50663,
+				"buffer_size": 82737,
 				"line_ending": "Unix"
 			}
 		}
@@ -204,6 +200,29 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"'dgn",
+			"'d2r",
+			"'cs",
+			"'dgn",
+			"pytest.mark.sl",
+			"'dgn",
+			"'cs",
+			"clean_seq",
+			"'dgn",
+			"deg",
+			"makeblastdb",
+			"dgn",
+			"commnd_li",
+			"dgn",
+			"'dgn",
+			"dgn",
+			"# ######################  'dgn' '--degenerate_sequence'################### #",
+			"--ave",
+			">>>",
+			"<<<",
+			"hash_seq_ids_",
+			">>>>>>",
+			"MASTER",
 			"addop",
 			"def deg",
 			"make_cop",
@@ -269,7 +288,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 2,
 			"sheets":
 			[
 				{
@@ -278,15 +297,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 153125,
+						"buffer_size": 153151,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4539,
-								4539
+								101175,
+								101175
 							]
 						],
 						"settings":
@@ -296,33 +315,34 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1625.0,
+						"translation.y": 41966.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "/home/jeremy/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+					"file": "buddy_resources.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 147,
+						"buffer_size": 41958,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								95,
-								95
+								18,
+								18
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JSON.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -333,49 +353,19 @@
 				},
 				{
 					"buffer": 2,
-					"file": "buddy_resources.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 40712,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								15048,
-								15048
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 5637.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
 					"file": "seqbuddy_test.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 50663,
+						"buffer_size": 82737,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								19410,
-								19410
+								69194,
+								69194
 							]
 						],
 						"settings":
@@ -385,10 +375,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 8245.0,
+						"translation.y": 27193.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 0,
 					"type": "text"
 				}
 			]

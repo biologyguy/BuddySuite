@@ -9,6 +9,9 @@
 .spyderworkspace
 .spyderproject
 
+# Sublime IDE stuff
+*sublime-workspace
+
 # Mac system stuff
 .DS_Store
 

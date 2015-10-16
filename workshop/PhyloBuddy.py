@@ -11,7 +11,7 @@ details at http://www.gnu.org/licenses/.
 
 name: PhyloBuddy.py
 date: Dec-6-2014
-version: 1, unstable
+version: 1, beta
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -43,8 +43,10 @@ from copy import deepcopy
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio.Alphabet import IUPAC
+
 try:
     import ete3
+    from ete3.coretype.tree import TreeError
 except ImportError:
     confirm = input("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
@@ -52,6 +54,8 @@ except ImportError:
         Popen("pip install six", shell=True).wait()
         try:
             import ete3
+            from ete3.coretype.tree import TreeError
+
         except ImportError:
             sys.exit("Failed to install ETE3, please see http://etetoolkit.org/download/ for further details")
     else:
@@ -63,6 +67,7 @@ except ImportError:
     confirm = input("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ")
     if confirm.lower() in ["", "y", "yes"]:
         from subprocess import Popen
+
         Popen("pip install dendropy", shell=True).wait()
         try:
             import dendropy
@@ -71,8 +76,7 @@ except ImportError:
     else:
         sys.exit("Aborting. Please see https://pythonhosted.org/DendroPy/ for installation details\n")
 
-
-from dendropy.datamodel.treemodel import Tree
+from dendropy.datamodel.treemodel import Tree, Node
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
@@ -83,16 +87,13 @@ import buddy_resources as br
 
 
 # ##################################################### WISH LIST #################################################### #
-def unroot(_trees):
-    return _trees
-
-
 def delete_metadata(_trees):
     return _trees
 
 
 def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
     return _phylobuddy
+
 
 # Compare two trees, and add colour to the nodes that differ. [ ]
 
@@ -113,7 +114,7 @@ def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, 'alpha', br.contributors)
+VERSION = br.Version("PhyloBuddy", 1, 'beta', br.contributors)
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -180,7 +181,6 @@ class PhyloBuddy:
         # ####  RECORDS  #### #
         if type(_input) == PhyloBuddy:
             self.trees = _input.trees
-            stored_input = _input
 
         elif isinstance(_input, list):
             # make sure that the list is actually Bio.Phylo records (just test a few...)
@@ -189,11 +189,9 @@ class PhyloBuddy:
                 if type(_tree) not in tree_classes:
                     raise TypeError("Tree list is not populated with Phylo objects.")
             self.trees = _input
-            stored_input = deepcopy(_input)
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
             tmp_dir = TempDir()
-            stored_input = deepcopy(in_handle)
             with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
                 _ofile.write(in_handle)
 
@@ -213,7 +211,6 @@ class PhyloBuddy:
                 self.trees.append(_tree)
 
         elif os.path.isfile(_input):
-            stored_input = deepcopy(_input)
             figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
             if figtree is not None:
                 tmp_dir = TempDir()
@@ -261,7 +258,7 @@ class PhyloBuddy:
         if self.out_format != 'nexml':
             _output = tree_list.as_string(schema=self.out_format, annotations_as_nhx=False, suppress_annotations=False)
         else:
-            _output = tree_list.as_string(schema=self.out_format)
+            _output = tree_list.as_string(schema='nexml')
 
         _output = '{0}\n'.format(_output.rstrip())
 
@@ -276,6 +273,7 @@ class PhyloBuddy:
 # ################################################# HELPER FUNCTIONS ################################################# #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
+
     def __init__(self, value):
         self.value = value
 
@@ -332,9 +330,9 @@ def _extract_figtree_metadata(_file_path):
 
 
 def _format_to_extension(_format):
-    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
-                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
-                           'stockholm': 'stklm', 'stklm': 'stklm'}
+    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
+                           'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
+                           'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
     return format_to_extension[_format]
 
 
@@ -385,17 +383,19 @@ def _guess_format(_input):
         raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
+def _order_dendropy_features(node):
+    node.annotations._item_list = sorted(node.annotations._item_list, key=lambda x: x.name)
+    node.annotations._item_set = set(node.annotations._item_list)
+    return node
+
+
 def _make_copy(_phylobuddy):
     """
     Returns a copy of the PhyloBuddy object
     :param _phylobuddy: The PhyloBuddy object to be copied
     :return: A copy of the original PhyloBuddy object
     """
-    try:
-        _copy = deepcopy(_phylobuddy)
-    except AttributeError:
-        _stderr("Warning: Deepcopy failed. Attempting workaround. Some metadata may be lost.")
-        _copy = PhyloBuddy(str(_phylobuddy), _in_format=_phylobuddy.out_format, _out_format=_phylobuddy.out_format)
+    _copy = deepcopy(_phylobuddy)
     return _copy
 
 
@@ -589,7 +589,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
             if tool in ['raxml', 'phyml']:  # If tool writes to file
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                 if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
-                   and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
+                        and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
                     raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
                 output = check_output(command, shell=True, universal_newlines=True)
@@ -664,7 +664,7 @@ def prune_taxa(phylobuddy, *patterns):
 def rename(phylobuddy, query, replace):
     """
     Substitutes matches in node names with a string
-    :param phylobuddy: The PhyloBuddy object to be modified
+    :param phylobuddy: PhyloBuddy object
     :param query: The regex pattern to be searched
     :param replace: The string to replace the matches with
     :return: The modified PhyloBuddy object
@@ -675,6 +675,42 @@ def rename(phylobuddy, query, replace):
                 node.label = re.sub(query, replace, node.label)
             if node.taxon is not None and node.taxon.label is not None:
                 node.taxon.label = re.sub(query, replace, node.taxon.label)
+    return phylobuddy
+
+
+def root(phylobuddy, root_nodes=None):
+    """
+    Place a new root on trees
+    :param phylobuddy: PhyloBuddy object
+    :param root_nodes: A string with the taxon label to root on, or a list of labels and the most common ancestor
+    node will be rooted on
+    :return: The modified PhyloBuddy object
+    """
+    def _root(_tree, _root_nodes=None):
+        if _root_nodes:
+            _root_nodes = _root_nodes if type(_root_nodes) == list else [_root_nodes]
+            mrca = None
+            if len(_root_nodes) == 1:
+                leaf_node = _tree.find_node_with_taxon_label(_root_nodes[0])
+                if leaf_node:
+                    mrca = leaf_node._parent_node
+
+            else:
+                mrca = _tree.mrca(taxon_labels=root_nodes)
+
+            if mrca:
+                _tree.reroot_at_node(mrca, update_bipartitions=True, suppress_unifurcations=False)
+            else:
+                _root(_tree)
+        else:
+            # WARNING! There is a bug in DendroPy leading to an infinite loop here. The dendropy folks have fixed it
+            # in their development branch but it is not yet in the main branch
+            _tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+
+    for tree in phylobuddy.trees:
+        _root(tree, root_nodes)
+        tree.is_rooted = True
+
     return phylobuddy
 
 
@@ -697,6 +733,7 @@ def show_diff(phylobuddy):  # Doesn't work.
                 new_list.append(get_all_paths(child, _path_list=new_list))
         else:
             paths.append(new_list)
+
     get_all_paths(phylobuddy.trees[0].seed_node)
     print(paths)
 
@@ -744,10 +781,10 @@ def show_diff(phylobuddy):  # Doesn't work.
     return phylobuddy
 
 
-def show_unique_nodes(phylobuddy):
+def show_unique(phylobuddy):
     """
     Colors all of the nodes that aren't common between two trees
-    :param phylobuddy: The PhyloBuddy object to be labeled
+    :param phylobuddy: PhyloBuddy object
     :return: The labeled PhyloBuddy object
     """
     if len(phylobuddy.trees) != 2:
@@ -756,7 +793,15 @@ def show_unique_nodes(phylobuddy):
     trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
              _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
 
-    data = trees[0].robinson_foulds(trees[1])
+    try:
+        data = trees[0].robinson_foulds(trees[1])
+
+    except TreeError as _e:
+        if "Unrooted tree found!" in str(_e):
+            data = trees[0].robinson_foulds(trees[1], unrooted_trees=True)
+        else:
+            raise _e
+
     tree1_only = []
     tree2_only = []
 
@@ -780,31 +825,64 @@ def show_unique_nodes(phylobuddy):
             node.add_feature('pb_color', '#ff0000')
 
     tmp_dir = TempDir()  # Convert back to dendropy
+
+    # Unnamed nodes are still given a 'name' feature, which is breaking downstream stuff
+    def delete_inner_names(input_tree):
+        output = re.sub('pb_color', '!color', input_tree)
+        output = re.sub("name=:", "", output)
+        output = re.sub("name=\]", "]", output)
+        return output
+
     with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
+        ofile.write(delete_inner_names(trees[0].write(features=[])))
+
     with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
+        ofile.write(delete_inner_names(trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
                      _out_format=phylobuddy.out_format)
     pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
                      _out_format=phylobuddy.out_format)
 
-    trees = pb1.trees + pb2.trees
+    # The 'apply()' method traverses all nodes and executes the provided function with 'node' as the argument
+    pb1.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
+    pb2.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
 
-    phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
+    phylobuddy.trees = pb1.trees + pb2.trees
 
     return phylobuddy
 
 
 def split_polytomies(phylobuddy):
     """
-    Randomly splits polytomies.
-    :param phylobuddy: The PhyloBuddy object whose trees will be processed.
-    :return: The same PhyloBuddy object after processing.
+    Randomly splits polytomies. This function was drawn almost verbatim from the DendroPy Tree.resolve_polytomies()
+    method. The main difference is that a very small edge_length is assigned to new nodes when a polytomy is split.
+    :param phylobuddy: PhyloBuddy object
+    :return: Modified PhyloBuddy object
     """
+    rng = random.Random()
     for tree in phylobuddy.trees:
-        tree.resolve_polytomies(rng=random.Random())
+        polytomies = []
+        for node in tree.postorder_node_iter():
+            if len(node._child_nodes) > 2:
+                polytomies.append(node)
+        for node in polytomies:
+            to_attach = rng.sample(node._child_nodes, len(node._child_nodes) - 2)
+            for child in to_attach:
+                node.remove_child(child)
+            attachment_points = list(node._child_nodes)
+            while len(to_attach) > 0:
+                next_child = to_attach.pop()
+                next_sib = rng.choice(attachment_points)
+                next_attachment = Node(edge_length=0.000001)
+                p = next_sib._parent_node
+                p.add_child(next_attachment)
+                p.remove_child(next_sib)
+                next_attachment.add_child(next_sib)
+                next_attachment.add_child(next_child)
+                attachment_points.append(next_attachment)
+                attachment_points.append(next_child)
+
     return phylobuddy
 
 
@@ -819,6 +897,18 @@ def trees_to_ascii(phylobuddy):
         key = 'tree_{0}'.format(indx + 1) if tree.label in [None, ''] else tree.label
         output[key] = tree.as_ascii_plot()
     return output
+
+
+def unroot(phylobuddy):
+    """
+    Convert to unrooted trees
+    :param phylobuddy: PhyloBuddy object
+    :return: The modified PhyloBuddy object
+    """
+    for tree in phylobuddy.trees:
+        tree.is_rooted = False
+        tree.update_bipartitions()
+    return phylobuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -868,7 +958,6 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     def _print_trees(_phylobuddy):
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
-            pass
 
         elif in_args.in_place:
             _in_place(str(_phylobuddy), in_args.trees[0])
@@ -877,7 +966,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             _stdout("{0}\n".format(str(_phylobuddy).rstrip()))
 
     def _in_place(_output, _path):
-        if not os.path.exists(_path):
+        if not os.path.isfile(str(_path)):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
@@ -898,7 +987,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
         _exit(_tool)
 
-# ############################################## COMMAND LINE LOGIC ############################################## #
+    # ############################################## COMMAND LINE LOGIC ############################################## #
     # Consensus tree
     if in_args.consensus_tree:
         frequency = in_args.consensus_tree[0]
@@ -1043,19 +1132,47 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
         _exit("rename_ids")
 
+    # Root
+    if in_args.root:
+        root_nodes = in_args.root[0]
+        if root_nodes:
+            root(phylobuddy, root_nodes)
+        else:
+            root(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("root")
+
     # Screw formats
     if in_args.screw_formats:
         if in_args.screw_formats not in OUTPUT_FORMATS:
             _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
         else:
             phylobuddy.out_format = in_args.screw_formats
-            if in_args.in_place:  # Need to change the file extension
+            if in_args.in_place and os.path.isfile(str(in_args.trees[0])):
+                # Need to change the file extension
                 os.remove(in_args.trees[0])
-                in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
-                                   "." + phylobuddy.out_format
+                if "." in os.path.abspath(in_args.trees[0]):
+                    in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
+                                       "." + _format_to_extension(phylobuddy.out_format)
+                else:
+                    in_args.trees[0] = "%s.%s" % (os.path.abspath(in_args.trees[0]),
+                                                  _format_to_extension(phylobuddy.out_format))
+
                 open(in_args.trees[0], "w").close()
             _print_trees(phylobuddy)
         _exit("screw_formats")
+
+    # Show unique
+    if in_args.show_unique:
+        try:
+            _print_trees(show_unique(phylobuddy))
+        except AssertionError as _e:
+            if str(_e) == "PhyloBuddy object should have exactly 2 trees.":
+                _raise_error(_e, "show_unique")
+            else:
+                raise _e
+
+        _exit("show_unique")
 
     # Split polytomies
     if in_args.split_polytomies:
@@ -1063,6 +1180,11 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _print_trees(phylobuddy)
         _exit("split_polytomies")
 
+    # Unroot
+    if in_args.unroot:
+        unroot(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("unroot")
 
 if __name__ == '__main__':
     try:
