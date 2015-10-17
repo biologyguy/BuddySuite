@@ -891,7 +891,7 @@ def test_find_cpg():
 def test_find_pattern():
     tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATGGT")
     assert seqs_to_hash(tester) == "a2e110d3ba14ea5d1b236a8abef7341a"
-    tester =  Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T")
+    tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T")
     assert seqs_to_hash(tester) == "c8a3e2e8b97f47c5cc41f04a44243e34"
     tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T", "tga.{1,6}tg")
     assert seqs_to_hash(tester) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
@@ -1325,6 +1325,32 @@ hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(
 def test_rename_ids(seqbuddy, next_hash):
     tester = Sb.rename(seqbuddy, 'Panx', 'Test', 0)
     assert seqs_to_hash(tester) == next_hash
+
+
+def test_rename_ids2():
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "Panxα([1-6])", "testing\\1")
+    assert seqs_to_hash(tester) == "f0d7ec055b3b2d9ec11a86634b32e9ef"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "Panxα([1-6])", "testing\\1", -1)
+    assert seqs_to_hash(tester) == "f0d7ec055b3b2d9ec11a86634b32e9ef"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[a-z]", "?", 2)
+    assert seqs_to_hash(tester) == "08aaee2e7b9997b512c7d1b2fe748d40"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[a-z]", "?", -2)
+    assert seqs_to_hash(tester) == "9b3946afde20c991099463d099be22e0"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[A-Z]", "?", -20)
+    assert seqs_to_hash(tester) == "451993d7e816881e2700697263b1d8fa"
+
+    with pytest.raises(AttributeError) as e:
+        Sb.rename(tester, "[a-z]", "\\1?", -2)
+    assert "There are more replacement match" in str(e)
 
 
 # ######################  'rc', '--reverse_complement' ###################### #
@@ -2186,6 +2212,39 @@ def test_purge_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c"
     assert string2hash(err) == "fbfde496ae179f83e3d096da15d90920"
+
+
+# ######################  '-ri', '--rename_ids' ###################### #
+def test_rename_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f12c44334b507117439928c529eb2944"
+
+    test_in_args.rename_ids = [["[a-z](.)"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", 2, "foo"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", "foo"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "Max replacements argument must be an integer" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1\\2", 2]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are more replacement" in err
 
 
 # ######################  '-sf', '--screw_formats' ###################### #

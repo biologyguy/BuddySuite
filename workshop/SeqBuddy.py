@@ -112,6 +112,12 @@ def degenerate_dna():
     return
 
 
+def incremental_rename(query, replace):
+    # Append a number to the end of each replacement to ensure unique ids
+    x = (query, replace)
+    return x
+
+
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
 # - Add support for selecting individual sequences to modify
 # - Add FASTQ support... More generally, support letter annotation mods
@@ -2351,7 +2357,7 @@ def purge(seqbuddy, threshold):
     return seqbuddy
 
 
-def rename(seqbuddy, query, replace="", num=0):  # TODO Allow a replacement pattern increment (like numbers)
+def rename(seqbuddy, query, replace="", num=0):
     """
     Rename sequence IDs
     :param seqbuddy: SeqBuddy object
@@ -2360,8 +2366,42 @@ def rename(seqbuddy, query, replace="", num=0):  # TODO Allow a replacement patt
     :param num: The maximum number of substitutions to make
     :return: The modified SeqBuddy object
     """
+    replace = re.sub("\s+", "_", replace)
+    check_parentheses = re.findall("\([^()]*\)", query)
+    check_replacement = re.findall(r"\\[0-9]+", replace)
+    check_replacement = sorted([int(match[1:]) for match in check_replacement])
+    if check_replacement and check_replacement[-1] > len(check_parentheses):
+        raise AttributeError("There are more replacement match values specified than query parenthesized groups")
+
     for rec in seqbuddy.records:
-        new_name = re.sub(query, replace, rec.id, num)
+        if num < 0:
+            if check_replacement:
+                for indx in sorted(range(check_replacement[-1]), reverse=True):
+                    indx += 1
+                    replace = re.sub(r"\\%s" % indx, r"\\%s" % (indx + 1), replace)
+                right_replace = "\\%s" % (len(check_replacement) + 2)
+            else:
+                right_replace = "\\2"
+            leftmost = str(rec.id)
+            rightmost = ""
+            hash_to_split_on = "UPNFSZ7FQ6RBhfFzwt0Cku4Yr1n2VvwVUG7x97G7"
+            for _ in range(abs(num)):
+                if leftmost == "":
+                    break
+                new_name = re.sub(r"(.*)%s(.*)" % query,
+                                  r"\1%s%s%s" % (hash_to_split_on, replace, right_replace), leftmost, 1)
+                new_name = new_name.split(hash_to_split_on)
+                if len(new_name) == 2:
+                    leftmost = new_name[0]
+                    rightmost = new_name[1] + rightmost
+                    new_name = leftmost + rightmost
+                else:
+                    new_name = leftmost + rightmost
+                    break
+
+        else:
+            new_name = re.sub(query, replace, rec.id, num)
+        rec.description = rec.description[len(rec.id) + 1:]
         rec.id = new_name
         rec.name = new_name
     return seqbuddy
@@ -3463,8 +3503,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Renaming
     if in_args.rename_ids:
-        num = 0 if not in_args.params else int(in_args.params[0])
-        _print_recs(rename(seqbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        args = in_args.rename_ids[0]
+        if 2 > len(args) or len(args) > 3:
+            _raise_error(AttributeError("rename_ids requires two or three argments: "
+                                        "query, replacement, [max replacements]"), "rename_ids")
+        num = 0
+        try:
+            num = num if len(args) == 2 else int(args[2])
+        except ValueError:
+            _raise_error(ValueError("Max replacements argument must be an integer"), "rename_ids")
+
+        try:
+            _print_recs(rename(seqbuddy, args[0], args[1], num))
+        except AttributeError as e:
+            _raise_error(e, "rename_ids", "There are more replacement")
         _exit("rename_ids")
 
     # Reverse complement
