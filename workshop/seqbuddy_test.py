@@ -1316,8 +1316,8 @@ def test_purge():
 
 
 # ######################  'ri', '--rename_ids' ###################### #
-hashes = ["59bea136d93d30e3f11fd39d73a9adff", "78c73f97117bd937fd5cf52f4bd6c26e", "243024bfd2f686e6a6e0ef65aa963494",
-          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
+hashes = ["8b4a9e3d3bb58cf8530ee18b9df67ff1", "144cc5ed20678a818bce908c475ae450", "243024bfd2f686e6a6e0ef65aa963494",
+          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "65196fd4f2a4e339e1545f6ed2a6acc3"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -1366,9 +1366,9 @@ def test_reverse_complement(seqbuddy, next_hash):
 
 
 def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as e:
         Sb.reverse_complement(sb_objects[6])
-
+    assert str(e.value) == "Nucleic acid sequence required, not protein."
 
 # ######################  'sfr', '--select_frame' ###################### #
 # Only fasta
@@ -2245,6 +2245,20 @@ def test_rename_ids_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
+
+
+# ######################  '-rc', '--reverse_complement' ###################### #
+def test_reverse_complement_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.reverse_complement = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "47941614adfcc5bd107f71abef8b3e00"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
 
 
 # ######################  '-sf', '--screw_formats' ###################### #

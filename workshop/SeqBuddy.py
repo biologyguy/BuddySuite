@@ -3521,7 +3521,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Reverse complement
     if in_args.reverse_complement:
-        _print_recs(reverse_complement(seqbuddy))
+        try:
+            _print_recs(reverse_complement(seqbuddy))
+        except TypeError as e:
+            _raise_error(e, "reverse_complement", "Nucleic acid sequence required, not protein")
         _exit("reverse_complement")
 
     # Screw formats
