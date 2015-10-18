@@ -2486,7 +2486,6 @@ def select_frame(seqbuddy, frame):
                                            qualifiers={"residues": [residues]}))
             rec.description += " (frame%s%s)" % (frame, residues)
         rec.seq = Seq(str(rec.seq)[frame - 1:], alphabet=rec.seq.alphabet)
-        #sys.exit()
     return seqbuddy
 
 

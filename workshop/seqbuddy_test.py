@@ -1403,12 +1403,13 @@ def test_select_frame_edges():
 
 # ##################### 'ss', 'shuffle_seqs' ###################### ##
 def test_shuffle_seqs():
-    tester1 = Sb._make_copy(sb_objects[0])
-    tester2 = Sb._make_copy(tester1)
-    Sb.shuffle_seqs(tester2)
-    assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
-    for indx, record in enumerate(tester1.records):
-        assert sorted(record.seq) == sorted(tester2.records[indx].seq)
+    for seqbuddy in sb_objects:
+        tester1 = Sb.shuffle_seqs(Sb._make_copy(seqbuddy))
+        tester2 = Sb._make_copy(seqbuddy)
+        assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
+
+        for indx, record in enumerate(tester1.records):
+            assert sorted(record.seq) == sorted(tester2.records[indx].seq)
 
 
 # #####################  'sbt', '--split_by_taxa' ###################### ##
@@ -2314,24 +2315,20 @@ def test_select_frame_ui(capsys):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
-    tester.write("temp.del1")
 
     test_in_args.select_frame = 2
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "acde84492fc40dcf04be94f991902878"
-    tester.write("temp.del2")
 
     test_in_args.select_frame = 3
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b28e32e547cc6233a50b195fa0ac7e33"
-    tester.write("temp.del3")
 
     test_in_args.select_frame = 1
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    tester.write("temp.del")
     assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
 
     with pytest.raises(SystemExit):
@@ -2339,6 +2336,16 @@ def test_select_frame_ui(capsys):
 
     out, err = capsys.readouterr()
     assert "Select frame requires nucleic acid, not protein" in err
+
+
+# ######################  '-ss', '--shuffle_seqs' ###################### #
+def test_shuffle_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    tester = Sb._make_copy(sb_objects[0])
+    test_in_args.shuffle_seqs = True
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) != "b831e901d8b6b1ba52bad797bad92d14"
 
 
 # ######################  '-d2r', '--transcribe' ###################### #
