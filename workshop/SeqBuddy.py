@@ -454,7 +454,6 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
     except error.URLError:
         return False
 
-    # TODO account for manual install w/ symlinks
     return True
 
 
@@ -995,7 +994,7 @@ def back_translate(seqbuddy, mode='random', species=None):
     return mapped_featuresseqbuddy
 
 
-def bl2seq(seqbuddy):  # TODO do string formatting in command line ui
+def bl2seq(seqbuddy):
     """
     Does an all-by-all analysis of the sequences
     :param seqbuddy: SeqBuddy object
@@ -1768,7 +1767,6 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     return seqbuddy
 
 
-# TODO do string formatting in command line ui
 def hash_sequence_ids(seqbuddy, hash_length=10):
     """
     Replaces the sequence IDs with random hashes
@@ -2437,18 +2435,58 @@ def rna2dna(seqbuddy):
     return seqbuddy
 
 
-def select_frame(seqbuddy, frame):  # ToDo: record the deleted residues so the earlier frame can be returned to.
+def select_frame(seqbuddy, frame):
     """
     Changes the reading frame of the sequences
     :param seqbuddy: SeqBuddy object
     :param frame: The reading frame to shift to
     :return: The shifted SeqBuddy object
     """
+    def reset_frame(_rec, _residues):
+        _rec.seq = Seq("%s%s" % (_residues, str(_rec.seq)), alphabet=_rec.seq.alphabet)
+        for _feature in _rec.features:
+            if "shift" in _feature.qualifiers:
+                if type(_feature.location) != CompoundLocation:
+                    _feature.location = FeatureLocation(_feature.location.start + int(_feature.qualifiers["shift"][0]),
+                                                        _feature.location.end, _feature.location.strand)
+                else:
+                    _feature.location.parts[0] = FeatureLocation(_feature.location.start +
+                                                                 int(_feature.qualifiers["shift"][0]),
+                                                                 _feature.location.parts[0].end,
+                                                                 _feature.location.strand)
+                if frame == 1:
+                    del _feature.qualifiers["shift"]
+
+        _rec.features = _shift_features(_rec.features, len(_residues), len(_rec.seq))
+        _rec.description = re.sub("\(frame[23][A-Za-z]{1,2}\)", "", _rec.description).strip()
+        return _rec
+
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Select frame requires nucleic acid, not protein.")
+
     for rec in seqbuddy.records:
+        for indx, feature in enumerate(rec.features):
+            if feature.type == "frame_shift" and "residues" in feature.qualifiers:
+                rec = reset_frame(rec, feature.qualifiers["residues"][0])
+                del rec.features[indx]
+                continue
+
+            if feature.location.start + 1 < frame:
+                feature.qualifiers["shift"] = [feature.location.start + 1 - frame]
+
+        check_description = re.search("\(frame[23]([A-Za-z]{1,2})\)", rec.description)
+        if check_description:
+            rec = reset_frame(rec, check_description.group(1))
+
         rec.features = _shift_features(rec.features, (frame - 1) * -1, len(rec.seq))
+        if frame in [2, 3]:
+            location = FeatureLocation(-1, 0)
+            residues = str(rec.seq)[:frame - 1]
+            rec.features.append(SeqFeature(location=location, type="frame_shift", strand=1,
+                                           qualifiers={"residues": [residues]}))
+            rec.description += " (frame%s%s)" % (frame, residues)
         rec.seq = Seq(str(rec.seq)[frame - 1:], alphabet=rec.seq.alphabet)
+        #sys.exit()
     return seqbuddy
 
 
@@ -2561,6 +2599,13 @@ def translate_cds(seqbuddy, quiet=False):
                 raise e1  # Hopefully never get here.
 
     clean_seq(seqbuddy)
+    for rec in seqbuddy.records:  # Removes any frame shift annotations before translating
+        for indx, feature in enumerate(rec.features):
+            if feature.type == "frame_shift" and "residues" in feature.qualifiers:
+                del rec.features[indx]
+                break
+        rec.description = re.sub("\(frame[23]([A-Za-z]{1,2})\)", "", rec.description).strip()
+
     translated_sb = _make_copy(seqbuddy)
     for rec in translated_sb.records:
         rec.features = []
@@ -3544,7 +3589,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Shift reading frame
     if in_args.select_frame:
-        _print_recs(select_frame(seqbuddy, in_args.select_frame))
+        try:
+            _print_recs(select_frame(seqbuddy, in_args.select_frame))
+        except TypeError as e:
+            _raise_error(e, "reverse_complement", "Select frame requires nucleic acid, not protein.")
+
         _exit("select_frame")
 
     # Shuffle Seqs

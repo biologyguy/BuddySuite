@@ -1371,10 +1371,12 @@ def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be
     assert str(e.value) == "Nucleic acid sequence required, not protein."
 
 # ######################  'sfr', '--select_frame' ###################### #
-# Only fasta
-hashes = ["b831e901d8b6b1ba52bad797bad92d14", "a518e331fb29e8be0fdd5f3f815f5abb", "2cbe39bea876030da6d6bd45e514ae0e"]
-frame = [1, 2, 3]
-hashes = [(Sb._make_copy(sb_objects[0]), _hash, frame[indx]) for indx, _hash in enumerate(hashes)]
+hashes = [(0, 1, "b831e901d8b6b1ba52bad797bad92d14"), (0, 2, "2de033b2bf2327f2795fe425db0bd78f"),
+          (0, 3, "1c29898d4964e0d1b03207d7e67e1958"), (1, 1, "908744b00d9f3392a64b4b18f0db9fee"),
+          (1, 2, "acde84492fc40dcf04be94f991902878"), (1, 3, "b28e32e547cc6233a50b195fa0ac7e33"),
+          (2, 1, "cb1169c2dd357771a97a02ae2160935d"), (2, 2, "87d784f197b55f812d2fc82774da43d1"),
+          (2, 3, "5d6d2f337ecdc6f9a85e981c975f3e08")]
+hashes = [(Sb._make_copy(sb_objects[sb_indx]), _hash, frame) for sb_indx, frame, _hash in hashes]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash,shift", hashes)
@@ -1383,9 +1385,20 @@ def test_select_frame(seqbuddy, next_hash, shift):
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_select_frame_pep_exception():
-    with pytest.raises(TypeError):  # If protein is input
+def test_select_frame_edges():
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[0]), 2)
+    temp_file = MyFuncs.TempFile()
+    tester.write(temp_file.path)
+    tester = Sb.select_frame(Sb.SeqBuddy(temp_file.path), 1)
+    assert seqs_to_hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
+
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[1]), 2)
+    tester = Sb.select_frame(tester, 1)
+    assert seqs_to_hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
+
+    with pytest.raises(TypeError) as e:  # If protein is input
         Sb.select_frame(sb_objects[6], 2)
+    assert "Select frame requires nucleic acid, not protein." in str(e.value)
 
 
 # ##################### 'ss', 'shuffle_seqs' ###################### ##
@@ -1416,7 +1429,7 @@ def test_split_file():
 
 # ######################  'tr6', '--translate6frames' ###################### #
 # Only fasta and genbank
-hashes = ["d5d39ae9212397f491f70d6928047341", "42bb6caf86d2d8be8ab0defabc5af477"]
+hashes = ["d5d39ae9212397f491f70d6928047341", "d895f13b8ad89f8e1aef0c5b76110b8d"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -2277,7 +2290,6 @@ def test_screw_formats_ui(_format, next_hash, capsys):
     assert string2hash(out) == next_hash
 
 
-@pytest.mark.foo
 def test_screw_formats_ui2(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "foo"
@@ -2292,6 +2304,41 @@ def test_screw_formats_ui2(capsys):
     test_in_args.in_place = True
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     assert os.path.isfile("%s/seq.genbank" % TEMP_DIR.path)
+
+
+# ######################  'sfr', '--select_frame' ###################### #
+def test_select_frame_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    tester = Sb._make_copy(sb_objects[1])
+    test_in_args.select_frame = 1
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
+    tester.write("temp.del1")
+
+    test_in_args.select_frame = 2
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "acde84492fc40dcf04be94f991902878"
+    tester.write("temp.del2")
+
+    test_in_args.select_frame = 3
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b28e32e547cc6233a50b195fa0ac7e33"
+    tester.write("temp.del3")
+
+    test_in_args.select_frame = 1
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    tester.write("temp.del")
+    assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+
+    out, err = capsys.readouterr()
+    assert "Select frame requires nucleic acid, not protein" in err
 
 
 # ######################  '-d2r', '--transcribe' ###################### #
