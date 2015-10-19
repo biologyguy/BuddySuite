@@ -635,14 +635,20 @@ def test_clean_seq():
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "71b28ad2730a9849f2ba0f70e9e51a9f"
     tester = Sb.clean_seq(tester, ambiguous=False)
-    assert seqs_to_hash(tester) == "5fd0b78e37c81e0fa727db34a37cc743"
+    assert seqs_to_hash(tester) == "1912fadb5ec52a38ec707c58085b86ad"
+    tester = Sb._make_copy(sb_objects[12])
+    tester = Sb.clean_seq(tester, ambiguous=False, rep_char="X")
+    assert seqs_to_hash(tester) == "4c10ba4474d7484652cb633f03db1be1"
 
     # RNA
     tester = Sb._make_copy(sb_objects[13])
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "cdb1b963536d57efc7b7f87d2bf4ad22"
     tester = Sb.clean_seq(tester, ambiguous=False)
-    assert seqs_to_hash(tester) == "ef61174330f2d9cf5da4f087d12ca201"
+    assert seqs_to_hash(tester) == "e66b785c649ad5086bcefd22e9ef9b41"
+    tester = Sb._make_copy(sb_objects[13])
+    tester = Sb.clean_seq(tester, ambiguous=False, rep_char="X")
+    assert seqs_to_hash(tester) == "8ae19ab51b04076112d2f649353a4a79"
 
     # Alignment formats are converted to fasta to prevent errors with sequence lengths
     for tester in sb_objects[2:5]:
@@ -1368,12 +1374,12 @@ def test_reverse_complement(seqbuddy, next_hash):
 def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
     with pytest.raises(TypeError) as e:
         Sb.reverse_complement(sb_objects[6])
-    assert str(e.value) == "Nucleic acid sequence required, not protein."
+    assert str(e.value) == "SeqBuddy object is protein. Nucleic acid sequences required."
 
 # ######################  'sfr', '--select_frame' ###################### #
 hashes = [(0, 1, "b831e901d8b6b1ba52bad797bad92d14"), (0, 2, "2de033b2bf2327f2795fe425db0bd78f"),
           (0, 3, "1c29898d4964e0d1b03207d7e67e1958"), (1, 1, "908744b00d9f3392a64b4b18f0db9fee"),
-          (1, 2, "acde84492fc40dcf04be94f991902878"), (1, 3, "b28e32e547cc6233a50b195fa0ac7e33"),
+          (1, 2, "94a31e98e720ca0fbbe2df148892ee71"), (1, 3, "097b692d4de5acfe0c93bdac58f0e574"),
           (2, 1, "cb1169c2dd357771a97a02ae2160935d"), (2, 2, "87d784f197b55f812d2fc82774da43d1"),
           (2, 3, "5d6d2f337ecdc6f9a85e981c975f3e08")]
 hashes = [(Sb._make_copy(sb_objects[sb_indx]), _hash, frame) for sb_indx, frame, _hash in hashes]
@@ -1430,7 +1436,7 @@ def test_split_file():
 
 # ######################  'tr6', '--translate6frames' ###################### #
 # Only fasta and genbank
-hashes = ["d5d39ae9212397f491f70d6928047341", "d895f13b8ad89f8e1aef0c5b76110b8d"]
+hashes = ["d5d39ae9212397f491f70d6928047341", "42bb6caf86d2d8be8ab0defabc5af477"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -1448,7 +1454,7 @@ def test_translate6frames_pep_exception():
 # ######################  'tr', '--translate' ###################### #
 hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", "9e6634c1b8adfba6b64d30caf94103c5"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[13]), "6cf365fb1722bf691cb14df99ce4c163"))
+hashes.append((Sb._make_copy(sb_objects[13]), "093e4d8ad756f4e9ffb3aef3f3364000"))
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -1464,6 +1470,11 @@ def test_translate_edges_and_exceptions():
     tester = Sb.SeqBuddy("ATTCGTTAACGCTAGCGTCG", in_format="raw")
     tester = Sb.translate_cds(tester)
     assert str(tester) == ">raw_input\nIR*R*R\n"
+
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[1]), 3)
+    tester = Sb.translate_cds(tester)
+    tester.write("temp.del")
+    assert seqs_to_hash(tester) == "275490a6205b9796901ea187ba0f0b86"
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1584,15 +1595,20 @@ def test_blast_ui(capsys):
 # ######################  'cs', '--clean_seq' ###################### #
 def test_clean_seq_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.clean_seq = [True]
+    test_in_args.clean_seq = [[None]]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "dc53f3be7a7c24425dddeea26ea0ebb5"
 
-    test_in_args.clean_seq = ["strict"]
+    test_in_args.clean_seq = [["strict"]]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "5fd0b78e37c81e0fa727db34a37cc743"
+    assert string2hash(out) == "4c10ba4474d7484652cb633f03db1be1"
+
+    test_in_args.clean_seq = [["strict", "N"]]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "1912fadb5ec52a38ec707c58085b86ad"
 
 
 # ######################  'cmp', '--complement' ###################### #
@@ -2272,8 +2288,19 @@ def test_reverse_complement_ui(capsys):
     with pytest.raises(SystemExit):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
     out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein." in err
+    assert "SeqBuddy object is protein. Nucleic acid sequences required." in err
 
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "efbcc71f3b2820ea05bf32038012b883"
+
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
 
 # ######################  '-sf', '--screw_formats' ###################### #
 hashes = [("fasta", "98a3a08389284461ea9379c217e99770"), ("gb", "73858af4bec0e4e52ce8ead542150b70"),
@@ -2319,12 +2346,12 @@ def test_select_frame_ui(capsys):
     test_in_args.select_frame = 2
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "acde84492fc40dcf04be94f991902878"
+    assert string2hash(out) == "94a31e98e720ca0fbbe2df148892ee71"
 
     test_in_args.select_frame = 3
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "b28e32e547cc6233a50b195fa0ac7e33"
+    assert string2hash(out) == "097b692d4de5acfe0c93bdac58f0e574"
 
     test_in_args.select_frame = 1
     Sb.command_line_ui(test_in_args, tester, True)
@@ -2373,8 +2400,7 @@ def test_translate_ui(capsys):
 
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "6cf365fb1722bf691cb14df99ce4c163"
-    assert string2hash(err) == "17d178fafb447503d385ae6823f9678a"
+    assert string2hash(out) == "093e4d8ad756f4e9ffb3aef3f3364000"
 
     tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
     tester.alpha = IUPAC.ambiguous_dna
@@ -2388,3 +2414,34 @@ def test_translate_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
+
+
+# ######################  'tr6', '--translate6frames' ###################### #
+def test_translate6frames_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.translate6frames = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d5d39ae9212397f491f70d6928047341"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "75f0c340c0c8d5bbc0358ed0081023ec"
+    assert err == ""
+
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "e0878729f988c1c02fbb5cdcf56a006b"
+
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+    out, err = capsys.readouterr()
+    assert "TypeError: You need to supply DNA or RNA sequences to translate" in err

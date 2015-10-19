@@ -316,7 +316,7 @@ sb_flags = {"annotate": {"flag": "ano",
                               "returning the hits"},
             "clean_seq": {"flag": "cs",
                           "action": "append",
-                          "nargs": "?",
+                          "nargs": "*",
                           "metavar": "'strict'",
                           "help": "Strip out non-sequence characters, such as stops (*) and gaps (-). "
                                   "Pass in the word 'strict' to remove all characters except the "

@@ -78,9 +78,16 @@ def predict_orfs():
     return
 
 
-def delete_pattern():
+def delete_pattern(seqbuddy, pattern):
     # remove residues that match a given pattern from all records
-    return
+    replace_pattern(seqbuddy, pattern, "")
+    return seqbuddy
+
+
+def replace_pattern(seqbuddy, query, replacement):
+    # Substitute sequence patterns with something else
+    x = [query, replacement]
+    return seqbuddy, x
 
 
 def mutate():
@@ -1152,9 +1159,9 @@ def blast(seqbuddy, blast_db):
     return new_seqs
 
 
-def clean_seq(seqbuddy, skip_list=None, ambiguous=True):
+def clean_seq(seqbuddy, ambiguous=True, rep_char="N", skip_list=None):
     """
-    Removes all non-sequence characters
+    Removes all non-sequence characters, and converts ambiguous characters to 'X' if ambiguous=False
     :param seqbuddy: SeqBuddy object
     :param skip_list: Optional list of characters to be left alone
     :param ambiguous: Specifies whether ambiguous characters should be kept or not
@@ -1167,14 +1174,12 @@ def clean_seq(seqbuddy, skip_list=None, ambiguous=True):
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
                           alphabet=rec.seq.alphabet)
         else:
-            if ambiguous:
-                full_skip = "ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s" % skip_list
-                rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
-                              alphabet=rec.seq.alphabet)
-            else:
+            full_skip = "ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s" % skip_list
+            rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
+                          alphabet=rec.seq.alphabet)
+            if not ambiguous:
                 full_skip = "ATGCUatgcu%s" % skip_list
-                rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)), alphabet=rec.seq.alphabet)
-
+                rec.seq = Seq(re.sub("[^%s]" % full_skip, rep_char, str(rec.seq)), alphabet=rec.seq.alphabet)
     return seqbuddy
 
 
@@ -1922,7 +1927,7 @@ def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
                             "not %s" % type(feature.location))
         return feature
 
-    protseqbuddy = clean_seq(protseqbuddy, "*")
+    protseqbuddy = clean_seq(protseqbuddy, skip_list="*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
     stderr_written = False
     if mode == "list":
@@ -2011,7 +2016,7 @@ def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
                             "not %s" % type(feature.location))
         return feature
 
-    protseqbuddy = clean_seq(protseqbuddy, "*")
+    protseqbuddy = clean_seq(protseqbuddy, skip_list="*")
     dnaseqbuddy = clean_seq(dnaseqbuddy)
     stderr_written = False
     if mode == "list":
@@ -2412,9 +2417,15 @@ def reverse_complement(seqbuddy):
     :return: The modified SeqBuddy object
     """
     if seqbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
+        raise TypeError("SeqBuddy object is protein. Nucleic acid sequences required.")
     for rec in seqbuddy.records:
-        rec.seq = rec.seq.reverse_complement()
+        try:
+            rec.seq = rec.seq.reverse_complement()
+        except ValueError as e:
+            if "Proteins do not have complements!" in str(e):
+                raise TypeError("Record '%s' is protein. Nucleic acid sequences required." % rec.id)
+            else:
+                raise e  # Hopefully never gets here
         seq_len = len(rec.seq)
         shifted_features = [_feature_rc(feature, seq_len) for feature in rec.features]
         rec.features = shifted_features
@@ -2435,7 +2446,7 @@ def rna2dna(seqbuddy):
     return seqbuddy
 
 
-def select_frame(seqbuddy, frame):
+def select_frame(seqbuddy, frame, add_metadata=True):
     """
     Changes the reading frame of the sequences
     :param seqbuddy: SeqBuddy object
@@ -2471,15 +2482,15 @@ def select_frame(seqbuddy, frame):
                 del rec.features[indx]
                 continue
 
-            if feature.location.start + 1 < frame:
-                feature.qualifiers["shift"] = [feature.location.start + 1 - frame]
+            if feature.location.start + 1 < frame and add_metadata:
+                feature.qualifiers["shift"] = [str(feature.location.start + 1 - frame)]
 
         check_description = re.search("\(frame[23]([A-Za-z]{1,2})\)", rec.description)
         if check_description:
             rec = reset_frame(rec, check_description.group(1))
 
         rec.features = _shift_features(rec.features, (frame - 1) * -1, len(rec.seq))
-        if frame in [2, 3]:
+        if frame in [2, 3] and add_metadata:
             location = FeatureLocation(-1, 0)
             residues = str(rec.seq)[:frame - 1]
             rec.features.append(SeqFeature(location=location, type="frame_shift", strand=1,
@@ -2547,10 +2558,10 @@ def translate6frames(seqbuddy):
 
     rframe1, rframe2, rframe3 = _make_copy(seqbuddy), _make_copy(seqbuddy), _make_copy(seqbuddy)
 
-    frame2 = select_frame(frame2, 2)
-    frame3 = select_frame(frame3, 3)
-    rframe2 = select_frame(rframe2, 2)
-    rframe3 = select_frame(rframe3, 3)
+    frame2 = select_frame(frame2, 2, add_metadata=False)
+    frame3 = select_frame(frame3, 3, add_metadata=False)
+    rframe2 = select_frame(rframe2, 2, add_metadata=False)
+    rframe3 = select_frame(rframe3, 3, add_metadata=False)
 
     frame1 = translate_cds(frame1, quiet=True)
     frame2 = translate_cds(frame2, quiet=True)
@@ -2597,7 +2608,7 @@ def translate_cds(seqbuddy, quiet=False):
             else:
                 raise e1  # Hopefully never get here.
 
-    clean_seq(seqbuddy)
+    clean_seq(seqbuddy, ambiguous=False, rep_char="N")
     for rec in seqbuddy.records:  # Removes any frame shift annotations before translating
         for indx, feature in enumerate(rec.features):
             if feature.type == "frame_shift" and "residues" in feature.qualifiers:
@@ -2608,10 +2619,11 @@ def translate_cds(seqbuddy, quiet=False):
     translated_sb = _make_copy(seqbuddy)
     for rec in translated_sb.records:
         rec.features = []
+        # Modify a copy of the sequence as needed to complete the cds translation
         temp_seq = deepcopy(rec)
         temp_seq.seq.alphabet = rec.seq.alphabet
-
-        while True:  # Modify a copy of the sequence as needed to complete the cds translation
+        valve = MyFuncs.SafetyValve(global_reps=1000)
+        while valve.test(str(temp_seq.seq), str(temp_seq)):
             test_trans = trans(temp_seq)
             # success
             if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
@@ -2635,7 +2647,7 @@ def translate_cds(seqbuddy, quiet=False):
                 temp_seq.seq = Seq(str(temp_seq.seq) + "TGA", alphabet=temp_seq.seq.alphabet)
                 continue
 
-            # non-standard characters
+            # non-standard characters, this should be unreachable.
             if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
                 regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
                 regex = "(?i)%s" % regex[0]
@@ -2647,17 +2659,18 @@ def translate_cds(seqbuddy, quiet=False):
             if re.search("Extra in frame stop codon found", str(test_trans)):
                 for i in range(round(len(str(temp_seq.seq)) / 3) - 1):
                     codon = str(temp_seq.seq)[(i * 3):(i * 3 + 3)]
-                    if codon.upper() in ["TGA", "TAG", "TAA"]:
+                    if codon.upper() in ["TGA", "TAG", "TAA", "UGA", "UAG", "UAA"]:
                         new_seq = str(temp_seq.seq)[:(i * 3)] + "NNN" + str(temp_seq.seq)[(i * 3 + 3):]
                         temp_seq.seq = Seq(new_seq, alphabet=temp_seq.seq.alphabet)
                 continue
 
-            break  # Should be unreachable
+            # Should be unreachable
+            raise RuntimeError("There were uncaught translation exceptions\n%s" % test_trans)
 
         rec.seq = rec.seq.translate()
         rec.seq.alphabet = IUPAC.protein
 
-    output = map_features_nucl2prot(seqbuddy, translated_sb, mode="list")
+    output = map_features_nucl2prot(seqbuddy, translated_sb, mode="list", quiet=quiet)
     output.out_format = seqbuddy.out_format
     seqbuddy = output
     return seqbuddy
@@ -2890,10 +2903,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Clean Seq
     if in_args.clean_seq:
-        if in_args.clean_seq[0] == "strict":
-            _print_recs(clean_seq(seqbuddy, ambiguous=False))
-        else:
-            _print_recs(clean_seq(seqbuddy, ambiguous=True))
+        args = in_args.clean_seq[0]
+        ambig = True
+        rep_char = "N"
+        lower_args = [str(x).lower() for x in args]
+        if "strict" in lower_args:
+            ambig = False
+            del args[lower_args.index("strict")]
+        if args and args[0]:
+            rep_char = args[0][0]
+        _print_recs(clean_seq(seqbuddy, ambiguous=ambig, rep_char=rep_char))
         _exit("clean_seq")
 
     # Complement
@@ -3330,7 +3349,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.isoelectric_point:
         if seqbuddy.alpha != IUPAC.protein:
             _stderr("Nucleic acid sequences detected, converting to protein.\n\n")
-            seqbuddy = translate_cds(seqbuddy, quiet=in_args.quiet)
+            seqbuddy = translate_cds(seqbuddy, quiet=True)
 
         isoelectric_point(seqbuddy)
         _stderr("ID\tpI\n")
@@ -3568,7 +3587,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         try:
             _print_recs(reverse_complement(seqbuddy))
         except TypeError as e:
-            _raise_error(e, "reverse_complement", "Nucleic acid sequence required, not protein")
+            _raise_error(e, "reverse_complement", "Nucleic acid sequences required.")
         _exit("reverse_complement")
 
     # Screw formats
@@ -3652,8 +3671,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Translate 6 reading frames
     if in_args.translate6frames:
         if seqbuddy.alpha == IUPAC.protein:
-            raise ValueError("You need to supply DNA or RNA sequences to translate")
-        seqbuddy = translate6frames(seqbuddy)
+            _raise_error(TypeError("You need to supply DNA or RNA sequences to translate"), "translate6frames")
+        try:
+            seqbuddy = translate6frames(seqbuddy)
+        except TypeError as e:
+            _raise_error(e, "translate6frames", ["Nucleic acid sequence required, not protein.", " is protein."])
         if in_args.out_format:
             seqbuddy.out_format = in_args.out_format
         _print_recs(seqbuddy)
