@@ -147,7 +147,7 @@ def incremental_rename(query, replace):
 # - Add find_pattern() function to search sequences for specific pattern
 # - Add find_restriction_sites() function to find restriction sites
 # - Add split_file() function to separate all seq records into their own SeqBuddy object
-# - Add split_by_taxa() function. Writes individual files for groups of sequences based on an identifier in their ids
+# - Add make_groups() function. Writes individual files for groups of sequences based on an identifier in their ids
 # - Unit tests
 # - New graphical installer
 # - Rework argparse output
@@ -1052,7 +1052,7 @@ def bl2seq(seqbuddy):
     tmp_dir = TemporaryDirectory()
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
-    make_unique_ids(seqbuddy)
+    make_ids_unique(seqbuddy)
     seqs_copy = seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.name
     for subject in seqbuddy.records:
@@ -1874,7 +1874,48 @@ def lowercase(seqbuddy):
     return seqbuddy
 
 
-def make_unique_ids(seqbuddy):
+def make_groups(seqbuddy, split_patterns=(), num_chars=None):
+    """
+    Splits a SeqBuddy object into new object based on an identifying suffix or regular expression
+    :param seqbuddy: SeqBuddy object
+    :param split_patterns: The regex pattern(s) to split with
+    :param num_chars: Restrict the size of the identifier to a specific number of characters
+    :return: A list of SeqBuddy objects
+    """
+    recs_by_identifier = OrderedDict()
+    recs_by_identifier["Unknown"] = []
+    split_prefix = False
+    if split_patterns:
+        for rec in seqbuddy.records:
+            if len(re.split("|".join(split_patterns), rec.id)) > 1:
+                split_prefix = True
+                break
+
+    for rec in seqbuddy.records:
+        if split_prefix:
+            split = re.split("|".join(split_patterns), rec.id)
+            if len(split) == 1:
+                recs_by_identifier["Unknown"].append(rec)
+                continue
+            else:
+                split = split[0]
+        else:
+            split = rec.id
+        split = split if not num_chars else split[:num_chars]
+        recs_by_identifier.setdefault(split, []).append(rec)
+
+    if not recs_by_identifier["Unknown"]:
+        del recs_by_identifier["Unknown"]
+
+    new_seqbuddies = [(identifier, _make_copy(seqbuddy)) for identifier in recs_by_identifier]
+    for identifier, sb in new_seqbuddies:
+        sb.records = recs_by_identifier[identifier]
+        sb.identifier = identifier
+    new_seqbuddies = [sb for identifier, sb in new_seqbuddies]
+    return new_seqbuddies
+
+
+def make_ids_unique(seqbuddy):
     """
     Rename all repeat IDs
     Note: the edge case where a new ID creates a new conflict is not handled
@@ -2516,20 +2557,6 @@ def shuffle_seqs(seqbuddy):
             new_seq += tokens.pop(rand_indx)
         rec.seq = Seq(data=new_seq, alphabet=seqbuddy.alpha)
     return seqbuddy
-
-
-def split_by_taxa(seqbuddy, split_pattern):
-    """
-    Splits a SeqBuddy object by a specified pattern
-    :param seqbuddy: SeqBuddy object
-    :param split_pattern: The regex pattern to split with
-    :return: A dictionary of SeqRecords
-    """
-    recs_by_taxa = {}
-    for rec in seqbuddy.records:
-        split = re.split(split_pattern, rec.id)
-        recs_by_taxa.setdefault(split[1], []).append(rec)
-    return recs_by_taxa
 
 
 def split_file(seqbuddy):
@@ -3240,6 +3267,39 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
+    # Group sequences by prefix.
+    if in_args.group_by_prefix:
+        in_args.in_place = True
+        check_quiet = in_args.quiet
+        in_args.quiet = True  # toggle 'quiet' on so in_place _print_recs() doesn't spam with print messages
+
+        args = in_args.group_by_prefix[0]
+        out_dir = os.getcwd()
+        num_chars = 0
+        split_patterns = []
+        for arg in args:
+            try:
+                num_chars = int(arg)
+            except ValueError:
+                if os.path.isdir(arg):
+                    out_dir = os.path.abspath(arg)
+                else:
+                    split_patterns.append(arg)
+
+        sp = ["-"] if not split_patterns and not num_chars else split_patterns
+
+        taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
+        if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy.records):
+            taxa_groups = make_groups(seqbuddy, num_chars=5)
+
+        for _seqbuddy in taxa_groups:
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, _seqbuddy.identifier, _format_to_extension(_seqbuddy.out_format))
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            open(in_args.sequence[0], "w").close()
+            _print_recs(_seqbuddy)
+
+        _exit("group_by_prefix")
+
     # Guess alphabet
     if in_args.guess_alphabet:
         output = ""
@@ -3411,9 +3471,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _exit("lowercase")
 
     # Make unique IDs
-    if in_args.make_unique_ids:
-        _print_recs(make_unique_ids(seqbuddy))
-        _exit("make_unique_ids")
+    if in_args.make_ids_unique:
+        _print_recs(make_ids_unique(seqbuddy))
+        _exit("make_ids_unique")
 
     # Map features from cDNA over to protein
     if in_args.map_features_nucl2prot:
@@ -3619,23 +3679,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(shuffle_seqs(seqbuddy))
         _exit("shuffle_seqs")
 
-    # Split sequences by taxa.
-    if in_args.split_by_taxa:
-        in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_by_taxa[1])
-        os.makedirs(out_dir, exist_ok=True)
-        taxa_groups = split_by_taxa(seqbuddy, in_args.split_by_taxa[0])
-        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
-        in_args.quiet = True
-        for taxa_heading in taxa_groups:
-            seqbuddy.records = taxa_groups[taxa_heading]
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, taxa_heading, _format_to_extension(seqbuddy.out_format))
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
-            _print_recs(seqbuddy)
-        _exit("split_by_taxa")
-
-    # Split sequences into files
+    # Split all sequences into files
     if in_args.split_to_files:
         in_args.in_place = True
         out_dir = os.path.abspath(in_args.split_to_files)

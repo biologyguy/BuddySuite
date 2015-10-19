@@ -1035,10 +1035,10 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
     assert seqs_to_hash(tester) == lc_hash
 
 
-# ######################  'mui', '--make_unique_ids' ###################### #
-def test_make_unique_ids():
+# ######################  'mui', '--make_ids_unique' ###################### #
+def test_make_ids_unique():
     tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
-    Sb.make_unique_ids(tester)
+    Sb.make_ids_unique(tester)
     assert seqs_to_hash(tester) == "3f84819b81185d49a7357947ca7f0707"
 
 
@@ -1418,12 +1418,33 @@ def test_shuffle_seqs():
             assert sorted(record.seq) == sorted(tester2.records[indx].seq)
 
 
-# #####################  'sbt', '--split_by_taxa' ###################### ##
-def test_split_by_taxa():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.split_by_taxa(tester, 'Mle-')
-    output = md5(str(sorted(tester)).encode()).hexdigest()
-    assert output == '438cc47dd268453f38342ca276f77a73'
+# #####################  make_groups' ###################### ##
+@pytest.mark.foo
+def test_make_groups():
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    sb_list = Sb.make_groups(tester)
+    assert len(sb_list) == 20
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier == seqbuddy.records[0].id
+
+    sb_list = Sb.make_groups(tester, split_patterns=["u", "h"])
+    assert len(sb_list) == 4
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Hv", "C", "Pp"]
+
+    sb_list = Sb.make_groups(tester, num_chars=1)
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["A", "H", "C", "P", "N"]
+
+    sb_list = Sb.make_groups(tester, split_patterns=["l"], num_chars=3)
+    assert len(sb_list) == 3
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Ae", "C"]
 
 
 # #####################  'sf', '--split_file' ###################### ##
@@ -1603,12 +1624,12 @@ def test_clean_seq_ui(capsys):
     test_in_args.clean_seq = [["strict"]]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "4c10ba4474d7484652cb633f03db1be1"
+    assert string2hash(out) == "1912fadb5ec52a38ec707c58085b86ad"
 
-    test_in_args.clean_seq = [["strict", "N"]]
+    test_in_args.clean_seq = [["strict", "X"]]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "1912fadb5ec52a38ec707c58085b86ad"
+    assert string2hash(out) == "4c10ba4474d7484652cb633f03db1be1"
 
 
 # ######################  'cmp', '--complement' ###################### #
@@ -1838,6 +1859,40 @@ def test_find_restriction_sites_ui(capsys):
     assert "Unable to identify restriction sites in protein sequences." in err
 
 
+# ######################  '-gbp', '--group_by_prefix' ###################### #
+@pytest.mark.foo
+def test_group_by_prefix_ui(capsys):
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    test_in_args = deepcopy(in_args)
+    test_in_args.group_by_prefix = [[TEMP_DIR.path]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert "New file: " in err
+    assert "Ate.nex" in err
+    for prefix in ["Ate", "Hvu", "Che", "Ael", "Cla", "Hec", "Pph", "Nbi", "Ccr"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, "u", "h"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Unknown", "Hv", "C", "Pp"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, 1]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["A", "H", "C", "P", "N"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, "l", 3]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Unknown", "Ae", "C"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+
 # ######################  'gf', '--guess_format' ###################### #
 def test_guess_alpha_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1997,10 +2052,10 @@ def test_lower_and_upper_ui(capsys):
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
 
 
-# ######################  'mui', '--make_unique_ids' ###################### #
-def test_make_unique_ids_ui(capsys):
+# ######################  'mui', '--make_ids_unique' ###################### #
+def test_make_ids_unique_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.make_unique_ids = True
+    test_in_args.make_ids_unique = True
     tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
