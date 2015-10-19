@@ -1874,18 +1874,21 @@ def lowercase(seqbuddy):
     return seqbuddy
 
 
-def make_groups(seqbuddy, split_patterns=(), num_chars=None):
+def make_groups(seqbuddy, split_patterns=(), num_chars=None, regex=None):
     """
     Splits a SeqBuddy object into new object based on an identifying suffix or regular expression
     :param seqbuddy: SeqBuddy object
     :param split_patterns: The regex pattern(s) to split with
     :param num_chars: Restrict the size of the identifier to a specific number of characters
+    :param regex: Uses a regular expression to create group identifiers (downstream of split_patterns and num_chars).
+    Duck typed --> str, list, tuple, None
     :return: A list of SeqBuddy objects
     """
     recs_by_identifier = OrderedDict()
     recs_by_identifier["Unknown"] = []
     split_prefix = False
     if split_patterns:
+        split_patterns = [split_patterns] if type(split_patterns) == str else split_patterns
         for rec in seqbuddy.records:
             if len(re.split("|".join(split_patterns), rec.id)) > 1:
                 split_prefix = True
@@ -1902,7 +1905,21 @@ def make_groups(seqbuddy, split_patterns=(), num_chars=None):
         else:
             split = rec.id
         split = split if not num_chars else split[:num_chars]
-        recs_by_identifier.setdefault(split, []).append(rec)
+        if regex:
+            regex = regex if type(regex) == str else "|".join(regex)
+            split = re.search(regex, split)
+            if not split:
+                recs_by_identifier["Unknown"].append(rec)
+                continue
+            else:
+                if re.search("\([^()]*\)", regex):
+                    split = "".join(list(split.groups()))
+                else:
+                    split = split.group(0)
+        if split != "":
+            recs_by_identifier.setdefault(split, []).append(rec)
+        else:
+            recs_by_identifier["Unknown"].append(rec)
 
     if not recs_by_identifier["Unknown"]:
         del recs_by_identifier["Unknown"]
@@ -3267,7 +3284,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
-    # Group sequences by prefix.
+    # Group sequences by prefix. I might want to delete this in favour of group_by_regex... Keep them both for now.
     if in_args.group_by_prefix:
         in_args.in_place = True
         check_quiet = in_args.quiet
@@ -3299,6 +3316,35 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _print_recs(_seqbuddy)
 
         _exit("group_by_prefix")
+
+    # Group sequences by regex. This is really flexible.
+    if in_args.group_by_regex:
+        in_args.in_place = True
+        check_quiet = in_args.quiet
+        in_args.quiet = True  # toggle 'quiet' on so in_place _print_recs() doesn't spam with print messages
+
+        args = in_args.group_by_regex[0]
+        out_dir = os.getcwd()
+        regexes = []
+        for arg in args:
+            if os.path.isdir(arg):
+                out_dir = os.path.abspath(arg)
+            else:
+                regexes.append(arg)
+
+        if not regexes:
+            in_args.quiet = False
+            _raise_error(ValueError("You must provide at least one regular expression."), "group_by_regex")
+
+        taxa_groups = make_groups(seqbuddy, regex=regexes)
+
+        for _seqbuddy in taxa_groups:
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, _seqbuddy.identifier, _format_to_extension(_seqbuddy.out_format))
+            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            open(in_args.sequence[0], "w").close()
+            _print_recs(_seqbuddy)
+
+        _exit("group_by_regex")
 
     # Guess alphabet
     if in_args.guess_alphabet:
@@ -3678,22 +3724,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.shuffle_seqs:
         _print_recs(shuffle_seqs(seqbuddy))
         _exit("shuffle_seqs")
-
-    # Split all sequences into files
-    if in_args.split_to_files:
-        in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_to_files)
-        os.makedirs(out_dir, exist_ok=True)
-        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
-        in_args.quiet = True
-        for buddy in split_file(seqbuddy):
-            seqbuddy.records = buddy.records
-            ext = _format_to_extension(seqbuddy.out_format)
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, seqbuddy.records[0].id, ext)
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
-            _print_recs(seqbuddy)
-        _exit("split_to_files")
 
     # Transcribe
     if in_args.transcribe:

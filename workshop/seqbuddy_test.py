@@ -1419,7 +1419,6 @@ def test_shuffle_seqs():
 
 
 # #####################  make_groups' ###################### ##
-@pytest.mark.foo
 def test_make_groups():
     tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
     sb_list = Sb.make_groups(tester)
@@ -1446,13 +1445,23 @@ def test_make_groups():
         assert type(seqbuddy) == Sb.SeqBuddy
         assert seqbuddy.identifier in ["Unknown", "Ae", "C"]
 
+    sb_list = Sb.make_groups(tester, regex="([ACH]).*([βγ])")
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Aβ", "Cβ", "Hβ", "Cγ"]
 
-# #####################  'sf', '--split_file' ###################### ##
-def test_split_file():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    output = Sb.split_file(tester)
-    for buddy in output:
-        assert buddy.records[0] in tester.records
+    sb_list = Sb.make_groups(tester, regex="Ate")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Ate", "Unknown"]
+
+    sb_list = Sb.make_groups(tester, regex="Panx.(G*)")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["G", "Unknown"]
 
 
 # ######################  'tr6', '--translate6frames' ###################### #
@@ -1860,7 +1869,6 @@ def test_find_restriction_sites_ui(capsys):
 
 
 # ######################  '-gbp', '--group_by_prefix' ###################### #
-@pytest.mark.foo
 def test_group_by_prefix_ui(capsys):
     tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
     test_in_args = deepcopy(in_args)
@@ -1889,6 +1897,26 @@ def test_group_by_prefix_ui(capsys):
     test_in_args.group_by_prefix = [[TEMP_DIR.path, "l", 3]]
     Sb.command_line_ui(test_in_args, tester, True)
     for prefix in ["Unknown", "Ae", "C"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+
+# ######################  '-gbr', '--group_by_regex' ###################### #
+def test_group_by_regex_ui(capsys):
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    test_in_args = deepcopy(in_args)
+    test_in_args.group_by_regex = [[TEMP_DIR.path]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "ValueError: You must provide at least one regular expression.\n"
+
+    test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "New file: " in err
+    assert "Ate.nex" in err
+    for prefix in ["Unknown", "Ate"]:
         assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
         os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
 
