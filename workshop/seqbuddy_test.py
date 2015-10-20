@@ -2,6 +2,27 @@
 # -*- coding: utf-8 -*-
 # NOTE: BioPython 16.6+ required.
 
+"""
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+name: seqbuddy_tests.py
+version: 1, alpha
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/BuddySuite
+© license: None, this work is public domain
+
+Description: Collection of PyTest unit tests for the SeqBuddy.py program
+"""
+
 import pytest
 from hashlib import md5
 import os

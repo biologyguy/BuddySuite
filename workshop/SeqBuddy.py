@@ -2,24 +2,22 @@
 # -*- coding: utf-8 -*-
 
 """
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-details at http://www.gnu.org/licenses/.
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: SeqBuddy.py
-date: Nov-20-2014
-version: 2, alpha
+version: 1, beta
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
 repository: https://github.com/biologyguy/BuddySuite
-© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-derivative work: No
+© license: None, this work is public domain
 
 Description:
 Collection of functions that do fun stuff with sequences. Pull them into a script, or run as a command line tool.
@@ -113,36 +111,18 @@ def incremental_rename(query, replace):
     return x
 
 
-# - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command provided independently on each
-# - Add support for selecting individual sequences to modify
+# - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
+# - Add support for selecting individual sequences to modify (as a global ability for any tool)
 # - Add FASTQ support... More generally, support letter annotation mods
 # - Add Clustal support
 # - Get BuddySuite into PyPi
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
-# - Handle all stderr output from private function (to allow quiet execution)
-# - Sort out a good way to manage 'lazy' imports
-# - Fix --clean_seq for .phy, .phyr, .stklm, .nex
+# - Sort out a good way to manage 'lazy' imports (might not be that important)
 
-# ################################################# CHANGE LOG for V2 ################################################ #
-# - New flag -t/--test, which runs a function but suppresses all stdout (stderr still returned)
-# - Standard-in is handled as input now, allowing SeqBuddy to be daisy chained with pipes (|)
-# - Remove the the -p flag dependencies for -prr, -li, -btr, -asl, -cts, -hsi, -frp, -drp, -ofa, -ofp, and -oi
-# - Add print method to SeqBuddy class that outputs all sequences to string
-# - Add molecular_weight() function that calculates molecular weight
-# - Add isoelectric_point() function that calculates isoelectric point
-# - Add find_CpG() function to predict CpG islands
-# - Add find_pattern() function to search sequences for specific pattern
-# - Add find_restriction_sites() function to find restriction sites
-# - Add split_file() function to separate all seq records into their own SeqBuddy object
-# - Add make_groups() function. Writes individual files for groups of sequences based on an identifier in their ids
-# - Unit tests
-# - New graphical installer
-# - Rework argparse output
-
-
+# ##################################################### CHANGE LOG ################################################### #
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 2, 'alpha', br.contributors)
+VERSION = br.Version("SeqBuddy", 1, 'beta', br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylipi",
                   "phylipis", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]

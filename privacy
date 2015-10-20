@@ -1,35 +1,3 @@
-This privacy policy governs your use of the open source software 'BuddySuite', a collection of command line and
-graphical tools for use by those engaged in bioinformatics research.
-
-Section 1: Limitations and scope of this policy
-This policy only applies to the official release versions of the software listed at
-https://github.com/biologyguy/BuddySuite/releases; pre-release (i.e., 'alpha' or 'beta') versions will also adhere to
-sections 3 and 4 below, but may transmit a greater amount of information, including potentially personally identifiable
-information, to the developers. This policy is void for any forks or otherwise altered versions of BuddySuite created or
-maintained by third parties.
-
-Section 2: Collection of personal information
-It is recommended that you provide a valid email address upon installation, and BuddySuite will collect usage statistics
-and crash reports for transmission to the developers if you opt into our software improvement program (SIP). Personally
-identifiable information will be removed from any data submitted through the SIP. All personal information submitted to
-BuddySuite is optional, and is not required to use the tools unless otherwise required by third party serves accessed by
-BuddySuite (see section 4).
-
-Section 3: Use of personal information
-We will only use personal information to contact you with important information pertaining to BuddySuite or as
-required by law. Aggregated data collected through the SIP will be used to improve the software by identifying problems
-to be addressed by our developers and to focus our attention on the tools receiving the greatest use.
-
-Section 4: Sharing personal information with third parties
-We will share your information with third parties only in the ways that are described in this privacy statement, and we
-reserve the right to amend this statement in the future if functionality is added to BuddySuite that requires further
-personal information to be shared.
-Your email address may be transmitted to the National Center for Biotechnology Information (NCBI) if BuddySuite is used
-to access their services; they will use this information to contact you if you violate their usage limits, as stipulated
-at http://www.ncbi.nlm.nih.gov/books/NBK25497/#chapter2.Frequency_Timing_and_Registrati.
-We may also disclose user provided and automatically collected information:
-    - as required by law, such as to comply with a subpoena, or similar legal process;
-    - when we believe in good faith that disclosure is necessary to protect our rights, protect your safety or the
-      safety of others, investigate fraud, or respond to a government request;
-    - with our trusted services providers who work on our behalf, do not have an independent use of the information we
-      disclose to them, and have agreed to adhere to the rules set forth in this privacy statement.
+The BuddySuite software in a public domain project created by the United States Government. Any information
+transmitted by the software to United States Government employees or contractors is subject to regulation under the
+Privacy Act of 1974 and Amendments (http://www.justice.gov/opcl/privacy-act-1974).

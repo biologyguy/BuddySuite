@@ -3,27 +3,25 @@
 # Created on: Aug 28 2015 
 
 """
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-details at http://www.gnu.org/licenses/.
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: server_report_handler.py
-date: Aug-21-2015
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
 repository: https://github.com/biologyguy/BuddySuite
-© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-derivative work: No
+© license: None, this work is public domain
 
-Functions used by cron on the ftp server.
-CAUTION!! Do not point cron directly at this unless you want a huge security hole.
-In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You've been warned.
+Description: Functions used by cron on the ftp server.
+             CAUTION!! Do not point cron directly at this unless you want a huge security hole.
+             In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You've been warned.
 """
 
 import sys

@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-details at http://www.gnu.org/licenses/.
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: PhyloBuddy.py
-date: Dec-6-2014
 version: 1, beta
 author: Stephen R. Bond
 email: steve.bond@nih.gov
@@ -18,8 +17,7 @@ institute: Computational and Statistical Genomics Branch, Division of Intramural
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
 repository: https://github.com/biologyguy/BuddySuite
-© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-derivative work: No
+© license: None, this work is public domain
 
 Description:
 PhyloBuddy is a general wrapper for popular phylogenetic programs, handles format conversion, and manipulates tree files
@@ -945,7 +943,8 @@ def argparse_init():
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected. Process will be aborted.")
+                sys.exit()
             tree_set = PhyloBuddy(tree_set, in_args.in_format, in_args.out_format)
             phylobuddy += tree_set.trees
         phylobuddy = PhyloBuddy(phylobuddy, tree_set.in_format, tree_set.out_format)
@@ -1037,7 +1036,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected. Process will be aborted.")
+                sys.exit()
             align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
         if align_set:
