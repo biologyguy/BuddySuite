@@ -361,7 +361,7 @@ def codon_alignment(alignbuddy):
 
     for rec in _get_seq_recs(alignbuddy):
         if rec.seq.alphabet == IUPAC.protein:
-            raise TypeError("Error: Record %s is protein. Nucleic acid required." % rec.name)
+            raise TypeError("Error: Record %s is protein. Nucleic acid sequence required." % rec.name)
 
         seq_string = str(rec.seq)
         output = seq_string[0]
@@ -1140,14 +1140,19 @@ def argparse_init():
     alignbuddy = []
     align_set = ""
 
-    if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
-        for align_set in in_args.alignments:
-            if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                sys.exit("Warning: No input detected. Process will be aborted.")
-            align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
-            alignbuddy += align_set.alignments
+    try:
+        if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
+            for align_set in in_args.alignments:
+                if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
+                    sys.exit("Warning: No input detected. Process will be aborted.")
+                align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
+                alignbuddy += align_set.alignments
 
-        alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+            alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+
+    except GuessError as e:
+        _stderr("GuessError: %s\n" % e, in_args.quiet)
+        sys.exit()
 
     return in_args, alignbuddy
 
@@ -1193,8 +1198,18 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         usage.save()
         sys.exit()
 
-    def _raise_error(_err, tool):
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+    def _raise_error(_err, tool, check_string=None):
+        if check_string:
+            if type(check_string) == str:
+                check_string = [check_string]
+            re_raise = True
+            for _string in check_string:
+                if _string in str(_err):
+                    re_raise = False
+                    break
+            if re_raise:
+                raise _err
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
@@ -1211,8 +1226,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Back Transcribe
     if in_args.back_transcribe:
         if alignbuddy.alpha != IUPAC.ambiguous_rna:
-            raise ValueError("You need to provide an RNA sequence.")
-        _print_aligments(rna2dna(alignbuddy))
+            _raise_error(ValueError("You need to provide an RNA sequence."), "back_transcribe")
+        try:
+            _print_aligments(rna2dna(alignbuddy))
+        except TypeError as e:
+            _raise_error(e, "back_transcribe", "Nucleic acid sequence required, not protein.")
         _exit("back_transcribe")
 
     # Clean Seq
@@ -1225,12 +1243,18 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Codon alignment
     if in_args.codon_alignment:
-        _print_aligments(codon_alignment(alignbuddy))
+        try:
+            _print_aligments(codon_alignment(alignbuddy))
+        except TypeError as e:
+            _raise_error(e, "codon_alignment", "Nucleic acid sequence required.")
         _exit("codon_alignment")
 
     # Concatenate Alignments
     if in_args.concat_alignments:
-        _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
+        try:
+            _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
+        except AttributeError as e:
+            _raise_error(e, "concat_alignments", "Please provide at least two alignments.")
         _exit("concat_alignments")
 
     # Delete rows
@@ -1240,7 +1264,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Extract range
     if in_args.extract_range:
-        _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
+        try:
+            _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
+        except ValueError as e:
+            _raise_error(e, "extract_range", "Error at extract range: The value given for end of range is smaller")
         _exit("extract_range")
 
     # Generate Alignment
@@ -1267,7 +1294,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
         if in_args.out_format:
             generated_msas.out_format = in_args.out_format
-        _stdout(str(generated_msas))
+        try:
+            _stdout(str(generated_msas))
+        except AttributeError as e:
+            _raise_error(e, "generate_msa", "is not a valid alignment tool")
         _exit("generate_alignment")
 
     # List identifiers
@@ -1345,7 +1375,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Translate CDS
     if in_args.translate:
-        _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
+        try:
+            _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
+        except TypeError as e:
+            _raise_error(e, "translate", "Nucleic acid sequence required, not protein.")
         _exit("translate")
 
     # Trimal
@@ -1357,8 +1390,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Transcribe
     if in_args.transcribe:
         if alignbuddy.alpha != IUPAC.ambiguous_dna:
-            raise ValueError("You need to provide a DNA sequence.")
-        _print_aligments(dna2rna(alignbuddy))
+            _raise_error(ValueError("You need to provide a DNA sequence."), "transcribe")
+        try:
+            _print_aligments(dna2rna(alignbuddy))
+        except TypeError as e:
+            _raise_error(e, "transcribe", "Nucleic acid sequence required, not protein.")
         _exit("transcribe")
 
     # Uppercase
@@ -1369,9 +1405,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, GuessError) as e:
-        print(e)
+    except (KeyboardInterrupt, GuessError) as _e:
+        print(_e)
     except SystemExit:
         pass
-    except Exception as e:
-        br.send_traceback("AlignBuddy", e)
+    except Exception as _e:
+        br.send_traceback("AlignBuddy", _e)

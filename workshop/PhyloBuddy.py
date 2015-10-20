@@ -982,8 +982,18 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         usage.save()
         sys.exit()
 
-    def _raise_error(_err, _tool):
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)))
+    def _raise_error(_err, _tool, check_string=None):
+        if check_string:
+            if type(check_string) == str:
+                check_string = [check_string]
+            re_raise = True
+            for _string in check_string:
+                if _string in str(_err):
+                    re_raise = False
+                    break
+            if re_raise:
+                raise _err
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
