@@ -457,19 +457,6 @@ def _feature_rc(feature, seq_len):
     return feature
 
 
-def _format_to_extension(_format):
-    """
-    This is just a wrapper for the format_to_extension dict (could probably be unwrapped...)
-    NOTE: If this is added to, be sure to update the unit test!
-    :param _format: The long-form format to be converted to short form
-    :return: str
-    """
-    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
-                           'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
-                           'stockholm': 'stklm', 'stklm': 'stklm'}
-    return format_to_extension[_format]
-
-
 def _guess_alphabet(seqbuddy):
     """
     Looks through the characters in the SeqBuddy records to determine the most likely alphabet
@@ -3299,7 +3286,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         for next_seqbuddy in taxa_groups:
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
-                                                _format_to_extension(next_seqbuddy.out_format))
+                                                br.format_to_extension[next_seqbuddy.out_format])
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(next_seqbuddy)
@@ -3329,7 +3316,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         for next_seqbuddy in taxa_groups:
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
-                                                _format_to_extension(next_seqbuddy.out_format))
+                                                br.format_to_extension[next_seqbuddy.out_format])
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
             _print_recs(next_seqbuddy)

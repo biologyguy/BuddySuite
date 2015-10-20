@@ -39,6 +39,7 @@ if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
 
+# ##################################################### CLASSES ###################################################### #
 class Contributor:
     def __init__(self, first, last, commits=None, github=None):
         self.first = first
@@ -166,6 +167,7 @@ Contributors:
         return _output
 
 
+# #################################################### FUNCTIONS ##################################################### #
 def config_values():
     config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
     if os.path.isfile(config_file):
@@ -265,14 +267,15 @@ def send_traceback(tool, e):
         print("Success, thank you.\n")
 
 
+# #################################################### VARIABLES ##################################################### #
+
 contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
 
-# VERSIONS
-VERSIONS = {"SeqBuddy": Version("SeqBuddy", 2, 'alpha', contributors),
-            "DatabaseBuddy": Version("DatabaseBuddy", 1, 'alpha', contributors),
-            "AlignBuddy": Version("AlignBuddy", 1, 'alpha', contributors),
-            "PhyloBuddy": Version("PhyloBuddy", 1, 'alpha', contributors)}
+# NOTE: If this is added to, be sure to update the unit test!
+format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
+                       'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
+                       'stockholm': 'stklm', 'stklm': 'stklm'}
 
 # flag, action, nargs, metavar, help, choices, type
 # #################################################### INSTALLER ##################################################### #

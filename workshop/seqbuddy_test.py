@@ -298,14 +298,6 @@ def test_feature_rc():
         Sb._feature_rc(feature, 1203)
 
 
-# ######################  '_format_to_extension' ###################### #
-def test_format_to_extension():
-    ext_dict = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy',
-                'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
-    for i, j in ext_dict.items():
-        assert j == Sb._format_to_extension(i)
-
-
 # ######################  '_guess_alphabet' ###################### #
 def test_guess_alphabet():
     tester = Sb._make_copy(sb_objects[0])

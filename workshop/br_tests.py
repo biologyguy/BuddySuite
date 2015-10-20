@@ -44,3 +44,11 @@ def test_versions():
 
     db_ver = Popen("db -v", stdout=PIPE, shell=True).communicate()
     assert db_ver[0].decode() == str(br.VERSIONS["DatabaseBuddy"])
+
+
+# ######################  '_format_to_extension' ###################### #
+def test_format_to_extension():
+    ext_dict = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy',
+                'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
+    for i, j in ext_dict.items():
+        assert j == br.format_to_extension(i)
