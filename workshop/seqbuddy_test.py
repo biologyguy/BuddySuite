@@ -1359,6 +1359,13 @@ def test_rename_ids2():
     assert "There are more replacement match" in str(e)
 
 
+# ##################### 'rs', 'replace_subseq' ###################### ##
+def test_replace_subsequence():
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.replace_subsequence(tester, "atg(.{5}).{3}", "FOO\\1BAR")
+    assert seqs_to_hash(tester) == "f12707c2b0ef866f0039bac96abb29e0"
+
+
 # ######################  'rc', '--reverse_complement' ###################### #
 hashes = ["e77be24b8a7067ed54f06e0db893ce27", "47941614adfcc5bd107f71abef8b3e00", "f549c8dc076f6b3b4cf5a1bc47bf269d",
           "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
@@ -2358,6 +2365,15 @@ def test_rename_ids_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
+
+
+# ######################  '-rs', '--replace_subseq' ###################### #
+def test_replace_subseq_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.replace_subseq = [["atg(.{5}).{3}", "FOO\\1BAR"]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4e1b13745d256331ccb46dd275627edb"
 
 
 # ######################  '-rc', '--reverse_complement' ###################### #

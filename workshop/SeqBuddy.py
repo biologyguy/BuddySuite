@@ -78,18 +78,6 @@ def predict_orfs():
     return
 
 
-def delete_pattern(seqbuddy, pattern):
-    # remove residues that match a given pattern from all records
-    replace_pattern(seqbuddy, pattern, "")
-    return seqbuddy
-
-
-def replace_pattern(seqbuddy, query, replacement):
-    # Substitute sequence patterns with something else
-    x = [query, replacement]
-    return seqbuddy, x
-
-
 def mutate():
     # Apply some model of evolution to generate new sequences from input
     return
@@ -2468,6 +2456,24 @@ def rename(seqbuddy, query, replace="", num=0):
     return seqbuddy
 
 
+def replace_subsequence(seqbuddy, query, replacement=""):
+    # ToDo: - Allow variable number of replacements
+    #       - Add features to SeqRecords to denote substitutions
+    #       - Consider adding case sensitive support.
+    #       - Catch regex errors
+    """
+    :param seqbuddy: SeqBuddy object
+    :param query: Regular expression (str)
+    :param replacement: string
+    :return:
+    """
+    query = "(?i)%s" % query
+    for rec in seqbuddy.records:
+        new_seq = re.sub(query, replacement, str(rec.seq))
+        rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+    return seqbuddy
+
+
 def reverse_complement(seqbuddy):
     """
     Converts DNA/RNA sequences to their reverse complementary sequence
@@ -2653,6 +2659,7 @@ def translate_cds(seqbuddy, quiet=False):
                 raise e1  # Hopefully never get here.
 
     clean_seq(seqbuddy, ambiguous=False, rep_char="N")
+    replace_subsequence(seqbuddy, "x", "N")
     for rec in seqbuddy.records:  # Removes any frame shift annotations before translating
         for indx, feature in enumerate(rec.features):
             if feature.type == "frame_shift" and "residues" in feature.qualifiers:
@@ -3156,7 +3163,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                         value = ["%s-%s" % (x[0], x[1]) for x in rec.buddy_data["cpgs"]]
                         output += "{0}: {1}\n".format(rec.id, ", ".join(value))
 
-                _stderr('########### Islands identified ###########\n%s\n##########################################\n\n' %
+                _stderr('########### Islands identified ###########\n%s\n'
+                        '##########################################\n\n' %
                         output.strip(), in_args.quiet)
             else:
                 _stderr("# No Islands identified\n\n", in_args.quiet)
@@ -3309,11 +3317,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy.records):
             taxa_groups = make_groups(seqbuddy, num_chars=5)
 
-        for _seqbuddy in taxa_groups:
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, _seqbuddy.identifier, _format_to_extension(_seqbuddy.out_format))
+        for next_seqbuddy in taxa_groups:
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
+                                                _format_to_extension(next_seqbuddy.out_format))
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
-            _print_recs(_seqbuddy)
+            _print_recs(next_seqbuddy)
 
         _exit("group_by_prefix")
 
@@ -3338,11 +3347,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
-        for _seqbuddy in taxa_groups:
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, _seqbuddy.identifier, _format_to_extension(_seqbuddy.out_format))
+        for next_seqbuddy in taxa_groups:
+            in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
+                                                _format_to_extension(next_seqbuddy.out_format))
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w").close()
-            _print_recs(_seqbuddy)
+            _print_recs(next_seqbuddy)
 
         _exit("group_by_regex")
 
@@ -3687,6 +3697,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except AttributeError as e:
             _raise_error(e, "rename_ids", "There are more replacement")
         _exit("rename_ids")
+
+    # Replace sub-sequences
+    if in_args.replace_subseq:
+        args = in_args.replace_subseq[0]
+        args = args[:2] if len(args) > 1 else args
+        _print_recs(replace_subsequence(seqbuddy, *args))
 
     # Reverse complement
     if in_args.reverse_complement:

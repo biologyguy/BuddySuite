@@ -518,6 +518,12 @@ sb_flags = {"annotate": {"flag": "ano",
                            "nargs": "*",
                            "help": "Replace some pattern in ids with something else. "
                                    "args: <pattern>, <substitution>, [max replacements (int)]"},
+            "replace_subseq": {"flag": "rs",
+                               "action": "append",
+                               "metavar": "args",
+                               "nargs": "+",
+                               "help": "Replace some pattern in sequences with something else. "
+                                       "args: <query (regex)> [query ...] [replacement]"},
             "reverse_complement": {"flag": "rc",
                                    "action": "store_true",
                                    "help": "Return reverse complement of nucleotide sequence"},
