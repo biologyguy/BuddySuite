@@ -26,17 +26,45 @@ Description: Collection of PyTest unit tests for the AlignBuddy.py program
 import pytest
 from hashlib import md5
 import os
-from io import StringIO
 import re
+import sys
+import argparse
+import io
 from copy import deepcopy
+
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
-import sys
 
 sys.path.insert(0, "./")
-from MyFuncs import TempFile
+import MyFuncs
 import AlignBuddy as Alb
 import SeqBuddy as Sb
+import buddy_resources as br
+
+TEMP_DIR = MyFuncs.TempDir()
+VERSION = Sb.VERSION
+BACKUP_PATH = os.environ["PATH"]
+
+
+def fmt(prog):
+    return br.CustomHelpFormatter(prog)
+
+parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                 description='''\
+\033[1mSeqBuddy\033[m
+  See your sequence files. Be your sequence files.
+
+\033[1mUsage examples\033[m:
+  SeqBuddy.py "/path/to/seq_file" -<cmd>
+  SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
+  SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
+''')
+
+br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
+                              "into SeqBuddy this argument can be left blank."),
+         br.sb_flags, br.sb_modifiers, VERSION)
+
+in_args = parser.parse_args()
 
 
 def align_to_hash(_alignbuddy, mode='hash'):
@@ -73,7 +101,7 @@ def test_guess_format():
     with open(resource("Alignments_pep.stklm"), "r") as ifile:
         assert Alb._guess_format(ifile) == "stockholm"
         ifile.seek(0)
-        string_io = StringIO(ifile.read())
+        string_io = io.StringIO(ifile.read())
     assert Alb._guess_format(string_io) == "stockholm"
     with pytest.raises(Alb.GuessError):
         Alb._guess_format({"Dummy dict": "Type not recognized by guess_format()"})
@@ -81,7 +109,7 @@ def test_guess_format():
 
 @pytest.mark.parametrize("align_file,file_type", input_tuples)
 def test_instantiate_alignbuddy_from_file(align_file, file_type):
-    assert type(Alb.AlignBuddy(resource(align_file), _in_format=file_type)) == Alb.AlignBuddy
+    assert type(Alb.AlignBuddy(resource(align_file), in_format=file_type)) == Alb.AlignBuddy
 
 
 @pytest.mark.parametrize("align_file", align_files)
@@ -140,7 +168,7 @@ def test_guess_alphabet():
     assert str(type(Alb._guess_alphabet(alb_objects[4]))) == "<class 'Bio.Alphabet.IUPAC.IUPACProtein'>"
     tester = Alb.AlignBuddy(resource("Mnemiopsis_rna.nex"))
     assert str(type(Alb._guess_alphabet(tester))) == "<class 'Bio.Alphabet.IUPAC.IUPACAmbiguousRNA'>"
-    assert not Alb._guess_alphabet(Alb.AlignBuddy("", _in_format="fasta"))
+    assert not Alb._guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
 
 
 def test_guess_error():
@@ -167,31 +195,31 @@ def test_guess_error():
 
 
 def test_phylip():
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), _out_format='phylip-strict')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-strict')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
     assert tester == "16b3397d6315786e8ad8b66e0d9c798f"
 
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-relaxed')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-relaxed')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
     assert tester == "52c23bd793c9761b7c0f897d3d757c12"
 
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), _out_format='phylip-sequential-strict')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-sequential-strict')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
     assert tester == "cc9278c0dbe6b315162545115978dda3"
 
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-sequential')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-sequential')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = md5(tester.encode()).hexdigest()
     assert tester == "90267e3a80f29bc966dc580e26c1fc0a"
 
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-sequential-strict')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-sequential-strict')
     with pytest.raises(ValueError):
         str(tester)
 
-    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), _out_format='phylip-interleaved-strict')
+    tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-interleaved-strict')
     with pytest.raises(ValueError):
         str(tester)
 
@@ -244,7 +272,7 @@ def test_stdout(capsys):
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_write1(alignbuddy, next_hash):
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     alignbuddy.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
     tester = md5(out.encode()).hexdigest()
