@@ -103,7 +103,7 @@
 			"file": "SeqBuddy.py",
 			"settings":
 			{
-				"buffer_size": 153151,
+				"buffer_size": 155512,
 				"line_ending": "Unix"
 			}
 		},
@@ -111,7 +111,7 @@
 			"file": "buddy_resources.py",
 			"settings":
 			{
-				"buffer_size": 41958,
+				"buffer_size": 41964,
 				"line_ending": "Unix"
 			}
 		},
@@ -119,7 +119,7 @@
 			"file": "seqbuddy_test.py",
 			"settings":
 			{
-				"buffer_size": 82737,
+				"buffer_size": 95259,
 				"line_ending": "Unix"
 			}
 		}
@@ -200,6 +200,11 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"<<<",
+			"head",
+			"<<<<",
+			"'dgn",
+			"dgn",
 			"'dgn",
 			"'d2r",
 			"'cs",
@@ -288,7 +293,7 @@
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -297,15 +302,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 153151,
+						"buffer_size": 155512,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								101175,
-								101175
+								112621,
+								112621
 							]
 						],
 						"settings":
@@ -315,10 +320,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 41966.0,
+						"translation.y": 45492.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 0,
 					"type": "text"
 				},
 				{
@@ -327,15 +332,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 41958,
+						"buffer_size": 41964,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								18,
-								18
+								15293,
+								15293
 							]
 						],
 						"settings":
@@ -345,10 +350,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 5411.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
@@ -357,15 +362,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 82737,
+						"buffer_size": 95259,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								69194,
-								69194
+								69338,
+								69338
 							]
 						],
 						"settings":
@@ -375,10 +380,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 27193.0,
+						"translation.y": 26483.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
