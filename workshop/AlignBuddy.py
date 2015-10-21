@@ -142,9 +142,21 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         self.alpha = _guess_alphabet(alignments)
         for alignment in alignments:
             alignment._alphabet = self.alpha
-            for seq in alignment:
-                seq.seq.alphabet = self.alpha
+            for rec in alignment:
+                rec.seq.alphabet = self.alpha
         self.alignments = alignments
+
+    def records_iter(self):
+        for alignment in self.alignments:
+            for rec in alignment:
+                yield rec
+
+    def records(self):
+        seq_recs = []
+        for alignment in self.alignments:
+            for rec in alignment:
+                seq_recs.append(rec)
+        return seq_recs
 
     def print(self):
         print(self)
@@ -193,25 +205,6 @@ class GuessError(Exception):
 
     def __str__(self):
         return self.value
-
-
-def _get_alignment_binaries(tool):
-    tool_dict = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
-                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
-                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
-                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
-                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
-    return tool_dict[tool]
-
-
-def _get_seq_recs(alignbuddy):
-    seq_recs = []
-    for alignment in alignbuddy.alignments:
-        for rec in alignment:
-            seq_recs.append(rec)
-    return seq_recs
 
 
 def _guess_alphabet(alignbuddy):
@@ -278,10 +271,10 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
 
 
 def _make_copy(alignbuddy):
-    alphabet_list = [rec.seq.alphabet for rec in _get_seq_recs(alignbuddy)]
+    alphabet_list = [rec.seq.alphabet for rec in alignbuddy.records()]
     _copy = deepcopy(alignbuddy)
     _copy.alpha = alignbuddy.alpha
-    for indx, rec in enumerate(_get_seq_recs(_copy)):
+    for indx, rec in enumerate(_copy.records()):
         rec.seq.alphabet = alphabet_list[indx]
     return _copy
 
@@ -338,7 +331,7 @@ def clean_seq(alignbuddy, skip_list=None):
     :return: The cleaned AlignBuddy object
     """
     skip_list = "" if not skip_list else "".join(skip_list)
-    for rec in _get_seq_recs(alignbuddy):
+    for rec in alignbuddy.records_iter():
         if alignbuddy.alpha == IUPAC.protein:
             full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
@@ -359,7 +352,7 @@ def codon_alignment(alignbuddy):
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    for rec in _get_seq_recs(alignbuddy):
+    for rec in alignbuddy.records_iter():
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Error: Record %s is protein. Nucleic acid sequence required." % rec.name)
 
@@ -608,11 +601,19 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):  # T
             _stderr("Warning: {0} already exists. Please specify a different path.\n".format(keep_temp), quiet)
             sys.exit()
 
-    if tool not in ['pagan', 'prank', 'muscle', 'clustalw2', 'clustalomega', 'mafft']:
-        raise AttributeError("{0} is not a valid alignment tool.".format(tool))
+    tool_urls = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
+                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
+                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
+                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
+                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
+                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
+
+    if tool not in tool_urls:
+        raise AttributeError("{0} is not a supported alignment tool.".format(tool))
     if which(tool) is None:
         _stderr('#### Could not find {0} in $PATH. ####\n'.format(tool), quiet)
-        _stderr('Please go to {0} to install {1}.\n'.format(_get_alignment_binaries(tool), tool))
+        _stderr('Please go to {0} to install {1}.\n'.format(tool_urls[tool], tool))
         sys.exit()
     else:
         tmp_dir = TempDir()
@@ -758,7 +759,7 @@ def lowercase(alignbuddy):
     :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
     """
-    for rec in _get_seq_recs(alignbuddy):
+    for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).lower(), alphabet=rec.seq.alphabet)
     return alignbuddy
 
@@ -869,17 +870,17 @@ def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the 
             in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
             return in_seq
 
-        except TranslationError as e1:
+        except TranslationError as e:
             if not quiet:
-                sys.stderr.write("Warning: %s in %s\n" % (e1, in_seq.id))
-            return e1
+                sys.stderr.write("Warning: %s in %s\n" % (e, in_seq.id))
+            return e
 
     def map_gaps(nucl, pep):
         nucl = str(nucl.seq)
         pep_string = str(pep.seq)
         new_seq = ""
-        for codon in [nucl[i:i + 3] for i in range(0, len(nucl), 3)]:
-            if codon[0] not in GAP_CHARS:
+        for _codon in [nucl[j:j + 3] for j in range(0, len(nucl), 3)]:
+            if _codon[0] not in GAP_CHARS:
                 new_seq += pep_string[0]
                 pep_string = pep_string[1:]
 
@@ -910,7 +911,7 @@ def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the 
                     orig_rec.seq = Seq(orig_rec_seq, alphabet=orig_rec.seq.alphabet)
 
                     rec.seq = Seq(str(rec.seq)[:(len(str(rec.seq)) - len(str(rec.seq)) % 3)],
-                                   alphabet=rec.seq.alphabet)
+                                  alphabet=rec.seq.alphabet)
                     continue
 
                 # not a start codon
@@ -1095,15 +1096,15 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
     return alignbuddy
 
 
-def uppercase(_alignbuddy):
+def uppercase(alignbuddy):
     """
     Converts all sequence residues to uppercase.
-    :param _alignbuddy: The AlignBuddy object to be modified.
+    :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
     """
-    for rec in _get_seq_recs(_alignbuddy):
+    for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).upper(), alphabet=rec.seq.alphabet)
-    return _alignbuddy
+    return alignbuddy
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1162,11 +1163,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     def _print_aligments(_alignbuddy):
         try:
             _output = str(_alignbuddy)
-        except ValueError as _e:
-            _stderr("Error: %s\n" % str(_e))
+        except ValueError as err:
+            _stderr("Error: %s\n" % str(err))
             return False
-        except TypeError as _e:
-            _stderr("Error: %s\n" % str(_e))
+        except TypeError as err:
+            _stderr("Error: %s\n" % str(err))
             return False
 
         if in_args.test:
