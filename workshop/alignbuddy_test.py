@@ -31,9 +31,11 @@ import sys
 import argparse
 import io
 from copy import deepcopy
+from collections import OrderedDict
 
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 sys.path.insert(0, "./")
 import MyFuncs
@@ -76,8 +78,93 @@ def align_to_hash(_alignbuddy, mode='hash'):
 root_dir = os.getcwd()
 
 
+def string2hash(_input):
+    return md5(_input.encode()).hexdigest()
+
+
 def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
+
+
+# ################### Alignment resources ################### #
+class Resources:
+    def __init__(self):
+        one_dna = OrderedDict([("clustal", "Mnemiopsis_cds.clus"),
+                               ("fasta", "Mnemiopsis_cds_aln.fa"),
+                               ("gb", "Mnemiopsis_cds_aln.gb"),
+                               ("nexus", "Mnemiopsis_cds.nex"),
+                               ("phylip", "Mnemiopsis_cds.phy"),
+                               ("phylipr", "Mnemiopsis_cds.phyr"),
+                               ("phylips", "Mnemiopsis_cds.phys"),
+                               ("stockholm", "Mnemiopsis_cds.stklm")])
+        one_rna = OrderedDict([("nexus", "Mnemiopsis_rna.nex"),])
+        one_pep = OrderedDict([("gb", "Mnemiopsis_pep_aln.gb"),
+                               ("nexus", "Mnemiopsis_pep.nex"),
+                               ("phylip", "Mnemiopsis_pep.phy"),
+                               ("phylipr", "Mnemiopsis_pep.phyr"),
+                               ("stockholm", "Mnemiopsis_pep.stklm")])
+
+        one_aligns = OrderedDict([("dna", one_dna),
+                                  ("rna", one_rna),
+                                  ("pep", one_pep)])
+
+        multi_dna = OrderedDict([("clustal", "Alignments_cds.clus"),
+                                 ("phylip", "Alignments_cds.phy"),
+                                 ("phylipr", "Alignments_cds.phyr"),
+                                 ("phylips", "Alignments_cds.phys"),
+                                 ("stockholm", "Alignments_cds.stklm")])
+        multi_pep = OrderedDict([("clustal", "Alignments_pep.clus"),
+                                 ("phylip", "Alignments_pep.phy"),
+                                 ("phylipr", "Alignments_pep.phyr"),
+                                 ("phylips", "Alignments_pep.phys"),
+                                 ("stockholm", "Alignments_pep.stklm")])
+
+        multi_aligns = OrderedDict([("dna", multi_dna),
+                                    ("pep", multi_pep)])
+
+        self.resources = OrderedDict([("one", one_aligns), ("multi", multi_aligns)])
+
+        for num in self.resources:
+            for _type in self.resources[num]:
+                self.resources[num][_type] = OrderedDict([(key, Alb.AlignBuddy(resource(path)))
+                                                          for key, path in self.resources[num][_type].items()])
+
+    def get(self, code=""):
+        code_dict = {"num_aligns": {"o": "one", "m": "multi"},
+                     "type": {"p": "pep", "d": "dna", "r": "rna"},
+                     "format": {"c": "clustal", "f": "fasta", "g": "gb", "n": "nexus",
+                                "py": "phylip", "pr": "phylipr", "ps": "phylips", "s": "stockholm"}
+                     }
+
+        results = {"num_aligns": [], "type": [], "format": []}
+        code = code.split()
+        for i in code:
+            for j in results:
+                if i in code_dict[j]:
+                    results[j].append(i)
+
+        # Fill up a field with all possibilities if nothing is given
+        results["num_aligns"] = [key for key in code_dict["num_aligns"]] \
+            if not results["num_aligns"] else results["num_aligns"]
+        results["type"] = [key for key in code_dict["type"]] if not results["type"] else results["type"]
+        results["format"] = [key for key in code_dict["format"]] if not results["format"] else results["format"]
+
+        output = []
+        for num_aligns in results["num_aligns"]:
+            num_aligns = code_dict["num_aligns"][num_aligns]
+            for _type in results["type"]:
+                _type = code_dict["type"][_type]
+                for _format in results["format"]:
+                    _format = code_dict["format"][_format]
+                    try:
+                        output.append(Alb._make_copy(self.resources[num_aligns][_type][_format]))
+                    except KeyError:
+                        pass
+        return [alb.alpha for alb in output]
+
+alignments = Resources()
+print(alignments.get("o ps g s n"))
+sys.exit()
 
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
                "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
@@ -92,19 +179,6 @@ file_types = ["nexus", "phylip", "phylip-relaxed", "stockholm",
 nucl_indices = [0, 1, 2, 3, 11, 12]
 
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
-
-
-def test_guess_format():
-    assert Alb._guess_format(["dummy", "list"]) == "stockholm"
-    assert Alb._guess_format(alb_objects[0]) == "nexus"
-
-    with open(resource("Alignments_pep.stklm"), "r") as ifile:
-        assert Alb._guess_format(ifile) == "stockholm"
-        ifile.seek(0)
-        string_io = io.StringIO(ifile.read())
-    assert Alb._guess_format(string_io) == "stockholm"
-    with pytest.raises(Alb.GuessError):
-        Alb._guess_format({"Dummy dict": "Type not recognized by guess_format()"})
 
 
 @pytest.mark.parametrize("align_file,file_type", input_tuples)
@@ -156,21 +230,72 @@ def test_empty_file():
 alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
 
 
+# ##################### AlignBuddy methods ###################### ##
+def test_records():
+    assert len(alb_objects[8].records()) == 28
+
+
+def test_records_iter():
+    counter = 0
+    for rec in alb_objects[8].records_iter():
+        assert type(rec) == SeqRecord
+        counter += 1
+    assert counter == 28
+
+
+hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50",
+          "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
+          "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
+          "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9",
+          "90578980479ad235338dbb767444b05b", "9c6773e7d24000f8b72dd9d25620cff1",
+          "3fd5805f61777f7f329767c5f0fb7467"]
+hashes = [(alb_objects[indx], value) for indx, value in enumerate(hashes)]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_print(alignbuddy, next_hash, capsys):
+    alignbuddy.print()
+    out, err = capsys.readouterr()
+    out = "{0}\n".format(out.rstrip())
+    tester = string2hash(out)
+    assert tester == next_hash
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_str(alignbuddy, next_hash):
+    tester = str(alignbuddy)
+    tester = string2hash(tester)
+    assert tester == next_hash
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_write1(alignbuddy, next_hash):
+    temp_file = MyFuncs.TempFile()
+    alignbuddy.write(temp_file.path)
+    out = "{0}\n".format(temp_file.read().rstrip())
+    tester = string2hash(out)
+    assert tester == next_hash
+
+
+def test_write2():  # Unloopable components
+    tester = Alb._make_copy(alb_objects[8])
+    tester.out_format = "fasta"
+    with pytest.raises(ValueError):
+        str(tester)
+
+    tester.alignments = []
+    assert str(tester) == "AlignBuddy object contains no alignments.\n"
+
+    tester = Alb._make_copy(alb_objects[2])
+    tester.out_format = "phylipi"
+    assert align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
+
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds_hashed_ids.nex"))
+    tester.out_format = "phylip-strict"
+    assert align_to_hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+
+
 # ################################################# HELPER FUNCTIONS ################################################# #
-def test_get_seq_recs():
-    tester = str(Alb._get_seq_recs(alb_objects[8]))
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "6168f8b57d0ff78d70fd22ee09d713b5"
-
-
-def test_guess_alphabet():
-    assert str(type(Alb._guess_alphabet(alb_objects[0]))) == "<class 'Bio.Alphabet.IUPAC.IUPACAmbiguousDNA'>"
-    assert str(type(Alb._guess_alphabet(alb_objects[4]))) == "<class 'Bio.Alphabet.IUPAC.IUPACProtein'>"
-    tester = Alb.AlignBuddy(resource("Mnemiopsis_rna.nex"))
-    assert str(type(Alb._guess_alphabet(tester))) == "<class 'Bio.Alphabet.IUPAC.IUPACAmbiguousRNA'>"
-    assert not Alb._guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
-
-
 def test_guess_error():
     # File path
     with pytest.raises(Alb.GuessError):
@@ -190,29 +315,55 @@ def test_guess_error():
     try:
         Alb.AlignBuddy(resource("unrecognizable.txt"))
     except Alb.GuessError as e:
-        assert "Could not determine format from _input file" in str(e.value) and \
-               "\nTry explicitly setting with -f flag." in str(e.value)
+        assert "Could not determine format from _input file" in str(e) and \
+               "\nTry explicitly setting with -f flag." in str(e)
+
+
+def test_guess_alphabet():
+    assert Alb._guess_alphabet(alb_objects[0]) == IUPAC.ambiguous_dna
+    assert Alb._guess_alphabet(alb_objects[4]) == IUPAC.protein
+    tester = Alb.AlignBuddy(resource("Mnemiopsis_rna.nex"))
+    assert Alb._guess_alphabet(tester) == IUPAC.ambiguous_rna
+    assert not Alb._guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
+
+
+def test_guess_format():
+    assert Alb._guess_format(["dummy", "list"]) == "stockholm"
+    for indx, alb in enumerate(alb_objects[:4]):
+        assert Alb._guess_format(alb) == file_types[indx]
+
+    with open(resource("Alignments_pep.stklm"), "r") as ifile:
+        assert Alb._guess_format(ifile) == "stockholm"
+        ifile.seek(0)
+        string_io = io.StringIO(ifile.read())
+    assert Alb._guess_format(string_io) == "stockholm"
+    with pytest.raises(Alb.GuessError):
+        Alb._guess_format({"Dummy dict": "Type not recognized by guess_format()"})
+
+
+def test_make_copy():
+    pass
 
 
 def test_phylip():
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-strict')
     tester = "{0}\n".format(str(tester).rstrip())
-    tester = md5(tester.encode()).hexdigest()
+    tester = string2hash(tester)
     assert tester == "16b3397d6315786e8ad8b66e0d9c798f"
 
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-relaxed')
     tester = "{0}\n".format(str(tester).rstrip())
-    tester = md5(tester.encode()).hexdigest()
+    tester = string2hash(tester)
     assert tester == "52c23bd793c9761b7c0f897d3d757c12"
 
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-sequential-strict')
     tester = "{0}\n".format(str(tester).rstrip())
-    tester = md5(tester.encode()).hexdigest()
+    tester = string2hash(tester)
     assert tester == "cc9278c0dbe6b315162545115978dda3"
 
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-sequential')
     tester = "{0}\n".format(str(tester).rstrip())
-    tester = md5(tester.encode()).hexdigest()
+    tester = string2hash(tester)
     assert tester == "90267e3a80f29bc966dc580e26c1fc0a"
 
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-sequential-strict')
@@ -222,32 +373,6 @@ def test_phylip():
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-interleaved-strict')
     with pytest.raises(ValueError):
         str(tester)
-
-
-# AlignBuddy print() and __str__() methods
-hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50",
-          "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
-          "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9",
-          "90578980479ad235338dbb767444b05b", "9c6773e7d24000f8b72dd9d25620cff1",
-          "3fd5805f61777f7f329767c5f0fb7467"]
-hashes = [(alb_objects[indx], value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_print(alignbuddy, next_hash, capsys):
-    alignbuddy.print()
-    out, err = capsys.readouterr()
-    out = "{0}\n".format(out.rstrip())
-    tester = md5(out.encode()).hexdigest()
-    assert tester == next_hash
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_str(alignbuddy, next_hash):
-    tester = str(alignbuddy)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
 
 
 def test_stderr(capsys):
@@ -268,33 +393,6 @@ def test_stdout(capsys):
     Alb._stdout("Hello std_out", quiet=True)
     out, err = capsys.readouterr()
     assert out == ""
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_write1(alignbuddy, next_hash):
-    temp_file = MyFuncs.TempFile()
-    alignbuddy.write(temp_file.path)
-    out = "{0}\n".format(temp_file.read().rstrip())
-    tester = md5(out.encode()).hexdigest()
-    assert tester == next_hash
-
-
-def test_write2():  # Unloopable components
-    tester = Alb._make_copy(alb_objects[8])
-    tester.out_format = "fasta"
-    with pytest.raises(ValueError):
-        str(tester)
-
-    tester.alignments = []
-    assert str(tester) == "AlignBuddy object contains no alignments.\n"
-
-    tester = Alb._make_copy(alb_objects[2])
-    tester.out_format = "phylipi"
-    assert md5(str(tester).encode()).hexdigest() == "52c23bd793c9761b7c0f897d3d757c12"
-
-    tester = Alb.AlignBuddy(resource("Mnemiopsis_cds_hashed_ids.nex"))
-    tester.out_format = "phylip-strict"
-    assert md5(str(tester).encode()).hexdigest() == "16b3397d6315786e8ad8b66e0d9c798f"
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -592,12 +690,12 @@ def test_mafft_multi_param():
 
 # ###############################################  'li', '--list_ids' ################################################ #
 def test_list_ids():
-    tester = Alb.list_ids(alb_objects[0])
-    tester = md5(str(tester).encode()).hexdigest()
+    tester = Alb.list_ids(Alb._make_copy(alb_objects[0]))
+    tester = string2hash(str(tester))
     assert tester == "bdb865d00bef4eb3becaaae8f7bb94cd"
 
-    tester = Alb.list_ids(alb_objects[8])
-    tester = md5(str(tester).encode()).hexdigest()
+    tester = Alb.list_ids(Alb._make_copy(alb_objects[8]))
+    tester = string2hash(str(tester))
     assert tester == "0f398f3ef5b73804d03b550d66b5462c"
 
 
