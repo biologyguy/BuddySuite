@@ -2,6 +2,27 @@
 # -*- coding: utf-8 -*-
 # NOTE: BioPython 16.6+ required.
 
+"""
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+name: seqbuddy_tests.py
+version: 1, alpha
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/BuddySuite
+© license: None, this work is public domain
+
+Description: Collection of PyTest unit tests for the SeqBuddy.py program
+"""
+
 import pytest
 from hashlib import md5
 import os
@@ -23,6 +44,7 @@ import MyFuncs
 
 VERSION = Sb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
+TEMP_DIR = MyFuncs.TempDir()
 BACKUP_PATH = os.environ["PATH"]
 
 
@@ -167,6 +189,9 @@ def test_to_string(capsys):
     tester.out_format = "phylipis"
     assert string2hash(str(tester)) == "0b00c1521259b0e1389e58cb5d414048"
 
+    tester.out_format = "raw"
+    assert string2hash(str(tester)) == "e4a00cbc145bc6b95d02e30cfcb925e9"
+
     tester.records = []
     assert str(tester) == "Error: No sequences in object.\n"
 
@@ -271,14 +296,6 @@ def test_feature_rc():
         feature = seq1.features[0]
         feature.location = {}
         Sb._feature_rc(feature, 1203)
-
-
-# ######################  '_format_to_extension' ###################### #
-def test_format_to_extension():
-    ext_dict = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy',
-                'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
-    for i, j in ext_dict.items():
-        assert j == Sb._format_to_extension(i)
 
 
 # ######################  '_guess_alphabet' ###################### #
@@ -557,16 +574,14 @@ def test_back_translate_bad_organism():
 
 
 # ######################  'bl2s', '--bl2seq' ###################### #
-def test_bl2seq_cds():
+def test_bl2seq():
     seqbuddy = Sb._make_copy(sb_objects[0])
-    result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == '339377aee781fb9d01456f04553e3923'
+    result = Sb.bl2seq(seqbuddy)
+    assert string2hash(str(result)) == '87dbd3baeb59285ad25e6473c87bb5bb'
 
-
-def test_bl2seq_pep():
     seqbuddy = Sb._make_copy(sb_objects[6])
-    result = Sb.bl2seq(seqbuddy)[1]
-    assert md5(result.encode()).hexdigest() == '4c722c4db8bd5c066dc76ebb94583a37'
+    result = Sb.bl2seq(seqbuddy)
+    assert string2hash(str(result)) == '248d4c53d7947c4c8dfd7c415bfbfbf2'
 
 
 def test_bl2_no_binary():
@@ -633,14 +648,20 @@ def test_clean_seq():
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "71b28ad2730a9849f2ba0f70e9e51a9f"
     tester = Sb.clean_seq(tester, ambiguous=False)
-    assert seqs_to_hash(tester) == "5fd0b78e37c81e0fa727db34a37cc743"
+    assert seqs_to_hash(tester) == "1912fadb5ec52a38ec707c58085b86ad"
+    tester = Sb._make_copy(sb_objects[12])
+    tester = Sb.clean_seq(tester, ambiguous=False, rep_char="X")
+    assert seqs_to_hash(tester) == "4c10ba4474d7484652cb633f03db1be1"
 
     # RNA
     tester = Sb._make_copy(sb_objects[13])
     tester = Sb.clean_seq(tester, ambiguous=True)
     assert seqs_to_hash(tester) == "cdb1b963536d57efc7b7f87d2bf4ad22"
     tester = Sb.clean_seq(tester, ambiguous=False)
-    assert seqs_to_hash(tester) == "ef61174330f2d9cf5da4f087d12ca201"
+    assert seqs_to_hash(tester) == "e66b785c649ad5086bcefd22e9ef9b41"
+    tester = Sb._make_copy(sb_objects[13])
+    tester = Sb.clean_seq(tester, ambiguous=False, rep_char="X")
+    assert seqs_to_hash(tester) == "8ae19ab51b04076112d2f649353a4a79"
 
     # Alignment formats are converted to fasta to prevent errors with sequence lengths
     for tester in sb_objects[2:5]:
@@ -911,7 +932,7 @@ def test_find_cpg():
 def test_find_pattern():
     tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATGGT")
     assert seqs_to_hash(tester) == "a2e110d3ba14ea5d1b236a8abef7341a"
-    tester =  Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T")
+    tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T")
     assert seqs_to_hash(tester) == "c8a3e2e8b97f47c5cc41f04a44243e34"
     tester = Sb.find_pattern(Sb._make_copy(sb_objects[1]), "ATg{2}T", "tga.{1,6}tg")
     assert seqs_to_hash(tester) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
@@ -1047,6 +1068,13 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
     assert seqs_to_hash(tester) == uc_hash
     tester = Sb.lowercase(tester)
     assert seqs_to_hash(tester) == lc_hash
+
+
+# ######################  'mui', '--make_ids_unique' ###################### #
+def test_make_ids_unique():
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.make_ids_unique(tester)
+    assert seqs_to_hash(tester) == "3f84819b81185d49a7357947ca7f0707"
 
 
 # ######################  'fn2p', '--map_features_nucl2prot' ###################### #
@@ -1259,15 +1287,26 @@ def test_order_ids(seqbuddy, fwd_hash, rev_hash):
 
 # ######################  'oir', '--order_ids_randomly' ###################### #
 @pytest.mark.parametrize("seqbuddy", [Sb._make_copy(x) for x in sb_objects])
-def test_shuffle(seqbuddy):
+def test_order_ids_randomly(seqbuddy):
     tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-    # for i in range(3):  # Sometimes the shuffle doesn't actually work, so repeat a few times if necessary
-    #    if seqs_to_hash(seqbuddy) != seqs_to_hash(tester):
-    #        break
-    #    tester = Sb.order_ids_randomly(Sb._make_copy(seqbuddy))
-
     assert seqs_to_hash(seqbuddy) != seqs_to_hash(tester)
     assert seqs_to_hash(Sb.order_ids(tester)) == seqs_to_hash(tester)
+
+
+def test_order_ids_randomly2():
+    tester = Sb._make_copy(sb_objects[0])
+    for _ in range(15):  # This will fail to repeat the while loop only ~5% of the time
+        Sb.pull_recs(tester, "α[789]")
+        assert seqs_to_hash(tester) != seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    Sb.pull_recs(tester, "α[89]")
+    assert seqs_to_hash(tester) != seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    Sb.pull_recs(tester, "α[9]")
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids_randomly(tester))
+
+    tester = Sb.SeqBuddy(tester.records * 3)
+    assert seqs_to_hash(tester) == seqs_to_hash(Sb.order_ids_randomly(tester))
 
 
 # #####################  'prr', '--pull_random_recs' ###################### ##
@@ -1281,13 +1320,17 @@ def test_pull_random_recs(seqbuddy):
 
 # #####################  'pre', '--pull_record_ends' ###################### ##
 def test_pull_record_ends():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, 10)
-    assert seqs_to_hash(tester) == '754d6868030d1122b35386118612db72'
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), 10)
+    assert seqs_to_hash(tester) == 'd46867e4ca7a9f474c45473fc3495413'
 
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_record_ends(tester, -10)
-    assert seqs_to_hash(tester) == '9cfc91c3fdc5cd9daabce0ef9bac2db7'
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), 2000)
+    assert seqs_to_hash(tester) == '908744b00d9f3392a64b4b18f0db9fee'
+
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), -10)
+    assert seqs_to_hash(tester) == 'd7970570d65872993df8a3e1d80f9ff5'
+
+    tester = Sb.pull_record_ends(Sb._make_copy(sb_objects[1]), -2000)
+    assert seqs_to_hash(tester) == '908744b00d9f3392a64b4b18f0db9fee'
 
     seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     with pytest.raises(ValueError):
@@ -1309,28 +1352,13 @@ def test_pull_recs(seqbuddy, next_hash):
 # #####################  'prg', '--purge' ###################### ##
 def test_purge():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.fa"))
-    tester = Sb.purge(tester, 200)
-    assert seqs_to_hash(tester[0]) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
-
-
-# ######################  'rs', '--raw_seq' ###################### #
-hashes = ["6f0ff2d43706380d92817e644e5b78a5", "5d00d481e586e287f32d2d29916374ca", "6f0ff2d43706380d92817e644e5b78a5",
-          "cda59127d6598f44982a2d1875064bb1", "6f0ff2d43706380d92817e644e5b78a5", "6f0ff2d43706380d92817e644e5b78a5",
-          "cdfe71aefecc62c5f5f2f45e9800922c", "4dd913ee3f73ba4bb5dc90d612d8447f", "cdfe71aefecc62c5f5f2f45e9800922c",
-          "3f48f81ab579a389947641f36889901a", "cdfe71aefecc62c5f5f2f45e9800922c", "cdfe71aefecc62c5f5f2f45e9800922c"]
-hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_raw_seq(seqbuddy, next_hash):
-    tester = Sb.raw_seq(seqbuddy)
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == next_hash
+    Sb.purge(tester, 200)
+    assert seqs_to_hash(tester) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
 
 
 # ######################  'ri', '--rename_ids' ###################### #
-hashes = ["59bea136d93d30e3f11fd39d73a9adff", "78c73f97117bd937fd5cf52f4bd6c26e", "243024bfd2f686e6a6e0ef65aa963494",
-          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "4289f03afb6c9f8a8b0d8a75bb60a2ce"]
+hashes = ["8b4a9e3d3bb58cf8530ee18b9df67ff1", "144cc5ed20678a818bce908c475ae450", "243024bfd2f686e6a6e0ef65aa963494",
+          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "65196fd4f2a4e339e1545f6ed2a6acc3"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -1338,6 +1366,39 @@ hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(
 def test_rename_ids(seqbuddy, next_hash):
     tester = Sb.rename(seqbuddy, 'Panx', 'Test', 0)
     assert seqs_to_hash(tester) == next_hash
+
+
+def test_rename_ids2():
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "Panxα([1-6])", "testing\\1")
+    assert seqs_to_hash(tester) == "f0d7ec055b3b2d9ec11a86634b32e9ef"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "Panxα([1-6])", "testing\\1", -1)
+    assert seqs_to_hash(tester) == "f0d7ec055b3b2d9ec11a86634b32e9ef"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[a-z]", "?", 2)
+    assert seqs_to_hash(tester) == "08aaee2e7b9997b512c7d1b2fe748d40"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[a-z]", "?", -2)
+    assert seqs_to_hash(tester) == "9b3946afde20c991099463d099be22e0"
+
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.rename(tester, "[A-Z]", "?", -20)
+    assert seqs_to_hash(tester) == "451993d7e816881e2700697263b1d8fa"
+
+    with pytest.raises(AttributeError) as e:
+        Sb.rename(tester, "[a-z]", "\\1?", -2)
+    assert "There are more replacement match" in str(e)
+
+
+# ##################### 'rs', 'replace_subseq' ###################### ##
+def test_replace_subsequence():
+    tester = Sb._make_copy(sb_objects[0])
+    Sb.replace_subsequence(tester, "atg(.{5}).{3}", "FOO\\1BAR")
+    assert seqs_to_hash(tester) == "f12707c2b0ef866f0039bac96abb29e0"
 
 
 # ######################  'rc', '--reverse_complement' ###################### #
@@ -1353,15 +1414,17 @@ def test_reverse_complement(seqbuddy, next_hash):
 
 
 def test_reverse_complement_pep_exception():  # Asserts that a TypeError will be thrown if user inputs protein
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as e:
         Sb.reverse_complement(sb_objects[6])
-
+    assert str(e.value) == "SeqBuddy object is protein. Nucleic acid sequences required."
 
 # ######################  'sfr', '--select_frame' ###################### #
-# Only fasta
-hashes = ["b831e901d8b6b1ba52bad797bad92d14", "a518e331fb29e8be0fdd5f3f815f5abb", "2cbe39bea876030da6d6bd45e514ae0e"]
-frame = [1, 2, 3]
-hashes = [(Sb._make_copy(sb_objects[0]), _hash, frame[indx]) for indx, _hash in enumerate(hashes)]
+hashes = [(0, 1, "b831e901d8b6b1ba52bad797bad92d14"), (0, 2, "2de033b2bf2327f2795fe425db0bd78f"),
+          (0, 3, "1c29898d4964e0d1b03207d7e67e1958"), (1, 1, "908744b00d9f3392a64b4b18f0db9fee"),
+          (1, 2, "94a31e98e720ca0fbbe2df148892ee71"), (1, 3, "097b692d4de5acfe0c93bdac58f0e574"),
+          (2, 1, "cb1169c2dd357771a97a02ae2160935d"), (2, 2, "87d784f197b55f812d2fc82774da43d1"),
+          (2, 3, "5d6d2f337ecdc6f9a85e981c975f3e08")]
+hashes = [(Sb._make_copy(sb_objects[sb_indx]), _hash, frame) for sb_indx, frame, _hash in hashes]
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash,shift", hashes)
@@ -1370,35 +1433,77 @@ def test_select_frame(seqbuddy, next_hash, shift):
     assert seqs_to_hash(tester) == next_hash
 
 
-def test_select_frame_pep_exception():
-    with pytest.raises(TypeError):  # If protein is input
+def test_select_frame_edges():
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[0]), 2)
+    temp_file = MyFuncs.TempFile()
+    tester.write(temp_file.path)
+    tester = Sb.select_frame(Sb.SeqBuddy(temp_file.path), 1)
+    assert seqs_to_hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
+
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[1]), 2)
+    tester = Sb.select_frame(tester, 1)
+    assert seqs_to_hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
+
+    with pytest.raises(TypeError) as e:  # If protein is input
         Sb.select_frame(sb_objects[6], 2)
+    assert "Select frame requires nucleic acid, not protein." in str(e.value)
 
 
 # ##################### 'ss', 'shuffle_seqs' ###################### ##
 def test_shuffle_seqs():
-    tester1 = Sb._make_copy(sb_objects[0])
-    tester2 = Sb._make_copy(tester1)
-    Sb.shuffle_seqs(tester2)
-    assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
-    for indx, record in enumerate(tester1.records):
-        assert sorted(record.seq) == sorted(tester2.records[indx].seq)
+    for seqbuddy in sb_objects:
+        tester1 = Sb.shuffle_seqs(Sb._make_copy(seqbuddy))
+        tester2 = Sb._make_copy(seqbuddy)
+        assert seqs_to_hash(tester1) != seqs_to_hash(tester2)
+
+        for indx, record in enumerate(tester1.records):
+            assert sorted(record.seq) == sorted(tester2.records[indx].seq)
 
 
-# #####################  'sbt', '--split_by_taxa' ###################### ##
-def test_split_by_taxa():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.split_by_taxa(tester, 'Mle-')
-    output = md5(str(sorted(tester)).encode()).hexdigest()
-    assert output == '438cc47dd268453f38342ca276f77a73'
+# #####################  make_groups' ###################### ##
+def test_make_groups():
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    sb_list = Sb.make_groups(tester)
+    assert len(sb_list) == 20
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier == seqbuddy.records[0].id
 
+    sb_list = Sb.make_groups(tester, split_patterns=["u", "h"])
+    assert len(sb_list) == 4
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Hv", "C", "Pp"]
 
-# #####################  'sf', '--split_file' ###################### ##
-def test_split_file():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    output = Sb.split_file(tester)
-    for buddy in output:
-        assert buddy.records[0] in tester.records
+    sb_list = Sb.make_groups(tester, num_chars=1)
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["A", "H", "C", "P", "N"]
+
+    sb_list = Sb.make_groups(tester, split_patterns=["l"], num_chars=3)
+    assert len(sb_list) == 3
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Ae", "C"]
+
+    sb_list = Sb.make_groups(tester, regex="([ACH]).*([βγ])")
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Aβ", "Cβ", "Hβ", "Cγ"]
+
+    sb_list = Sb.make_groups(tester, regex="Ate")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Ate", "Unknown"]
+
+    sb_list = Sb.make_groups(tester, regex="Panx.(G*)")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["G", "Unknown"]
 
 
 # ######################  'tr6', '--translate6frames' ###################### #
@@ -1421,7 +1526,7 @@ def test_translate6frames_pep_exception():
 # ######################  'tr', '--translate' ###################### #
 hashes = ["3de7b7be2f2b92cf166b758625a1f316", "c841658e657b4b21b17e4613ac27ea0e", "9e6634c1b8adfba6b64d30caf94103c5"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
-hashes.append((Sb._make_copy(sb_objects[13]), "6cf365fb1722bf691cb14df99ce4c163"))
+hashes.append((Sb._make_copy(sb_objects[13]), "093e4d8ad756f4e9ffb3aef3f3364000"))
 
 
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
@@ -1437,6 +1542,11 @@ def test_translate_edges_and_exceptions():
     tester = Sb.SeqBuddy("ATTCGTTAACGCTAGCGTCG", in_format="raw")
     tester = Sb.translate_cds(tester)
     assert str(tester) == ">raw_input\nIR*R*R\n"
+
+    tester = Sb.select_frame(Sb._make_copy(sb_objects[1]), 3)
+    tester = Sb.translate_cds(tester)
+    tester.write("temp.del")
+    assert seqs_to_hash(tester) == "275490a6205b9796901ea187ba0f0b86"
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1520,6 +1630,11 @@ def test_bl2s_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "339377aee781fb9d01456f04553e3923"
 
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Duplicate_seqs.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d24495bd87371cd0720084b5d723a4fc"
+    assert err == "Warning: There are records with duplicate ids which will be renamed.\n"
+
     os.environ["PATH"] = ""
     with mock.patch('builtins.input', return_value="n"):
         with pytest.raises(SystemExit):
@@ -1552,15 +1667,20 @@ def test_blast_ui(capsys):
 # ######################  'cs', '--clean_seq' ###################### #
 def test_clean_seq_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.clean_seq = [True]
+    test_in_args.clean_seq = [[None]]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "dc53f3be7a7c24425dddeea26ea0ebb5"
 
-    test_in_args.clean_seq = ["strict"]
+    test_in_args.clean_seq = [["strict"]]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "5fd0b78e37c81e0fa727db34a37cc743"
+    assert string2hash(out) == "1912fadb5ec52a38ec707c58085b86ad"
+
+    test_in_args.clean_seq = [["strict", "X"]]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_dna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4c10ba4474d7484652cb633f03db1be1"
 
 
 # ######################  'cmp', '--complement' ###################### #
@@ -1799,6 +1919,59 @@ def test_find_restriction_sites_ui(capsys):
     assert "Unable to identify restriction sites in protein sequences." in err
 
 
+# ######################  '-gbp', '--group_by_prefix' ###################### #
+def test_group_by_prefix_ui(capsys):
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    test_in_args = deepcopy(in_args)
+    test_in_args.group_by_prefix = [[TEMP_DIR.path]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert "New file: " in err
+    assert "Ate.nex" in err
+    for prefix in ["Ate", "Hvu", "Che", "Ael", "Cla", "Hec", "Pph", "Nbi", "Ccr"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, "u", "h"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Unknown", "Hv", "C", "Pp"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, 1]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["A", "H", "C", "P", "N"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, "l", 3]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Unknown", "Ae", "C"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+
+# ######################  '-gbr', '--group_by_regex' ###################### #
+def test_group_by_regex_ui(capsys):
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    test_in_args = deepcopy(in_args)
+    test_in_args.group_by_regex = [[TEMP_DIR.path]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "ValueError: You must provide at least one regular expression.\n"
+
+    test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "New file: " in err
+    assert "Ate.nex" in err
+    for prefix in ["Unknown", "Ate"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+
 # ######################  'gf', '--guess_format' ###################### #
 def test_guess_alpha_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1956,6 +2129,16 @@ def test_lower_and_upper_ui(capsys):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+
+# ######################  'mui', '--make_ids_unique' ###################### #
+def test_make_ids_unique_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.make_ids_unique = True
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3f84819b81185d49a7357947ca7f0707"
 
 
 # ######################  'fn2p', '--map_features_nucl2prot' ###################### #
@@ -2185,6 +2368,156 @@ def test_pull_records_ui(capsys):
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
 
 
+# ######################  '-prg', '--purge' ###################### #
+def test_purge_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.purge = 200
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c"
+    assert string2hash(err) == "fbfde496ae179f83e3d096da15d90920"
+
+
+# ######################  '-ri', '--rename_ids' ###################### #
+def test_rename_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f12c44334b507117439928c529eb2944"
+
+    test_in_args.rename_ids = [["[a-z](.)"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", 2, "foo"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", "foo"]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "Max replacements argument must be an integer" in err
+
+    test_in_args.rename_ids = [["[a-z](.)",  "?\\1\\2", 2]]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "There are more replacement" in err
+
+
+# ######################  '-rs', '--replace_subseq' ###################### #
+def test_replace_subseq_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.replace_subseq = [["atg(.{5}).{3}", "FOO\\1BAR"]]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4e1b13745d256331ccb46dd275627edb"
+
+
+# ######################  '-rc', '--reverse_complement' ###################### #
+def test_reverse_complement_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.reverse_complement = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "47941614adfcc5bd107f71abef8b3e00"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "SeqBuddy object is protein. Nucleic acid sequences required." in err
+
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "efbcc71f3b2820ea05bf32038012b883"
+
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+
+# ######################  '-sf', '--screw_formats' ###################### #
+hashes = [("fasta", "98a3a08389284461ea9379c217e99770"), ("gb", "73858af4bec0e4e52ce8ead542150b70"),
+          ("nexus", "cb1169c2dd357771a97a02ae2160935d"), ("phylip", "52c23bd793c9761b7c0f897d3d757c12"),
+          ("phylipi", "c5fb6a5ce437afa1a4004e4f8780ad68"), ("phylipis", "270f1bac51b2e29c0e163d261795c5fe"),
+          ("stockholm", "a50943ccd028b6f5fa658178fa8cf54d"), ("raw", "36b2ff58404c0bad5fc4acce981eeaee")]
+
+
+@pytest.mark.parametrize("_format,next_hash", hashes)
+def test_screw_formats_ui(_format, next_hash, capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = _format
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[2]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == next_hash
+
+
+def test_screw_formats_ui2(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = "foo"
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+    out, err = capsys.readouterr()
+    assert "Error: unknown format" in err
+
+    sb_objects[0].write("%s/seq.fa" % TEMP_DIR.path)
+    test_in_args.sequence = ["%s/seq.fa" % TEMP_DIR.path]
+    test_in_args.screw_formats = "genbank"
+    test_in_args.in_place = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    assert os.path.isfile("%s/seq.genbank" % TEMP_DIR.path)
+
+
+# ######################  'sfr', '--select_frame' ###################### #
+def test_select_frame_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    tester = Sb._make_copy(sb_objects[1])
+    test_in_args.select_frame = 1
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
+
+    test_in_args.select_frame = 2
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "94a31e98e720ca0fbbe2df148892ee71"
+
+    test_in_args.select_frame = 3
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "097b692d4de5acfe0c93bdac58f0e574"
+
+    test_in_args.select_frame = 1
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+
+    out, err = capsys.readouterr()
+    assert "Select frame requires nucleic acid, not protein" in err
+
+
+# ######################  '-ss', '--shuffle_seqs' ###################### #
+def test_shuffle_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    tester = Sb._make_copy(sb_objects[0])
+    test_in_args.shuffle_seqs = True
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) != "b831e901d8b6b1ba52bad797bad92d14"
+
+
 # ######################  '-d2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -2210,8 +2543,7 @@ def test_translate_ui(capsys):
 
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "6cf365fb1722bf691cb14df99ce4c163"
-    assert string2hash(err) == "17d178fafb447503d385ae6823f9678a"
+    assert string2hash(out) == "093e4d8ad756f4e9ffb3aef3f3364000"
 
     tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
     tester.alpha = IUPAC.ambiguous_dna
@@ -2225,3 +2557,34 @@ def test_translate_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
+
+
+# ######################  'tr6', '--translate6frames' ###################### #
+def test_translate6frames_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.translate6frames = True
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "d5d39ae9212397f491f70d6928047341"
+
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("ambiguous_rna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "75f0c340c0c8d5bbc0358ed0081023ec"
+    assert err == ""
+
+    tester = Sb.SeqBuddy(resource("mixed_alpha.fa"))
+    tester.alpha = IUPAC.ambiguous_dna
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "e0878729f988c1c02fbb5cdcf56a006b"
+
+    tester.records[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
+    out, err = capsys.readouterr()
+    assert "TypeError: You need to supply DNA or RNA sequences to translate" in err

@@ -2,27 +2,25 @@
 # -*- coding: utf-8 -*-
 
 """
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, version 2 of the License (GPLv2).
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-details at http://www.gnu.org/licenses/.
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-name: shared_resources.py
-date: Aug-21-2015
+name: buddy_resources.py
+version: 1, alpha
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
 repository: https://github.com/biologyguy/BuddySuite
-© license: Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
-derivative work: No
+© license: None, this work is public domain
 
-Description:
-Collection of resources used by all BuddySuite tools
-Including dictionaries of the commands available for each Buddy Tool
+Description: Collection of resources used by all BuddySuite tools,
+             including dictionaries of the commands available for each Buddy tool
 """
 import sys
 import argparse
@@ -41,6 +39,7 @@ if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
 
+# ##################################################### CLASSES ###################################################### #
 class Contributor:
     def __init__(self, first, last, commits=None, github=None):
         self.first = first
@@ -168,6 +167,7 @@ Contributors:
         return _output
 
 
+# #################################################### FUNCTIONS ##################################################### #
 def config_values():
     config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
     if os.path.isfile(config_file):
@@ -267,14 +267,15 @@ def send_traceback(tool, e):
         print("Success, thank you.\n")
 
 
+# #################################################### VARIABLES ##################################################### #
+
 contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
 
-# VERSIONS
-VERSIONS = {"SeqBuddy": Version("SeqBuddy", 2, 'alpha', contributors),
-            "DatabaseBuddy": Version("DatabaseBuddy", 1, 'alpha', contributors),
-            "AlignBuddy": Version("AlignBuddy", 1, 'alpha', contributors),
-            "PhyloBuddy": Version("PhyloBuddy", 1, 'alpha', contributors)}
+# NOTE: If this is added to, be sure to update the unit test!
+format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
+                       'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
+                       'stockholm': 'stklm', 'stklm': 'stklm'}
 
 # flag, action, nargs, metavar, help, choices, type
 # #################################################### INSTALLER ##################################################### #
@@ -316,7 +317,7 @@ sb_flags = {"annotate": {"flag": "ano",
                               "returning the hits"},
             "clean_seq": {"flag": "cs",
                           "action": "append",
-                          "nargs": "?",
+                          "nargs": "*",
                           "metavar": "'strict'",
                           "help": "Strip out non-sequence characters, such as stops (*) and gaps (-). "
                                   "Pass in the word 'strict' to remove all characters except the "
@@ -406,6 +407,18 @@ sb_flags = {"annotate": {"flag": "ano",
                                        "help": "Identify restriction sites. Args: [enzymes "
                                                "{specific enzymes, commercial, all}], [Num cuts (int) [num cuts]], "
                                                "[order {alpha, position}]"},
+            "group_by_prefix": {"flag": "gbp",
+                                "action": "append",
+                                "nargs": "*",
+                                "metavar": "args",
+                                "help": "Sort sequences into separate files based on prefix. "
+                                        "args: [Split Pattern [Split pattern ...]] [length (int)] [out dir]"},
+            "group_by_regex": {"flag": "gbr",
+                               "action": "append",
+                               "nargs": "*",
+                               "metavar": "args",
+                               "help": "Sort sequences into separate files based on regular expression. "
+                                       "args: <regex> [regex [...]] [out dir]"},
             "guess_alphabet": {"flag": "ga",
                                "action": "store_true",
                                "help": "Glean the alphabet type of input file(s)"},
@@ -440,6 +453,9 @@ sb_flags = {"annotate": {"flag": "ano",
             "lowercase": {"flag": "lc",
                           "action": "store_true",
                           "help": "Convert all sequences to lowercase"},
+            "make_ids_unique": {"flag": "miu",
+                                "action": "store_true",
+                                "help": "Add a number at the end of replicate ids to make them unique"},
             "map_features_nucl2prot": {"flag": "fn2p",
                                        "action": "store_true",
                                        "help": "Take the features annotated onto nucleotide sequences "
@@ -490,27 +506,30 @@ sb_flags = {"annotate": {"flag": "ano",
             "pull_record_ends": {"flag": "pre",
                                  "action": "store",
                                  "type": int,
-                                 "metavar": "amount",
+                                 "metavar": "<amount (int)>",
                                  "help": "Get the ends of all sequences in a file (use negative numbers to get rear)"},
             "pull_records": {"flag": "pr",
                              "action": "store",
                              "nargs": "+",
-                             "metavar": "<regex pattern>",
+                             "metavar": "<regex>",
                              "help": "Get all the records with ids containing a given string"},
             "purge": {"flag": "prg",
                       "action": "store",
                       "metavar": "<Max BLAST score (int)>",
                       "type": int,
                       "help": "Delete sequences with high similarity"},
-            "raw_seq": {"flag": "rs",
-                        "action": "store_true",
-                        "help": "Return line break separated sequences"},
             "rename_ids": {"flag": "ri",
-                           "action": "store",
-                           "metavar": ("<pattern>", "<substitution>"),
-                           "nargs": 2,
+                           "action": "append",
+                           "metavar": "args",
+                           "nargs": "*",
                            "help": "Replace some pattern in ids with something else. "
-                                   "Limit number of replacements with -p"},
+                                   "args: <pattern>, <substitution>, [max replacements (int)]"},
+            "replace_subseq": {"flag": "rs",
+                               "action": "append",
+                               "metavar": "args",
+                               "nargs": "+",
+                               "help": "Replace some pattern in sequences with something else. "
+                                       "args: <query (regex)> [query ...] [replacement]"},
             "reverse_complement": {"flag": "rc",
                                    "action": "store_true",
                                    "help": "Return reverse complement of nucleotide sequence"},
@@ -523,19 +542,10 @@ sb_flags = {"annotate": {"flag": "ano",
                              "metavar": "<frame (int)>",
                              "type": int,
                              "choices": [1, 2, 3],
-                             "help": "Change the reading from of sequences by deleting characters off of the front"},
+                             "help": "Change the reading frame of nucleotide sequences"},
             "shuffle_seqs": {"flag": "ss",
                              "action": "store_true",
-                             "help": "Shuffles the letters in all the sequences"},
-            "split_by_taxa": {"flag": "sbt",
-                              "action": "store",
-                              "nargs": 2,
-                              "metavar": ("<Split Pattern>", "<out dir>"),
-                              "help": "Sort sequences into separate files based on taxa"},
-            "split_to_files": {"flag": "stf",
-                               "action": "store",
-                               "metavar": "<out dir>",
-                               "help": "Write individual files for each sequence"},
+                             "help": "Randomly rearrange the residues in each record"},
             "transcribe": {"flag": "d2r",
                            "action": "store_true",
                            "help": "Convert DNA sequences to RNA"},

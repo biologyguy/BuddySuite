@@ -1,6 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+This program is free software in the public domain as stipulated by the Copyright Law
+of the United States of America, chapter 1, subsection 105. You may modify it and/or redistribute it
+without restriction.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+version: 1, alpha
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/BuddySuite
+© license: None, this work is public domain
+
+Description:
+Installation script for the BuddySuite package
+"""
+
 from functools import partial
 import shutil
 from shutil import which, rmtree, copytree
@@ -167,12 +188,13 @@ class BuddyInstall:
             if _blastp:
                 bins_to_dl.append('Darwin_blastp.zip')
         elif current_os.startswith('linux'):
+            system_bits = "32" if sys.maxsize < 3000000000 else "64"
             if _blastdcmd:
-                bins_to_dl.append('Linux_blastdbcmd.zip')
+                bins_to_dl.append('Linux_blastdbcmd%s.zip' % system_bits)
             if _blastn:
-                bins_to_dl.append('Linux_blastn.zip')
+                bins_to_dl.append('Linux_blastn%s.zip' % system_bits)
             if _blastp:
-                bins_to_dl.append('Linux_blastp.zip')
+                bins_to_dl.append('Linux_blastp%s.zip' % system_bits)
         elif current_os.startswith('win'):
             if _blastdcmd:
                 bins_to_dl.append('Win32_blastdbcmd.zip')
@@ -184,10 +206,11 @@ class BuddyInstall:
             return False
 
         file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
-                        'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd.zip': 'blastdbcmd',
-                        'Linux_blastn.zip': 'blastn', 'Linux_blastp.zip': 'blastp',
-                        'Win32_blastdbcmd.zip': 'blastdbcmd', 'Win32_blastn.zip': 'blastn',
-                        'Win32_blastp.zip': 'blastp'}
+                        'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd32.zip': 'blastdbcmd',
+                        'Linux_blastn32.zip': 'blastn', 'Linux_blastp32.zip': 'blastp',
+                        'Linux_blastdbcmd64.zip': 'blastdbcmd', 'Linux_blastn64.zip': 'blastn',
+                        'Linux_blastp64.zip': 'blastp', 'Win32_blastdbcmd.zip': 'blastdbcmd',
+                        'Win32_blastn.zip': 'blastn', 'Win32_blastp.zip': 'blastp'}
 
         os.makedirs("{0}/temp".format(install_dir), exist_ok=True)
         try:
@@ -215,7 +238,7 @@ class BuddyInstall:
         print("Starting.")
         BuddyInstall.edit_profile()  # Adds install directory to $PATH
         buddies_to_install = options[0]
-        install_directory = options[1]
+        install_directory = os.path.abspath(options[1])
         shortcuts = options[2]
         # email_address = options[3]
         # send_diagnostics = options[4]
@@ -260,7 +283,7 @@ class BuddyInstall:
 
             if user_system in ['Darwin', 'Linux', 'Unix']:  # We don't support windows
                 user_system = 'Linux' if user_system == "Unix" else user_system
-                user_system = 'Win32' if user_system == "Windows" else user_system  # Not sure why this is here
+                # user_system = 'Win32' if user_system == "Windows" else user_system  # Not sure why this is here
 
                 # Install all dependencies
                 shutil.copy(buddy_resources_path, "{0}/buddy_resources.py".format(install_directory))
@@ -413,12 +436,19 @@ class BuddyInstall:
 
 # installer
 def cmd_install():
-    def ask(input_prompt):
+    def ask(input_prompt, default="yes"):
+        if default == "yes":
+            yes_list = ["yes", "y", '']
+            no_list = ["no", "n", "abort"]
+        else:
+            yes_list = ["yes", "y"]
+            no_list = ["no", "n", "abort", '']
+
         _response = input(input_prompt)
         while True:
-            if _response.lower() in ["yes", "y", '']:
+            if _response.lower() in yes_list:
                 return True
-            elif _response.lower() in ["no", "n", "abort"]:
+            elif _response.lower() in no_list:
                 return False
             else:
                 print("Response not understood. Valid options are 'yes' and 'no'.")
@@ -541,7 +571,7 @@ def cmd_install():
 
         print_shortcuts()
 
-        if ask("\nWould you like to add or remove shortcuts? ('[yes]/no') "):
+        if ask("\nWould you like to add or remove shortcuts? ('yes/[no]') ", default="no"):
             _prompt = True
             while _prompt:
                 add_or_remove = input("Would you like to add or remove? ('add/remove/[cancel]') ")
