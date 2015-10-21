@@ -41,21 +41,20 @@ if __name__ == '__main__':
 
 # ##################################################### CLASSES ###################################################### #
 class Contributor:
-    def __init__(self, first, last, commits=None, github=None):
-        self.first = first
-        self.last = last
+    def __init__(self, first, last, middle="", commits=None, github=None):
+        self.first = first.strip()
+        self.middle = middle.strip()
+        self.last = last.strip()
         self.commits = commits
         self.github = github
 
-    def __str__(self):
-        if not self.commits:
-            commits = "0 commits"
-        elif self.commits == 1:
-            commits = "1 commit"
-        else:
-            commits = "%s commits" % self.commits
+    def name(self):
+        _name = " ".join([self.first, self.middle, self.last])
+        _name = re.sub("  ", " ", _name)  # in case there is no middle name
+        return _name
 
-        _output = "%s %s, %s" % (self.first, self.last, commits)
+    def __str__(self):
+        _output = "%s %s" % (self.first, self.last)
         return _output if not self.github else "%s, %s" % (_output, self.github)
 
 
@@ -143,9 +142,14 @@ class Version:
 
     def contributors_string(self):
         _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)
+        name_line_length = 0
+        for contributor in _contributors:
+            if len(contributor.name()) > name_line_length:
+                name_line_length = len(contributor.name())
+
         _output = ""
         for contributor in _contributors:
-            _output += "%s\n" % contributor
+            _output += "%s%s\n" % (contributor.name().ljust(name_line_length + 2), contributor.github)
         return _output.strip()
 
     def short(self):
@@ -269,8 +273,9 @@ def send_traceback(tool, e):
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", 291, "https://github.com/biologyguy"),
-                Contributor("Karl", "Keat", 265, "https://github.com/KarlKeat")]
+contributors = [Contributor("Stephen", "Bond", commits=291, github="https://github.com/biologyguy"),
+                Contributor("Karl", "Keat", commits=265, github="https://github.com/KarlKeat"),
+                Contributor("Jeremy", "Labarge", commits=1, github="https://github.com/biojerm")]
 
 # NOTE: If this is added to, be sure to update the unit test!
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
@@ -343,10 +348,10 @@ sb_flags = {"annotate": {"flag": "ano",
                                "metavar": "'concatenate'",
                                "help": "Generate a table of sequence compositions"},
             "degenerate_sequence": {"flag": "dgn",
-                                   "action": "append",
-                                   "nargs": '*',
-                                   "type": int,
-                                   "help":"Convert DNA codons to degenerate codons"},
+                                    "action": "append",
+                                    "nargs": '?',
+                                    "type": int,
+                                    "help": "Convert unambiguous codons to degenerate codons"},
             "delete_features": {"flag": "df",
                                 "action": "store",
                                 "nargs": "+",
