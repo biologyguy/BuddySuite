@@ -1,6 +1,3 @@
-##This is a branch of the main project.
-Please head to the [main](https://github.com/biologyguy/BuddySuite) page for the latest working version.
-
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
@@ -15,11 +12,12 @@ ___
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
  manipulations.
 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) and
- [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) are the most mature BuddySuite tools, although
- [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) is also functional with a limited number of
- commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is under active development and
- should be available soon.
+[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) is the most mature BuddySuite tools, although
+ [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) and
+ [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) are also functional with a more limited number
+ of commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is a very different project,
+ existing mostly as a 'live shell' for downloading sequences from GenBank, ENSEMBL, and UniProt. It definitely works,
+ but has some bugs.
 
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
  and Mac OS X, however, so it is unclear if the Suite will work within Windows.
@@ -53,10 +51,10 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
     $: ./BuddySuite.py
 
 By default, the installer will place short form sym-links to the main tools in your PATH ('sb' for SeqBuddy, 'alb'
- for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly (examples in the
- wiki use these short forms). The full names of each tool will also be added to PATH. If working outside the context
- of a graphical OS (on a cluster, for example), the installer may be run with the -cmd flag, which will walk you
- through the install processes directly from the command line.
+ for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly ([examples in the
+ wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each tool will also be
+ added to PATH. If working outside the context of a graphical OS (on a cluster, for example), the installer may be run
+ with the -cmd flag, which will walk you through the install processes directly from the command line.
 
 Once out of alpha, the installer will only bundle stable release versions of the BuddySuite. If bugs are found they will
  be fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
