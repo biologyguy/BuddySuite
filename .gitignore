@@ -20,9 +20,8 @@ workshop/htmlcov/*
 .coverage
 
 # Test/build files
-./workshop/test_files/*
-./build_dir/dependencies.confworkshop/test_files/*
 dependencies.conf
+/workshop/test_files/*
 
 # IPython
 .ipynb_checkpoints/*
