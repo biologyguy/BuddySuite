@@ -1,3 +1,6 @@
+##This is a branch of the main project.
+Please head to the [main](https://github.com/biologyguy/BuddySuite) page for the latest working version.
+
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">

@@ -786,6 +786,28 @@ def test_count_residues():
     assert res_count["% Hyrdophobic"] == 55.4
 
 
+# ######################  'dgn' '--degenerate_sequence'################### #
+def test_degenerate_sequence_without_arguments():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    tester = Sb.degenerate_sequence(tester)
+    assert seqs_to_hash(tester) == '0638bc6546eebd9d50f771367d6d7855'
+
+dgn_hashes = ['0638bc6546eebd9d50f771367d6d7855', '72373f8356051e2c6b67642451379054',
+              '9172ad5947c0961b54dc5adbd03d4249', 'b45ac94ee6a98e495e115bfeb5bd9bcd',
+              '76c45b4de8f7527b4139446b4551712b', 'baa5b48938cc5cae953c9083a5b21b12',
+              '0ca67c4740fefbc7a20d806715c3ca12', 'd43ad8f328ff1d30eb1fb7bcd667a345',
+              'd9d0f5cd8f0c25a0042527cc1cea802e', '4b9790f3f4eeeae1a9667b62b93bc961',
+              '7ec4365c3571813d63cee4b70ba5dcf5']
+
+codon_tables = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13]
+hashes = [(Sb._make_copy(sb_objects[0]), dgn_hash, codon_tables[indx]) for indx, dgn_hash in enumerate(dgn_hashes)]
+
+@pytest.mark.parametrize("seqbuddy, dgn_hash, tables", hashes)
+def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):  
+    tester = Sb.degenerate_sequence(seqbuddy, table=tables)
+    assert seqs_to_hash(tester) == dgn_hash
+
+
 # ######################  'df', '--delete_features' ###################### #
 def test_delete_features():
     tester = Sb._make_copy(sb_objects[1])
@@ -1722,6 +1744,15 @@ def test_count_residues_ui(capsys):
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "c7062408f939f4b310f2f97c3e94eb37"
+
+
+# ######################  'dgn' '--degenerate_sequence'################### #
+def test_degenerate_sequence_without_argument_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.degenerate_sequence = [[]]  ### empty hash   
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '0638bc6546eebd9d50f771367d6d7855'        
 
 
 # ######################  'df', '--delete_features' ###################### #
