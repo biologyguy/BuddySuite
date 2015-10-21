@@ -940,6 +940,10 @@ def argparse_init():
                 "Valid options include %s.\n" % (in_args.in_format, OUTPUT_FORMATS))
         sys.exit()
 
+    if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
+        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
+        sys.exit()
+
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():

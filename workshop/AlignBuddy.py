@@ -61,6 +61,9 @@ from MyFuncs import TempDir
 # ##################################################### GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
 VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
+OUTPUT_FORMATS = ["clustal", "embl", "fasta", "genbank", "gb", "nexus", "phylip", "phylip-strict", "phylipr",
+                  "phylip-relaxed", "phylipi", "phylip-interleaved", "phylipis", "phylip-interleaved-strict", "phylips",
+                  "phylip-sequential", "phylipss", "phylip-sequential-strict", "stockholm"]
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -117,6 +120,8 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
                 raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
         self.out_format = self.in_format if not out_format else out_format
+        if self.out_format not in OUTPUT_FORMATS:
+            raise(TypeError("Output type '%s' is not recognized/supported" % self.out_format))
 
         # ####  ALIGNMENTS  #### #
         if type(_input) == AlignBuddy:
@@ -166,8 +171,10 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         if len(self.alignments) == 0:
             return "AlignBuddy object contains no alignments.\n"
 
-        if self.out_format == "fasta" and len(self.alignments) > 1:
-            raise ValueError("Error: FASTA format does not support multiple alignments in one file.\n")
+        self.out_format = self.out_format.lower()
+        multiple_alignments_unsupported = ["fasta", "gb", "genbank", "nexus"]
+        if self.out_format in multiple_alignments_unsupported and len(self.alignments) > 1:
+            raise ValueError("Error: %s format does not support multiple alignments in one file.\n" % self.out_format)
 
         if self.out_format in ["phylipi", "phylip-interleaved"]:
             self.out_format = "phylip-relaxed"
@@ -179,7 +186,7 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
             output = _phylipseq(self)
 
         else:
-            if self.out_format in ["phylipss", "phylip-sequential-strict"]:
+            if self.out_format in ["phylipss", "phylip-sequential-strict"]:  # ToDo: implement a relaxed version
                 self.out_format = "phylip-sequential"
 
             tmp_dir = TempDir()
@@ -230,7 +237,7 @@ def _guess_alphabet(alignbuddy):
 
 
 def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
-    # If input is just a list, there is no BioPython in-format. Default to gb.
+    # If input is just a list, there is no BioPython in-format. Default to stockholm.
     if isinstance(_input, list):
         return "stockholm"
 
@@ -249,19 +256,20 @@ def _guess_format(_input):  # _input can be list, SeqBuddy object, file handle, 
         _input.seek(0)
 
         possible_formats = ["gb", "phylip-relaxed", "phylip-sequential", "stockholm", "fasta", "nexus", "clustal",
-                            "pir", "phylip"]
-        for _format in possible_formats:
+                            "phylip"]
+        for _format in possible_formats:  # ToDo: Read in phylip-sequential-relaxed
             try:
                 _input.seek(0)
-                alignments = AlignIO.parse(_input, _format)
-                if next(alignments):
+                if list(AlignIO.parse(_input, _format)):
                     _input.seek(0)
                     return _format
                 else:
                     continue
             except StopIteration:  # ToDo check that other types of error are not possible
                 continue
-            except ValueError:
+            except ValueError as e:
+                if "Found a record of length" in str(e):
+                    raise ValueError("Malformed Phylip --> %s" % e)
                 continue
 
         return None  # Unable to determine format from file handle
@@ -583,7 +591,9 @@ def extract_range(alignbuddy, start, end):
     return alignbuddy
 
 
-def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):  # ToDo: clustalomega may be clustalo
+# ToDo: clustalomega may be clustalo
+# ToDo: Completely refactor the handling of output formats
+def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     """
     Calls sequence aligning tools to generate multiple sequence alignments
     :param seqbuddy: The SeqBuddy object containing the sequences to be aligned
@@ -650,6 +660,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):  # T
             command = '{0} -s {1} {2} -o {3}/result'.format(tool, tmp_in, params, tmp_dir.path)
         else:
             command = '{0} {1} {2}'.format(tool, params, tmp_in)
+
         try:
             if tool in ['prank', 'pagan']:
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
@@ -1141,6 +1152,10 @@ def argparse_init():
     alignbuddy = []
     align_set = ""
 
+    if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
+        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
+        sys.exit()
+
     try:
         if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
             for align_set in in_args.alignments:
@@ -1153,6 +1168,10 @@ def argparse_init():
 
     except GuessError as e:
         _stderr("GuessError: %s\n" % e, in_args.quiet)
+        sys.exit()
+
+    except ValueError as e:
+        _stderr("ValueError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     return in_args, alignbuddy

@@ -252,6 +252,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
         # The following is a work around...
+        self.out_format = self.out_format.lower()
         if self.out_format in ["gb", "genbank"]:
             for rec in self.records:
                 try:
@@ -2871,11 +2872,14 @@ def argparse_init():
                                   "into SeqBuddy this argument can be left blank."),
              br.sb_flags, br.sb_modifiers, VERSION)
 
-
     in_args = parser.parse_args()
 
     seqbuddy = []
     seq_set = ""
+
+    if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
+        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
+        sys.exit()
 
     try:
         for seq_set in in_args.sequence:
