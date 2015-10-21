@@ -32,7 +32,6 @@ import argparse
 import io
 from copy import deepcopy
 
-from Bio.Alphabet import IUPAC
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 from unittest import mock
@@ -799,13 +798,31 @@ dgn_hashes = ['0638bc6546eebd9d50f771367d6d7855', '72373f8356051e2c6b67642451379
               'd9d0f5cd8f0c25a0042527cc1cea802e', '4b9790f3f4eeeae1a9667b62b93bc961',
               '7ec4365c3571813d63cee4b70ba5dcf5']
 
-codon_tables = [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13]
-hashes = [(Sb._make_copy(sb_objects[0]), dgn_hash, codon_tables[indx]) for indx, dgn_hash in enumerate(dgn_hashes)]
+hashes = [(Sb._make_copy(sb_objects[0]), dgn_hash, indx + 1) for indx, dgn_hash in enumerate(dgn_hashes)]
+
 
 @pytest.mark.parametrize("seqbuddy, dgn_hash, tables", hashes)
-def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):  
+def test_degenerate_sequence_with_different_codon_tables(seqbuddy, dgn_hash, tables):
     tester = Sb.degenerate_sequence(seqbuddy, table=tables)
     assert seqs_to_hash(tester) == dgn_hash
+
+
+def test_degenerate_sequence_edges():
+    tester = Sb._make_copy(sb_objects[6])
+
+    # Bad table reference
+    with pytest.raises(KeyError) as e:
+        Sb.degenerate_sequence(tester, 100)
+    assert "Could not locate codon dictionary" in str(e.value)
+
+    # Protein input
+    with pytest.raises(TypeError) as e:
+        Sb.degenerate_sequence(tester, 1)
+    assert "Nucleic acid sequence required, not protein." in str(e.value)
+
+    # RNA input
+    tester = Sb.degenerate_sequence(Sb._make_copy(sb_objects[13]))
+    assert seqs_to_hash(tester) == "ff52e05971aeafd24c73a3b543901e4b"
 
 
 # ######################  'df', '--delete_features' ###################### #
@@ -1747,12 +1764,29 @@ def test_count_residues_ui(capsys):
 
 
 # ######################  'dgn' '--degenerate_sequence'################### #
-def test_degenerate_sequence_without_argument_ui(capsys):
+def test_degenerate_sequence_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.degenerate_sequence = [[]]  ### empty hash   
+    test_in_args.degenerate_sequence = [False]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == '0638bc6546eebd9d50f771367d6d7855'        
+
+    test_in_args.degenerate_sequence = [2, 7]
+    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == '72373f8356051e2c6b67642451379054'
+
+    test_in_args.degenerate_sequence = [100]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
+    out, err = capsys.readouterr()
+    assert "Could not locate codon dictionary" in err
+
+    test_in_args.degenerate_sequence = [1]
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[7]))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein" in err
 
 
 # ######################  'df', '--delete_features' ###################### #
