@@ -12,7 +12,7 @@ ___
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
  manipulations.
 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) is the most mature BuddySuite tools, although
+[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) is the most mature BuddySuite tool, although
  [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) and
  [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) are also functional with a more limited number
  of commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is a very different project,
