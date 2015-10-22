@@ -1,0 +1,299 @@
+LOCUS       Mle-Panxα12              683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα12
+VERSION     Mle-Panxα12
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--vidils gf-------- ----kgitpf kgitlddgwd qinrsfmfvl cvlmgtvvtv
+       61 r-qyaggiis c--------d gftkys--gs fsedycwtqg lytikeaydl l-tmnvp---
+      121 ------ypgv ---ipedmpt ci-------- e-relinggr vscpdpetvk pptrvyhlwy
+      181 qwvpfyfwla aaafffpyli ykhf-gvgdl kpliqmlhn- -pivd--egd qncmaekasm
+      241 wlfykln-vf mnentifail tekhrlffiv mlvkvlylii silalyltde mfhigs--fv
+      301 sygsew---- atslpe-gdn ettlvkdklf pkmvaceikr wgptgleeeq gmcvlapnvi
+      361 nqylflilwf aiifciacnc lsvlfaltkl vfvlgsykrl lasa-flkde lh---ykhmf
+      421 fnigtsgrvl lqivatnvsp rvfesimanl atkliaerl- kgngkgsv-- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα9               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα9
+VERSION     Mle-Panxα9
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ----mldils kf-------- ----kgvtpf kgitiddgwd qlnrsfmfvl lvvmgttvtv
+       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg lytvlegydq p-sqnip---
+      121 ------ypgl ---lpdeapp ct-------- p-vrlkdgtr lkcpdpdqll sptrishlwy
+      181 qwvpfyfwla aaaffmpyll yknf-gmgdi kplvrllhn- -pves--dqe lkkmtdkaat
+      241 wlfykfd-ly mseqsllasl trkhglglsm vfvkilyaav sfgcflltae mfsigd--fk
+      301 tygsew---- ikklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
+      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
+      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rgngkal--- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα10B             683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα10B
+VERSION     Mle-Panxα10B
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--rlseks tshdckacit rshnedcarr wgitiddgwd qlnrsfmfgl lvvmgttvtv
+       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg qytvlegydq p-nqnipcpv
+      121 p--------- ---rp----- ---------- ---------- ---------- -psr------
+      181 ---------- ---------- -rgs-tlntm sqtqgflhn- -pves--dqe lkkmtdkaat
+      241 wlfykfd-ly mseqsllasl tnkhglglsv vfvkilyaav sfgcflltad mfsigd--fk
+      301 tygsew---- inklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
+      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
+      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rak------- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ----dy---- ---------- ---------- ---------- ----------
+      661 ---------- ---------- --d
+//
+LOCUS       Mle-Panxα7A              683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα7A
+VERSION     Mle-Panxα7A
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--gveilf pi-------- --inratapi ksvniddlss qlnrtfmfyl sltfaititi
+       61 rqqlggayia c--------d gfsrdeeyer faeewcwssg iytikeayem s-nrvsp---
+      121 ------ypgi ---ipenlpa ci-------- e-melisggr vecpeekdvk pftriyqswy
+      181 pfvmfyywlt almfflpyql ykvf-gfedv kavvamlqn- -pved--gfe kkelikrgsv
+      241 wlylkst-mt lsnpsvyssf ivkhslafya ltvkvmylgn tllmywlthk mfkfgs--fa
+      301 eygllw---- dtrnp--lnn vqslvqeklf pkvaacevkr fgasgleedq gmcmlalnvl
+      361 nqylflifwf cllfvtivnt isllltllni ispcfmlqqf llas-sldrs pavgviskly
+      421 ldcgsslrfi mtifawnvdp klfgeilvql nsllakdesp raevlkrrsk kvk-vpsprk
+      481 pkllfheeik kklikrterk ddnltnftnm skiskkfegl kkrnllqtks iinvsvpkkm
+      541 seleveedfi ltpteesgiq nnpdtkyaqe dvldseyvvv eqsvpetmte qesveesvpe
+      601 iskaeqeggs sdhidveetp pasdvdrevn spivqheyqv qidlvsddgs ahrlssdeal
+      661 fplripivkl ngdvlslrse slq
+//
+LOCUS       Mle-Panxα8               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα8
+VERSION     Mle-Panxα8
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--vlevla lf-------- ----prlapf kvitlddvwd qwnrsfmfim tvlfgsivti
+       61 r-sytgsvie c--------d gflkvp--ve fakdycwtqg iytlregydy h-ssllp---
+      121 ------ypgv ---fpedapg cl-------- d-kvldnggr vicpmdkkyr kyqrvyhswy
+      181 qftafyfwta scafflpymm fkff-gmgdl kpvismlhn- -pvet--aee ldmltkkaar
+      241 wlyvrvh-ay ihtdqyygkr vekhllffsi mltkscyllf svllfwltek mfhigs--ff
+      301 sygvdw---- aaeepepged yktliqdklf pkmasceikr wgttgieeeq gmcvlaanvi
+      361 nqylflifwg gmvvtiivnv lsvlialsnl cfiqgayrnl lata-flrde pa---yseiw
+      421 rksgtsgrvi lqliaknvnp xxxxxraera gelaevgge- ---------- ----------
+      481 ---------v rclverc--- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- fslnrphi-- ---------- --------ph
+      601 lvk------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα1               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα1
+VERSION     Mle-Panxα1
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -mywifeicq ei-------- ----kraqsc rkfaidgpfd wtnriimptl mviccflqtf
+       61 t-fmfgsnis c--------i gfekle--rn fveeycwtqg iytskaaynm p--lhtp---
+      121 ------ypgi apcvpeydpv tq-------- k-ywlpcg-- --------ve eedkayhlwy
+      181 qwvpfyflav avgyylpfli lkgs-klhqv kplitylmn- -qrnl--etd pnhlvgklsh
+      241 wifrqlvysr faatstirmy whdwglvllv csvkilyltv slihlfatak mfhign--wf
+      301 tygimf---- arr----sns htthvkdvff pkmvackiet wsftgknhlh gmcvlalnvm
+      361 nqylflivwy vnviiiflns isciytivkf cspnivhhri vnss-slddh hd---ftrmf
+      421 gyvgpsgrii lakmsehmpg ymlkqvakkv tekidiene- knrgraptik ----------
+      481 ---------- ---------- ---------f tkvngqpsel arqplmhlna lmlgmvp---
+      541 ---------- ---------- ---------- qnlpepki-- ---------- --------qn
+      601 iqr------s qkkvrf---- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -lv
+//
+LOCUS       Mle-Panxα2               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα2
+VERSION     Mle-Panxα2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--vldlis gs-------- --l-ngflki ksvsiddqwd qinrtylvmf cilsgtimtf
+       61 k-qnlgsiih cisdargdds sfadah--at fvqdycaaqg lytlkevydk swpdeip---
+      121 ------ypgi ---lqmktig cf-------- pgrqfkngtp iqcpdekdlk pfttvyhvwy
+      181 mfvpfyfcav giafyfpytv frhlsgiydi kpmlnslal- -digayteed isrridnvsr
+      241 wlyikld-py mnnmlpytqi vhkhsifytv mlvkvmylat svsifyathr ifdqgn--fa
+      301 lygydv---- lmsipq-ets yk--vmdtif pkmvgceinm wgrtgeqses llcvlpqnig
+      361 nqyfflifwf lliltilsnc isvivtifrf ifvsgsykrf lats-llnhe er---yklvf
+      421 thvgttgryi lllcadhsnp kifedlleiv csllianyhk rkrsrdkghs raegvgtkgr
+      481 hgl------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- sfvdstv--- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα5               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα5
+VERSION     Mle-Panxα5
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--iywvwa vf-------- ----krmapf kvvtlddrwd qmnrsfmmpl tmsfaylidy
+       61 g-iiagstik c--------t gfedsfrsea fvdeycwtqg iytlreaydl e-ntkip---
+      121 ------ypgi ---ipegfpn cm-------- p-yerwdgmk vecpkeeqyl kptrvyhlyy
+      181 qhiqlyfwlv ctlfylpymv gicl-gfnyt kplinllhn- -pltr-deee lealldkaar
+      241 slrlrld-iy sdqkswfdll yrrhtmlyll ffiklqylgf svailgltqa kfkign--fv
+      301 tygfew---- vgsqvp-ngs tytlvqhklf pkmaaceikr wgasgldvlr gmcvlpqnvs
+      361 nsyiflvfwi fllltilgnv igciltvkqy lvksegyskl vact-fwnd- wn---lrhly
+      421 wnvggsgrvi lhhladnlhp ctfeklirry wwlkrneyv- qynghlkts- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα4               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα4
+VERSION     Mle-Panxα4
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--viella gy-------- ----kglspf kdatvddswd qinrcyvfia mvvmgavttm
+       61 r-qysgtlia c--------d gftkfh--pq faedycwsig mytvreaydl p-ssmva---
+      121 ------ypgv ---ipwdmpa cv-------- p-rllkngtr tkcgsekdvm psekiyhlwy
+      181 qwasfyfwiv ailyyapyim fkql-gggey kplikllcl- -asgs-peqq mqdiqervvk
+      241 wlffrfk-ty ifakgyya-w lrknsfsiai gvtklsylli tilvfyltgf mfeygsntwy
+      301 rygadwygtr fssyhe-tnn sitltkdiif pkmvaceikr wgpsgievet aqcvlapnvl
+      361 yqylflftwy lliavfftnl iscflhisem ffsngtynrm idqg-mlpdk ps---yryvf
+      421 mnigaggrei vqiltdnsnp llfskifddl tnllittsk- nadvienls- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- -kldssvi-- ---------- ----------
+      601 ------elgs kdsi------ ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα3               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα3
+VERSION     Mle-Panxα3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ml--llgslg ti-------- ----knlsif kdlslddwld qmnrtfmfll lcfmgtivav
+       61 s-qytgknis c--------d gftkfg--ed fsqdycwtqg lytikeaydl p-esqip---
+      121 ------ypgi ---ipenvpa cr-------- e-halknggk ivcppedqvk pltrarhlwy
+      181 qwipfyfwvi apvfylpymf vkrm-gldrm kpllkimsdy yhctt--etp seeiivkcad
+      241 wvynsiv-dr lsegsswtsw rnrhglglav lvskfmylgg svlvmmmttl mfqvgd--fk
+      301 tygiew---- lrqfpn-pen ystsvkhklf pkmvaceikr wgttgleeen gmcvlapnvi
+      361 yqyiflimwf alaitictnf gniffylfkl tatrytynkl vatghfshkh pg---wkfmy
+      421 yrigtsgrvl lnivaqntnp iifgaimekl tpsvikhlr- ighvpge--- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- -yltdpa--- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα6               683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα6
+VERSION     Mle-Panxα6
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--lleila nf-------- ----kgatpf keivlddkwd qinrcymfll cvifgtvvtf
+       61 r-qytggiia c--------d gltkfs--aa faedycwtqg lytikeaydi v-dnslp---
+      121 ------ypgl ---lpedapp cl-------- s-rrlvsggr iecppadlyl eptrvhhtwy
+      181 qwipfyfwvi siafigpyiv ykql-gvnel kpilamlhn- -pvdg--ddv tkdqiskvsr
+      241 wlaikln-if iqekstyaki tqshrmfili fltkifylgv slatmyftdt mfesgr--yl
+      301 tygsew---- fasldk-qsn ytsfvrdrlf pkmvaceikr wgpsgmeeeq gmcvlapnvm
+      361 nqylflifwf alvftifsnt fsiffsvsth cfidggyqrf iqsc-flken sk---lkfiy
+      421 fncgttgrty lhliaknvnp rifeqliikl sadlveekn- kqhlkgskd- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- -ilv------ ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα11              683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα11
+VERSION     Mle-Panxα11
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--lisslv qf-------- ----srlspf keitiddgwd qlnrsfmfvl mvicgtivtv
+       61 r-qhtgniis c--------n gftkyd--gs fsedycwtqg lytireayhv s-dvnvp---
+      121 ------ypgv ---ipeeipl cl-------- g-dnc----- ----dklans nttrvyhlwy
+      181 qwipfyfwla saafflpyli ykry-gfgdi kplihmlyn- -pldg--deg vkadsekasi
+      241 wlyhrfs-iy mnehsmyanf merhgigilv iaikvmylii svllmvmtam mfelad--fk
+      301 qygivw---- aqqwpd-ppa nvtgikdllf pkmvaceikr wgptgleden gmcvlapnvi
+      361 nqyiflilww alvftivsnv fnvlagviri vfiygsyrrm lasa-flrdd ph---ykkvy
+      421 ykigtsgrvi lnmlaasisp tcfqeimnnv cprlirahv- skkgrnlgdd ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- pll------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- ---
+//
+LOCUS       Mle-Panxα10A             683 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα10A
+VERSION     Mle-Panxα10A
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 -m--rlseks tshdckacit rshnedcarr wgitiddgwd qlnrsfmfgl lvvmgttvtv
+       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg qytvlegydq p-nqnipcpl
+      121 paafapypgi ---fpeelsh clvgarkagq s-edlingtr lkcpdpdqll sptrishlwy
+      181 qwvpfyfwla aaaffmpyll yknf-gigdi kplvrflhn- -pves--dqe lkkmtdkaat
+      241 wlfykfd-ly mseqsllasl tnkhglglsv vfvkilyaav sfgcflltad mfsigd--fk
+      301 tygsew---- inklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
+      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
+      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rak------- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ----dy---- ---------- ---------- ---------- ----------
+      661 ---------- ---------- --d
+//
