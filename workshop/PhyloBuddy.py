@@ -162,17 +162,17 @@ class PhyloBuddy:
 
         if not self.in_format:
             if in_file:
-                raise GuessError("Could not automatically determine the format of '{0}'.\n"
-                                 "Try explicitly setting it with the -f flag.".format(in_file))
+                raise br.GuessError("Could not automatically determine the format of '{0}'.\n"
+                                    "Try explicitly setting it with the -f flag.".format(in_file))
             elif raw_seq:
-                raise GuessError("Could not automatically determine the format from raw input\n{0} ..."
-                                 "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
+                raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
+                                    "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
             elif in_handle:
-                raise GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                 "Try explicitly setting it with the -f flag.".format(in_handle)[:50])
+                raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
+                                    "Try explicitly setting it with the -f flag.".format(in_handle)[:50])
             else:
-                raise GuessError("Unable to determine the format or input type. "
-                                 "Please check how PhyloBuddy is being called.")
+                raise br.GuessError("Unable to determine the format or input type. "
+                                    "Please check how PhyloBuddy is being called.")
 
         self.out_format = self.in_format if not _out_format else _out_format
 
@@ -222,7 +222,7 @@ class PhyloBuddy:
             for _tree in _trees:
                 self.trees.append(_tree)
         else:
-            raise GuessError("Not sure what type this is...")
+            raise br.GuessError("Not sure what type this is...")
 
         # Set 1.0 as length if all lengths are zero or None
         all_none = True
@@ -269,16 +269,6 @@ class PhyloBuddy:
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return self.value
-
-
 def _convert_to_ete(_tree, ignore_color=False):
     """
     Converts dendropy trees to ete trees
@@ -378,7 +368,7 @@ def _guess_format(_input):
             return None  # Unable to determine format from file handle
 
     else:
-        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def _order_dendropy_features(node):
@@ -1055,7 +1045,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
         if align_set:
-            alignbuddy = Alb.AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+            alignbuddy = Alb.AlignBuddy(alignbuddy, align_set._in_format, align_set._out_format)
         else:
             alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.in_format, in_args.out_format)
 
@@ -1203,7 +1193,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, GuessError) as e:
+    except (KeyboardInterrupt, br.GuessError) as e:
         print(e)
     except SystemExit:
         pass

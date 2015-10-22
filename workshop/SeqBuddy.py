@@ -175,16 +175,16 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         if not self.in_format:
             if in_file:
-                raise GuessError("Could not determine format from sb_input file '{0}'.\n"
+                raise br.GuessError("Could not determine format from sb_input file '{0}'.\n"
                                  "Try explicitly setting with -f flag.".format(in_file))
             elif raw_sequence:
-                raise GuessError("File not found, or could not determine format from raw input\n{0} ..."
+                raise br.GuessError("File not found, or could not determine format from raw input\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(raw_sequence)[:60])
             elif in_handle:
-                raise GuessError("Could not determine format from input file-like object\n{0} ..."
+                raise br.GuessError("Could not determine format from input file-like object\n{0} ..."
                                  "Try explicitly setting with -f flag.".format(in_handle)[:50])
             else:
-                raise GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
+                raise br.GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
         self.out_format = self.in_format if not out_format else out_format
 
@@ -298,16 +298,6 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
 def _add_buddy_data(rec, key=None, data=None):
     """
     Append the buddy_data attribute (an OrderedDict()) to a BioPython.SeqRecord object
@@ -527,7 +517,7 @@ def _guess_format(_input):
         return None  # Unable to determine format from file handle
 
     else:
-        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def _make_copy(seqbuddy):
@@ -2890,7 +2880,7 @@ def argparse_init():
             seqbuddy += seq_set.records
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
-    except GuessError as e:
+    except br.GuessError as e:
         _stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
 
@@ -3909,7 +3899,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, GuessError) as _e:
+    except (KeyboardInterrupt, br.GuessError) as _e:
         print(_e)
     except SystemExit:
         pass

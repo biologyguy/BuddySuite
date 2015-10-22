@@ -203,21 +203,21 @@ sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]
 # ################################################# HELPER FUNCTIONS ################################################# #
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():
-    with pytest.raises(Sb.GuessError):
+    with pytest.raises(br.GuessError):
         Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
     try:
         Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
-    except Sb.GuessError as e:
+    except br.GuessError as e:
         assert str(e) == "File not found, or could not determine format from raw input"
 
 
 def test_guesserror_infile():
-    with pytest.raises(Sb.GuessError):
+    with pytest.raises(br.GuessError):
         Sb.SeqBuddy(resource("gibberish.fa"))
 
 
 def test_guesserror_in_handle():
-    with pytest.raises(Sb.GuessError):
+    with pytest.raises(br.GuessError):
         with open(resource("gibberish.fa"), "r") as ifile:
             Sb.SeqBuddy(ifile)
 
@@ -227,7 +227,7 @@ def test_no__input():
         Sb.SeqBuddy()
 
 
-# ######################  '_make_copy' ###################### #
+# ######################  'make_copy' ###################### #
 def test_make_copy():
     assert seqs_to_hash(Sb._make_copy(sb_objects[0])) == seqs_to_hash(sb_objects[0])
 
@@ -297,7 +297,7 @@ def test_feature_rc():
         Sb._feature_rc(feature, 1203)
 
 
-# ######################  '_guess_alphabet' ###################### #
+# ######################  'guess_alphabet' ###################### #
 def test_guess_alphabet():
     tester = Sb._make_copy(sb_objects[0])
     assert Sb._guess_alphabet(tester) == IUPAC.ambiguous_dna
@@ -312,13 +312,13 @@ def test_guess_alphabet():
     assert not Sb._guess_alphabet(tester)
 
 
-# ######################  '_guess_format' ###################### #
+# ######################  'guess_format' ###################### #
 def test_guess_format():
     assert Sb._guess_format(["foo", "bar"]) == "gb"
     assert Sb._guess_format(sb_objects[0]) == "fasta"
     assert Sb._guess_format(resource("Mnemiopsis_cds.fa")) == "fasta"
     assert Sb._guess_format(resource("blank.fa")) == "empty file"
-    with pytest.raises(Sb.GuessError):
+    with pytest.raises(br.GuessError):
         Sb._guess_format("foo")
 
     temp_file = MyFuncs.TempFile()

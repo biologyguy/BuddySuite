@@ -125,26 +125,26 @@ def test_empty_file():
 
 def test_guess_error():
     # File path
-    with pytest.raises(Pb.GuessError):
+    with pytest.raises(br.GuessError):
         Pb.PhyloBuddy(resource("unrecognizable.txt"))
 
     with open(resource("unrecognizable.txt"), 'r') as ifile:
         # Raw
-        with pytest.raises(Pb.GuessError):
+        with pytest.raises(br.GuessError):
             Pb.PhyloBuddy(ifile.read())
 
         # Handle
-        with pytest.raises(Pb.GuessError):
+        with pytest.raises(br.GuessError):
             ifile.seek(0)
             Pb.PhyloBuddy(ifile)
 
     # GuessError output
-    test_error = Pb.GuessError("This is a test")
+    test_error = br.GuessError("This is a test")
     assert str(test_error) == "This is a test"
 
     try:
         Pb.PhyloBuddy(resource("unrecognizable.txt"))
-    except Pb.GuessError as e:
+    except br.GuessError as e:
         assert "Could not automatically determine the format of" in str(e.value) and \
                "\nTry explicitly setting it with the -f flag." in str(e.value)
 
@@ -235,7 +235,7 @@ def test_format_to_extension():
 
 
 def test_guess_format():
-    with pytest.raises(Pb.GuessError):
+    with pytest.raises(br.GuessError):
         Pb._guess_format(dict)
 
 

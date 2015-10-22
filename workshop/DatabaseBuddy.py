@@ -131,7 +131,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
                 _input = _ifile.read().strip()
 
         else:
-            raise GuessError("DbBuddy could not determine the input type.")
+            raise br.GuessError("DbBuddy could not determine the input type.")
 
         if _input:
             # try to glean accessions first
@@ -564,15 +564,6 @@ class Failure:
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
 class DatabaseError(Exception):
     def __init__(self, _value):
         self.value = _value
@@ -2558,7 +2549,7 @@ def argparse_init():
         else:
             dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
 
-    except GuessError:
+    except br.GuessError:
         sys.exit("Error: SeqBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
@@ -2579,7 +2570,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             LiveSearch(dbbuddy, temp_file)
         except SystemExit:
             pass
-        except (KeyboardInterrupt, GuessError) as _e:
+        except (KeyboardInterrupt, br.GuessError) as _e:
             print(_e)
         except Exception as _e:
             import traceback
@@ -2697,7 +2688,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, GuessError) as e:
+    except (KeyboardInterrupt, br.GuessError) as e:
         print(e)
     except SystemExit:
         pass

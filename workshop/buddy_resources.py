@@ -40,6 +40,15 @@ if __name__ == '__main__':
 
 
 # ##################################################### CLASSES ###################################################### #
+class GuessError(Exception):
+    """Raised when input format cannot be guessed"""
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
 class Contributor:
     def __init__(self, first, last, middle="", commits=None, github=None):
         self.first = first.strip()
