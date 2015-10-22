@@ -49,6 +49,15 @@ class GuessError(Exception):
         return self.value
 
 
+class PhylipError(Exception):
+    """Raised when phylip format is malformed"""
+    def __init__(self, _value):
+        self.value = _value
+
+    def __str__(self):
+        return self.value
+
+
 class Contributor:
     def __init__(self, first, last, middle="", commits=None, github=None):
         self.first = first.strip()
