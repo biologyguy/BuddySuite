@@ -65,7 +65,10 @@ parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_he
 br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
                               "into SeqBuddy this argument can be left blank."),
          br.sb_flags, br.sb_modifiers, VERSION)
-
+# This is to allow py.test to work with the -x flag
+parser.add_argument("-x", nargs="?")
+parser.add_argument("--cov", nargs="?")
+parser.add_argument("--cov-report", nargs="?")
 in_args = parser.parse_args()
 
 
@@ -97,7 +100,7 @@ class Resources:
                                ("phylipr", "Mnemiopsis_cds.phyr"),
                                ("phylips", "Mnemiopsis_cds.phys"),
                                ("stockholm", "Mnemiopsis_cds.stklm")])
-        one_rna = OrderedDict([("nexus", "Mnemiopsis_rna.nex"),])
+        one_rna = OrderedDict([("nexus", "Mnemiopsis_rna.nex")])
         one_pep = OrderedDict([("gb", "Mnemiopsis_pep_aln.gb"),
                                ("nexus", "Mnemiopsis_pep.nex"),
                                ("phylip", "Mnemiopsis_pep.phy"),
@@ -162,7 +165,7 @@ class Resources:
         Returns copies of AlignBuddy objects, the
         :param code:
         :param mode: {"objs", "paths"}
-        :return:
+        :return: OrderedDict {key: resource}
         """
         files = self._parse_code(code)
         output = OrderedDict()
@@ -238,11 +241,27 @@ def test_instantiate_alignbuddy_from_list(alignbuddy):
         Alb.AlignBuddy(alignbuddy.alignments)
 
 
+def test_instantiation_alignbuddy_errors():
+    with pytest.raises(br.GuessError) as e:
+        Alb.AlignBuddy(resource("gibberish.fa"))
+    assert "Could not determine format from _input file" in str(e)
+
+    tester = open(resource("gibberish.fa"), "r")
+    with pytest.raises(br.GuessError) as e:
+        Alb.AlignBuddy(tester.read())
+    assert "Could not determine format from raw" in str(e)
+
+    tester.seek(0)
+    with pytest.raises(br.GuessError) as e:
+        Alb.AlignBuddy(tester)
+    assert "Could not determine format from input file-like object" in str(e)
+
+
 def test_empty_file():
     with open(resource("blank.fa"), "r") as ifile:
-        with pytest.raises(SystemExit):
+        with pytest.raises(br.GuessError) as e:
             Alb.AlignBuddy(ifile)
-
+        assert "Empty file" in str(e)
 
 # Deprecated --> Delete when possible
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
@@ -262,34 +281,48 @@ alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
 
 
 # ##################### AlignBuddy methods ###################### ##
+def test_set_format():
+    tester = alignments.get_list("o d g")[0]
+    tester.set_format("fasta")
+    assert tester._out_format == "fasta"
+
+
 def test_records():
-    assert len(alb_objects[8].records()) == 28
+    tester = alignments.get_list("m p py")[0]
+    assert len(tester.records()) == 28
 
 
 def test_records_iter():
+    tester = alignments.get_list("m p py")[0]
     counter = 0
-    for rec in alb_objects[8].records_iter():
+    for rec in tester.records_iter():
         assert type(rec) == SeqRecord
         counter += 1
     assert counter == 28
 
 
-hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50",
-          "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
-          "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
-          "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9",
-          "90578980479ad235338dbb767444b05b", "9c6773e7d24000f8b72dd9d25620cff1",
-          "3fd5805f61777f7f329767c5f0fb7467"]
-hashes = [(alb_objects[indx], value) for indx, value in enumerate(hashes)]
+hashes = {'o p g': '1d595268ec0f4303b0e49b1283a98aa7', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
+          'o p py': 'ee6e0fac5243d006dcbe6ffdd1477772', 'o p pr': 'f3e98897f1bbb3d3d6c5507afa9f814e',
+          'o p s': 'c0dce60745515b31a27de1f919083fe9', 'o d c': '778874422d0baadadcdfce81a2a81229',
+          'o d f': '98a3a08389284461ea9379c217e99770', 'o d g': 'bdcb60d8c320a0eb26f54b76232448f1',
+          'o d n': 'cb1169c2dd357771a97a02ae2160935d', 'o d py': '503e23720beea201f8fadf5dabda75e4',
+          'o d pr': '52c23bd793c9761b7c0f897d3d757c12', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
+          'o r n': 'f3bd73151645359af5db50d2bdb6a33d', 'm p c': '1a043fcd3e0a2194102dfbf500cb267f',
+          'm p py': '86ccc2097702ecbcb0ff349c552a97cc', 'm p pr': '9c6773e7d24000f8b72dd9d25620cff1',
+          'm p s': '3fd5805f61777f7f329767c5f0fb7467', 'm d c': '5eacb9bf16780aeb5d031d10dc9bab6f',
+          'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '3c30574978c60ec4afb663444c14bb8e',
+          'm d s': 'ae352b908be94738d6d9cd54770e5b5d'}
+
+albs = alignments.get("")
 
 
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_print(alignbuddy, next_hash, capsys):
+@pytest.mark.parametrize("key,alignbuddy", albs.items())
+def test_print(key, alignbuddy, capsys):
     alignbuddy.print()
     out, err = capsys.readouterr()
     out = "{0}\n".format(out.rstrip())
     tester = string2hash(out)
-    assert tester == next_hash
+    assert tester == hashes[key]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -334,13 +367,15 @@ def test_guess_error():
 
     with open(resource("unrecognizable.txt"), 'r') as ifile:
         # Raw
-        with pytest.raises(br.GuessError):
+        with pytest.raises(br.GuessError) as e:
             Alb.AlignBuddy(ifile.read())
+        assert "Could not determine format from raw input" in str(e)
 
         # Handle
-        with pytest.raises(br.GuessError):
+        with pytest.raises(br.GuessError) as e:
             ifile.seek(0)
             Alb.AlignBuddy(ifile)
+        assert "Could not determine format from input file-like object" in str(e)
 
     # GuessError output
     try:
@@ -360,22 +395,24 @@ def test_guess_alphabet():
 @pytest.mark.foo
 def test_guess_format():
     assert Alb.guess_format(["dummy", "list"]) == "stockholm"
-    for indx, alb in enumerate(alb_objects[:4]):
-        assert Alb.guess_format(alb) == file_types[indx]
 
     for key, obj in alignments.get().items():
         assert Alb.guess_format(obj) == alignments.deets(key)["format"]
 
     for key, path in alignments.get(mode="paths").items():
         assert Alb.guess_format(path) == alignments.deets(key)["format"]
-        with open(resource(path), "r") as ifile:
+        with open(path, "r") as ifile:
             assert Alb.guess_format(ifile) == alignments.deets(key)["format"]
             ifile.seek(0)
             string_io = io.StringIO(ifile.read())
         assert Alb.guess_format(string_io) == alignments.deets(key)["format"]
 
-    with pytest.raises(br.GuessError):
+    Alb.guess_format(resource("blank.fa")) == "empty file"
+    assert not Alb.guess_format(resource("malformed_phylip_records.phys"))
+
+    with pytest.raises(br.GuessError) as e:
         Alb.guess_format({"Dummy dict": "Type not recognized by guess_format()"})
+    assert "Unsupported _input argument in guess_format()" in str(e)
 
 
 def test_make_copy():
