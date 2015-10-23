@@ -3,7 +3,7 @@ DEFINITION
 ACCESSION   Mle-Panxα9
 VERSION     Mle-Panxα9
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -49,7 +49,7 @@ DEFINITION
 ACCESSION   Mle-Panxα7A
 VERSION     Mle-Panxα7A
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -95,7 +95,7 @@ DEFINITION
 ACCESSION   Mle-Panxα1
 VERSION     Mle-Panxα1
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -141,7 +141,7 @@ DEFINITION
 ACCESSION   Mle-Panxα3
 VERSION     Mle-Panxα3
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -187,7 +187,7 @@ DEFINITION
 ACCESSION   Mle-Panxα12
 VERSION     Mle-Panxα12
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -233,7 +233,7 @@ DEFINITION
 ACCESSION   Mle-Panxα11
 VERSION     Mle-Panxα11
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -279,7 +279,7 @@ DEFINITION
 ACCESSION   Mle-Panxα4
 VERSION     Mle-Panxα4
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -325,7 +325,7 @@ DEFINITION
 ACCESSION   Mle-Panxα8
 VERSION     Mle-Panxα8
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -371,7 +371,7 @@ DEFINITION
 ACCESSION   Mle-Panxα6
 VERSION     Mle-Panxα6
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -417,7 +417,7 @@ DEFINITION
 ACCESSION   Mle-Panxα10B
 VERSION     Mle-Panxα10B
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -463,7 +463,7 @@ DEFINITION
 ACCESSION   Mle-Panxα5
 VERSION     Mle-Panxα5
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -509,7 +509,7 @@ DEFINITION
 ACCESSION   Mle-Panxα2
 VERSION     Mle-Panxα2
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
@@ -555,7 +555,7 @@ DEFINITION
 ACCESSION   Mle-Panxα10A
 VERSION     Mle-Panxα10A
 KEYWORDS    .
-SOURCE      .
+SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
