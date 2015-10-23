@@ -161,7 +161,7 @@ class Resources:
         """
         Returns copies of AlignBuddy objects, the
         :param code:
-        :param mode:
+        :param mode: {"objs", "paths"}
         :return:
         """
         files = self._parse_code(code)
@@ -190,6 +190,12 @@ class Resources:
 
     def get_list(self, code="", mode="objs"):
         return [value for key, value in self.get(code=code, mode=mode).items()]
+
+    def deets(self, key):
+        key = key.split()
+        return {"num_aligns": self.code_dict["num_aligns"][key[0]],
+                "type": self.code_dict["type"][key[1]],
+                "format": Alb.parse_format(self.code_dict["format"][key[2]])}
 
 
 alignments = Resources()
@@ -321,7 +327,6 @@ def test_write2():  # Unloopable components
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-@pytest.mark.foo
 def test_guess_error():
     # File path
     with pytest.raises(br.GuessError):
@@ -352,18 +357,24 @@ def test_guess_alphabet():
     assert Alb.guess_alphabet(tester) == IUPAC.ambiguous_rna
     assert not Alb.guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
 
-
+@pytest.mark.foo
 def test_guess_format():
     assert Alb.guess_format(["dummy", "list"]) == "stockholm"
     for indx, alb in enumerate(alb_objects[:4]):
         assert Alb.guess_format(alb) == file_types[indx]
 
-    with open(resource("Alignments_pep.stklm"), "r") as ifile:
-        assert Alb.guess_format(ifile) == "stockholm"
-        ifile.seek(0)
-        string_io = io.StringIO(ifile.read())
-    assert Alb.guess_format(string_io) == "stockholm"
-    with pytest.raises(Alb.GuessError):
+    for key, obj in alignments.get().items():
+        assert Alb.guess_format(obj) == alignments.deets(key)["format"]
+
+    for key, path in alignments.get(mode="paths").items():
+        assert Alb.guess_format(path) == alignments.deets(key)["format"]
+        with open(resource(path), "r") as ifile:
+            assert Alb.guess_format(ifile) == alignments.deets(key)["format"]
+            ifile.seek(0)
+            string_io = io.StringIO(ifile.read())
+        assert Alb.guess_format(string_io) == alignments.deets(key)["format"]
+
+    with pytest.raises(br.GuessError):
         Alb.guess_format({"Dummy dict": "Type not recognized by guess_format()"})
 
 
@@ -371,7 +382,7 @@ def test_make_copy():
     pass
 
 
-def test_phylip():
+def test_phylip_sequential_out():
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-strict')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = string2hash(tester)
@@ -399,6 +410,10 @@ def test_phylip():
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds.nex'), out_format='phylip-sequential-strict')
     with pytest.raises(br.PhylipError):
         str(tester)
+
+
+def test_phylip_sequential_read():
+    pass
 
 
 def test_stderr(capsys):

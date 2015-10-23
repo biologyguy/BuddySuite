@@ -195,15 +195,6 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-class GuessError(Exception):
-    """Raised when input format cannot be guessed"""
-    def __init__(self, _value):
-        self.value = _value
-
-    def __str__(self):
-        return self.value
-
-
 def guess_alphabet(alignbuddy):
     align_list = alignbuddy if isinstance(alignbuddy, list) else alignbuddy.alignments
     seq_list = []
@@ -272,7 +263,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return None  # Unable to determine format from file handle
 
     else:
-        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def parse_format(_format, mode="out"):
@@ -1231,7 +1222,7 @@ def argparse_init():
 
             alignbuddy = AlignBuddy(alignbuddy, align_set._in_format, align_set._out_format)
 
-    except GuessError as e:
+    except br.GuessError as e:
         _stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
 
@@ -1493,7 +1484,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, GuessError) as _e:
+    except (KeyboardInterrupt, br.GuessError) as _e:
         print(_e)
     except SystemExit:
         pass
