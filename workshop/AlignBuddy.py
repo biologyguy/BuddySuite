@@ -61,11 +61,6 @@ import MyFuncs
 # ##################################################### GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
 VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
-OUTPUT_FORMATS = ["clustal", "embl", "fasta", "genbank", "gb", "nexus", "stockholm",
-                  "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
-                  "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
-                  "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
-                  "phylipss", "phylip-sequential-strict"]
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -117,8 +112,6 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
                                     "Please check how AlignBuddy is being called.")
 
         self._out_format = self._in_format if not out_format else parse_format(out_format)
-        if self._out_format not in OUTPUT_FORMATS:
-            raise(TypeError("Output type '%s' is not recognized/supported" % self._out_format))
 
         # ####  ALIGNMENTS  #### #
         if type(_input) == AlignBuddy:
@@ -283,6 +276,12 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
 
 def parse_format(_format, mode="out"):
+    available_formats = ["clustal", "embl", "fasta", "genbank", "gb", "nexus", "stockholm",
+                         "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
+                         "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
+                         "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
+                         "phylipss", "phylip-sequential-strict"]
+
     _format = _format.lower()
     if _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
         return "phylip"
@@ -295,6 +294,9 @@ def parse_format(_format, mode="out"):
 
     if _format in ["phylipss", "phylip-sequential-strict"]:
         return "phylipss" if mode == "out" else "phylip-sequential"
+
+    if _format not in available_formats:
+        raise(TypeError("Format type '%s' is not recognized/supported" % _format))
 
     return _format
 
@@ -1212,9 +1214,12 @@ def argparse_init():
     alignbuddy = []
     align_set = ""
 
-    if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
-        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
-        sys.exit()
+    if in_args.out_format:
+        try:
+            in_args.out_format = parse_format(in_args.out_format)
+        except TypeError as e:
+            _stderr("%s\n" % str(e))
+            sys.exit()
 
     try:
         if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj

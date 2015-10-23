@@ -194,20 +194,6 @@ class Resources:
 
 alignments = Resources()
 
-align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
-               "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
-               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
-               "Alignments_cds.phyr", "Alignments_cds.stklm"]
-
-file_types = ["nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "stockholm"]
-
-nucl_indices = [0, 1, 2, 3, 11, 12]
-
-input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
-
 
 @pytest.mark.parametrize("key, align_file", alignments.get(mode="paths").items())
 def test_instantiate_alignbuddy_from_file(key, align_file):
@@ -252,8 +238,20 @@ def test_empty_file():
             Alb.AlignBuddy(ifile)
 
 
-# Now that we know that all the files are being turned into AlignBuddy objects okay, make them all objects so it doesn't
-# need to be done over and over for each subsequent test.
+# Deprecated --> Delete when possible
+align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
+               "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
+               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
+               "Alignments_cds.phyr", "Alignments_cds.stklm"]
+
+file_types = ["nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "phylip-relaxed", "stockholm"]
+
+nucl_indices = [0, 1, 2, 3, 11, 12]
+
+input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
 alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
 
 
