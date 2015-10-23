@@ -176,13 +176,13 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
         if not self.in_format:
             if in_file:
                 raise br.GuessError("Could not determine format from sb_input file '{0}'.\n"
-                                 "Try explicitly setting with -f flag.".format(in_file))
+                                    "Try explicitly setting with -f flag.".format(in_file))
             elif raw_sequence:
                 raise br.GuessError("File not found, or could not determine format from raw input\n{0} ..."
-                                 "Try explicitly setting with -f flag.".format(raw_sequence)[:60])
+                                    "Try explicitly setting with -f flag.".format(raw_sequence)[:60])
             elif in_handle:
                 raise br.GuessError("Could not determine format from input file-like object\n{0} ..."
-                                 "Try explicitly setting with -f flag.".format(in_handle)[:50])
+                                    "Try explicitly setting with -f flag.".format(in_handle)[:50])
             else:
                 raise br.GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
@@ -491,12 +491,13 @@ def _guess_format(_input):
         _input = open(_input, "r")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
+        if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
+            _input = StringIO(_input.read())
         if _input.read() == "":
             return "empty file"
         _input.seek(0)
 
-        # ToDo: Glean CLUSTAL
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml"]
+        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml", "clustal"]
         for next_format in possible_formats:
             try:
                 _input.seek(0)
@@ -2871,6 +2872,9 @@ def argparse_init():
         _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
         sys.exit()
 
+    if in_args.guess_alphabet or in_args.guess_format:
+        return in_args, SeqBuddy
+
     try:
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
@@ -3479,11 +3483,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.guess_alphabet:
         output = ""
         for seq_set in in_args.sequence:
+            try:
+                seqbuddy = SeqBuddy(seq_set)
+            except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
+                seqbuddy = SeqBuddy("", in_format="raw")
+
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
-                try:
-                    seqbuddy = SeqBuddy(seq_set)
-                except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
-                    seqbuddy = SeqBuddy("", in_format="raw")
                 seq_set = seq_set.split("/")[-1]
                 output += "%s\t-->\t" % seq_set
             else:
@@ -3505,8 +3510,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         output = ""
         for seq_set in in_args.sequence:
             if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
-                if seqbuddy.in_format:
-                    output += "PIPE\t-->\t%s\n" % seqbuddy.in_format
+                _format = _guess_format(seq_set)
+                if _format:
+                    output += "PIPE\t-->\t%s\n" % _format
                 else:
                     output += "PIPE\t-->\tUnknown\n"
             else:

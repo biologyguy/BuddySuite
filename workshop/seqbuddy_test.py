@@ -2035,27 +2035,24 @@ def test_guess_alpha_ui(capsys):
 
 
 # ######################  'gf', '--guess_format' ###################### #
+@pytest.mark.foo
 def test_guess_format_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_format = True
-    paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "seqxml", "stklm"]]
+    paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "seqxml", "stklm", "clus"]]
     paths += ["gibberish.fa", "figtree.nexus"]
     test_in_args.sequence = [resource(x) for x in paths]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "cba4256d28be484b892fe2eb9b02bf99"
+    with open("temp.del", "w") as ofile:
+        ofile.write(out)
+    assert string2hash(out) == "f6cb3b357e6c1282c4d45f280af1ca9d"
 
     text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
     test_in_args.sequence = [text_io]
-    tester = Sb.SeqBuddy(text_io)
-    Sb.command_line_ui(test_in_args, tester, True)
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
     assert out == "PIPE\t-->\tembl\n"
-
-    tester.in_format = None
-    Sb.command_line_ui(test_in_args, tester, True)
-    out, err = capsys.readouterr()
-    assert out == "PIPE\t-->\tUnknown\n"
 
 
 # ######################  'hsi', '--hash_seq_ids' ###################### #
@@ -2426,19 +2423,19 @@ def test_rename_ids_ui(capsys):
     out, err = capsys.readouterr()
     assert "rename_ids requires two or three argments:" in err
 
-    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", 2, "foo"]]
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "foo"]]
     with pytest.raises(SystemExit):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
     assert "rename_ids requires two or three argments:" in err
 
-    test_in_args.rename_ids = [["[a-z](.)",  "?\\1", "foo"]]
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", "foo"]]
     with pytest.raises(SystemExit):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
     assert "Max replacements argument must be an integer" in err
 
-    test_in_args.rename_ids = [["[a-z](.)",  "?\\1\\2", 2]]
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1\\2", 2]]
     with pytest.raises(SystemExit):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
