@@ -213,7 +213,7 @@ class Resources:
 
 alignments = Resources()
 
-@pytest.mark.foo
+
 @pytest.mark.parametrize("key, align_file", alignments.get(mode="paths").items())
 def test_instantiate_alignbuddy_from_file(key, align_file):
     key = key.split()
@@ -291,6 +291,7 @@ input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(a
 alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
 '''
 
+
 # ##################### AlignBuddy methods ###################### ##
 def test_set_format():
     tester = alignments.get_list("o d g")[0]
@@ -300,7 +301,7 @@ def test_set_format():
 
 def test_records():
     tester = alignments.get_list("m p py")[0]
-    assert len(tester.records()) == 28
+    assert len(tester.records()) == 29
 
 
 def test_records_iter():
@@ -309,29 +310,29 @@ def test_records_iter():
     for rec in tester.records_iter():
         assert type(rec) == SeqRecord
         counter += 1
-    assert counter == 28
+    assert counter == 29
 
 
 hashes = {'o p g': '1d595268ec0f4303b0e49b1283a98aa7', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
-          'o p py': 'ee6e0fac5243d006dcbe6ffdd1477772', 'o p pr': 'f3e98897f1bbb3d3d6c5507afa9f814e',
-          "o p pss": "49ad057aea7b351cf24ac6caea544d91", "o p psr": "40de6858b73214adfc87d43f8487b0cd",
+          'o p py': '968ed9fa772e65750f201000d7da670f', 'o p pr': 'ce423d5b99d5917fbef6f3b47df40513',
+          "o p pss": "4bd927145de635c429b2917e0a1db176", "o p psr": "8ff80c7f0b8fc7f237060f94603c17be",
           'o p s': 'c0dce60745515b31a27de1f919083fe9',
 
           'o d c': '778874422d0baadadcdfce81a2a81229', 'o d f': '98a3a08389284461ea9379c217e99770',
           'o d g': 'bdcb60d8c320a0eb26f54b76232448f1', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
           'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d pr': '52c23bd793c9761b7c0f897d3d757c12',
-          'o d pss': '4414c0b42e395fda2f00975368dc398f', 'o d psr': '8e117d6218240933a133f85e4cd039d6',
+          'o d pss': '4c0c1c0c63298786e6fb3db1385af4d5', 'o d psr': 'c5fb6a5ce437afa1a4004e4f8780ad68',
           'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
 
           'o r n': 'f3bd73151645359af5db50d2bdb6a33d',
 
           'm p c': '1a043fcd3e0a2194102dfbf500cb267f', 'm p s': '3fd5805f61777f7f329767c5f0fb7467',
-          'm p py': '86ccc2097702ecbcb0ff349c552a97cc', 'm p pr': '9c6773e7d24000f8b72dd9d25620cff1',
-          'm p pss': 'af97ddb03817ff050d3dfb42472c91e0', 'm p psr': 'a16c6e617e5a88fef080eea54e54e8a8',
+          'm p py': '2a77f5761d4f51b88cb86b079e564e3b', 'm p pr': '3fef9a05058a5259ebd517d1500388d4',
+          'm p pss': 'eb82cda31fcb2cf00e11d7e910fde695', 'm p psr': 'a16c6e617e5a88fef080eea54e54e8a8',
 
           'm d c': '5eacb9bf16780aeb5d031d10dc9bab6f', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d',
-          'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '3c30574978c60ec4afb663444c14bb8e',
-          'm d pss': '5b093558676eced6eb35e96260f0575c', 'm d psr': '92feacff3e1ca5e825c505e05cbe844f'}
+          'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '22c0f0c8f014a34be8edd394bf477a2d',
+          'm d pss': 'c789860da8f0b59e0adc7bde6342b4b0', 'm d psr': '28b2861275e0a488042cff35393ac36d'}
 
 albs = [(hashes[key], alignbuddy) for key, alignbuddy in alignments.get("").items()]
 
@@ -341,6 +342,8 @@ def test_print(next_hash, alignbuddy, capsys):
     alignbuddy.print()
     out, err = capsys.readouterr()
     out = "{0}\n".format(out.rstrip())
+    with open("temp.del", "w") as ofile:
+        ofile.write(out)
     tester = string2hash(out)
     assert tester == next_hash
 
@@ -431,7 +434,8 @@ def test_guess_format():
         assert Alb.guess_format(string_io) == alignments.deets(key)["format"]
 
     Alb.guess_format(resource("blank.fa")) == "empty file"
-    assert not Alb.guess_format(resource("malformed_phylip_records.phys"))
+    assert not Alb.guess_format(resource("malformed_phylip_records.physs"))
+    assert not Alb.guess_format(resource("malformed_phylip_columns.physs"))
 
     with pytest.raises(br.GuessError) as e:
         Alb.guess_format({"Dummy dict": "Type not recognized by guess_format()"})

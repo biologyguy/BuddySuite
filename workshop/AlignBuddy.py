@@ -260,25 +260,42 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
             return "empty file"
         _input.seek(0)
 
-        possible_formats = ["gb", "phylip", "phylip-relaxed", "phylipss", "phylipsr", "stockholm", "fasta", "nexus", "clustal"]
+        possible_formats = ["gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed", "stockholm", "fasta", "nexus", "clustal"]
         for _format in possible_formats:
             try:
                 _input.seek(0)
                 if _format == "phylip":
-                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
+                    sequence = "\n %s" % _input.read().strip()
+                    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+                    align_sizes = []
+                    for indx in range(int(len(alignments) / 3)):
+                        align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
+
                     _input.seek(0)
-                    assert phy_rel
-
-                    phy_rel_ids = []
-                    for aln in phy_rel:
-                        phy_rel_ids.append([rec.id for rec in aln])
-
                     phy = list(AlignIO.parse(_input, "phylip"))
+
+                    indx = 0
+                    phy_ids = []
+                    for key in align_sizes:
+                        for rec in phy[indx]:
+                            assert len(rec.seq) == key[1]
+                            phy_ids.append(rec.id)
+                        indx += 1
+
                     _input.seek(0)
-                    for indx, aln in enumerate(phy):
-                        for rec in aln:
-                            assert rec.id in phy_rel_ids[indx]
+                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
+                    if phy_rel:
+                        for indx, aln in enumerate(phy_rel):
+                            for rec in aln:
+                                if len(rec.seq) != align_sizes[indx][1]:
+                                    return parse_format("phylip", "in")
+                                if rec.id in phy_ids[indx]:
+                                    continue
+                                else:
+                                    return parse_format("phylip-relaxed", "in")
+
                     return parse_format("phylip", "in")
+
                 if _format == "phylipss":
                     if _phylip_sequential_read(_input.read(), relaxed=False):
                         _input.seek(0)
@@ -371,7 +388,7 @@ def _phylip_sequential_out(alignbuddy, relaxed=True):
                 seq_id = re.sub('[ \t]+', '_', rec.id)
                 output += "\n%s%s" % (seq_id.ljust(max_id_len + 2), rec.seq)
             else:
-                seq_id = rec.id[:10].ljust(11)
+                seq_id = rec.id[:10].ljust(10)
                 output += "\n%s%s" % (seq_id, rec.seq)
 
             if seq_id in ids:
@@ -384,36 +401,52 @@ def _phylip_sequential_out(alignbuddy, relaxed=True):
 
 
 def _phylip_sequential_read(sequence, relaxed=True):
-    sequence = "\n%s" % sequence
+    sequence = "\n %s" % sequence.strip()
     alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
     align_dict = OrderedDict()
     for indx in range(int(len(alignments) / 3)):
-        align_dict[(alignments[indx * 3], alignments[indx * 3 + 1])] = alignments[indx * 3 + 2]
+        align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]))] = alignments[indx * 3 + 2]
 
     temp_file = MyFuncs.TempFile()
     aligns = []
     for key, seqs in align_dict.items():
-        seqs = seqs.strip().split("\n")
-        if int(key[0]) != int(len(seqs)):
-            raise br.PhylipError("Malformed Phylip --> %s sequences expected, %s found." % (key[0], int(len(seqs) / 2)))
+        records = []
+        seqs = re.sub("[\n\t]", " ", seqs).strip()
+        while seqs != "":
+            if not relaxed:
+                _id = seqs[:10]
+                seqs = seqs[10:]
+            else:
+                _id = re.match("([^ ]+) +", seqs).group(1)
+                seqs = re.sub("[^ ]+ +", "", seqs, count=1)
+            rec = ""
+            while len(rec) < key[1]:
+                breakdown = re.match("([^ ]+)", seqs)
+                if not breakdown:
+                    raise br.PhylipError("Malformed Phylip --> Less sequence found than expected")
+                rec += breakdown.group(0)
+                if re.match("[^ ]+$", seqs):
+                    seqs = ""
+                    break
+                seqs = re.sub("[^ ]+ +", "", seqs, count=1)
+
+            records.append((_id, rec))
+
+        if len(records) != key[0]:
+            raise br.PhylipError("Malformed Phylip --> %s sequences expected, %s found." % (key[0], len(records)))
 
         key_list = []
         output = ""
-        for seq in seqs:
-            seq = seq.split("\s+")
-            seq_id, seq = seq[0], "".join(seq[1:])
-            if int(key[1]) != len(seq):
+        for seq_id, seq in records:
+            if key[1] != len(seq):
                 raise br.PhylipError("Malformed Phylip --> Sequence %s has %s columns, %s expected." %
                                      (seq_id, len(seqs), key[1]))
-            if not relaxed:
-                seq_id = seq_id[:10]
-                if seq_id in key_list:
+            if seq_id in key_list:
+                if relaxed:
+                    raise br.PhylipError("Malformed Phylip --> Repeat ID %s." % seq_id)
+                else:
                     raise br.PhylipError("Malformed Phylip --> Repeat id '%s' after strict truncation. "
                                          "Try a relaxed Phylip format (phylipr or phylipsr)." % seq_id)
-            else:
-                if seq_id in key_list:
-                    raise br.PhylipError("Malformed Phylip --> Repeat ID %s." % seq_id)
-
             key_list.append(seq_id)
             output += ">%s\n%s\n" % (seq_id, seq)
         temp_file.write(output, "w")
