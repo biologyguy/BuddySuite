@@ -98,13 +98,16 @@ class Resources:
                                ("nexus", "Mnemiopsis_cds.nex"),
                                ("phylip", "Mnemiopsis_cds.phy"),
                                ("phylipr", "Mnemiopsis_cds.phyr"),
-                               ("phylips", "Mnemiopsis_cds.phys"),
+                               ("phylipss", "Mnemiopsis_cds.physs"),
+                               ("phylipsr", "Mnemiopsis_cds.physr"),
                                ("stockholm", "Mnemiopsis_cds.stklm")])
         one_rna = OrderedDict([("nexus", "Mnemiopsis_rna.nex")])
         one_pep = OrderedDict([("gb", "Mnemiopsis_pep_aln.gb"),
                                ("nexus", "Mnemiopsis_pep.nex"),
                                ("phylip", "Mnemiopsis_pep.phy"),
                                ("phylipr", "Mnemiopsis_pep.phyr"),
+                               ("phylipss", "Mnemiopsis_pep.physs"),
+                               ("phylipsr", "Mnemiopsis_pep.physr"),
                                ("stockholm", "Mnemiopsis_pep.stklm")])
 
         one_aligns = OrderedDict([("dna", one_dna),
@@ -114,12 +117,14 @@ class Resources:
         multi_dna = OrderedDict([("clustal", "Alignments_cds.clus"),
                                  ("phylip", "Alignments_cds.phy"),
                                  ("phylipr", "Alignments_cds.phyr"),
-                                 ("phylips", "Alignments_cds.phys"),
+                                 ("phylipss", "Alignments_cds.physs"),
+                                 ("phylipsr", "Alignments_cds.physr"),
                                  ("stockholm", "Alignments_cds.stklm")])
         multi_pep = OrderedDict([("clustal", "Alignments_pep.clus"),
                                  ("phylip", "Alignments_pep.phy"),
                                  ("phylipr", "Alignments_pep.phyr"),
-                                 ("phylips", "Alignments_pep.phys"),
+                                 ("phylipss", "Alignments_pep.physs"),
+                                 ("phylipsr", "Alignments_pep.physr"),
                                  ("stockholm", "Alignments_pep.stklm")])
 
         multi_aligns = OrderedDict([("dna", multi_dna),
@@ -143,7 +148,8 @@ class Resources:
                                       ("type", OrderedDict([("p", "pep"), ("d", "dna"), ("r", "rna")])),
                                       ("format", OrderedDict([("c", "clustal"), ("f", "fasta"), ("g", "gb"),
                                                               ("n", "nexus"), ("py", "phylip"), ("pr", "phylipr"),
-                                                              ("ps", "phylipss"), ("s", "stockholm")]))])
+                                                              ("pss", "phylipss"), ("psr", "phylipsr"),
+                                                              ("s", "stockholm")]))])
 
     def _parse_code(self, code=""):
         results = OrderedDict([("num_aligns", []), ("type", []), ("format", [])])
@@ -194,6 +200,10 @@ class Resources:
     def get_list(self, code="", mode="objs"):
         return [value for key, value in self.get(code=code, mode=mode).items()]
 
+    def get_one(self, key, mode="objs"):
+        output = self.get_list(key, mode)
+        return None if len(output) > 1 else output[0]
+
     def deets(self, key):
         key = key.split()
         return {"num_aligns": self.code_dict["num_aligns"][key[0]],
@@ -203,10 +213,11 @@ class Resources:
 
 alignments = Resources()
 
-
+@pytest.mark.foo
 @pytest.mark.parametrize("key, align_file", alignments.get(mode="paths").items())
 def test_instantiate_alignbuddy_from_file(key, align_file):
     key = key.split()
+    print(key)
     assert type(Alb.AlignBuddy(align_file, in_format=alignments.code_dict["format"][key[2]])) == Alb.AlignBuddy
 
 
@@ -262,7 +273,7 @@ def test_empty_file():
         with pytest.raises(br.GuessError) as e:
             Alb.AlignBuddy(ifile)
         assert "Empty file" in str(e)
-
+'''
 # Deprecated --> Delete when possible
 align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
                "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
@@ -278,7 +289,7 @@ nucl_indices = [0, 1, 2, 3, 11, 12]
 
 input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
 alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
-
+'''
 
 # ##################### AlignBuddy methods ###################### ##
 def test_set_format():
@@ -303,37 +314,46 @@ def test_records_iter():
 
 hashes = {'o p g': '1d595268ec0f4303b0e49b1283a98aa7', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
           'o p py': 'ee6e0fac5243d006dcbe6ffdd1477772', 'o p pr': 'f3e98897f1bbb3d3d6c5507afa9f814e',
-          'o p s': 'c0dce60745515b31a27de1f919083fe9', 'o d c': '778874422d0baadadcdfce81a2a81229',
-          'o d f': '98a3a08389284461ea9379c217e99770', 'o d g': 'bdcb60d8c320a0eb26f54b76232448f1',
-          'o d n': 'cb1169c2dd357771a97a02ae2160935d', 'o d py': '503e23720beea201f8fadf5dabda75e4',
-          'o d pr': '52c23bd793c9761b7c0f897d3d757c12', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
-          'o r n': 'f3bd73151645359af5db50d2bdb6a33d', 'm p c': '1a043fcd3e0a2194102dfbf500cb267f',
+          "o p pss": "49ad057aea7b351cf24ac6caea544d91", "o p psr": "40de6858b73214adfc87d43f8487b0cd",
+          'o p s': 'c0dce60745515b31a27de1f919083fe9',
+
+          'o d c': '778874422d0baadadcdfce81a2a81229', 'o d f': '98a3a08389284461ea9379c217e99770',
+          'o d g': 'bdcb60d8c320a0eb26f54b76232448f1', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
+          'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d pr': '52c23bd793c9761b7c0f897d3d757c12',
+          'o d pss': '4414c0b42e395fda2f00975368dc398f', 'o d psr': '8e117d6218240933a133f85e4cd039d6',
+          'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
+
+          'o r n': 'f3bd73151645359af5db50d2bdb6a33d',
+
+          'm p c': '1a043fcd3e0a2194102dfbf500cb267f', 'm p s': '3fd5805f61777f7f329767c5f0fb7467',
           'm p py': '86ccc2097702ecbcb0ff349c552a97cc', 'm p pr': '9c6773e7d24000f8b72dd9d25620cff1',
-          'm p s': '3fd5805f61777f7f329767c5f0fb7467', 'm d c': '5eacb9bf16780aeb5d031d10dc9bab6f',
+          'm p pss': 'af97ddb03817ff050d3dfb42472c91e0', 'm p psr': 'a16c6e617e5a88fef080eea54e54e8a8',
+
+          'm d c': '5eacb9bf16780aeb5d031d10dc9bab6f', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d',
           'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '3c30574978c60ec4afb663444c14bb8e',
-          'm d s': 'ae352b908be94738d6d9cd54770e5b5d'}
+          'm d pss': '5b093558676eced6eb35e96260f0575c', 'm d psr': '92feacff3e1ca5e825c505e05cbe844f'}
 
-albs = alignments.get("")
+albs = [(hashes[key], alignbuddy) for key, alignbuddy in alignments.get("").items()]
 
 
-@pytest.mark.parametrize("key,alignbuddy", albs.items())
-def test_print(key, alignbuddy, capsys):
+@pytest.mark.parametrize("next_hash,alignbuddy", albs)
+def test_print(next_hash, alignbuddy, capsys):
     alignbuddy.print()
     out, err = capsys.readouterr()
     out = "{0}\n".format(out.rstrip())
     tester = string2hash(out)
-    assert tester == hashes[key]
+    assert tester == next_hash
 
 
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_str(alignbuddy, next_hash):
+@pytest.mark.parametrize("next_hash,alignbuddy", albs)
+def test_str(next_hash, alignbuddy):
     tester = str(alignbuddy)
     tester = string2hash(tester)
     assert tester == next_hash
 
 
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_write1(alignbuddy, next_hash):
+@pytest.mark.parametrize("next_hash,alignbuddy", albs)
+def test_write1(next_hash, alignbuddy):
     temp_file = MyFuncs.TempFile()
     alignbuddy.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
@@ -342,7 +362,7 @@ def test_write1(alignbuddy, next_hash):
 
 
 def test_write2():  # Unloopable components
-    tester = Alb.make_copy(alb_objects[8])
+    tester = alignments.get_one("m p py")
     tester.set_format("fasta")
     with pytest.raises(ValueError):
         str(tester)
@@ -350,7 +370,7 @@ def test_write2():  # Unloopable components
     tester.alignments = []
     assert str(tester) == "AlignBuddy object contains no alignments.\n"
 
-    tester = Alb.make_copy(alb_objects[2])
+    tester = alignments.get_one("o d pr")
     tester.set_format("phylipi")
     assert align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
 
@@ -386,13 +406,16 @@ def test_guess_error():
 
 
 def test_guess_alphabet():
-    assert Alb.guess_alphabet(alb_objects[0]) == IUPAC.ambiguous_dna
-    assert Alb.guess_alphabet(alb_objects[4]) == IUPAC.protein
-    tester = Alb.AlignBuddy(resource("Mnemiopsis_rna.nex"))
-    assert Alb.guess_alphabet(tester) == IUPAC.ambiguous_rna
+    for alb in alignments.get_list("d"):
+        assert Alb.guess_alphabet(alb) == IUPAC.ambiguous_dna
+    for alb in alignments.get_list("p"):
+        assert Alb.guess_alphabet(alb) == IUPAC.protein
+    for alb in alignments.get_list("r"):
+        assert Alb.guess_alphabet(alb) == IUPAC.ambiguous_rna
+
     assert not Alb.guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
 
-@pytest.mark.foo
+
 def test_guess_format():
     assert Alb.guess_format(["dummy", "list"]) == "stockholm"
 
@@ -416,10 +439,13 @@ def test_guess_format():
 
 
 def test_make_copy():
-    pass
+    for alb in alignments.get_list():
+        tester = Alb.make_copy(alb)
+        align_to_hash(tester) == align_to_hash(alb)
 
-
+'''
 def test_phylip_sequential_out():
+    for tester in alignments.get_list("ps psr")
     tester = Alb.AlignBuddy(resource('Mnemiopsis_cds_hashed_ids.nex'), out_format='phylip-strict')
     tester = "{0}\n".format(str(tester).rstrip())
     tester = string2hash(tester)
@@ -933,3 +959,4 @@ def test_trimal2():
     assert align_to_hash(Alb.trimal(tester, 'all')) == "caebb7ace4940cea1b87667e5e113acb"
     with pytest.raises(ValueError):
         Alb.trimal(tester, "Foo")
+'''
