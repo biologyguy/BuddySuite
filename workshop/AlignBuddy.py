@@ -202,11 +202,8 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         else:
             tmp_dir = MyFuncs.TempDir()
             with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
-                try:
-                    AlignIO.write(self.alignments, ofile, self._out_format)
-                except ValueError as e:
-                    if "Repeated name " in str(e):
-                        raise br.PhylipError(str(e))
+                AlignIO.write(self.alignments, ofile, self._out_format)
+
             with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
                 output = ifile.read()
         return "%s\n" % output.rstrip()
@@ -313,13 +310,9 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
                     return parse_format(_format, "in")
                 else:
                     continue
-            except AssertionError:
-                continue
             except br.PhylipError:
                 continue
-            except ValueError as e:
-                if "Found a record of length" in str(e):
-                    raise ValueError("Malformed Phylip --> %s" % e)
+            except ValueError:
                 continue
 
         return None  # Unable to determine format from file handle
@@ -349,7 +342,7 @@ def parse_format(_format, mode="out"):
         return "phylipss"
 
     if _format not in available_formats:
-        raise(TypeError("Format type '%s' is not recognized/supported" % _format))
+        raise TypeError("Format type '%s' is not recognized/supported" % _format)
 
     return _format
 
@@ -427,7 +420,6 @@ def _phylip_sequential_read(sequence, relaxed=True):
                 rec += breakdown.group(0)
                 if re.match("[^ ]+$", seqs):
                     seqs = ""
-                    break
                 seqs = re.sub("[^ ]+ +", "", seqs, count=1)
 
             records.append((_id, rec))
@@ -440,7 +432,7 @@ def _phylip_sequential_read(sequence, relaxed=True):
         for seq_id, seq in records:
             if key[1] != len(seq):
                 raise br.PhylipError("Malformed Phylip --> Sequence %s has %s columns, %s expected." %
-                                     (seq_id, len(seqs), key[1]))
+                                     (seq_id, len(seq), key[1]))
             if seq_id in key_list:
                 if relaxed:
                     raise br.PhylipError("Malformed Phylip --> Repeat ID %s." % seq_id)
@@ -1324,6 +1316,10 @@ def argparse_init():
 
     except ValueError as e:
         _stderr("ValueError: %s\n" % e, in_args.quiet)
+        sys.exit()
+
+    except br.PhylipError as e:
+        _stderr("PhylipError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     return in_args, alignbuddy
