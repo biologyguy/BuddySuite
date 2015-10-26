@@ -1322,6 +1322,13 @@ def argparse_init():
         _stderr("PhylipError: %s\n" % e, in_args.quiet)
         sys.exit()
 
+    except TypeError as e:
+        if "Format type '%s' is not recognized/supported" % in_args.in_format in str(e):
+            _stderr("TypeError: %s\n" % str(e), in_args.quiet)
+            sys.exit()
+        else:
+            raise e
+
     return in_args, alignbuddy
 
 
@@ -1387,11 +1394,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Alignment lengths
     if in_args.alignment_lengths:
         counts = alignment_lengths(alignbuddy)
-        output = ""
-        for indx, count in enumerate(counts):
-            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
-
-        _stdout("%s\n" % output.strip())
+        if len(counts) == 1:
+            _stdout("%s\n" % counts[0])
+        else:
+            for indx, count in enumerate(counts):
+                _stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
+                _stdout("%s\n" % count)
         _exit("alignment_lengths")
 
     # Back Transcribe

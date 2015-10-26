@@ -51,20 +51,20 @@ BACKUP_PATH = os.environ["PATH"]
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
-parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
-                                 description='''\
-\033[1mSeqBuddy\033[m
-  See your sequence files. Be your sequence files.
+parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mAlignBuddy\033[m
+  Sequence alignments with a splash of kava.
 
 \033[1mUsage examples\033[m:
-  SeqBuddy.py "/path/to/seq_file" -<cmd>
-  SeqBuddy.py "/path/to/seq_file" -<cmd> | SeqBuddy.py -<cmd>
-  SeqBuddy.py "ATGATGCTAGTC" -f "raw" -<cmd>
+  AlignBuddy.py "/path/to/align_file" -<cmd>
+  AlignBuddy.py "/path/to/align_file" -<cmd> | AlignBuddy.py -<cmd>
+  AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
-                              "into SeqBuddy this argument can be left blank."),
-         br.sb_flags, br.sb_modifiers, VERSION)
+br.flags(parser, ("alignments", "The file(s) you want to start working on"),
+         br.alb_flags, br.alb_modifiers, VERSION)
+
 # This is to allow py.test to work with the -x flag
 parser.add_argument("-x", nargs="?")
 parser.add_argument("--cov", nargs="?")
@@ -202,7 +202,7 @@ class Resources:
 
     def get_one(self, key, mode="objs"):
         output = self.get_list(key, mode)
-        return None if len(output) > 1 else output[0]
+        return None if not output or len(output) > 1 else output[0]
 
     def deets(self, key):
         key = key.split()
@@ -551,19 +551,19 @@ def test_stdout(capsys):
     out, err = capsys.readouterr()
     assert out == ""
 
-'''
+
 # ################################################ MAIN API FUNCTIONS ################################################ #
 # ##########################################  'al', '--alignment_lengths' ############################################ #
 def test_alignment_lengths():
-    tester_100 = Alb.alignment_lengths(Alb.AlignBuddy(resource('concat_alignment_file.phyr')))
-    assert tester_100[0] == 100
-    assert tester_100[1] == 100
+    lengths = Alb.alignment_lengths(alignments.get_one("m p c"))
+    assert lengths[0] == 481
+    assert lengths[1] == 683
 
-    tester_variable = Alb.alignment_lengths(Alb.AlignBuddy(resource('Alignments_cds.phyr')))
-    assert tester_variable[0] == 2043
-    assert tester_variable[1] == 1440
+    lengths = Alb.alignment_lengths(alignments.get_one("m d s"))
+    assert lengths[0] == 2043
+    assert lengths[1] == 1440
 
-
+'''
 # ##############################################  'cs', '--clean_seqs' ############################################### #
 def test_clean_seqs():
     # Test an amino acid file
@@ -1013,3 +1013,20 @@ def test_trimal2():
     with pytest.raises(ValueError):
         Alb.trimal(tester, "Foo")
 '''
+
+
+# ################################################# COMMAND LINE UI ################################################## #
+# ##################### 'al', '--alignment_lengths' ###################### ##
+def test_alignment_lengths_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.alignment_lengths = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert out == "481\n683\n"
+    assert err == "# Alignment 1\n# Alignment 2\n"
+
+    Alb.command_line_ui(test_in_args, alignments.get_one("o p py"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert out == "681\n"
+    assert err == ""
+
