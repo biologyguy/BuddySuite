@@ -335,6 +335,9 @@ class BuddyInstall:
                                 except FileExistsError:
                                     print("{0}/{1}".format(install_directory, shortcut))
                                     print("Shortcut retained: {0} ==> {1}".format(buddy, shortcut))
+                    else:
+                        shutil.copy("./{0}.py".format(buddy), "{0}/{1}.py".format(install_directory, buddy))
+                        print("File added (not executable): {0}/{1}.py".format(install_directory, buddy))
 
             elif user_system == 'Windows':
                 print("Windows not supported at the moment.")
@@ -660,7 +663,8 @@ def cmd_install():
           "https://github.com/biologyguy/BuddySuite/blob/master/privacy\n")
 
     if email_address != '':
-        if not ask("Your email address is currently set to \033[1m%s\033[m, would you like to keep it the same? [y]/n"
+        if not ask("Your email address is currently set to \033[1m%s\033[m, "
+                   "would you like to keep it the same? ([y]/n): "
                    % email_address):
             email_address = ''
 
@@ -668,7 +672,7 @@ def cmd_install():
         email_address = input("\nPlease provide your email address (optional): ")
 
     if ask("\nWould you like to join our Software Improvement Program (SIP)? Anonymized usage statistics and crash "
-           "reports will be automatically transmitted to the BuddySuite developers. [y]/n"):
+           "reports will be automatically transmitted to the BuddySuite developers ([y]/n): "):
         send_diagnostics = True
 
     print("\nPlease verify your settings.\n")
