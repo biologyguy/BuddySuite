@@ -34,6 +34,7 @@ import re
 
 sys.path.insert(0, "./")
 from MyFuncs import TempFile
+from Bio import AlignIO
 
 if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
@@ -261,6 +262,128 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
         misc.add_argument('-v', '--version', action='version', version=str(version))
 
 
+def parse_format(_format):
+    available_formats = ["clustal", "embl", "fasta", "genbank", "gb", "nexus", "stockholm",
+                         "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
+                         "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
+                         "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
+                         "phylipss", "phylip-sequential-strict"]
+
+    _format = _format.lower()
+    if _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
+        return "phylip"
+
+    if _format in ["phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"]:
+        return "phylip-relaxed"
+
+    if _format in ["phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"]:
+        return "phylipsr"
+
+    if _format in ["phylipss", "phylip-sequential-strict"]:
+        return "phylipss"
+
+    if _format not in available_formats:
+        raise TypeError("Format type '%s' is not recognized/supported" % _format)
+
+    return _format
+
+
+def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
+    output = ""
+    ids = []
+    if _type == "alignbuddy":
+        alignments = _input.alignments
+    else:
+        alignments = [_input.records]
+
+    for alignment in alignments:
+        id_check = []
+        aln_len = 0
+        for rec in alignment:
+            if rec.id in id_check:
+                raise PhylipError("Malformed Phylip --> Repeat id '%s'" % rec.id)
+            id_check.append(rec.id)
+            if not aln_len:
+                aln_len = len(str(rec.seq))
+
+        max_id_len = 0
+        for rec in alignment:
+            if len(str(rec.seq)) != aln_len:
+                raise PhylipError("Malformed Phylip --> The length of record '%s' is incorrect" % rec.id)
+            max_id_len = len(rec.id) if len(rec.id) > max_id_len else max_id_len
+
+        output += " %s %s" % (len(alignment), aln_len)
+        for rec in alignment:
+            if relaxed:
+                seq_id = re.sub('[ \t]+', '_', rec.id)
+                output += "\n%s%s" % (seq_id.ljust(max_id_len + 2), rec.seq)
+            else:
+                seq_id = rec.id[:10].ljust(10)
+                output += "\n%s%s" % (seq_id, rec.seq)
+
+            if seq_id in ids:
+                raise PhylipError("Malformed Phylip --> Repeat id '%s' after strict truncation. "
+                                  "Try a relaxed Phylip format (phylipr or phylipsr)." % seq_id)
+            ids.append(seq_id)
+
+        output += "\n\n"
+    return output
+
+
+def phylip_sequential_read(sequence, relaxed=True):
+    sequence = "\n %s" % sequence.strip()
+    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+    align_dict = OrderedDict()
+    for indx in range(int(len(alignments) / 3)):
+        align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]))] = alignments[indx * 3 + 2]
+
+    temp_file = TempFile()
+    aligns = []
+    for key, seqs in align_dict.items():
+        records = []
+        seqs = re.sub("[\n\t]", " ", seqs).strip()
+        while seqs != "":
+            if not relaxed:
+                _id = seqs[:10]
+                seqs = seqs[10:]
+            else:
+                _id = re.match("([^ ]+) +", seqs).group(1)
+                seqs = re.sub("[^ ]+ +", "", seqs, count=1)
+            rec = ""
+            while len(rec) < key[1]:
+                breakdown = re.match("([^ ]+)", seqs)
+                if not breakdown:
+                    raise PhylipError("Malformed Phylip --> Less sequence found than expected")
+                rec += breakdown.group(0)
+                if re.match("[^ ]+$", seqs):
+                    seqs = ""
+                seqs = re.sub("[^ ]+ +", "", seqs, count=1)
+
+            records.append((_id, rec))
+
+        if len(records) != key[0]:
+            raise PhylipError("Malformed Phylip --> %s sequences expected, %s found." % (key[0], len(records)))
+
+        key_list = []
+        output = ""
+        for seq_id, seq in records:
+            if key[1] != len(seq):
+                raise PhylipError("Malformed Phylip --> Sequence %s has %s columns, %s expected." %
+                                  (seq_id, len(seq), key[1]))
+            if seq_id in key_list:
+                if relaxed:
+                    raise PhylipError("Malformed Phylip --> Repeat ID %s." % seq_id)
+                else:
+                    raise PhylipError("Malformed Phylip --> Repeat id '%s' after strict truncation. "
+                                      "Try a relaxed Phylip format (phylipr or phylipsr)." % seq_id)
+            key_list.append(seq_id)
+            output += ">%s\n%s\n" % (seq_id, seq)
+        temp_file.write(output, "w")
+        aligns.append(AlignIO.read(temp_file.get_handle("r"), "fasta"))
+        temp_file.close()
+    return aligns
+
+
 def send_traceback(tool, e):
     config = config_values()
     tb = "%s\n" % config["user_hash"]
@@ -296,9 +419,11 @@ contributors = [Contributor("Stephen", "Bond", commits=291, github="https://gith
                 Contributor("Jeremy", "Labarge", commits=1, github="https://github.com/biojerm")]
 
 # NOTE: If this is added to, be sure to update the unit test!
-format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'nexus': 'nex',
-                       'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
-                       'stockholm': 'stklm', 'stklm': 'stklm'}
+format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
+                       'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
+                       'phyr': 'phyr', 'phylipss': 'physs', 'physs': 'physs', 'phylipsr': 'physr',
+                       'physr': 'physr', 'stockholm': 'stklm', 'stklm': 'stklm'}
+
 
 # flag, action, nargs, metavar, help, choices, type
 # #################################################### INSTALLER ##################################################### #
