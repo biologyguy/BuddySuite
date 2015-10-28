@@ -389,56 +389,6 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     return alignbuddy
 
 
-def codon_alignment(alignbuddy):
-    """
-    Organizes nucleotide alignment into codon triplets
-    :param alignbuddy: The AlignBuddy object to be rearranged
-    :return: The rearranged AlignBuddy object
-    """
-    if alignbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
-
-    for rec in alignbuddy.records_iter():
-        if rec.seq.alphabet == IUPAC.protein:
-            raise TypeError("Error: Record %s is protein. Nucleic acid sequence required." % rec.name)
-
-        seq_string = str(rec.seq)
-        output = seq_string[0]
-        held_residues = ""
-        position = 2
-        for residue in seq_string[1:]:
-            if position == 1:
-                while len(held_residues) >= 3:
-                    output += held_residues[:3]
-                    held_residues = held_residues[3:]
-                position = len(held_residues) + 1
-                output += held_residues
-                held_residues = ""
-
-            if position == 1:
-                output += residue
-
-            elif output[-1] not in GAP_CHARS and residue not in GAP_CHARS:
-                output += residue
-
-            elif output[-1] in GAP_CHARS and residue in GAP_CHARS:
-                output += residue
-
-            else:
-                held_residues += residue
-                continue
-
-            if position != 3:
-                position += 1
-            else:
-                position = 1
-
-        output += held_residues
-        rec.seq = Seq(output, alphabet=rec.seq.alphabet)
-
-    return alignbuddy
-
-
 def concat_alignments(alignbuddy, pattern):
     """
     Concatenates two or more alignments together, end-to-end
@@ -586,6 +536,61 @@ def dna2rna(alignbuddy):
         for rec in alignment:
             rec.seq = Seq(str(rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
     alignbuddy.alpha = IUPAC.ambiguous_rna
+    return alignbuddy
+
+
+def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
+    """
+    Organizes nucleotide alignment into triplets
+    :param alignbuddy: AlignBuddy object
+    :return: The rearranged AlignBuddy object
+    """
+    if alignbuddy.alpha == IUPAC.protein:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+
+    for rec in alignbuddy.records_iter():
+        if rec.seq.alphabet == IUPAC.protein:
+            raise TypeError("Record '%s' is protein. Nucleic acid sequence required." % rec.name)
+
+        seq_string = str(rec.seq)
+        output = seq_string[0]
+        held_residues = ""
+        position = 2
+        for residue in seq_string[1:]:
+            if position == 1:
+                while len(held_residues) >= 3:
+                    output += held_residues[:3]
+                    held_residues = held_residues[3:]
+                position = len(held_residues) + 1
+                output += held_residues
+                held_residues = ""
+
+            if position == 1:
+                output += residue
+
+            elif output[-1] not in GAP_CHARS and residue not in GAP_CHARS:
+                output += residue
+
+            elif output[-1] in GAP_CHARS and residue in GAP_CHARS:
+                output += residue
+
+            else:
+                held_residues += residue
+                continue
+
+            if position != 3:
+                position += 1
+            else:
+                position = 1
+
+        check_end_gaps = re.search("([\-]{1,2})$", output)
+        if check_end_gaps:
+            output = output[:-1 * len(check_end_gaps.group(1))]
+            output += held_residues + check_end_gaps.group(1)
+        else:
+            output += held_residues
+
+        rec.seq = Seq(output, alphabet=rec.seq.alphabet)
     return alignbuddy
 
 
@@ -932,7 +937,7 @@ def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the 
         pep.seq = Seq(new_seq, alphabet=IUPAC.protein)
         return pep
 
-    codon_alignment(alignbuddy)
+    enforce_triplets(alignbuddy)
     copy_alignbuddy = make_copy(alignbuddy)
     clean_seq(copy_alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
     for align_indx, alignment in enumerate(copy_alignbuddy.alignments):
@@ -1307,14 +1312,6 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(clean_seq(alignbuddy, ambiguous=ambig, rep_char=rep_char))
         _exit("clean_seq")
 
-    # Codon alignment
-    if in_args.codon_alignment:
-        try:
-            _print_aligments(codon_alignment(alignbuddy))
-        except TypeError as e:
-            _raise_error(e, "codon_alignment", "Nucleic acid sequence required.")
-        _exit("codon_alignment")
-
     # Concatenate Alignments
     if in_args.concat_alignments:
         try:
@@ -1337,6 +1334,14 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         except TypeError as e:
             _raise_error(e, "back_transcribe", "Nucleic acid sequence required, not protein.")
         _exit("back_transcribe")
+
+    # Enforce triplets
+    if in_args.enforce_triplets:
+        try:
+            _print_aligments(enforce_triplets(alignbuddy))
+        except TypeError as e:
+            _raise_error(e, "enforce_triplets", "Nucleic acid sequence required")
+        _exit("enforce_triplets")
 
     # Extract range
     if in_args.extract_range:
@@ -1430,10 +1435,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             _path = os.path.abspath(in_args.alignments[0]).split("/")
             if "." in _path[-1]:
                 _file = str(_path[-1]).split(".")
-                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy.out_format])
+                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy._out_format])
 
             else:
-                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy.out_format])
+                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy._out_format])
 
             os.remove(in_args.alignments[0])
             in_args.alignments[0] = "%s/%s" % ("/".join(_path[:-1]), _file)

@@ -90,6 +90,25 @@ def resource(file_name):
 
 
 # ################### Alignment resources ################### #
+'''
+# Deprecated --> Delete when possible
+align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
+               "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
+               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
+               "Alignments_cds.phyr", "Alignments_cds.stklm"]
+
+file_types = ["nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "phylip-relaxed", "phylip-relaxed", "stockholm",
+              "phylip-relaxed", "stockholm"]
+
+nucl_indices = [0, 1, 2, 3, 11, 12]
+
+input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
+alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
+'''
+
+
 class Resources:
     def __init__(self):
         one_dna = OrderedDict([("clustal", "Mnemiopsis_cds.clus"),
@@ -273,23 +292,6 @@ def test_empty_file():
         with pytest.raises(br.GuessError) as e:
             Alb.AlignBuddy(ifile)
         assert "Empty file" in str(e)
-'''
-# Deprecated --> Delete when possible
-align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
-               "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
-               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
-               "Alignments_cds.phyr", "Alignments_cds.stklm"]
-
-file_types = ["nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "stockholm"]
-
-nucl_indices = [0, 1, 2, 3, 11, 12]
-
-input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
-alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
-'''
 
 
 # ##################### AlignBuddy methods ###################### ##
@@ -507,32 +509,34 @@ def test_clean_seqs():
     tester = Alb.clean_seq(Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa")), ambiguous=False, rep_char="X")
     assert align_to_hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
-'''
-# ###########################################  'ca', '--codon_alignment' ############################################ #
-hashes = ["c907d29434fe2b45db60f1a9b70f110d", "f150b94234e93f354839d7c2ca8dae24", "6a7a5416f2ce1b3161c8b5b8b4b9e901",
-          "54d412fbca5baa60e4c31305d35dd79a", "3ddc2109b15655ef0eed3908713510de", "f728ab606602ed67357f78194e500664"]
 
-hashes = [(Alb.make_copy(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
+# ###########################################  'et', '--enforce_triplets' ############################################ #
+hashes = {'o d g': '0ce95f6c48b654084a3aee5024351927', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
+          'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
+          "m d py": "282a2ccfffcabd2161ef5945d9fcc657"}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d r g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_codon_alignment1(alignbuddy, next_hash):
-    tester = Alb.codon_alignment(alignbuddy)
+def test_enforce_triplets(alignbuddy, next_hash):
+    tester = Alb.enforce_triplets(alignbuddy)
     assert align_to_hash(tester) == next_hash
 
-    if next_hash == "f728ab606602ed67357f78194e500664":
-        with pytest.raises(TypeError):
-            Alb.codon_alignment(alb_objects[8])
 
+def test_enforce_triplets_error():
+    with pytest.raises(TypeError) as e:
+        Alb.enforce_triplets(alignments.get_one("m p c"))
+    assert "Nucleic acid sequence required, not protein." in str(e)
 
-def test_codon_alignment2():
-    with pytest.raises(TypeError):
-        tester = Alb.make_copy(alb_objects[3])
+    with pytest.raises(TypeError) as e:
+        tester = Alb.enforce_triplets(alignments.get_one("m d pr"))
         tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
                                           alphabet=IUPAC.protein)
-        Alb.translate_cds(tester)
+        Alb.enforce_triplets(tester)
+    assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
-
+'''
 # ###########################################  'cta', '--concat_alignments' ######################################### #
 def test_concat_alignments_identical():
     tester = Alb.AlignBuddy(resource("duplicate_alignment.nex"))
@@ -960,3 +964,16 @@ def test_clean_seqs_ui(capsys):
     Alb.command_line_ui(test_in_args, Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa")), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "6755ea1408eddd0e5f267349c287d989"
+
+
+# ##################### 'et', '--enforce_triplets' ###################### ##
+def test_enforce_triplets_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.enforce_triplets = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("o d g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "0ce95f6c48b654084a3aee5024351927"
+
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
