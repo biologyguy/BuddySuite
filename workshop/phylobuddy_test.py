@@ -230,10 +230,6 @@ def test_convert_to_ete():
     assert ete_tree.pb_color == '#ff0000'
 
 
-def test_format_to_extension():
-    assert Pb._format_to_extension("nexus") == "nex"
-
-
 def test_guess_format():
     with pytest.raises(br.GuessError):
         Pb._guess_format(dict)
@@ -376,7 +372,7 @@ def test_fasttree_multi_param():
     temp_file = TempFile()
     tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
     tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
-    assert phylo_to_hash(tester) == '60dc961f90041dd8bc1eab47ffe581c0'
+    assert phylo_to_hash(tester) == '28debf1cc6a7ab69f94c69626fbe5db0'
 
 
 def test_generate_trees_edge_cases():
@@ -766,8 +762,8 @@ def test_screw_formats_inplace_ui(capsys):
 
     tester = Pb.PhyloBuddy("%s.nex" % temp_file.path)
     Pb.command_line_ui(test_in_args, tester, skip_exit=True)
-    nexus_out, nexus_err = capsys.readouterr()
-    assert "File over-written at:" in nexus_err
+    out, err = capsys.readouterr()
+    assert "File over-written at:" in err
     check_file = os.path.isfile("%s.nwk" % temp_file.path)
     assert check_file
 

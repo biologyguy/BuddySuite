@@ -82,6 +82,7 @@ from dendropy.calculate import treecompare
 # BuddySuite specific
 from MyFuncs import TempDir
 import buddy_resources as br
+import AlignBuddy as Alb
 
 
 # ##################################################### WISH LIST #################################################### #
@@ -108,6 +109,8 @@ def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
 # Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
 
+# Try hard to remove any dependency on PyQt4 (preferably remove ETE3 completely if possible). ete3.NodeStyle() cannot be
+# imported without PyQt4
 
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
@@ -286,7 +289,11 @@ def _convert_to_ete(_tree, ignore_color=False):
     if not ignore_color:  # Converts color annotations from figtree into NodeStyle objects.
         for node in ete_tree.traverse():
             if hasattr(node, 'pb_color'):
-                style = ete3.NodeStyle()
+                try:
+                    style = ete3.NodeStyle()
+                except AttributeError as _e:
+                    if "'module' object has no attribute 'NodeStyle'" in str(_e):
+                        raise AttributeError("Unable to import NodeStyle... You probably need to install pyqt.")
                 style['fgcolor'] = node.pb_color
                 style['hz_line_color'] = node.pb_color
                 node.set_style(style)
@@ -315,13 +322,6 @@ def _extract_figtree_metadata(_file_path):
         return None
 
     return filedata, figdata
-
-
-def _format_to_extension(_format):
-    format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
-                           'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
-                           'phyr': 'phyr', 'stockholm': 'stklm', 'stklm': 'stklm'}
-    return format_to_extension[_format]
 
 
 def _get_tree_binaries(_tool):
@@ -523,7 +523,8 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
                 params[indx] = os.path.abspath(token)
         params = ' '.join(params)
 
-        alignbuddy.out_format = 'phylip-interleaved'  # Supported by most tree builders
+        # ToDo: Hash IDs before running, and then re-map afterwards
+        alignbuddy.set_format('phylipsr')  # Supported by most tree builders
         with open("{0}/tmp.del".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(alignbuddy))  # Most tree builders require an input file
 
@@ -1032,11 +1033,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         in_args.generate_tree = in_args.generate_tree[0]
         alignbuddy = []
         align_set = None
-        try:
-            import AlignBuddy as Alb
-        except ImportError:
-            _raise_error(ImportError("AlignBuddy is needed to use generate_msa(). Please re-run the installer and "
-                                     "add AlignBuddy to your system."), "generate_tree")
+        out_format = None if not in_args.out_format else str(in_args.out_format)
+        in_args.out_format = None if not in_args.out_format else "phylipsr"
 
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
@@ -1087,7 +1085,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
                 _raise_error(str(_e), "generate_tree")
 
         if in_args.out_format:
-            generated_trees.out_format = in_args.out_format
+            generated_trees.out_format = out_format
 
         _print_trees(generated_trees)
         _exit("generate_tree")
@@ -1154,15 +1152,18 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             phylobuddy.out_format = in_args.screw_formats
             if in_args.in_place and os.path.isfile(str(in_args.trees[0])):
                 # Need to change the file extension
-                os.remove(in_args.trees[0])
-                if "." in os.path.abspath(in_args.trees[0]):
-                    in_args.trees[0] = ".".join(os.path.abspath(in_args.trees[0]).split(".")[:-1]) + \
-                                       "." + _format_to_extension(phylobuddy.out_format)
-                else:
-                    in_args.trees[0] = "%s.%s" % (os.path.abspath(in_args.trees[0]),
-                                                  _format_to_extension(phylobuddy.out_format))
+                _path = os.path.abspath(in_args.trees[0]).split("/")
+                if "." in _path[-1]:
+                    _file = str(_path[-1]).split(".")
+                    _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[phylobuddy.out_format])
 
+                else:
+                    _file = "%s.%s" % (_path[-1], br.format_to_extension[phylobuddy.out_format])
+
+                os.remove(in_args.trees[0])
+                in_args.trees[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
                 open(in_args.trees[0], "w").close()
+
             _print_trees(phylobuddy)
         _exit("screw_formats")
 
