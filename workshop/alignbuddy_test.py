@@ -208,7 +208,7 @@ class Resources:
         key = key.split()
         return {"num_aligns": self.code_dict["num_aligns"][key[0]],
                 "type": self.code_dict["type"][key[1]],
-                "format": Alb.parse_format(self.code_dict["format"][key[2]])}
+                "format": br.parse_format(self.code_dict["format"][key[2]])}
 
 
 alignments = Resources()
@@ -444,19 +444,19 @@ def test_guess_format():
 
 def test_parse_format():
     for _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
-        assert Alb.parse_format(_format) == "phylip"
+        assert br.parse_format(_format) == "phylip"
 
     for _format in ["phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"]:
-        assert Alb.parse_format(_format) == "phylip-relaxed"
+        assert br.parse_format(_format) == "phylip-relaxed"
 
     for _format in ["phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"]:
-        assert Alb.parse_format(_format) == "phylipsr"
+        assert br.parse_format(_format) == "phylipsr"
 
     for _format in ["phylipss", "phylip-sequential-strict"]:
-        assert Alb.parse_format(_format) == "phylipss"
+        assert br.parse_format(_format) == "phylipss"
 
     with pytest.raises(TypeError) as e:
-        Alb.parse_format("foo")
+        br.parse_format("foo")
     assert "Format type 'foo' is not recognized/supported" in str(e)
 
 
@@ -464,72 +464,6 @@ def test_make_copy():
     for alb in alignments.get_list():
         tester = Alb.make_copy(alb)
         align_to_hash(tester) == align_to_hash(alb)
-
-
-def test_phylip_sequential_out():
-    tester = alignments.get_one("m p py")
-    output = Alb._phylip_sequential_out(tester, relaxed=False)
-    assert string2hash("%s\n" % output.rstrip()) == "eb82cda31fcb2cf00e11d7e910fde695"
-
-    tester = alignments.get_one("m p pr")
-    output = Alb._phylip_sequential_out(tester, relaxed=True)
-    assert string2hash("%s\n" % output.rstrip()) == "a16c6e617e5a88fef080eea54e54e8a8"
-
-    records = tester.records()
-    with pytest.raises(br.PhylipError) as e:
-        records[0].id = str(records[1].id)
-        Alb._phylip_sequential_out(tester)
-    assert "Malformed Phylip --> Repeat id" in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        records[1].id = "foo"
-        records[0].seq = Seq(str(records[0].seq[:-2]), records[0].seq.alphabet)
-        Alb._phylip_sequential_out(tester)
-    assert "Malformed Phylip --> The length of record 'foo' is incorrect" in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        records[0].seq = Seq("AT%s" % records[0].seq, records[0].seq.alphabet)
-        Alb._phylip_sequential_out(tester, relaxed=False)
-    assert "Malformed Phylip --> Repeat id" in str(e) and "after strict truncation." in str(e)
-
-
-def test_phylip_sequential_read():
-    tester = alignments.get_one("m p pss")
-    aligns = Alb._phylip_sequential_read(str(tester), relaxed=False)
-    assert len(Alb.AlignBuddy(aligns).records()) == 29
-
-    with pytest.raises(br.PhylipError) as e:
-        Alb._phylip_sequential_read(str(tester))
-    assert "Malformed Phylip --> 8 sequences expected, 4 found" in str(e)
-
-    tester = alignments.get_one("m p psr")
-    aligns = Alb._phylip_sequential_read(str(tester))
-    assert len(Alb.AlignBuddy(aligns).records()) == 34
-
-    with pytest.raises(br.PhylipError) as e:
-        with open(resource("malformed_phylip_columns.physs"), "r") as ifile:
-            Alb._phylip_sequential_read(ifile.read(), relaxed=False)
-    assert "Malformed Phylip --> Less sequence found than expected" in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        with open(resource("malformed_phylip_records_more.physs"), "r") as ifile:
-            Alb._phylip_sequential_read(ifile.read(), relaxed=False)
-    assert "Malformed Phylip --> 7 sequences expected, 8 found." in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        with open(resource("malformed_phylip_columns_more.physs"), "r") as ifile:
-            Alb._phylip_sequential_read(ifile.read(), relaxed=False)
-    assert "Malformed Phylip --> Sequence Mle-Panxα2 has 2046 columns, 2043 expected." in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        with open(resource("malformed_phylip_repeat_id.physr"), "r") as ifile:
-            Alb._phylip_sequential_read(ifile.read(), relaxed=True)
-    assert "Malformed Phylip --> Repeat ID Mle-Pxα1." in str(e)
-
-    with pytest.raises(br.PhylipError) as e:
-        with open(resource("malformed_phylip_repeat_id.physr"), "r") as ifile:
-            Alb._phylip_sequential_read(ifile.read(), relaxed=False)
-    assert "Malformed Phylip --> Repeat id 'Mle-Pxα1  ' after strict truncation." in str(e)
 
 
 def test_stderr(capsys):
