@@ -393,13 +393,31 @@ def concat_alignments(alignbuddy, pattern):
     """
     Concatenates two or more alignments together, end-to-end
     :param alignbuddy: The AlignBuddy object whose alignments will be concatenated
-    :param pattern: The pattern to split the sequence names with
+    :param pattern: Regex to bin sequences together with
     :return: The AlignBuddy object containing a concatenated alignment
     """
     # collapsed multiple genes from single taxa down to one consensus seq
     # detected mixed sequence types
     if len(alignbuddy.alignments) < 2:
         raise AttributeError("Please provide at least two alignments.")
+
+    concat_groups = OrderedDict({"Unknown": []})
+
+    def fill_group(group, _indx, _rec):
+        if group in concat_groups:
+            if len(concat_groups[group]) == indx:
+                concat_groups[group].append(_rec)
+
+    for indx, align in enumerate(alignbuddy.alignments):
+        for rec in align:
+            taxa = re.search(pattern, rec.id)
+            if taxa:
+                if taxa.group(0) in concat_groups:
+
+
+            print()
+
+    sys.exit()
 
     def organism_list():
         orgnsms = set()
@@ -412,7 +430,7 @@ def concat_alignments(alignbuddy, pattern):
         for _ in range(_num):
             _record.seq += '-'
 
-    missing_organisms = organism_list()
+    missing_taxa = organism_list()
 
     # dict[alignment_index][organism] -> gene_name
     sequence_names = OrderedDict()
@@ -446,19 +464,19 @@ def concat_alignments(alignbuddy, pattern):
             alignbuddy.alignments[al_indx].append(consensus)
 
     for al_indx in range(len(alignbuddy.alignments)):
-        for _id in missing_organisms:
+        for _id in missing_taxa:
             organism = re.split(pattern, _id)[0]
             if organism not in sequence_names[al_indx].keys():
                 sequence_names[al_indx][organism] = ['missing']
 
-    for x in range(len(missing_organisms)):
-        missing_organisms[x] = re.split(pattern, missing_organisms[x])[0]
+    for x in range(len(missing_taxa)):
+        missing_taxa[x] = re.split(pattern, missing_taxa[x])[0]
 
     base_alignment = deepcopy(alignbuddy.alignments[0])
     for record in base_alignment:
-        while record.id in missing_organisms:
-            missing_organisms.remove(record.id)
-    for organism in missing_organisms:
+        while record.id in missing_taxa:
+            missing_taxa.remove(record.id)
+    for organism in missing_taxa:
         new_record = SeqRecord(Seq('', alphabet=alignbuddy.alpha), id=re.split(pattern, organism)[0])
         add_blanks(new_record, base_alignment.get_alignment_length())
         base_alignment.append(new_record)
