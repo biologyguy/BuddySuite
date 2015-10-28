@@ -497,34 +497,17 @@ def test_alignment_lengths():
     assert lengths[0] == 2043
     assert lengths[1] == 1440
 
-'''
+
 # ##############################################  'cs', '--clean_seqs' ############################################### #
 def test_clean_seqs():
     # Test an amino acid file
-    tester = Alb.make_copy(alb_objects[8])
-    Alb.clean_seq(tester)
+    tester = Alb.clean_seq(alignments.get_one("m p py"))
+    assert align_to_hash(tester) == "07a861a1c80753e7f89f092602271072"
 
-    tester.set_format("fasta")
-    with pytest.raises(ValueError) as e:
-        str(tester)
-    assert "fasta format does not support multiple alignments" in str(e)
+    tester = Alb.clean_seq(Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa")), ambiguous=False, rep_char="X")
+    assert align_to_hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
-    tester.set_format("genbank")
-    with pytest.raises(ValueError) as e:
-        str(tester)
-    assert "genbank format does not support multiple alignments" in str(e)
-
-    """
-    # Test nucleotide files, but skip the errors
-    tester = Alb.make_copy(alb_objects[11])
-    Alb.clean_seq(tester, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
-    tester.set_format("genbank")
-    assert align_to_hash(tester) == "81189bf7962cc2664815dc7fca8cd95d"
-
-    Alb.clean_seq(tester)
-    assert align_to_hash(tester) == "2f2cbf227d45aa49d15971ce214d3191"
-    """
-
+'''
 # ###########################################  'ca', '--codon_alignment' ############################################ #
 hashes = ["c907d29434fe2b45db60f1a9b70f110d", "f150b94234e93f354839d7c2ca8dae24", "6a7a5416f2ce1b3161c8b5b8b4b9e901",
           "54d412fbca5baa60e4c31305d35dd79a", "3ddc2109b15655ef0eed3908713510de", "f728ab606602ed67357f78194e500664"]
@@ -964,3 +947,16 @@ def test_alignment_lengths_ui(capsys):
     assert out == "681\n"
     assert err == ""
 
+
+# ##################### 'cs', '--clean_seqs' ###################### ##
+def test_clean_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.clean_seq = [[None]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p pr"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "73b5d11dd25dd100648870228ab10d3d"
+
+    test_in_args.clean_seq = [['strict', 'X']]
+    Alb.command_line_ui(test_in_args, Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa")), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "6755ea1408eddd0e5f267349c287d989"

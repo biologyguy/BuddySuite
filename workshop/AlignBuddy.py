@@ -203,7 +203,19 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         else:
             tmp_dir = MyFuncs.TempDir()
             with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
-                AlignIO.write(self.alignments, ofile, self._out_format)
+                try:
+                    AlignIO.write(self.alignments, ofile, self._out_format)
+                except ValueError as e:
+                    if "Sequences must all be the same length" in str(e):
+                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
+                                "Format changed to fasta to accommodate proper printing of records.\n")
+                        AlignIO.write(self.alignments, ofile, "fasta")
+                    elif "Repeated name" in str(e) and self._out_format == "phylip":
+                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
+                                "Format changed to phylip-relaxed.\n")
+                        AlignIO.write(self.alignments, ofile, "phylip-relaxed")
+                    else:
+                        raise e
 
             with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
                 output = ifile.read()
@@ -358,23 +370,22 @@ def alignment_lengths(alignbuddy):
     return output
 
 
-def clean_seq(alignbuddy, skip_list=None):
+def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     """
-    Remove all non-sequence charcters from sequence strings
-    :param alignbuddy: The AlignBuddy object to be cleaned
-    :param skip_list: A list of characters to be left alone
+    Remove all non-sequence charcters from sequence strings (wraps SeqBuddy function)
+    :param alignbuddy: AlignBuddy object
+    :param rep_char: What character should be used to replace ambiguous characters
+    :param ambiguous: Specifies whether ambiguous characters should be kept or not
+    :param skip_list: Optional list of characters to be left alone
     :return: The cleaned AlignBuddy object
     """
-    skip_list = "" if not skip_list else "".join(skip_list)
-    for rec in alignbuddy.records_iter():
-        if alignbuddy.alpha == IUPAC.protein:
-            full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
-            rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
-                          alphabet=alignbuddy.alpha)
-        else:
-            full_skip = "ATGCUatgcu%s" % skip_list
-            rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)), alphabet=alignbuddy.alpha)
+    records = alignbuddy.records()
+    for rec in records:
+        if rec.seq.alphabet == IUPAC.protein:
+            rec.seq = Seq(re.sub("\*", "-", str(rec.seq)), alphabet=IUPAC.protein)
 
+    skip_list = "\-" if not skip_list else "\-" + "".join(skip_list)
+    Sb.clean_seq(Sb.SeqBuddy(records), ambiguous, rep_char, skip_list)
     return alignbuddy
 
 
@@ -1284,10 +1295,16 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Clean Seq
     if in_args.clean_seq:
-        if in_args.clean_seq[0] == "strict":
-            _print_aligments(clean_seq(alignbuddy))
-        else:
-            _print_aligments(clean_seq(alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx"))
+        args = in_args.clean_seq[0]
+        ambig = True
+        rep_char = "N"
+        lower_args = [str(x).lower() for x in args]
+        if "strict" in lower_args:
+            ambig = False
+            del args[lower_args.index("strict")]
+        if args and args[0]:
+            rep_char = args[0][0]
+        _print_aligments(clean_seq(alignbuddy, ambiguous=ambig, rep_char=rep_char))
         _exit("clean_seq")
 
     # Codon alignment

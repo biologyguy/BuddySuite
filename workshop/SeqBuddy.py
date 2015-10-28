@@ -1145,8 +1145,9 @@ def clean_seq(seqbuddy, ambiguous=True, rep_char="N", skip_list=None):
     """
     Removes all non-sequence characters, and converts ambiguous characters to 'X' if ambiguous=False
     :param seqbuddy: SeqBuddy object
-    :param skip_list: Optional list of characters to be left alone
+    :param rep_char: What character should be used to replace ambiguous characters
     :param ambiguous: Specifies whether ambiguous characters should be kept or not
+    :param skip_list: Optional list of characters to be left alone
     :return: The cleaned SeqBuddy object
     """
     skip_list = "" if not skip_list else "".join(skip_list)

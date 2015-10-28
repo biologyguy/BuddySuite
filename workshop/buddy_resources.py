@@ -466,10 +466,10 @@ sb_flags = {"annotate": {"flag": "ano",
             "clean_seq": {"flag": "cs",
                           "action": "append",
                           "nargs": "*",
-                          "metavar": "'strict'",
-                          "help": "Strip out non-sequence characters, such as stops (*) and gaps (-). "
-                                  "Pass in the word 'strict' to remove all characters except the "
-                                  "unambiguous letter codes"},
+                          "metavar": "args",
+                          "help": "Strip out non-sequence characters. Args: ['strict'][replace char]. "
+                                  "'strict' removes all ambiguous letters, and optionally choose the replacement "
+                                  "character (default=N)"},
             "complement": {"flag": "cmp",
                            "action": "store_true",
                            "help": "Return complement of nucleotide sequence"},
@@ -479,7 +479,7 @@ sb_flags = {"annotate": {"flag": "ano",
                             "metavar": "'clean'",
                             "help": "Concatenate a bunch of sequences into a single solid string. Pass in "
                                     "the word 'clean' to remove stops, gaps, etc., from the sequences "
-                                    "before concatenating."},
+                                    "before concatenating"},
             "count_codons": {"flag": "cc",
                              "action": "append",
                              "nargs": "?",
@@ -740,10 +740,11 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                  "help": "Convert RNA alignments to DNA"},
              "clean_seq": {"flag": "cs",
                            "action": "append",
-                           "nargs": "?",
-                           "help": "Strip out non-sequence characters, such as stops (*) "
-                                   "and gaps (-). Pass in the word 'strict' to remove all "
-                                   "characters except the unambiguous letter codes"},
+                           "nargs": "*",
+                           "metavar": "args",
+                           "help": "Strip out non-alignment characters. Args: ['strict'][replace char]. "
+                                   "'strict' removes all ambiguous letters, and optionally choose the replacement "
+                                   "character (default=N)"},
              "codon_alignment": {"flag": "ca",
                                  "action": "store_true",
                                  "help": "Shift all gaps so the sequence is in triplets"},
