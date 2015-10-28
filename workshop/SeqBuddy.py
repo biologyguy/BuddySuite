@@ -58,6 +58,7 @@ from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
+from Bio import AlignIO
 
 # BuddySuite specific
 import MyFuncs
@@ -118,8 +119,8 @@ def incremental_rename(query, replace):
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 1, 'beta', br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylipi",
-                  "phylipis", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
+                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
+                  "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
 
 
 # ##################################################### SEQBUDDY ##################################################### #
@@ -201,11 +202,25 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             sequences = sb_input
 
         elif str(type(sb_input)) == "<class '_io.TextIOWrapper'>" or isinstance(sb_input, StringIO):
-            sequences = list(SeqIO.parse(sb_input, self.in_format))
+            if self.in_format in ["phylipss", "phylipsr"]:
+                relaxed = False if self.in_format == "phylipss" else True
+                aligns = br.phylip_sequential_read(sb_input.read(), relaxed=relaxed)
+                sequences = []
+                for align in aligns:
+                    sequences += [rec for rec in align]
+            else:
+                sequences = list(SeqIO.parse(sb_input, self.in_format))
 
         elif os.path.isfile(sb_input):
             with open(sb_input, "r") as sb_input:
-                sequences = list(SeqIO.parse(sb_input, self.in_format))
+                if self.in_format in ["phylipss", "phylipsr"]:
+                    relaxed = False if self.in_format == "phylipss" else True
+                    aligns = br.phylip_sequential_read(sb_input.read(), relaxed=relaxed)
+                    sequences = []
+                    for align in aligns:
+                        sequences += [rec for rec in align]
+                else:
+                    sequences = list(SeqIO.parse(sb_input, self.in_format))
         else:
             sequences = [SeqRecord(Seq(sb_input))]  # may be unreachable?
 
@@ -261,11 +276,11 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
                 except KeyError:
                     pass
 
-        if self.out_format == "phylipi":
-            output = _phylipi(self)
+        if self.out_format == "phylipsr":
+            output = br.phylip_sequential_out(self, _type="seqbuddy")
 
-        elif self.out_format == "phylipis":
-            output = _phylipi(self, "strict")
+        elif self.out_format == "phylipss":
+            output = br.phylip_sequential_out(self, relaxed=False, _type="seqbuddy")
 
         elif self.out_format == "raw":
             output = "\n\n".join([str(rec.seq) for rec in self.records])
@@ -289,7 +304,7 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
             with open("%s/seqs.tmp" % tmp_dir.path, "r") as ifile:
                 output = ifile.read()
 
-        return output
+        return "%s\n" % output.rstrip()
 
     def write(self, file_path):
         with open(file_path, "w") as ofile:
@@ -497,10 +512,57 @@ def _guess_format(_input):
             return "empty file"
         _input.seek(0)
 
-        possible_formats = ["phylip-relaxed", "stockholm", "fasta", "gb", "fastq", "nexus", "embl", "seqxml", "clustal"]
+        possible_formats = ["stockholm", "fasta", "gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
+                            "fastq", "nexus", "embl", "seqxml", "clustal"]
         for next_format in possible_formats:
             try:
                 _input.seek(0)
+                if next_format == "phylip":
+                    sequence = "\n %s" % _input.read().strip()
+                    _input.seek(0)
+                    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+                    align_sizes = []
+                    for indx in range(int(len(alignments) / 3)):
+                        align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
+
+                    phy = list(AlignIO.parse(_input, "phylip"))
+                    _input.seek(0)
+                    indx = 0
+                    phy_ids = []
+                    for key in align_sizes:
+                        phy_ids.append([])
+                        for rec in phy[indx]:
+                            assert len(rec.seq) == key[1]
+                            phy_ids[-1].append(rec.id)
+                        indx += 1
+
+                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
+                    _input.seek(0)
+                    if phy_rel:
+                        for indx, aln in enumerate(phy_rel):
+                            for rec in aln:
+                                if len(rec.seq) != align_sizes[indx][1]:
+                                    return br.parse_format("phylip")
+                                if rec.id in phy_ids[indx]:
+                                    continue
+                                else:
+                                    return br.parse_format("phylip-relaxed")
+
+                    return br.parse_format("phylip")
+
+                if next_format == "phylipss":
+                    if br.phylip_sequential_read(_input.read(), relaxed=False):
+                        _input.seek(0)
+                        return br.parse_format(next_format)
+                    else:
+                        continue
+                if next_format == "phylipsr":
+                    if br.phylip_sequential_read(_input.read()):
+                        _input.seek(0)
+                        return br.parse_format(next_format)
+                    else:
+                        continue
+
                 seqs = SeqIO.parse(_input, next_format)
                 if next(seqs):
                     _input.seek(0)
@@ -514,6 +576,8 @@ def _guess_format(_input):
             except SAXParseException:  # Thrown by seqxml parser
                 continue
             except TreeError:  # Thrown by NEXUS tree files
+                continue
+            except br.PhylipError:
                 continue
         return None  # Unable to determine format from file handle
 
@@ -534,29 +598,6 @@ def _make_copy(seqbuddy):
     for indx, rec in enumerate(_copy.records):
         rec.seq.alphabet = alphabet_list[indx]
     return _copy
-
-
-def _phylipi(seqbuddy, _format="relaxed"):
-    """
-    Convert sequences to inline Phylip
-    :param seqbuddy: SeqBuddy object
-    :param _format: {"strict", "relaxed"}
-    :return: The sequences formated in phylip format
-    :ToDo: Throw errors when sequences are not the same length or truncation of ids leads to repeat taxa. Also
-    put up a warning when ids are truncated.
-    """
-    max_id_length = 0
-    max_seq_length = 0
-    for rec in seqbuddy.records:
-        max_id_length = len(rec.id) if len(rec.id) > max_id_length else max_id_length
-        max_seq_length = len(rec.seq) if len(rec.seq) > max_seq_length else max_seq_length
-
-    output = " %s %s\n" % (len(seqbuddy.records), max_seq_length)
-    for rec in seqbuddy.records:
-        seq_id = rec.id.ljust(max_id_length) if _format == "relaxed" else rec.id[:10].ljust(10)
-        output += "%s  %s\n" % (seq_id, rec.seq)
-
-    return output
 
 
 def _shift_features(features, shift, full_seq_len):
@@ -3842,14 +3883,21 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         if in_args.screw_formats.lower() not in OUTPUT_FORMATS:
             _raise_error(IOError("Error: unknown format '%s'\n" % in_args.screw_formats), "screw_formats")
 
-        else:
-            seqbuddy.out_format = in_args.screw_formats
-            if in_args.in_place:  # Need to change the file extension
-                os.remove(in_args.sequence[0])
-                in_args.sequence[0] = ".".join(os.path.abspath(in_args.sequence[0]).split(".")[:-1]) + \
-                                      "." + seqbuddy.out_format
-                open(in_args.sequence[0], "w").close()
-            _print_recs(seqbuddy)
+        seqbuddy.out_format = in_args.screw_formats
+        if in_args.in_place:  # Need to change the file extension
+            _path = os.path.abspath(in_args.sequence[0]).split("/")
+            if "." in _path[-1]:
+                _file = str(_path[-1]).split(".")
+                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[seqbuddy.out_format])
+
+            else:
+                _file = "%s.%s" % (_path[-1], br.format_to_extension[seqbuddy.out_format])
+
+            os.remove(in_args.sequence[0])
+            in_args.sequence[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
+            open(in_args.sequence[0], "w").close()
+
+        _print_recs(seqbuddy)
         _exit("screw_formats")
 
     # Shift reading frame

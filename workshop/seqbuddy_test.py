@@ -77,14 +77,14 @@ def seqs_to_hash(_seqbuddy, mode='hash'):
             except KeyError:
                 pass
 
-    if _seqbuddy.out_format == "phylipi":
-        WRITE_FILE.write(Sb._phylipi(_seqbuddy, "relaxed"))
-    elif _seqbuddy.out_format == "phylipis":
-        WRITE_FILE.write(Sb._phylipi(_seqbuddy, "strict"))
+    if _seqbuddy.out_format == "phylipsr":
+        WRITE_FILE.write(br.phylip_sequential_out(_seqbuddy, relaxed=True, _type="seqbuddy"))
+    elif _seqbuddy.out_format == "phylipss":
+        WRITE_FILE.write(br.phylip_sequential_out(_seqbuddy, relaxed=False, _type="seqbuddy"))
     else:
         _seqbuddy.write(WRITE_FILE.path)
 
-    seqs_string = "{0}\n".format(WRITE_FILE.read().strip())
+    seqs_string = "{0}\n".format(WRITE_FILE.read().rstrip())
 
     if mode != "hash":
         return seqs_string
@@ -182,14 +182,25 @@ def test_to_string(capsys):
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
     assert string2hash(str(tester)) == "2e02a8e079267bd9add3c39f759b252c"
 
-    tester.out_format = "phylipi"
-    assert string2hash(str(tester)) == "da16cb90b53e9f29ddfe3bf0e3faee22"
-
-    tester.out_format = "phylipis"
-    assert string2hash(str(tester)) == "0b00c1521259b0e1389e58cb5d414048"
-
     tester.out_format = "raw"
-    assert string2hash(str(tester)) == "e4a00cbc145bc6b95d02e30cfcb925e9"
+    assert string2hash(str(tester)) == "5d00d481e586e287f32d2d29916374ca"
+
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.nex"))
+    Sb.pull_recs(tester, "α[2-9]")
+
+    tester.out_format = "phylip"
+    assert string2hash(str(tester)) == "6a4d62e1ee130b324cce48323c6d1d41"
+
+    tester.out_format = "phylip-relaxed"
+    assert string2hash(str(tester)) == "4c2c5900a57aad343cfdb8b35a8f8442"
+
+    tester.out_format = "phylipss"
+    with open("temp.del", "w") as ofile:
+        ofile.write(str(tester))
+    assert string2hash(str(tester)) == "089cfb52076e63570597a74b2b000660"
+
+    tester.out_format = "phylipsr"
+    assert string2hash(str(tester)) == "58a74f5e08afa0335ccfed0bdd94d3f2"
 
     tester.records = []
     assert str(tester) == "Error: No sequences in object.\n"
@@ -335,29 +346,6 @@ def test_guess_format():
 ''')
 
     assert not Sb._guess_format(temp_file.path)
-
-
-# ######################  'phylipi' ###################### #
-def test_phylipi():
-    tester = Sb._phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="relaxed")
-    tester = "{0}\n".format(tester.rstrip())
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "c5fb6a5ce437afa1a4004e4f8780ad68"
-
-    tester = Sb._phylipi(Sb.SeqBuddy(resource("Alignments_pep.phy")), _format="relaxed")
-    tester = "{0}\n".format(tester.rstrip())
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "5f70d8a339b922f27c308d48280d715f"
-
-    tester = Sb._phylipi(Sb.SeqBuddy(resource("Mnemiopsis_cds.nex")), _format="strict")
-    tester = "{0}\n".format(tester.rstrip())
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "270f1bac51b2e29c0e163d261795c5fe"
-
-    tester = Sb._phylipi(Sb.SeqBuddy(resource("Alignments_pep.phy")), _format="strict")
-    tester = "{0}\n".format(tester.rstrip())
-    tester = md5(tester.encode()).hexdigest()
-    assert tester == "5f70d8a339b922f27c308d48280d715f"
 
 
 # ######################  '_shift_features' ###################### #
@@ -669,8 +657,8 @@ def test_clean_seq():
 
 # ######################  'cmp', '--complement' ###################### #
 hashes = ["e4a358ca57aca0bbd220dc6c04c88795", "3366fcc6ead8f1bba4a3650e21db4ec3",
-          "365bf5d08657fc553315aa9a7f764286", "10ce87a53aeb5bd4f911380ebf8e7a85",
-          "8e5995813da43c7c00e98d15ea466d1a", "5891348e8659290c2355fabd0f3ba4f4"]
+          "365bf5d08657fc553315aa9a7f764286", "520036b49dd7c70b9dbf4ce4d2c0e1d8",
+          "dc1f7a3769a1e0b007969db1ab405e89", "5891348e8659290c2355fabd0f3ba4f4"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -691,8 +679,8 @@ hashes = ["2e46edb78e60a832a473397ebec3d187", "7421c27be7b41aeedea73ff41869ac47"
           "494988ffae2ef3072c1619eca8a0ff3b", "710cad348c5560446daf2c916ff3b3e4",
           "494988ffae2ef3072c1619eca8a0ff3b", "494988ffae2ef3072c1619eca8a0ff3b",
           "46741638cdf7abdf53c55f79738ee620", "8d0bb4e5004fb6a1a0261c30415746b5",
-          "2651271d7668081cde8012db4f9a6574", "36526b8e0360e259d8957fa2261cf45a",
-          "2651271d7668081cde8012db4f9a6574", "2651271d7668081cde8012db4f9a6574"]
+          "2651271d7668081cde8012db4f9a6574", "7846b2d080f09b60efc6ee43cd6d8502",
+          "5d1f8db03d6be30a7d77b00a0fba0b43", "2651271d7668081cde8012db4f9a6574"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -841,9 +829,9 @@ def test_delete_large():
 
 # ######################  'dm', '--delete_metadata' ###################### #
 hashes = ["aa92396a9bb736ae6a669bdeaee36038", "544ab887248a398d6dd1aab513bae5b1", "cb1169c2dd357771a97a02ae2160935d",
-          "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "a50943ccd028b6f5fa658178fa8cf54d",
+          "503e23720beea201f8fadf5dabda75e4", "52c23bd793c9761b7c0f897d3d757c12", "a50943ccd028b6f5fa658178fa8cf54d",
           "bac5dc724b1fee092efccd2845ff2513", "858e8475f7bc6e6a24681083a8635ef9", "17ff1b919cac899c5f918ce8d71904f6",
-          "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "e224c16f6c27267b5f104c827e78df33"]
+          "968ed9fa772e65750f201000d7da670f", "ce423d5b99d5917fbef6f3b47df40513", "e224c16f6c27267b5f104c827e78df33"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -855,7 +843,7 @@ def test_delete_metadata(seqbuddy, next_hash):
 
 # ######################  'dr', '--delete_records' ###################### #
 dr_hashes = ["54bdb42423b1d331acea18218101e5fc", "e2c03f1fa21fd27b2ff55f7f721a1a99", "6bc8a9409b1ef38e4f6f12121368883e",
-             "a63320b6a679f97368329396e3b72bdd", "fe927a713e92b7de0c3a63996a4ce7c8", "4c97144c5337f8a40c4fd494e622bf0d"]
+             "bda7be10061b0dcaeb66bebe3d736fee", "6e2fce2239e2669b23f290049f87fbc4", "4c97144c5337f8a40c4fd494e622bf0d"]
 dr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(dr_hashes)]
 
 
@@ -892,11 +880,11 @@ def test_delete_small():
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
 d2r_hashes = ["d2db9b02485e80323c487c1dd6f1425b", "9ef3a2311a80f05f21b289ff7f401fff",
-              "f3bd73151645359af5db50d2bdb6a33d", "1371b536e41e3bca304794512122cf17",
-              "866aeaca326891b9ebe5dc9d762cba2c", "45b511f34653e3b984e412182edee3ca"]
+              "f3bd73151645359af5db50d2bdb6a33d", "e55bd18b6d82a7fc3150338173e57e6a",
+              "a083e03b4e0242fa3c23afa80424d670", "45b511f34653e3b984e412182edee3ca"]
 r2d_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
-              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b"]
+              "cb1169c2dd357771a97a02ae2160935d", "503e23720beea201f8fadf5dabda75e4",
+              "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b"]
 
 hashes = [(Sb._make_copy(sb_objects[indx]), d2r_hash, r2d_hashes[indx]) for indx, d2r_hash in enumerate(d2r_hashes)]
 
@@ -921,9 +909,9 @@ def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be th
 
 # ######################  'er', '--extract_range' ###################### #
 hashes = ["201235ed91ad0ed9a7021136487fed94", "3e791c6a6683516aff9572c24f38f0b3", "4063ab66ced2fafb080ceba88965d2bb",
-          "0c857970ebef51b4bbd9c7b3229d7088", "e0e256cebd6ead99ed3a2a20b7417ba1", "d724df01ae688bfac4c6dfdc90027440",
+          "33e6347792aead3c454bac0e05a292c6", "9a5c491aa293c6cedd48c4c249d55aff", "d724df01ae688bfac4c6dfdc90027440",
           "904a188282f19599a78a9d7af4169de6", "b8413624b9e684a14fc9f398a62e3965", "6a27222d8f60ee8496cbe0c41648a116",
-          "9ecc1d83eff77c61284869b088c833a1", "9c85530cd3e3aa628b0e8297c0c9f977", "38d571c9681b4fa420e3d8b54c507f9c"]
+          "c9a1dd913190f95bba5eca6a89685c75", "6f579144a43dace285356ce6eb326d3b", "38d571c9681b4fa420e3d8b54c507f9c"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -1067,14 +1055,14 @@ def test_isoelectric_point(seqbuddy):
 
 # ######################  'lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
 uc_hashes = ["25073539df4a982b7f99c72dd280bb8f", "2e02a8e079267bd9add3c39f759b252c", "52e74a09c305d031fc5263d1751e265d",
-             "7117732590f776836cbabdda05f9a982", "3d17ebd1f6edd528a153ea48dc37ce7d", "b82538a4630810c004dc8a4c2d5165ce",
+             "cfe6cb9c80aebd353cf0378a6d284239", "6e5542f41d17ff33afb530b4d07408a3", "b82538a4630810c004dc8a4c2d5165ce",
              "c10d136c93f41db280933d5b3468f187", "7a8e25892dada7eb45e48852cbb6b63d", "8b6737fe33058121fd99d2deee2f9a76",
-             "40f10dc94d85b32155af7446e6402dea", "b229db9c07ff3e4bc049cea73d3ebe2c", "f35cbc6e929c51481e4ec31e95671638"]
+             "968ed9fa772e65750f201000d7da670f", "ce423d5b99d5917fbef6f3b47df40513", "f35cbc6e929c51481e4ec31e95671638"]
 
 lc_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c", "cb1169c2dd357771a97a02ae2160935d",
-             "d1524a20ef968d53a41957d696bfe7ad", "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+             "503e23720beea201f8fadf5dabda75e4", "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
              "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d", "17ff1b919cac899c5f918ce8d71904f6",
-             "c934f744c4dac95a7544f9a814c3c22a", "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+             "aacda2f5d4077f23926400f74afa2f46", "e3dc2e0347f40fffec45d053f4f34c96", "c0dce60745515b31a27de1f919083fe9"]
 
 hashes = [(Sb._make_copy(sb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
 
@@ -1097,7 +1085,7 @@ def test_make_ids_unique():
 # ######################  'fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
 hashes = ["ac4bb651480b9e548a33e4044dacfd3b", "0d81710d233a27c36ac310007b84ba5a", "5fdc30f6f9b41085de71cc8d44f7f464",
-          "d9460ef23768917062356e03cefd628e", "b2be40ce28a672479452abbda4bee0d6", "695299783fe84f442773f94870bd3d43"]
+          "5f4a9665f23196244675d769b11096d4", "dead5542f401d96e94541e13a091b7a6", "695299783fe84f442773f94870bd3d43"]
 prot_indx = [6, 7, 8, 9, 10, 11]
 hashes = [(Sb._make_copy(sb_objects[1]), Sb._make_copy(sb_objects[prot_indx[indx]]), value)
           for indx, value in enumerate(hashes)]
@@ -1235,18 +1223,18 @@ def test_empty_file():
 
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
 fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "21547b4b35e49fa37e5c5b858808befb",
-              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "cb1169c2dd357771a97a02ae2160935d", "503e23720beea201f8fadf5dabda75e4",
+              "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
               "14227e77440e75dd3fbec477f6fd8bdc", "d0297078b4c480a49b6da5b719310d0e",
-              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
-              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+              "17ff1b919cac899c5f918ce8d71904f6", "968ed9fa772e65750f201000d7da670f",
+              "ce423d5b99d5917fbef6f3b47df40513", "c0dce60745515b31a27de1f919083fe9"]
 
 rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "3b718ec3cb794bcb658d900e517110cc",
-              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "cb1169c2dd357771a97a02ae2160935d", "503e23720beea201f8fadf5dabda75e4",
+              "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
               "14227e77440e75dd3fbec477f6fd8bdc", "c6a788d8ea916964605ac2942c459c9b",
-              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
-              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+              "17ff1b919cac899c5f918ce8d71904f6", "968ed9fa772e65750f201000d7da670f",
+              "ce423d5b99d5917fbef6f3b47df40513", "c0dce60745515b31a27de1f919083fe9"]
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
@@ -1260,18 +1248,18 @@ def test_order_features_alphabetically(seqbuddy, fwd_hash, rev_hash):
 
 # ######################  'ofp', '--order_features_by_position' ###################### #
 fwd_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "2e02a8e079267bd9add3c39f759b252c",
-              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "cb1169c2dd357771a97a02ae2160935d", "503e23720beea201f8fadf5dabda75e4",
+              "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
               "14227e77440e75dd3fbec477f6fd8bdc", "7a8e25892dada7eb45e48852cbb6b63d",
-              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
-              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+              "17ff1b919cac899c5f918ce8d71904f6", "968ed9fa772e65750f201000d7da670f",
+              "ce423d5b99d5917fbef6f3b47df40513", "c0dce60745515b31a27de1f919083fe9"]
 
 rev_hashes = ["b831e901d8b6b1ba52bad797bad92d14", "4345a14fe27570b3c837c30a8cb55ea9",
-              "cb1169c2dd357771a97a02ae2160935d", "d1524a20ef968d53a41957d696bfe7ad",
-              "99d522e8f52e753b4202b1c162197459", "228e36a30e8433e4ee2cd78c3290fa6b",
+              "cb1169c2dd357771a97a02ae2160935d", "503e23720beea201f8fadf5dabda75e4",
+              "52c23bd793c9761b7c0f897d3d757c12", "228e36a30e8433e4ee2cd78c3290fa6b",
               "14227e77440e75dd3fbec477f6fd8bdc", "9e7c2571db1386bba5983365ae235e1b",
-              "17ff1b919cac899c5f918ce8d71904f6", "c934f744c4dac95a7544f9a814c3c22a",
-              "6a3ee818e2711995c95372afe073490b", "c0dce60745515b31a27de1f919083fe9"]
+              "17ff1b919cac899c5f918ce8d71904f6", "968ed9fa772e65750f201000d7da670f",
+              "ce423d5b99d5917fbef6f3b47df40513", "c0dce60745515b31a27de1f919083fe9"]
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
 
@@ -1285,11 +1273,11 @@ def test_order_features_position(seqbuddy, fwd_hash, rev_hash):
 
 # ######################  'oi', '--order_ids' ###################### #
 fwd_hashes = ["ccc59629741421fb717b9b2403614c62", "2f9bc0dd9d79fd8160a621280be0b0aa",
-              "60bbc6306cbb4eb903b1212718bb4592", "4188a065adb5b8e80acd3073afc1c7f9",
-              "433520b63864022d82973f493dbf804b", "4078182a81382b815528fdd5c158fbec"]
+              "60bbc6306cbb4eb903b1212718bb4592", "3c49bdc1b0fe4e1d6bfc148eb0293e21",
+              "54b25170fbda0845b1537a674d37cbd4", "4078182a81382b815528fdd5c158fbec"]
 rev_hashes = ["503a71fc2e8d143361cbe8f4611527fd", "dd269961d4d5301d1bf87e0093568851",
-              "82fea6e3d3615ac75ec5022abce255da", "9d0910f3d303297283bace2718f60d61",
-              "8af06c3523a1bf7cde4fc2b8c64a388c", "3b83a3c73a6cdded6635ffa10c4a16e1"]
+              "82fea6e3d3615ac75ec5022abce255da", "d6e79a5faeaff396aa7eab0b460c3eb9",
+              "269e151ec39dd5b0643fea5f801150a6", "3b83a3c73a6cdded6635ffa10c4a16e1"]
 
 hashes = [(Sb._make_copy(sb_objects[indx]), fwd_hash, rev_hashes[indx]) for indx, fwd_hash in enumerate(fwd_hashes)]
 
@@ -1356,7 +1344,7 @@ def test_pull_record_ends():
 
 # ######################  'pr', '--pull_records' ###################### #
 pr_hashes = ["5b4154c2662b66d18776cdff5af89fc0", "e196fdc5765ba2c47f97807bafb6768c", "bc7dbc612bc8139eba58bf896b7eaf2f",
-             "e33828908fa836f832ee915957823039", "e33828908fa836f832ee915957823039", "b006b40ff17ba739929448ae2f9133a6"]
+             "7bb4aac2bf50381ef1d27d82b7dd5a53", "72328eddc751fd79406bb911dafa57a2", "b006b40ff17ba739929448ae2f9133a6"]
 pr_hashes = [(Sb.SeqBuddy(resource(seq_files[indx])), value) for indx, value in enumerate(pr_hashes)]
 
 
@@ -1375,7 +1363,7 @@ def test_purge():
 
 # ######################  'ri', '--rename_ids' ###################### #
 hashes = ["8b4a9e3d3bb58cf8530ee18b9df67ff1", "144cc5ed20678a818bce908c475ae450", "243024bfd2f686e6a6e0ef65aa963494",
-          "83f10d1be7a5ba4d363eb406c1c84ac7", "973e3d7138b78db2bb3abda8a9323226", "65196fd4f2a4e339e1545f6ed2a6acc3"]
+          "98bb9b57f97555d863054ddb526055b4", "2443c47a712f19099e94fc015dc980a9", "65196fd4f2a4e339e1545f6ed2a6acc3"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -1420,7 +1408,7 @@ def test_replace_subsequence():
 
 # ######################  'rc', '--reverse_complement' ###################### #
 hashes = ["e77be24b8a7067ed54f06e0db893ce27", "47941614adfcc5bd107f71abef8b3e00", "f549c8dc076f6b3b4cf5a1bc47bf269d",
-          "a62edd414978f91f7391a59fc1a72372", "08342be5632619fd1b1251b7ad2b2c84", "0d6b7deda824b4fc42b65cb87e1d4d14"]
+          "0dd20827c011a0a7a0e78881b38ae06a", "0b954f4a263bf38ddeac61ab54f77dc2", "0d6b7deda824b4fc42b65cb87e1d4d14"]
 hashes = [(Sb._make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
 
@@ -2035,18 +2023,16 @@ def test_guess_alpha_ui(capsys):
 
 
 # ######################  'gf', '--guess_format' ###################### #
-@pytest.mark.foo
 def test_guess_format_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_format = True
-    paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "seqxml", "stklm", "clus"]]
+    paths = ["Mnemiopsis_cds.%s" % x for x in ["embl", "fa", "gb", "nex", "phy", "phyr", "physs", "physr",
+                                               "seqxml", "stklm", "clus"]]
     paths += ["gibberish.fa", "figtree.nexus"]
     test_in_args.sequence = [resource(x) for x in paths]
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        ofile.write(out)
-    assert string2hash(out) == "f6cb3b357e6c1282c4d45f280af1ca9d"
+    assert string2hash(out) == "c0b299566f102a6644b49744bc75ddcf"
 
     text_io = io.open(resource("Mnemiopsis_cds.embl"), "r")
     test_in_args.sequence = [text_io]
@@ -2477,17 +2463,19 @@ def test_reverse_complement_ui(capsys):
     assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
 
 # ######################  '-sf', '--screw_formats' ###################### #
-hashes = [("fasta", "98a3a08389284461ea9379c217e99770"), ("gb", "73858af4bec0e4e52ce8ead542150b70"),
-          ("nexus", "cb1169c2dd357771a97a02ae2160935d"), ("phylip", "52c23bd793c9761b7c0f897d3d757c12"),
-          ("phylipi", "c5fb6a5ce437afa1a4004e4f8780ad68"), ("phylipis", "270f1bac51b2e29c0e163d261795c5fe"),
-          ("stockholm", "a50943ccd028b6f5fa658178fa8cf54d"), ("raw", "36b2ff58404c0bad5fc4acce981eeaee")]
+hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "26718f0a656116bfd0a7f6c03d270ecf"),
+          ("nexus", "2822cc00c2183a0d01e3b79388d344b3"), ("phylip", "6a4d62e1ee130b324cce48323c6d1d41"),
+          ("phylip-relaxed", "4c2c5900a57aad343cfdb8b35a8f8442"), ("phylipss", "089cfb52076e63570597a74b2b000660"),
+          ("phylipsr", "58a74f5e08afa0335ccfed0bdd94d3f2"), ("stockholm", "8c0f5e2aea7334a0f2774b0366d6da0b"),
+          ("raw", "f0ce73f4d05a5fb3d222fb0277ff61d2")]
 
 
 @pytest.mark.parametrize("_format,next_hash", hashes)
 def test_screw_formats_ui(_format, next_hash, capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = _format
-    Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[2]), True)
+    tester = Sb.pull_recs(sb_objects[2], "α[2-9]")
+    Sb.command_line_ui(test_in_args, Sb._make_copy(tester), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == next_hash
 
@@ -2505,7 +2493,7 @@ def test_screw_formats_ui2(capsys):
     test_in_args.screw_formats = "genbank"
     test_in_args.in_place = True
     Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]), True)
-    assert os.path.isfile("%s/seq.genbank" % TEMP_DIR.path)
+    assert os.path.isfile("%s/seq.gb" % TEMP_DIR.path)
 
 
 # ######################  'sfr', '--select_frame' ###################### #
