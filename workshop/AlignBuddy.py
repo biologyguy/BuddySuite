@@ -401,109 +401,54 @@ def concat_alignments(alignbuddy, pattern):
     if len(alignbuddy.alignments) < 2:
         raise AttributeError("Please provide at least two alignments.")
 
-    concat_groups = OrderedDict({"Unknown": []})
-
-    def fill_group(group, _indx, _rec):
-        if group in concat_groups:
-            if len(concat_groups[group]) == indx:
-                concat_groups[group].append(_rec)
+    concat_groups = OrderedDict()
 
     for indx, align in enumerate(alignbuddy.alignments):
         for rec in align:
-            taxa = re.search(pattern, rec.id)
-            if taxa:
-                if taxa.group(0) in concat_groups:
-
-
-            print()
-
-    sys.exit()
-
-    def organism_list():
-        orgnsms = set()
-        for align in alignbuddy.alignments:
-            for _record in align:
-                orgnsms.add(_record.id)
-        return list(orgnsms)
-
-    def add_blanks(_record, _num):
-        for _ in range(_num):
-            _record.seq += '-'
-
-    missing_taxa = organism_list()
-
-    # dict[alignment_index][organism] -> gene_name
-    sequence_names = OrderedDict()
-    for al_indx, alignment in enumerate(alignbuddy.alignments):
-        sequence_names[al_indx] = OrderedDict()
-        for record in alignment:
-            organism = re.split(pattern, record.id)[0]
-            gene = ''.join(re.split(pattern, record.id)[1:])
-            if organism in sequence_names[al_indx].keys():
-                sequence_names[al_indx][organism].append(gene)
+            match = re.search(pattern, rec.id)
+            if match:
+                concat_groups.setdefault(match.group(0), [None for _ in range(len(alignbuddy.alignments))])
             else:
-                sequence_names[al_indx][organism] = [gene]
-            record.id = organism
-    for al_indx, alignment in enumerate(alignbuddy.alignments):
-        duplicate_table = OrderedDict()
-        for record in alignment:
-            if record.id in duplicate_table.keys():
-                duplicate_table[record.id].append(record)
-            else:
-                duplicate_table[record.id] = [record]
-        temp = []
-        for record in alignment:
-            if len(duplicate_table[record.id]) == 1:
-                temp.append(record)
-                duplicate_table.pop(record.id)
-        alignbuddy.alignments[al_indx] = MultipleSeqAlignment(temp, alphabet=alignbuddy.alpha)
-        for gene in duplicate_table:
-            consensus = SummaryInfo(MultipleSeqAlignment(duplicate_table[gene]))
-            consensus = consensus.gap_consensus(consensus_alpha=alignbuddy.alpha)
-            consensus = SeqRecord(seq=consensus, id=gene)
-            alignbuddy.alignments[al_indx].append(consensus)
+                raise ValueError("No match found for record %s in Alignment #%s" % (rec.id, indx + 1))
 
-    for al_indx in range(len(alignbuddy.alignments)):
-        for _id in missing_taxa:
-            organism = re.split(pattern, _id)[0]
-            if organism not in sequence_names[al_indx].keys():
-                sequence_names[al_indx][organism] = ['missing']
+    for indx, align in enumerate(alignbuddy.alignments):
+        for rec in align:
+            match = re.search(pattern, rec.id)
+            if match:
+                if concat_groups[match.group(0)][indx]:
+                    raise ValueError("Replicate matches '%s' in Alignment #%s" % (match.group(0), indx + 1))
+                concat_groups[match.group(0)][indx] = rec
 
-    for x in range(len(missing_taxa)):
-        missing_taxa[x] = re.split(pattern, missing_taxa[x])[0]
+        for group, seqs in concat_groups.items():
+            if not seqs[indx]:
+                concat_groups[group][indx] = SeqRecord(Seq("-" * align.get_alignment_length(),
+                                                           alphabet=alignbuddy.alpha))
 
-    base_alignment = deepcopy(alignbuddy.alignments[0])
-    for record in base_alignment:
-        while record.id in missing_taxa:
-            missing_taxa.remove(record.id)
-    for organism in missing_taxa:
-        new_record = SeqRecord(Seq('', alphabet=alignbuddy.alpha), id=re.split(pattern, organism)[0])
-        add_blanks(new_record, base_alignment.get_alignment_length())
-        base_alignment.append(new_record)
+    new_records = [SeqRecord(Seq("", alphabet=alignbuddy.alpha), id=group, features=[]) for group in concat_groups]
+    indx = 0
+    for group, seqs in concat_groups.items():
+        new_length = 0
+        for rec in seqs:
+            new_records[indx].seq = Seq(str(new_records[indx].seq) + str(rec.seq),
+                                        alphabet=new_records[indx].seq.alphabet)
+            rec.features = br.shift_features(rec.features, new_length, new_length + len(rec.seq))
+            new_records[indx].features += rec.features
+            new_length += len(rec.seq)
+        indx += 1
 
-    for record in base_alignment:
-        record.description = 'concatenated_alignments'
-        record.name = 'multiple'
+    group_indx = 0
+    for group, seqs in concat_groups.items():
+        new_length = 0
+        align_features = []
+        for rec_indx, rec in enumerate(seqs):
+            location = FeatureLocation(new_length, new_length + len(rec.seq))
+            feature = SeqFeature(location=location, type="Alignment_%s" % (rec_indx + 1))
+            align_features.append(feature)
+            new_length += len(rec.seq)
+        new_records[group_indx].features = new_records[group_indx].features + align_features
+        group_indx += 1
 
-    curr_length = 0
-    for al_indx, alignment in enumerate(alignbuddy.alignments):
-        for base_indx, base_rec in enumerate(base_alignment):
-            added = False
-            for record in alignment:
-                if base_rec.id == record.id:
-                    if al_indx > 0:
-                        base_rec.seq += record.seq
-                        added = True
-            if not added and al_indx > 0:
-                add_blanks(base_rec, alignment.get_alignment_length())
-            feature_location = FeatureLocation(start=curr_length,
-                                               end=curr_length + alignment.get_alignment_length())
-            feature = SeqFeature(location=feature_location, type='alignment' + str(al_indx + 1),
-                                 qualifiers={'name': sequence_names[al_indx][base_rec.id]})
-            base_alignment[base_indx].features.append(feature)
-        curr_length += alignment.get_alignment_length()
-
-    alignbuddy.alignments = [base_alignment]
+    alignbuddy.alignments = [MultipleSeqAlignment(new_records, alphabet=alignbuddy.alpha)]
     return alignbuddy
 
 
@@ -1336,6 +1281,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
         except AttributeError as e:
             _raise_error(e, "concat_alignments", "Please provide at least two alignments.")
+        except ValueError as e:
+            _raise_error(e, "concat_alignments", ["No match found for record", "Replicate matches"])
         _exit("concat_alignments")
 
     # Delete rows

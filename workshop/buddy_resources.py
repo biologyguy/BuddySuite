@@ -35,6 +35,7 @@ import re
 sys.path.insert(0, "./")
 from MyFuncs import TempFile
 from Bio import AlignIO
+from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
 if __name__ == '__main__':
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
@@ -410,6 +411,55 @@ def send_traceback(tool, e):
         print("Preparing error report for FTP upload...\nSending...\n")
         error_report(tb)
         print("Success, thank you.\n")
+
+
+def shift_features(features, shift, full_seq_len):
+    """
+    Adjust the location of features
+    :param features: Either a single SeqFeature object, or a list of them
+    :param shift: int, how far the new feature should move from 0
+    :param full_seq_len: The full length of the original sequence
+    :return: List of SeqFeatures
+    """
+    if type(features) != list:  # Duck type for single feature input
+        features = [features]
+
+    shifted_features = []
+    for feature in features:
+        if type(feature.location) == CompoundLocation:  # Recursively call shift_features() for compound locations
+            new_compound_location = []
+            for sub_feature in feature.location.parts:
+                sub_feature = shift_features(SeqFeature(sub_feature), shift, full_seq_len)
+                if not sub_feature:
+                    continue
+                new_compound_location.append(sub_feature[0].location)
+
+            if not new_compound_location:
+                continue
+
+            elif len(new_compound_location) == 1:
+                feature.location = new_compound_location[0]
+
+            else:
+                feature.location = CompoundLocation(new_compound_location, feature.location.operator)
+
+        elif type(feature.location) == FeatureLocation:
+            start = feature.location.start + shift
+            end = feature.location.end + shift
+            if start > full_seq_len or end < 0:
+                continue
+
+            start = start if start >= 0 else 0
+            end = end if end <= full_seq_len else full_seq_len
+
+            feature.location = FeatureLocation(start, end, feature.strand)
+
+        else:
+            raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
+                            "not %s" % type(feature.location))
+        shifted_features.append(feature)
+
+    return shifted_features
 
 
 # #################################################### VARIABLES ##################################################### #

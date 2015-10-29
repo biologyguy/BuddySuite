@@ -117,3 +117,30 @@ def testphylip_sequential_read():
         with open(resource("malformed_phylip_repeat_id.physr"), "r") as ifile:
             Br.phylip_sequential_read(ifile.read(), relaxed=False)
     assert "Malformed Phylip --> Repeat id 'Mle-Pxα1  ' after strict truncation." in str(e)
+
+
+    # ######################  'shift_features' ###################### #
+def test_shift_features():
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "cc002df59db8a04f47cb5c764f8a1e1f"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    assert string2hash(str(Sb._shift_features(features, -50, 1203))) == "86dcc19cd51ba3acdaf48e8c15bf7f1a"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    features[0].location.parts = []
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "467ee934600573e659053b8117447986"
+
+    tester = Sb._make_copy(sb_objects[1])
+    features = tester.records[0].features
+    features[0].location.parts = [FeatureLocation(3, 50, strand=+1)]
+    assert string2hash(str(Sb._shift_features(features, 3, 1203))) == "94bf6774e97fcecaef858cbdf811def4"
+
+    with pytest.raises(TypeError):
+        tester = Sb._make_copy(sb_objects[1])
+        features = tester.records[0].features
+        features[0].location = [dict]
+        Sb._shift_features(features, 3, 1203)

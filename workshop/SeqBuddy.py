@@ -449,7 +449,7 @@ def _feature_rc(feature, seq_len):
     elif type(feature.location) == FeatureLocation:
         end = seq_len - feature.location.end
         shift = end - feature.location.start
-        feature = _shift_features(feature, shift, seq_len)[0]
+        feature = br.shift_features(feature, shift, seq_len)[0]
         feature.strand *= -1
     else:
         raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
@@ -598,55 +598,6 @@ def _make_copy(seqbuddy):
     for indx, rec in enumerate(_copy.records):
         rec.seq.alphabet = alphabet_list[indx]
     return _copy
-
-
-def _shift_features(features, shift, full_seq_len):
-    """
-    Adjust the location of features
-    :param features: Either a single SeqFeature object, or a list of them
-    :param shift: int, how far the new feature should move from 0
-    :param full_seq_len: The full length of the original sequence
-    :return: List of SeqFeatures
-    """
-    if type(features) != list:  # Duck type for single feature input
-        features = [features]
-
-    shifted_features = []
-    for feature in features:
-        if type(feature.location) == CompoundLocation:  # Recursively call _shift_features() for compound locations
-            new_compound_location = []
-            for sub_feature in feature.location.parts:
-                sub_feature = _shift_features(SeqFeature(sub_feature), shift, full_seq_len)
-                if not sub_feature:
-                    continue
-                new_compound_location.append(sub_feature[0].location)
-
-            if not new_compound_location:
-                continue
-
-            elif len(new_compound_location) == 1:
-                feature.location = new_compound_location[0]
-
-            else:
-                feature.location = CompoundLocation(new_compound_location, feature.location.operator)
-
-        elif type(feature.location) == FeatureLocation:
-            start = feature.location.start + shift
-            end = feature.location.end + shift
-            if start > full_seq_len or end < 0:
-                continue
-
-            start = start if start >= 0 else 0
-            end = end if end <= full_seq_len else full_seq_len
-
-            feature.location = FeatureLocation(start, end, feature.strand)
-
-        else:
-            raise TypeError("_shift_feature requires a feature with either FeatureLocation or CompoundLocation, "
-                            "not %s" % type(feature.location))
-        shifted_features.append(feature)
-
-    return shifted_features
 
 
 def _stderr(message, quiet=False):
@@ -1195,7 +1146,7 @@ def concat_seqs(seqbuddy, clean=False):
     for rec in seqbuddy.records:
         shift = len(new_seq)
         full_seq_len = len(new_seq) + len(str(rec.seq))
-        rec.features = _shift_features(rec.features, shift, full_seq_len)
+        rec.features = br.shift_features(rec.features, shift, full_seq_len)
 
         location = FeatureLocation(len(new_seq), len(new_seq) + len(str(rec.seq)))
         feature = SeqFeature(location=location, id=rec.id, type=rec.id[:15])
@@ -2490,11 +2441,11 @@ def pull_record_ends(seqbuddy, amount):
     for rec in seqbuddy.records:
         if amount >= 0:
             rec.seq = Seq(str(rec.seq)[:amount], alphabet=rec.seq.alphabet)
-            rec.features = _shift_features(rec.features, 0, len(str(rec.seq)))
+            rec.features = br.shift_features(rec.features, 0, len(str(rec.seq)))
 
         else:
             shift = -1 * (len(str(rec.seq)) + amount) if abs(amount) <= len(str(rec.seq)) else 0
-            rec.features = _shift_features(rec.features, shift, len(str(rec.seq)))
+            rec.features = br.shift_features(rec.features, shift, len(str(rec.seq)))
             rec.seq = rec.seq[amount:]
 
         seq_ends.append(rec)
@@ -2677,7 +2628,7 @@ def select_frame(seqbuddy, frame, add_metadata=True):
                 if frame == 1:
                     del _feature.qualifiers["shift"]
 
-        _rec.features = _shift_features(_rec.features, len(_residues), len(_rec.seq))
+        _rec.features = br.shift_features(_rec.features, len(_residues), len(_rec.seq))
         _rec.description = re.sub("\(frame[23][A-Za-z]{1,2}\)", "", _rec.description).strip()
         return _rec
 
@@ -2698,7 +2649,7 @@ def select_frame(seqbuddy, frame, add_metadata=True):
         if check_description:
             rec = reset_frame(rec, check_description.group(1))
 
-        rec.features = _shift_features(rec.features, (frame - 1) * -1, len(rec.seq))
+        rec.features = br.shift_features(rec.features, (frame - 1) * -1, len(rec.seq))
         if frame in [2, 3] and add_metadata:
             location = FeatureLocation(-1, 0)
             residues = str(rec.seq)[:frame - 1]
