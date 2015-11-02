@@ -385,6 +385,52 @@ def phylip_sequential_read(sequence, relaxed=True):
     return aligns
 
 
+def replacements(input_str, query, replace="", num=0):
+    """
+    This will allow fancy positional regular expression replacements from left-to-right, as well as normal right-to-left
+    :param input_str:
+    :param query:
+    :param replace:
+    :param num:
+    :return:
+    """
+    check_parentheses = re.findall("\([^()]*\)", query)
+    check_replacement = re.findall(r"\\[0-9]+", replace)
+    check_replacement = sorted([int(match[1:]) for match in check_replacement])
+    if check_replacement and check_replacement[-1] > len(check_parentheses):
+        raise AttributeError("There are more replacement match values specified than query parenthesized groups")
+
+    if num < 0:
+        if check_replacement:
+            for indx in sorted(range(check_replacement[-1]), reverse=True):
+                indx += 1
+                replace = re.sub(r"\\%s" % indx, r"\\%s" % (indx + 1), replace)
+            right_replace = "\\%s" % (len(check_replacement) + 2)
+        else:
+            right_replace = "\\2"
+        leftmost = str(input_str)
+        new_str = str(input_str)
+        rightmost = ""
+        hash_to_split_on = "UPNFSZ7FQ6RBhfFzwt0Cku4Yr1n2VvwVUG7x97G7"
+        for _ in range(abs(num)):
+            if leftmost == "":
+                break
+            new_str = re.sub(r"(.*)%s(.*)" % query,
+                             r"\1%s%s%s" % (hash_to_split_on, replace, right_replace), leftmost, 1)
+            new_str = new_str.split(hash_to_split_on)
+            if len(new_str) == 2:
+                leftmost = new_str[0]
+                rightmost = new_str[1] + rightmost
+                new_str = leftmost + rightmost
+            else:
+                new_str = leftmost + rightmost
+                break
+    else:
+        new_str = re.sub(query, replace, input_str, num)
+
+    return new_str
+
+
 def send_traceback(tool, e):
     config = config_values()
     tb = "%s\n" % config["user_hash"]
@@ -796,9 +842,11 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                    "'strict' removes all ambiguous letters, and optionally choose the replacement "
                                    "character (default=N)"},
              "concat_alignments": {"flag": "cta",
-                                   "action": "store",
-                                   "help": "Concatenates two or more alignments by splitting and matching the "
-                                           "sequence identifiers. Arguments: <split_pattern>"},
+                                   "action": "append",
+                                   "nargs": "*",
+                                   "metavar": "regex|int",
+                                   "help": "Concatenates two or more alignments using a regex pattern or fixed length "
+                                           "prefix to group record ids."},
              "delete_rows": {"flag": "dr",
                              "action": "store",
                              "help": "Remove selected rows from alignments. Arguments: <search_pattern>"},
@@ -824,6 +872,11 @@ alb_flags = {"alignment_lengths": {"flag": "al",
              "lowercase": {"flag": "lc",
                            "action": "store_true",
                            "help": "Convert all sequences to lowercase"},
+             "mapfeat2align": {"flag": "mf2a",
+                               "action": "store",
+                               "nargs": "+",
+                               "metavar": "<unaligned file(s)>",
+                               "help": "Transfer features from annotated sequences over to an alignment."},
              "num_seqs": {"flag": "ns",
                           "action": "store_true",
                           "help": "Counts how many sequences are present in each alignment"},

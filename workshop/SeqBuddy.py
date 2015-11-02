@@ -176,14 +176,14 @@ class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a
 
         if not self.in_format:
             if in_file:
-                raise br.GuessError("Could not determine format from sb_input file '{0}'.\n"
-                                    "Try explicitly setting with -f flag.".format(in_file))
+                raise br.GuessError("Could not determine format from sb_input file '%s'.\n"
+                                    "Try explicitly setting with -f flag." % in_file)
             elif raw_sequence:
-                raise br.GuessError("File not found, or could not determine format from raw input\n{0} ..."
-                                    "Try explicitly setting with -f flag.".format(raw_sequence)[:60])
+                raise br.GuessError("File not found, or could not determine format from raw input\n --> %s ...\n"
+                                    "Try explicitly setting with -f flag." % raw_sequence[:60])
             elif in_handle:
-                raise br.GuessError("Could not determine format from input file-like object\n{0} ..."
-                                    "Try explicitly setting with -f flag.".format(in_handle)[:50])
+                raise br.GuessError("Could not determine format from input file-like object\n --> %s ...\n"
+                                    "Try explicitly setting with -f flag." % in_handle[:50])
             else:
                 raise br.GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
 
@@ -1272,6 +1272,8 @@ def degenerate_sequence(seqbuddy, table=1):
     :param seqbuddy: The SeqBuddy object to be analyzed
     :param table: The degenerate codon table to use
     :return: A SeqBuddy object containing a degenerate nucleotide sequence
+
+    Contributed by Jeremy Labarge (https://github.com/biojerm)
 
     The method is developed based on the Perl script Degen v1.4.
     http://www.phylotools.com/ptdegenoverview.htm
@@ -2511,41 +2513,9 @@ def rename(seqbuddy, query, replace="", num=0):
     :param num: The maximum number of substitutions to make
     :return: The modified SeqBuddy object
     """
-    replace = re.sub("\s+", "_", replace)
-    check_parentheses = re.findall("\([^()]*\)", query)
-    check_replacement = re.findall(r"\\[0-9]+", replace)
-    check_replacement = sorted([int(match[1:]) for match in check_replacement])
-    if check_replacement and check_replacement[-1] > len(check_parentheses):
-        raise AttributeError("There are more replacement match values specified than query parenthesized groups")
-
+    replace = re.sub("\s+", "_", replace)  # Do not allow any whitespace in IDs
     for rec in seqbuddy.records:
-        if num < 0:
-            if check_replacement:
-                for indx in sorted(range(check_replacement[-1]), reverse=True):
-                    indx += 1
-                    replace = re.sub(r"\\%s" % indx, r"\\%s" % (indx + 1), replace)
-                right_replace = "\\%s" % (len(check_replacement) + 2)
-            else:
-                right_replace = "\\2"
-            leftmost = str(rec.id)
-            rightmost = ""
-            hash_to_split_on = "UPNFSZ7FQ6RBhfFzwt0Cku4Yr1n2VvwVUG7x97G7"
-            for _ in range(abs(num)):
-                if leftmost == "":
-                    break
-                new_name = re.sub(r"(.*)%s(.*)" % query,
-                                  r"\1%s%s%s" % (hash_to_split_on, replace, right_replace), leftmost, 1)
-                new_name = new_name.split(hash_to_split_on)
-                if len(new_name) == 2:
-                    leftmost = new_name[0]
-                    rightmost = new_name[1] + rightmost
-                    new_name = leftmost + rightmost
-                else:
-                    new_name = leftmost + rightmost
-                    break
-
-        else:
-            new_name = re.sub(query, replace, rec.id, num)
+        new_name = br.replacements(rec.id, query, replace, num)
         rec.description = rec.description[len(rec.id) + 1:]
         rec.id = new_name
         rec.name = new_name

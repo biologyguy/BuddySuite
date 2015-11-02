@@ -219,7 +219,7 @@ def test_guesserror_raw_seq():
     try:
         Sb.SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
     except br.GuessError as e:
-        assert str(e) == "File not found, or could not determine format from raw input"
+        assert "File not found, or could not determine format from raw input" in str(e)
 
 
 def test_guesserror_infile():
