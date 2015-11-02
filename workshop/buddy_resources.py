@@ -291,13 +291,13 @@ def parse_format(_format):
 
 def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
     output = ""
-    ids = []
     if _type == "alignbuddy":
         alignments = _input.alignments
     else:
         alignments = [_input.records]
 
     for alignment in alignments:
+        ids = []
         id_check = []
         aln_len = 0
         for rec in alignment:
@@ -333,10 +333,11 @@ def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
 
 def phylip_sequential_read(sequence, relaxed=True):
     sequence = "\n %s" % sequence.strip()
-    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+    sequence = re.sub("\n+", "\n", sequence)
+    alignments = re.split("\n *([0-9]+) ([0-9]+)\n", sequence)[1:]
     align_dict = OrderedDict()
     for indx in range(int(len(alignments) / 3)):
-        align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]))] = alignments[indx * 3 + 2]
+        align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]), indx)] = alignments[indx * 3 + 2]
 
     temp_file = TempFile()
     aligns = []
@@ -847,6 +848,8 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                    "metavar": "regex|int",
                                    "help": "Concatenates two or more alignments using a regex pattern or fixed length "
                                            "prefix to group record ids."},
+             "consensus": {"flag": "con",
+                           "help": None},
              "delete_rows": {"flag": "dr",
                              "action": "store",
                              "help": "Remove selected rows from alignments. Arguments: <search_pattern>"},

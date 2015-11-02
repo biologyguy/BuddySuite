@@ -1490,7 +1490,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         for path in in_args.mapfeat2align:
             reference_records += Sb.SeqBuddy(path).records
         seqbuddy = Sb.SeqBuddy(reference_records)
-        _print_aligments(map_features2alignment(seqbuddy, alignbuddy))
+        alignbuddy = map_features2alignment(seqbuddy, alignbuddy)
+        in_args.out_format = "genbank" if not in_args.out_format else in_args.out_format
+        alignbuddy.set_format(in_args.out_format)
+        _print_aligments(alignbuddy)
         _exit("mapfeat2align")
 
     # Number sequences per alignment

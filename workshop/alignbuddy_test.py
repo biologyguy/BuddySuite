@@ -487,7 +487,7 @@ def test_stdout(capsys):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-# ##########################################  'al', '--alignment_lengths' ############################################ #
+# ##########################################  '-al', '--alignment_lengths' ############################################ #
 def test_alignment_lengths():
     lengths = Alb.alignment_lengths(alignments.get_one("m p c"))
     assert lengths[0] == 481
@@ -498,7 +498,7 @@ def test_alignment_lengths():
     assert lengths[1] == 1440
 
 
-# ##############################################  'cs', '--clean_seqs' ############################################### #
+# ##############################################  '-cs', '--clean_seqs' ############################################### #
 def test_clean_seqs():
     # Test an amino acid file
     tester = Alb.clean_seq(alignments.get_one("m p py"))
@@ -508,34 +508,7 @@ def test_clean_seqs():
     assert align_to_hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
 
-# ###########################################  'et', '--enforce_triplets' ############################################ #
-hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
-          'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
-          "m d py": "282a2ccfffcabd2161ef5945d9fcc657"}
-
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d r g n py").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_enforce_triplets(alignbuddy, next_hash):
-    tester = Alb.enforce_triplets(alignbuddy)
-    assert align_to_hash(tester) == next_hash
-
-
-def test_enforce_triplets_error():
-    with pytest.raises(TypeError) as e:
-        Alb.enforce_triplets(alignments.get_one("m p c"))
-    assert "Nucleic acid sequence required, not protein." in str(e)
-
-    with pytest.raises(TypeError) as e:
-        tester = Alb.enforce_triplets(alignments.get_one("m d pr"))
-        tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
-                                          alphabet=IUPAC.protein)
-        Alb.enforce_triplets(tester)
-    assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
-
-
-# ###########################################  'cta', '--concat_alignments' ######################################### #
+# ###########################################  '-cta', '--concat_alignments' ######################################### #
 def test_concat_alignments():
     with pytest.raises(AttributeError) as e:
         Alb.concat_alignments(alignments.get_one("p o g"), '.*')
@@ -578,7 +551,50 @@ def test_concat_alignments():
     tester.alignments[1] = shorten.alignments[1]
     assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
+# ###########################################  '-et', '--enforce_triplets' ############################################ #
+hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
+          'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
+          "m d py": "282a2ccfffcabd2161ef5945d9fcc657"}
 
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d r g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_enforce_triplets(alignbuddy, next_hash):
+    tester = Alb.enforce_triplets(alignbuddy)
+    assert align_to_hash(tester) == next_hash
+
+
+def test_enforce_triplets_error():
+    with pytest.raises(TypeError) as e:
+        Alb.enforce_triplets(alignments.get_one("m p c"))
+    assert "Nucleic acid sequence required, not protein." in str(e)
+
+    with pytest.raises(TypeError) as e:
+        tester = Alb.enforce_triplets(alignments.get_one("m d pr"))
+        tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
+                                          alphabet=IUPAC.protein)
+        Alb.enforce_triplets(tester)
+    assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
+
+
+# ##################### '-mf2a', '--map_features2alignment' ###################### ##
+hashes = {"o p n": "06befa060809bfcc8d4ceba16b2942e8", "o p pr": "57906e7e85db021f79366d95f64aef41",
+          "o p psr": "57906e7e85db021f79366d95f64aef41", "o p s": "21850752df36bafeabc6141f5f277071",
+          "o d n": "2d8b6524010177f6507dde387146378c", "o d pr": "eec68b8696f09d199e8a6b75e50ec18a",
+          "o d psr": "eec68b8696f09d199e8a6b75e50ec18a", "o d s": "3b0fb43a76bb5057cc1bd001b36b9374"}
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o p d n pr psr s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_map_features2alignment(alignbuddy, next_hash):
+    if alignbuddy.alpha == IUPAC.protein:
+        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.gb"))
+    else:
+        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
+    tester.set_format("genbank")
+    assert align_to_hash(tester) == next_hash
 
 '''
 # ###########################################  'dr', '--delete_rows' ############################################ #
@@ -967,7 +983,7 @@ def test_trimal2():
 
 
 # ################################################# COMMAND LINE UI ################################################## #
-# ##################### 'al', '--alignment_lengths' ###################### ##
+# ##################### '-al', '--alignment_lengths' ###################### ##
 def test_alignment_lengths_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.alignment_lengths = True
@@ -982,7 +998,7 @@ def test_alignment_lengths_ui(capsys):
     assert err == ""
 
 
-# ##################### 'cs', '--clean_seqs' ###################### ##
+# ##################### '-cs', '--clean_seqs' ###################### ##
 def test_clean_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.clean_seq = [[None]]
@@ -996,13 +1012,49 @@ def test_clean_seqs_ui(capsys):
     assert string2hash(out) == "6755ea1408eddd0e5f267349c287d989"
 
 
-# ##################### 'cta', '--concat_alignments' ###################### ##
+# ##################### '-cta', '--concat_alignments' ###################### ##
 def test_concat_alignments_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.concat_alignments = [[".*"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    test_in_args.concat_alignments = [[]]
+
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    Sb.pull_recs(tester, "Ccr|Cla|Hec")
+    tester = Alb.AlignBuddy(str(tester))
+    tester.alignments.append(tester.alignments[0])
+    tester.set_format("genbank")
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "fafb0506da8b2257bfac1588a933b1d8"
+    assert string2hash(out) == "d21940f3dad2295dd647f632825d8541"
+
+    test_in_args.concat_alignments = [["(.).(.)-Panx(.)"]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5ac908ebf7918a45664a31da480fda58"
+
+    test_in_args.concat_alignments = [["...", "Panx.*"]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+
+    test_in_args.concat_alignments = [[3, "Panx.*"]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+
+    test_in_args.concat_alignments = [[-9, "Panx.*"]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "9d2886afc640d35618754e05223032a2"
+
+    test_in_args.concat_alignments = [[3, 3]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4e4101f9b5a6d44d524a9783a8c4004b"
+
+    test_in_args.concat_alignments = [[3, -3]]
+    Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5d9d9ac8fae604be74c436e5f0b5b6db"
 
     Alb.command_line_ui(test_in_args, alignments.get_one("p o g"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -1014,7 +1066,7 @@ def test_concat_alignments_ui(capsys):
     assert "No match found for record" in err
 
 
-# ##################### 'et', '--enforce_triplets' ###################### ##
+# ##################### '-et', '--enforce_triplets' ###################### ##
 def test_enforce_triplets_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.enforce_triplets = True
@@ -1025,3 +1077,12 @@ def test_enforce_triplets_ui(capsys):
     Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
+
+
+# ##################### '-mf2a', '--map_features2alignment' ###################### ##
+def test_map_features2alignment_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.mapfeat2align = [resource("Mnemiopsis_cds.gb")]
+    Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
