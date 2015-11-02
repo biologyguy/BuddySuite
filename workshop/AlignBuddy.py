@@ -43,8 +43,7 @@ from Bio.Align import MultipleSeqAlignment
 from Bio.Align.AlignInfo import SummaryInfo
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature
-from Bio.SeqFeature import FeatureLocation
+from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 from Bio.Data.CodonTable import TranslationError
 
@@ -104,11 +103,11 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
         if not self._in_format:
             if in_file:
-                raise br.GuessError("Could not determine format from _input file '{0}'.\n"
-                                    "Try explicitly setting with -f flag.".format(in_file))
+                raise br.GuessError("Could not determine format from _input file '%s'.\n"
+                                    "Try explicitly setting with -f flag." % in_file)
             elif raw_seq:
-                raise br.GuessError("Could not determine format from raw input\n{0} ..."
-                                    "Try explicitly setting with -f flag.".format(raw_seq)[:50])
+                raise br.GuessError("Could not determine format from raw input\n --> %s ...\n"
+                                    "Try explicitly setting with -f flag." % str(raw_seq)[:50])
             elif in_handle:
                 raise br.GuessError("Could not determine format from input file-like object\n"
                                     "Try explicitly setting with -f flag.")
@@ -169,6 +168,13 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         for alignment in self.alignments:
             for rec in alignment:
                 seq_recs.append(rec)
+        return seq_recs
+
+    def records_dict(self):  # Note that multiple records can have the same ID. Each item in the dict is a list of recs
+        seq_recs = OrderedDict()
+        for rec in self.records():
+            seq_recs.setdefault(rec.id, [])
+            seq_recs[rec.id].append(rec)
         return seq_recs
 
     def print(self):
@@ -389,35 +395,62 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     return alignbuddy
 
 
-def concat_alignments(alignbuddy, pattern):
+def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     """
     Concatenates two or more alignments together, end-to-end
-    :param alignbuddy: The AlignBuddy object whose alignments will be concatenated
-    :param pattern: Regex to bin sequences together with
-    :return: The AlignBuddy object containing a concatenated alignment
+    :param alignbuddy: AlignBuddy object
+    :param group_pattern: Regex that matches some regular part of the sequence IDs, dictating who is bound to who
+    :return: AlignBuddy object containing a single concatenated alignment
     """
-    # collapsed multiple genes from single taxa down to one consensus seq
-    # detected mixed sequence types
     if len(alignbuddy.alignments) < 2:
         raise AttributeError("Please provide at least two alignments.")
 
     concat_groups = OrderedDict()
 
+    if not group_pattern:
+        min_length = 1
+        for indx, align in enumerate(alignbuddy.alignments):
+            max_rec_id_len = 0
+            for rec in align:
+                max_rec_id_len = len(rec.id) if len(rec.id) > max_rec_id_len else max_rec_id_len
+            breakout = False
+            while min_length <= max_rec_id_len and not breakout:
+                breakout = True
+                test_list = []
+                for indx2, rec in enumerate(align):
+                    if indx2 != 0 and rec.id[:min_length] in test_list:
+                        min_length += 1
+                        breakout = False
+                        break
+                    else:
+                        test_list.append(rec.id[:min_length])
+
+        group_pattern = "." * min_length
+
     for indx, align in enumerate(alignbuddy.alignments):
         for rec in align:
-            match = re.search(pattern, rec.id)
+            match = re.search(group_pattern, rec.id)
             if match:
-                concat_groups.setdefault(match.group(0), [None for _ in range(len(alignbuddy.alignments))])
+                if match.groups():
+                    match = "".join(match.groups())
+                else:
+                    match = match.group(0)
+                concat_groups.setdefault(match, [None for _ in range(len(alignbuddy.alignments))])
             else:
                 raise ValueError("No match found for record %s in Alignment #%s" % (rec.id, indx + 1))
 
     for indx, align in enumerate(alignbuddy.alignments):
         for rec in align:
-            match = re.search(pattern, rec.id)
+            match = re.search(group_pattern, rec.id)
             if match:
-                if concat_groups[match.group(0)][indx]:
-                    raise ValueError("Replicate matches '%s' in Alignment #%s" % (match.group(0), indx + 1))
-                concat_groups[match.group(0)][indx] = rec
+                if match.groups():
+                    match = "".join(match.groups())
+                else:
+                    match = match.group(0)
+
+                if concat_groups[match][indx]:
+                    raise ValueError("Replicate matches '%s' in Alignment #%s" % (match, indx + 1))
+                concat_groups[match][indx] = rec
 
         for group, seqs in concat_groups.items():
             if not seqs[indx]:
@@ -442,10 +475,21 @@ def concat_alignments(alignbuddy, pattern):
         align_features = []
         for rec_indx, rec in enumerate(seqs):
             location = FeatureLocation(new_length, new_length + len(rec.seq))
-            feature = SeqFeature(location=location, type="Alignment_%s" % (rec_indx + 1))
+            match = re.search(align_name_pattern, rec.id)
+            if align_name_pattern != "" and match:
+                if match.groups():
+                    match = "".join(match.groups())
+                else:
+                    match = match.group(0)
+                feature = SeqFeature(location=location, type=match)
+            else:
+                if str(rec.id) != "<unknown id>":
+                    feature = SeqFeature(location=location, type=rec.id)
+                else:
+                    feature = SeqFeature(location=location, type="Alignment_%s" % (rec_indx + 1))
             align_features.append(feature)
             new_length += len(rec.seq)
-        new_records[group_indx].features = new_records[group_indx].features + align_features
+        new_records[group_indx].features = align_features + new_records[group_indx].features
         group_indx += 1
 
     alignbuddy.alignments = [MultipleSeqAlignment(new_records, alphabet=alignbuddy.alpha)]
@@ -772,6 +816,52 @@ def lowercase(alignbuddy):
     """
     for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).lower(), alphabet=rec.seq.alphabet)
+    return alignbuddy
+
+
+def map_features2alignment(seqbuddy, alignbuddy):
+    """
+    Copy features from an annotated sequence over to its corresponding record in an alignment
+    :param seqbuddy: SeqBuddy object
+    :param alignbuddy: AlignBuddy object
+    :return:
+    """
+    def feat_map(feat, _sb_rec, _alb_rec):
+        new_location = feat.location
+        if type(feat.location) == FeatureLocation:
+            chars = 0
+            start = None
+            end = None
+            for indx, residue in enumerate(str(alb_rec.seq)):
+                if residue not in GAP_CHARS:
+                    chars += 1
+
+                if chars - 1 == feat.location.start:
+                    start = int(indx)
+
+                if chars == feat.location.end:
+                    end = int(indx) + 1
+
+                if None not in [start, end]:
+                    new_location = FeatureLocation(start, end)
+                    break
+
+        else:  # CompoundLocation
+            parts = []
+            for sub_feature in feat.location.parts:
+                parts.append(feat_map(SeqFeature(sub_feature), _sb_rec, _alb_rec).location)
+            new_location = CompoundLocation(parts, operator='order')
+        feat.location = new_location
+        return feat
+
+    alb_recs = alignbuddy.records_dict()
+    Sb.clean_seq(seqbuddy)
+    for sb_rec in seqbuddy.records:
+        sb_rec.features = br.shift_features(sb_rec.features, 0, len(sb_rec.seq))  # Cleans weird start/end positions
+        if sb_rec.id in alb_recs:
+            for alb_rec in alb_recs[sb_rec.id]:
+                for feature in sb_rec.features:
+                    alb_rec.features.append(feat_map(feature, sb_rec, alb_rec))
     return alignbuddy
 
 
@@ -1160,7 +1250,8 @@ def argparse_init():
             sys.exit()
 
     try:
-        if not in_args.generate_alignment:  # If passing in sequences to do alignment, don't make AlignBuddy obj
+        # Some tools do not start with AlignBuddy objs, so skip this for those rare cases
+        if not in_args.generate_alignment:
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                     sys.exit("Warning: No input detected. Process will be aborted.")
@@ -1278,7 +1369,36 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Concatenate Alignments
     if in_args.concat_alignments:
         try:
-            _print_aligments(concat_alignments(alignbuddy, in_args.concat_alignments))
+            args = in_args.concat_alignments[0]
+            if len(args) > 0:
+                try:
+                    group_int = int(args[0])
+                    if group_int >= 0:
+                        group_pattern = "^%s" % ("." * group_int)
+                    else:
+                        group_pattern = "%s$" % ("." * abs(group_int))
+
+                except ValueError:
+                    group_pattern = args[0]
+
+            else:
+                group_pattern = None
+
+            if len(args) > 1:
+                try:
+                    align_int = int(args[1])
+                    if align_int >= 0:
+                        align_pattern = "%s$" % ("." * align_int)
+                    else:
+                        align_pattern = "^%s" % ("." * abs(align_int))
+
+                except ValueError:
+                    align_pattern = args[1]
+
+            else:
+                align_pattern = ""
+            _print_aligments(concat_alignments(alignbuddy, group_pattern, align_pattern))
+
         except AttributeError as e:
             _raise_error(e, "concat_alignments", "Please provide at least two alignments.")
         except ValueError as e:
@@ -1363,6 +1483,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.lowercase:
         _print_aligments(lowercase(alignbuddy))
         _exit("lowercase")
+
+    # Map features to alignment
+    if in_args.mapfeat2align:
+        reference_records = []
+        for path in in_args.mapfeat2align:
+            reference_records += Sb.SeqBuddy(path).records
+        seqbuddy = Sb.SeqBuddy(reference_records)
+        _print_aligments(map_features2alignment(seqbuddy, alignbuddy))
+        _exit("mapfeat2align")
 
     # Number sequences per alignment
     if in_args.num_seqs:

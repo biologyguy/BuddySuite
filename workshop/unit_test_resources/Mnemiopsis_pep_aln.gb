@@ -1,27 +1,4 @@
-LOCUS       Mle-Panxα12              683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα12
-VERSION     Mle-Panxα12
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--vidils gf-------- ----kgitpf kgitlddgwd qinrsfmfvl cvlmgtvvtv
-       61 r-qyaggiis c--------d gftkys--gs fsedycwtqg lytikeaydl l-tmnvp---
-      121 ------ypgv ---ipedmpt ci-------- e-relinggr vscpdpetvk pptrvyhlwy
-      181 qwvpfyfwla aaafffpyli ykhf-gvgdl kpliqmlhn- -pivd--egd qncmaekasm
-      241 wlfykln-vf mnentifail tekhrlffiv mlvkvlylii silalyltde mfhigs--fv
-      301 sygsew---- atslpe-gdn ettlvkdklf pkmvaceikr wgptgleeeq gmcvlapnvi
-      361 nqylflilwf aiifciacnc lsvlfaltkl vfvlgsykrl lasa-flkde lh---ykhmf
-      421 fnigtsgrvl lqivatnvsp rvfesimanl atkliaerl- kgngkgsv-- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- ---------- ---------- ----------
-      601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
-//
-LOCUS       Mle-Panxα9               683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα9               681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα9
 VERSION     Mle-Panxα9
@@ -30,44 +7,32 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             4..509
+                     /created_by="User"
+                     /label="ML47742a"
+                     /modified_by="User"
+     splice_donor    27..29
+                     /created_by="User"
+                     /label="47%"
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            355..385
 ORIGIN
-        1 ----mldils kf-------- ----kgvtpf kgitiddgwd qlnrsfmfvl lvvmgttvtv
-       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg lytvlegydq p-sqnip---
-      121 ------ypgl ---lpdeapp ct-------- p-vrlkdgtr lkcpdpdqll sptrishlwy
-      181 qwvpfyfwla aaaffmpyll yknf-gmgdi kplvrllhn- -pves--dqe lkkmtdkaat
-      241 wlfykfd-ly mseqsllasl trkhglglsm vfvkilyaav sfgcflltae mfsigd--fk
-      301 tygsew---- ikklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
-      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
-      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rgngkal--- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
+        1 ---mld---- -------ils kfkgvtpfkg itiddgwdql nrsfmfvllv vmgttvtvrq
+       61 ytgsv-iscd gfkkf----- ---gstfaed ycwtqglytv legydqps-q nipyp-----
+      121 ----gllpde appc-----t p-vrlk---d gtrlkcpdpd qllsptrish lwyqwvpfyf
+      181 wlaaaaffmp yllyknf-gm gdikplvrl- -lhnpvesdq e--lkkmtdk aatwlfykfd
+      241 lymseqslla sltrkh-glg lsmvfvkily aavsfgcfll taemfsigdf ktygsewikk
+      301 lkl------e dnlateekdk lfpkmvacev krwgasgiee eqgmcvlapn vinqylflil
+      361 wfclvfvmfc nivsifasli kllftygsyr rllsta-flr ddsaikhm-- -yfnvgssgr
+      421 lilhvlannt aprvfedill tlapkli--- ---------- ---------- ----------
+      481 ---------- --------qr klrgngkal* ---------- ---------- ----------
       541 ---------- ---------- ---------- ---------- ---------- ----------
       601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
+      661 ---------- ---------- -
 //
-LOCUS       Mle-Panxα10B             683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα10B
-VERSION     Mle-Panxα10B
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--rlseks tshdckacit rshnedcarr wgitiddgwd qlnrsfmfgl lvvmgttvtv
-       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg qytvlegydq p-nqnipcpv
-      121 p--------- ---rp----- ---------- ---------- ---------- -psr------
-      181 ---------- ---------- -rgs-tlntm sqtqgflhn- -pves--dqe lkkmtdkaat
-      241 wlfykfd-ly mseqsllasl tnkhglglsv vfvkilyaav sfgcflltad mfsigd--fk
-      301 tygsew---- inklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
-      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
-      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rak------- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- ---------- ---------- ----------
-      601 ---------- ----dy---- ---------- ---------- ---------- ----------
-      661 ---------- ---------- --d
-//
-LOCUS       Mle-Panxα7A              683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα7A              681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα7A
 VERSION     Mle-Panxα7A
@@ -76,44 +41,82 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             3..680
+                     /created_by="User"
+                     /label="ML218922a"
+                     /modified_by="User"
+     TMD1            41..61
+     TMD2            171..191
+     TMD3            252..283
+     splice_donor    334..337
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 338..340
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 340..343
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 341..344
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 344..346
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            355..385
+     splice_acceptor 402..404
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 403..405
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 405..407
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 438..441
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 441..443
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 442..445
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 449..452
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 506..508
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 507..510
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 508..511
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_donor    526..528
+                     /created_by="User"
+                     /label="Donor"
+     splice_donor    569..571
+                     /created_by="User"
+                     /label="Donor"
 ORIGIN
-        1 -m--gveilf pi-------- --inratapi ksvniddlss qlnrtfmfyl sltfaititi
-       61 rqqlggayia c--------d gfsrdeeyer faeewcwssg iytikeayem s-nrvsp---
-      121 ------ypgi ---ipenlpa ci-------- e-melisggr vecpeekdvk pftriyqswy
-      181 pfvmfyywlt almfflpyql ykvf-gfedv kavvamlqn- -pved--gfe kkelikrgsv
-      241 wlylkst-mt lsnpsvyssf ivkhslafya ltvkvmylgn tllmywlthk mfkfgs--fa
-      301 eygllw---- dtrnp--lnn vqslvqeklf pkvaacevkr fgasgleedq gmcmlalnvl
-      361 nqylflifwf cllfvtivnt isllltllni ispcfmlqqf llas-sldrs pavgviskly
-      421 ldcgsslrfi mtifawnvdp klfgeilvql nsllakdesp raevlkrrsk kvk-vpsprk
-      481 pkllfheeik kklikrterk ddnltnftnm skiskkfegl kkrnllqtks iinvsvpkkm
-      541 seleveedfi ltpteesgiq nnpdtkyaqe dvldseyvvv eqsvpetmte qesveesvpe
-      601 iskaeqeggs sdhidveetp pasdvdrevn spivqheyqv qidlvsddgs ahrlssdeal
-      661 fplripivkl ngdvlslrse slq
+        1 m--gvei--- ------lfpi inratapiks vniddlssql nrtfmfylsl tfaititirq
+       61 qlggayiacd gfsrd----- -eeyerfaee wcwssgiyti keayemsn-r vspyp-----
+      121 ----giipen lpac-----i e-meli---s ggrvecpeek dvkpftriyq swypfvmfyy
+      181 wltalmfflp yqlykvf-gf edvkavvam- -lqnpvedgf e--kkelikr gsvwlylkst
+      241 mtlsnpsvys sfivkh-sla fyaltvkvmy lgntllmywl thkmfkfgsf aeygllwdtr
+      301 np-------l nnvqslvqek lfpkvaacev krfgasglee dqgmcmlaln vlnqylflif
+      361 wfcllfvtiv ntisllltll niispcfmlq qfllas-sld rspavgvisk lyldcgsslr
+      421 fimtifawnv dpklfgeilv qlnsllakde spraevlkrr skkvkvpspr kpkllfheei
+      481 kkklikrter kddnltnftn mskiskkfeg lk----krnl lqtksiinvs vpkkmselev
+      541 eedfiltpte esgiqnnpdt kyaqedvlds eyvvveqsv- -petmteqes veesvpeisk
+      601 aeqeggssdh idveetppas dvdrevnspi vqheyqvqid lvsddgsahr lssdealfpl
+      661 ripivklngd vlslrseslq *
 //
-LOCUS       Mle-Panxα8               683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα8
-VERSION     Mle-Panxα8
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--vlevla lf-------- ----prlapf kvitlddvwd qwnrsfmfim tvlfgsivti
-       61 r-sytgsvie c--------d gflkvp--ve fakdycwtqg iytlregydy h-ssllp---
-      121 ------ypgv ---fpedapg cl-------- d-kvldnggr vicpmdkkyr kyqrvyhswy
-      181 qftafyfwta scafflpymm fkff-gmgdl kpvismlhn- -pvet--aee ldmltkkaar
-      241 wlyvrvh-ay ihtdqyygkr vekhllffsi mltkscyllf svllfwltek mfhigs--ff
-      301 sygvdw---- aaeepepged yktliqdklf pkmasceikr wgttgieeeq gmcvlaanvi
-      361 nqylflifwg gmvvtiivnv lsvlialsnl cfiqgayrnl lata-flrde pa---yseiw
-      421 rksgtsgrvi lqliaknvnp xxxxxraera gelaevgge- ---------- ----------
-      481 ---------v rclverc--- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- fslnrphi-- ---------- --------ph
-      601 lvk------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
-//
-LOCUS       Mle-Panxα1               683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα1               681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα1
 VERSION     Mle-Panxα1
@@ -122,90 +125,28 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             1..680
+                     /created_by="User"
+                     /label="ML078817"
+     TMD1            42..62
+     TMD2            172..192
+     TMD3            261..281
+     TMD4            352..382
 ORIGIN
-        1 -mywifeicq ei-------- ----kraqsc rkfaidgpfd wtnriimptl mviccflqtf
-       61 t-fmfgsnis c--------i gfekle--rn fveeycwtqg iytskaaynm p--lhtp---
-      121 ------ypgi apcvpeydpv tq-------- k-ywlpcg-- --------ve eedkayhlwy
-      181 qwvpfyflav avgyylpfli lkgs-klhqv kplitylmn- -qrnl--etd pnhlvgklsh
-      241 wifrqlvysr faatstirmy whdwglvllv csvkilyltv slihlfatak mfhign--wf
-      301 tygimf---- arr----sns htthvkdvff pkmvackiet wsftgknhlh gmcvlalnvm
-      361 nqylflivwy vnviiiflns isciytivkf cspnivhhri vnss-slddh hd---ftrmf
-      421 gyvgpsgrii lakmsehmpg ymlkqvakkv tekidiene- knrgraptik ----------
-      481 ---------- ---------- ---------f tkvngqpsel arqplmhlna lmlgmvp---
-      541 ---------- ---------- ---------- qnlpepki-- ---------- --------qn
-      601 iqr------s qkkvrf---- ---------- ---------- ---------- ----------
-      661 ---------- ---------- -lv
+        1 mywife---- -------icq eikraqscrk faidgpfdwt nriimptlmv iccflqtftf
+       61 mfgsn-isci gfekl----- ---ernfvee ycwtqgiyts kaaynmp--l htpyp-----
+      121 ----giapc- vpey-----d pv-------t qkywlpcg-- -veeedkayh lwyqwvpfyf
+      181 lavavgyylp flilkgs-kl hqvkplity- -lmnqrnlet d--pnhlvgk lshwifrqlv
+      241 ysrfaatsti rmywhdwglv llvcsvkily ltvslihlfa takmfhignw ftygimfarr
+      301 ---------s nshtthvkdv ffpkmvacki etwsftgknh lhgmcvlaln vmnqylfliv
+      361 wyvnviiifl nsisciytiv kfcspnivhh rivnss-sld dhhdftrm-- -fgyvgpsgr
+      421 iilakmsehm pgymlkqvak kvtekid--- ---------- ---------- ----------
+      481 ---------- --------ie neknrgrapt ikftkvngqp sela------ ----------
+      541 ---------- ---------- ------rqpl mhlnalmlgm vpqnlpepki qniqrsqkkv
+      601 rf-------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- --------lv *
 //
-LOCUS       Mle-Panxα2               683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα2
-VERSION     Mle-Panxα2
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--vldlis gs-------- --l-ngflki ksvsiddqwd qinrtylvmf cilsgtimtf
-       61 k-qnlgsiih cisdargdds sfadah--at fvqdycaaqg lytlkevydk swpdeip---
-      121 ------ypgi ---lqmktig cf-------- pgrqfkngtp iqcpdekdlk pfttvyhvwy
-      181 mfvpfyfcav giafyfpytv frhlsgiydi kpmlnslal- -digayteed isrridnvsr
-      241 wlyikld-py mnnmlpytqi vhkhsifytv mlvkvmylat svsifyathr ifdqgn--fa
-      301 lygydv---- lmsipq-ets yk--vmdtif pkmvgceinm wgrtgeqses llcvlpqnig
-      361 nqyfflifwf lliltilsnc isvivtifrf ifvsgsykrf lats-llnhe er---yklvf
-      421 thvgttgryi lllcadhsnp kifedlleiv csllianyhk rkrsrdkghs raegvgtkgr
-      481 hgl------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- sfvdstv--- ---------- ----------
-      601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
-//
-LOCUS       Mle-Panxα5               683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα5
-VERSION     Mle-Panxα5
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--iywvwa vf-------- ----krmapf kvvtlddrwd qmnrsfmmpl tmsfaylidy
-       61 g-iiagstik c--------t gfedsfrsea fvdeycwtqg iytlreaydl e-ntkip---
-      121 ------ypgi ---ipegfpn cm-------- p-yerwdgmk vecpkeeqyl kptrvyhlyy
-      181 qhiqlyfwlv ctlfylpymv gicl-gfnyt kplinllhn- -pltr-deee lealldkaar
-      241 slrlrld-iy sdqkswfdll yrrhtmlyll ffiklqylgf svailgltqa kfkign--fv
-      301 tygfew---- vgsqvp-ngs tytlvqhklf pkmaaceikr wgasgldvlr gmcvlpqnvs
-      361 nsyiflvfwi fllltilgnv igciltvkqy lvksegyskl vact-fwnd- wn---lrhly
-      421 wnvggsgrvi lhhladnlhp ctfeklirry wwlkrneyv- qynghlkts- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- ---------- ---------- ----------
-      601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
-//
-LOCUS       Mle-Panxα4               683 aa                     UNK 01-JAN-1980
-DEFINITION  
-ACCESSION   Mle-Panxα4
-VERSION     Mle-Panxα4
-KEYWORDS    .
-SOURCE      
-  ORGANISM  .
-            .
-FEATURES             Location/Qualifiers
-ORIGIN
-        1 -m--viella gy-------- ----kglspf kdatvddswd qinrcyvfia mvvmgavttm
-       61 r-qysgtlia c--------d gftkfh--pq faedycwsig mytvreaydl p-ssmva---
-      121 ------ypgv ---ipwdmpa cv-------- p-rllkngtr tkcgsekdvm psekiyhlwy
-      181 qwasfyfwiv ailyyapyim fkql-gggey kplikllcl- -asgs-peqq mqdiqervvk
-      241 wlffrfk-ty ifakgyya-w lrknsfsiai gvtklsylli tilvfyltgf mfeygsntwy
-      301 rygadwygtr fssyhe-tnn sitltkdiif pkmvaceikr wgpsgievet aqcvlapnvl
-      361 yqylflftwy lliavfftnl iscflhisem ffsngtynrm idqg-mlpdk ps---yryvf
-      421 mnigaggrei vqiltdnsnp llfskifddl tnllittsk- nadvienls- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- -kldssvi-- ---------- ----------
-      601 ------elgs kdsi------ ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
-//
-LOCUS       Mle-Panxα3               683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα3               681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα3
 VERSION     Mle-Panxα3
@@ -214,44 +155,59 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             2..574
+                     /created_by="User"
+                     /label="ML036514a"
+                     /modified_by="User"
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            352..382
 ORIGIN
-        1 ml--llgslg ti-------- ----knlsif kdlslddwld qmnrtfmfll lcfmgtivav
-       61 s-qytgknis c--------d gftkfg--ed fsqdycwtqg lytikeaydl p-esqip---
-      121 ------ypgi ---ipenvpa cr-------- e-halknggk ivcppedqvk pltrarhlwy
-      181 qwipfyfwvi apvfylpymf vkrm-gldrm kpllkimsdy yhctt--etp seeiivkcad
-      241 wvynsiv-dr lsegsswtsw rnrhglglav lvskfmylgg svlvmmmttl mfqvgd--fk
-      301 tygiew---- lrqfpn-pen ystsvkhklf pkmvaceikr wgttgleeen gmcvlapnvi
-      361 yqyiflimwf alaitictnf gniffylfkl tatrytynkl vatghfshkh pg---wkfmy
-      421 yrigtsgrvl lnivaqntnp iifgaimekl tpsvikhlr- ighvpge--- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- -yltdpa--- ---------- ----------
+        1 m-lllg---- -------slg tiknlsifkd lslddwldqm nrtfmflllc fmgtivavsq
+       61 ytgkn-iscd gftkf----- ---gedfsqd ycwtqglyti keaydlpe-s qipyp-----
+      121 ----giipen vpac-----r e-halk---n ggkivcpped qvkpltrarh lwyqwipfyf
+      181 wviapvfylp ymfvkrm-gl drmkpllki- -msdyyhctt etpseeiivk cadwvynsiv
+      241 drlsegsswt swrnrh-glg lavlvskfmy lggsvlvmmm ttlmfqvgdf ktygiewlrq
+      301 fpn------p enystsvkhk lfpkmvacei krwgttglee engmcvlapn viyqyiflim
+      361 wfalaitict nfgniffylf kltatrytyn klvatghfsh khpgwkfm-- -yyrigtsgr
+      421 vllnivaqnt npiifgaime kltpsvik-- ---------- ---------- ----------
+      481 ---------- ------hlri ghvpgeylt- ---------- ---------- ----------
+      541 ---------- ---------- ---------- -dpa*----- ---------- ----------
       601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
+      661 ---------- ---------- -
 //
-LOCUS       Mle-Panxα6               683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα12              681 aa                     UNK 01-JAN-1980
 DEFINITION  
-ACCESSION   Mle-Panxα6
-VERSION     Mle-Panxα6
+ACCESSION   Mle-Panxα12
+VERSION     Mle-Panxα12
 KEYWORDS    .
 SOURCE      
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             3..510
+                     /created_by="User"
+                     /label="ML25997a"
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            352..382
 ORIGIN
-        1 -m--lleila nf-------- ----kgatpf keivlddkwd qinrcymfll cvifgtvvtf
-       61 r-qytggiia c--------d gltkfs--aa faedycwtqg lytikeaydi v-dnslp---
-      121 ------ypgl ---lpedapp cl-------- s-rrlvsggr iecppadlyl eptrvhhtwy
-      181 qwipfyfwvi siafigpyiv ykql-gvnel kpilamlhn- -pvdg--ddv tkdqiskvsr
-      241 wlaikln-if iqekstyaki tqshrmfili fltkifylgv slatmyftdt mfesgr--yl
-      301 tygsew---- fasldk-qsn ytsfvrdrlf pkmvaceikr wgpsgmeeeq gmcvlapnvm
-      361 nqylflifwf alvftifsnt fsiffsvsth cfidggyqrf iqsc-flken sk---lkfiy
-      421 fncgttgrty lhliaknvnp rifeqliikl sadlveekn- kqhlkgskd- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- -ilv------ ---------- ----------
+        1 m--vid---- -------ils gfkgitpfkg itlddgwdqi nrsfmfvlcv lmgtvvtvrq
+       61 yaggi-iscd gftky----- ---sgsfsed ycwtqglyti keaydllt-m nvpyp-----
+      121 ----gviped mptc-----i e-reli---n ggrvscpdpe tvkpptrvyh lwyqwvpfyf
+      181 wlaaaafffp yliykhf-gv gdlkpliqm- -lhnpivdeg d--qncmaek asmwlfykln
+      241 vfmnentifa iltekh-rlf fivmlvkvly liisilalyl tdemfhigsf vsygsewats
+      301 lpe------g dnettlvkdk lfpkmvacei krwgptglee eqgmcvlapn vinqylflil
+      361 wfaiifciac nclsvlfalt klvfvlgsyk rllasa-flk delhykhm-- -ffnigtsgr
+      421 vllqivatnv sprvfesima nlatkli--- ---------- ---------- ----------
+      481 ---------- --------ae rlkgngkgsv ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
       601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
+      661 ---------- ---------- *
 //
-LOCUS       Mle-Panxα11              683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα11              681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα11
 VERSION     Mle-Panxα11
@@ -260,21 +216,306 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             3..522
+                     /created_by="User"
+                     /label="ML25999a"
+     TMD1            41..61
+     splice_acceptor 143..145
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            352..382
 ORIGIN
-        1 -m--lisslv qf-------- ----srlspf keitiddgwd qlnrsfmfvl mvicgtivtv
-       61 r-qhtgniis c--------n gftkyd--gs fsedycwtqg lytireayhv s-dvnvp---
-      121 ------ypgv ---ipeeipl cl-------- g-dnc----- ----dklans nttrvyhlwy
-      181 qwipfyfwla saafflpyli ykry-gfgdi kplihmlyn- -pldg--deg vkadsekasi
-      241 wlyhrfs-iy mnehsmyanf merhgigilv iaikvmylii svllmvmtam mfelad--fk
-      301 qygivw---- aqqwpd-ppa nvtgikdllf pkmvaceikr wgptgleden gmcvlapnvi
-      361 nqyiflilww alvftivsnv fnvlagviri vfiygsyrrm lasa-flrdd ph---ykkvy
-      421 ykigtsgrvi lnmlaasisp tcfqeimnnv cprlirahv- skkgrnlgdd ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
-      541 ---------- ---------- ---------- pll------- ---------- ----------
+        1 m--lis---- -------slv qfsrlspfke itiddgwdql nrsfmfvlmv icgtivtvrq
+       61 htgni-iscn gftky----- ---dgsfsed ycwtqglyti reayhvsd-v nvpyp-----
+      121 ----gvipee iplc-----l g-dncd---k lan------- --snttrvyh lwyqwipfyf
+      181 wlasaafflp yliykry-gf gdikplihm- -lynpldgde g--vkadsek asiwlyhrfs
+      241 iymnehsmya nfmerh-gig ilviaikvmy liisvllmvm tammfeladf kqygivwaqq
+      301 wpd------p panvtgikdl lfpkmvacei krwgptgled engmcvlapn vinqyiflil
+      361 wwalvftivs nvfnvlagvi rivfiygsyr rmlasa-flr ddphykkv-- -yykigtsgr
+      421 vilnmlaasi sptcfqeimn nvcprli--- ---------- ---------- ----------
+      481 ---------- --------ra hvskkgrnlg -------ddp ll*------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
       601 ---------- ---------- ---------- ---------- ---------- ----------
-      661 ---------- ---------- ---
+      661 ---------- ---------- -
 //
-LOCUS       Mle-Panxα10A             683 aa                     UNK 01-JAN-1980
+LOCUS       Mle-Panxα4               681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα4
+VERSION     Mle-Panxα4
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            352..382
+ORIGIN
+        1 m--vie---- -------lla gykglspfkd atvddswdqi nrcyvfiamv vmgavttmrq
+       61 ysgtl-iacd gftkf----- ---hpqfaed ycwsigmytv reaydlps-s mvayp-----
+      121 ----gvipwd mpac-----v p-rllk---n gtrtkcgsek dvmpsekiyh lwyqwasfyf
+      181 wivailyyap yimfkql-gg geykplikl- -lclasgspe qq-mqdiqer vvkwlffrfk
+      241 tyifakgyya wl-rkn-sfs iaigvtklsy llitilvfyl tgfmfeygsn twyrygadwy
+      301 gtrfssyhet nnsitltkdi ifpkmvacei krwgpsgiev etaqcvlapn vlyqylflft
+      361 wylliavfft nliscflhis emffsngtyn rmidqg-mlp dkpsyryv-- -fmnigaggr
+      421 eivqiltdns npllfskifd dltnllit-- ---------- ---------- ----------
+      481 ---------- ------tskn advienlskl -------dss vie------- ----------
+      541 ---------- ---------- -------lgs kdsi*----- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα8               681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα8
+VERSION     Mle-Panxα8
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     gene            3..74
+                     /created_by="User"
+                     /label="ML07312a"
+     CDS             3..575
+                     /Innexin_02=""
+                     /created_by="User"
+                     /label="Innexin 02"
+                     /modified_by="User"
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            261..281
+     TMD4            352..382
+ORIGIN
+        1 m--vle---- -------vla lfprlapfkv itlddvwdqw nrsfmfimtv lfgsivtirs
+       61 ytgsv-iecd gflkv----- ---pvefakd ycwtqgiytl regydyhs-s llpyp-----
+      121 ----gvfped apgc-----l d-kvld---n ggrvicpmdk kyrkyqrvyh swyqftafyf
+      181 wtascafflp ymmfkff-gm gdlkpvism- -lhnpvetae e--ldmltkk aarwlyvrvh
+      241 ayihtdqyyg krvekh-llf fsimltkscy llfsvllfwl tekmfhigsf fsygvdwaae
+      301 epep-----g edyktliqdk lfpkmascei krwgttgiee eqgmcvlaan vinqylflif
+      361 wggmvvtiiv nvlsvlials nlcfiqgayr nllata-flr depaysei-- -wrksgtsgr
+      421 vilqliaknv npxxxxxrae ragelae--- ---------- ---------- ----------
+      481 ---------- -------vgg evrclverc- --------fs lnr------- ----------
+      541 ---------- ---------- -------phi phlvk*---- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα6               681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα6
+VERSION     Mle-Panxα6
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             3..521
+                     /created_by="User"
+                     /label="ML25993"
+                     /modified_by="User"
+     TMD1            41..61
+     splice_acceptor 144..146
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     TMD2            172..192
+     splice_acceptor 187..189
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 194..196
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            262..282
+     splice_acceptor 338..340
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            352..382
+     splice_donor    384..387
+                     /created_by="User"
+                     /label="Donor"
+ORIGIN
+        1 m--lle---- -------ila nfkgatpfke ivlddkwdqi nrcymfllcv ifgtvvtfrq
+       61 ytggi-iacd gltkf----- ---saafaed ycwtqglyti keaydivd-n slpyp-----
+      121 ----gllped appc-----l s-rrlv---s ggriecppad lyleptrvhh twyqwipfyf
+      181 wvisiafigp yivykql-gv nelkpilam- -lhnpvdgdd v--tkdqisk vsrwlaikln
+      241 ifiqekstya kitqsh-rmf ilifltkify lgvslatmyf tdtmfesgry ltygsewfas
+      301 ldk------q snytsfvrdr lfpkmvacei krwgpsgmee eqgmcvlapn vmnqylflif
+      361 wfalvftifs ntfsiffsvs thcfidggyq rfiqsc-flk ensklkfi-- -yfncgttgr
+      421 tylhliaknv nprifeqlii klsadlv--- ---------- ---------- ----------
+      481 ---------- --------ee knkqhlkgsk -------dil v*-------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα10B             681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα10B
+VERSION     Mle-Panxα10B
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             2..508
+                     /created_by="User"
+                     /label="ML32831a"
+     splice_donor    27..29
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 30..33
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 35..37
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            41..61
+     splice_acceptor 44..46
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    87..89
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 90..93
+                     /created_by="User"
+                     /label="26%"
+     splice_donor    145..147
+                     /created_by="User"
+                     /label="67%"
+                     /modified_by="User"
+     splice_acceptor 211..213
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 217..219
+                     /created_by="User"
+                     /label="31%"
+     TMD2            264..284
+     splice_donor    334..337
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD3            355..369
+     TMD4            371..385
+     splice_donor    501..504
+                     /created_by="User"
+                     /label="90%"
+ORIGIN
+        1 m-rlseksts hdckacitrs hnedcarrwg itiddgwdql nrsfmfgllv vmgttvtvrq
+       61 ytgsv-iscd gfkkf----- ---gstfaed ycwtqgqytv legydqpn-q nipcp-----
+      121 -vprppsrrg stln------ tmsqtqg--- ---------- ---------- ----------
+      181 ---------- ---------- --------f- -lhnpvesdq e--lkkmtdk aatwlfykfd
+      241 lymseqslla sltnkh-glg lsvvfvkily aavsfgcfll tadmfsigdf ktygsewink
+      301 lkl------e dnlateekdk lfpkmvacev krwgasgiee eqgmcvlapn vinqylflil
+      361 wfclvfvmfc nivsifasli kllftygsyr rllsta-flr ddsaikhm-- -yfnvgssgr
+      421 lilhvlannt aprvfedill tlapkli--- ---------- ---------- ----------
+      481 ---------- --------qr klrakdyd*- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα5               681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα5
+VERSION     Mle-Panxα5
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             3..511
+                     /created_by="User"
+                     /label="ML223536a"
+                     /modified_by="User"
+     TMD1            41..61
+     TMD2            172..192
+     TMD3            262..282
+     TMD4            352..382
+ORIGIN
+        1 m--iyw---- -------vwa vfkrmapfkv vtlddrwdqm nrsfmmpltm sfaylidygi
+       61 iagst-ikct gfeds----- -frseafvde ycwtqgiytl reaydlen-t kipyp-----
+      121 ----giipeg fpnc-----m p-yerw---d gmkvecpkee qylkptrvyh lyyqhiqlyf
+      181 wlvctlfylp ymvgicl-gf nytkplinl- -lhnpltrde ee-lealldk aarslrlrld
+      241 iysdqkswfd llyrrh-tml yllffiklqy lgfsvailgl tqakfkignf vtygfewvgs
+      301 qvp------n gstytlvqhk lfpkmaacei krwgasgldv lrgmcvlpqn vsnsyiflvf
+      361 wifllltilg nvigciltvk qylvksegys klvact-fw- ndwnlrhl-- -ywnvggsgr
+      421 vilhhladnl hpctfeklir rywwlkr--- ---------- ---------- ----------
+      481 ---------- --------ne yvqynghlkt s*-------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα2               681 aa                     UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα2
+VERSION     Mle-Panxα2
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             3..575
+                     /created_by="User"
+                     /label=""
+                     /modified_by="User"
+     TMD1            41..61
+     splice_donor    58..60
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 61..64
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 64..67
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 75..77
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 76..78
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_donor    113..125
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 144..146
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 145..151
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 156..159
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 160..163
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 162..164
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            171..191
+     splice_acceptor 196..198
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            261..281
+     TMD4            352..382
+ORIGIN
+        1 m--vld---- ------lisg slngflkiks vsiddqwdqi nrtylvmfci lsgtimtfkq
+       61 nlgsi-ihci sdargddssf adahatfvqd ycaaqglytl kevydkswpd eipyp-----
+      121 ----gilqmk tigc-----f pgrqfk---n gtpiqcpdek dlkpfttvyh vwymfvpfyf
+      181 cavgiafyfp ytvfrhlsgi ydikpmlnsl aldigaytee d--isrridn vsrwlyikld
+      241 pymnnmlpyt qivhkh-sif ytvmlvkvmy latsvsifya thrifdqgnf alygydvlms
+      301 ipq------e tsyk--vmdt ifpkmvgcei nmwgrtgeqs esllcvlpqn ignqyfflif
+      361 wflliltils ncisvivtif rfifvsgsyk rflats-lln heeryklv-- -fthvgttgr
+      421 yilllcadhs npkifedlle ivcslli--- ---------- ---------- ----------
+      481 ---------- --------an yhkrkrsrdk -------ghs raeg------ ------vgtk
+      541 gr-------- ---------- -----hglsf vdstv*---- ---------- ----------
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
+//
+LOCUS       Mle-Panxα10A             681 aa                     UNK 01-JAN-1980
 DEFINITION  
 ACCESSION   Mle-Panxα10A
 VERSION     Mle-Panxα10A
@@ -283,17 +524,77 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             2..508
+                     /created_by="User"
+                     /label="ML32831a"
+                     /modified_by="User"
+     splice_donor    27..29
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 30..33
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 35..37
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            41..61
+     splice_acceptor 44..46
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    87..89
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 90..93
+                     /created_by="User"
+                     /label="26%"
+     splice_acceptor 130..133
+                     /created_by="User"
+                     /label="18%"
+     splice_acceptor 131..134
+                     /created_by="User"
+                     /label="17%"
+     splice_donor    147..150
+                     /created_by="User"
+                     /label="91%"
+                     /modified_by="User"
+     splice_donor    151
+                     /created_by="User"
+                     /label="34%"
+     TMD2            172..192
+     splice_acceptor 175..178
+                     /created_by="User"
+                     /label="7%"
+     splice_donor    206..208
+                     /created_by="User"
+                     /label="71%"
+     splice_acceptor 211..213
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 217..219
+                     /created_by="User"
+                     /label="31%"
+     TMD3            262..282
+     splice_donor    334..337
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD4            355..385
+     splice_donor    501..504
+                     /created_by="User"
+                     /label="90%"
 ORIGIN
-        1 -m--rlseks tshdckacit rshnedcarr wgitiddgwd qlnrsfmfgl lvvmgttvtv
-       61 r-qytgsvis c--------d gfkkfg--st faedycwtqg qytvlegydq p-nqnipcpl
-      121 paafapypgi ---fpeelsh clvgarkagq s-edlingtr lkcpdpdqll sptrishlwy
-      181 qwvpfyfwla aaaffmpyll yknf-gigdi kplvrflhn- -pves--dqe lkkmtdkaat
-      241 wlfykfd-ly mseqsllasl tnkhglglsv vfvkilyaav sfgcflltad mfsigd--fk
-      301 tygsew---- inklkl-edn lateekdklf pkmvacevkr wgasgieeeq gmcvlapnvi
-      361 nqylflilwf clvfvmfcni vsifaslikl lftygsyrrl lsta-flrdd sa---ikhmy
-      421 fnvgssgrli lhvlanntap rvfedilltl apkliqrkl- rak------- ----------
-      481 ---------- ---------- ---------- ---------- ---------- ----------
+        1 m-rlseksts hdckacitrs hnedcarrwg itiddgwdql nrsfmfgllv vmgttvtvrq
+       61 ytgsv-iscd gfkkf----- ---gstfaed ycwtqgqytv legydqpn-q nipcplpaaf
+      121 apypgifpee lshclvgark a-gqsedlin gtrlkcpdpd qllsptrish lwyqwvpfyf
+      181 wlaaaaffmp yllyknf-gi gdikplvrf- -lhnpvesdq e--lkkmtdk aatwlfykfd
+      241 lymseqslla sltnkh-glg lsvvfvkily aavsfgcfll tadmfsigdf ktygsewink
+      301 lkl------e dnlateekdk lfpkmvacev krwgasgiee eqgmcvlapn vinqylflil
+      361 wfclvfvmfc nivsifasli kllftygsyr rllsta-flr ddsaikhm-- -yfnvgssgr
+      421 lilhvlannt aprvfedill tlapkli--- ---------- ---------- ----------
+      481 ---------- --------qr klrakdyd*- ---------- ---------- ----------
       541 ---------- ---------- ---------- ---------- ---------- ----------
-      601 ---------- ----dy---- ---------- ---------- ---------- ----------
-      661 ---------- ---------- --d
+      601 ---------- ---------- ---------- ---------- ---------- ----------
+      661 ---------- ---------- -
 //

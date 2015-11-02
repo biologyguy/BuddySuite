@@ -315,13 +315,13 @@ def test_records_iter():
     assert counter == 29
 
 
-hashes = {'o p g': '1d595268ec0f4303b0e49b1283a98aa7', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
+hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
           'o p py': '968ed9fa772e65750f201000d7da670f', 'o p pr': 'ce423d5b99d5917fbef6f3b47df40513',
           "o p pss": "4bd927145de635c429b2917e0a1db176", "o p psr": "8ff80c7f0b8fc7f237060f94603c17be",
           'o p s': 'c0dce60745515b31a27de1f919083fe9',
 
           'o d c': '778874422d0baadadcdfce81a2a81229', 'o d f': '98a3a08389284461ea9379c217e99770',
-          'o d g': 'bdcb60d8c320a0eb26f54b76232448f1', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
+          'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
           'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d pr': '52c23bd793c9761b7c0f897d3d757c12',
           'o d pss': '4c0c1c0c63298786e6fb3db1385af4d5', 'o d psr': 'c5fb6a5ce437afa1a4004e4f8780ad68',
           'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
@@ -344,8 +344,6 @@ def test_print(next_hash, alignbuddy, capsys):
     alignbuddy.print()
     out, err = capsys.readouterr()
     out = "{0}\n".format(out.rstrip())
-    with open("temp.del", "w") as ofile:
-        ofile.write(out)
     tester = string2hash(out)
     assert tester == next_hash
 
@@ -511,7 +509,7 @@ def test_clean_seqs():
 
 
 # ###########################################  'et', '--enforce_triplets' ############################################ #
-hashes = {'o d g': '0ce95f6c48b654084a3aee5024351927', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
+hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
           "m d py": "282a2ccfffcabd2161ef5945d9fcc657"}
 
@@ -536,21 +534,53 @@ def test_enforce_triplets_error():
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
-'''
+
 # ###########################################  'cta', '--concat_alignments' ######################################### #
-def test_concat_alignments_identical():
-    tester = Alb.AlignBuddy(resource("duplicate_alignment.nex"))
+def test_concat_alignments():
+    with pytest.raises(AttributeError) as e:
+        Alb.concat_alignments(alignments.get_one("p o g"), '.*')
+    assert "Please provide at least two alignments." in str(e)
+
+    tester = alignments.get_one("o p g")
+    tester.alignments.append(alignments.get_one("o p g").alignments[0])
+
+    with pytest.raises(ValueError) as e:
+        Alb.concat_alignments(tester, 'foo')
+    assert "No match found for record" in str(e)
+
+    with pytest.raises(ValueError) as e:
+        Alb.concat_alignments(tester, 'Panx')
+    assert "Replicate matches" in str(e)
+
+    tester = Sb.SeqBuddy(resource("Cnidaria_pep.nexus"))
+    Sb.pull_recs(tester, "Ccr|Cla|Hec")
+    tester = Alb.AlignBuddy(str(tester))
     tester.alignments.append(tester.alignments[0])
-    Alb.concat_alignments(tester, '-')
-    assert align_to_hash(tester) == '1b656db96d33973fe6b1368afc974148'
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
+
+    tester.set_format("gb")
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+                                               "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
+
+    tester.set_format("gb")
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+                                               "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
+
+    tester.set_format("gb")
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+                                               "...", "Panx.*")) == 'e754350b0397cf54f531421d1e85774f'
+
+    tester.set_format("gb")
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+                                               "...", "(P)an(x)(.)")) == '5c6653aec09489cadcbed68fbd2f7465'
+
+    shorten = Alb.delete_rows(Alb.make_copy(tester), "Ccr")
+    tester.alignments[1] = shorten.alignments[1]
+    assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
 
-def test_concat_alignments_duplicate_taxa():
-    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
-    Alb.concat_alignments(tester, '-')
-    assert align_to_hash(tester) == 'd961ac6293597c91f495936fc0ea85f9'
 
-
+'''
 # ###########################################  'dr', '--delete_rows' ############################################ #
 hashes = ['23d3e0b42b6d63bcb810a5abb0a06ad7', '3458c1f790ff90f8403476af021e97e4', '3c09226535f46299ffd1132c9dd336d8',
           '7455b360c4f1155b1aa0ba7e1219485f', 'b3bf1be13a0b75374905f89aba0302c9', '819c954cc80aaf622734a61c09d301f4',
@@ -966,13 +996,31 @@ def test_clean_seqs_ui(capsys):
     assert string2hash(out) == "6755ea1408eddd0e5f267349c287d989"
 
 
+# ##################### 'cta', '--concat_alignments' ###################### ##
+def test_concat_alignments_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.concat_alignments = [[".*"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "fafb0506da8b2257bfac1588a933b1d8"
+
+    Alb.command_line_ui(test_in_args, alignments.get_one("p o g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Please provide at least two alignments." in err
+
+    test_in_args.concat_alignments = [["foo"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "No match found for record" in err
+
+
 # ##################### 'et', '--enforce_triplets' ###################### ##
 def test_enforce_triplets_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alignments.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "0ce95f6c48b654084a3aee5024351927"
+    assert string2hash(out) == "898575d098317774e38cc91006dbd0d9"
 
     Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()

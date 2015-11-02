@@ -7,6 +7,18 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(10..87,88..265,266..446,447..621,622..1007,
+                     1008..1528)
+                     /created_by="User"
+                     /label="ML47742a"
+                     /modified_by="User"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="47%"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1061..1153
 ORIGIN
         1 ---------a tgttaga--- ---------- ---------- ---------- catactttca
        61 aagtttaaag gagttactcc ttttaaaggt ataacgatag atgacgggtg ggatcaactc
@@ -53,6 +65,68 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..176,177..371,372..513,514..643,644..799,800..1007,
+                     1008..2043)
+                     /created_by="User"
+                     /label="ML218922a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            509..571
+     TMD3            752..847
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 1008..1017
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1016..1025
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1019..1028
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 1026..1035
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            1061..1153
+     splice_acceptor 1201..1210
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1204..1213
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 1209..1218
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1311..1320
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1318..1327
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1323..1332
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1344..1353
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1514..1523
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1518..1527
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1521..1530
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_donor    1573..1582
+                     /created_by="User"
+                     /label="Donor"
+     splice_donor    1701..1710
+                     /created_by="User"
+                     /label="Donor"
 ORIGIN
         1 atg------g gggtggaaat ---------- ---------- -------tct gtttcccata
        61 atcaacagag ccaccgctcc gatcaagtct gttaacatcg acgatttgag tagtcagctc
@@ -99,6 +173,13 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..726,727..2043)
+                     /created_by="User"
+                     /label="ML078817"
+     TMD1            124..186
+     TMD2            512..574
+     TMD3            779..841
+     TMD4            1052..1144
 ORIGIN
         1 atgtactgga tatttga--- ---------- ---------- ---------- gatttgtcaa
        61 gagataaagc gagctcaatc ctgccgaaag ttcgcgatag acggaccatt cgactggacg
@@ -145,6 +226,15 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..187,188..452,453..574,575..676,677..856,857..993,
+                     994..1184,1185..1723)
+                     /created_by="User"
+                     /label="ML036514a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
 ORIGIN
         1 atg---ttgt tgctcgg--- ---------- ---------- ---------- ctcactcgga
        61 acgatcaaga acttgagcat cttcaaagac ctgtccttgg acgactggct ggatcagatg
@@ -191,6 +281,14 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..100,101..190,191..371,372..498,499..656,657..819,
+                     820..1007,1008..1080,1081..1208,1209..2043)
+                     /created_by="User"
+                     /label="ML25997a"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
 ORIGIN
         1 atg------g ttattga--- ---------- ---------- ---------- catcctctcc
        61 ggttttaagg ggatcacgcc cttcaaaggc atcactttag acgatggatg ggatcaaatc
@@ -237,6 +335,17 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..71,72..187,188..420,424..583,584..791,792..944,
+                     945..1091,1092..1210,1211..1567)
+                     /created_by="User"
+                     /label="ML25999a"
+     TMD1            121..183
+     splice_acceptor 424..433
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
 ORIGIN
         1 atg------c tgatctc--- ---------- ---------- ---------- gagcttagtt
        61 cagttcagca ggttatctcc ttttaaggag ataactatag atgacgggtg ggaccaactt
@@ -283,6 +392,10 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
 ORIGIN
         1 atg------g ttattga--- ---------- ---------- ---------- gctgctagct
        61 ggatacaaag gtctgtcccc gtttaaagac gcgactgttg acgactcatg ggaccaaata
@@ -329,6 +442,19 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     gene            1..222
+                     /created_by="User"
+                     /label="ML07312a"
+     CDS             order(1..222,223..371,372..498,499..593,594..696,697..908,
+                     909..1007,1008..1507,1508..1726)
+                     /Innexin_02=""
+                     /created_by="User"
+                     /label="Innexin 02"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            779..841
+     TMD4            1052..1144
 ORIGIN
         1 atg------g tgctgga--- ---------- ---------- ---------- agtgctcgct
        61 ctcttccccc ggctagcccc cttcaaagtg ataactctgg atgacgtgtg ggaccagtgg
@@ -375,6 +501,31 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..166,167..371,372..498,499..643,644..815,816..908,
+                     926..1007,1008..1564)
+                     /created_by="User"
+                     /label="ML25993"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 428..437
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     TMD2            512..574
+     splice_acceptor 555..564
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 576..585
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            782..844
+     splice_acceptor 1008..1017
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            1052..1144
+     splice_donor    1148..1157
+                     /created_by="User"
+                     /label="Donor"
 ORIGIN
         1 atg------t tattgga--- ---------- ---------- ---------- gatattagcg
        61 aacttcaaag gagcgacacc tttcaaagaa atagttctag atgacaagtg ggaccagatt
@@ -421,6 +572,51 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..87,88..265,266..621,622..1007,1008..1508,
+                     1509..1525)
+                     /created_by="User"
+                     /label="ML32831a"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 88..97
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 101..110
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 129..138
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    256..265
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 266..275
+                     /created_by="User"
+                     /label="26%"
+     splice_donor    429..621
+                     /created_by="User"
+                     /label="67%"
+                     /modified_by="User"
+     splice_acceptor 622..637
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 645..654
+                     /created_by="User"
+                     /label="31%"
+     TMD2            788..850
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD3            1061..1105
+     TMD4            1109..1153
+     splice_donor    1499..1508
+                     /created_by="User"
+                     /label="90%"
 ORIGIN
         1 atg---cgtt tatcagaaaa gtctacatca cacgattgca aagcttgcat cacacgatcg
        61 cacaacgaag attgtgctag gagatggggt ataacgatag atgacgggtg ggatcaactc
@@ -467,6 +663,14 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..187,188..371,372..520,521..1534)
+                     /created_by="User"
+                     /label="ML223536a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
 ORIGIN
         1 atg------a tctactg--- ---------- ---------- ---------- ggtgtgggcg
        61 gtgtttaaac ggatggcacc tttcaaggtg gtcactcttg acgacaggtg ggaccagatg
@@ -513,6 +717,51 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..180,181..371,372..643,644..785,786..908,926..1726)
+                     /created_by="User"
+                     /label=""
+                     /modified_by="User"
+     TMD1            121..183
+     splice_donor    171..180
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 181..190
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 188..198
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 220..229
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 222..231
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_donor    335..371
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 428..437
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 432..449
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 464..473
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 476..485
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 480..489
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            509..571
+     splice_acceptor 583..592
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            779..841
+     TMD4            1052..1144
 ORIGIN
         1 atg------g tattgga--- ---------- ---------- -------tct catttctgga
        61 agcttgaatg gctttttaaa gatcaagtca gttagcatcg acgatcagtg ggaccagatt
@@ -559,6 +808,67 @@ SOURCE
   ORGANISM  .
             .
 FEATURES             Location/Qualifiers
+     CDS             order(1..87,88..265,266..343,344..446,447..621,622..1007,
+                     1008..1508,1509..1525)
+                     /created_by="User"
+                     /label="ML32831a"
+                     /modified_by="User"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 88..97
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 101..110
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 129..138
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    256..265
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 266..275
+                     /created_by="User"
+                     /label="26%"
+     splice_acceptor 386..395
+                     /created_by="User"
+                     /label="18%"
+     splice_acceptor 389..398
+                     /created_by="User"
+                     /label="17%"
+     splice_donor    437..446
+                     /created_by="User"
+                     /label="91%"
+                     /modified_by="User"
+     splice_donor    447..449
+                     /created_by="User"
+                     /label="34%"
+     TMD2            512..574
+     splice_acceptor 521..530
+                     /created_by="User"
+                     /label="7%"
+     splice_donor    612..621
+                     /created_by="User"
+                     /label="71%"
+     splice_acceptor 622..637
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 645..654
+                     /created_by="User"
+                     /label="31%"
+     TMD3            782..844
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD4            1061..1153
+     splice_donor    1499..1508
+                     /created_by="User"
+                     /label="90%"
 ORIGIN
         1 atg---cgtt tatcagaaaa gtctacatca cacgattgca aagcttgcat cacacgatcg
        61 cacaacgaag attgtgctag gagatggggt ataacgatag atgacgggtg ggatcaactc
