@@ -551,6 +551,24 @@ def test_concat_alignments():
     tester.alignments[1] = shorten.alignments[1]
     assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
+# ###########################################  '-con', '--consensus' ############################################ #
+hashes = {'o d g': '888a13e13666afb4d3d851ca9150b442', 'o d n': '560d4fc4be7af5d09eb57a9c78dcbccf',
+          'o d py': '01f1181187ffdba4fb08f4011a962642', 'o d s': '51b5cf4bb7d591c9d04c7f6b6bd70692',
+          'o r n': '1123b95374085b5bcd079880b7762801', 'o p g': '2c038a306713800301b6b4cdbcf61659',
+          'o p n': '756a3334c70f9272e2d9cb74dba9ad52', 'o p py': 'aaf1d5aff561c1769dd267ada2fea8b0',
+          'o p s': 'b6f72510eeef6be0752ae86d72a44283', 'm d py': '0ae422fa0fafbe0f2edab9a042fb7834',
+          'm d s': '7b0aa3cca159b276158cf98209be7dab', 'm p py': '460033d892db36d4750bafc6998d42d0',
+          'm p s': '89130797253646e61b78ab7d91ad3fd9'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o m d r p g n py s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_consensus(alignbuddy, next_hash):
+    tester = Alb.consensus_sequence(alignbuddy)
+    assert align_to_hash(tester) == next_hash
+
+
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
 hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
@@ -1064,6 +1082,19 @@ def test_concat_alignments_ui(capsys):
     Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "No match found for record" in err
+
+
+# ##################### '-con', '--consensus' ###################### ##
+def test_consensus_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.consensus = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7b0aa3cca159b276158cf98209be7dab"
+
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
 
 
 # ##################### '-et', '--enforce_triplets' ###################### ##

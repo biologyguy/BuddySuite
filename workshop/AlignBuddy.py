@@ -496,19 +496,34 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     return alignbuddy
 
 
-def consensus_sequence(_alignbuddy):
+def consensus_sequence(alignbuddy):
     """
-    Generates a rough consensus sequence from an alignment
-    :param _alignbuddy: The AlignBuddy object to be processed
-    :return: A list of SeqRecords containing the consensus sequences
+    Generates a simple majority-rule consensus sequence
+    :param alignbuddy: The AlignBuddy object to be processed
+    :return: The modified AlignBuddy object (with a single record in each alignment)
     """
-    output = []
-    for alignment in _alignbuddy.alignments:
-        aln_id = alignment[0].id
-        aln = SummaryInfo(alignment)
-        print(aln.gap_consensus())
-        output.append(SeqRecord(seq=aln.gap_consensus(), id=aln_id))
-    return output
+    ambig_char = "X" if alignbuddy.alpha == IUPAC.protein else "N"
+    consensus_sequences = []
+    for alignment in alignbuddy.alignments:
+        new_seq = ""
+        for indx in range(alignment.get_alignment_length()):
+            residues = {}
+            for rec in alignment:
+                residue = rec.seq[indx]
+                residues.setdefault(residue, 0)
+                residues[residue] += 1
+            residues = sorted(residues.items(), key=lambda x: x[1], reverse=True)
+            if len(residues) == 1 or residues[0][1] != residues[1][1]:
+                new_seq += residues[0][0]
+            else:
+                new_seq += ambig_char
+        new_seq = Seq(new_seq, alphabet=alignment[0].seq.alphabet)
+        description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
+        new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
+                            description=description)
+        consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alignbuddy.alpha))
+    alignbuddy.alignments = consensus_sequences
+    return alignbuddy
 
 
 def delete_rows(alignbuddy, search):
@@ -1404,6 +1419,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         except ValueError as e:
             _raise_error(e, "concat_alignments", ["No match found for record", "Replicate matches"])
         _exit("concat_alignments")
+
+    # Consensus sequence
+    if in_args.consensus:
+        _print_aligments(consensus_sequence(alignbuddy))
+        _exit("delete_rows")
 
     # Delete rows
     if in_args.delete_rows:
