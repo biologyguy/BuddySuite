@@ -663,6 +663,32 @@ def test_extract_range(alignbuddy, next_hash):
     assert align_to_hash(tester) == next_hash
 
 
+# #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
+uc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': '52e74a09c305d031fc5263d1751e265d',
+             'o d py': 'cfe6cb9c80aebd353cf0378a6d284239', 'o d s': 'b82538a4630810c004dc8a4c2d5165ce',
+             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '8b6737fe33058121fd99d2deee2f9a76',
+             'o p py': '968ed9fa772e65750f201000d7da670f', 'o p s': 'f35cbc6e929c51481e4ec31e95671638',
+             'm d py': '6259e675def07bd4977f4ab1f5ffc26d', 'm d s': 'f3f7b66ef034d3807683a2d5a0c44cad',
+             'm p py': '2a77f5761d4f51b88cb86b079e564e3b', 'm p s': '6f3f234d796520c521cb85c66a3e239a'}
+
+lc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
+             'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
+             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
+             'o p py': 'aacda2f5d4077f23926400f74afa2f46', 'o p s': 'c0dce60745515b31a27de1f919083fe9',
+             'm d py': '0974ac9aefb2fb540957f15c4869c242', 'm d s': 'a217b9f6000f9eeff98faeb9fd09efe4',
+             'm p py': 'd13551548c9c1e966d0519755a8fb4eb', 'm p s': '00661f7afb419c6bb8c9ac654af7c976'}
+
+hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alignments.get("o m d p g py s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
+def test_cases(alignbuddy, uc_hash, lc_hash):
+    tester = Alb.uppercase(alignbuddy)
+    assert align_to_hash(tester) == uc_hash
+    tester = Alb.lowercase(tester)
+    assert align_to_hash(tester) == lc_hash
+
+
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
 hashes = {"o p n": "06befa060809bfcc8d4ceba16b2942e8", "o p pr": "57906e7e85db021f79366d95f64aef41",
           "o p psr": "57906e7e85db021f79366d95f64aef41", "o p s": "21850752df36bafeabc6141f5f277071",
@@ -872,41 +898,6 @@ def test_mafft_multi_param():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
-
-
-# #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
-lc_hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50", "52c23bd793c9761b7c0f897d3d757c12",
-             "228e36a30e8433e4ee2cd78c3290fa6b", "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
-             "f3e98897f1bbb3d3d6c5507afa9f814e", "c0dce60745515b31a27de1f919083fe9", "e4d6766b7544557b9ddbdcbf0cde0c16",
-             "12716bad78b2f7a40882df3ce183735b", "00661f7afb419c6bb8c9ac654af7c976"]
-
-uc_hashes = ["52e74a09c305d031fc5263d1751e265d", "34eefeafabfc55811a5c9fe958b61490", "6e5542f41d17ff33afb530b4d07408a3",
-             "b82538a4630810c004dc8a4c2d5165ce", "8b6737fe33058121fd99d2deee2f9a76", "b804b3c0077f342f8a5e8c36b8af627f",
-             "747ca137dc659f302a07b0c39e989e54", "f35cbc6e929c51481e4ec31e95671638", "73e3da29aa78f4abb4bc6392b81cd279",
-             "46e049a1be235d17f8379c293e1e393f", "6f3f234d796520c521cb85c66a3e239a"]
-
-hashes = [(Alb.make_copy(alb_objects[indx]), uc_hash, lc_hashes[indx]) for indx, uc_hash in enumerate(uc_hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
-def test_cases(alignbuddy, uc_hash, lc_hash):
-    tester = Alb.uppercase(alignbuddy)
-    assert align_to_hash(tester) == uc_hash
-    tester = Alb.lowercase(tester)
-    assert align_to_hash(tester) == lc_hash
-
-
-# ###############################################  'ns', '--num_seqs' ################################################ #
-def test_num_seqs():
-    for i in [0, 2, 3, 4, 6, 7]:
-        assert Alb.num_seqs(alb_objects[i]) == [13]
-    for i in [1, 5]:
-        assert Alb.num_seqs(alb_objects[i]) == [8]
-    assert Alb.num_seqs(alb_objects[8]) == [20, 8]
-    for i in [9, 10]:
-        assert Alb.num_seqs(alb_objects[i]) == [20, 13]
-    for i in [11, 12]:
-        assert Alb.num_seqs(alb_objects[i]) == [8, 21]
 
 
 # ###########################################  'oi', '--order_ids' ############################################ #
@@ -1209,6 +1200,15 @@ def test_list_ids(capsys):
     assert string2hash(out) == "4d85249a1f187d38d411a78ced65a98c"
 
 
+# #################################### 'lc', '--lowercase' ################################### #
+def test_lowercase_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.lowercase = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "00661f7afb419c6bb8c9ac654af7c976"
+
+
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
 def test_map_features2alignment_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1216,6 +1216,26 @@ def test_map_features2alignment_ui(capsys):
     Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
+
+
+# ###############################################  'ns', '--num_seqs' ################################################ #
+def test_num_seqs_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.num_seqs = True
+    for alignbuddy in alignments.get_list("m d c pr psr s"):
+        Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
+        out, err = capsys.readouterr()
+        assert out == "# Alignment 1\n8\n\n# Alignment 2\n21\n" or out == "# Alignment 1\n13\n\n# Alignment 2\n21\n"
+
+    for alignbuddy in alignments.get_list("m p c pr psr s"):
+        Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
+        out, err = capsys.readouterr()
+        assert out == "# Alignment 1\n20\n\n# Alignment 2\n13\n" or out == "# Alignment 1\n13\n\n# Alignment 2\n21\n"
+
+    for alignbuddy in alignments.get_list("o p c pr psr s"):
+        Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
+        out, err = capsys.readouterr()
+        assert out == "13\n"
 
 
 # ##################### '-d2r', '--transcribe' ###################### ##
@@ -1231,3 +1251,12 @@ def test_transcribe_ui(capsys):
         Alb.command_line_ui(test_in_args, alignments.get_one("o r n"))
     out, err = capsys.readouterr()
     assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
+
+
+# #################################### 'lc', '--lowercase' ################################### #
+def test_uppercase_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.uppercase = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "6f3f234d796520c521cb85c66a3e239a"

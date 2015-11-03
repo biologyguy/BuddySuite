@@ -858,15 +858,6 @@ def map_features2alignment(seqbuddy, alignbuddy):
     return alignbuddy
 
 
-def num_seqs(alignbuddy):
-    """
-    Returns a list of alignment lengths
-    :param alignbuddy:
-    :return: A list of alignment lengths
-    """
-    return [len(_alignment) for _alignment in alignbuddy.alignments]
-
-
 def order_ids(alignbuddy, reverse=False):
     """
     Sorts the alignments by ID, alphabetically
@@ -1529,11 +1520,13 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Number sequences per alignment
     if in_args.num_seqs:
-        counts = num_seqs(alignbuddy)
-        output = ""
-        for align_indx, count in enumerate(counts):
-            output += "# Alignment %s\n%s\n\n" % (align_indx + 1, count) if len(counts) > 1 else "%s\n" % count
-        _stdout("%s\n" % output.strip())
+        if len(alignbuddy.alignments) == 1:
+            _stdout("%s\n" % len(alignbuddy.alignments[0]))
+        else:
+            output = ""
+            for indx, alignment in enumerate(alignbuddy.alignments):
+                output += "# Alignment %s\n%s\n\n" % (indx + 1, len(alignment))
+            _stdout("%s\n" % output.strip())
         _exit("num_seqs")
 
     # Order IDs
