@@ -874,17 +874,6 @@ def test_mafft_multi_param():
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
 
 
-# ###############################################  'li', '--list_ids' ################################################ #
-def test_list_ids():
-    tester = Alb.list_ids(Alb.make_copy(alb_objects[0]))
-    tester = string2hash(str(tester))
-    assert tester == "bdb865d00bef4eb3becaaae8f7bb94cd"
-
-    tester = Alb.list_ids(Alb.make_copy(alb_objects[8]))
-    tester = string2hash(str(tester))
-    assert tester == "0f398f3ef5b73804d03b550d66b5462c"
-
-
 # #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
 lc_hashes = ["cb1169c2dd357771a97a02ae2160935d", "f59e28493949f78637691caeb617ab50", "52c23bd793c9761b7c0f897d3d757c12",
              "228e36a30e8433e4ee2cd78c3290fa6b", "17ff1b919cac899c5f918ce8d71904f6", "5af1cf061f003d3351417458c0d23811",
@@ -1204,6 +1193,20 @@ def test_extract_range_ui(capsys):
         Alb.command_line_ui(test_in_args, alignments.get_one("m p s"))
     out, err = capsys.readouterr()
     assert err == "ValueError: Please specify positive integer indices\n"
+
+
+# ###############################  '-li', '--list_ids' ############################## #
+def test_list_ids(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_ids = [False]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f087f9c1413ba66c28fb0fccf7c974e6"
+
+    test_in_args.list_ids = [3]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "4d85249a1f187d38d411a78ced65a98c"
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##

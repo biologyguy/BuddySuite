@@ -872,8 +872,8 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                           "action": "append",
                           "nargs": "?",
                           "type": int,
-                          "metavar": "int (optional)",
-                          "help": "Output all the sequence identifiers in a file. Optionally, pass in an integer to "
+                          "metavar": "int",
+                          "help": "Output the sequence identifiers. Optionally, pass in an integer to "
                                   "specify the # of columns to write"},
              "lowercase": {"flag": "lc",
                            "action": "store_true",

@@ -801,20 +801,6 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         return alignbuddy
 
 
-def list_ids(alignbuddy):
-    """
-    Returns a list of lists of sequence IDs
-    :param alignbuddy: The AlignBuddy object to be analyzed
-    :return: A list of lists of sequence IDs
-    """
-    output = []
-    for al_indx, _alignment in enumerate(alignbuddy.alignments):
-        output.append([])
-        for _rec in _alignment:
-            output[al_indx].append(_rec.id)
-    return output
-
-
 def lowercase(alignbuddy):
     """
     Converts all sequence residues to lowercase.
@@ -1353,8 +1339,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         if len(counts) == 1:
             _stdout("%s\n" % counts[0])
         else:
-            for indx, count in enumerate(counts):
-                _stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
+            for align_indx, count in enumerate(counts):
+                _stderr("# Alignment %s\n" % (align_indx + 1), quiet=in_args.quiet)
                 _stdout("%s\n" % count)
         _exit("alignment_lengths")
 
@@ -1420,10 +1406,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.delete_records:
         args = in_args.delete_records[0]
         columns = 1
-        for indx, arg in enumerate(args):
+        for align_indx, arg in enumerate(args):
             try:
                 columns = int(arg)
-                del args[indx]
+                del args[align_indx]
                 break
             except ValueError:
                 pass
@@ -1442,10 +1428,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                 deleted_recs.append(None)
         if num_deleted:
             stderr = "# ####################### Deleted records ######################## #\n"
-            for indx, alignment in enumerate(deleted_recs):
+            for align_indx, alignment in enumerate(deleted_recs):
                 if alignment:
                     counter = 1
-                    stderr += "# Alignment %s\n" % (indx + 1)
+                    stderr += "# Alignment %s\n" % (align_indx + 1)
                     for rec_id in alignment:
                         stderr += "%s\t" % rec_id
                         if counter % columns == 0:
@@ -1512,21 +1498,16 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # List identifiers
     if in_args.list_ids:
-        columns = 1 if not in_args.list_ids[0] or in_args.list_ids == 0 else abs(in_args.list_ids[0])
-        listed_ids = list_ids(alignbuddy)
+        columns = 1 if not in_args.list_ids[0] else abs(in_args.list_ids[0])
         output = ""
-        for indx, alignment in enumerate(listed_ids):
-            count = 1
-            output += "# Alignment %s\n" % str(indx + 1)
-            for identifier in alignment:
-                if count < columns:
-                    output += "%s\t" % identifier
-                    count += 1
-                else:
-                    output += "%s\n" % identifier
-                    count = 1
-            output += "\n"
-        _stdout(output)
+        for align_indx, alignment in enumerate(alignbuddy.alignments):
+            output += "# Alignment %s\n" % str(align_indx + 1)
+            for rec_indx, rec in enumerate(alignment):
+                output += "%s\t" % rec.id
+                if (rec_indx + 1) % columns == 0:
+                    output = "%s\n" % output.strip()
+            output = "%s\n\n" % output.strip()
+        _stdout("%s\n" % output.strip())
         _exit("list_ids")
 
     # Lowercase
@@ -1550,8 +1531,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.num_seqs:
         counts = num_seqs(alignbuddy)
         output = ""
-        for indx, count in enumerate(counts):
-            output += "# Alignment %s\n%s\n\n" % (indx + 1, count) if len(counts) > 1 else "%s\n" % count
+        for align_indx, count in enumerate(counts):
+            output += "# Alignment %s\n%s\n\n" % (align_indx + 1, count) if len(counts) > 1 else "%s\n" % count
         _stdout("%s\n" % output.strip())
         _exit("num_seqs")
 
@@ -1601,10 +1582,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         os.makedirs(out_dir, exist_ok=True)
         check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
         in_args.quiet = True
-        for indx, buddy in enumerate(split_alignbuddy(alignbuddy)):
+        for align_indx, buddy in enumerate(split_alignbuddy(alignbuddy)):
             alignbuddy.alignments = buddy.alignments
             ext = br.format_to_extension[alignbuddy._out_format]
-            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(indx + 1), ext)
+            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(align_indx + 1), ext)
             _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
             open(in_args.alignment[0], "w").close()
             _print_aligments(alignbuddy)
