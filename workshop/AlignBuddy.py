@@ -859,17 +859,15 @@ def map_features2alignment(seqbuddy, alignbuddy):
 
 
 def order_ids(alignbuddy, reverse=False):
+    # ToDo: Add a mode for multi-digit number awareness (e.g., place panx2 before panx10)
     """
     Sorts the alignments by ID, alphabetically
     :param alignbuddy: The AlignBuddy object to be sorted
     :param reverse: Reverses the order
     :return: A sorted AlignBuddy object
     """
-    for al_indx, alignment in enumerate(alignbuddy.alignments):
-        output = [(rec.id, rec) for rec in alignment]
-        output = sorted(output, key=lambda x: x[0], reverse=reverse)
-        output = [_rec[1] for _rec in output]
-        alignbuddy.alignments[al_indx] = MultipleSeqAlignment(output)
+    for alignment in alignbuddy.alignments:
+        alignment.sort(reverse=reverse)
     return alignbuddy
 
 
@@ -1531,7 +1529,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Order IDs
     if in_args.order_ids:
-        reverse = True if in_args.order_ids[0] and in_args.order_ids[0] == "rev" else False
+        reverse = True if in_args.order_ids[0] else False
         _print_aligments(order_ids(alignbuddy, reverse=reverse))
         _exit("order_ids")
 

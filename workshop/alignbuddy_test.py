@@ -707,6 +707,29 @@ def test_map_features2alignment(alignbuddy, next_hash):
     tester.set_format("genbank")
     assert align_to_hash(tester) == next_hash
 
+
+# ###########################################  '-oi', '--order_ids' ############################################ #
+fwd_hashes = {'o d g': 'acf68c9196faa0960007abc40ba87244', 'o d n': '60bbc6306cbb4eb903b1212718bb4592',
+              'o d py': '3c49bdc1b0fe4e1d6bfc148eb0293e21', 'o p g': '7fb69602ffac95a5eecd106876640fcc',
+              'o p n': '9a790b9525ca8b1ac3cae3b98ca24b30', 'o p py': 'ffae954adc0d362354e43c1b70d9be29',
+              'm d py': 'a44938e26e4b35967ed8e17a0eaebe4c', 'm p py': '5bdda310b29b18057e056f3c982446b2'}
+
+rev_hashes = {'o d g': 'a593a2cd979f52c356c61e10ca9a1317', 'o d n': '82fea6e3d3615ac75ec5022abce255da',
+              'o d py': 'd6e79a5faeaff396aa7eab0b460c3eb9', 'o p g': '39af830e6d3605ea1dd04979a4a33f54',
+              'o p n': '85b3562b0eb0246d7dab56a4bcc6e2ae', 'o p py': 'f4c0924087fdb624823d02e909d94e95',
+              'm d py': '9d6b6087d07f7d1fd701591ab7cb576d', 'm p py': '439f57b891dd2a72724b10c124f96378'}
+hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)
+def test_order_ids(alignbuddy, fwd_hash, rev_hash):
+    Alb.order_ids(alignbuddy)
+    assert align_to_hash(alignbuddy) == fwd_hash
+
+    Alb.order_ids(alignbuddy, reverse=True)
+    assert align_to_hash(alignbuddy) == rev_hash
+
+
 '''
 
 
@@ -899,15 +922,6 @@ def test_mafft_multi_param():
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
 
-
-# ###########################################  'oi', '--order_ids' ############################################ #
-@pytest.mark.parametrize("alignbuddy", deepcopy(alb_objects))
-def test_order_ids(alignbuddy):
-    expected = Alb.list_ids(alignbuddy)
-    for _id, align in enumerate(expected):
-        expected[_id] = sorted(align)
-    actual = Alb.list_ids(Alb.order_ids(alignbuddy))
-    assert expected == actual
 
 # ###########################################  'pr', '--pull_records' ############################################ #
 pr_hashes = ['2c0a60cd3f534d46662ed61272481898', '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
@@ -1200,7 +1214,7 @@ def test_list_ids(capsys):
     assert string2hash(out) == "4d85249a1f187d38d411a78ced65a98c"
 
 
-# #################################### 'lc', '--lowercase' ################################### #
+# #################################### '-lc', '--lowercase' ################################### #
 def test_lowercase_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.lowercase = True
@@ -1218,7 +1232,7 @@ def test_map_features2alignment_ui(capsys):
     assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
 
 
-# ###############################################  'ns', '--num_seqs' ################################################ #
+# ###############################################  '-ns', '--num_seqs' ################################################ #
 def test_num_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.num_seqs = True
@@ -1236,6 +1250,20 @@ def test_num_seqs_ui(capsys):
         Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
         out, err = capsys.readouterr()
         assert out == "13\n"
+
+
+# ###############################################  '-oi', '--order_ids' ################################################ #
+def test_order_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_ids = [False]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "0bce6aeaab76feda1aea7f5e79608c72"
+
+    test_in_args.order_ids = ['rev']
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f87f78dc9d7a0b76854f15c52130e3a7"
 
 
 # ##################### '-d2r', '--transcribe' ###################### ##
