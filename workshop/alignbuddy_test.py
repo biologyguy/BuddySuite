@@ -586,10 +586,9 @@ def test_delete_records(alignbuddy, next_hash):
     assert align_to_hash(tester) == next_hash
 
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
-hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
-          'o d py': '24abe58d17e4b0975b83ac4d9f73d98b', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
-          "m d py": "282a2ccfffcabd2161ef5945d9fcc657"}
-
+hashes = {'o d g': '4fabe926e9d66c40b5833cda32506f4a', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
+          'o d py': 'b6cf61c86588023b58257c9008c862b5', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
+          "m d py": "669ffc4fa602fb101c559cb576bddee1"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d r g n py").items()]
 
 
@@ -611,6 +610,19 @@ def test_enforce_triplets_error():
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
+# ###########################################  'er', '--extract_range' ############################################ #
+hashes = {'o d g': 'e90851d2b94c07f6ff5be35c4bacb683', 'o d n': '10ca718b74f3b137c083a766cb737f31',
+          'o d py': 'd738a9ab3ab200a7e013177e1042e86c', 'o p g': 'b094576bb8a5eadbc936235719530c6f',
+          'o p n': '5f400edc6f0990c0cd6eb52ae7687e39', 'o p py': '69c9ad73ae02525150d4682f9dd68093',
+          "m d py": "d06ba679c8a686c8f077bb460a4193b0", "m p py": "8151eeda36b9a170512709829d70230b"}
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_extract_range(alignbuddy, next_hash):
+    tester = Alb.extract_range(alignbuddy, 0, 50)
+    assert align_to_hash(tester) == next_hash
+
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
 hashes = {"o p n": "06befa060809bfcc8d4ceba16b2942e8", "o p pr": "57906e7e85db021f79366d95f64aef41",
@@ -631,17 +643,7 @@ def test_map_features2alignment(alignbuddy, next_hash):
     assert align_to_hash(tester) == next_hash
 
 '''
-# ###########################################  'dr', '--delete_records' ############################################ #
-hashes = ['23d3e0b42b6d63bcb810a5abb0a06ad7', '3458c1f790ff90f8403476af021e97e4', '3c09226535f46299ffd1132c9dd336d8',
-          '7455b360c4f1155b1aa0ba7e1219485f', 'b3bf1be13a0b75374905f89aba0302c9', '819c954cc80aaf622734a61c09d301f4',
-          'f2492c76baa277ba885e5232fa611fea', '67d81be82ffbcffe2bf0a6f78e361cc9', 'b34588123a2b0b56afdf5d719c61f677']
-hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(hashes)]
 
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_delete_rows(alignbuddy, next_hash):
-    Alb.delete_records(alignbuddy, 'Mle-Panxα[567]')
-    assert align_to_hash(alignbuddy) == next_hash
 
 # ###########################################  'd2r', '--transcribe' ############################################ #
 d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
@@ -657,21 +659,6 @@ def test_transcribe(alignbuddy, next_hash):
 def test_transcribe_pep_exception():
     with pytest.raises(ValueError):
         Alb.dna2rna(deepcopy(alb_objects[4]))
-
-
-# ###########################################  'er', '--extract_range' ############################################ #
-er_hashes = ['10ca718b74f3b137c083a766cb737f31', '637582d17b5701896d80f0380fa00c12', '1bf71754ad8b1e157a9541e27ddd72e6',
-             '8873381a66add6c680f54e379ef98c95', '5f400edc6f0990c0cd6eb52ae7687e39', '240a56a273b5049901177284a9240ac3',
-             'f0817e10ba740992409193f1bc6600b2', '29a1d24a36d0f26b17aab7faa5b9ad9b', '06fde20b8bcb8bbe6ce5217324096911',
-             '146d0550bb24f4f19f31c294c48c7e49', '64a848cc73d909ca6424ce049e2700cd', '9d9bbdf6f20274f26be802fa2361d459',
-             '78ceb2e63d8c9d8800b5fa9335a87a30']
-er_hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(er_hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy, next_hash", er_hashes)
-def test_extract_range(alignbuddy, next_hash):
-    tester = Alb.extract_range(alignbuddy, 0, 50)
-    assert align_to_hash(tester) == next_hash
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -1114,7 +1101,6 @@ def test_consensus_ui(capsys):
 
 
 # ##################### '-dr', '--delete_records' ###################### ##
-@pytest.mark.foo
 def test_delete_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_records = [["α[1-5]", "β[A-M]"]]
@@ -1140,11 +1126,31 @@ def test_enforce_triplets_ui(capsys):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alignments.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "898575d098317774e38cc91006dbd0d9"
+    assert string2hash(out) == "4fabe926e9d66c40b5833cda32506f4a"
 
     Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
+
+
+# ##################### '-er', '--extract_range' ###################### ##
+def test_extract_range_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.extract_range = [10, 110]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
+
+    test_in_args.extract_range = [110, 10]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
+
+    test_in_args.extract_range = [-110, 10]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alignments.get_one("m p s"))
+    out, err = capsys.readouterr()
+    assert err == "ValueError: Please specify positive integer indices\n"
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##

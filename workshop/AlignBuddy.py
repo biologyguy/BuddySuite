@@ -632,47 +632,21 @@ def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
             output += held_residues
 
         rec.seq = Seq(output, alphabet=rec.seq.alphabet)
-    #trimal(alignbuddy, "clean")
+    trimal(alignbuddy, "clean")
     return alignbuddy
 
 
 def extract_range(alignbuddy, start, end):
     """
     Extracts all columns within a given range
-    :param alignbuddy: The AlignBuddy object to be extracted from
-    :param start: The starting residue (indexed from 1)
+    :param alignbuddy: AlignBuddy object
+    :param start: The starting residue (indexed from 0)
     :param end: The end residue (inclusive)
-    :return: The extracted AlignBuddy object
+    :return: The modified AlignBuddy object
     """
-    start = 1 if int(start) < 1 else start
-    # Don't use the standard index-starts-at-0... _end must be left for the range to be inclusive
-    start, end = int(start) - 1, int(end)
-    if end < start:
-        raise ValueError("Error at extract range: The value given for end of range is smaller than for the start "
-                         "of range.")
-    for alignment in alignbuddy.alignments:
-        for rec in alignment:
-            rec.seq = Seq(str(rec.seq)[start:end], alphabet=rec.seq.alphabet)
-            rec.description += " Sub-sequence extraction, from residue %s to %s" % (start + 1, end)
-            features = []
-            for feature in rec.features:
-                if feature.location.end < start:
-                    continue
-                if feature.location.start > end:
-                    continue
+    for indx, alignment in enumerate(alignbuddy.alignments):
+        alignbuddy.alignments[indx] = alignment[:, start:end]
 
-                feat_start = feature.location.start - start
-                if feat_start < 0:
-                    feat_start = 0
-
-                feat_end = feature.location.end - start
-                if feat_end > len(str(rec.seq)):
-                    feat_end = len(str(rec.seq))
-
-                new_location = FeatureLocation(feat_start, feat_end)
-                feature.location = new_location
-                features.append(feature)
-            rec.features = features
     return alignbuddy
 
 
@@ -1512,10 +1486,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Extract range
     if in_args.extract_range:
-        try:
-            _print_aligments(extract_range(alignbuddy, *in_args.extract_range))
-        except ValueError as e:
-            _raise_error(e, "extract_range", "Error at extract range: The value given for end of range is smaller")
+        start, end = sorted(in_args.extract_range)
+        if start < 1 or end < 1:
+            _raise_error(ValueError("Please specify positive integer indices"), "extract_range")
+        _print_aligments(extract_range(alignbuddy, start - 1, end))
         _exit("extract_range")
 
     # Generate Alignment
