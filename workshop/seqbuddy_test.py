@@ -1576,7 +1576,7 @@ def test_back_transcribe_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
 
     out, err = capsys.readouterr()
-    assert "You need to provide an RNA sequence." in err
+    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
 
 
 # ######################  'btr', '--back_translate' ###################### #
@@ -2396,7 +2396,7 @@ def test_rename_ids_ui(capsys):
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1\\2", 2]]
     with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
+        Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[0]))
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
 
@@ -2522,7 +2522,7 @@ def test_transcribe_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
 
     out, err = capsys.readouterr()
-    assert "You need to provide a DNA sequence." in err
+    assert err == "TypeError: Nucleic acid sequence required, not IUPACProtein().\n"
 
 
 # ######################  'tr', '--translate' ###################### #

@@ -1552,8 +1552,8 @@ def dna2rna(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: Modified SeqBuddy object
     """
-    if seqbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
+    if seqbuddy.alpha != IUPAC.ambiguous_dna:
+        raise TypeError("Nucleic acid sequence required, not %s." % seqbuddy.alpha)
     for rec in seqbuddy.records:
         rec.seq = Seq(str(rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
     seqbuddy.alpha = IUPAC.ambiguous_rna
@@ -1689,7 +1689,7 @@ def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
     """
     Finds ﻿occurrences of a sequence pattern
     :param seqbuddy: SeqBuddy object
-    :param pattern: regex patterns
+    :param patterns: regex patterns
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patters"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
@@ -1907,6 +1907,7 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     :param seqbuddy: SeqBuddy object
     :param sequence: The sequence to be inserted
     :param location: The location to insert the sequences at
+    :param regexes: Patterns to search for
     :return: The modified SeqBuddy object
     """
     if regexes:
@@ -2228,7 +2229,7 @@ def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
 def merge(*seqbuddy):
     """
     Merges the feature lists of SeqBuddy objects
-    :param *seqbuddy: SeqBuddy objects to be combined
+    :param seqbuddy: SeqBuddy objects to be combined
     :return: A new SeqBuddy object
     """
 
@@ -2419,7 +2420,7 @@ def pull_random_recs(seqbuddy, count=1):
     """
     Return a random record or subset of records (without replacement)
     :param seqbuddy: SeqBuddy object
-    :param count (int): The number of random records to pull
+    :param count: The number of random records to pull (int)
     :return: The original SeqBuddy object with only the selected records remaining
     """
     count = abs(count) if abs(count) <= len(seqbuddy.records) else len(seqbuddy.records)
@@ -2568,8 +2569,8 @@ def rna2dna(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: Modified SeqBuddy object
     """
-    if seqbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
+    if seqbuddy.alpha != IUPAC.ambiguous_rna:
+        raise TypeError("RNA sequence required, not %s." % seqbuddy.alpha)
     for rec in seqbuddy.records:
         rec.seq = Seq(str(rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
     seqbuddy.alpha = IUPAC.ambiguous_dna
@@ -2581,6 +2582,7 @@ def select_frame(seqbuddy, frame, add_metadata=True):
     Changes the reading frame of the sequences
     :param seqbuddy: SeqBuddy object
     :param frame: The reading frame to shift to
+    :param add_metadata: Appends the frame shift to a feature
     :return: The shifted SeqBuddy object
     """
     def reset_frame(_rec, _residues):
@@ -2867,15 +2869,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         else:
             _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
 
-    def _in_place(_output, _path):
-        if not os.path.exists(_path):
+    def _in_place(_output, file_path):
+        if not os.path.exists(file_path):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
-            with open(os.path.abspath(_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
         if check_string:
@@ -2964,9 +2966,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Back Transcribe
     if in_args.back_transcribe:
-        if seqbuddy.alpha != IUPAC.ambiguous_rna:
-            _raise_error(ValueError("You need to provide an RNA sequence."), "back_transcribe")
-        _print_recs(rna2dna(seqbuddy))
+        try:
+            _print_recs(rna2dna(seqbuddy))
+        except TypeError as e:
+            _raise_error(e, "back_transcribe", "RNA sequence required, not")
         _exit("back_transcribe")
 
     # Back translate CDS
@@ -3838,9 +3841,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Transcribe
     if in_args.transcribe:
-        if seqbuddy.alpha != IUPAC.ambiguous_dna:
-            _raise_error(ValueError("You need to provide a DNA sequence."), "transcribe")
-        _print_recs(dna2rna(seqbuddy))
+        try:
+            _print_recs(dna2rna(seqbuddy))
+        except TypeError as e:
+            _raise_error(e, "transcribe", "Nucleic acid sequence required, not")
         _exit("transcribe")
 
     # Translate CDS
