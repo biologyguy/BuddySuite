@@ -182,6 +182,14 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
         return
 
     def __str__(self):
+        empty_alignments = []
+        for indx, alignment in enumerate(self.alignments):
+            if not len(alignment):
+                empty_alignments.append(indx)
+        empty_alignments = sorted(empty_alignments, reverse=True)
+        for indx in empty_alignments:
+            del self.alignments[indx]
+
         if len(self.alignments) == 0:
             return "AlignBuddy object contains no alignments.\n"
 
@@ -234,8 +242,17 @@ class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-def guess_alphabet(alignbuddy):
-    align_list = alignbuddy if isinstance(alignbuddy, list) else alignbuddy.alignments
+def guess_alphabet(alignments):
+    """
+    :param alignments: Duck typed --> AlignBuddy object, list of alignment objects, or a single alignment object
+    :return:
+    """
+    if type(alignments) == AlignBuddy:
+        align_list = alignments.alignments
+    elif type(alignments) == list:
+        align_list = alignments
+    else:
+        align_list = [alignments]
     seq_list = []
     for alignment in align_list:
         seq_list += [str(x.seq) for x in alignment]
@@ -497,14 +514,16 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
 
 
 def consensus_sequence(alignbuddy):
+    # ToDo: include an ambiguous mode that will pull the degenerate nucleotide alphabet in the case of frequency ties.
     """
     Generates a simple majority-rule consensus sequence
     :param alignbuddy: The AlignBuddy object to be processed
     :return: The modified AlignBuddy object (with a single record in each alignment)
     """
-    ambig_char = "X" if alignbuddy.alpha == IUPAC.protein else "N"
     consensus_sequences = []
     for alignment in alignbuddy.alignments:
+        alpha = guess_alphabet(alignment)
+        ambig_char = "X" if alpha == IUPAC.protein else "N"
         new_seq = ""
         for indx in range(alignment.get_alignment_length()):
             residues = {}
@@ -517,30 +536,30 @@ def consensus_sequence(alignbuddy):
                 new_seq += residues[0][0]
             else:
                 new_seq += ambig_char
-        new_seq = Seq(new_seq, alphabet=alignment[0].seq.alphabet)
+        new_seq = Seq(new_seq, alphabet=alpha)
         description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
         new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
                             description=description)
-        consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alignbuddy.alpha))
+        consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
     alignbuddy.alignments = consensus_sequences
     return alignbuddy
 
 
-def delete_rows(alignbuddy, search):
+def delete_records(alignbuddy, regex):
     """
     Deletes rows with names/IDs matching a search pattern
     :param alignbuddy: The AlignBuddy object to be modified
-    :param search: The regex pattern to search with
+    :param regex: The regex pattern to search with
     :return: The modified AlignBuddy object
     """
     alignments = []
     for alignment in alignbuddy.alignments:
         matches = []
         for record in alignment:
-            if not re.search(search, record.id) and not re.search(search, record.description) \
-                    and not re.search(search, record.name):
+            if not re.search(regex, record.id):
                 matches.append(record)
-        alignments.append(MultipleSeqAlignment(matches))
+        alignment._records = matches
+        alignments.append(alignment)
     alignbuddy.alignments = alignments
     trimal(alignbuddy, "clean")
     return alignbuddy
@@ -613,6 +632,7 @@ def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
             output += held_residues
 
         rec.seq = Seq(output, alphabet=rec.seq.alphabet)
+    #trimal(alignbuddy, "clean")
     return alignbuddy
 
 
@@ -904,7 +924,7 @@ def order_ids(alignbuddy, reverse=False):
     return alignbuddy
 
 
-def pull_rows(alignbuddy, search):
+def pull_records(alignbuddy, search):
     """
     Retrieves rows with names/IDs matching a search pattern
     :param alignbuddy: The AlignBuddy object to be pulled from
@@ -1073,7 +1093,7 @@ def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the 
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
-def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken, test it.
+def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken, test it
     """
     Trims alignment gaps using algorithms from trimal
     :param alignbuddy: The AlignBuddy object to be trimmed
@@ -1082,7 +1102,8 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
     :return: The trimmed AlignBuddy object
     """
     for alignment_index, alignment in enumerate(alignbuddy.alignments):
-
+        if not alignment:
+            continue  # ToDo: This is a hack right now for empty alignments. Need something more robust.
         # gap_distr is the number of columns w/ each possible number of gaps; the index is == to number of gaps
         gap_distr = [0 for _ in range(len(alignment) + 1)]
         num_columns = alignment.get_alignment_length()
@@ -1423,12 +1444,53 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Consensus sequence
     if in_args.consensus:
         _print_aligments(consensus_sequence(alignbuddy))
-        _exit("delete_rows")
+        _exit("consensus")
 
-    # Delete rows
-    if in_args.delete_rows:
-        _print_aligments(delete_rows(alignbuddy, in_args.delete_rows))
-        _exit("delete_rows")
+    # Delete records
+    if in_args.delete_records:
+        args = in_args.delete_records[0]
+        columns = 1
+        for indx, arg in enumerate(args):
+            try:
+                columns = int(arg)
+                del args[indx]
+                break
+            except ValueError:
+                pass
+
+        pulled = pull_records(make_copy(alignbuddy), "|".join(args))
+        alignbuddy = delete_records(alignbuddy, "|".join(args))
+        deleted_recs = []
+        num_deleted = 0
+        for alignment in pulled.alignments:
+            if len(alignment) > 0:
+                deleted_recs.append([])
+                for rec in alignment:
+                    num_deleted += 1
+                    deleted_recs[-1].append(rec.id)
+            else:
+                deleted_recs.append(None)
+        if num_deleted:
+            stderr = "# ####################### Deleted records ######################## #\n"
+            for indx, alignment in enumerate(deleted_recs):
+                if alignment:
+                    counter = 1
+                    stderr += "# Alignment %s\n" % (indx + 1)
+                    for rec_id in alignment:
+                        stderr += "%s\t" % rec_id
+                        if counter % columns == 0:
+                            stderr = "%s\n" % stderr.strip()
+                        counter += 1
+                    stderr = "%s\n\n" % stderr.strip()
+            stderr = "%s\n# ################################################################ #\n" % stderr.strip()
+        else:
+            stderr = "# ################################################################ #\n"
+            stderr += "#     No sequence identifiers match '%s'\n" % "|".join(args)
+            stderr += "# ################################################################ #\n"
+
+        _stderr(stderr, in_args.quiet)
+        _print_aligments(alignbuddy)
+        _exit("delete_records")
 
     # dna2rna (Back Transcribe)
     if in_args.back_transcribe:
@@ -1532,9 +1594,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _exit("order_ids")
 
     # Pull rows
-    if in_args.pull_rows:
-        _print_aligments(pull_rows(alignbuddy, in_args.pull_rows))
-        _exit("pull_rows")
+    if in_args.pull_records:
+        _print_aligments(pull_records(alignbuddy, in_args.pull_records))
+        _exit("pull_records")
 
     # Rename IDs
     if in_args.rename_ids:

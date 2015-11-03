@@ -547,7 +547,7 @@ def test_concat_alignments():
     assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
                                                "...", "(P)an(x)(.)")) == '5c6653aec09489cadcbed68fbd2f7465'
 
-    shorten = Alb.delete_rows(Alb.make_copy(tester), "Ccr")
+    shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
     assert align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
@@ -568,6 +568,22 @@ def test_consensus(alignbuddy, next_hash):
     tester = Alb.consensus_sequence(alignbuddy)
     assert align_to_hash(tester) == next_hash
 
+# ###########################################  '-dr', '--delete_records' ############################################ #
+hashes = {'o d g': '3c7ecdcad18801a86c394de200ef6de9', 'o d n': '355a98dad5cf382797eb907e83940978',
+          'o d py': 'fe9a2776558f3fe9a1732c777c4bc9ac', 'o d s': '35dc92c4f4697fb508eb1feca43d9d75',
+          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': 'f5e2184a88d3663528e011af80e2f6c0',
+          'o p n': '1cfaa4109c5db8fbfeaedabdc57af655', 'o p py': '1d0e7b4d8e89b42b0ef7cc8c40ed1a93',
+          'o p s': '1578d98739d2aa6196463957c7b408fa', 'm d py': 'db4ed247b40707e8e1f0622bb420733b',
+          'm d s': 'de5beddbc7f0a7f8e3dc2d5fd43b7b29', 'm p py': '31f91f7dc548e4b075bfb0fdd7d5c82c',
+          'm p s': '043e35023b355ed560166db9130cfe30'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o m d r p g n py s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_delete_records(alignbuddy, next_hash):
+    tester = Alb.delete_records(alignbuddy, "α[1-5]|β[A-M]")
+    assert align_to_hash(tester) == next_hash
 
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
 hashes = {'o d g': '898575d098317774e38cc91006dbd0d9', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
@@ -615,7 +631,7 @@ def test_map_features2alignment(alignbuddy, next_hash):
     assert align_to_hash(tester) == next_hash
 
 '''
-# ###########################################  'dr', '--delete_rows' ############################################ #
+# ###########################################  'dr', '--delete_records' ############################################ #
 hashes = ['23d3e0b42b6d63bcb810a5abb0a06ad7', '3458c1f790ff90f8403476af021e97e4', '3c09226535f46299ffd1132c9dd336d8',
           '7455b360c4f1155b1aa0ba7e1219485f', 'b3bf1be13a0b75374905f89aba0302c9', '819c954cc80aaf622734a61c09d301f4',
           'f2492c76baa277ba885e5232fa611fea', '67d81be82ffbcffe2bf0a6f78e361cc9', 'b34588123a2b0b56afdf5d719c61f677']
@@ -624,7 +640,7 @@ hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(hashe
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_delete_rows(alignbuddy, next_hash):
-    Alb.delete_rows(alignbuddy, 'Mle-Panxα[567]')
+    Alb.delete_records(alignbuddy, 'Mle-Panxα[567]')
     assert align_to_hash(alignbuddy) == next_hash
 
 # ###########################################  'd2r', '--transcribe' ############################################ #
@@ -887,7 +903,7 @@ def test_order_ids(alignbuddy):
     actual = Alb.list_ids(Alb.order_ids(alignbuddy))
     assert expected == actual
 
-# ###########################################  'pr', '--pull_rows' ############################################ #
+# ###########################################  'pr', '--pull_records' ############################################ #
 pr_hashes = ['2c0a60cd3f534d46662ed61272481898', '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
              'f41422a10e3b5a7e53c6ba5cc9f28875', '9a1692f1762e67ca0364de22b124dfee', '80fe4fa125e3d944f914fd0c8b923076',
              '52ee82ee31e0d0f9c84a577b01580f25', '068ad86e5e017bd88678b8f5b24512c1']
@@ -896,7 +912,7 @@ pr_hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(pr
 
 @pytest.mark.parametrize("alignbuddy,next_hash", pr_hashes)
 def test_pull_rows(alignbuddy, next_hash):
-    Alb.pull_rows(alignbuddy, 'Mle-Panxα[567]')
+    Alb.pull_records(alignbuddy, 'Mle-Panxα[567]')
     assert align_to_hash(alignbuddy) == next_hash
 
 
@@ -1095,6 +1111,27 @@ def test_consensus_ui(capsys):
     Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
+
+
+# ##################### '-dr', '--delete_records' ###################### ##
+@pytest.mark.foo
+def test_delete_records_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_records = [["α[1-5]", "β[A-M]"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "de5beddbc7f0a7f8e3dc2d5fd43b7b29"
+    assert string2hash(err) == "31bb4310333851964015e21562f602c2"
+
+    test_in_args.delete_records = [["α[1-5]", "β[A-M]", 4]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(err) == "ce6c9b29c95ba853eb444de5c71aeca9"
+
+    test_in_args.delete_records = [["foo"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "No sequence identifiers match 'foo'\n" in err
 
 
 # ##################### '-et', '--enforce_triplets' ###################### ##
