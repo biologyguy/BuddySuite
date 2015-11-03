@@ -2522,7 +2522,7 @@ def test_transcribe_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb._make_copy(sb_objects[6]))
 
     out, err = capsys.readouterr()
-    assert err == "TypeError: Nucleic acid sequence required, not IUPACProtein().\n"
+    assert err == "TypeError: DNA sequence required, not IUPACProtein().\n"
 
 
 # ######################  'tr', '--translate' ###################### #

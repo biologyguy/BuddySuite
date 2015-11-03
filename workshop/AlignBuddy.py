@@ -565,17 +565,15 @@ def delete_records(alignbuddy, regex):
     return alignbuddy
 
 
-def dna2rna(alignbuddy):
+def dna2rna(alignbuddy):  # Transcribe
     """
-    Back-transcribes DNA into RNA sequences
-    :param alignbuddy: The AlignBuddy object to be back-transcribed
-    :return: The back-transcribed AlignBuddy object
+    Convert DNA into RNA
+    :param alignbuddy: AlignBuddy object
+    :return: Modified AlignBuddy object
     """
-    if alignbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
-    for alignment in alignbuddy.alignments:
-        for rec in alignment:
-            rec.seq = Seq(str(rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
+    records = alignbuddy.records()
+    seqbuddy = Sb.SeqBuddy(records)
+    Sb.dna2rna(seqbuddy)
     alignbuddy.alpha = IUPAC.ambiguous_rna
     return alignbuddy
 
@@ -935,17 +933,15 @@ def rename(alignbuddy, query, replace="", num=0):  # TODO Allow a replacement pa
     return alignbuddy
 
 
-def rna2dna(alignbuddy):
+def rna2dna(alignbuddy):  # Back-transcribe
     """
-    Transcribes RNA into DNA sequences.
-    :param alignbuddy: The AlignBuddy object to be transcribed
-    :return: The transcribed AlignBuddy object
+    Convert RNA into DNA.
+    :param alignbuddy: AlignBuddy object
+    :return: Modified AlignBuddy object
     """
-    if alignbuddy.alpha == IUPAC.protein:
-        raise TypeError("Nucleic acid sequence required, not protein.")
-    for alignment in alignbuddy.alignments:
-        for rec in alignment:
-            rec.seq = Seq(str(rec.seq.back_transcribe()), alphabet=IUPAC.ambiguous_dna)
+    records = alignbuddy.records()
+    seqbuddy = Sb.SeqBuddy(records)
+    Sb.rna2dna(seqbuddy)
     alignbuddy.alpha = IUPAC.ambiguous_dna
     return alignbuddy
 
@@ -1466,14 +1462,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(alignbuddy)
         _exit("delete_records")
 
-    # dna2rna (Back Transcribe)
+    # Back Transcribe
     if in_args.back_transcribe:
-        if alignbuddy.alpha != IUPAC.ambiguous_rna:
-            _raise_error(ValueError("You need to provide an RNA sequence."), "back_transcribe")
         try:
             _print_aligments(rna2dna(alignbuddy))
         except TypeError as e:
-            _raise_error(e, "back_transcribe", "Nucleic acid sequence required, not protein.")
+            _raise_error(e, "back_transcribe", "RNA sequence required, not")
         _exit("back_transcribe")
 
     # Enforce triplets
@@ -1632,12 +1626,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Transcribe
     if in_args.transcribe:
-        if alignbuddy.alpha != IUPAC.ambiguous_dna:
-            _raise_error(ValueError("You need to provide a DNA sequence."), "transcribe")
         try:
             _print_aligments(dna2rna(alignbuddy))
         except TypeError as e:
-            _raise_error(e, "transcribe", "Nucleic acid sequence required, not protein.")
+            _raise_error(e, "transcribe", "DNA sequence required, not")
         _exit("transcribe")
 
     # Uppercase

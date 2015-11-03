@@ -1553,7 +1553,7 @@ def dna2rna(seqbuddy):
     :return: Modified SeqBuddy object
     """
     if seqbuddy.alpha != IUPAC.ambiguous_dna:
-        raise TypeError("Nucleic acid sequence required, not %s." % seqbuddy.alpha)
+        raise TypeError("DNA sequence required, not %s." % seqbuddy.alpha)
     for rec in seqbuddy.records:
         rec.seq = Seq(str(rec.seq.transcribe()), alphabet=IUPAC.ambiguous_rna)
     seqbuddy.alpha = IUPAC.ambiguous_rna
@@ -3844,7 +3844,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         try:
             _print_recs(dna2rna(seqbuddy))
         except TypeError as e:
-            _raise_error(e, "transcribe", "Nucleic acid sequence required, not")
+            _raise_error(e, "transcribe", "DNA sequence required, not")
         _exit("transcribe")
 
     # Translate CDS

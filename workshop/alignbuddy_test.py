@@ -585,6 +585,45 @@ def test_delete_records(alignbuddy, next_hash):
     tester = Alb.delete_records(alignbuddy, "α[1-5]|β[A-M]")
     assert align_to_hash(tester) == next_hash
 
+# ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
+d2r_hashes = {'o d g': '4bf291d91d4b27923ef07c660b011c72', 'o d n': 'e531dc31f24192f90aa1f4b6195185b0',
+              'o d py': 'e55bd18b6d82a7fc3150338173e57e6a', 'o d s': '45b511f34653e3b984e412182edee3ca',
+              'm d py': '16cb082f5cd9f103292ccea0c4d65a06', 'm d s': 'd81dae9714a553bddbf38084f7a8e00e'}
+
+r2d_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
+              'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
+              'm d py': '42679a32ebd93b628303865f68b0293d', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d'}
+
+hashes = [(alignbuddy, d2r_hashes[key], r2d_hashes[key]) for key, alignbuddy in alignments.get("o m d g py s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,d2r_hash,r2d_hash", hashes)
+def test_transcribe(alignbuddy, d2r_hash, r2d_hash):
+    tester = Alb.dna2rna(alignbuddy)
+    assert align_to_hash(tester) == d2r_hash
+    tester = Alb.rna2dna(tester)
+    assert align_to_hash(tester) == r2d_hash
+
+
+def test_transcribe_exceptions():
+    with pytest.raises(TypeError) as e:
+        Alb.dna2rna(alignments.get_one("o p s"))
+    assert "TypeError: DNA sequence required, not IUPACProtein()." in str(e)
+
+    with pytest.raises(TypeError) as e:
+        Alb.dna2rna(alignments.get_one("o r n"))
+    assert "TypeError: DNA sequence required, not IUPACAmbiguousRNA()." in str(e)
+
+
+def test_back_transcribe_exceptions():  # Asserts that a TypeError will be thrown if user inputs protein
+    with pytest.raises(TypeError) as e:
+        Alb.rna2dna(alignments.get_one("o p s"))
+    assert "TypeError: RNA sequence required, not IUPACProtein()." in str(e)
+
+    with pytest.raises(TypeError) as e:
+        Alb.rna2dna(alignments.get_one("o d s"))
+    assert "TypeError: RNA sequence required, not IUPACAmbiguousDNA()." in str(e)
+
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
 hashes = {'o d g': '4fabe926e9d66c40b5833cda32506f4a', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': 'b6cf61c86588023b58257c9008c862b5', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
@@ -1019,6 +1058,20 @@ def test_alignment_lengths_ui(capsys):
     assert err == ""
 
 
+# ##################### '-r2d', '--back_transcribe' ###################### ##
+def test_back_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.back_transcribe = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("o r n"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
+
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alignments.get_one("m d s"))
+    out, err = capsys.readouterr()
+    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
+
+
 # ##################### '-cs', '--clean_seqs' ###################### ##
 def test_clean_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1160,3 +1213,18 @@ def test_map_features2alignment_ui(capsys):
     Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
+
+
+# ##################### '-d2r', '--transcribe' ###################### ##
+def test_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.transcribe = True
+    Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) == "e531dc31f24192f90aa1f4b6195185b0"
+
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alignments.get_one("o r n"))
+    out, err = capsys.readouterr()
+    assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
