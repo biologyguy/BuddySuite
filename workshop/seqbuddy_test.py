@@ -559,7 +559,7 @@ def test_bl2_no_binary():
 
 # ######################  'bl', '--blast' ###################### #
 def test_blastn():
-    tester = Sb.pull_recs(Sb._make_copy(sb_objects[0]), '8')
+    tester = Sb.pull_recs(Sb._make_copy(sb_objects[0]), '8', True)
     tester = Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
     assert seqs_to_hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
 
@@ -579,7 +579,7 @@ def test_blastn():
 
 
 def test_blastp():
-    seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8')
+    seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8', True)
     tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_pep.p"))
     assert seqs_to_hash(tester) == "4237c79672c1cf1d4a9bdb160a53a4b9"
 
@@ -1005,7 +1005,7 @@ def test_insert_seqs_start():
     assert seqs_to_hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 9000)) == '792397e2e32e95b56ddc15b8b2310ec0'
 
     tester = Sb._make_copy(sb_objects[0])
-    Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100, ["α[23]", "ML223536a"])
+    Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100, ["α[23]", "α5"])
     assert seqs_to_hash(tester) == 'edcd7934eb026ac3ea4b603ac85ca79f'
 
     tester = Sb._make_copy(sb_objects[0])
@@ -2059,7 +2059,7 @@ def test_insert_seqs_ui(capsys):
     out, err = capsys.readouterr()
     assert "The second argment must be location, not insert sequence or regex." in err
 
-    test_in_args.insert_seq = [["DYKDDDDK", "10", "α[23]", "ML25993a"]]
+    test_in_args.insert_seq = [["DYKDDDDK", "10", "α[23]", "α6"]]
     tester = Sb._make_copy(sb_objects[6])
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()

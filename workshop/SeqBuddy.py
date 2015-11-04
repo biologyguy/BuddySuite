@@ -2457,17 +2457,19 @@ def pull_record_ends(seqbuddy, amount):
     return seqbuddy
 
 
-def pull_recs(seqbuddy, search):
+def pull_recs(seqbuddy, regex, description=False):
     """
     Retrieves sequences with names/IDs matching a search pattern
     :param seqbuddy: SeqBuddy object
-    :param search: List of regex expressions or single regex
+    :param regex: List of regex expressions or single regex
+    :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
-    search = "|".join(search) if type(search) == list else search
+    regex = "|".join(regex) if type(regex) == list else regex
     matched_records = []
     for rec in seqbuddy.records:
-        if re.search(search, rec.description) or re.search(search, rec.id) or re.search(search, rec.name):
+        if re.search(regex, rec.id) or re.search(regex, rec.name) \
+                or (description and re.search(regex, rec.description)):
             matched_records.append(rec)
     seqbuddy.records = matched_records
     return seqbuddy
@@ -3752,7 +3754,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Pull records
     if in_args.pull_records:
-        _print_recs(pull_recs(seqbuddy, in_args.pull_records))
+        description = False
+        for indx, arg in enumerate(in_args.pull_records):
+            if arg == "full":
+                description = True
+                del in_args.pull_records[indx]
+                break
+        _print_recs(pull_recs(seqbuddy, in_args.pull_records, description))
         _exit("pull_records")
 
     # Purge
@@ -3774,7 +3782,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Renaming
     if in_args.rename_ids:
         args = in_args.rename_ids[0]
-        if 2 > len(args) or len(args) > 3:
+        if len(args) not in [2, 3]:
             _raise_error(AttributeError("rename_ids requires two or three argments: "
                                         "query, replacement, [max replacements]"), "rename_ids")
         num = 0
