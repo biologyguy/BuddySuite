@@ -279,14 +279,15 @@ class TempDir:
         yield tmp_dir
         rmtree(self.path)
 
-    def subdir(self):
-        new_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
-        while new_hash in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
-            new_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+    def subdir(self, dir_name=None):
+        if not dir_name:
+            dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+            while dir_name in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
+                dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        subdir_path = "%s/%s" % (self.path, new_hash)
+        subdir_path = "%s/%s" % (self.path, dir_name)
         os.mkdir(subdir_path)
-        self.subdirs.append(new_hash)
+        self.subdirs.append(dir_name)
         return subdir_path
 
     def del_subdir(self, _dir):
