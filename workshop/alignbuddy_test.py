@@ -730,9 +730,21 @@ def test_order_ids(alignbuddy, fwd_hash, rev_hash):
     assert align_to_hash(alignbuddy) == rev_hash
 
 
+# ##################### '-pr', '--pull_records' ###################### ##
+hashes = {'o d g': '04572f1d4e58b678459692ef2747979f', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
+          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '5782b8de656ceb793a19e6d6e059f8df',
+          'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
+          'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_pull_records(alignbuddy, next_hash):
+    Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
+    assert align_to_hash(alignbuddy) == next_hash
+
 '''
-
-
 # ###########################################  'd2r', '--transcribe' ############################################ #
 d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
               'a083e03b4e0242fa3c23afa80424d670', '45b511f34653e3b984e412182edee3ca']
@@ -923,19 +935,6 @@ def test_mafft_multi_param():
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
 
 
-# ###########################################  'pr', '--pull_records' ############################################ #
-pr_hashes = ['2c0a60cd3f534d46662ed61272481898', '0f8e6552d9ac5a2bf7b3bd76fa54c9ca', '9ba71d3045d1929e34ae49d84816292e',
-             'f41422a10e3b5a7e53c6ba5cc9f28875', '9a1692f1762e67ca0364de22b124dfee', '80fe4fa125e3d944f914fd0c8b923076',
-             '52ee82ee31e0d0f9c84a577b01580f25', '068ad86e5e017bd88678b8f5b24512c1']
-pr_hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(pr_hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", pr_hashes)
-def test_pull_rows(alignbuddy, next_hash):
-    Alb.pull_records(alignbuddy, 'Mle-Panxα[567]')
-    assert align_to_hash(alignbuddy) == next_hash
-
-
 # ###########################################  'ri', '--rename_ids' ############################################ #
 def test_rename_ids_several():
     tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
@@ -948,19 +947,6 @@ def test_rename_ids_all_same():
     Alb.rename(tester, 'Mle', 'Xle')
     assert align_to_hash(tester) == '5a0c20a41fea9054f5476e6fad7c81f6'
 
-
-# ###########################################  'r2d', '--back_transcribe' ############################################ #
-@pytest.mark.parametrize("alignbuddy", deepcopy(alb_objects[0:4]))
-def test_back_transcribe(alignbuddy):
-    print(alignbuddy)
-    original = align_to_hash(alignbuddy)
-    final = align_to_hash(Alb.rna2dna(Alb.dna2rna(alignbuddy)))
-    assert original == final
-
-
-def test_back_transcribe_pep_exception():
-    with pytest.raises(ValueError):
-        Alb.rna2dna(deepcopy(alb_objects[4]))
 
 
 # ###########################################  'stf', '--split_alignbuddy' ########################################### #
@@ -1266,6 +1252,16 @@ def test_order_ids_ui(capsys):
     assert string2hash(out) == "f87f78dc9d7a0b76854f15c52130e3a7"
 
 
+# ##################### '-pr', '--pull_records' ###################### ##
+def test_pull_records_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_records = [["α[1-5]$", "β[A-M]"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "2de557d6fd3dc6cd1bf43a1995392a4c"
+    assert err == ""
+
+
 # ##################### '-d2r', '--transcribe' ###################### ##
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1281,7 +1277,7 @@ def test_transcribe_ui(capsys):
     assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
 
 
-# #################################### 'lc', '--lowercase' ################################### #
+# #################################### '-uc', '--uppercase' ################################### #
 def test_uppercase_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.uppercase = True

@@ -548,7 +548,7 @@ def consensus_sequence(alignbuddy):
 def delete_records(alignbuddy, regex):
     """
     Deletes rows with names/IDs matching a search pattern
-    :param alignbuddy: The AlignBuddy object to be modified
+    :param alignbuddy: AlignBuddy object
     :param regex: The regex pattern to search with
     :return: The modified AlignBuddy object
     """
@@ -817,7 +817,7 @@ def map_features2alignment(seqbuddy, alignbuddy):
     Copy features from an annotated sequence over to its corresponding record in an alignment
     :param seqbuddy: SeqBuddy object
     :param alignbuddy: AlignBuddy object
-    :return:
+    :return: The modified AlignBuddy object
     """
     def feat_map(feat, _sb_rec, _alb_rec):
         new_location = feat.location
@@ -862,30 +862,30 @@ def order_ids(alignbuddy, reverse=False):
     # ToDo: Add a mode for multi-digit number awareness (e.g., place panx2 before panx10)
     """
     Sorts the alignments by ID, alphabetically
-    :param alignbuddy: The AlignBuddy object to be sorted
+    :param alignbuddy: AlignBuddy object
     :param reverse: Reverses the order
-    :return: A sorted AlignBuddy object
+    :return: The modified AlignBuddy object
     """
     for alignment in alignbuddy.alignments:
         alignment.sort(reverse=reverse)
     return alignbuddy
 
 
-def pull_records(alignbuddy, search):
+def pull_records(alignbuddy, regex):
     """
     Retrieves rows with names/IDs matching a search pattern
     :param alignbuddy: The AlignBuddy object to be pulled from
-    :param search: The regex pattern to search with
+    :param regex: The regex pattern to search with
     :return: The modified AlignBuddy object
     """
     alignments = []
     for alignment in alignbuddy.alignments:
         matches = []
         for record in alignment:
-            if re.search(search, record.id) or re.search(search, record.description) \
-                    or re.search(search, record.name):
+            if re.search(regex, record.id):
                 matches.append(record)
-        alignments.append(MultipleSeqAlignment(matches))
+        alignment._records = matches
+        alignments.append(alignment)
     alignbuddy.alignments = alignments
     trimal(alignbuddy, "clean")
     return alignbuddy
@@ -1403,8 +1403,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             except ValueError:
                 pass
 
-        pulled = pull_records(make_copy(alignbuddy), "|".join(args))
-        alignbuddy = delete_records(alignbuddy, "|".join(args))
+        regex = "|".join(args)
+        pulled = pull_records(make_copy(alignbuddy), regex)
+        alignbuddy = delete_records(alignbuddy, regex)
         deleted_recs = []
         num_deleted = 0
         for alignment in pulled.alignments:
@@ -1430,7 +1431,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             stderr = "%s\n# ################################################################ #\n" % stderr.strip()
         else:
             stderr = "# ################################################################ #\n"
-            stderr += "#     No sequence identifiers match '%s'\n" % "|".join(args)
+            stderr += "#     No sequence identifiers match '%s'\n" % regex
             stderr += "# ################################################################ #\n"
 
         _stderr(stderr, in_args.quiet)
@@ -1533,9 +1534,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(order_ids(alignbuddy, reverse=reverse))
         _exit("order_ids")
 
-    # Pull rows
+    # Pull records
     if in_args.pull_records:
-        _print_aligments(pull_records(alignbuddy, in_args.pull_records))
+        _print_aligments(pull_records(alignbuddy, "|".join(in_args.pull_records[0])))
         _exit("pull_records")
 
     # Rename IDs
