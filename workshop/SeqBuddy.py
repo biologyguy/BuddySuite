@@ -1478,6 +1478,7 @@ def delete_records(seqbuddy, patterns):
 
     retained_records = []
     for pattern in patterns:
+        pattern = ".*" if pattern == "*" else pattern
         deleted = [rec.id for rec in pull_recs(_make_copy(seqbuddy), pattern).records]
         for rec in seqbuddy.records:
             if rec.id in deleted:
@@ -2465,7 +2466,12 @@ def pull_recs(seqbuddy, regex, description=False):
     :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
-    regex = "|".join(regex) if type(regex) == list else regex
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
         if re.search(regex, rec.id) or re.search(regex, rec.name) \

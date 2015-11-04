@@ -744,6 +744,22 @@ def test_pull_records(alignbuddy, next_hash):
     Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
     assert align_to_hash(alignbuddy) == next_hash
 
+
+# ###########################################  '-ri', '--rename_ids' ############################################ #
+hashes = {'o d g': 'c35db8b8353ef2fb468b0981bd960a38', 'o d n': '243024bfd2f686e6a6e0ef65aa963494',
+          'o d py': '98bb9b57f97555d863054ddb526055b4', 'o p g': '2e4e3c365cd011821bcdc6275a3559af',
+          'o p n': '3598e85169ed3bcdbcb676bb2eb6cef0', 'o p py': 'd49eb4de01d727b9e3ad648d6a04a3c9',
+          'm d py': 'ddfffd9b999637abf7f5926f017de987', 'm p py': '0a68229bd13439040f045cd8c72d7cc9'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_rename_ids(alignbuddy, next_hash):
+    Alb.rename(alignbuddy, 'Panx', 'Test', 0)
+    assert align_to_hash(alignbuddy) == next_hash
+
+
 '''
 # ###########################################  'd2r', '--transcribe' ############################################ #
 d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
@@ -933,20 +949,6 @@ def test_mafft_multi_param():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
-
-
-# ###########################################  'ri', '--rename_ids' ############################################ #
-def test_rename_ids_several():
-    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
-    Alb.rename(tester, 'Mle', 'Xle')
-    assert align_to_hash(tester) == '61d03559088c5bdd0fdebd7a8a2061fd'
-
-
-def test_rename_ids_all_same():
-    tester = Alb.make_copy(alb_objects[0])
-    Alb.rename(tester, 'Mle', 'Xle')
-    assert align_to_hash(tester) == '5a0c20a41fea9054f5476e6fad7c81f6'
-
 
 
 # ###########################################  'stf', '--split_alignbuddy' ########################################### #
@@ -1253,6 +1255,7 @@ def test_order_ids_ui(capsys):
 
 
 # ##################### '-pr', '--pull_records' ###################### ##
+@pytest.mark.foo
 def test_pull_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.pull_records = [["α[1-5]$", "β[A-M]"]]
@@ -1260,6 +1263,45 @@ def test_pull_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "2de557d6fd3dc6cd1bf43a1995392a4c"
     assert err == ""
+
+    test_in_args.pull_records = [["α[1-5]$", "ML218922a", "full"]]
+    Alb.command_line_ui(test_in_args, alignments.get_one("o d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "fb82ffec15ece60a74d9ac8db92d2999"
+
+
+# ######################  '-ri', '--rename_ids' ###################### #
+def test_rename_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2]]
+    tester = alignments.get_one("m p s")
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "888f2e3feb9e67f9bc008183082c822a"
+
+    test_in_args.rename_ids = [["[a-z](.)"]]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "foo"]]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "rename_ids requires two or three argments:" in err
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", "foo"]]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "Max replacements argument must be an integer" in err
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1\\2", 2]]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "There are more replacement" in err
 
 
 # ##################### '-d2r', '--transcribe' ###################### ##

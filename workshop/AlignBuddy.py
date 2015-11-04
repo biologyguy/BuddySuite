@@ -549,9 +549,15 @@ def delete_records(alignbuddy, regex):
     """
     Deletes rows with names/IDs matching a search pattern
     :param alignbuddy: AlignBuddy object
-    :param regex: The regex pattern to search with
+    :param regex: The regex pattern to search with (duck typed for list or string)
     :return: The modified AlignBuddy object
     """
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
     alignments = []
     for alignment in alignbuddy.alignments:
         matches = []
@@ -871,19 +877,26 @@ def order_ids(alignbuddy, reverse=False):
     return alignbuddy
 
 
-def pull_records(alignbuddy, regex):
+def pull_records(alignbuddy, regex, description=False):
     """
     Retrieves rows with names/IDs matching a search pattern
     :param alignbuddy: The AlignBuddy object to be pulled from
-    :param regex: The regex pattern to search with
+    :param regex: List of regex expressions or single regex
+    :param description: Allow search in description string
     :return: The modified AlignBuddy object
     """
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
     alignments = []
     for alignment in alignbuddy.alignments:
         matches = []
-        for record in alignment:
-            if re.search(regex, record.id):
-                matches.append(record)
+        for rec in alignment:
+            if re.search(regex, rec.id) or (description and re.search(regex, rec.description)):
+                matches.append(rec)
         alignment._records = matches
         alignments.append(alignment)
     alignbuddy.alignments = alignments
@@ -891,7 +904,7 @@ def pull_records(alignbuddy, regex):
     return alignbuddy
 
 
-def rename(alignbuddy, query, replace="", num=0):  # TODO Allow a replacement pattern increment (like numbers)
+def rename(alignbuddy, query, replace="", num=0):
     """
     Rename an alignment's sequence IDs
     :param alignbuddy: The AlignBuddy object to be modified
@@ -900,11 +913,8 @@ def rename(alignbuddy, query, replace="", num=0):  # TODO Allow a replacement pa
     :param num: The maximum number of substitutions to make
     :return: The modified AlignBuddy object
     """
-    for alignment in alignbuddy.alignments:
-        for rec in alignment:
-            new_name = re.sub(query, replace, rec.id, num)
-            rec.id = new_name
-            rec.name = new_name
+    seqbuddy = Sb.SeqBuddy(alignbuddy.records())
+    Sb.rename(seqbuddy, query, replace, num)
     return alignbuddy
 
 
@@ -1289,15 +1299,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             _stdout("%s\n" % _output.rstrip())
         return True
 
-    def _in_place(_output, _path):
-        if not os.path.exists(_path):
+    def _in_place(_output, file_path):
+        if not os.path.exists(file_path):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.rstrip(), in_args.quiet)
         else:
-            with open(os.path.abspath(_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(tool, skip=skip_exit):
         if skip:
@@ -1403,9 +1413,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             except ValueError:
                 pass
 
-        regex = "|".join(args)
-        pulled = pull_records(make_copy(alignbuddy), regex)
-        alignbuddy = delete_records(alignbuddy, regex)
+        pulled = pull_records(make_copy(alignbuddy), args)
+        alignbuddy = delete_records(alignbuddy, args)
         deleted_recs = []
         num_deleted = 0
         for alignment in pulled.alignments:
@@ -1431,7 +1440,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             stderr = "%s\n# ################################################################ #\n" % stderr.strip()
         else:
             stderr = "# ################################################################ #\n"
-            stderr += "#     No sequence identifiers match '%s'\n" % regex
+            stderr += "#     No sequence identifiers match '%s'\n" % "|".join(args)
             stderr += "# ################################################################ #\n"
 
         _stderr(stderr, in_args.quiet)
@@ -1536,13 +1545,32 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Pull records
     if in_args.pull_records:
-        _print_aligments(pull_records(alignbuddy, "|".join(in_args.pull_records[0])))
+        description = False
+        args = in_args.pull_records[0]
+        for indx, arg in enumerate(args):
+            if arg == "full":
+                description = True
+                del args[indx]
+                break
+        _print_aligments(pull_records(alignbuddy, args, description))
         _exit("pull_records")
 
     # Rename IDs
     if in_args.rename_ids:
-        num = 0 if not in_args.params else int(in_args.params[0])
-        _print_aligments(rename(alignbuddy, in_args.rename_ids[0], in_args.rename_ids[1], num))
+        args = in_args.rename_ids[0]
+        if len(args) not in [2, 3]:
+            _raise_error(AttributeError("rename_ids requires two or three argments: "
+                                        "query, replacement, [max replacements]"), "rename_ids")
+        num = 0
+        try:
+            num = num if len(args) == 2 else int(args[2])
+        except ValueError:
+            _raise_error(ValueError("Max replacements argument must be an integer"), "rename_ids")
+
+        try:
+            _print_aligments(rename(alignbuddy, args[0], args[1], num))
+        except AttributeError as e:
+            _raise_error(e, "rename_ids", "There are more replacement")
         _exit("rename_ids")
 
     # Screw formats
