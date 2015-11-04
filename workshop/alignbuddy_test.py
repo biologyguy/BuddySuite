@@ -1303,6 +1303,62 @@ def test_rename_ids_ui(capsys):
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
 
+# ######################  '-sf', '--screw_formats' ###################### #
+hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3f530f70e2765f9ab2"),
+          ("nexus", "49bf9b3f56104e4f19048523d725f025"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
+          ("phylipr", "5064c1d6ae6192a829972b7ec0f129ed"), ("phylipss", "4bd927145de635c429b2917e0a1db176"),
+          ("phylipsr", "b46b57ede57f12c3c3b906681882f81a"), ("stockholm", "5d9a03d9e1b4bf72d991257d3a696306"),
+          ("clustal", "56e12ce0e8b6a4a0cb6e23059e8a12b0")]
+
+
+@pytest.mark.parametrize("_format,next_hash", hashes)
+def test_screw_formats_ui(_format, next_hash, capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = _format
+    tester = alignments.get_one("o p py")
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == next_hash
+
+hashes = [("clustal", "7ae7ee65637789edf11c272f7620c9db"), ("phylip", "2a77f5761d4f51b88cb86b079e564e3b"),
+          ("phylipr", "1f172a3beef76e8e3d42698bb2c3c87d"), ("phylipss", "eb82cda31fcb2cf00e11d7e910fde695"),
+          ("phylipsr", "368169cb86c6ddb7074ed89e2d42c4dd"), ("stockholm", "f221b9973aef4771169136a30bd030fa")]
+
+
+@pytest.mark.parametrize("_format,next_hash", hashes)
+def test_screw_formats_ui2(_format, next_hash, capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.screw_formats = _format
+    tester = alignments.get_one("m p py")
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == next_hash
+
+
+def test_screw_formats_ui3(capsys):
+    test_in_args = deepcopy(in_args)
+    tester = alignments.get_one("o p py")
+    tester.write("%s/seq.phy" % TEMP_DIR.path)
+    test_in_args.in_place = True
+    test_in_args.alignments = ["%s/seq.phy" % TEMP_DIR.path]
+    test_in_args.screw_formats = "genbank"
+    Alb.command_line_ui(test_in_args, tester, True)
+    assert os.path.isfile("%s/seq.gb" % TEMP_DIR.path)
+
+    test_in_args.in_place = False
+    test_in_args.screw_formats = "foo"
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "TypeError: Format type 'foo' is not recognized/supported\n" in err
+
+    test_in_args.screw_formats = "gb"
+    tester = alignments.get_one("m p py")
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "ValueError: gb format does not support multiple alignments in one file." in err
+
 
 # ##################### '-d2r', '--transcribe' ###################### ##
 def test_transcribe_ui(capsys):
