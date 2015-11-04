@@ -195,8 +195,6 @@ def test_to_string(capsys):
     assert string2hash(str(tester)) == "4c2c5900a57aad343cfdb8b35a8f8442"
 
     tester.out_format = "phylipss"
-    with open("temp.del", "w") as ofile:
-        ofile.write(str(tester))
     assert string2hash(str(tester)) == "089cfb52076e63570597a74b2b000660"
 
     tester.out_format = "phylipsr"
@@ -1081,7 +1079,6 @@ def test_map_features_nucl2prot_2():
     assert seqs_to_hash(mapped) == "a6521e59f20f227b6296dd39e2116205"
 
     Sb.rename(tester, "α4", "A4")
-    tester.write("temp.del")
     mapped = Sb.map_features_nucl2prot(Sb._make_copy(tester), Sb._make_copy(sb_objects[7]))
     assert seqs_to_hash(mapped) == "ded472ce7ebcc285283a68a8b43277dc"
 
@@ -1523,7 +1520,6 @@ def test_translate_edges_and_exceptions():
 
     tester = Sb.select_frame(Sb._make_copy(sb_objects[1]), 3)
     tester = Sb.translate_cds(tester)
-    tester.write("temp.del")
     assert seqs_to_hash(tester) == "275490a6205b9796901ea187ba0f0b86"
 
 
@@ -2063,8 +2059,6 @@ def test_insert_seqs_ui(capsys):
     tester = Sb._make_copy(sb_objects[6])
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        ofile.write(out)
     assert string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 

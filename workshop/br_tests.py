@@ -48,7 +48,7 @@ def test_format_to_extension():
     ext_dict = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk', 'nexus': 'nex',
                 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr', 'phyr': 'phyr',
                 'phylipss': 'physs', 'physs': 'physs', 'phylipsr': 'physr', 'physr': 'physr', 'stockholm': 'stklm',
-                'stklm': 'stklm'}
+                'stklm': 'stklm', 'clustal': 'clus', 'clus': 'clus'}
     for i, j in ext_dict.items():
         assert j == Br.format_to_extension(i)
 

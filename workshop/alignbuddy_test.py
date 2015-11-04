@@ -52,7 +52,7 @@ def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
 parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
-                                     description='''\
+                                 description='''\
 \033[1mAlignBuddy\033[m
   Sequence alignments with a splash of kava.
 
@@ -230,39 +230,39 @@ class Resources:
                 "format": br.parse_format(self.code_dict["format"][key[2]])}
 
 
-alignments = Resources()
+alb_resources = Resources()
 
 
-@pytest.mark.parametrize("key, align_file", alignments.get(mode="paths").items())
+@pytest.mark.parametrize("key, align_file", alb_resources.get(mode="paths").items())
 def test_instantiate_alignbuddy_from_file(key, align_file):
     key = key.split()
     print(key)
-    assert type(Alb.AlignBuddy(align_file, in_format=alignments.code_dict["format"][key[2]])) == Alb.AlignBuddy
+    assert type(Alb.AlignBuddy(align_file, in_format=alb_resources.code_dict["format"][key[2]])) == Alb.AlignBuddy
 
 
-@pytest.mark.parametrize("align_file", alignments.get_list(mode="paths"))
+@pytest.mark.parametrize("align_file", alb_resources.get_list(mode="paths"))
 def test_instantiate_alignbuddy_from_file_guess(align_file):
     assert type(Alb.AlignBuddy(align_file)) == Alb.AlignBuddy
 
 
-@pytest.mark.parametrize("align_file", alignments.get_list(mode="paths"))
+@pytest.mark.parametrize("align_file", alb_resources.get_list(mode="paths"))
 def test_instantiate_alignbuddy_from_handle(align_file):
     with open(align_file, 'r') as ifile:
         assert type(Alb.AlignBuddy(ifile)) == Alb.AlignBuddy
 
 
-@pytest.mark.parametrize("align_file", alignments.get_list(mode="paths"))
+@pytest.mark.parametrize("align_file", alb_resources.get_list(mode="paths"))
 def test_instantiate_alignbuddy_from_raw(align_file):
     with open(align_file, 'r') as ifile:
         assert type(Alb.AlignBuddy(ifile.read())) == Alb.AlignBuddy
 
 
-@pytest.mark.parametrize("alignbuddy", alignments.get_list(mode="objs"))
+@pytest.mark.parametrize("alignbuddy", alb_resources.get_list(mode="objs"))
 def test_instantiate_alignbuddy_from_alignbuddy(alignbuddy):
     assert type(Alb.AlignBuddy(alignbuddy)) == Alb.AlignBuddy
 
 
-@pytest.mark.parametrize("alignbuddy", alignments.get_list(mode="objs"))
+@pytest.mark.parametrize("alignbuddy", alb_resources.get_list(mode="objs"))
 def test_instantiate_alignbuddy_from_list(alignbuddy):
     assert type(Alb.AlignBuddy(alignbuddy.alignments)) == Alb.AlignBuddy
 
@@ -296,18 +296,18 @@ def test_empty_file():
 
 # ##################### AlignBuddy methods ###################### ##
 def test_set_format():
-    tester = alignments.get_list("o d g")[0]
+    tester = alb_resources.get_list("o d g")[0]
     tester.set_format("fasta")
     assert tester._out_format == "fasta"
 
 
 def test_records():
-    tester = alignments.get_list("m p py")[0]
+    tester = alb_resources.get_list("m p py")[0]
     assert len(tester.records()) == 29
 
 
 def test_records_iter():
-    tester = alignments.get_list("m p py")[0]
+    tester = alb_resources.get_list("m p py")[0]
     counter = 0
     for rec in tester.records_iter():
         assert type(rec) == SeqRecord
@@ -336,7 +336,7 @@ hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899
           'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '22c0f0c8f014a34be8edd394bf477a2d',
           'm d pss': 'c789860da8f0b59e0adc7bde6342b4b0', 'm d psr': '28b2861275e0a488042cff35393ac36d'}
 
-albs = [(hashes[key], alignbuddy) for key, alignbuddy in alignments.get("").items()]
+albs = [(hashes[key], alignbuddy) for key, alignbuddy in alb_resources.get("").items()]
 
 
 @pytest.mark.parametrize("next_hash,alignbuddy", albs)
@@ -365,7 +365,7 @@ def test_write1(next_hash, alignbuddy):
 
 
 def test_write2():  # Unloopable components
-    tester = alignments.get_one("m p py")
+    tester = alb_resources.get_one("m p py")
     tester.set_format("fasta")
     with pytest.raises(ValueError):
         str(tester)
@@ -373,7 +373,7 @@ def test_write2():  # Unloopable components
     tester.alignments = []
     assert str(tester) == "AlignBuddy object contains no alignments.\n"
 
-    tester = alignments.get_one("o d pr")
+    tester = alb_resources.get_one("o d pr")
     tester.set_format("phylipi")
     assert align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
 
@@ -409,11 +409,11 @@ def test_guess_error():
 
 
 def test_guess_alphabet():
-    for alb in alignments.get_list("d"):
+    for alb in alb_resources.get_list("d"):
         assert Alb.guess_alphabet(alb) == IUPAC.ambiguous_dna
-    for alb in alignments.get_list("p"):
+    for alb in alb_resources.get_list("p"):
         assert Alb.guess_alphabet(alb) == IUPAC.protein
-    for alb in alignments.get_list("r"):
+    for alb in alb_resources.get_list("r"):
         assert Alb.guess_alphabet(alb) == IUPAC.ambiguous_rna
 
     assert not Alb.guess_alphabet(Alb.AlignBuddy("", in_format="fasta"))
@@ -422,16 +422,16 @@ def test_guess_alphabet():
 def test_guess_format():
     assert Alb.guess_format(["dummy", "list"]) == "stockholm"
 
-    for key, obj in alignments.get().items():
-        assert Alb.guess_format(obj) == alignments.deets(key)["format"]
+    for key, obj in alb_resources.get().items():
+        assert Alb.guess_format(obj) == alb_resources.deets(key)["format"]
 
-    for key, path in alignments.get(mode="paths").items():
-        assert Alb.guess_format(path) == alignments.deets(key)["format"]
+    for key, path in alb_resources.get(mode="paths").items():
+        assert Alb.guess_format(path) == alb_resources.deets(key)["format"]
         with open(path, "r") as ifile:
-            assert Alb.guess_format(ifile) == alignments.deets(key)["format"]
+            assert Alb.guess_format(ifile) == alb_resources.deets(key)["format"]
             ifile.seek(0)
             string_io = io.StringIO(ifile.read())
-        assert Alb.guess_format(string_io) == alignments.deets(key)["format"]
+        assert Alb.guess_format(string_io) == alb_resources.deets(key)["format"]
 
     Alb.guess_format(resource("blank.fa")) == "empty file"
     assert not Alb.guess_format(resource("malformed_phylip_records.physs"))
@@ -461,7 +461,7 @@ def test_parse_format():
 
 
 def test_make_copy():
-    for alb in alignments.get_list():
+    for alb in alb_resources.get_list():
         tester = Alb.make_copy(alb)
         align_to_hash(tester) == align_to_hash(alb)
 
@@ -489,11 +489,11 @@ def test_stdout(capsys):
 # ################################################ MAIN API FUNCTIONS ################################################ #
 # ##########################################  '-al', '--alignment_lengths' ############################################ #
 def test_alignment_lengths():
-    lengths = Alb.alignment_lengths(alignments.get_one("m p c"))
+    lengths = Alb.alignment_lengths(alb_resources.get_one("m p c"))
     assert lengths[0] == 481
     assert lengths[1] == 683
 
-    lengths = Alb.alignment_lengths(alignments.get_one("m d s"))
+    lengths = Alb.alignment_lengths(alb_resources.get_one("m d s"))
     assert lengths[0] == 2043
     assert lengths[1] == 1440
 
@@ -501,7 +501,7 @@ def test_alignment_lengths():
 # ##############################################  '-cs', '--clean_seqs' ############################################### #
 def test_clean_seqs():
     # Test an amino acid file
-    tester = Alb.clean_seq(alignments.get_one("m p py"))
+    tester = Alb.clean_seq(alb_resources.get_one("m p py"))
     assert align_to_hash(tester) == "07a861a1c80753e7f89f092602271072"
 
     tester = Alb.clean_seq(Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa")), ambiguous=False, rep_char="X")
@@ -511,11 +511,11 @@ def test_clean_seqs():
 # ###########################################  '-cta', '--concat_alignments' ######################################### #
 def test_concat_alignments():
     with pytest.raises(AttributeError) as e:
-        Alb.concat_alignments(alignments.get_one("p o g"), '.*')
+        Alb.concat_alignments(alb_resources.get_one("p o g"), '.*')
     assert "Please provide at least two alignments." in str(e)
 
-    tester = alignments.get_one("o p g")
-    tester.alignments.append(alignments.get_one("o p g").alignments[0])
+    tester = alb_resources.get_one("o p g")
+    tester.alignments.append(alb_resources.get_one("o p g").alignments[0])
 
     with pytest.raises(ValueError) as e:
         Alb.concat_alignments(tester, 'foo')
@@ -560,7 +560,7 @@ hashes = {'o d g': '888a13e13666afb4d3d851ca9150b442', 'o d n': '560d4fc4be7af5d
           'm d s': '7b0aa3cca159b276158cf98209be7dab', 'm p py': '460033d892db36d4750bafc6998d42d0',
           'm p s': '89130797253646e61b78ab7d91ad3fd9'}
 
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o m d r p g n py s").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d r p g n py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -577,7 +577,7 @@ hashes = {'o d g': '3c7ecdcad18801a86c394de200ef6de9', 'o d n': '355a98dad5cf382
           'm d s': 'de5beddbc7f0a7f8e3dc2d5fd43b7b29', 'm p py': '31f91f7dc548e4b075bfb0fdd7d5c82c',
           'm p s': '043e35023b355ed560166db9130cfe30'}
 
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o m d r p g n py s").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d r p g n py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -594,7 +594,7 @@ r2d_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd3
               'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
               'm d py': '42679a32ebd93b628303865f68b0293d', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d'}
 
-hashes = [(alignbuddy, d2r_hashes[key], r2d_hashes[key]) for key, alignbuddy in alignments.get("o m d g py s").items()]
+hashes = [(alignbuddy, d2r_hashes[key], r2d_hashes[key]) for key, alignbuddy in alb_resources.get("o m d g py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,d2r_hash,r2d_hash", hashes)
@@ -607,28 +607,28 @@ def test_transcribe(alignbuddy, d2r_hash, r2d_hash):
 
 def test_transcribe_exceptions():
     with pytest.raises(TypeError) as e:
-        Alb.dna2rna(alignments.get_one("o p s"))
+        Alb.dna2rna(alb_resources.get_one("o p s"))
     assert "TypeError: DNA sequence required, not IUPACProtein()." in str(e)
 
     with pytest.raises(TypeError) as e:
-        Alb.dna2rna(alignments.get_one("o r n"))
+        Alb.dna2rna(alb_resources.get_one("o r n"))
     assert "TypeError: DNA sequence required, not IUPACAmbiguousRNA()." in str(e)
 
 
 def test_back_transcribe_exceptions():  # Asserts that a TypeError will be thrown if user inputs protein
     with pytest.raises(TypeError) as e:
-        Alb.rna2dna(alignments.get_one("o p s"))
+        Alb.rna2dna(alb_resources.get_one("o p s"))
     assert "TypeError: RNA sequence required, not IUPACProtein()." in str(e)
 
     with pytest.raises(TypeError) as e:
-        Alb.rna2dna(alignments.get_one("o d s"))
+        Alb.rna2dna(alb_resources.get_one("o d s"))
     assert "TypeError: RNA sequence required, not IUPACAmbiguousDNA()." in str(e)
 
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
 hashes = {'o d g': '4fabe926e9d66c40b5833cda32506f4a', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': 'b6cf61c86588023b58257c9008c862b5', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
           "m d py": "669ffc4fa602fb101c559cb576bddee1"}
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d r g n py").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d r g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -639,11 +639,11 @@ def test_enforce_triplets(alignbuddy, next_hash):
 
 def test_enforce_triplets_error():
     with pytest.raises(TypeError) as e:
-        Alb.enforce_triplets(alignments.get_one("m p c"))
+        Alb.enforce_triplets(alb_resources.get_one("m p c"))
     assert "Nucleic acid sequence required, not protein." in str(e)
 
     with pytest.raises(TypeError) as e:
-        tester = Alb.enforce_triplets(alignments.get_one("m d pr"))
+        tester = Alb.enforce_triplets(alb_resources.get_one("m d pr"))
         tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
                                           alphabet=IUPAC.protein)
         Alb.enforce_triplets(tester)
@@ -654,7 +654,7 @@ hashes = {'o d g': 'e90851d2b94c07f6ff5be35c4bacb683', 'o d n': '10ca718b74f3b13
           'o d py': 'd738a9ab3ab200a7e013177e1042e86c', 'o p g': 'b094576bb8a5eadbc936235719530c6f',
           'o p n': '5f400edc6f0990c0cd6eb52ae7687e39', 'o p py': '69c9ad73ae02525150d4682f9dd68093',
           "m d py": "d06ba679c8a686c8f077bb460a4193b0", "m p py": "8151eeda36b9a170512709829d70230b"}
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -678,7 +678,7 @@ lc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd35
              'm d py': '0974ac9aefb2fb540957f15c4869c242', 'm d s': 'a217b9f6000f9eeff98faeb9fd09efe4',
              'm p py': 'd13551548c9c1e966d0519755a8fb4eb', 'm p s': '00661f7afb419c6bb8c9ac654af7c976'}
 
-hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alignments.get("o m d p g py s").items()]
+hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alb_resources.get("o m d p g py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
@@ -694,7 +694,7 @@ hashes = {"o p n": "06befa060809bfcc8d4ceba16b2942e8", "o p pr": "57906e7e85db02
           "o p psr": "57906e7e85db021f79366d95f64aef41", "o p s": "21850752df36bafeabc6141f5f277071",
           "o d n": "2d8b6524010177f6507dde387146378c", "o d pr": "eec68b8696f09d199e8a6b75e50ec18a",
           "o d psr": "eec68b8696f09d199e8a6b75e50ec18a", "o d s": "3b0fb43a76bb5057cc1bd001b36b9374"}
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("o p d n pr psr s").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -718,7 +718,7 @@ rev_hashes = {'o d g': 'a593a2cd979f52c356c61e10ca9a1317', 'o d n': '82fea6e3d36
               'o d py': 'd6e79a5faeaff396aa7eab0b460c3eb9', 'o p g': '39af830e6d3605ea1dd04979a4a33f54',
               'o p n': '85b3562b0eb0246d7dab56a4bcc6e2ae', 'o p py': 'f4c0924087fdb624823d02e909d94e95',
               'm d py': '9d6b6087d07f7d1fd701591ab7cb576d', 'm p py': '439f57b891dd2a72724b10c124f96378'}
-hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)
@@ -736,7 +736,7 @@ hashes = {'o d g': '04572f1d4e58b678459692ef2747979f', 'o d n': 'd82e66c57548bcf
           'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
           'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
 
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -751,7 +751,7 @@ hashes = {'o d g': 'c35db8b8353ef2fb468b0981bd960a38', 'o d n': '243024bfd2f686e
           'o p n': '3598e85169ed3bcdbcb676bb2eb6cef0', 'o p py': 'd49eb4de01d727b9e3ad648d6a04a3c9',
           'm d py': 'ddfffd9b999637abf7f5926f017de987', 'm p py': '0a68229bd13439040f045cd8c72d7cc9'}
 
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alignments.get("m o d p g n py").items()]
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
@@ -951,13 +951,6 @@ def test_mafft_multi_param():
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
 
 
-# ###########################################  'stf', '--split_alignbuddy' ########################################### #
-def test_split_alignment():
-    tester = Alb.AlignBuddy(resource("concat_alignment_file.phyr"))
-    output = Alb.split_alignbuddy(tester)
-    for buddy in output:
-        assert buddy.alignments[0] in tester.alignments
-
 # ###########################################  'tr', '--translate' ############################################ #
 hashes = ["fa915eafb9eb0bfa0ed8563f0fdf0ef9", "5064c1d6ae6192a829972b7ec0f129ed", "ce423d5b99d5917fbef6f3b47df40513",
           "2340addad40e714268d2523cdb17a78c", "6c66f5f63c5fb98f5855fb1c847486ad", "d9527fe1dfd2ea639df267bb8ee836f7"]
@@ -1029,12 +1022,12 @@ def test_trimal2():
 def test_alignment_lengths_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.alignment_lengths = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert out == "481\n683\n"
     assert err == "# Alignment 1\n# Alignment 2\n"
 
-    Alb.command_line_ui(test_in_args, alignments.get_one("o p py"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o p py"), skip_exit=True)
     out, err = capsys.readouterr()
     assert out == "681\n"
     assert err == ""
@@ -1044,12 +1037,12 @@ def test_alignment_lengths_ui(capsys):
 def test_back_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.back_transcribe = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("o r n"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
 
     with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alignments.get_one("m d s"))
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"))
     out, err = capsys.readouterr()
     assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
 
@@ -1058,7 +1051,7 @@ def test_back_transcribe_ui(capsys):
 def test_clean_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.clean_seq = [[None]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p pr"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p pr"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "73b5d11dd25dd100648870228ab10d3d"
 
@@ -1112,12 +1105,12 @@ def test_concat_alignments_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "5d9d9ac8fae604be74c436e5f0b5b6db"
 
-    Alb.command_line_ui(test_in_args, alignments.get_one("p o g"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("p o g"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Please provide at least two alignments." in err
 
     test_in_args.concat_alignments = [["foo"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "No match found for record" in err
 
@@ -1126,11 +1119,11 @@ def test_concat_alignments_ui(capsys):
 def test_consensus_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.consensus = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "7b0aa3cca159b276158cf98209be7dab"
 
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
 
@@ -1139,18 +1132,18 @@ def test_consensus_ui(capsys):
 def test_delete_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_records = [["α[1-5]", "β[A-M]"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "de5beddbc7f0a7f8e3dc2d5fd43b7b29"
     assert string2hash(err) == "31bb4310333851964015e21562f602c2"
 
     test_in_args.delete_records = [["α[1-5]", "β[A-M]", 4]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(err) == "ce6c9b29c95ba853eb444de5c71aeca9"
 
     test_in_args.delete_records = [["foo"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "No sequence identifiers match 'foo'\n" in err
 
@@ -1159,11 +1152,11 @@ def test_delete_records_ui(capsys):
 def test_enforce_triplets_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.enforce_triplets = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("o d g"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "4fabe926e9d66c40b5833cda32506f4a"
 
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p c"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
 
@@ -1172,18 +1165,18 @@ def test_enforce_triplets_ui(capsys):
 def test_extract_range_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.extract_range = [10, 110]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
 
     test_in_args.extract_range = [110, 10]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
 
     test_in_args.extract_range = [-110, 10]
     with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alignments.get_one("m p s"))
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"))
     out, err = capsys.readouterr()
     assert err == "ValueError: Please specify positive integer indices\n"
 
@@ -1192,12 +1185,12 @@ def test_extract_range_ui(capsys):
 def test_list_ids(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.list_ids = [False]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "f087f9c1413ba66c28fb0fccf7c974e6"
 
     test_in_args.list_ids = [3]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "4d85249a1f187d38d411a78ced65a98c"
 
@@ -1206,7 +1199,7 @@ def test_list_ids(capsys):
 def test_lowercase_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.lowercase = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "00661f7afb419c6bb8c9ac654af7c976"
 
@@ -1215,7 +1208,7 @@ def test_lowercase_ui(capsys):
 def test_map_features2alignment_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.mapfeat2align = [resource("Mnemiopsis_cds.gb")]
-    Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
 
@@ -1224,17 +1217,17 @@ def test_map_features2alignment_ui(capsys):
 def test_num_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.num_seqs = True
-    for alignbuddy in alignments.get_list("m d c pr psr s"):
+    for alignbuddy in alb_resources.get_list("m d c pr psr s"):
         Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
         out, err = capsys.readouterr()
         assert out == "# Alignment 1\n8\n\n# Alignment 2\n21\n" or out == "# Alignment 1\n13\n\n# Alignment 2\n21\n"
 
-    for alignbuddy in alignments.get_list("m p c pr psr s"):
+    for alignbuddy in alb_resources.get_list("m p c pr psr s"):
         Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
         out, err = capsys.readouterr()
         assert out == "# Alignment 1\n20\n\n# Alignment 2\n13\n" or out == "# Alignment 1\n13\n\n# Alignment 2\n21\n"
 
-    for alignbuddy in alignments.get_list("o p c pr psr s"):
+    for alignbuddy in alb_resources.get_list("o p c pr psr s"):
         Alb.command_line_ui(test_in_args, alignbuddy, skip_exit=True)
         out, err = capsys.readouterr()
         assert out == "13\n"
@@ -1244,28 +1237,27 @@ def test_num_seqs_ui(capsys):
 def test_order_ids_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.order_ids = [False]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "0bce6aeaab76feda1aea7f5e79608c72"
 
     test_in_args.order_ids = ['rev']
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "f87f78dc9d7a0b76854f15c52130e3a7"
 
 
 # ##################### '-pr', '--pull_records' ###################### ##
-@pytest.mark.foo
 def test_pull_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.pull_records = [["α[1-5]$", "β[A-M]"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("m d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "2de557d6fd3dc6cd1bf43a1995392a4c"
     assert err == ""
 
     test_in_args.pull_records = [["α[1-5]$", "ML218922a", "full"]]
-    Alb.command_line_ui(test_in_args, alignments.get_one("o d s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "fb82ffec15ece60a74d9ac8db92d2999"
 
@@ -1274,7 +1266,7 @@ def test_pull_records_ui(capsys):
 def test_rename_ids_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2]]
-    tester = alignments.get_one("m p s")
+    tester = alb_resources.get_one("m p s")
     Alb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "888f2e3feb9e67f9bc008183082c822a"
@@ -1315,7 +1307,7 @@ hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3
 def test_screw_formats_ui(_format, next_hash, capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = _format
-    tester = alignments.get_one("o p py")
+    tester = alb_resources.get_one("o p py")
     Alb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == next_hash
@@ -1329,7 +1321,7 @@ hashes = [("clustal", "7ae7ee65637789edf11c272f7620c9db"), ("phylip", "2a77f5761
 def test_screw_formats_ui2(_format, next_hash, capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = _format
-    tester = alignments.get_one("m p py")
+    tester = alb_resources.get_one("m p py")
     Alb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert string2hash(out) == next_hash
@@ -1337,7 +1329,7 @@ def test_screw_formats_ui2(_format, next_hash, capsys):
 
 def test_screw_formats_ui3(capsys):
     test_in_args = deepcopy(in_args)
-    tester = alignments.get_one("o p py")
+    tester = alb_resources.get_one("o p py")
     tester.write("%s/seq.phy" % TEMP_DIR.path)
     test_in_args.in_place = True
     test_in_args.alignments = ["%s/seq.phy" % TEMP_DIR.path]
@@ -1353,24 +1345,69 @@ def test_screw_formats_ui3(capsys):
     assert "TypeError: Format type 'foo' is not recognized/supported\n" in err
 
     test_in_args.screw_formats = "gb"
-    tester = alignments.get_one("m p py")
+    tester = alb_resources.get_one("m p py")
     with pytest.raises(SystemExit):
         Alb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
     assert "ValueError: gb format does not support multiple alignments in one file." in err
 
 
+# ##################################  '-stf', '--split_alignbuddy' ################################### #
+hashes = [("clustal", "m p c"), ("phylip", "m p py"),
+          ("phylip-relaxed", "m p pr"), ("phylipss", "m p pss"),
+          ("phylipsr", "m p psr"), ("stockholm", "m p s")]
+
+
+@pytest.mark.parametrize("_format,_code", hashes)
+def test_split_alignment_ui(_format, _code, capsys):
+    TEMP_DIR.subdir(_format)
+    test_in_args = deepcopy(in_args)
+    test_in_args.split_to_files = [["%s/%s" % (TEMP_DIR.path, _format), "Foo_"]]
+    tester = alb_resources.get_one(_code)
+    for num in range(7):
+        tester.alignments += tester.alignments
+    Alb.command_line_ui(test_in_args, tester, True)
+    assert os.path.isfile("%s/%s/Foo_001.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
+    assert os.path.isfile("%s/%s/Foo_061.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
+    assert os.path.isfile("%s/%s/Foo_121.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
+    TEMP_DIR.del_subdir(_format)
+
+
+def test_split_alignment_ui2(capsys):
+    TEMP_DIR.subdir("split_alignment")
+    test_in_args = deepcopy(in_args)
+    test_in_args.split_to_files = [["%s/split_alignment" % TEMP_DIR.path, "Foo_", "Bar"]]
+    tester = alb_resources.get_one("m p c")
+    for num in range(4):
+        tester.alignments += tester.alignments
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert os.path.isfile("%s/split_alignment/Foo_01.clus" % TEMP_DIR.path)
+    assert os.path.isfile("%s/split_alignment/Foo_16.clus" % TEMP_DIR.path)
+
+    assert "Warning: Only one prefix can be accepted, 2 where provided. Using the first.\n" in err
+    assert "New file: " in err
+
+    tester = alb_resources.get_one("o d c")
+    test_in_args.quiet = False
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "Only one alignment present, nothing written." in err
+    TEMP_DIR.del_subdir("split_alignment")
+
+
 # ##################### '-d2r', '--transcribe' ###################### ##
 def test_transcribe_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.transcribe = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("o d n"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
 
     assert string2hash(out) == "e531dc31f24192f90aa1f4b6195185b0"
 
     with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alignments.get_one("o r n"))
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"))
     out, err = capsys.readouterr()
     assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
 
@@ -1379,6 +1416,6 @@ def test_transcribe_ui(capsys):
 def test_uppercase_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.uppercase = True
-    Alb.command_line_ui(test_in_args, alignments.get_one("m p s"), skip_exit=True)
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "6f3f234d796520c521cb85c66a3e239a"

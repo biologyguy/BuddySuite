@@ -519,7 +519,7 @@ contributors = [Contributor("Stephen", "Bond", commits=291, github="https://gith
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
                        'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
                        'phyr': 'phyr', 'phylipss': 'physs', 'physs': 'physs', 'phylipsr': 'physr',
-                       'physr': 'physr', 'stockholm': 'stklm', 'stklm': 'stklm'}
+                       'physr': 'physr', 'stockholm': 'stklm', 'stklm': 'stklm', 'clustal': 'clus', 'clus': 'clus'}
 
 
 # flag, action, nargs, metavar, help, choices, type
@@ -908,10 +908,10 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                "metavar": "<out_format>",
                                "help": "Change the file format to something else"},
              "split_to_files": {"flag": "stf",
-                                "action": "store",
-                                "nargs": 2,
-                                "metavar": ("<out dir>", "<out file>"),
-                                "help": "Write individual files for each alignment"},
+                                "action": "append",
+                                "nargs": "+",
+                                "metavar": "args",
+                                "help": "Write individual files for each alignment. Args: <out_dir> [prefix]"},
              "translate": {"flag": "tr",
                            "action": "store_true",
                            "help": "Convert coding sequences into amino acid sequences"},

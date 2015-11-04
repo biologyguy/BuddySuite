@@ -35,6 +35,7 @@ import re
 from collections import OrderedDict
 from shutil import *
 from subprocess import Popen, PIPE, CalledProcessError
+from math import log, ceil
 
 # Third party
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -931,21 +932,6 @@ def rna2dna(alignbuddy):  # Back-transcribe
     return alignbuddy
 
 
-def split_alignbuddy(alignbuddy):
-    """
-    Splits each alignment into its own AlignBuddy object
-    :param alignbuddy: The AlignBuddy object to be split
-    :return: A list of AlignBuddy objects
-    """
-    ab_objs_list = []
-    for alignment in alignbuddy.alignments:
-        ab = AlignBuddy([alignment])
-        ab._in_format = alignbuddy._in_format
-        ab.set_format(alignbuddy._out_format)
-        ab_objs_list.append(ab)
-    return ab_objs_list
-
-
 def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
     """
     Translates a nucleotide alignment into a protein alignment.
@@ -1338,8 +1324,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         if len(counts) == 1:
             _stdout("%s\n" % counts[0])
         else:
-            for align_indx, count in enumerate(counts):
-                _stderr("# Alignment %s\n" % (align_indx + 1), quiet=in_args.quiet)
+            for indx, count in enumerate(counts):
+                _stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
                 _stdout("%s\n" % count)
         _exit("alignment_lengths")
 
@@ -1405,10 +1391,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.delete_records:
         args = in_args.delete_records[0]
         columns = 1
-        for align_indx, arg in enumerate(args):
+        for indx, arg in enumerate(args):
             try:
                 columns = int(arg)
-                del args[align_indx]
+                del args[indx]
                 break
             except ValueError:
                 pass
@@ -1427,10 +1413,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                 deleted_recs.append(None)
         if num_deleted:
             stderr = "# ####################### Deleted records ######################## #\n"
-            for align_indx, alignment in enumerate(deleted_recs):
+            for indx, alignment in enumerate(deleted_recs):
                 if alignment:
                     counter = 1
-                    stderr += "# Alignment %s\n" % (align_indx + 1)
+                    stderr += "# Alignment %s\n" % (indx + 1)
                     for rec_id in alignment:
                         stderr += "%s\t" % rec_id
                         if counter % columns == 0:
@@ -1499,8 +1485,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else abs(in_args.list_ids[0])
         output = ""
-        for align_indx, alignment in enumerate(alignbuddy.alignments):
-            output += "# Alignment %s\n" % str(align_indx + 1)
+        for indx, alignment in enumerate(alignbuddy.alignments):
+            output += "# Alignment %s\n" % str(indx + 1)
             for rec_indx, rec in enumerate(alignment):
                 output += "%s\t" % rec.id
                 if (rec_indx + 1) % columns == 0:
@@ -1596,18 +1582,28 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Split alignments into files
     if in_args.split_to_files:
+        if len(alignbuddy.alignments) == 1:
+            _raise_error(ValueError("Only one alignment present, nothing written."), "split_to_files")
+
+        args = in_args.split_to_files[0]
+        if len(args) > 2:
+            _stderr("Warning: Only one prefix can be accepted, %s where provided. Using the first.\n" % (len(args) - 1))
         in_args.in_place = True
-        out_dir = os.path.abspath(in_args.split_to_files[0])
-        filename = in_args.split_to_files[1]
+
+        out_dir = os.path.abspath(args[0])
+        prefix = "Alignment_" if len(args) == 1 else args[1]
+
         os.makedirs(out_dir, exist_ok=True)
-        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' _print_recs() here.
+        check_quiet = in_args.quiet  # 'quiet' must be toggled to 'on' for _print_recs()
         in_args.quiet = True
-        for align_indx, buddy in enumerate(split_alignbuddy(alignbuddy)):
-            alignbuddy.alignments = buddy.alignments
+        alignments = alignbuddy.alignments
+        padding = '{:0>%sd}' % int(ceil(log(len(alignments), 10)))  # Allows sequential numbering, padded with zeros
+        for indx, alignment in enumerate(alignments):
+            alignbuddy.alignments = [alignment]
             ext = br.format_to_extension[alignbuddy._out_format]
-            in_args.alignment[0] = "%s/%s_%s.%s" % (out_dir, filename, '{:0>4d}'.format(align_indx + 1), ext)
-            _stderr("New file: %s\n" % in_args.alignment[0], check_quiet)
-            open(in_args.alignment[0], "w").close()
+            in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
+            _stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
+            open(in_args.alignments[0], "w").close()
             _print_aligments(alignbuddy)
         _exit("split_to_files")
 
