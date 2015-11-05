@@ -226,6 +226,7 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     :param parser: argparse.ArgumentParser object
     :param _positional: tuple e.g., ("user_input", "Specify accession numbers or search terms...")
     :param _flags: dict e.g., db_flags
+    :param _modifiers: dict of single letter flags that have more global significance
     :param version: Version object
     :return:
     """
@@ -507,6 +508,111 @@ def shift_features(features, shift, full_seq_len):
         shifted_features.append(feature)
 
     return shifted_features
+
+
+def ungap_feature_ends(feat, rec):
+    """
+    If a feature begins or ends on a gap, it makes it much harder to track changes, so force the feature onto actual
+    residues.
+    :param feat: Either a FeatureLocation or CompoundLocation object
+    :param rec: The original SeqRecord that the feature is derived from
+    :return: The modified feature object
+    """
+    if type(feat.location) == CompoundLocation:
+        parts = []
+        for part in feat.location.parts:
+            part = ungap_feature_ends(SeqFeature(part), rec)
+            if not part:
+                continue
+            parts.append(part.location)
+        feat.location = CompoundLocation(parts, feat.location.operator)
+
+    elif type(feat.location) == FeatureLocation:
+        extract = str(feat.extract(rec.seq))
+        front_gaps = re.search("^-+", extract)
+
+        if front_gaps:
+            if feat.location.strand == 1:
+                new_start = feat.location.start + len(front_gaps.group(0))
+                feat.location = FeatureLocation(new_start, feat.location.end, 1)
+            else:
+                new_end = feat.location.end - len(front_gaps.group(0))
+                feat.location = FeatureLocation(feat.location.start, new_end, -1)
+
+        rear_gaps = re.search("-+$", extract)
+        if rear_gaps:
+            if feat.location.strand == 1:
+                new_end = feat.location.end - len(rear_gaps.group(0))
+                feat.location = FeatureLocation(feat.location.start, new_end, 1)
+            else:
+                new_start = feat.location.start + len(rear_gaps.group(0))
+                feat.location = FeatureLocation(new_start, feat.location.end, -1)
+    else:
+        raise TypeError("FeatureLocation or CompoundLocation object required.")
+    return feat
+
+
+def old2new(feat, old_rec, new_rec):
+    if type(feat.location) == CompoundLocation:
+        parts = []
+        for part in feat.location.parts:
+            part = old2new(SeqFeature(part), old_rec, new_rec)
+            parts.append(part.location)
+        feat.location = CompoundLocation(parts, feat.location.operator)
+
+    elif type(feat.location) == FeatureLocation:
+        if feat.location.start > feat.location.end:
+            start, end = feat.location.end, feat.location.start
+        else:
+            start, end = feat.location.start, feat.location.end
+        old_seq = str(old_rec.seq)
+        old_front_seq = old_seq[:start]
+        old_front_seq = re.sub("-", "", old_front_seq)
+        old_feat_seq = old_seq[start:end]
+        old_feat_seq = re.sub("-", "", old_feat_seq)
+        start, end = 0, 0
+        new_front_seq, new_feat_seq = "", ""
+        for indx, residue in enumerate(str(new_rec.seq)):
+            if residue == "-":
+                continue
+
+            if not start:
+                if old_front_seq == "" or new_front_seq == old_front_seq:
+                    start = indx + 1
+                    new_feat_seq += residue
+                    if new_feat_seq == old_feat_seq:
+                        end = indx + 1
+                        break
+                else:
+                    new_front_seq += residue
+            else:
+                new_feat_seq += residue
+                if new_feat_seq == old_feat_seq:
+                    end = indx + 1
+                    break
+        start -= 1  # This is a hack so I can use the 'if not start' logic
+
+        if feat.location.start > feat.location.end:
+            feat.location = FeatureLocation(end, start, feat.location.strand)
+        else:
+            feat.location = FeatureLocation(start, end, feat.location.strand)
+    else:
+        raise TypeError("FeatureLocation or CompoundLocation object required.")
+    return feat
+
+
+def remap_gapped_features(old_records, new_records):
+    # Start by forcing feature start-end positions onto actual residues, in cases were they fall on gaps
+    for old_rec, new_rec in zip(old_records, new_records):
+        features = []
+        for feat in old_rec.features:
+            features.append(ungap_feature_ends(feat, old_rec))
+        old_rec.features = features
+        features = []
+        for feat in old_rec.features:
+            features.append(old2new(feat, old_rec, new_rec))
+        new_rec.features = features
+    return new_records
 
 
 # #################################################### VARIABLES ##################################################### #
