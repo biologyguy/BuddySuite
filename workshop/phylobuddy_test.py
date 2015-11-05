@@ -58,6 +58,10 @@ PhyloBuddy.py "(A,(B,C));" -f "raw" -<cmd>
 br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping trees into PhyloBuddy "
                            "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
+# This is to allow py.test to work with the -x flag
+parser.add_argument("-x", nargs="?")
+parser.add_argument("--cov", nargs="?")
+parser.add_argument("--cov-report", nargs="?")
 in_args = parser.parse_args()
 
 

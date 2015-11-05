@@ -65,6 +65,10 @@ br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping se
                               "into SeqBuddy this argument can be left blank."),
          br.sb_flags, br.sb_modifiers, VERSION)
 
+# This is to allow py.test to work with the -x flag
+parser.add_argument("-x", nargs="?")
+parser.add_argument("--cov", nargs="?")
+parser.add_argument("--cov-report", nargs="?")
 in_args = parser.parse_args()
 
 
