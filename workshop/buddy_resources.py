@@ -537,9 +537,8 @@ def ungap_feature_ends(feat, rec):
     elif type(feat.location) == FeatureLocation:
         extract = str(feat.extract(rec.seq))
         front_gaps = re.search("^-+", extract)
-
         if front_gaps:
-            if feat.location.strand == 1:
+            if not feat.location.strand or feat.location.strand == 1:
                 new_start = feat.location.start + len(front_gaps.group(0))
                 feat.location = FeatureLocation(new_start, feat.location.end, 1)
             else:
@@ -548,7 +547,7 @@ def ungap_feature_ends(feat, rec):
 
         rear_gaps = re.search("-+$", extract)
         if rear_gaps:
-            if feat.location.strand == 1:
+            if not feat.location.strand or feat.location.strand == 1:
                 new_end = feat.location.end - len(rear_gaps.group(0))
                 feat.location = FeatureLocation(feat.location.start, new_end, 1)
             else:

@@ -54,7 +54,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Restriction import *
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
+from Bio.Alphabet import IUPAC, Gapped
 from Bio.Data.CodonTable import TranslationError
 from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
@@ -791,7 +791,8 @@ def back_translate(seqbuddy, mode='random', species=None):
               'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.18, 0.24, 0.12, 0.46]),
               'W': (['TGG'], [1.00]),
               'Y': (['TAT', 'TAC'], [0.44, 0.56]),
-              'X': (['NNN'], [1.0])}
+              'X': (['NNN'], [1.0]),
+              '-': (['---'], [1.0])}
 
     # Mus musculus, species=10090
     m_muscul = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.29, 0.38, 0.23, 0.09]),
@@ -815,7 +816,8 @@ def back_translate(seqbuddy, mode='random', species=None):
                 'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.17, 0.25, 0.12, 0.46]),
                 'W': (['TGG'], [1.00]),
                 'Y': (['TAT', 'TAC'], [0.43, 0.57]),
-                'X': (['NNN'], [1.0])}
+                'X': (['NNN'], [1.0]),
+                '-': (['---'], [1.0])}
 
     # Escherichia coli O157:H7 EDL933, species=155864
     e_coli = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.16, 0.27, 0.22, 0.35]),
@@ -839,7 +841,8 @@ def back_translate(seqbuddy, mode='random', species=None):
               'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.26, 0.21, 0.16, 0.37]),
               'W': (['TGG'], [1.00]),
               'Y': (['TAT', 'TAC'], [0.57, 0.43]),
-              'X': (['NNN'], [1.0])}
+              'X': (['NNN'], [1.0]),
+              '-': (['---'], [1.0])}
 
     # Saccharomyces cerevisiae, species=4932
     s_cerev = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.38, 0.22, 0.29, 0.11]),
@@ -863,7 +866,8 @@ def back_translate(seqbuddy, mode='random', species=None):
                'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.39, 0.21, 0.21, 0.19]),
                'W': (['TGG'], [1.00]),
                'Y': (['TAT', 'TAC'], [0.56, 0.44]),
-               'X': (['NNN'], [1.0])}
+               'X': (['NNN'], [1.0]),
+               '-': (['---'], [1.0])}
 
     # random
     rand_table = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.25, 0.25, 0.25, 0.25]),
@@ -887,7 +891,8 @@ def back_translate(seqbuddy, mode='random', species=None):
                   'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.25, 0.25, 0.25, 0.25]),
                   'W': (['TGG'], [1.00]),
                   'Y': (['TAT', 'TAC'], [0.5, 0.5]),
-                  'X': (['NNN'], [1.0])}
+                  'X': (['NNN'], [1.0]),
+                  '-': (['---'], [1.0])}
 
     if seqbuddy.alpha != IUPAC.protein:
         raise TypeError("The input sequence needs to be IUPAC.protein'>, not %s" %
@@ -915,6 +920,8 @@ def back_translate(seqbuddy, mode='random', species=None):
                 if lookup_table[aa][1][i] > best[1]:
                     best = [lookup_table[aa][0][i], lookup_table[aa][1][i]]
             lookup_table[aa] = ([best[0]], [1.0])
+
+    clean_seq(seqbuddy, skip_list="\-*")
     originals = _make_copy(seqbuddy)
     for rec in seqbuddy.records:
         rec.features = []
@@ -929,9 +936,9 @@ def back_translate(seqbuddy, mode='random', species=None):
                     break
             rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
 
-    mapped_featuresseqbuddy = map_features_prot2nucl(originals, seqbuddy, mode="list")
-    mapped_featuresseqbuddy.out_format = seqbuddy.out_format
-    return mapped_featuresseqbuddy
+    seqbuddy.alpha = IUPAC.ambiguous_dna
+    map_features_prot2nucl(originals, seqbuddy, mode="list")
+    return seqbuddy
 
 
 def bl2seq(seqbuddy):
@@ -1101,19 +1108,27 @@ def clean_seq(seqbuddy, ambiguous=True, rep_char="N", skip_list=None):
     :param skip_list: Optional list of characters to be left alone
     :return: The cleaned SeqBuddy object
     """
+    seqbuddy_copy = _make_copy(seqbuddy)
     skip_list = "" if not skip_list else "".join(skip_list)
-    for rec in seqbuddy.records:
+    for rec, rec_copy in zip(seqbuddy.records, seqbuddy_copy.records):
         if rec.seq.alphabet == IUPAC.protein:
             full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
+            rec_copy.seq = Seq(re.sub("[^%s]" % full_skip, "-", str(rec.seq)),
+                               alphabet=rec.seq.alphabet)
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
                           alphabet=rec.seq.alphabet)
         else:
             full_skip = "ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s" % skip_list
+            rec_copy.seq = Seq(re.sub("[^%s]" % full_skip, "-", str(rec.seq)),
+                               alphabet=rec.seq.alphabet)
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
                           alphabet=rec.seq.alphabet)
             if not ambiguous:
                 full_skip = "ATGCUatgcu%s" % skip_list
                 rec.seq = Seq(re.sub("[^%s]" % full_skip, rep_char, str(rec.seq)), alphabet=rec.seq.alphabet)
+                rec_copy.seq = Seq(re.sub("[^%s]" % full_skip, rep_char, str(rec.seq)), alphabet=rec.seq.alphabet)
+
+    br.remap_gapped_features(seqbuddy_copy.records, seqbuddy.records)
     return seqbuddy
 
 
@@ -1911,6 +1926,7 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     :param regexes: Patterns to search for
     :return: The modified SeqBuddy object
     """
+    # ToDo: Features... Move and add.
     if regexes:
         recs_to_update = pull_recs(_make_copy(seqbuddy), regexes).to_dict()
     else:
@@ -1946,7 +1962,7 @@ def isoelectric_point(seqbuddy):
         iso_point = ProteinAnalysis(str(rec.seq))
         iso_point = round(iso_point.isoelectric_point(), 10)
         isoelectric_points[rec.id] = iso_point
-        rec.features.append(SeqFeature(location=FeatureLocation(start=1, end=len(rec.seq)), type='pI',
+        rec.features.append(SeqFeature(location=FeatureLocation(start=0, end=len(rec.seq)), type='pI',
                                        qualifiers={'value': iso_point}))
     return seqbuddy
 
@@ -2042,10 +2058,10 @@ def make_ids_unique(seqbuddy):
     return seqbuddy
 
 
-def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
+def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
     """
     Applies cDNA/mRNA features to protein sequences
-    :param dnaseqbuddy: A DNA SeqBuddy object with features to map
+    :param nuclseqbuddy: A DNA SeqBuddy object with features to map
     :param protseqbuddy: A protein SeqBuddy
     :param mode: Specify how sequences should be matched up {list, key}
             - list = records are mapped in index order
@@ -2053,7 +2069,6 @@ def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
     :param quiet: Suppress _stderr messages
     :return: A protein SeqBuddy with the DNA SeqBuddy's features
     """
-
     def _feature_map(feature):
         if type(feature.location) == CompoundLocation:
             new_compound_location = []
@@ -2070,21 +2085,23 @@ def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
 
         else:
             raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
-                            "not %s" % type(feature.location))
+                            "not %s" % type(feature.location))  # This should be un-reachable because of clean_seq call
         return feature
 
-    protseqbuddy = clean_seq(protseqbuddy, skip_list="*")
-    dnaseqbuddy = clean_seq(dnaseqbuddy)
+    prot_copy, nucl_copy = _make_copy(protseqbuddy), _make_copy(nuclseqbuddy)
+    clean_seq(prot_copy, skip_list="*")
+    clean_seq(nucl_copy)
+
     stderr_written = False
     if mode == "list":
-        if len(protseqbuddy.records) != len(dnaseqbuddy.records):
+        if len(prot_copy.records) != len(nucl_copy.records):
             raise ValueError("The two input files do not contain the same number of sequences")
 
-        record_map = list(zip(dnaseqbuddy.records, protseqbuddy.records))
+        record_map = list(zip(nucl_copy.records, prot_copy.records))
 
     elif mode == "key":
-        prot_dict = protseqbuddy.to_dict()
-        nucl_dict = dnaseqbuddy.to_dict()
+        prot_dict = prot_copy.to_dict()
+        nucl_dict = nucl_copy.to_dict()
 
         record_map = []
         for seq_id, nucl_rec in nucl_dict.items():
@@ -2121,28 +2138,23 @@ def map_features_nucl2prot(dnaseqbuddy, protseqbuddy, mode="key", quiet=False):
             if md5(str(feat).encode()).hexdigest() not in prot_feature_hashes:
                 prot_rec.features.append(feat)
 
+    protseqbuddy.records = br.remap_gapped_features(prot_copy.records, protseqbuddy.records)
     if stderr_written:
         _stderr("\n", quiet)
-
-    seqs_list = [prot for nucl, prot in record_map]
-    seqbuddy = SeqBuddy(seqs_list)
-    seqbuddy.out_format = dnaseqbuddy.out_format
-    seqbuddy.in_format = dnaseqbuddy.in_format
-    return seqbuddy
+    return protseqbuddy
 
 
-def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
+def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     """
     Applies protein features to cDNA/mRNA sequences
     :param protseqbuddy: A protein SeqBuddy object with features to map
-    :param dnaseqbuddy: A DNA SeqBuddy
+    :param nuclseqbuddy: A DNA SeqBuddy
     :param mode: Specify how sequences should be matched up {list, key}
             - list = records are mapped in index order
             - key = records are converted to a dict and matched by key
     :param quiet: Suppress _stderr messages
     :return: A DNA SeqBuddy with the protein SeqBuddy's features
     """
-
     def _feature_map(feature):
         if type(feature.location) == CompoundLocation:
             new_compound_location = []
@@ -2159,21 +2171,23 @@ def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
 
         else:
             raise TypeError("_feature_map requires a feature with either FeatureLocation or CompoundLocation, "
-                            "not %s" % type(feature.location))
+                            "not %s" % type(feature.location))  # This should be un-reachable because of clean_seq call
         return feature
 
-    protseqbuddy = clean_seq(protseqbuddy, skip_list="*")
-    dnaseqbuddy = clean_seq(dnaseqbuddy)
+    prot_copy, nucl_copy = _make_copy(protseqbuddy), _make_copy(nuclseqbuddy)
+    clean_seq(prot_copy, skip_list="*")
+    clean_seq(nucl_copy)
+
     stderr_written = False
     if mode == "list":
-        if len(protseqbuddy.records) != len(dnaseqbuddy.records):
-            raise ValueError("The two input files do not contain the same number of sequences")
+        if len(prot_copy.records) != len(nucl_copy.records):
+            raise ValueError("The two input files do not contain the same number of sequences, try using 'key' mode.")
 
-        record_map = list(zip(protseqbuddy.records, dnaseqbuddy.records))
+        record_map = list(zip(prot_copy.records, nucl_copy.records))
 
     elif mode == "key":
-        prot_dict = protseqbuddy.to_dict()
-        nucl_dict = dnaseqbuddy.to_dict()
+        prot_dict = prot_copy.to_dict()
+        nucl_dict = nucl_copy.to_dict()
 
         record_map = []
         for seq_id, prot_rec in prot_dict.items():
@@ -2217,14 +2231,10 @@ def map_features_prot2nucl(protseqbuddy, dnaseqbuddy, mode="key", quiet=False):
             if not set(prot_feature_hashes) & set(dna_feature_hashes):
                 nucl_rec.features.append(feat)
 
+    nuclseqbuddy.records = br.remap_gapped_features(nucl_copy.records, nuclseqbuddy.records)
     if stderr_written:
         _stderr("\n", quiet)
-
-    seqs_list = [nucl for prot, nucl in record_map]
-    seqbuddy = SeqBuddy(seqs_list)
-    seqbuddy.out_format = protseqbuddy.out_format
-    seqbuddy.in_format = protseqbuddy.in_format
-    return seqbuddy
+    return nuclseqbuddy
 
 
 def merge(*seqbuddy):
@@ -2609,7 +2619,7 @@ def select_frame(seqbuddy, frame, add_metadata=True):
                     del _feature.qualifiers["shift"]
 
         _rec.features = br.shift_features(_rec.features, len(_residues), len(_rec.seq))
-        _rec.description = re.sub("\(frame[23][A-Za-z]{1,2}\)", "", _rec.description).strip()
+        _rec.description = str(re.sub("\(frame[23][A-Za-z]{1,2}\)", "", _rec.description)).strip()
         return _rec
 
     if seqbuddy.alpha == IUPAC.protein:
@@ -2617,11 +2627,6 @@ def select_frame(seqbuddy, frame, add_metadata=True):
 
     for rec in seqbuddy.records:
         for indx, feature in enumerate(rec.features):
-            if feature.type == "frame_shift" and "residues" in feature.qualifiers:
-                rec = reset_frame(rec, feature.qualifiers["residues"][0])
-                del rec.features[indx]
-                continue
-
             if feature.location.start + 1 < frame and add_metadata:
                 feature.qualifiers["shift"] = [str(feature.location.start + 1 - frame)]
 
@@ -2631,10 +2636,8 @@ def select_frame(seqbuddy, frame, add_metadata=True):
 
         rec.features = br.shift_features(rec.features, (frame - 1) * -1, len(rec.seq))
         if frame in [2, 3] and add_metadata:
-            location = FeatureLocation(-1, 0)
             residues = str(rec.seq)[:frame - 1]
-            rec.features.append(SeqFeature(location=location, type="frame_shift", strand=1,
-                                           qualifiers={"residues": [residues]}))
+            rec.annotations["frame_shift"] = residues
             rec.description += " (frame%s%s)" % (frame, residues)
         rec.seq = Seq(str(rec.seq)[frame - 1:], alphabet=rec.seq.alphabet)
     return seqbuddy
@@ -2712,94 +2715,56 @@ def translate6frames(seqbuddy):
     return seqbuddy
 
 
-def translate_cds(seqbuddy, quiet=False):
+def translate_cds(seqbuddy, quiet=False, alignment=False):
     """
     Translates a nucleotide sequence into a protein sequence.
     :param seqbuddy: SeqBuddy object
     :param quiet: Suppress the errors thrown by translate(cds=True)
+    :param alignment: If the incoming sequence has gaps you want maintained, set to True. Otherwise they will be cleaned
     :return: The translated SeqBuddy object
     """
-    def trans(in_seq):
-        try:
-            in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
-            return in_seq
+    if seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Protein sequence cannot be translated.")
 
-        except TranslationError as e1:
-            _stderr("Warning: %s in %s\n" % (e1, in_seq.id), quiet)
-            return e1
+    codon_dict = {'---': '-', '--A': '-', '--C': '-', '--G': '-', '--T': '-', '-A-': '-', '-C-': '-', '-G-': '-',
+                  '-T-': '-', 'A--': '-', 'AAA': 'K', 'AAC': 'N', 'AAG': 'K', 'AAT': 'N', 'ACA': 'T', 'ACC': 'T',
+                  'ACG': 'T', 'ACT': 'T', 'AGA': 'R', 'AGC': 'S', 'AGG': 'R', 'AGT': 'S', 'ATA': 'I', 'ATC': 'I',
+                  'ATG': 'M', 'ATT': 'I', 'C--': '-', 'CAA': 'Q', 'CAC': 'H', 'CAG': 'Q', 'CAT': 'H', 'CCA': 'P',
+                  'CCC': 'P', 'CCG': 'P', 'CCT': 'P', 'CGA': 'R', 'CGC': 'R', 'CGG': 'R', 'CGT': 'R', 'CTA': 'L',
+                  'CTC': 'L', 'CTG': 'L', 'CTT': 'L', 'G--': '-', 'GAA': 'E', 'GAC': 'D', 'GAG': 'E', 'GAT': 'D',
+                  'GCA': 'A', 'GCC': 'A', 'GCG': 'A', 'GCT': 'A', 'GGA': 'G', 'GGC': 'G', 'GGG': 'G', 'GGT': 'G',
+                  'GTA': 'V', 'GTC': 'V', 'GTG': 'V', 'GTT': 'V', 'T--': '-', 'TAA': '*', 'TAC': 'Y', 'TAG': '*',
+                  'TAT': 'Y', 'TCA': 'S', 'TCC': 'S', 'TCG': 'S', 'TCT': 'S', 'TGA': '*', 'TGC': 'C', 'TGG': 'W',
+                  'TGT': 'C', 'TTA': 'L', 'TTC': 'F', 'TTG': 'L', 'TTT': 'F'}
 
-        except ValueError as e1:
-            if "Proteins cannot be translated" in str(e1):
-                raise TypeError("Record %s is protein." % in_seq.id)
-            else:
-                raise e1  # Hopefully never get here.
+    if not alignment:
+        clean_seq(seqbuddy)
 
-    clean_seq(seqbuddy, ambiguous=False, rep_char="N")
-    replace_subsequence(seqbuddy, "x", "N")
-    for rec in seqbuddy.records:  # Removes any frame shift annotations before translating
-        for indx, feature in enumerate(rec.features):
-            if feature.type == "frame_shift" and "residues" in feature.qualifiers:
-                del rec.features[indx]
-                break
-        rec.description = re.sub("\(frame[23]([A-Za-z]{1,2})\)", "", rec.description).strip()
+    if seqbuddy.alpha == IUPAC.ambiguous_rna:
+        rna2dna(seqbuddy)
 
     translated_sb = _make_copy(seqbuddy)
+    uppercase(translated_sb)
     for rec in translated_sb.records:
+        if rec.seq.alphabet == IUPAC.protein:
+            raise TypeError("Record %s is protein." % rec.id)
+
+        new_seq = ""
+        old_seq = str(rec.seq)
+        for codon in [old_seq[::1][i:i + 3][::1] for i in range(0, len(old_seq), 3)][::1]:
+            if len(codon) == 3:
+                if codon in codon_dict:
+                    new_seq += codon_dict[codon]
+                else:
+                    new_seq += "N"
+        new_seq = Seq(new_seq, IUPAC.protein)
+        rec.seq = new_seq
         rec.features = []
-        # Modify a copy of the sequence as needed to complete the cds translation
-        temp_seq = deepcopy(rec)
-        temp_seq.seq.alphabet = rec.seq.alphabet
-        valve = MyFuncs.SafetyValve(global_reps=1000)
-        while valve.test(str(temp_seq.seq), str(temp_seq)):
-            test_trans = trans(temp_seq)
-            # success
-            if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
-                break
 
-            # not standard length
-            if re.search("Sequence length [0-9]+ is not a multiple of three", str(test_trans)):
-                temp_seq.seq = Seq(str(temp_seq.seq)[:(len(str(temp_seq.seq)) - len(str(temp_seq.seq)) % 3)],
-                                   alphabet=temp_seq.seq.alphabet)
-                rec.seq = Seq(str(rec.seq)[:(len(str(rec.seq)) - len(str(rec.seq)) % 3)],
-                              alphabet=rec.seq.alphabet)
-                continue
-
-            # not a start codon
-            if re.search("First codon '[A-Za-z]{3}' is not a start codon", str(test_trans)):
-                temp_seq.seq = Seq("ATG" + str(temp_seq.seq)[3:], alphabet=temp_seq.seq.alphabet)
-                continue
-
-            # not a stop codon
-            if re.search("Final codon '[A-Za-z]{3}' is not a stop codon", str(test_trans)):
-                temp_seq.seq = Seq(str(temp_seq.seq) + "TGA", alphabet=temp_seq.seq.alphabet)
-                continue
-
-            # non-standard characters, this should be unreachable.
-            if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
-                regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
-                regex = "(?i)%s" % regex[0]
-                temp_seq.seq = Seq(re.sub(regex, "NNN", str(temp_seq.seq), count=1), alphabet=temp_seq.seq.alphabet)
-                rec.seq = Seq(re.sub(regex, "NNN", str(rec.seq), count=1), alphabet=rec.seq.alphabet)
-                continue
-
-            # internal stop codon(s) found
-            if re.search("Extra in frame stop codon found", str(test_trans)):
-                for i in range(round(len(str(temp_seq.seq)) / 3) - 1):
-                    codon = str(temp_seq.seq)[(i * 3):(i * 3 + 3)]
-                    if codon.upper() in ["TGA", "TAG", "TAA", "UGA", "UAG", "UAA"]:
-                        new_seq = str(temp_seq.seq)[:(i * 3)] + "NNN" + str(temp_seq.seq)[(i * 3 + 3):]
-                        temp_seq.seq = Seq(new_seq, alphabet=temp_seq.seq.alphabet)
-                continue
-
-            # Should be unreachable
-            raise RuntimeError("There were uncaught translation exceptions\n%s" % test_trans)
-
-        rec.seq = rec.seq.translate()
-        rec.seq.alphabet = IUPAC.protein
-
-    output = map_features_nucl2prot(seqbuddy, translated_sb, mode="list", quiet=quiet)
-    output.out_format = seqbuddy.out_format
-    seqbuddy = output
+    map_features_nucl2prot(seqbuddy, translated_sb, mode="list", quiet=quiet)
+    for indx, rec in enumerate(translated_sb.records):
+        seqbuddy.records[indx] = rec
+    seqbuddy.alpha = IUPAC.protein
     return seqbuddy
 
 
@@ -2893,7 +2858,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 check_string = [check_string]
             re_raise = True
             for _string in check_string:
-                if _string in str(_err):
+                if re.search(_string, str(_err)):
                     re_raise = False
                     break
             if re_raise:
@@ -3020,7 +2985,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
             _stdout(output_str)
         except RuntimeError as e:
-            _raise_error(e, "bl2seq", "not present in $PATH or working directory")
+            _raise_error(e, "bl2seq", "not present in \$PATH or working directory")
         _exit("bl2seq")
 
     # BLAST
@@ -3651,8 +3616,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except RuntimeError as e:
             _raise_error(e, "map_features_nucl2prot", "There are repeat IDs in self.records")
 
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
+        seqbuddy.out_format = in_args.out_format if in_args.out_format else "gb"
         _print_recs(seqbuddy)
         _exit("map_features_nucl2prot")
 
@@ -3677,8 +3641,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except RuntimeError as e:
             _raise_error(e, "map_features_nucl2prot", "There are repeat IDs in self.records")
 
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
+        seqbuddy.out_format = in_args.out_format if in_args.out_format else "gb"
         _print_recs(seqbuddy)
         _exit("map_features_prot2nucl")
 
@@ -3868,7 +3831,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         try:
             _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
         except TypeError as e:
-            _raise_error(e, "translate", ["Nucleic acid sequence required, not protein.", " is protein."])
+            _raise_error(e, "translate", ["Nucleic acid sequence required, not protein.", "Record .* is protein."])
         _exit("translate")
 
     # Translate 6 reading frames

@@ -1245,7 +1245,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                 check_string = [check_string]
             re_raise = True
             for _string in check_string:
-                if _string in str(_err):
+                if re.search(_string, str(_err)):
                     re_raise = False
                     break
             if re_raise:
