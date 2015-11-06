@@ -518,12 +518,19 @@ def ungap_feature_ends(feat, rec):
     :param rec: The original SeqRecord that the feature is derived from
     :return: The modified feature object
     """
+    if feat.location.start < 0:
+        feat.location = FeatureLocation(0, feat.location.end, feat.location.strand)
+
+    if feat.location.end < 0:
+        feat.location = FeatureLocation(feat.location.start, 0, feat.location.strand)
+
+    if feat.location.start > feat.location.end:
+            feat.location = FeatureLocation(feat.location.end, feat.location.start, feat.location.strand)
+
     if type(feat.location) == CompoundLocation:
         parts = []
         for part in feat.location.parts:
             part = ungap_feature_ends(SeqFeature(part), rec)
-            if not part:
-                continue
             parts.append(part.location)
         feat.location = CompoundLocation(parts, feat.location.operator)
 
@@ -552,11 +559,14 @@ def ungap_feature_ends(feat, rec):
     return feat
 
 
-def old2new(feat, old_rec, new_rec):
+def _old2new(feat, old_rec, new_rec):
+    if feat.location.start == feat.location.end == 0:
+        return feat
+
     if type(feat.location) == CompoundLocation:
         parts = []
         for part in feat.location.parts:
-            part = old2new(SeqFeature(part), old_rec, new_rec)
+            part = _old2new(SeqFeature(part), old_rec, new_rec)
             parts.append(part.location)
         feat.location = CompoundLocation(parts, feat.location.operator)
 
@@ -590,12 +600,8 @@ def old2new(feat, old_rec, new_rec):
                 if new_feat_seq == old_feat_seq:
                     end = indx + 1
                     break
-        start -= 1  # This is a hack so I can use the 'if not start' logic
-
-        if feat.location.start > feat.location.end:
-            feat.location = FeatureLocation(end, start, feat.location.strand)
-        else:
-            feat.location = FeatureLocation(start, end, feat.location.strand)
+        start -= 1
+        feat.location = FeatureLocation(start, end, feat.location.strand)
     else:
         raise TypeError("FeatureLocation or CompoundLocation object required.")
     return feat
@@ -610,16 +616,16 @@ def remap_gapped_features(old_records, new_records):
         old_rec.features = features
         features = []
         for feat in old_rec.features:
-            features.append(old2new(feat, old_rec, new_rec))
+            features.append(_old2new(feat, old_rec, new_rec))
         new_rec.features = features
     return new_records
 
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=291, github="https://github.com/biologyguy"),
-                Contributor("Karl", "Keat", commits=265, github="https://github.com/KarlKeat"),
-                Contributor("Jeremy", "Labarge", commits=1, github="https://github.com/biojerm")]
+contributors = [Contributor("Stephen", "Bond", commits=497, github="https://github.com/biologyguy"),
+                Contributor("Karl", "Keat", commits=299, github="https://github.com/KarlKeat"),
+                Contributor("Jeremy", "Labarge", commits=25, github="https://github.com/biojerm")]
 
 # NOTE: If this is added to, be sure to update the unit test!
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
@@ -921,10 +927,12 @@ sb_modifiers = {"alpha": {"flag": "a",
                              "action": "store_true",
                              "help": "Rewrite the input file in-place. Be careful!"},
                 "out_format": {"flag": "o",
+                               "metavar": "",
                                "action": "store",
                                "help": "If you want a specific format output"},
                 "params": {"flag": "p",
                            "action": "store",
+                           "metavar": "",
                            "nargs": "+",
                            "help": "Free form arguments for some functions"},
                 "quiet": {"flag": "q",
