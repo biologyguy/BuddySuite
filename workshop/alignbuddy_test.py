@@ -67,6 +67,8 @@ br.flags(parser, ("alignments", "The file(s) you want to start working on"),
 
 # This is to allow py.test to work with the -x flag
 parser.add_argument("-x", nargs="?")
+parser.add_argument("-m", nargs="?")
+parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
 in_args = parser.parse_args()
@@ -569,9 +571,9 @@ def test_consensus(alignbuddy, next_hash):
     assert align_to_hash(tester) == next_hash
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
-hashes = {'o d g': '3c7ecdcad18801a86c394de200ef6de9', 'o d n': '355a98dad5cf382797eb907e83940978',
+hashes = {'o d g': 'b418ba198da2b4a268a962db32cc2a31', 'o d n': '355a98dad5cf382797eb907e83940978',
           'o d py': 'fe9a2776558f3fe9a1732c777c4bc9ac', 'o d s': '35dc92c4f4697fb508eb1feca43d9d75',
-          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': 'f5e2184a88d3663528e011af80e2f6c0',
+          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': '45a2005c569d9c43af6049d89a3c3e6b',
           'o p n': '1cfaa4109c5db8fbfeaedabdc57af655', 'o p py': '1d0e7b4d8e89b42b0ef7cc8c40ed1a93',
           'o p s': '1578d98739d2aa6196463957c7b408fa', 'm d py': 'db4ed247b40707e8e1f0622bb420733b',
           'm d s': 'de5beddbc7f0a7f8e3dc2d5fd43b7b29', 'm p py': '31f91f7dc548e4b075bfb0fdd7d5c82c',
@@ -625,7 +627,7 @@ def test_back_transcribe_exceptions():  # Asserts that a TypeError will be throw
     assert "TypeError: RNA sequence required, not IUPACAmbiguousDNA()." in str(e)
 
 # ###########################################  '-et', '--enforce_triplets' ############################################ #
-hashes = {'o d g': '4fabe926e9d66c40b5833cda32506f4a', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
+hashes = {'o d g': '6ff2a8a7c58bb6ac0d98fe373981e220', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': 'b6cf61c86588023b58257c9008c862b5', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
           "m d py": "669ffc4fa602fb101c559cb576bddee1"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d r g n py").items()]
@@ -690,8 +692,8 @@ def test_cases(alignbuddy, uc_hash, lc_hash):
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
-hashes = {"o p n": "06befa060809bfcc8d4ceba16b2942e8", "o p pr": "57906e7e85db021f79366d95f64aef41",
-          "o p psr": "57906e7e85db021f79366d95f64aef41", "o p s": "21850752df36bafeabc6141f5f277071",
+hashes = {"o p n": "23e06e51f2f4261b051538c588d03276", "o p pr": "7c6b99ea7073ff151fcf09eb3192b978",
+          "o p psr": "7c6b99ea7073ff151fcf09eb3192b978", "o p s": "a8cb102f022559fb7e0ff72ee0423b6a",
           "o d n": "2d8b6524010177f6507dde387146378c", "o d pr": "eec68b8696f09d199e8a6b75e50ec18a",
           "o d psr": "eec68b8696f09d199e8a6b75e50ec18a", "o d s": "3b0fb43a76bb5057cc1bd001b36b9374"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
@@ -731,8 +733,8 @@ def test_order_ids(alignbuddy, fwd_hash, rev_hash):
 
 
 # ##################### '-pr', '--pull_records' ###################### ##
-hashes = {'o d g': '04572f1d4e58b678459692ef2747979f', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
-          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '5782b8de656ceb793a19e6d6e059f8df',
+hashes = {'o d g': '7d1091e16adc09e658563867e7c6bc35', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
+          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '8c0c8ea6afc0a4856c6f06a25ba04b08',
           'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
           'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
 
@@ -1154,7 +1156,7 @@ def test_enforce_triplets_ui(capsys):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "4fabe926e9d66c40b5833cda32506f4a"
+    assert string2hash(out) == "6ff2a8a7c58bb6ac0d98fe373981e220"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -1352,7 +1354,7 @@ def test_screw_formats_ui3(capsys):
     assert "ValueError: gb format does not support multiple alignments in one file." in err
 
 
-# ##################################  '-stf', '--split_alignbuddy' ################################### #
+# ##################################  '-stf', '--split_to_files' ################################### #
 hashes = [("clustal", "m p c"), ("phylip", "m p py"),
           ("phylip-relaxed", "m p pr"), ("phylipss", "m p pss"),
           ("phylipsr", "m p psr"), ("stockholm", "m p s")]

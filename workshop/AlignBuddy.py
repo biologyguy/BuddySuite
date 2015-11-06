@@ -404,12 +404,18 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     :return: The cleaned AlignBuddy object
     """
     records = alignbuddy.records()
+    # Protect gaps from being cleaned by Sb.clean_seq
     for rec in records:
         if rec.seq.alphabet == IUPAC.protein:
-            rec.seq = Seq(re.sub("\*", "-", str(rec.seq)), alphabet=IUPAC.protein)
+            rec.seq = Seq(re.sub("\*", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
+        rec.seq = Seq(re.sub("-", "�", str(rec.seq)), alphabet=rec.seq.alphabet)
 
-    skip_list = "\-" if not skip_list else "\-" + "".join(skip_list)
-    Sb.clean_seq(Sb.SeqBuddy(records), ambiguous, rep_char, skip_list)
+    skip_list = "�" if not skip_list else "�" + "".join(skip_list)
+
+    seqbuddy = Sb.SeqBuddy(records, alpha=alignbuddy.alpha)
+    Sb.clean_seq(seqbuddy, ambiguous, rep_char, skip_list)
+    for rec in records:
+        rec.seq = Seq(re.sub("�", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
     return alignbuddy
 
 
@@ -418,6 +424,7 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     Concatenates two or more alignments together, end-to-end
     :param alignbuddy: AlignBuddy object
     :param group_pattern: Regex that matches some regular part of the sequence IDs, dictating who is bound to who
+    :param align_name_pattern: Regex that matches something for the whole alignment
     :return: AlignBuddy object containing a single concatenated alignment
     """
     if len(alignbuddy.alignments) < 2:
@@ -585,7 +592,7 @@ def dna2rna(alignbuddy):  # Transcribe
     return alignbuddy
 
 
-def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
+def enforce_triplets(alignbuddy):
     """
     Organizes nucleotide alignment into triplets
     :param alignbuddy: AlignBuddy object
@@ -594,6 +601,7 @@ def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
+    alignbuddy_copy = make_copy(alignbuddy)
     for rec in alignbuddy.records_iter():
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Record '%s' is protein. Nucleic acid sequence required." % rec.name)
@@ -637,6 +645,8 @@ def enforce_triplets(alignbuddy):  # ToDo: Remove new columns with all gaps
             output += held_residues
 
         rec.seq = Seq(output, alphabet=rec.seq.alphabet)
+
+    br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     trimal(alignbuddy, "clean")
     return alignbuddy
 
@@ -932,103 +942,26 @@ def rna2dna(alignbuddy):  # Back-transcribe
     return alignbuddy
 
 
-def translate_cds(alignbuddy, quiet=False):  # adding 'quiet' will suppress the errors thrown by translate(cds=True)
+def translate_cds(alignbuddy):
     """
     Translates a nucleotide alignment into a protein alignment.
     :param alignbuddy: The AlignBuddy object to be translated
-    :param quiet: Suppress error messages and warnings
     :return: The translated AlignBuddy object
     """
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    def trans(in_seq):
-        try:
-            in_seq.seq = in_seq.seq.translate(cds=True, to_stop=True)
-            return in_seq
-
-        except TranslationError as e:
-            if not quiet:
-                sys.stderr.write("Warning: %s in %s\n" % (e, in_seq.id))
-            return e
-
-    def map_gaps(nucl, pep):
-        nucl = str(nucl.seq)
-        pep_string = str(pep.seq)
-        new_seq = ""
-        for _codon in [nucl[j:j + 3] for j in range(0, len(nucl), 3)]:
-            if _codon[0] not in GAP_CHARS:
-                new_seq += pep_string[0]
-                pep_string = pep_string[1:]
-
-            else:
-                new_seq += "-"
-        pep.seq = Seq(new_seq, alphabet=IUPAC.protein)
-        return pep
-
     enforce_triplets(alignbuddy)
-    copy_alignbuddy = make_copy(alignbuddy)
-    clean_seq(copy_alignbuddy, skip_list="RYWSMKHBVDNXrywsmkhbvdnx")
-    for align_indx, alignment in enumerate(copy_alignbuddy.alignments):
-        for rec_indx, rec in enumerate(alignment):
-            rec.features = []
-            while True:
-                test_trans = trans(deepcopy(rec))
-                # success
-                if str(type(test_trans)) == "<class 'Bio.SeqRecord.SeqRecord'>":
-                    break
 
-                # not standard length
-                if re.search("Sequence length [0-9]+ is not a multiple of three", str(test_trans)):
-                    orig_rec = alignbuddy.alignments[align_indx][rec_indx]
-                    orig_rec_seq = str(orig_rec.seq)
-                    for _ in range(len(str(rec.seq)) % 3):
-                        orig_rec_seq = re.sub(".([%s]+)$" % "".join(GAP_CHARS), r"\1-", orig_rec_seq)
-
-                    orig_rec.seq = Seq(orig_rec_seq, alphabet=orig_rec.seq.alphabet)
-
-                    rec.seq = Seq(str(rec.seq)[:(len(str(rec.seq)) - len(str(rec.seq)) % 3)],
-                                  alphabet=rec.seq.alphabet)
-                    continue
-
-                # not a start codon
-                if re.search("First codon '[A-Za-z]{3}' is not a start codon", str(test_trans)):
-                    rec.seq = Seq("ATG" + str(rec.seq)[3:], alphabet=rec.seq.alphabet)
-                    continue
-
-                # not a stop codon
-                if re.search("Final codon '[A-Za-z]{3}' is not a stop codon", str(test_trans)):
-                    rec.seq = Seq(str(rec.seq) + "TGA", alphabet=rec.seq.alphabet)
-                    continue
-
-                # non-standard characters
-                if re.search("Codon '[A-Za-z]{3}' is invalid", str(test_trans)):
-                    regex = re.findall("Codon '([A-Za-z]{3})' is invalid", str(test_trans))
-                    regex = "(?i)%s" % regex[0]
-                    rec.seq = Seq(re.sub(regex, "NNN", str(rec.seq), count=1), alphabet=rec.seq.alphabet)
-                    continue
-
-                # internal stop codon(s) found
-                if re.search("Extra in frame stop codon found", str(test_trans)):
-                    for i in range(round(len(str(rec.seq)) / 3) - 1):
-                        codon = str(rec.seq)[(i * 3):(i * 3 + 3)]
-                        if codon.upper() in ["TGA", "TAG", "TAA"]:
-                            stop_removed = str(rec.seq)[:(i * 3)] + "NNN" + str(rec.seq)[(i * 3 + 3):]
-                            rec.seq = Seq(stop_removed, alphabet=rec.seq.alphabet)
-                    continue
-
-                break  # Safety valve, should be unreachable
-
-            try:
-                rec.seq = rec.seq.translate()
-                rec.seq.alphabet = IUPAC.protein
-                rec = map_gaps(alignbuddy.alignments[align_indx][rec_indx], rec)
-                alignbuddy.alignments[align_indx][rec_indx].seq = Seq(str(rec.seq), alphabet=rec.seq.alphabet)
-
-            except TranslationError as e1:  # Should be unreachable
-                raise TranslationError("%s failed to translate  --> %s\n" % (rec.id, e1))
-
+    new_aligns = []
+    for alignment in alignbuddy.alignments:
+        seqbuddy = Sb.SeqBuddy(list(alignment))
+        Sb.replace_subsequence(seqbuddy, "\\".join(GAP_CHARS), "-")
+        Sb.translate_cds(seqbuddy, alignment=True)
+        alignment = MultipleSeqAlignment(seqbuddy.records, alphabet=IUPAC.protein)
+        new_aligns.append(alignment)
     alignbuddy.alpha = IUPAC.protein
+    alignbuddy.alignments = new_aligns
     return alignbuddy
 
 
@@ -1042,6 +975,7 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
     :param window_size: The window size
     :return: The trimmed AlignBuddy object
     """
+    alignbuddy_copy = make_copy(alignbuddy)
     for alignment_index, alignment in enumerate(alignbuddy.alignments):
         if not alignment:
             continue  # ToDo: This is a hack right now for empty alignments. Need something more robust.
@@ -1171,6 +1105,8 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
             alignbuddy.alignments[alignment_index] = new_alignment
         else:
             raise NotImplementedError("%s has not been implemented" % threshold)
+
+    br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     return alignbuddy
 
 
@@ -1610,7 +1546,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     # Translate CDS
     if in_args.translate:
         try:
-            _print_aligments(translate_cds(alignbuddy, quiet=in_args.quiet))
+            _print_aligments(translate_cds(alignbuddy))
         except TypeError as e:
             _raise_error(e, "translate", "Nucleic acid sequence required, not protein.")
         _exit("translate")
