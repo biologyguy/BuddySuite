@@ -573,7 +573,7 @@ def test_consensus(alignbuddy, next_hash):
 # ###########################################  '-dr', '--delete_records' ############################################ #
 hashes = {'o d g': 'b418ba198da2b4a268a962db32cc2a31', 'o d n': '355a98dad5cf382797eb907e83940978',
           'o d py': 'fe9a2776558f3fe9a1732c777c4bc9ac', 'o d s': '35dc92c4f4697fb508eb1feca43d9d75',
-          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': '45a2005c569d9c43af6049d89a3c3e6b',
+          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': '50e09d37a92af595f6fe881d4e57bfc5',
           'o p n': '1cfaa4109c5db8fbfeaedabdc57af655', 'o p py': '1d0e7b4d8e89b42b0ef7cc8c40ed1a93',
           'o p s': '1578d98739d2aa6196463957c7b408fa', 'm d py': 'db4ed247b40707e8e1f0622bb420733b',
           'm d s': 'de5beddbc7f0a7f8e3dc2d5fd43b7b29', 'm p py': '31f91f7dc548e4b075bfb0fdd7d5c82c',
@@ -692,10 +692,10 @@ def test_cases(alignbuddy, uc_hash, lc_hash):
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
-hashes = {"o p n": "23e06e51f2f4261b051538c588d03276", "o p pr": "7c6b99ea7073ff151fcf09eb3192b978",
-          "o p psr": "7c6b99ea7073ff151fcf09eb3192b978", "o p s": "a8cb102f022559fb7e0ff72ee0423b6a",
-          "o d n": "2d8b6524010177f6507dde387146378c", "o d pr": "eec68b8696f09d199e8a6b75e50ec18a",
-          "o d psr": "eec68b8696f09d199e8a6b75e50ec18a", "o d s": "3b0fb43a76bb5057cc1bd001b36b9374"}
+hashes = {"o p n": "79078260e8725a0d7ccbed9400c78eae", "o p pr": "8764f4dca44022041cf55f9495bf401a",
+          "o p psr": "8764f4dca44022041cf55f9495bf401a", "o p s": "372daf72435e2f1a06531b5c030995c6",
+          "o d n": "9fece109249f4d787c13e6fb2742843d", "o d pr": "899c6ab534f7af07e744eb173e94bd50",
+          "o d psr": "899c6ab534f7af07e744eb173e94bd50", "o d s": "79cf44688165842eba1bb45b3543d458"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
 
 
@@ -734,7 +734,7 @@ def test_order_ids(alignbuddy, fwd_hash, rev_hash):
 
 # ##################### '-pr', '--pull_records' ###################### ##
 hashes = {'o d g': '7d1091e16adc09e658563867e7c6bc35', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
-          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '8c0c8ea6afc0a4856c6f06a25ba04b08',
+          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '862eb17cff2f6cd20b9cf7835879c90b',
           'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
           'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
 
@@ -760,6 +760,38 @@ hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m 
 def test_rename_ids(alignbuddy, next_hash):
     Alb.rename(alignbuddy, 'Panx', 'Test', 0)
     assert align_to_hash(alignbuddy) == next_hash
+
+
+# ###########################################  'tr', '--translate' ############################################ #
+hashes = {'o d f': 'b7fe22a87fb78ce747d80e1d73e39c35', 'o d g': 'a949edce98525924dbbc3ced03c18214',
+          'o d n': 'a2586af672ad71f16bbd54f359b323ff', 'o d py': 'd0d4dd408e559215b2780f4f0ae0c418',
+          'o d pr': 'f77705e32cd753267916539ee0936e1f', 'o d pss': 'ede672b15221ec60981287ca1e286c52',
+          'o d psr': '623fe1634752e812f482cfa7b7ea20ee', 'o d s': '4ff563c39229d30aa3eda193cb290344',
+          'o d c': 'c3c5290aeff138fc4b8543ecad628cb7', 'm d py': '7fd28236f491c38ba261dfde20919595',
+          'm d pr': '0de676236eda864172b73b6abe4d7a05', 'm d pss': 'c7feff60c16b2b187e03db5d160a4748',
+          'm d psr': 'b5945f0317fe9ce8fc03ac7f4c0d5932', 'm d s': 'ee5a41b6f8b32645359beafc72efe825',
+          'm d c': '6f089b21f77cd62f5210e751128947ab'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d c f g n py pr psr pss s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_translate1(alignbuddy, next_hash, capsys):
+    tester = Alb.translate_cds(alignbuddy)
+    assert align_to_hash(tester) == next_hash
+
+
+def test_translate2():
+    # Protein input
+    with pytest.raises(TypeError) as e:
+        Alb.translate_cds(alb_resources.get_one('o p s'))
+    assert "Nucleic acid sequence required, not protein." in str(e)
+
+    tester = alb_resources.get_one('o d s')
+    tester.records()[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(TypeError) as e:
+        Alb.translate_cds(tester)
+    assert "Record 'Mle-Panxα9' is protein." in str(e)
 
 
 '''
@@ -951,47 +983,6 @@ def test_mafft_multi_param():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
-
-
-# ###########################################  'tr', '--translate' ############################################ #
-hashes = ["fa915eafb9eb0bfa0ed8563f0fdf0ef9", "5064c1d6ae6192a829972b7ec0f129ed", "ce423d5b99d5917fbef6f3b47df40513",
-          "2340addad40e714268d2523cdb17a78c", "6c66f5f63c5fb98f5855fb1c847486ad", "d9527fe1dfd2ea639df267bb8ee836f7"]
-hashes = [(Alb.make_copy(alb_objects[nucl_indices[indx]]), next_hash) for indx, next_hash in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_translate1(alignbuddy, next_hash, capsys):
-    tester = Alb.translate_cds(alignbuddy)
-    assert align_to_hash(tester) == next_hash
-
-    if next_hash == "6c66f5f63c5fb98f5855fb1c847486ad":
-        out, err = capsys.readouterr()
-        assert err == "Warning: First codon 'GGT' is not a start codon in Ael_PanxβQ___CDS\n"
-
-
-def test_translate2():
-    # Protein input
-    with pytest.raises(TypeError):
-        Alb.translate_cds(alb_objects[4])
-
-    # Non-standard length
-    tester = Alb.make_copy(alb_objects[0])
-    tester.alignments[0][0].seq = Seq(re.sub("-$", "t", str(tester.alignments[0][0].seq)),
-                                      alphabet=tester.alignments[0][0].seq.alphabet)
-    Alb.translate_cds(tester)
-    assert align_to_hash(tester) == "fa915eafb9eb0bfa0ed8563f0fdf0ef9"
-
-    # Final codon not stop and stop codon not at end of seq
-    tester = Alb.make_copy(alb_objects[0])
-    tester.alignments[0][0].seq = Seq(re.sub("---$", "ttt", str(tester.alignments[0][0].seq)),
-                                      alphabet=tester.alignments[0][0].seq.alphabet)
-    Alb.translate_cds(tester)
-    assert align_to_hash(tester) == "2ca5b0bac98226ee6a53e17503f12197"
-
-    # Non-standard codon
-    tester = Alb.AlignBuddy(resource("ambiguous_dna_alignment.fa"))
-    Alb.translate_cds(tester)
-    assert align_to_hash(tester) == "ab8fb45a38a6e5d553a29f3613bbc1a1"
 
 
 # ###########################################  'tm', '--trimal' ############################################ #
@@ -1212,10 +1203,10 @@ def test_map_features2alignment_ui(capsys):
     test_in_args.mapfeat2align = [resource("Mnemiopsis_cds.gb")]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "2d8b6524010177f6507dde387146378c"
+    assert string2hash(out) == "9fece109249f4d787c13e6fb2742843d"
 
 
-# ###############################################  '-ns', '--num_seqs' ################################################ #
+# ##############################################  '-ns', '--num_seqs'  ############################################### #
 def test_num_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.num_seqs = True
@@ -1235,7 +1226,7 @@ def test_num_seqs_ui(capsys):
         assert out == "13\n"
 
 
-# ###############################################  '-oi', '--order_ids' ################################################ #
+# ##############################################  '-oi', '--order_ids' ############################################### #
 def test_order_ids_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.order_ids = [False]
@@ -1412,6 +1403,20 @@ def test_transcribe_ui(capsys):
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"))
     out, err = capsys.readouterr()
     assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
+
+
+# ##################### '-tr', '--translate' ###################### ##
+def test_translate_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.translate = True
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "a949edce98525924dbbc3ced03c18214"
+
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"))
+    out, err = capsys.readouterr()
+    assert "Nucleic acid sequence required, not protein." in err
 
 
 # #################################### '-uc', '--uppercase' ################################### #

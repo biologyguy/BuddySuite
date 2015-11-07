@@ -846,7 +846,7 @@ def map_features2alignment(seqbuddy, alignbuddy):
                 if residue not in GAP_CHARS:
                     chars += 1
 
-                if chars - 1 == feat.location.start:
+                if not start and chars - 1 == feat.location.start:
                     start = int(indx)
 
                 if chars == feat.location.end:
