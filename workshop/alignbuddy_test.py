@@ -111,7 +111,7 @@ alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
 '''
 
 
-class Resources:
+class Resources(object):
     def __init__(self):
         one_dna = OrderedDict([("clustal", "Mnemiopsis_cds.clus"),
                                ("fasta", "Mnemiopsis_cds_aln.fa"),

@@ -65,7 +65,7 @@ VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
 
 
 # #################################################### ALIGNBUDDY #################################################### #
-class AlignBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
+class AlignBuddy(object):  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, in_format=None, out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below

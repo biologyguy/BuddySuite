@@ -173,7 +173,7 @@ if not in_args.cmd_line:
         in_args.cmd_line = True
 
 
-class BuddyInstall:
+class BuddyInstall(object):
     @staticmethod
     def download_blast_binaries(install_dir, current_path, _blastn=True, _blastp=True, _blastdcmd=True):
         binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'

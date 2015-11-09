@@ -33,7 +33,7 @@ import string
 from random import choice
 
 
-class Timer:
+class Timer(object):
     def __init__(self):
         self.current_time = round(time())
 
@@ -45,7 +45,7 @@ class Timer:
         return pretty_time(round(time()) - self.current_time)
 
 
-class RunTime:
+class RunTime(object):
     def __init__(self, prefix="", postfix="", out_type=stdout):
         self.check_file = TempFile()
         self.out_type = out_type
@@ -83,7 +83,7 @@ class RunTime:
 
 
 # maybe use curses library in the future to extend this for multi-line printing
-class DynamicPrint:
+class DynamicPrint(object):
     def __init__(self, out_type="stdout", quiet=False):
         self._last_print = ""
         self._next_print = ""
@@ -268,7 +268,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
         return
 
 
-class TempDir:
+class TempDir(object):
     def __init__(self):
         self.dir = next(self._make_dir())
         self.path = self.dir.name
@@ -306,7 +306,7 @@ class TempDir:
             return True
 
 
-class TempFile:
+class TempFile(object):
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
     def __init__(self, byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
@@ -368,7 +368,7 @@ class TempFile:
         return
 
 
-class SafetyValve:  # Use this class if you're afraid of an infinite loop
+class SafetyValve(object):  # Use this class if you're afraid of an infinite loop
     def __init__(self, global_reps=1000, state_reps=10, counter=0):
         self.counter = counter
         

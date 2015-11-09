@@ -124,7 +124,7 @@ OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "em
 
 
 # ##################################################### SEQBUDDY ##################################################### #
-class SeqBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
+class SeqBuddy(object):  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, sb_input, in_format=None, out_format=None, alpha=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below

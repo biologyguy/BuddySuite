@@ -121,7 +121,7 @@ PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
 
 # #################################################### PHYLOBUDDY #################################################### #
-class PhyloBuddy:
+class PhyloBuddy(object):
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below

@@ -60,7 +60,7 @@ class PhylipError(Exception):
         return self.value
 
 
-class Contributor:
+class Contributor(object):
     def __init__(self, first, last, middle="", commits=None, github=None):
         self.first = first.strip()
         self.middle = middle.strip()
@@ -89,7 +89,7 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
         return ', '.join(action.option_strings) + ' ' + args_string
 
 
-class Usage:
+class Usage(object):
     def __init__(self):
         self.config = config_values()
         if self.config["install_path"]:
@@ -148,7 +148,7 @@ class Usage:
         return
 
 
-class Version:
+class Version(object):
     def __init__(self, name, major, minor, _contributors, release_date=None):
         self.name = name
         self.major = major

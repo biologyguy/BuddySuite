@@ -89,7 +89,7 @@ DEF_FONT = "\033[39m"
 
 
 # ##################################################### DB BUDDY ##################################################### #
-class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a Seq object
+class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input=None, _databases=None, _out_format="summary"):
         self.search_terms = []
         self.records = OrderedDict()  # Record objects
@@ -389,7 +389,7 @@ class DbBuddy:  # Open a file or read a handle and parse, or convert raw into a 
 
 
 # ################################################# SUPPORT CLASSES ################################################## #
-class Record:
+class Record(object):
     def __init__(self, _accession, gi=None, _version=None, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
@@ -548,7 +548,7 @@ class Record:
                                                                                     self.record, self.type)
 
 
-class Failure:
+class Failure(object):
     def __init__(self, query, error_message):
         self.query = query
         self.error_msg = error_message
@@ -653,7 +653,7 @@ def check_type(_type):
 
 
 # ################################################# Database Clients ################################################# #
-class UniProtRestClient:
+class UniProtRestClient(object):
     # http://www.uniprot.org/help/uniprotkb_column_names
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
@@ -848,7 +848,7 @@ class UniProtRestClient:
                         self.dbbuddy.records[_rec.id].record = _rec
 
 
-class NCBIClient:
+class NCBIClient(object):
     def __init__(self, _dbbuddy):
         Entrez.email = CONFIG["email"]
         Entrez.tool = "buddysuite"
@@ -1327,7 +1327,7 @@ class NCBIClient:
                 _stderr("\n\tNCBI query interrupted by user\n")
 
 
-class EnsemblRestClient:
+class EnsemblRestClient(object):
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
         self.dbbuddy = _dbbuddy
         self.temp_dir = TempDir()
