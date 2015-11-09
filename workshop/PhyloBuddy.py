@@ -377,7 +377,7 @@ def _order_dendropy_features(node):
     return node
 
 
-def _make_copy(_phylobuddy):
+def make_copy(_phylobuddy):
     """
     Returns a copy of the PhyloBuddy object
     :param _phylobuddy: The PhyloBuddy object to be copied

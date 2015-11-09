@@ -247,7 +247,7 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
         self.records = sequences
 
     def to_dict(self):
-        sb_copy = find_repeats(_make_copy(self))
+        sb_copy = find_repeats(make_copy(self))
         if len(sb_copy.repeat_ids) > 0:
             raise RuntimeError("There are repeat IDs in self.records\n%s" %
                                ", ".join([key for key, recs in sb_copy.repeat_ids.items()]))
@@ -585,7 +585,7 @@ def _guess_format(_input):
         raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
-def _make_copy(seqbuddy):
+def make_copy(seqbuddy):
     """
     Deepcopy a SeqBuddy object. The alphabet objects are not handled properly when deepcopy is called,
     so need to wrap it.
@@ -643,7 +643,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
     :return: The updated SeqBuddy object
     """
     # http://www.insdc.org/files/feature_table.html
-    old = _make_copy(seqbuddy)
+    old = make_copy(seqbuddy)
     if pattern:
         recs = pull_recs(seqbuddy, pattern).records
     else:
@@ -922,7 +922,7 @@ def back_translate(seqbuddy, mode='random', species=None):
             lookup_table[aa] = ([best[0]], [1.0])
 
     clean_seq(seqbuddy, skip_list="\-*")
-    originals = _make_copy(seqbuddy)
+    originals = make_copy(seqbuddy)
     for rec in seqbuddy.records:
         rec.features = []
         dna_seq = ""
@@ -1108,7 +1108,7 @@ def clean_seq(seqbuddy, ambiguous=True, rep_char="N", skip_list=None):
     :param skip_list: Optional list of characters to be left alone
     :return: The cleaned SeqBuddy object
     """
-    seqbuddy_copy = _make_copy(seqbuddy)
+    seqbuddy_copy = make_copy(seqbuddy)
     skip_list = "" if not skip_list else "".join(skip_list)
     for rec, rec_copy in zip(seqbuddy.records, seqbuddy_copy.records):
         if rec.seq.alphabet == IUPAC.protein:
@@ -1494,7 +1494,7 @@ def delete_records(seqbuddy, patterns):
     retained_records = []
     for pattern in patterns:
         pattern = ".*" if pattern == "*" else pattern
-        deleted = [rec.id for rec in pull_recs(_make_copy(seqbuddy), pattern).records]
+        deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), pattern).records]
         for rec in seqbuddy.records:
             if rec.id in deleted:
                 continue
@@ -1517,7 +1517,7 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
         find_repeats(seqbuddy)
         if len(seqbuddy.repeat_ids) > 0:
             for rep_id in seqbuddy.repeat_ids:
-                store_one_copy = pull_recs(_make_copy(seqbuddy), "^%s$" % rep_id).records[0]
+                store_one_copy = pull_recs(make_copy(seqbuddy), "^%s$" % rep_id).records[0]
                 delete_records(seqbuddy, "^%s$" % rep_id)
                 seqbuddy.records.append(store_one_copy)
 
@@ -1748,7 +1748,7 @@ def find_repeats(seqbuddy):
     # First find replicate IDs
     # MD5 hash all sequences as we go for memory efficiency when looking for replicate sequences (below)
     # Need to work from a copy though, so sequences aren't overwritten
-    seqbuddy_copy = _make_copy(seqbuddy)
+    seqbuddy_copy = make_copy(seqbuddy)
     for rec in seqbuddy_copy.records:
         seq = str(rec.seq).encode()
         seq = md5(seq).hexdigest()
@@ -1928,7 +1928,7 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     """
     # ToDo: Features... Move and add.
     if regexes:
-        recs_to_update = pull_recs(_make_copy(seqbuddy), regexes).to_dict()
+        recs_to_update = pull_recs(make_copy(seqbuddy), regexes).to_dict()
     else:
         recs_to_update = seqbuddy.to_dict()
 
@@ -2028,7 +2028,7 @@ def make_groups(seqbuddy, split_patterns=(), num_chars=None, regex=None):
     if not recs_by_identifier["Unknown"]:
         del recs_by_identifier["Unknown"]
 
-    new_seqbuddies = [(identifier, _make_copy(seqbuddy)) for identifier in recs_by_identifier]
+    new_seqbuddies = [(identifier, make_copy(seqbuddy)) for identifier in recs_by_identifier]
     for identifier, sb in new_seqbuddies:
         sb.records = recs_by_identifier[identifier]
         sb.identifier = identifier
@@ -2088,7 +2088,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
                             "not %s" % type(feature.location))  # This should be un-reachable because of clean_seq call
         return feature
 
-    prot_copy, nucl_copy = _make_copy(protseqbuddy), _make_copy(nuclseqbuddy)
+    prot_copy, nucl_copy = make_copy(protseqbuddy), make_copy(nuclseqbuddy)
     clean_seq(prot_copy, skip_list="*")
     clean_seq(nucl_copy)
 
@@ -2174,7 +2174,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
                             "not %s" % type(feature.location))  # This should be un-reachable because of clean_seq call
         return feature
 
-    prot_copy, nucl_copy = _make_copy(protseqbuddy), _make_copy(nuclseqbuddy)
+    prot_copy, nucl_copy = make_copy(protseqbuddy), make_copy(nuclseqbuddy)
     clean_seq(prot_copy, skip_list="*")
     clean_seq(nucl_copy)
 
@@ -2415,7 +2415,7 @@ def order_ids_randomly(seqbuddy):
     valve = MyFuncs.SafetyValve(global_reps=1000)
     while valve.step("order_ids_randomly() was unable to reorder your sequences. This shouldn't happen, so please"
                      "contact the developers to let then know about this error."):
-        sb_copy = _make_copy(seqbuddy)
+        sb_copy = make_copy(seqbuddy)
         for _ in range(len(sb_copy.records)):
             random_index = randint(1, len(sb_copy.records)) - 1
             output.append(sb_copy.records.pop(random_index))
@@ -2682,10 +2682,10 @@ def translate6frames(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: The translated SeqBuddy object
     """
-    frame1, frame2, frame3 = _make_copy(seqbuddy), _make_copy(seqbuddy), _make_copy(seqbuddy)
+    frame1, frame2, frame3 = make_copy(seqbuddy), make_copy(seqbuddy), make_copy(seqbuddy)
     seqbuddy = reverse_complement(seqbuddy)
 
-    rframe1, rframe2, rframe3 = _make_copy(seqbuddy), _make_copy(seqbuddy), _make_copy(seqbuddy)
+    rframe1, rframe2, rframe3 = make_copy(seqbuddy), make_copy(seqbuddy), make_copy(seqbuddy)
 
     frame2 = select_frame(frame2, 2, add_metadata=False)
     frame3 = select_frame(frame3, 3, add_metadata=False)
@@ -2743,7 +2743,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
     if seqbuddy.alpha == IUPAC.ambiguous_rna:
         rna2dna(seqbuddy)
 
-    translated_sb = _make_copy(seqbuddy)
+    translated_sb = make_copy(seqbuddy)
     uppercase(translated_sb)
     for rec in translated_sb.records:
         if rec.seq.alphabet == IUPAC.protein:
@@ -3099,7 +3099,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         deleted_seqs = []
         for next_pattern in in_args.delete_records:
-            deleted_seqs += pull_recs(_make_copy(seqbuddy), next_pattern).records
+            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
 
         seqbuddy = delete_records(seqbuddy, in_args.delete_records)
 
