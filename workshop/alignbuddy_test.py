@@ -32,10 +32,12 @@ import argparse
 import io
 from copy import deepcopy
 from collections import OrderedDict
+from subprocess import Popen, PIPE
 
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio.Align import MultipleSeqAlignment
 
 sys.path.insert(0, "./")
 import MyFuncs
@@ -777,8 +779,8 @@ hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_translate1(alignbuddy, next_hash, capsys):
-    tester = Alb.translate_cds(alignbuddy)
-    assert align_to_hash(tester) == next_hash
+    Alb.translate_cds(alignbuddy)
+    assert align_to_hash(alignbuddy) == next_hash
 
 
 def test_translate2():
@@ -793,6 +795,51 @@ def test_translate2():
         Alb.translate_cds(tester)
     assert "Record 'Mle-Panxα9' is protein." in str(e)
 
+# ###########################################  'tm', '--trimal' ############################################ #
+hashes = {'o d psr': {0.25: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
+          'm d psr': {0.25: '69bec62782e5ccb3dc3fb2efd1f5f855', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
+          'o p psr': {0.25: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
+          'm p psr': {0.25: '1356ab1a73be4cbbf7e78bd5c9e48735', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d p psr").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,hash_dict", hashes)
+def test_trimal(alignbuddy, hash_dict):
+    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
+    Alb.trimal(tester1, 0.25)
+    assert align_to_hash(tester1) == hash_dict[0.25]
+    Alb.trimal(tester2, 25)
+    assert align_to_hash(tester2) == hash_dict[0.25]
+
+    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
+    Alb.trimal(tester1, 0.7)
+    assert align_to_hash(tester1) == hash_dict[0.7]
+    Alb.trimal(tester2, 70)
+    assert align_to_hash(tester2) == hash_dict[0.7]
+
+
+def test_trimal2():
+    assert align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
+    tester = alb_resources.get_one("o p n")
+    tester.alignments[0]._records = tester.alignments[0]._records[:5]
+    Alb.trimal(tester, 'clean')
+    assert align_to_hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
+    tester = alb_resources.get_one("o p n")
+    tester_dir = TEMP_DIR.subdir()
+    tester.write("%s/trimal" % tester_dir)
+    assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
+    real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
+    real_trimal = real_trimal[0].decode()
+    with open("%s/trimal" % tester_dir, "w") as ofile:
+        ofile.write(real_trimal)
+    tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
+    assert align_to_hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
+
+    records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]
+    tester = Alb.AlignBuddy([MultipleSeqAlignment(records)])
+    Alb.trimal(tester, "gappyout")
+    assert "".join([str(rec.seq) for rec in tester.records()]) == ""
 
 '''
 # ###########################################  'd2r', '--transcribe' ############################################ #
@@ -984,29 +1031,6 @@ def test_mafft_multi_param():
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
 
-
-# ###########################################  'tm', '--trimal' ############################################ #
-hashes = ['063e7f52f7c7f19da3a624730cd725a5', '0e2c65d9fc8d4b31cc352b3894837dc1', '4c08805a44e9a0cef08abc53c80f6b4c',
-          '9478e5441b88680470f3a4a4db537467', "b1bd83debd405431f290e2e2306a206e", '049b7f9170505ea0799004d964ef33fb',
-          '97ea3e55425894d3fe4b817deab003c3', '1f2a937d2c3b020121000822e62c4b96', '4690f58abd6d7f4f3c0d610ea25461c8',
-          'b8e65b0a00f55286d57aa76ccfcf04ab', '49a17364aa4bd086c7c432de7baabd07', '82aaad11c9496d8f7e959dd5ce06df4d',
-          '4e709de80531c358197f6e1f626c9c58']
-hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_trimal(alignbuddy, next_hash):
-    Alb.trimal(alignbuddy, .7)
-    assert align_to_hash(alignbuddy) == next_hash
-
-
-def test_trimal2():
-    tester = Alb.make_copy(alb_objects[8])
-    assert align_to_hash(Alb.trimal(tester, 'clean')) == "a94edb2636a7c9cf177993549371b3e6"
-    assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2ac19a0eecb9901211c1c98a7a203cc2"
-    assert align_to_hash(Alb.trimal(tester, 'all')) == "caebb7ace4940cea1b87667e5e113acb"
-    with pytest.raises(ValueError):
-        Alb.trimal(tester, "Foo")
 '''
 
 
@@ -1417,6 +1441,31 @@ def test_translate_ui(capsys):
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"))
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein." in err
+
+
+# ##################### '-trm', '--trimal' ###################### ##
+def test_trimal_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.trimal = [False]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ca4fa6e375cdd2a0afe5cdd211b792e8"
+
+    test_in_args.trimal = ["gappyout"]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "ca4fa6e375cdd2a0afe5cdd211b792e8"
+
+    test_in_args.trimal = [0.25]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "5df948e4b2cb6c0d0740984445655135"
+
+    test_in_args.trimal = ["foo"]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"))
+    out, err = capsys.readouterr()
+    assert "NotImplementedError: foo not an implemented trimal method\n" == err
 
 
 # #################################### '-uc', '--uppercase' ################################### #

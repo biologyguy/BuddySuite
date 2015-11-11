@@ -967,98 +967,95 @@ def translate_cds(alignbuddy):
 
 # http://trimal.cgenomics.org/_media/manual.b.pdf
 # ftp://trimal.cgenomics.org/trimal/
-def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken, test it
+def trimal(alignbuddy, threshold):  # ToDo: This might be broken, test it
     """
     Trims alignment gaps using algorithms from trimal
     :param alignbuddy: The AlignBuddy object to be trimmed
     :param threshold: The threshold value or trimming algorithm to be used
-    :param window_size: The window size
     :return: The trimmed AlignBuddy object
     """
+    def gappyout(_gap_distr):
+        _max_gaps = 0
+        # If there are no columns with zero gaps, scan through the distribution to find where the columns start
+        for i in _gap_distr:
+            if i == 0:
+                _max_gaps = i + 1
+            else:
+                break
+
+        max_slope = -1
+        slopes = [-1 for _ in range(len(alignment) + 1)]
+        max_iter = len(alignment) + 1
+        active_pointer = 0
+        while active_pointer < max_iter:
+            for i in _gap_distr:
+                if i == 0:
+                    active_pointer += 1
+                else:
+                    break
+
+            prev_pointer1 = int(active_pointer)
+            if active_pointer + 1 >= max_iter:
+                break
+
+            while True:
+                active_pointer += 1
+                if active_pointer + 1 >= max_iter or _gap_distr[active_pointer] != 0:
+                    break
+
+            prev_pointer2 = int(active_pointer)
+            if active_pointer + 1 >= max_iter:
+                break
+
+            while True:
+                active_pointer += 1
+                if active_pointer + 1 >= max_iter or _gap_distr[active_pointer] != 0:
+                    break
+
+            if active_pointer + 1 >= max_iter:
+                break
+
+            slopes[active_pointer] = (active_pointer - prev_pointer2) / len(alignment)
+            slopes[active_pointer] /= (_gap_distr[active_pointer] + _gap_distr[prev_pointer2]) / num_columns
+
+            if slopes[prev_pointer1] != -1:
+                if slopes[active_pointer] / slopes[prev_pointer1] > max_slope:
+                    max_slope = slopes[active_pointer] / slopes[prev_pointer1]
+                    _max_gaps = prev_pointer1
+            elif slopes[prev_pointer2] != -1:
+                if slopes[active_pointer] / slopes[prev_pointer2] > max_slope:
+                    max_slope = slopes[active_pointer] / slopes[prev_pointer2]
+                    _max_gaps = prev_pointer1
+
+            active_pointer = prev_pointer2
+
+        cuts = []
+        for col, gaps in enumerate(each_column):
+            if gaps <= _max_gaps:
+                cuts.append(col)
+
+        _new_alignment = alignment[:, 0:0]
+        for _col in cuts:
+            _new_alignment += alignment[:, _col:_col + 1]
+
+        return _new_alignment
+
     alignbuddy_copy = make_copy(alignbuddy)
     for alignment_index, alignment in enumerate(alignbuddy.alignments):
         if not alignment:
-            continue  # ToDo: This is a hack right now for empty alignments. Need something more robust.
+            continue  # Prevent crash if the alignment doesn't have any records in it
         # gap_distr is the number of columns w/ each possible number of gaps; the index is == to number of gaps
         gap_distr = [0 for _ in range(len(alignment) + 1)]
         num_columns = alignment.get_alignment_length()
         each_column = [0 for _ in range(num_columns)]
 
         max_gaps = 0
-
         for indx in range(num_columns):
-                num_gaps = len(re.findall("-", str(alignment[:, indx])))
-                gap_distr[num_gaps] += 1
-                each_column[indx] = num_gaps
+            num_gaps = len(re.findall("-", str(alignment[:, indx])))
+            gap_distr[num_gaps] += 1
+            each_column[indx] = num_gaps
 
-        def remove_cols(cuts):
-            _new_alignment = alignment[:, 0:0]
-            for _col in cuts:
-                _new_alignment += alignment[:, _col:_col + 1]
-            return _new_alignment
-
-        def gappyout():
-            for i in gap_distr:
-                if i == 0:
-                    _max_gaps = i + 1
-                else:
-                    break
-
-            max_slope = -1
-            slopes = [-1 for _ in range(len(alignment) + 1)]
-            max_iter = len(alignment) + 1
-            active_pointer = 0
-            while active_pointer < max_iter:
-                for i in gap_distr:
-                    if i == 0:
-                        active_pointer += 1
-                    else:
-                        break
-
-                prev_pointer1 = int(active_pointer)
-                if active_pointer + 1 >= max_iter:
-                    break
-
-                while True:
-                    active_pointer += 1
-                    if active_pointer + 1 >= max_iter or gap_distr[active_pointer] != 0:
-                        break
-
-                prev_pointer2 = int(active_pointer)
-                if active_pointer + 1 >= max_iter:
-                    break
-
-                while True:
-                    active_pointer += 1
-                    if active_pointer + 1 >= max_iter or gap_distr[active_pointer] != 0:
-                        break
-
-                if active_pointer + 1 >= max_iter:
-                    break
-
-                slopes[active_pointer] = (active_pointer - prev_pointer2) / len(alignment)
-                slopes[active_pointer] /= (gap_distr[active_pointer] + gap_distr[prev_pointer2]) / num_columns
-
-                if slopes[prev_pointer1] != -1:
-                    if slopes[active_pointer] / slopes[prev_pointer1] > max_slope:
-                        max_slope = slopes[active_pointer] / slopes[prev_pointer1]
-                        _max_gaps = prev_pointer1
-                elif slopes[prev_pointer2] != -1:
-                    if slopes[active_pointer] / slopes[prev_pointer2] > max_slope:
-                        max_slope = slopes[active_pointer] / slopes[prev_pointer2]
-                        _max_gaps = prev_pointer1
-
-                active_pointer = prev_pointer2
-
-            def mark_cuts():
-                cuts = []
-                for col, gaps in enumerate(each_column):
-                    if gaps <= _max_gaps:
-                        cuts.append(col)
-                return cuts
-
-            return remove_cols(mark_cuts())
-
+        # Remove any columns with any gaps
         if threshold in ["no_gaps", "all"]:
             threshold = 0
             new_alignment = alignment[:, 0:0]
@@ -1066,15 +1063,17 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
                 if num_gaps <= max_gaps:
                     new_alignment += alignment[:, next_col:next_col + 1]
 
-        if threshold == "clean":
+        # Remove any columns that contain nothing but gaps
+        elif threshold == "clean":
             max_gaps = len(alignment) - 1
             new_alignment = alignment[:, 0:0]
             for next_col, num_gaps in enumerate(each_column):
                 if num_gaps <= max_gaps:
                     new_alignment += alignment[:, next_col:next_col + 1]
 
+        # trimAl algorithm for removing gaps, depending on size of alignment and distribution of seqs
         elif threshold == "gappyout":
-            new_alignment = gappyout()
+            new_alignment = gappyout(gap_distr)
 
         elif threshold == "strict":  # ToDo: Implement
             new_alignment = False
@@ -1082,30 +1081,24 @@ def trimal(alignbuddy, threshold, window_size=1):  # ToDo: This might be broken,
         elif threshold == "strictplus":  # ToDo: Implement
             new_alignment = False
             pass
+        elif type(threshold) in [int, float]:
+            if threshold == 1:
+                _stderr("Warning: Ambiguous threshold of '1'. Assuming 100%, use 0.01 for 1%")
+
+            threshold = float(threshold)
+            threshold = 0.0001 if threshold == 0 else threshold
+            threshold = (threshold / 100) if threshold > 1 else threshold  # Allows percent or fraction
+
+            max_gaps = round(len(alignment) * threshold)
+
+            new_alignment = alignment[:, 0:0]
+            for next_col, num_gaps in enumerate(each_column):
+                if num_gaps <= max_gaps:
+                    new_alignment += alignment[:, next_col:next_col + 1]
         else:
-            try:
-                if threshold == 1:
-                    _stderr("Warning: Ambiguous threshold of '1'. Assuming 100%, use 0.01 for 1%")
+            raise NotImplementedError("%s not an implemented trimal method" % threshold)
 
-                threshold = float(threshold)
-                threshold = 0.0001 if threshold == 0 else threshold
-                threshold = (threshold / 100) if threshold > 1 else threshold  # Allows percent or fraction
-
-                max_gaps = round(len(alignment) * threshold)
-
-                new_alignment = alignment[:, 0:0]
-                for next_col, num_gaps in enumerate(each_column):
-                    if num_gaps <= max_gaps:
-                        new_alignment += alignment[:, next_col:next_col + 1]
-
-            except ValueError:
-                raise ValueError("Unable to understand the threshold parameter provided -> %s)" % threshold)
-
-        if new_alignment:
-            alignbuddy.alignments[alignment_index] = new_alignment
-        else:
-            raise NotImplementedError("%s has not been implemented" % threshold)
-
+        alignbuddy.alignments[alignment_index] = new_alignment
     br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     return alignbuddy
 
@@ -1553,8 +1546,18 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Trimal
     if in_args.trimal:
-        in_args.trimal = 1.0 if not in_args.trimal[0] else in_args.trimal[0]
-        _print_aligments(trimal(alignbuddy, in_args.trimal))
+        args = "gappyout" if not in_args.trimal[0] else in_args.trimal[0]
+        try:
+            args = float(args)
+        except ValueError as e:
+            if "could not convert string to float" in str(e):
+                pass
+            else:
+                _raise_error(e, "trimal")
+        try:
+            _print_aligments(trimal(alignbuddy, args))
+        except NotImplementedError as e:
+            _raise_error(e, "trimal", "not an implemented trimal method")
         _exit("trimal")
 
     # Transcribe
