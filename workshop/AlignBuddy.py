@@ -56,7 +56,7 @@ import MyFuncs
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
 # - Back-translate
-
+# - Support for MEGA, NBRF/PIR
 
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
@@ -965,11 +965,12 @@ def translate_cds(alignbuddy):
     return alignbuddy
 
 
-# http://trimal.cgenomics.org/_media/manual.b.pdf
-# ftp://trimal.cgenomics.org/trimal/
-def trimal(alignbuddy, threshold):  # ToDo: This might be broken, test it
+def trimal(alignbuddy, threshold):
     """
-    Trims alignment gaps using algorithms from trimal
+    Trims alignment gaps using algorithms from trimAl
+    Capella-Gutiérrez, S., Silla-Martínez, J. M., and Gabaldón, T. (2009).
+    trimAl: a tool for automated alignment trimming in large-scale phylogenetic analyses.
+    Bioinformatics 25, 1972–1973. doi:10.1093/bioinformatics/btp348.
     :param alignbuddy: The AlignBuddy object to be trimmed
     :param threshold: The threshold value or trimming algorithm to be used
     :return: The trimmed AlignBuddy object
@@ -1082,14 +1083,11 @@ def trimal(alignbuddy, threshold):  # ToDo: This might be broken, test it
             new_alignment = False
             pass
         elif type(threshold) in [int, float]:
-            if threshold == 1:
-                _stderr("Warning: Ambiguous threshold of '1'. Assuming 100%, use 0.01 for 1%")
-
-            threshold = float(threshold)
-            threshold = 0.0001 if threshold == 0 else threshold
-            threshold = (threshold / 100) if threshold > 1 else threshold  # Allows percent or fraction
-
-            max_gaps = round(len(alignment) * threshold)
+            if threshold >= 1:
+                max_gaps = round(threshold)
+            else:
+                threshold = 0.0001 if threshold == 0 else threshold
+                max_gaps = round(len(alignment) * threshold)
 
             new_alignment = alignment[:, 0:0]
             for next_col, num_gaps in enumerate(each_column):
@@ -1099,6 +1097,7 @@ def trimal(alignbuddy, threshold):  # ToDo: This might be broken, test it
             raise NotImplementedError("%s not an implemented trimal method" % threshold)
 
         alignbuddy.alignments[alignment_index] = new_alignment
+    # ToDo: Features are not mapping correctly. Mostly they are just totally broken, because the remap function
     br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     return alignbuddy
 
@@ -1548,7 +1547,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.trimal:
         args = "gappyout" if not in_args.trimal[0] else in_args.trimal[0]
         try:
-            args = float(args)
+            args = abs(float(args))
         except ValueError as e:
             if "could not convert string to float" in str(e):
                 pass

@@ -796,10 +796,10 @@ def test_translate2():
     assert "Record 'Mle-Panxα9' is protein." in str(e)
 
 # ###########################################  'tm', '--trimal' ############################################ #
-hashes = {'o d psr': {0.25: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
-          'm d psr': {0.25: '69bec62782e5ccb3dc3fb2efd1f5f855', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
-          'o p psr': {0.25: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
-          'm p psr': {0.25: '1356ab1a73be4cbbf7e78bd5c9e48735', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
+hashes = {'o d psr': {3: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
+          'm d psr': {3: '0e93f0a8c77da8ec974eeca311ca6636', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
+          'o p psr': {3: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
+          'm p psr': {3: 'f0f2115e29f6dfcb75036d90b06edab4', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
 
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d p psr").items()]
 
@@ -807,16 +807,12 @@ hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o 
 @pytest.mark.parametrize("alignbuddy,hash_dict", hashes)
 def test_trimal(alignbuddy, hash_dict):
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
-    Alb.trimal(tester1, 0.25)
-    assert align_to_hash(tester1) == hash_dict[0.25]
-    Alb.trimal(tester2, 25)
-    assert align_to_hash(tester2) == hash_dict[0.25]
+    Alb.trimal(tester1, 3)
+    assert align_to_hash(tester1) == hash_dict[3]
 
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 0.7)
     assert align_to_hash(tester1) == hash_dict[0.7]
-    Alb.trimal(tester2, 70)
-    assert align_to_hash(tester2) == hash_dict[0.7]
 
 
 def test_trimal2():
