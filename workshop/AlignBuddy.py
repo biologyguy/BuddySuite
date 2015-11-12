@@ -659,8 +659,13 @@ def extract_range(alignbuddy, start, end):
     :param end: The end residue (inclusive)
     :return: The modified AlignBuddy object
     """
+    alb_copy = make_copy(alignbuddy)
     for indx, alignment in enumerate(alignbuddy.alignments):
         alignbuddy.alignments[indx] = alignment[:, start:end]
+    for rec in alignbuddy.records():
+        rec.features = []
+
+    br.remap_gapped_features(alb_copy.records(), alignbuddy.records())
 
     return alignbuddy
 
@@ -674,8 +679,10 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     :param tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
     :param params: Additional parameters to be passed to the alignment tool
     :param keep_temp: Determines if/where the temporary files will be kept
+    :param quiet: Suppress stderr output
     :return: An AlignBuddy object containing the alignment produced.
     """
+    seqbuddy_copy = Sb.make_copy(seqbuddy)
     if params is None:
         params = ''
     tool = tool.lower()
@@ -691,7 +698,8 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                  'muscle': 'http://www.drive5.com/muscle/downloads.htm',
                  'clustalw': 'http://www.clustal.org/clustal2/#Download',
                  'clustalw2': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalomega': 'http://www.clustal.org/omega/#Download'}
+                 'clustalomega': 'http://www.clustal.org/omega/#Download',
+                 'clustalo': 'http://www.clustal.org/omega/#Download'}
 
     if tool not in tool_urls:
         raise AttributeError("{0} is not a supported alignment tool.".format(tool))
@@ -711,14 +719,12 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
         Sb.hash_sequence_ids(seqbuddy, 8)
 
-        output = ''
-
         seqbuddy.out_format = 'fasta'
         with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(seqbuddy))
-        if tool == 'clustalomega':
+        if tool in ['clustalomega', 'clustalo']:
             command = '{0} {1} -i {2}'.format(tool, params, tmp_in)
-        elif tool == 'clustalw2':
+        elif tool.startswith('clustal'):
             command = '{0} -infile={1} {2} -outfile={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
         elif tool == 'muscle':
             command = '{0} -in {1} {2}'.format(tool, tmp_in, params)
@@ -731,15 +737,22 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
         try:
             if tool in ['prank', 'pagan']:
-                Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+                if quiet:
+                    output = Popen(command, shell=True, universal_newlines=True,
+                                   stdout=PIPE, stderr=PIPE).communicate()
+                else:
+                    output = Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).communicate()
             else:
-                output = Popen(command, shell=True, stdout=PIPE).communicate()
+                if quiet:
+                    output = Popen(command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+                else:
+                    output = Popen(command, shell=True, stdout=PIPE).communicate()
                 output = output[0].decode()
         except CalledProcessError:
             _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
             sys.exit()
 
-        if tool.startswith('clustalw'):
+        if tool.startswith('clustal'):
             with open('{0}/result'.format(tmp_dir.path)) as result:
                 output = result.read()
         elif tool == 'prank':
@@ -767,7 +780,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         # Fix broken outputs to play nicely with AlignBuddy parsers
         if (tool == 'mafft' and '--clustalout' in params) or \
                 (tool.startswith('clustalw2') and '-output' not in params) or \
-                (tool == 'clustalomega' and ('clustal' in params or '--outfmt clu' in params or
+                (tool in ['clustalomega', 'clustalo'] and ('clustal' in params or '--outfmt clu' in params or
                  '--outfmt=clu' in params)):
             # Clustal format extra spaces
             contents = ''
@@ -788,7 +801,16 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                 else:
                     contents += line
             output = contents
-        alignbuddy = AlignBuddy(output)
+        alignbuddy = AlignBuddy(output, out_format=seqbuddy.in_format)
+
+        seqbuddy_recs = []
+        for alb_rec in alignbuddy.records():
+            for indx, sb_rec in enumerate(seqbuddy.records):
+                if sb_rec.id == alb_rec.id:
+                    seqbuddy_recs.append(sb_rec)
+                    del seqbuddy.records[indx]
+
+        br.remap_gapped_features(seqbuddy_copy.records, alignbuddy.records())
 
         for _hash, sb_rec in seqbuddy.hash_map.items():
             rename(alignbuddy, _hash, sb_rec)
@@ -814,7 +836,6 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                 pass
 
         _stderr("Returning to AlignBuddy...\n\n", quiet)
-
         return alignbuddy
 
 

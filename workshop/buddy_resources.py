@@ -565,23 +565,29 @@ def _old2new(feat, old_rec, new_rec):
     if type(feat.location) == CompoundLocation:
         parts = []
         for part in feat.location.parts:
-            part = _old2new(SeqFeature(part), old_rec, new_rec)
-            parts.append(part.location)
-        feat.location = CompoundLocation(parts, feat.location.operator)
-
+            new_part = _old2new(SeqFeature(part), old_rec, new_rec)
+            if new_part:
+                parts.append(new_part.location)
+        if len(parts) == 1:
+            feat.location = parts[0]
+        elif len(parts) > 1:
+            feat.location = CompoundLocation(parts, feat.location.operator)
+        else:
+            return None
     elif type(feat.location) == FeatureLocation:
         if feat.location.start > feat.location.end:
             start, end = feat.location.end, feat.location.start
         else:
             start, end = feat.location.start, feat.location.end
-        old_seq = str(old_rec.seq)
+        old_seq = str(old_rec.seq).lower()
+        new_seq = str(new_rec.seq).lower()
         old_front_seq = old_seq[:start]
         old_front_seq = re.sub("-", "", old_front_seq)
         old_feat_seq = old_seq[start:end]
         old_feat_seq = re.sub("-", "", old_feat_seq)
         start, end = 0, 0
         new_front_seq, new_feat_seq = "", ""
-        for indx, residue in enumerate(str(new_rec.seq)):
+        for indx, residue in enumerate(new_seq):
             if residue == "-":
                 continue
 
@@ -600,6 +606,9 @@ def _old2new(feat, old_rec, new_rec):
                     end = indx + 1
                     break
         start -= 1
+        if start == -1:
+            return None
+        end = end if end != 0 else len(new_seq)
         feat.location = FeatureLocation(start, end, feat.location.strand)
     else:
         raise TypeError("FeatureLocation or CompoundLocation object required.")
@@ -615,7 +624,9 @@ def remap_gapped_features(old_records, new_records):
         old_rec.features = features
         features = []
         for feat in old_rec.features:
-            features.append(_old2new(feat, old_rec, new_rec))
+            feat = _old2new(feat, old_rec, new_rec)
+            if feat:
+                features.append(feat)
         new_rec.features = features
     return new_records
 
