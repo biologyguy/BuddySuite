@@ -682,7 +682,6 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     :param quiet: Suppress stderr output
     :return: An AlignBuddy object containing the alignment produced.
     """
-    seqbuddy_copy = Sb.make_copy(seqbuddy)
     if params is None:
         params = ''
     tool = tool.lower()
@@ -720,10 +719,9 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         Sb.hash_sequence_ids(seqbuddy, 8)
 
         seqbuddy.out_format = 'fasta'
-        with open("{0}/tmp.fa".format(tmp_dir.path), 'w') as out_file:
-            out_file.write(str(seqbuddy))
+        seqbuddy.write(tmp_in)
         if tool in ['clustalomega', 'clustalo']:
-            command = '{0} {1} -i {2}'.format(tool, params, tmp_in)
+            command = '{0} {1} -i {2} -o {3}/result -v'.format(tool, params, tmp_in, tmp_dir.path)
         elif tool.startswith('clustal'):
             command = '{0} -infile={1} {2} -outfile={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
         elif tool == 'muscle':
@@ -736,7 +734,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
             command = '{0} {1} {2}'.format(tool, params, tmp_in)
 
         try:
-            if tool in ['prank', 'pagan']:
+            if tool in ['prank', 'pagan', 'clustalomega', 'clustalo']:
                 if quiet:
                     output = Popen(command, shell=True, universal_newlines=True,
                                    stdout=PIPE, stderr=PIPE).communicate()
@@ -809,8 +807,10 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                 if sb_rec.id == alb_rec.id:
                     seqbuddy_recs.append(sb_rec)
                     del seqbuddy.records[indx]
+                    break
 
-        br.remap_gapped_features(seqbuddy_copy.records, alignbuddy.records())
+        seqbuddy.records = seqbuddy_recs
+        br.remap_gapped_features(seqbuddy_recs, alignbuddy.records())
 
         for _hash, sb_rec in seqbuddy.hash_map.items():
             rename(alignbuddy, _hash, sb_rec)
