@@ -42,7 +42,9 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
  _**no extra download is required**_ unless you are developing (or want the bleeding edge).
  
 ## Standalone installation 
-#### This is still an Alpha version, but it seems to be working for Mac and Linux. It will not work on Windows.
+The installer will only run on Mac and Linux. If you would like to try the BuddySuite on Windows,
+ you will need to install the development version (see below).
+
 [Download the graphical installer](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py)
  and run it from the command line
     
@@ -50,16 +52,16 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
     $: chmod +x BuddySuite.py
     $: ./BuddySuite.py
 
-By default, the installer will place short form sym-links to the main tools in your PATH ('sb' for SeqBuddy, 'alb'
+By default, the installer will create short form sym-links for the main tools in your PATH ('sb' for SeqBuddy, 'alb'
  for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly ([examples in the
  wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each tool will also be
  added to PATH. If working outside the context of a graphical OS (on a cluster, for example), the installer may be run
  with the -cmd flag, which will walk you through the install processes directly from the command line.
 
-Once out of alpha, the installer will only bundle stable release versions of the BuddySuite. If bugs are found they will
- be fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
- to the development versions will not become available in the installer until the next release. Versions of each tool or
- the installer can be displayed using the -v flag.
+Once the BuddySuite moves out of beta, the installer will only bundle stable release versions of the BuddySuite. 
+ If bugs are found they will be fixed, but the *expected* behavior will not be changed once the release is finalized. 
+ Likewise, new features added to the development versions will not become available in the installer until the 
+ next release. Versions of each tool or the installer can be displayed using the -v flag.
 
 ## Development version installation
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
