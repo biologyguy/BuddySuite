@@ -41,12 +41,10 @@ from math import log, ceil
 sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
-from Bio.Align.AlignInfo import SummaryInfo
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
-from Bio.Data.CodonTable import TranslationError
 
 # BuddySuite specific
 import buddy_resources as br
@@ -179,7 +177,7 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
         return seq_recs
 
     def print(self):
-        print(str(self).rstrip())
+        print(str(self))
         return
 
     def __str__(self):
@@ -234,11 +232,14 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
 
             with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
                 output = ifile.read()
-        return "%s\n" % output.rstrip()
+        if self._out_format == "clustal":
+            return "%s\n\n" % output.rstrip()
+        else:
+            return "%s\n" % output.rstrip()
 
     def write(self, file_path):
         with open(file_path, "w") as ofile:
-            ofile.write("{0}\n".format(str(self).rstrip()))
+            ofile.write(str(self))
         return
 
 
@@ -1231,14 +1232,14 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             _in_place(_output, in_args.alignments[0])
 
         else:
-            _stdout("%s\n" % _output.rstrip())
+            _stdout("%s" % _output)
         return True
 
     def _in_place(_output, file_path):
         if not os.path.exists(file_path):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
-            _stderr("%s\n" % _output.rstrip(), in_args.quiet)
+            _stderr("%s" % _output, in_args.quiet)
         else:
             with open(os.path.abspath(file_path), "w") as _ofile:
                 _ofile.write(_output)
@@ -1421,13 +1422,13 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         else:
             seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
         params = in_args.params if in_args.params is None else in_args.params[0]
-        generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
-        if in_args.out_format:
-            generated_msas.set_format(in_args.out_format)
         try:
+            generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
+            if in_args.out_format:
+                generated_msas.set_format(in_args.out_format)
             _stdout(str(generated_msas))
         except AttributeError as e:
-            _raise_error(e, "generate_msa", "is not a valid alignment tool")
+            _raise_error(e, "generate_alignment", "is not a supported alignment tool")
         _exit("generate_alignment")
 
     # List identifiers

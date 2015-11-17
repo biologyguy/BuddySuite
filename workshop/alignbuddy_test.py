@@ -320,10 +320,10 @@ def test_records_iter():
 
 hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
           'o p py': '968ed9fa772e65750f201000d7da670f', 'o p pr': 'ce423d5b99d5917fbef6f3b47df40513',
-          "o p pss": "4bd927145de635c429b2917e0a1db176", "o p psr": "8ff80c7f0b8fc7f237060f94603c17be",
+          'o p pss': "4bd927145de635c429b2917e0a1db176", 'o p psr': "8ff80c7f0b8fc7f237060f94603c17be",
           'o p s': 'c0dce60745515b31a27de1f919083fe9',
 
-          'o d c': '778874422d0baadadcdfce81a2a81229', 'o d f': '98a3a08389284461ea9379c217e99770',
+          'o d c': '3c937c9fec251a42f0994caabb64420c', 'o d f': '98a3a08389284461ea9379c217e99770',
           'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
           'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d pr': '52c23bd793c9761b7c0f897d3d757c12',
           'o d pss': '4c0c1c0c63298786e6fb3db1385af4d5', 'o d psr': 'c5fb6a5ce437afa1a4004e4f8780ad68',
@@ -331,11 +331,11 @@ hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899
 
           'o r n': 'f3bd73151645359af5db50d2bdb6a33d',
 
-          'm p c': '1a043fcd3e0a2194102dfbf500cb267f', 'm p s': '3fd5805f61777f7f329767c5f0fb7467',
+          'm p c': 'f0e20a55f679ee492bb0b3be444b46f9', 'm p s': '3fd5805f61777f7f329767c5f0fb7467',
           'm p py': '2a77f5761d4f51b88cb86b079e564e3b', 'm p pr': '3fef9a05058a5259ebd517d1500388d4',
           'm p pss': 'eb82cda31fcb2cf00e11d7e910fde695', 'm p psr': 'a16c6e617e5a88fef080eea54e54e8a8',
 
-          'm d c': '5eacb9bf16780aeb5d031d10dc9bab6f', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d',
+          'm d c': '058ef1525cfc1364f26dd5a5bd6b97fb', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d',
           'm d py': '42679a32ebd93b628303865f68b0293d', 'm d pr': '22c0f0c8f014a34be8edd394bf477a2d',
           'm d pss': 'c789860da8f0b59e0adc7bde6342b4b0', 'm d psr': '28b2861275e0a488042cff35393ac36d'}
 
@@ -346,8 +346,7 @@ albs = [(hashes[key], alignbuddy) for key, alignbuddy in alb_resources.get("").i
 def test_print(next_hash, alignbuddy, capsys):
     alignbuddy.print()
     out, err = capsys.readouterr()
-    out = "{0}\n".format(out.rstrip())
-    tester = string2hash(out)
+    tester = string2hash(out[:-1])
     assert tester == next_hash
 
 
@@ -362,7 +361,7 @@ def test_str(next_hash, alignbuddy):
 def test_write1(next_hash, alignbuddy):
     temp_file = MyFuncs.TempFile()
     alignbuddy.write(temp_file.path)
-    out = "{0}\n".format(temp_file.read().rstrip())
+    out = temp_file.read()
     tester = string2hash(out)
     assert tester == next_hash
 
@@ -1313,7 +1312,7 @@ hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3
           ("nexus", "49bf9b3f56104e4f19048523d725f025"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
           ("phylipr", "5064c1d6ae6192a829972b7ec0f129ed"), ("phylipss", "4bd927145de635c429b2917e0a1db176"),
           ("phylipsr", "b46b57ede57f12c3c3b906681882f81a"), ("stockholm", "5d9a03d9e1b4bf72d991257d3a696306"),
-          ("clustal", "56e12ce0e8b6a4a0cb6e23059e8a12b0")]
+          ("clustal", "9d328711cf6f6750c33373a912efb521")]
 
 
 @pytest.mark.parametrize("_format,next_hash", hashes)
@@ -1325,7 +1324,7 @@ def test_screw_formats_ui(_format, next_hash, capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == next_hash
 
-hashes = [("clustal", "7ae7ee65637789edf11c272f7620c9db"), ("phylip", "2a77f5761d4f51b88cb86b079e564e3b"),
+hashes = [("clustal", "cf349d6061c602439b72b51368f694ed"), ("phylip", "2a77f5761d4f51b88cb86b079e564e3b"),
           ("phylipr", "1f172a3beef76e8e3d42698bb2c3c87d"), ("phylipss", "eb82cda31fcb2cf00e11d7e910fde695"),
           ("phylipsr", "368169cb86c6ddb7074ed89e2d42c4dd"), ("stockholm", "f221b9973aef4771169136a30bd030fa")]
 
