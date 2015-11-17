@@ -26,7 +26,6 @@ Description: Collection of PyTest unit tests for the AlignBuddy.py program
 import pytest
 from hashlib import md5
 import os
-import re
 import sys
 import argparse
 import io
@@ -491,7 +490,7 @@ def test_stdout(capsys):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-# ##########################################  '-al', '--alignment_lengths' ############################################ #
+# ##########################################  '-al', '--alignment_lengths' ########################################### #
 def test_alignment_lengths():
     lengths = Alb.alignment_lengths(alb_resources.get_one("m p c"))
     assert lengths[0] == 481
@@ -502,7 +501,7 @@ def test_alignment_lengths():
     assert lengths[1] == 1440
 
 
-# ##############################################  '-cs', '--clean_seqs' ############################################### #
+# ##############################################  '-cs', '--clean_seqs' ############################################## #
 def test_clean_seqs():
     # Test an amino acid file
     tester = Alb.clean_seq(alb_resources.get_one("m p py"))
@@ -598,7 +597,8 @@ r2d_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd3
               'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
               'm d py': '42679a32ebd93b628303865f68b0293d', 'm d s': 'ae352b908be94738d6d9cd54770e5b5d'}
 
-hashes = [(alignbuddy, d2r_hashes[key], r2d_hashes[key]) for key, alignbuddy in alb_resources.get("o m d g py s").items()]
+hashes = [(alignbuddy, d2r_hashes[key], r2d_hashes[key]) for
+          key, alignbuddy in alb_resources.get("o m d g py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,d2r_hash,r2d_hash", hashes)
@@ -628,7 +628,7 @@ def test_back_transcribe_exceptions():  # Asserts that a TypeError will be throw
         Alb.rna2dna(alb_resources.get_one("o d s"))
     assert "TypeError: RNA sequence required, not IUPACAmbiguousDNA()." in str(e)
 
-# ###########################################  '-et', '--enforce_triplets' ############################################ #
+# ###########################################  '-et', '--enforce_triplets' ########################################### #
 hashes = {'o d g': '6ff2a8a7c58bb6ac0d98fe373981e220', 'o d n': 'c907d29434fe2b45db60f1a9b70f110d',
           'o d py': 'b6cf61c86588023b58257c9008c862b5', 'o r n': '0ed7383ab2897f8350c2791739f0b0a4',
           "m d py": "669ffc4fa602fb101c559cb576bddee1"}
@@ -654,8 +654,8 @@ def test_enforce_triplets_error():
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
 # ###########################################  'er', '--extract_range' ############################################ #
-hashes = {'o d g': 'e90851d2b94c07f6ff5be35c4bacb683', 'o d n': '10ca718b74f3b137c083a766cb737f31',
-          'o d py': 'd738a9ab3ab200a7e013177e1042e86c', 'o p g': 'b094576bb8a5eadbc936235719530c6f',
+hashes = {'o d g': '4cef071777cfa87c45302f01b661b2c9', 'o d n': '10ca718b74f3b137c083a766cb737f31',
+          'o d py': 'd738a9ab3ab200a7e013177e1042e86c', 'o p g': '61646ba8e9e0adae2f57f078af9d0ad3',
           'o p n': '5f400edc6f0990c0cd6eb52ae7687e39', 'o p py': '69c9ad73ae02525150d4682f9dd68093',
           "m d py": "d06ba679c8a686c8f077bb460a4193b0", "m p py": "8151eeda36b9a170512709829d70230b"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
@@ -1445,12 +1445,12 @@ def test_trimal_ui(capsys):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "ca4fa6e375cdd2a0afe5cdd211b792e8"
+    assert string2hash(out) == "14d48179ced1973adfe06cf85f04cf27"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "ca4fa6e375cdd2a0afe5cdd211b792e8"
+    assert string2hash(out) == "14d48179ced1973adfe06cf85f04cf27"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)
