@@ -45,7 +45,7 @@ import buddy_resources as br
 
 import argparse
 
-_version = br.Version("BuddySuite", 1, 'alpha', br.contributors)
+_version = br.Version("BuddySuite", 1, 'beta', br.contributors)
 
 
 def fmt(prog):
@@ -833,7 +833,12 @@ class Installer(Frame):
             self.buddies[buddy] = False
         self.confirmation()
 
-    def welcome(self):
+    def welcome(self, *args):
+        if args:
+            print("Installation terminated because License Agreement was not accepted. If you are seeing this note, "
+                  "and did not click 'cancel' on the indicated page, please contact the developers with a bug report.")
+            sys.exit()
+
         self.clear_container()
         title_frame = Frame()
         welcome_label = Label(title_frame, image=self.bs_logo)
