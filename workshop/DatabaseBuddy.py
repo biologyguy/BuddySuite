@@ -72,7 +72,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, 'alpha', br.contributors)
+VERSION = br.Version("DatabaseBuddy", 1, 'beta', br.contributors)
 
 GREY = "\033[90m"
 RED = "\033[91m"
