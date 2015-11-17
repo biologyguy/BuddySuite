@@ -59,7 +59,7 @@ import MyFuncs
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, 'alpha', br.contributors)
+VERSION = br.Version("AlignBuddy", 1, 'beta', br.contributors)
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -1138,12 +1138,25 @@ def uppercase(alignbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     # Catching params to prevent weird collisions with alignment program arguments
-    if '--params' in sys.argv:
-        sys.argv[sys.argv.index('--params')] = '-p'
-    if '-p' in sys.argv:
-        arg_index = sys.argv.index('-p')
-        params = '-p' + sys.argv.pop(arg_index + 1)
-        sys.argv[arg_index] = params
+    if '--generate_alignment' in sys.argv:
+        sys.argv[sys.argv.index('--generate_alignment')] = '-ga'
+    if '-ga' in sys.argv:
+        ga_indx = sys.argv.index('-ga')
+        if len(sys.argv) > ga_indx + 1:
+            extra_args = None
+            for indx, param in enumerate(sys.argv[ga_indx + 1:]):
+                if param in ["-f", "--in_format", "-i", "--in_place", "-k", "--keep_temp", "-o", "--out_format",
+                             "-q", "--quiet", "-t", "--test"]:
+                    extra_args = ga_indx + 1 + indx
+                    break
+
+            if extra_args == ga_indx + 1 or extra_args == ga_indx + 2:
+                # No conflicts possible, continue on your way
+                pass
+
+            elif len(sys.argv) > ga_indx + 2 or extra_args:
+                # There must be optional arguments being passed into the alignment tool
+                sys.argv[ga_indx + 2] = "%s " % sys.argv[ga_indx + 2].rstrip()
 
     import argparse
 
@@ -1409,6 +1422,16 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
     # Generate Alignment
     if in_args.generate_alignment:
+        args = in_args.generate_alignment[0]
+        if not args:
+            for tool in ['mafft', 'pagan', 'muscle', 'clustalomega', 'prank', 'clustalw2']:
+                if which(tool):
+                    args = [tool]
+                    break
+        if not args:
+            _raise_error(AttributeError("Unable to identify any supported alignment tools on your system."),
+                         "generate_alignment")
+
         seqbuddy = []
         seq_set = None
         for seq_set in in_args.alignments:
@@ -1421,9 +1444,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
         else:
             seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
-        params = in_args.params if in_args.params is None else in_args.params[0]
+
+        params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
+
         try:
-            generated_msas = generate_msa(seqbuddy, in_args.generate_alignment[0], params, in_args.keep_temp, in_args.quiet)
+            generated_msas = generate_msa(seqbuddy, args[0], params, in_args.keep_temp, in_args.quiet)
             if in_args.out_format:
                 generated_msas.set_format(in_args.out_format)
             _stdout(str(generated_msas))

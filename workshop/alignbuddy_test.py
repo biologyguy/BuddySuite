@@ -665,194 +665,7 @@ def test_extract_range(alignbuddy, next_hash):
     tester = Alb.extract_range(alignbuddy, 0, 50)
     assert align_to_hash(tester) == next_hash
 
-
-# #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
-uc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': '52e74a09c305d031fc5263d1751e265d',
-             'o d py': 'cfe6cb9c80aebd353cf0378a6d284239', 'o d s': 'b82538a4630810c004dc8a4c2d5165ce',
-             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '8b6737fe33058121fd99d2deee2f9a76',
-             'o p py': '968ed9fa772e65750f201000d7da670f', 'o p s': 'f35cbc6e929c51481e4ec31e95671638',
-             'm d py': '6259e675def07bd4977f4ab1f5ffc26d', 'm d s': 'f3f7b66ef034d3807683a2d5a0c44cad',
-             'm p py': '2a77f5761d4f51b88cb86b079e564e3b', 'm p s': '6f3f234d796520c521cb85c66a3e239a'}
-
-lc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
-             'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
-             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
-             'o p py': 'aacda2f5d4077f23926400f74afa2f46', 'o p s': 'c0dce60745515b31a27de1f919083fe9',
-             'm d py': '0974ac9aefb2fb540957f15c4869c242', 'm d s': 'a217b9f6000f9eeff98faeb9fd09efe4',
-             'm p py': 'd13551548c9c1e966d0519755a8fb4eb', 'm p s': '00661f7afb419c6bb8c9ac654af7c976'}
-
-hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alb_resources.get("o m d p g py s").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
-def test_cases(alignbuddy, uc_hash, lc_hash):
-    tester = Alb.uppercase(alignbuddy)
-    assert align_to_hash(tester) == uc_hash
-    tester = Alb.lowercase(tester)
-    assert align_to_hash(tester) == lc_hash
-
-
-# ##################### '-mf2a', '--map_features2alignment' ###################### ##
-hashes = {"o p n": "79078260e8725a0d7ccbed9400c78eae", "o p pr": "8764f4dca44022041cf55f9495bf401a",
-          "o p psr": "8764f4dca44022041cf55f9495bf401a", "o p s": "372daf72435e2f1a06531b5c030995c6",
-          "o d n": "9fece109249f4d787c13e6fb2742843d", "o d pr": "899c6ab534f7af07e744eb173e94bd50",
-          "o d psr": "899c6ab534f7af07e744eb173e94bd50", "o d s": "79cf44688165842eba1bb45b3543d458"}
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_map_features2alignment(alignbuddy, next_hash):
-    if alignbuddy.alpha == IUPAC.protein:
-        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.gb"))
-    else:
-        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
-    tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
-    tester.set_format("genbank")
-    assert align_to_hash(tester) == next_hash
-
-
-# ###########################################  '-oi', '--order_ids' ############################################ #
-fwd_hashes = {'o d g': 'acf68c9196faa0960007abc40ba87244', 'o d n': '60bbc6306cbb4eb903b1212718bb4592',
-              'o d py': '3c49bdc1b0fe4e1d6bfc148eb0293e21', 'o p g': '7fb69602ffac95a5eecd106876640fcc',
-              'o p n': '9a790b9525ca8b1ac3cae3b98ca24b30', 'o p py': 'ffae954adc0d362354e43c1b70d9be29',
-              'm d py': 'a44938e26e4b35967ed8e17a0eaebe4c', 'm p py': '5bdda310b29b18057e056f3c982446b2'}
-
-rev_hashes = {'o d g': 'a593a2cd979f52c356c61e10ca9a1317', 'o d n': '82fea6e3d3615ac75ec5022abce255da',
-              'o d py': 'd6e79a5faeaff396aa7eab0b460c3eb9', 'o p g': '39af830e6d3605ea1dd04979a4a33f54',
-              'o p n': '85b3562b0eb0246d7dab56a4bcc6e2ae', 'o p py': 'f4c0924087fdb624823d02e909d94e95',
-              'm d py': '9d6b6087d07f7d1fd701591ab7cb576d', 'm p py': '439f57b891dd2a72724b10c124f96378'}
-hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)
-def test_order_ids(alignbuddy, fwd_hash, rev_hash):
-    Alb.order_ids(alignbuddy)
-    assert align_to_hash(alignbuddy) == fwd_hash
-
-    Alb.order_ids(alignbuddy, reverse=True)
-    assert align_to_hash(alignbuddy) == rev_hash
-
-
-# ##################### '-pr', '--pull_records' ###################### ##
-hashes = {'o d g': '7d1091e16adc09e658563867e7c6bc35', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
-          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '862eb17cff2f6cd20b9cf7835879c90b',
-          'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
-          'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
-
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_pull_records(alignbuddy, next_hash):
-    Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
-    assert align_to_hash(alignbuddy) == next_hash
-
-
-# ###########################################  '-ri', '--rename_ids' ############################################ #
-hashes = {'o d g': 'c35db8b8353ef2fb468b0981bd960a38', 'o d n': '243024bfd2f686e6a6e0ef65aa963494',
-          'o d py': '98bb9b57f97555d863054ddb526055b4', 'o p g': '2e4e3c365cd011821bcdc6275a3559af',
-          'o p n': '3598e85169ed3bcdbcb676bb2eb6cef0', 'o p py': 'd49eb4de01d727b9e3ad648d6a04a3c9',
-          'm d py': 'ddfffd9b999637abf7f5926f017de987', 'm p py': '0a68229bd13439040f045cd8c72d7cc9'}
-
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_rename_ids(alignbuddy, next_hash):
-    Alb.rename(alignbuddy, 'Panx', 'Test', 0)
-    assert align_to_hash(alignbuddy) == next_hash
-
-
-# ###########################################  'tr', '--translate' ############################################ #
-hashes = {'o d f': 'b7fe22a87fb78ce747d80e1d73e39c35', 'o d g': 'a949edce98525924dbbc3ced03c18214',
-          'o d n': 'a2586af672ad71f16bbd54f359b323ff', 'o d py': 'd0d4dd408e559215b2780f4f0ae0c418',
-          'o d pr': 'f77705e32cd753267916539ee0936e1f', 'o d pss': 'ede672b15221ec60981287ca1e286c52',
-          'o d psr': '623fe1634752e812f482cfa7b7ea20ee', 'o d s': '4ff563c39229d30aa3eda193cb290344',
-          'o d c': 'c3c5290aeff138fc4b8543ecad628cb7', 'm d py': '7fd28236f491c38ba261dfde20919595',
-          'm d pr': '0de676236eda864172b73b6abe4d7a05', 'm d pss': 'c7feff60c16b2b187e03db5d160a4748',
-          'm d psr': 'b5945f0317fe9ce8fc03ac7f4c0d5932', 'm d s': 'ee5a41b6f8b32645359beafc72efe825',
-          'm d c': '6f089b21f77cd62f5210e751128947ab'}
-
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d c f g n py pr psr pss s").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
-def test_translate1(alignbuddy, next_hash, capsys):
-    Alb.translate_cds(alignbuddy)
-    assert align_to_hash(alignbuddy) == next_hash
-
-
-def test_translate2():
-    # Protein input
-    with pytest.raises(TypeError) as e:
-        Alb.translate_cds(alb_resources.get_one('o p s'))
-    assert "Nucleic acid sequence required, not protein." in str(e)
-
-    tester = alb_resources.get_one('o d s')
-    tester.records()[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(TypeError) as e:
-        Alb.translate_cds(tester)
-    assert "Record 'Mle-Panxα9' is protein." in str(e)
-
-# ###########################################  'tm', '--trimal' ############################################ #
-hashes = {'o d psr': {3: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
-          'm d psr': {3: '0e93f0a8c77da8ec974eeca311ca6636', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
-          'o p psr': {3: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
-          'm p psr': {3: 'f0f2115e29f6dfcb75036d90b06edab4', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
-
-hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d p psr").items()]
-
-
-@pytest.mark.parametrize("alignbuddy,hash_dict", hashes)
-def test_trimal(alignbuddy, hash_dict):
-    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
-    Alb.trimal(tester1, 3)
-    assert align_to_hash(tester1) == hash_dict[3]
-
-    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
-    Alb.trimal(tester1, 0.7)
-    assert align_to_hash(tester1) == hash_dict[0.7]
-
-
-def test_trimal2():
-    assert align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
-    tester = alb_resources.get_one("o p n")
-    tester.alignments[0]._records = tester.alignments[0]._records[:5]
-    Alb.trimal(tester, 'clean')
-    assert align_to_hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
-    tester = alb_resources.get_one("o p n")
-    tester_dir = TEMP_DIR.subdir()
-    tester.write("%s/trimal" % tester_dir)
-    assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
-    real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
-    real_trimal = real_trimal[0].decode()
-    with open("%s/trimal" % tester_dir, "w") as ofile:
-        ofile.write(real_trimal)
-    tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
-    assert align_to_hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
-
-    records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]
-    tester = Alb.AlignBuddy([MultipleSeqAlignment(records)])
-    Alb.trimal(tester, "gappyout")
-    assert "".join([str(rec.seq) for rec in tester.records()]) == ""
-
 '''
-# ###########################################  'd2r', '--transcribe' ############################################ #
-d2r_hashes = ['e531dc31f24192f90aa1f4b6195185b0', 'b34e4d1dcf0a3a36d36f2be630934d29',
-              'a083e03b4e0242fa3c23afa80424d670', '45b511f34653e3b984e412182edee3ca']
-d2r_hashes = [(Alb.make_copy(alb_objects[x]), value) for x, value in enumerate(d2r_hashes)]
-
-
-@pytest.mark.parametrize("alignbuddy, next_hash", d2r_hashes)
-def test_transcribe(alignbuddy, next_hash):
-    assert align_to_hash(Alb.dna2rna(alignbuddy)) == next_hash
-
-
-def test_transcribe_pep_exception():
-    with pytest.raises(ValueError):
-        Alb.dna2rna(deepcopy(alb_objects[4]))
-
-
 # ###########################################  'ga', '--generate_alignment' ########################################## #
 # This is tested for PAGAN version 0.61
 @pytest.mark.generate_alignments
@@ -1025,8 +838,177 @@ def test_mafft_multi_param():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == '2b8bf89e7459fe9d0b1f29628df6307e'
-
 '''
+
+# #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
+uc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': '52e74a09c305d031fc5263d1751e265d',
+             'o d py': 'cfe6cb9c80aebd353cf0378a6d284239', 'o d s': 'b82538a4630810c004dc8a4c2d5165ce',
+             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '8b6737fe33058121fd99d2deee2f9a76',
+             'o p py': '968ed9fa772e65750f201000d7da670f', 'o p s': 'f35cbc6e929c51481e4ec31e95671638',
+             'm d py': '6259e675def07bd4977f4ab1f5ffc26d', 'm d s': 'f3f7b66ef034d3807683a2d5a0c44cad',
+             'm p py': '2a77f5761d4f51b88cb86b079e564e3b', 'm p s': '6f3f234d796520c521cb85c66a3e239a'}
+
+lc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd357771a97a02ae2160935d',
+             'o d py': '503e23720beea201f8fadf5dabda75e4', 'o d s': '228e36a30e8433e4ee2cd78c3290fa6b',
+             'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
+             'o p py': 'aacda2f5d4077f23926400f74afa2f46', 'o p s': 'c0dce60745515b31a27de1f919083fe9',
+             'm d py': '0974ac9aefb2fb540957f15c4869c242', 'm d s': 'a217b9f6000f9eeff98faeb9fd09efe4',
+             'm p py': 'd13551548c9c1e966d0519755a8fb4eb', 'm p s': '00661f7afb419c6bb8c9ac654af7c976'}
+
+hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alb_resources.get("o m d p g py s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
+def test_cases(alignbuddy, uc_hash, lc_hash):
+    tester = Alb.uppercase(alignbuddy)
+    assert align_to_hash(tester) == uc_hash
+    tester = Alb.lowercase(tester)
+    assert align_to_hash(tester) == lc_hash
+
+
+# ##################### '-mf2a', '--map_features2alignment' ###################### ##
+hashes = {"o p n": "79078260e8725a0d7ccbed9400c78eae", "o p pr": "8764f4dca44022041cf55f9495bf401a",
+          "o p psr": "8764f4dca44022041cf55f9495bf401a", "o p s": "372daf72435e2f1a06531b5c030995c6",
+          "o d n": "9fece109249f4d787c13e6fb2742843d", "o d pr": "899c6ab534f7af07e744eb173e94bd50",
+          "o d psr": "899c6ab534f7af07e744eb173e94bd50", "o d s": "79cf44688165842eba1bb45b3543d458"}
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_map_features2alignment(alignbuddy, next_hash):
+    if alignbuddy.alpha == IUPAC.protein:
+        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_pep.gb"))
+    else:
+        seqbuddy = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
+    tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
+    tester.set_format("genbank")
+    assert align_to_hash(tester) == next_hash
+
+
+# ###########################################  '-oi', '--order_ids' ############################################ #
+fwd_hashes = {'o d g': 'acf68c9196faa0960007abc40ba87244', 'o d n': '60bbc6306cbb4eb903b1212718bb4592',
+              'o d py': '3c49bdc1b0fe4e1d6bfc148eb0293e21', 'o p g': '7fb69602ffac95a5eecd106876640fcc',
+              'o p n': '9a790b9525ca8b1ac3cae3b98ca24b30', 'o p py': 'ffae954adc0d362354e43c1b70d9be29',
+              'm d py': 'a44938e26e4b35967ed8e17a0eaebe4c', 'm p py': '5bdda310b29b18057e056f3c982446b2'}
+
+rev_hashes = {'o d g': 'a593a2cd979f52c356c61e10ca9a1317', 'o d n': '82fea6e3d3615ac75ec5022abce255da',
+              'o d py': 'd6e79a5faeaff396aa7eab0b460c3eb9', 'o p g': '39af830e6d3605ea1dd04979a4a33f54',
+              'o p n': '85b3562b0eb0246d7dab56a4bcc6e2ae', 'o p py': 'f4c0924087fdb624823d02e909d94e95',
+              'm d py': '9d6b6087d07f7d1fd701591ab7cb576d', 'm p py': '439f57b891dd2a72724b10c124f96378'}
+hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)
+def test_order_ids(alignbuddy, fwd_hash, rev_hash):
+    Alb.order_ids(alignbuddy)
+    assert align_to_hash(alignbuddy) == fwd_hash
+
+    Alb.order_ids(alignbuddy, reverse=True)
+    assert align_to_hash(alignbuddy) == rev_hash
+
+
+# ##################### '-pr', '--pull_records' ###################### ##
+hashes = {'o d g': '7d1091e16adc09e658563867e7c6bc35', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
+          'o d py': 'd141752c38a892ccca800c637f609608', 'o p g': '862eb17cff2f6cd20b9cf7835879c90b',
+          'o p n': '027bbc7e34522f9521f83ee7d03793a1', 'o p py': '2cd74d7ede4d1fb6e18363567426437e',
+          'm d py': '7c77c6f3245c21842f4be585714ec6ce', 'm p py': 'f34fa4c34cfe5c1e6b228949557c9483'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_pull_records(alignbuddy, next_hash):
+    Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
+    assert align_to_hash(alignbuddy) == next_hash
+
+
+# ###########################################  '-ri', '--rename_ids' ############################################ #
+hashes = {'o d g': 'c35db8b8353ef2fb468b0981bd960a38', 'o d n': '243024bfd2f686e6a6e0ef65aa963494',
+          'o d py': '98bb9b57f97555d863054ddb526055b4', 'o p g': '2e4e3c365cd011821bcdc6275a3559af',
+          'o p n': '3598e85169ed3bcdbcb676bb2eb6cef0', 'o p py': 'd49eb4de01d727b9e3ad648d6a04a3c9',
+          'm d py': 'ddfffd9b999637abf7f5926f017de987', 'm p py': '0a68229bd13439040f045cd8c72d7cc9'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_rename_ids(alignbuddy, next_hash):
+    Alb.rename(alignbuddy, 'Panx', 'Test', 0)
+    assert align_to_hash(alignbuddy) == next_hash
+
+
+# ###########################################  'tr', '--translate' ############################################ #
+hashes = {'o d f': 'b7fe22a87fb78ce747d80e1d73e39c35', 'o d g': 'a949edce98525924dbbc3ced03c18214',
+          'o d n': 'a2586af672ad71f16bbd54f359b323ff', 'o d py': 'd0d4dd408e559215b2780f4f0ae0c418',
+          'o d pr': 'f77705e32cd753267916539ee0936e1f', 'o d pss': 'ede672b15221ec60981287ca1e286c52',
+          'o d psr': '623fe1634752e812f482cfa7b7ea20ee', 'o d s': '4ff563c39229d30aa3eda193cb290344',
+          'o d c': 'c3c5290aeff138fc4b8543ecad628cb7', 'm d py': '7fd28236f491c38ba261dfde20919595',
+          'm d pr': '0de676236eda864172b73b6abe4d7a05', 'm d pss': 'c7feff60c16b2b187e03db5d160a4748',
+          'm d psr': 'b5945f0317fe9ce8fc03ac7f4c0d5932', 'm d s': 'ee5a41b6f8b32645359beafc72efe825',
+          'm d c': '6f089b21f77cd62f5210e751128947ab'}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d c f g n py pr psr pss s").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,next_hash", hashes)
+def test_translate1(alignbuddy, next_hash):
+    Alb.translate_cds(alignbuddy)
+    assert align_to_hash(alignbuddy) == next_hash
+
+
+def test_translate2():
+    # Protein input
+    with pytest.raises(TypeError) as e:
+        Alb.translate_cds(alb_resources.get_one('o p s'))
+    assert "Nucleic acid sequence required, not protein." in str(e)
+
+    tester = alb_resources.get_one('o d s')
+    tester.records()[0].seq.alphabet = IUPAC.protein
+    with pytest.raises(TypeError) as e:
+        Alb.translate_cds(tester)
+    assert "Record 'Mle-Panxα9' is protein." in str(e)
+
+# ###########################################  'tm', '--trimal' ############################################ #
+hashes = {'o d psr': {3: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
+          'm d psr': {3: '0e93f0a8c77da8ec974eeca311ca6636', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
+          'o p psr': {3: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
+          'm p psr': {3: 'f0f2115e29f6dfcb75036d90b06edab4', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
+
+hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o m d p psr").items()]
+
+
+@pytest.mark.parametrize("alignbuddy,hash_dict", hashes)
+def test_trimal(alignbuddy, hash_dict):
+    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
+    Alb.trimal(tester1, 3)
+    assert align_to_hash(tester1) == hash_dict[3]
+
+    tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
+    Alb.trimal(tester1, 0.7)
+    assert align_to_hash(tester1) == hash_dict[0.7]
+
+
+def test_trimal2():
+    assert align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
+    tester = alb_resources.get_one("o p n")
+    tester.alignments[0]._records = tester.alignments[0]._records[:5]
+    Alb.trimal(tester, 'clean')
+    assert align_to_hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
+    tester = alb_resources.get_one("o p n")
+    tester_dir = TEMP_DIR.subdir()
+    tester.write("%s/trimal" % tester_dir)
+    assert align_to_hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
+    real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
+    real_trimal = real_trimal[0].decode()
+    with open("%s/trimal" % tester_dir, "w") as ofile:
+        ofile.write(real_trimal)
+    tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
+    assert align_to_hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
+
+    records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]
+    tester = Alb.AlignBuddy([MultipleSeqAlignment(records)])
+    Alb.trimal(tester, "gappyout")
+    assert "".join([str(rec.seq) for rec in tester.records()]) == ""
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -1371,7 +1353,7 @@ hashes = [("clustal", "m p c"), ("phylip", "m p py"),
 
 
 @pytest.mark.parametrize("_format,_code", hashes)
-def test_split_alignment_ui(_format, _code, capsys):
+def test_split_alignment_ui(_format, _code):
     TEMP_DIR.subdir(_format)
     test_in_args = deepcopy(in_args)
     test_in_args.split_to_files = [["%s/%s" % (TEMP_DIR.path, _format), "Foo_"]]

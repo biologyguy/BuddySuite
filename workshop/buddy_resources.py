@@ -179,7 +179,7 @@ class Version(object):
         _output = '''\
 %s %s.%s (%s)
 
-Gnu General Public License, Version 2.0 (http://www.gnu.org/licenses/gpl.html)
+Public Domain Notice
 This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
@@ -991,7 +991,10 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                "help": "Pull out sub-alignments in a given range"},
              "generate_alignment": {"flag": "ga",
                                     "action": "append",
-                                    "help": ""},
+                                    "nargs": "*",
+                                    "metavar": "args",
+                                    "help": "Create a new alignment from unaligned sequences. "
+                                            "args: [alignment program] [optional params]"},
              "list_ids": {"flag": "li",
                           "action": "append",
                           "nargs": "?",
@@ -1063,10 +1066,6 @@ alb_modifiers = {"in_format": {"flag": "f",
                  "out_format": {"flag": "o",
                                 "action": "store",
                                 "help": "If you want a specific format output"},
-                 "params": {"flag": "p",
-                            "action": "store",
-                            "nargs": "+",
-                            "help": "Free form arguments for some functions"},
                  "quiet": {"flag": "q",
                            "action": "store_true",
                            "help": "Suppress stderr messages"},
