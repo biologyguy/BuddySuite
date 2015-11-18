@@ -2583,7 +2583,7 @@ def reverse_complement(seqbuddy):
 
 def rna2dna(seqbuddy):
     """
-    Back-transcribes RNA into cDNA
+    Reverse-transcribes RNA into cDNA
     :param seqbuddy: SeqBuddy object
     :return: Modified SeqBuddy object
     """
@@ -2936,14 +2936,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
         _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
         _exit("ave_seq_length")
-
-    # Back Transcribe
-    if in_args.back_transcribe:
-        try:
-            _print_recs(rna2dna(seqbuddy))
-        except TypeError as e:
-            _raise_error(e, "back_transcribe", "RNA sequence required, not")
-        _exit("back_transcribe")
 
     # Back translate CDS
     if in_args.back_translate:
@@ -3779,6 +3771,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except TypeError as e:
             _raise_error(e, "reverse_complement", "Nucleic acid sequences required.")
         _exit("reverse_complement")
+
+    # Reverse Transcribe
+    if in_args.reverse_transcribe:
+        try:
+            _print_recs(rna2dna(seqbuddy))
+        except TypeError as e:
+            _raise_error(e, "reverse_transcribe", "RNA sequence required, not")
+        _exit("reverse_transcribe")
 
     # Screw formats
     if in_args.screw_formats:

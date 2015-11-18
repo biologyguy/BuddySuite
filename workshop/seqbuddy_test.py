@@ -1598,21 +1598,6 @@ def test_ave_seq_length_ui(capsys):
     assert out == '427.38\n'
 
 
-# ######################  '-r2d', '--back_transcribe' ###################### #
-def test_back_transcribe_ui(capsys):
-    test_in_args = deepcopy(in_args)
-    test_in_args.back_transcribe = True
-    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")), True)
-    out, err = capsys.readouterr()
-    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
-
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]))
-
-    out, err = capsys.readouterr()
-    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
-
-
 # ######################  '-btr', '--back_translate' ###################### #
 def test_back_translate_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -2466,6 +2451,22 @@ def test_reverse_complement_ui(capsys):
         Sb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
     assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+
+
+# ######################  '-r2d', '--reverse_transcribe' ###################### #
+def test_reverse_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.reverse_transcribe = True
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(resource("Mnemiopsis_rna.fa")), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
+
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]))
+
+    out, err = capsys.readouterr()
+    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
+
 
 # ######################  '-sf', '--screw_formats' ###################### #
 hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "26718f0a656116bfd0a7f6c03d270ecf"),

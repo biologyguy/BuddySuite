@@ -951,7 +951,7 @@ def rename(alignbuddy, query, replace="", num=0):
     return alignbuddy
 
 
-def rna2dna(alignbuddy):  # Back-transcribe
+def rna2dna(alignbuddy):  # Reverse-transcribe
     """
     Convert RNA into DNA.
     :param alignbuddy: AlignBuddy object
@@ -1396,14 +1396,6 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(alignbuddy)
         _exit("delete_records")
 
-    # Back Transcribe
-    if in_args.back_transcribe:
-        try:
-            _print_aligments(rna2dna(alignbuddy))
-        except TypeError as e:
-            _raise_error(e, "back_transcribe", "RNA sequence required, not")
-        _exit("back_transcribe")
-
     # Enforce triplets
     if in_args.enforce_triplets:
         try:
@@ -1533,6 +1525,14 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         except AttributeError as e:
             _raise_error(e, "rename_ids", "There are more replacement")
         _exit("rename_ids")
+
+    # Reverse Transcribe
+    if in_args.reverse_transcribe:
+        try:
+            _print_aligments(rna2dna(alignbuddy))
+        except TypeError as e:
+            _raise_error(e, "reverse_transcribe", "RNA sequence required, not")
+        _exit("reverse_transcribe")
 
     # Screw formats
     if in_args.screw_formats:

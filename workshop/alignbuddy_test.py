@@ -587,7 +587,7 @@ def test_delete_records(alignbuddy, next_hash):
     tester = Alb.delete_records(alignbuddy, "α[1-5]|β[A-M]")
     assert align_to_hash(tester) == next_hash
 
-# ######################  'd2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
+# ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
 d2r_hashes = {'o d g': '4bf291d91d4b27923ef07c660b011c72', 'o d n': 'e531dc31f24192f90aa1f4b6195185b0',
               'o d py': 'e55bd18b6d82a7fc3150338173e57e6a', 'o d s': '45b511f34653e3b984e412182edee3ca',
               'm d py': '16cb082f5cd9f103292ccea0c4d65a06', 'm d s': 'd81dae9714a553bddbf38084f7a8e00e'}
@@ -618,7 +618,7 @@ def test_transcribe_exceptions():
     assert "TypeError: DNA sequence required, not IUPACAmbiguousRNA()." in str(e)
 
 
-def test_back_transcribe_exceptions():  # Asserts that a TypeError will be thrown if user inputs protein
+def test_reverse_transcribe_exceptions():  # Asserts that a TypeError will be thrown if user inputs protein
     with pytest.raises(TypeError) as e:
         Alb.rna2dna(alb_resources.get_one("o p s"))
     assert "TypeError: RNA sequence required, not IUPACProtein()." in str(e)
@@ -1027,20 +1027,6 @@ def test_alignment_lengths_ui(capsys):
     assert err == ""
 
 
-# ##################### '-r2d', '--back_transcribe' ###################### ##
-def test_back_transcribe_ui(capsys):
-    test_in_args = deepcopy(in_args)
-    test_in_args.back_transcribe = True
-    Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), skip_exit=True)
-    out, err = capsys.readouterr()
-    assert string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
-
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"))
-    out, err = capsys.readouterr()
-    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
-
-
 # ##################### '-cs', '--clean_seqs' ###################### ##
 def test_clean_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1288,6 +1274,21 @@ def test_rename_ids_ui(capsys):
         Alb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
+
+
+# ##################### '-r2d', '--reverse_transcribe' ###################### ##
+def test_reverse_transcribe_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.reverse_transcribe = True
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
+
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"))
+    out, err = capsys.readouterr()
+    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
+
 
 # ######################  '-sf', '--screw_formats' ###################### #
 hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3f530f70e2765f9ab2"),
