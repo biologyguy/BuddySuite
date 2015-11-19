@@ -385,15 +385,17 @@ def make_copy(_phylobuddy):
     return _copy
 
 
-def num_taxa(phylobuddy, nodes=False):
-    count = 0
+def num_taxa(phylobuddy, nodes=False, split=False):
+    count = [0]
     for indx, tree in enumerate(phylobuddy.trees):
+        if split and indx > 0:
+            count.append(0)
         for node in tree:
             if nodes and node.label:
-                count += 1
+                count[-1] += 1
             if node.taxon and node.taxon.label:
-                count += 1
-    return count
+                count[-1] += 1
+    return count if split else count[0]
 
 
 def _stderr(message, quiet=False):
@@ -1230,6 +1232,16 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             output = '%s\n\n' % output.strip()
         _stdout('%s\n\n' % output.strip())
         _exit("list_ids")
+
+    # Number of tips
+    if in_args.num_tips:
+        counts = num_taxa(phylobuddy, split=True)
+        output = ""
+        for indx, count in enumerate(counts):
+            if len(counts) > 1:
+                output += "# Tree %s\n" % (indx + 1)
+            output += "%s\n\n" % count
+        _stdout("%s\n" % output.strip())
 
     # Print trees
     if in_args.print_trees:
