@@ -28,12 +28,13 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 import sys
 import os
 import random
+import string
 import re
 import shutil
+from math import log, ceil
 from io import StringIO, TextIOWrapper
 from subprocess import Popen, CalledProcessError, check_output
 from collections import OrderedDict
-from random import sample
 from copy import deepcopy
 
 # Third party
@@ -90,7 +91,8 @@ def delete_metadata(_trees):
     return _trees
 
 
-def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
+def decode_accessions(_phylobuddy):
+    # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
     return _phylobuddy
 
 
@@ -98,11 +100,7 @@ def decode_accessions(_phylobuddy):  # TODO: Implement decode_accessions
 
 # Implement sum_bootstrap(), but generalize to any value.
 
-# Prune taxa [X]
-
 # Regex taxa names
-
-# List all leaf names [X]
 
 # 'Clean' a tree, as implemented in phyutility
 
@@ -185,7 +183,7 @@ class PhyloBuddy(object):
 
         elif isinstance(_input, list):
             # make sure that the list is actually Bio.Phylo records (just test a few...)
-            _sample = _input if len(_input) < 5 else sample(_input, 5)
+            _sample = _input if len(_input) < 5 else random.sample(_input, 5)
             for _tree in _sample:
                 if type(_tree) not in tree_classes:
                     raise TypeError("Tree list is not populated with Phylo objects.")
@@ -385,6 +383,15 @@ def make_copy(_phylobuddy):
     """
     _copy = deepcopy(_phylobuddy)
     return _copy
+
+
+def num_taxa(phylobuddy):
+    count = 0
+    for indx, tree in enumerate(phylobuddy.trees):
+        for node in tree:
+            if node.taxon is not None and node.taxon.label is not None:
+                count += 1
+    return count
 
 
 def _stderr(message, quiet=False):
@@ -610,6 +617,52 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
         _stderr("Returning to PhyloBuddy...\n\n")
 
         return phylobuddy
+
+
+def hash_ids(phylobuddy, hash_length=10):
+    # ToDo: Consider hashing inner node labels as well, not just tips
+    """
+    Replaces the sequence IDs with random hashes
+    :param phylobuddy: PhyloBuddy object
+    :param hash_length: Specifies the length of the new hashed IDs
+    :return: The modified PhyloBuddy object, with a new attribute `hash_map` added
+    """
+    try:
+        hash_length = int(hash_length)
+    except ValueError:
+        raise TypeError("Hash length argument must be an integer, not %s" % type(hash_length))
+
+    if hash_length < 1:
+        raise ValueError("Hash length must be greater than 0")
+
+    hash_list = []
+    taxa_ids = []
+
+    if 32 ** hash_length <= num_taxa(phylobuddy) * 2:
+        raise ValueError("Insufficient number of hashes available to cover all sequences. "
+                         "Hash length must be increased.")
+
+    for indx, tree in enumerate(phylobuddy.trees):
+        for node in tree:
+            if node.taxon is not None and node.taxon.label is not None:
+                new_hash = ""
+                taxa_ids.append(node.taxon.label)
+                while True:
+                    new_hash = "".join([random.choice(string.ascii_letters + string.digits)
+                                        for _ in range(hash_length)])
+                    if new_hash in hash_list:
+                        continue
+                    else:
+                        hash_list.append(new_hash)
+                        break
+                node.taxon.label = new_hash
+
+    hash_map = OrderedDict()
+    for i in range(len(hash_list)):
+        hash_map[hash_list[i]] = taxa_ids[i]
+
+    phylobuddy.hash_map = hash_map
+    return phylobuddy
 
 
 def list_ids(phylobuddy):
@@ -1089,6 +1142,37 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
         _print_trees(generated_trees)
         _exit("generate_tree")
+
+    # Hash sequence ids
+    if in_args.hash_ids:
+        if in_args.hash_ids[0] == 0:
+            hash_length = 0
+        elif not in_args.hash_ids[0]:
+            hash_length = 10
+        else:
+            hash_length = in_args.hash_ids[0]
+
+        if hash_length < 1:
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            hash_length = 10
+
+        if 32 ** hash_length <= num_taxa(phylobuddy) * 2:
+            holder = ceil(log(num_taxa(phylobuddy) * 2, 32))
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
+                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            hash_length = holder
+
+        hash_ids(phylobuddy, hash_length)
+
+        hash_table = "# Hash table\n"
+        for _hash, orig_id in phylobuddy.hash_map.items():
+            hash_table += "%s,%s\n" % (_hash, orig_id)
+        hash_table += "\n"
+
+        _stderr(hash_table, in_args.quiet)
+        _print_trees(phylobuddy)
+        _exit("hash_ids")
 
     # List ids
     if in_args.list_ids:
