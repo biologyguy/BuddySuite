@@ -1,10 +1,10 @@
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
-<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/BuddySuite-logo.gif" /></a></p>
+<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
-<a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/SeqBuddy-logo.gif" width=20%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/AlignBuddy-logo.gif" width=25%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/DBBuddy-logo.gif" width=20%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/images/PhyloBuddy-logo.gif" width=25%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/SeqBuddy-logo.gif" width=20%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/AlignBuddy-logo.gif" width=25%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/DBBuddy-logo.gif" width=20%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/PhyloBuddy-logo.gif" width=25%/></a>
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
@@ -36,16 +36,16 @@ All other dependencies come prepackaged with the installer, so you only need to 
  are using the unstable workshop version of BuddySuite.
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
- [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH the binaries will be
- downloaded by the installer. SeqBuddy.py will also attempt to download the binaries if any BLAST dependant functions
- are called and the programs are not found in PATH. [BioPython](http://biopython.org/) is used heavily by the entire 
- suite; any version earlier than 16.6 will cause unit tests to fail. PhyloBuddy requires 
+ [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH, SeqBuddy.py will
+ attempt to download the binaries if any BLAST dependant functions are called. [BioPython](http://biopython.org/) is
+ used heavily by the entire suite; any version earlier than 16.6 will cause unit tests to fail. PhyloBuddy requires 
  [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
  [ETE toolkit](http://etetoolkit.org/download/).
  
 ## Standalone installation 
 The installer will only run on Mac and Linux. If you would like to try the BuddySuite on Windows,
- you will need to install the development version (see below).
+ you will need to install the development version
+ ([see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
 
 [Download the graphical installer](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py)
  and run it from the command line

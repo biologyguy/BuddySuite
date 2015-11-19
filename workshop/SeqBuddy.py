@@ -77,6 +77,11 @@ def predict_orfs():
     return
 
 
+def auto_annotate():
+    # Find common plasmid features in sequences
+    return
+
+
 def mutate():
     # Apply some model of evolution to generate new sequences from input
     return
