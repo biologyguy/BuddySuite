@@ -385,11 +385,13 @@ def make_copy(_phylobuddy):
     return _copy
 
 
-def num_taxa(phylobuddy):
+def num_taxa(phylobuddy, nodes=False):
     count = 0
     for indx, tree in enumerate(phylobuddy.trees):
         for node in tree:
-            if node.taxon is not None and node.taxon.label is not None:
+            if nodes and node.label:
+                count += 1
+            if node.taxon and node.taxon.label:
                 count += 1
     return count
 
@@ -619,14 +621,47 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
         return phylobuddy
 
 
-def hash_ids(phylobuddy, hash_length=10):
-    # ToDo: Consider hashing inner node labels as well, not just tips
+def hash_ids(phylobuddy, hash_length=10, nodes=False):
     """
     Replaces the sequence IDs with random hashes
     :param phylobuddy: PhyloBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
+    :param nodes: Also hash node labels
     :return: The modified PhyloBuddy object, with a new attribute `hash_map` added
     """
+
+    class HashFactory(object):
+        def __init__(self):
+            self.hash_map = []
+            # It seems that Dendropy does not create unique labels for each node/tip if the labels are the same, instead
+            # it shares the object among everything with the same label name (even between trees). The all_hashes dict
+            # allows me to account for this.
+            self.all_hashes = {}
+
+        def new_hash(self, label):
+            if not self.hash_map:
+                raise ValueError("The add_tree method must be called before new_hash.")
+
+            if str(label) in self.all_hashes:
+                self.hash_map[-1][label] = self.all_hashes[label]
+                return str(label)
+
+            new_hash = ""
+            while True:
+                new_hash = "".join([random.choice(string.ascii_letters + string.digits)
+                                    for _ in range(hash_length)])
+                if new_hash in self.hash_map:
+                    continue
+                else:
+                    self.hash_map[-1][new_hash] = str(label)
+                    self.all_hashes[new_hash] = str(label)
+                    break
+            return new_hash
+
+        def add_tree(self):
+            self.hash_map.append(OrderedDict())
+            return
+
     try:
         hash_length = int(hash_length)
     except ValueError:
@@ -635,33 +670,21 @@ def hash_ids(phylobuddy, hash_length=10):
     if hash_length < 1:
         raise ValueError("Hash length must be greater than 0")
 
-    hash_list = []
-    taxa_ids = []
-
-    if 32 ** hash_length <= num_taxa(phylobuddy) * 2:
+    if 32 ** hash_length <= num_taxa(phylobuddy, nodes) * 2:
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
 
-    for indx, tree in enumerate(phylobuddy.trees):
+    hashes = HashFactory()
+    for tree in phylobuddy.trees:
+        hashes.add_tree()
         for node in tree:
-            if node.taxon is not None and node.taxon.label is not None:
-                new_hash = ""
-                taxa_ids.append(node.taxon.label)
-                while True:
-                    new_hash = "".join([random.choice(string.ascii_letters + string.digits)
-                                        for _ in range(hash_length)])
-                    if new_hash in hash_list:
-                        continue
-                    else:
-                        hash_list.append(new_hash)
-                        break
-                node.taxon.label = new_hash
+            if nodes and node.label:
+                node.label = hashes.new_hash(str(node.label))
 
-    hash_map = OrderedDict()
-    for i in range(len(hash_list)):
-        hash_map[hash_list[i]] = taxa_ids[i]
+            if node.taxon and node.taxon.label:
+                node.taxon.label = hashes.new_hash(str(node.taxon.label))
 
-    phylobuddy.hash_map = hash_map
+    phylobuddy.hash_map = hashes.hash_map
     return phylobuddy
 
 
@@ -675,7 +698,7 @@ def list_ids(phylobuddy):
     for indx, tree in enumerate(phylobuddy.trees):
         namespace = TaxonNamespace()
         for node in tree:
-            if node.taxon is not None:
+            if node.taxon:
                 namespace.add_taxon(node.taxon)
         key = tree.label if tree.label not in [None, ''] else 'tree_{0}'.format(str(indx + 1))
         output[key] = list(namespace.labels())
@@ -693,7 +716,7 @@ def prune_taxa(phylobuddy, *patterns):
         taxa_to_prune = []
         namespace = TaxonNamespace()
         for node in tree:  # Populate the namespace for easy iteration
-            if node.taxon is not None:
+            if node.taxon:
                 namespace.add_taxon(node.taxon)
         for taxon in namespace.labels():
             for pattern in patterns:
@@ -713,9 +736,9 @@ def rename(phylobuddy, query, replace):
     """
     for indx, tree in enumerate(phylobuddy.trees):
         for node in tree:
-            if node.label is not None:
+            if node.label:
                 node.label = re.sub(query, replace, node.label)
-            if node.taxon is not None and node.taxon.label is not None:
+            if node.taxon and node.taxon.label:
                 node.taxon.label = re.sub(query, replace, node.taxon.label)
     return phylobuddy
 
@@ -1145,31 +1168,43 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
     # Hash sequence ids
     if in_args.hash_ids:
-        if in_args.hash_ids[0] == 0:
-            hash_length = 0
-        elif not in_args.hash_ids[0]:
-            hash_length = 10
-        else:
-            hash_length = in_args.hash_ids[0]
+        args = in_args.hash_ids[0]
+        hash_length = 10
+        hash_nodes = False
+        if args:
+            for arg in args:
+                try:
+                    hash_length = int(arg)
+                except ValueError:
+                    if arg == "nodes":
+                        hash_nodes = True
 
         if hash_length < 1:
             _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
                     "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
             hash_length = 10
 
-        if 32 ** hash_length <= num_taxa(phylobuddy) * 2:
-            holder = ceil(log(num_taxa(phylobuddy) * 2, 32))
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
-                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
-            hash_length = holder
+        try:
+            hash_ids(phylobuddy, hash_length, hash_nodes)
+        except ValueError as e:
+            if "Insufficient number of hashes available" in str(e):
+                holder = ceil(log(num_taxa(phylobuddy) * 2, 32))
+                _stderr("Warning: The hash_length parameter was passed in with the value %s. "
+                        "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
+                        (hash_length, holder), in_args.quiet)
+                hash_length = int(holder)
+                hash_ids(phylobuddy, hash_length, hash_nodes)
+            else:
+                raise e
 
-        hash_ids(phylobuddy, hash_length)
-
-        hash_table = "# Hash table\n"
-        for _hash, orig_id in phylobuddy.hash_map.items():
-            hash_table += "%s,%s\n" % (_hash, orig_id)
-        hash_table += "\n"
-
+        hash_table = "##### Hash table #####\n"
+        for indx, tree_map in enumerate(phylobuddy.hash_map):
+            if len(phylobuddy.hash_map) > 1:
+                hash_table += "# Tree %s\n" % (indx + 1)
+            for _hash, orig_id in tree_map.items():
+                hash_table += "%s,%s\n" % (_hash, orig_id)
+            hash_table += "\n"
+        hash_table = "%s\n######################\n\n" % hash_table.strip()
         _stderr(hash_table, in_args.quiet)
         _print_trees(phylobuddy)
         _exit("hash_ids")
@@ -1278,9 +1313,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 if __name__ == '__main__':
     try:
         command_line_ui(*argparse_init())
-    except (KeyboardInterrupt, br.GuessError) as e:
-        print(e)
+    except (KeyboardInterrupt, br.GuessError) as _e:
+        print(_e)
     except SystemExit:
         pass
-    except Exception as e:
-        br.send_traceback("PhyloBuddy", e)
+    except Exception as _e:
+        br.send_traceback("PhyloBuddy", _e)
