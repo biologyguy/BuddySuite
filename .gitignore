@@ -22,6 +22,7 @@ workshop/htmlcov/*
 # Test/build files
 dependencies.conf
 /workshop/test_files/*
+/workshop/build_dir/BuddySuite.py
 
 # IPython
 .ipynb_checkpoints/*
