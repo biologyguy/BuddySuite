@@ -225,16 +225,19 @@ class PhyloBuddy(object):
         else:
             raise br.GuessError("Not sure what type this is...")
 
-        # Set 1.0 as length if all lengths are zero or None
+        # Set 1.0 as length if all lengths are zero or None and order features
         all_none = True
         for _tree in self.trees:
-            for _node in _tree:
+            for _node in _tree.nodes():
+                if _node.has_annotations:
+                    _node.annotations._item_list = sorted(_node.annotations._item_list, key=lambda x: x.name)
+                    _node.annotations._item_set = set(_node.annotations._item_list)
                 if _node.edge_length not in [0, 0.0, None]:
                     all_none = False
 
         if all_none:
             for _tree in self.trees:
-                for _node in _tree:
+                for _node in _tree.nodes():
                     _node.edge_length = 1.0
 
     def print(self):
@@ -289,8 +292,8 @@ def _convert_to_ete(_tree, ignore_color=False):
             if hasattr(node, 'pb_color'):
                 try:
                     style = ete3.NodeStyle()
-                except AttributeError as _e:
-                    if "'module' object has no attribute 'NodeStyle'" in str(_e):
+                except AttributeError as e:
+                    if "'module' object has no attribute 'NodeStyle'" in str(e):
                         raise AttributeError("Unable to import NodeStyle... You probably need to install pyqt.")
                 style['fgcolor'] = node.pb_color
                 style['hz_line_color'] = node.pb_color
@@ -318,7 +321,6 @@ def _extract_figtree_metadata(_file_path):
         filedata = filedata[0:extract_fig.start() - 1]
     else:
         return None
-
     return filedata, figdata
 
 
@@ -367,12 +369,6 @@ def _guess_format(_input):
 
     else:
         raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
-
-
-def _order_dendropy_features(node):
-    node.annotations._item_list = sorted(node.annotations._item_list, key=lambda x: x.name)
-    node.annotations._item_set = set(node.annotations._item_list)
-    return node
 
 
 def make_copy(_phylobuddy):
@@ -642,7 +638,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False):
 
         def new_hash(self, label):
             if not self.hash_map:
-                raise ValueError("The add_tree method must be called before new_hash.")
+                self.add_tree()
 
             if str(label) in self.all_hashes:
                 self.hash_map[-1][label] = self.all_hashes[label]
@@ -863,11 +859,11 @@ def show_unique(phylobuddy):
     try:
         data = trees[0].robinson_foulds(trees[1])
 
-    except TreeError as _e:
-        if "Unrooted tree found!" in str(_e):
+    except TreeError as e:
+        if "Unrooted tree found!" in str(e):
             data = trees[0].robinson_foulds(trees[1], unrooted_trees=True)
         else:
-            raise _e
+            raise e
 
     tree1_only = []
     tree2_only = []
@@ -910,10 +906,6 @@ def show_unique(phylobuddy):
                      _out_format=phylobuddy.out_format)
     pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
                      _out_format=phylobuddy.out_format)
-
-    # The 'apply()' method traverses all nodes and executes the provided function with 'node' as the argument
-    pb1.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
-    pb2.trees[0].seed_node.apply(_order_dendropy_features, _order_dendropy_features, _order_dendropy_features)
 
     phylobuddy.trees = pb1.trees + pb2.trees
 
@@ -1037,15 +1029,15 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         else:
             _stdout("{0}\n".format(str(_phylobuddy).rstrip()))
 
-    def _in_place(_output, _path):
+    def _in_place(_output, file_path):
         if not os.path.isfile(str(_path)):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
-            with open(os.path.abspath(_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(_path), in_args.quiet)
+            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1154,13 +1146,13 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         generated_trees = None
         try:
             generated_trees = generate_tree(alignbuddy, phylo_program, params, in_args.keep_temp)
-        except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as _e:
-            _raise_error(_e, "generate_tree")
-        except FileNotFoundError as _e:
-            if str(_e) != "Error: {0} failed to generate a tree.".format(phylo_program):
-                raise FileNotFoundError(_e)
+        except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as e:
+            _raise_error(e, "generate_tree")
+        except FileNotFoundError as e:
+            if str(e) != "Error: {0} failed to generate a tree.".format(phylo_program):
+                raise FileNotFoundError(e)
             else:
-                _raise_error(str(_e), "generate_tree")
+                _raise_error(str(e), "generate_tree")
 
         if in_args.out_format:
             generated_trees.out_format = out_format
@@ -1302,11 +1294,11 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     if in_args.show_unique:
         try:
             _print_trees(show_unique(phylobuddy))
-        except AssertionError as _e:
-            if str(_e) == "PhyloBuddy object should have exactly 2 trees.":
-                _raise_error(_e, "show_unique")
+        except AssertionError as e:
+            if str(e) == "PhyloBuddy object should have exactly 2 trees.":
+                _raise_error(e, "show_unique")
             else:
-                raise _e
+                raise e
 
         _exit("show_unique")
 
