@@ -93,25 +93,6 @@ def resource(file_name):
 
 
 # ################### Alignment resources ################### #
-'''
-# Deprecated --> Delete when possible
-align_files = ["Mnemiopsis_cds.nex", "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
-               "Mnemiopsis_pep.nex", "Mnemiopsis_pep.phy", "Mnemiopsis_pep.phyr", "Mnemiopsis_pep.stklm",
-               "Alignments_pep.phy", "Alignments_pep.phyr", "Alignments_pep.stklm",
-               "Alignments_cds.phyr", "Alignments_cds.stklm"]
-
-file_types = ["nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "nexus", "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "phylip-relaxed", "stockholm",
-              "phylip-relaxed", "stockholm"]
-
-nucl_indices = [0, 1, 2, 3, 11, 12]
-
-input_tuples = [(next_file, file_types[indx]) for indx, next_file in enumerate(align_files)]
-alb_objects = [Alb.AlignBuddy(resource(x)) for x in align_files]
-'''
-
-
 class Resources(object):
     def __init__(self):
         one_dna = OrderedDict([("clustal", "Mnemiopsis_cds.clus"),
@@ -160,10 +141,9 @@ class Resources(object):
             self.alb_objs.setdefault(num, OrderedDict())
             self.res_paths.setdefault(num, OrderedDict())
             for _type in self.resources[num]:
-                self.res_paths[num][_type] = OrderedDict([(key, resource(path))
-                                                         for key, path in self.resources[num][_type].items()])
-
                 self.alb_objs[num][_type] = OrderedDict([(key, Alb.AlignBuddy(resource(path)))
+                                                         for key, path in self.resources[num][_type].items()])
+                self.res_paths[num][_type] = OrderedDict([(key, resource(path))
                                                          for key, path in self.resources[num][_type].items()])
 
         self.code_dict = OrderedDict([("num_aligns", OrderedDict([("o", "one"), ("m", "multi")])),
@@ -239,7 +219,6 @@ alb_resources = Resources()
 @pytest.mark.parametrize("key, align_file", alb_resources.get(mode="paths").items())
 def test_instantiate_alignbuddy_from_file(key, align_file):
     key = key.split()
-    print(key)
     assert type(Alb.AlignBuddy(align_file, in_format=alb_resources.code_dict["format"][key[2]])) == Alb.AlignBuddy
 
 

@@ -28,6 +28,7 @@ import os
 import sys
 import argparse
 from copy import deepcopy
+from collections import OrderedDict
 
 sys.path.insert(0, "./")
 import buddy_resources as br
@@ -60,6 +61,8 @@ br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping tr
 
 # This is to allow py.test to work with the -x flag
 parser.add_argument("-x", nargs="?")
+parser.add_argument("-m", nargs="?")
+parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
 in_args = parser.parse_args()
@@ -81,15 +84,96 @@ def string2hash(_input):
 def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
+
+class Resources(object):
+    def __init__(self):
+        one_tree = OrderedDict([("newick", "single_tree.newick"),
+                                ("nexus", "single_tree.nex"),
+                                ("nexml", "single_tree.xml")])
+        multi_tree = OrderedDict([("newick", "multi_tree.newick"),
+                                  ("nexus", "multi_tree.nex"),
+                                  ("nexml", "multi_tree.xml")])
+
+        self.resources = OrderedDict([("one", one_tree),
+                                      ("multi", multi_tree)])
+        self.pb_objs = OrderedDict()
+        self.res_paths = OrderedDict()
+        for num in self.resources:
+            self.pb_objs[num] = OrderedDict([(key, Pb.PhyloBuddy(resource(path)))
+                                             for key, path in self.resources[num].items()])
+
+            self.res_paths[num] = OrderedDict([(key, resource(path)) for key, path in self.resources[num].items()])
+
+        self.code_dict = OrderedDict([("num_trees", OrderedDict([("o", "one"), ("m", "multi")])),
+                                      ("format", OrderedDict([("k", "newick"), ("s", "nexus"), ("l", "nexml")]))])
+
+    def _parse_code(self, code=""):
+        results = OrderedDict([("num_trees", []), ("format", [])])
+        code = code.split()
+        for i in code:
+            for j in results:
+                if i in self.code_dict[j]:
+                    results[j].append(i)
+
+        # Fill up a field with all possibilities if nothing is given
+        results["num_trees"] = [key for key in self.code_dict["num_trees"]] \
+            if not results["num_trees"] else results["num_trees"]
+        results["format"] = [key for key in self.code_dict["format"]] if not results["format"] else results["format"]
+        return results
+
+    def get(self, code="", mode="objs"):
+        """
+        Returns copies of PhyloBuddy objects, the
+        :param code:
+        :param mode: {"objs", "paths"}
+        :return: OrderedDict {key: resource}
+        """
+        files = self._parse_code(code)
+        output = OrderedDict()
+        key = ["", ""]
+        for num_aligns in files["num_trees"]:
+            key[0] = num_aligns
+            n = self.code_dict["num_trees"][num_aligns]
+            for _format in files["format"]:
+                key[1] = _format
+                f = self.code_dict["format"][_format]
+                try:
+                    assert not " ".join(key) in output
+                    if mode == "objs":
+                        output[" ".join(key)] = Alb.make_copy(self.pb_objs[n][f])
+                    elif mode == "paths":
+                        output[" ".join(key)] = self.res_paths[n][f]
+                    else:
+                        raise ValueError("The 'mode' parameter only accepts 'objs' or 'paths' as input.")
+                except KeyError:
+                    pass
+        return output
+
+    def get_list(self, code="", mode="objs"):
+        return [value for key, value in self.get(code=code, mode=mode).items()]
+
+    def get_one(self, key, mode="objs"):
+        output = self.get_list(key, mode)
+        return None if not output or len(output) > 1 else output[0]
+
+    def deets(self, key):
+        key = key.split()
+        return {"num_trees": self.code_dict["num_trees"][key[0]],
+                "format": br.parse_format(self.code_dict["format"][key[1]])}
+
+pb_resources = Resources()
+
+# Deprecated! Remove once all tests are transitioned over to the Resource syntax
 phylo_files = ['multi_tree.newick', 'multi_tree.nex', 'multi_tree.xml', 'single_tree.newick', 'single_tree.nex',
                'single_tree.xml']
 
 file_types = ['newick', 'nexus', 'nexml', 'newick', 'nexus', 'nexml']
 
 
-@pytest.mark.parametrize("phylo_file,file_type", [(phylo_files[x], file_types[x]) for x in range(len(phylo_files))])
-def test_instantiate_phylobuddy_from_file(phylo_file, file_type):
-    assert type(Pb.PhyloBuddy(resource(phylo_file), _in_format=file_type)) == Pb.PhyloBuddy
+@pytest.mark.parametrize("key,pb_path", pb_resources.get("o m k s l", "paths").items())
+def test_instantiate_phylobuddy_from_file(key, pb_path):
+    _format = pb_resources.deets(key)["format"]
+    assert type(Pb.PhyloBuddy(pb_path, _in_format=_format)) == Pb.PhyloBuddy
 
 
 @pytest.mark.parametrize("phylo_file", phylo_files)
@@ -265,7 +349,7 @@ def test_consensus_tree_95(phylobuddy, next_hash):
 
 # ###################### 'dt', '--display_trees' ###################### #
 # def test_display_trees():
-    # foo = Pb.display_trees(pb_objects[0])
+    # foo = Pb.display_trees(pb_objs[0])
 
 
 def test_display_trees_error():

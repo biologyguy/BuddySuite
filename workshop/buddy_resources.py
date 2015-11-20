@@ -269,7 +269,7 @@ def parse_format(_format):
                          "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
                          "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
                          "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
-                         "phylipss", "phylip-sequential-strict"]
+                         "phylipss", "phylip-sequential-strict", "nexml", "newick"]
 
     _format = _format.lower()
     if _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
