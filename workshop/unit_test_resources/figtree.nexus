@@ -12,8 +12,8 @@ begin taxa;
 end;
 
 begin trees;
-	tree _1 = [&R] ((A[&!color=#00ff00,support=1.0,name="A",dist=1.0]:1.0,(B[&!color=#00ff00,support=1.0,name="B",dist=1.0]:1.0,C[&!color=#00ff00,support=1.0,name="C",dist=1.0]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0,(D[&!color=#00ff00,support=1.0,name="D",dist=1.0]:1.0,E[&!color=#00ff00,support=1.0,name="E",dist=1.0]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0);
-	tree _2 = [&R] (((A[&!color=#00ff00,support=1.0,name="A",dist=1.0]:1.0,B[&!color=#00ff00,support=1.0,name="B",dist=1.0]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0,C[&!color=#00ff00,support=1.0,name="C",dist=1.0]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0,(D[&!color=#00ff00,support=1.0,name="D",dist=1.0]:1.0,E[&!color=#00ff00,support=1.0,name="E",dist=1.0]:1.0,F[&!color=#ff0000,support=1.0,name="F",dist=1.0]:1.0)[&label=1,support=1.0,name=":dist=1.0"]:1.0);
+	tree _1 = [&R] ((A[&!color=#00ff00,support=1.0,name="A",dist=1.0]:1.0,(B[&!color=#00ff00,support=1.0,name="B",dist=1.0]:1.0,C[&!color=#00ff00,support=1.0,name="C",dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0,(D[&!color=#00ff00,support=1.0,name="D",dist=1.0]:1.0,E[&!color=#00ff00,support=1.0,name="E",dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0);
+	tree _2 = [&R] (((A[&!color=#00ff00,support=1.0,name="A",dist=1.0]:1.0,B[&!color=#00ff00,support=1.0,name="B",dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0,C[&!color=#00ff00,support=1.0,name="C",dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0,(D[&!color=#00ff00,support=1.0,name="D",dist=1.0]:1.0,E[&!color=#00ff00,support=1.0,name="E",dist=1.0]:1.0,F[&!color=#ff0000,support=1.0,name="F",dist=1.0]:1.0)[&label=1,support=1.0,dist=1.0]:1.0);
 end;
 
 begin figtree;

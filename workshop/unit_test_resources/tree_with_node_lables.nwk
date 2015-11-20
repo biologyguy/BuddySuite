@@ -1,1 +1,2 @@
-((raccoon:19.19959,bear:6.80041)InnerNode1:0.84600,((sea_lion:11.99700, seal:12.00300)InnerNode2:7.52973,((monkey:100.85930,cat:47.14069):20.59201, weasel:18.87953):2.09460):3.87382,dog:25.46154);
+[&U] ((((horse:19.19,donkey:6.81)Equus:0.84,((giraffe:11.99,deer:12.01):0.0,cow:0.0)Ruminantiamorpha:7.52):0.0,(fox:100.85,wolf:47.14)Canis:20.59):0.0,beluga:25.46):0.0;
+[&U] ((((((moth:0.0,fly:0.0):0.0,wasp:0.0):0.0,beetle:0.0):0.0,((earwig:0.0,lotus:0.0):0.0,stonefly:0.0):0.0):0.0,dragonfly:0.0):0.0,spider:0.0):0.0;

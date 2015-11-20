@@ -140,7 +140,7 @@ class Resources(object):
                 try:
                     assert not " ".join(key) in output
                     if mode == "objs":
-                        output[" ".join(key)] = Alb.make_copy(self.pb_objs[n][f])
+                        output[" ".join(key)] = Pb.make_copy(self.pb_objs[n][f])
                     elif mode == "paths":
                         output[" ".join(key)] = self.res_paths[n][f]
                     else:
@@ -484,6 +484,32 @@ def test_generate_trees_edge_cases():
         os.environ["PATH"] = BACKUP_PATH
 
 
+# ###################### 'hi', '--hash_ids' ###################### #
+@pytest.mark.parametrize("key,phylobuddy", pb_resources.get("m o k s l").items())
+def test_hash_ids(key, phylobuddy):
+    orig_hash = phylo_to_hash(phylobuddy)
+    Pb.hash_ids(phylobuddy)
+    assert phylo_to_hash(phylobuddy) != orig_hash
+
+
+def test_hash_ids_edges():
+    with pytest.raises(TypeError) as e:
+        Pb.hash_ids(Pb.PhyloBuddy, hash_length="foo")
+    assert "Hash length argument must be an integer, not <class 'str'>" in str(e)
+
+    with pytest.raises(ValueError) as e:
+        Pb.hash_ids(Pb.PhyloBuddy, hash_length=0)
+    assert "Hash length must be greater than 0" in str(e)
+
+    with pytest.raises(ValueError) as e:
+        Pb.hash_ids(pb_resources.get_one("m s"), hash_length=1)
+    assert "Insufficient number of hashes available to cover all sequences." in str(e)
+
+    tester = Pb.PhyloBuddy(resource("tree_with_node_lables.nwk"))
+    test_hash = phylo_to_hash(tester)
+    tester = Pb.hash_ids(tester, hash_length=5, nodes=True)
+    assert phylo_to_hash(tester) != test_hash
+
 # ###################### 'li', '--list_ids' ###################### #
 li_hashes = ['514675543e958d5177f248708405224d', '229e5d7cd8bb2bfc300fd45ec18e8424', '514675543e958d5177f248708405224d']
 li_hashes = [(Pb.make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(li_hashes)]
@@ -493,7 +519,6 @@ li_hashes = [(Pb.make_copy(pb_objects[x]), next_hash) for x, next_hash in enumer
 def test_list_ids(phylobuddy, next_hash):
     tester = str(Pb.list_ids(phylobuddy))
     assert md5(tester.encode()).hexdigest() == next_hash
-
 
 # ###################### 'ptr', '--print_trees' ###################### #
 hashes = ['1f62f35b8fe64c5eaaf394c272febf4f', 'd5b502ae7e83f0c6ae2211b7d8281b90', '1f62f35b8fe64c5eaaf394c272febf4f',
@@ -532,8 +557,8 @@ def test_rename_ids(phylobuddy, next_hash):
 
 def test_rename_nodes():
     tester = Pb.PhyloBuddy(resource("tree_with_node_lables.nwk"))
-    Pb.rename(tester, "Inner", "Outer")
-    assert phylo_to_hash(tester) == "5e02eaa78e25970d7cda0111eef5adba"
+    Pb.rename(tester, "Equus|Ruminantiamorpha|Canis", "Family")
+    assert phylo_to_hash(tester) == "46ba6ce0f3a1859b4c7326a6f5e69263"
 
 # ###################### 'rt', '--root' ###################### #
 hashes = ['25ea14c2e89530a0fb48163c0ef2a102', 'e3711259d579cbf0511a5ded66dfd437', '8135cec021240619c27d61288885d8e1',
@@ -601,7 +626,7 @@ def test_split_polytomies():
 def test_unroot():
     tester = Pb.PhyloBuddy(resource("figtree.nexus"))
     Pb.unroot(tester)
-    assert phylo_to_hash(tester) == "518710bd247dab7d8cce26ea97bd74cc"
+    assert phylo_to_hash(tester) == "10e9024301b3178cdaed0b57ba33f615"
 
 
 # ################################################# COMMAND LINE UI ################################################## #
@@ -718,6 +743,26 @@ def test_generate_tree_ui3():
     test_in_args.generate_tree = [["foo"]]
     with pytest.raises(SystemExit):
         Pb.command_line_ui(test_in_args, [])
+
+
+# ###################### 'hi', '--hash_ids' ###################### #
+def test_hash_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.hash_ids = [[1, "nodes"]]
+
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("o s"), skip_exit=True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("o s"))
+    assert "Warning: The hash_length parameter was passed in with the value 1" in err
+
+    test_in_args.hash_ids = [[-1, "nodes"]]
+
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m s"), skip_exit=True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("m s"))
+    assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
 
 # ###################### 'li', '--list_ids' ###################### #
@@ -888,4 +933,4 @@ def test_unroot_ui(capsys):
 
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("figtree.nexus")), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "518710bd247dab7d8cce26ea97bd74cc"
+    assert string2hash(out) == "10e9024301b3178cdaed0b57ba33f615"
