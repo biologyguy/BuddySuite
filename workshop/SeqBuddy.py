@@ -138,6 +138,10 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
         in_file = None
         self.alpha = alpha
 
+        # SeqBuddy obj
+        if type(sb_input) == SeqBuddy:
+            sb_input = make_copy(sb_input)
+
         # Handles
         if str(type(sb_input)) == "<class '_io.TextIOWrapper'>":
             if not sb_input.seekable():  # Deal with input streams (e.g., stdout pipes)
@@ -170,14 +174,17 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
         except TypeError:  # This happens when testing something other than a string.
             pass
 
-        if not in_format:
+        if in_format:
+            self.in_format = in_format
+
+        elif type(sb_input) == SeqBuddy:
+            self.in_format = sb_input.in_format
+
+        else:
             self.in_format = _guess_format(sb_input)
             if self.in_format == "empty file":
                 self.in_format = "fasta"
             self.out_format = str(self.in_format) if not out_format else out_format
-
-        else:
-            self.in_format = in_format
 
         if not self.in_format:
             if in_file:
@@ -190,7 +197,8 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
                 raise br.GuessError("Could not determine format from input file-like object\n --> %s ...\n"
                                     "Try explicitly setting with -f flag." % in_handle[:50])
             else:
-                raise br.GuessError("Unable to determine format or input type. Please check how SeqBuddy is being called.")
+                raise br.GuessError("Unable to determine format or input type. "
+                                    "Please check how SeqBuddy is being called.")
 
         self.out_format = self.in_format if not out_format else out_format
 

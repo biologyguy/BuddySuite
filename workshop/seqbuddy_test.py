@@ -31,6 +31,7 @@ import sys
 import argparse
 import io
 from copy import deepcopy
+from collections import OrderedDict
 
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
@@ -91,6 +92,7 @@ def seqs_to_hash(_seqbuddy, mode='hash'):
         _seqbuddy.write(WRITE_FILE.path)
 
     seqs_string = "{0}\n".format(WRITE_FILE.read().rstrip())
+    WRITE_FILE.clear()
 
     if mode != "hash":
         return seqs_string
@@ -109,6 +111,104 @@ def resource(file_name):
     return "{0}/unit_test_resources/{1}".format(root_dir, file_name)
 
 
+class Resources(object):
+    def __init__(self):
+        dna = OrderedDict([("clustal", "Mnemiopsis_cds.clus"),
+                           ("fasta", "Mnemiopsis_cds.fa"),
+                           ("gb", "Mnemiopsis_cds.gb"),
+                           ("nexus", "Mnemiopsis_cds.nex"),
+                           ("phylip", "Mnemiopsis_cds.phy"),
+                           ("phylipr", "Mnemiopsis_cds.phyr"),
+                           ("phylipss", "Mnemiopsis_cds.physs"),
+                           ("phylipsr", "Mnemiopsis_cds.physr"),
+                           ("stockholm", "Mnemiopsis_cds.stklm")])
+        rna = OrderedDict([("fasta", "Mnemiopsis_rna.fa"),
+                           ("nexus", "Mnemiopsis_rna.nex")])
+        pep = OrderedDict([("fasta", "Mnemiopsis_pep.fa"),
+                           ("gb", "Mnemiopsis_pep.gb"),
+                           ("nexus", "Mnemiopsis_pep.nex"),
+                           ("phylip", "Mnemiopsis_pep.phy"),
+                           ("phylipr", "Mnemiopsis_pep.phyr"),
+                           ("phylipss", "Mnemiopsis_pep.physs"),
+                           ("phylipsr", "Mnemiopsis_pep.physr"),
+                           ("stockholm", "Mnemiopsis_pep.stklm")])
+
+        self.resources = OrderedDict([("dna", dna),
+                                      ("rna", rna),
+                                      ("pep", pep)])
+
+        self.sb_objs = OrderedDict()
+        self.res_paths = OrderedDict()
+        for _type in self.resources:
+            self.sb_objs[_type] = OrderedDict([(key, Sb.SeqBuddy(resource(path)))
+                                                for key, path in self.resources[_type].items()])
+
+            self.res_paths[_type] = OrderedDict([(key, resource(path)) for key, path in self.resources[_type].items()])
+
+        self.code_dict = OrderedDict([("type", OrderedDict([("p", "pep"), ("d", "dna"), ("r", "rna")])),
+                                      ("format", OrderedDict([("c", "clustal"), ("f", "fasta"), ("g", "gb"),
+                                                              ("n", "nexus"), ("py", "phylip"), ("pr", "phylipr"),
+                                                              ("pss", "phylipss"), ("psr", "phylipsr"),
+                                                              ("s", "stockholm")]))])
+
+    def _parse_code(self, code=""):
+        results = OrderedDict([("type", []), ("format", [])])
+        code = code.split()
+        for i in code:
+            for j in results:
+                if i in self.code_dict[j]:
+                    results[j].append(i)
+
+        # Fill up a field with all possibilities if nothing is given
+        results["type"] = [key for key in self.code_dict["type"]] \
+            if not results["type"] else results["type"]
+        results["format"] = [key for key in self.code_dict["format"]] if not results["format"] else results["format"]
+        return results
+
+    def get(self, code="", mode="objs"):
+        """
+        Returns copies of SeqBuddy objects
+        :param code:
+        :param mode: {"objs", "paths"}
+        :return: OrderedDict {key: resource}
+        """
+        files = self._parse_code(code)
+        output = OrderedDict()
+        key = ["", ""]
+        for num_aligns in files["type"]:
+            key[0] = num_aligns
+            n = self.code_dict["type"][num_aligns]
+            for _format in files["format"]:
+                key[1] = _format
+                f = self.code_dict["format"][_format]
+                try:
+                    assert not " ".join(key) in output
+                    if mode == "objs":
+                        output[" ".join(key)] = Sb.make_copy(self.sb_objs[n][f])
+                    elif mode == "paths":
+                        output[" ".join(key)] = self.res_paths[n][f]
+                    else:
+                        raise ValueError("The 'mode' parameter only accepts 'objs' or 'paths' as input.")
+                except KeyError:
+                    pass
+        return output
+
+    def get_list(self, code="", mode="objs"):
+        return [value for key, value in self.get(code=code, mode=mode).items()]
+
+    def get_one(self, key, mode="objs"):
+        output = self.get_list(key, mode)
+        return None if not output or len(output) > 1 else output[0]
+
+    def deets(self, key):
+        key = key.split()
+        return {"type": self.code_dict["type"][key[0]],
+                "format": br.parse_format(self.code_dict["format"][key[1]])}
+
+sb_resources = Resources()
+
+
+# ToDo: Deprecated! Remove this once all hashes are converted to Resource format
 seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex",
              "Mnemiopsis_cds.phy", "Mnemiopsis_cds.phyr", "Mnemiopsis_cds.stklm",
              "Mnemiopsis_pep.fa", "Mnemiopsis_pep.gb", "Mnemiopsis_pep.nex",
@@ -116,50 +216,50 @@ seq_files = ["Mnemiopsis_cds.fa", "Mnemiopsis_cds.gb", "Mnemiopsis_cds.nex",
              "ambiguous_dna.fa", "ambiguous_rna.fa"]
 
 
-@pytest.mark.parametrize("seq_file", seq_files)
+@pytest.mark.parametrize("seq_file", sb_resources.get_list("p d r c f g n py pr pss psr s", mode="paths"))
 def test_instantiate_seqbuddy_from_file(seq_file):
-    assert type(Sb.SeqBuddy(resource(seq_file))) == Sb.SeqBuddy
+    assert type(Sb.SeqBuddy(seq_file)) == Sb.SeqBuddy
 
 
-@pytest.mark.parametrize("seq_file", seq_files)
+@pytest.mark.parametrize("seq_file", sb_resources.get_list("p d r c f g n py pr pss psr s", mode="paths"))
 def test_instantiate_seqbuddy_from_handle(seq_file):
-    with open(resource(seq_file), 'r') as ifile:
+    with open(seq_file, 'r') as ifile:
         assert type(Sb.SeqBuddy(ifile)) == Sb.SeqBuddy
 
 
-@pytest.mark.parametrize("seq_file", seq_files)
+@pytest.mark.parametrize("seq_file", sb_resources.get_list("p d r c f g n py pr pss psr s", mode="paths"))
 def test_instantiate_seqbuddy_from_raw(seq_file):
-    with open(resource(seq_file), 'r') as ifile:
+    with open(seq_file, 'r') as ifile:
         assert type(Sb.SeqBuddy(ifile.read(), in_format="raw")) == Sb.SeqBuddy
 
-    with open(resource(seq_file), 'r') as ifile:
+    with open(seq_file, 'r') as ifile:
         assert type(Sb.SeqBuddy(ifile, in_format="raw")) == Sb.SeqBuddy
 
 
-@pytest.mark.parametrize("seq_file", seq_files)
+@pytest.mark.parametrize("seq_file", sb_resources.get_list("p d r c f g n py pr pss psr s", mode="paths"))
 def test_instantiate_seqbuddy_from_seqbuddy(seq_file):
-    input_buddy = Sb.SeqBuddy(resource(seq_file))
+    input_buddy = Sb.SeqBuddy(seq_file)
     tester = Sb.SeqBuddy(input_buddy)
     assert seqs_to_hash(input_buddy) == seqs_to_hash(tester)
 
 
 def test_alpha_arg_dna():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='dna')
+    tester = Sb.SeqBuddy(sb_resources.get_one("d f", mode="paths"), alpha='dna')
     assert tester.alpha is IUPAC.ambiguous_dna
 
 
 def test_alpha_arg_rna():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='rna')
+    tester = Sb.SeqBuddy(sb_resources.get_one("r f", mode="paths"), alpha='rna')
     assert tester.alpha is IUPAC.ambiguous_rna
 
 
 def test_alpha_arg_prot():
-    tester = Sb.SeqBuddy(resource(seq_files[6]), alpha='prot')
+    tester = Sb.SeqBuddy(sb_resources.get_one("p f", mode="paths"), alpha='prot')
     assert tester.alpha is IUPAC.protein
 
 
 def test_alpha_arg_guess():
-    tester = Sb.SeqBuddy(resource(seq_files[0]), alpha='dgasldfkjhgaljhetlfdjkfg')
+    tester = Sb.SeqBuddy(sb_resources.get_one("d f", mode="paths"), alpha='foo')
     assert tester.alpha is IUPAC.ambiguous_dna
 
 
