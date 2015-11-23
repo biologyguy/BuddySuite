@@ -308,7 +308,7 @@ class TempDir(object):
 
 class TempFile(object):
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
-    def __init__(self, byte_mode=False):
+    def __init__(self, mode="w", byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         dir_hash = self._tmp_dir.path.split("/")[-1]
         self.name = dir_hash
@@ -316,9 +316,10 @@ class TempFile(object):
         open(self.path, "w").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
+        self.mode = mode
 
-    def open(self, mode="w"):
-        mode = "%s%s" % (mode, self.bm)
+    def open(self, mode=None):
+        mode = "%s%s" % (self.mode, self.bm) if not mode else "%s%s" % (mode, self.bm)
         if self.handle:
             self.close()
         self.handle = open(self.path, mode)
@@ -328,8 +329,8 @@ class TempFile(object):
             self.handle.close()
             self.handle = None
 
-    def get_handle(self, mode="w"):
-        self.open(mode)
+    def get_handle(self, mode=None):
+        self.open(self.mode) if not mode else self.open(mode)
         return self.handle
 
     def write(self, content, mode="a"):
@@ -361,6 +362,10 @@ class TempFile(object):
             self.open(mode="a")
             self.handle.seek(position)
         return content
+
+    def clear(self):
+        self.write("", mode="w")
+        return
 
     def save(self, location):
         with open(location, "w%s" % self.bm) as ofile:
