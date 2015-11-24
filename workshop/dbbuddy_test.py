@@ -52,6 +52,6 @@ accession_types = ["genbank", "genbank"]
 input_tuples = [(next_file, accession_types[indx]) for indx, next_file in enumerate(accession_files)]
 
 
-@pytest.mark.parametrize("align_file,file_type", input_tuples)
-def test_instantiate_dbbuddy_from_file(align_file, file_type):
-    assert type(Db.DbBuddy(resource(align_file), _in_format=file_type)) == Db.DbBuddy
+#@pytest.mark.parametrize("align_file,file_type", input_tuples)
+#def test_instantiate_dbbuddy_from_file(align_file, file_type):
+#    assert type(Db.DbBuddy(resource(align_file), _in_format=file_type)) == Db.DbBuddy

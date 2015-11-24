@@ -28,7 +28,8 @@ from subprocess import Popen, PIPE
 
 import buddy_resources as Br
 
-
+# None of this has not been properly vetted yet
+'''
 def test_versions():
     sb_ver = Popen("sb -v", stdout=PIPE, shell=True).communicate()
     assert sb_ver[0].decode() == str(Br.VERSIONS["SeqBuddy"])
@@ -144,3 +145,4 @@ def test_shift_features():
         features = tester.records[0].features
         features[0].location = [dict]
         Sb._shift_features(features, 3, 1203)
+'''
