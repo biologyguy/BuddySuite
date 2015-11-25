@@ -32,10 +32,10 @@ import argparse
 import io
 from copy import deepcopy
 from collections import OrderedDict
+from unittest import mock
 
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
-from unittest import mock
 
 sys.path.insert(0, "./")
 import buddy_resources as br
@@ -45,7 +45,6 @@ import MyFuncs
 VERSION = Sb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
 TEMP_DIR = MyFuncs.TempDir()
-BACKUP_PATH = os.environ["PATH"]
 
 
 def fmt(prog):
@@ -649,16 +648,15 @@ def test_bl2seq():
 
 
 def test_bl2_no_binary():
-    os.environ["PATH"] = ""
-    with mock.patch('builtins.input', return_value="n"):
-        with pytest.raises(RuntimeError):
-            seqbuddy = Sb.make_copy(sb_objects[0])
-            Sb.bl2seq(seqbuddy)
+    with mock.patch.dict(os.environ, {"PATH": ""}):
+        with mock.patch('builtins.input', return_value="n"):
+            with pytest.raises(RuntimeError):
+                seqbuddy = Sb.make_copy(sb_objects[0])
+                Sb.bl2seq(seqbuddy)
 
-        with pytest.raises(RuntimeError):
-            seqbuddy = Sb.make_copy(sb_objects[6])
-            Sb.bl2seq(seqbuddy)
-    os.environ["PATH"] = BACKUP_PATH
+            with pytest.raises(RuntimeError):
+                seqbuddy = Sb.make_copy(sb_objects[6])
+                Sb.bl2seq(seqbuddy)
 
 
 # ######################  '-bl', '--blast' ###################### #
@@ -1732,13 +1730,12 @@ def test_bl2s_ui(capsys):
     assert string2hash(out) == "d24495bd87371cd0720084b5d723a4fc"
     assert err == "Warning: There are records with duplicate ids which will be renamed.\n"
 
-    os.environ["PATH"] = ""
-    with mock.patch('builtins.input', return_value="n"):
-        with pytest.raises(SystemExit):
-            Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]))
-    out, err = capsys.readouterr()
-    assert "not present in $PATH or working directory" in err
-    os.environ["PATH"] = BACKUP_PATH
+    with mock.patch.dict(os.environ, {"PATH": ""}):
+        with mock.patch('builtins.input', return_value="n"):
+            with pytest.raises(SystemExit):
+                Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]))
+        out, err = capsys.readouterr()
+        assert "not present in $PATH or working directory" in err
 
 
 # ######################  '-bl', '--blast' ###################### #

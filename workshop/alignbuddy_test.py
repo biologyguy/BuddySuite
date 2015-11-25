@@ -46,7 +46,6 @@ import buddy_resources as br
 
 TEMP_DIR = MyFuncs.TempDir()
 VERSION = Sb.VERSION
-BACKUP_PATH = os.environ["PATH"]
 
 
 def fmt(prog):

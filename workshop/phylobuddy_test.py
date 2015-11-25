@@ -29,17 +29,16 @@ import sys
 import argparse
 from copy import deepcopy
 from collections import OrderedDict
+from unittest import mock
 
 sys.path.insert(0, "./")
 import buddy_resources as br
-from MyFuncs import TempFile, TempDir
 import PhyloBuddy as Pb
 import AlignBuddy as Alb
 import MyFuncs
 
 VERSION = Pb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
-BACKUP_PATH = os.environ["PATH"]
 
 
 def fmt(prog):
@@ -304,7 +303,7 @@ def test_str(phylobuddy, next_hash):
 
 @pytest.mark.parametrize("phylobuddy,next_hash", hashes)
 def test_write1(phylobuddy, next_hash):
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     phylobuddy.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
     tester = md5(out.encode()).hexdigest()
@@ -351,19 +350,12 @@ def test_consensus_tree_95(phylobuddy, next_hash):
 # def test_display_trees():
     # foo = Pb.display_trees(pb_objs[0])
 
-
+@pytest.mark.foo
 def test_display_trees_error():
-    if "DISPLAY" in os.environ:
-        display_value = os.environ["DISPLAY"]
-        del os.environ["DISPLAY"]
-    else:
-        display_value = None
-
-    with pytest.raises(SystemError):
-        Pb.display_trees(Pb.make_copy(pb_objects[0]))
-
-    if display_value:
-        os.environ["DISPLAY"] = display_value
+    with mock.patch.dict('os.environ'):
+        del os.environ['DISPLAY']
+        with pytest.raises(SystemError):
+            Pb.display_trees(Pb.make_copy(pb_objects[0]))
 
 
 # ###################### 'dis', '--distance' ###################### #
@@ -443,7 +435,7 @@ def test_phyml_multi_param():
 
 @pytest.mark.generate_trees
 def test_fasttree_inputs():
-    temp_dir = TempDir()
+    temp_dir = MyFuncs.TempDir()
     # Nucleotide
     alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
@@ -457,14 +449,14 @@ def test_fasttree_inputs():
 
 @pytest.mark.generate_trees
 def test_fasttree_multi_param():
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
     tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
     assert phylo_to_hash(tester) == '28debf1cc6a7ab69f94c69626fbe5db0'
 
 
 def test_generate_trees_edge_cases():
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
     with pytest.raises(FileExistsError):
         Pb.generate_tree(tester, "raxml", keep_temp=temp_file.path)
@@ -478,10 +470,9 @@ def test_generate_trees_edge_cases():
     with pytest.raises(RuntimeError):
         Pb.generate_tree(tester, "fasttree", "-s 12345")
 
-    with pytest.raises(ProcessLookupError):
-        os.environ["PATH"] = ""
-        Pb.generate_tree(tester, "raxml")
-        os.environ["PATH"] = BACKUP_PATH
+    with mock.patch.dict(os.environ, {"PATH": ""}):
+        with pytest.raises(ProcessLookupError):
+            Pb.generate_tree(tester, "raxml")
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
@@ -707,9 +698,6 @@ def test_distance_ui(capsys):
 # ###################### 'gt', '--generate_tree' ###################### #
 @pytest.mark.generate_trees
 def test_generate_tree_ui1(capsys):
-    if os.environ["PATH"] == "":
-        os.environ["PATH"] = BACKUP_PATH
-
     test_in_args = deepcopy(in_args)
     test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
     test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
@@ -722,9 +710,6 @@ def test_generate_tree_ui1(capsys):
 
 @pytest.mark.generate_trees
 def test_generate_tree_ui2():
-    if os.environ["PATH"] == "":
-        os.environ["PATH"] = BACKUP_PATH
-
     test_in_args = deepcopy(in_args)
     test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
     test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
@@ -874,7 +859,7 @@ def test_screw_formats_fail(capsys):
 
 
 def test_screw_formats_inplace_ui(capsys):
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     with open(resource("compare_trees.newick"), "r") as ifile:
         temp_file.write(ifile.read())
 
