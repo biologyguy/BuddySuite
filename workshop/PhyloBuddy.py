@@ -431,7 +431,7 @@ def display_trees(phylobuddy):
 
     for _tree in phylobuddy.trees:
         _convert_to_ete(_tree).show()
-    return
+    return True
 
 
 def distance(phylobuddy, method='weighted_robinson_foulds'):
@@ -1149,10 +1149,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as e:
             _raise_error(e, "generate_tree")
         except FileNotFoundError as e:
-            if str(e) != "Error: {0} failed to generate a tree.".format(phylo_program):
-                raise FileNotFoundError(e)
-            else:
-                _raise_error(str(e), "generate_tree")
+            _raise_error(e, "generate_tree", "Error: {0} failed to generate a tree.".format(phylo_program))
 
         if in_args.out_format:
             generated_trees.out_format = out_format
@@ -1295,11 +1292,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         try:
             _print_trees(show_unique(phylobuddy))
         except AssertionError as e:
-            if str(e) == "PhyloBuddy object should have exactly 2 trees.":
-                _raise_error(e, "show_unique")
-            else:
-                raise e
-
+            _raise_error(e, "show_unique", "PhyloBuddy object should have exactly 2 trees.")
         _exit("show_unique")
 
     # Split polytomies

@@ -30,6 +30,7 @@ import argparse
 from copy import deepcopy
 from collections import OrderedDict
 from unittest import mock
+import ete3
 
 sys.path.insert(0, "./")
 import buddy_resources as br
@@ -347,10 +348,12 @@ def test_consensus_tree_95(phylobuddy, next_hash):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
-# def test_display_trees():
-    # foo = Pb.display_trees(pb_objs[0])
+def test_display_trees(monkeypatch):
+    show = mock.Mock(return_value=True)
+    monkeypatch.setattr(ete3.TreeNode, "show", show)
+    assert Pb.display_trees(pb_resources.get_one("o k"))
 
-@pytest.mark.foo
+
 def test_display_trees_error():
     with mock.patch.dict('os.environ'):
         del os.environ['DISPLAY']
@@ -676,6 +679,22 @@ def test_consensus_tree_ui(capsys):
     assert string2hash(out) == "f20cbd5aae5971cce8efbda15e4e0b7e"
 
 
+# ###################### 'dt', '--display_trees' ###################### #
+def test_display_trees_ui(capsys, monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.display_trees = True
+    show = mock.Mock(return_value=True)
+    monkeypatch.setattr(ete3.TreeNode, "show", show)
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+
+    with mock.patch.dict('os.environ'):
+        del os.environ['DISPLAY']
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+        out, err = capsys.readouterr()
+
+    assert "Error: Your system is non-graphical, so display_trees can not work." in err
+
+
 # ###################### 'dis', '--distance' ###################### #
 def test_distance_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -731,7 +750,7 @@ def test_generate_tree_ui3():
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
-def test_hash_ids_ui(capsys):
+def test_hash_ids_ui(capsys, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.hash_ids = [[1, "nodes"]]
 
@@ -748,6 +767,15 @@ def test_hash_ids_ui(capsys):
 
     assert string2hash(out) != phylo_to_hash(pb_resources.get_one("m s"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
+
+    def hash_ids(*args):
+        raise ValueError("Foo bar")
+    test_in_args.hash_ids = [[1, "nodes"]]
+    monkeypatch.setattr(Pb, "hash_ids", hash_ids)
+    with pytest.raises(ValueError):
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o s"))
+    out, err = capsys.readouterr()
+    assert not err
 
 
 # ###################### 'li', '--list_ids' ###################### #
@@ -768,6 +796,16 @@ def test_list_ids_ui(capsys):
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy("(, );"), skip_exit=True)
     out, err = capsys.readouterr()
     assert out == "#### tree_1 ####\nNone\n\n"
+
+
+# ###################### '-nt', '--num_tips' ###################### #
+def test_num_tips_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.num_tips = True
+
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "f43920f4df66e76fbacae4af178eeebb"
 
 
 # ###################### 'ptr', '--print_trees' ###################### #
@@ -894,6 +932,12 @@ def test_show_unique_ui(capsys):
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(resource("compare_trees.newick")), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+
+    with pytest.raises(SystemExit):
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"))
+
+    out, err = capsys.readouterr()
+    assert err == "AssertionError: PhyloBuddy object should have exactly 2 trees.\n"
 
 
 # ###################### 'sp', '--split_polytomies' ###################### #
