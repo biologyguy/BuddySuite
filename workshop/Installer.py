@@ -9,7 +9,7 @@ without restriction.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-version: 1, alpha
+version: 1.0
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -45,7 +45,7 @@ import buddy_resources as br
 
 import argparse
 
-_version = br.Version("BuddySuite", 1, 'beta', br.contributors)
+_version = br.Version("BuddySuite", 1, 0, br.contributors)
 
 
 def fmt(prog):
@@ -522,13 +522,17 @@ def cmd_install():
         print("Installation aborted.")
         exit()
 
-    print("\nBefore continuing, please review our license at: \nhttp://www.gnu.org/licenses/gpl-3.0.en.html")
+    print("\nBefore continuing please understand that software created by US government employees is in the "
+          "PUBLIC DOMAIN, and can be used for any purpose without restriction. Not all software in this package is"
+          "in the public domain, however, and all copyright restrictions on those works still apply.\n"
+          "BuddySuite is provided 'as is', WITHOUT WARRANTY of any kind. The full license can be found at "
+          "https://raw.githubusercontent.com/biologyguy/BuddySuite/master/LICENSE\n")
     if not ask("Do you accept these terms? ('[yes]/no') "):
         print("Installation aborted.")
         exit()
 
     if config is not None:
-        print("\nWe have detected a previous installation. Some settings will be imported.")
+        print("\nPrevious installation detected; some settings will be imported.")
 
     for buddy in buddies_to_install:
         operation = ' install' if already_installed is None or not already_installed[buddy] else ' keep'
@@ -1415,7 +1419,7 @@ for func in alb_flags:
     func = re.sub("_", " ", func)
     alignbuddy_blurb += "\n    - %s" % func
 
-phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic tree files in Newick, Nexus, and XML formats.\n\n"
+phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic tree files in Newick, Nexus, and NeXML formats.\n\n"
 
 phylobuddy_blurb += "The %s available tools:" % len(br.pb_flags)
 pb_flags = OrderedDict(sorted(br.pb_flags.items(), key=lambda x: x[0]))

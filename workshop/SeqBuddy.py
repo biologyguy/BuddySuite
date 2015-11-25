@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: SeqBuddy.py
-version: 1, beta
+version: 1.0
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -35,7 +35,7 @@ import string
 import zipfile
 import shutil
 from urllib import request, error
-from copy import copy, deepcopy
+from copy import deepcopy
 from random import sample, choice, randint, random
 from math import floor, ceil, log
 from tempfile import TemporaryDirectory
@@ -54,8 +54,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Restriction import *
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC, Gapped
-from Bio.Data.CodonTable import TranslationError
+from Bio.Alphabet import IUPAC
 from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
 from Bio import AlignIO
@@ -110,19 +109,18 @@ def incremental_rename(query, replace):
     x = (query, replace)
     return x
 
-
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
 # - Add support for selecting individual sequences to modify (as a global ability for any tool)
 # - Add FASTQ support... More generally, support letter annotation mods
-# - Add Clustal support
 # - Get BuddySuite into PyPi
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
 
 # ##################################################### CHANGE LOG ################################################### #
+
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, 'beta', br.contributors)
+VERSION = br.Version("SeqBuddy", 1, 0, br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -1530,7 +1528,7 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
         find_repeats(seqbuddy)
         if len(seqbuddy.repeat_ids) > 0:
             for rep_id in seqbuddy.repeat_ids:
-                store_one_copy = pull_recs(make_copy(seqbuddy), "^%s$" % rep_id).records[0]
+                store_one_copy = pull_recs(make_copy(seqbuddy), ["^%s$" % rep_id]).records[0]
                 delete_records(seqbuddy, "^%s$" % rep_id)
                 seqbuddy.records.append(store_one_copy)
 
@@ -2672,21 +2670,6 @@ def shuffle_seqs(seqbuddy):
             new_seq += tokens.pop(rand_indx)
         rec.seq = Seq(data=new_seq, alphabet=seqbuddy.alpha)
     return seqbuddy
-
-
-def split_file(seqbuddy):
-    """
-    Split the records in a SeqBuddy object up into a collection of new SeqBuddy objects
-    :param seqbuddy: SeqBuddy object
-    :return: A list of SeqBuddy objects
-    """
-    sb_objs_list = []
-    for rec in seqbuddy.records:
-        sb = SeqBuddy([rec])
-        sb.in_format = seqbuddy.in_format
-        sb.out_format = seqbuddy.out_format
-        sb_objs_list.append(sb)
-    return sb_objs_list
 
 
 def translate6frames(seqbuddy):

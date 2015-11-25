@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: PhyloBuddy.py
-version: 1, beta
+version: 1.0
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -113,7 +113,7 @@ def decode_accessions(_phylobuddy):
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, 'beta', br.contributors)
+VERSION = br.Version("PhyloBuddy", 1, 0, br.contributors)
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -1030,7 +1030,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             _stdout("{0}\n".format(str(_phylobuddy).rstrip()))
 
     def _in_place(_output, file_path):
-        if not os.path.isfile(str(_path)):
+        if not os.path.isfile(str(file_path)):
             _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)

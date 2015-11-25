@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: DbBuddy.py
-version: 1, alpha
+version: 1.0
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -72,7 +72,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, 'beta', br.contributors)
+VERSION = br.Version("DatabaseBuddy", 1, 0, br.contributors)
 
 GREY = "\033[90m"
 RED = "\033[91m"
