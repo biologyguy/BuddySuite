@@ -685,12 +685,14 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     """
     if params is None:
         params = ''
+
     tool = tool.lower()
 
-    if keep_temp:
-        if os.path.exists(keep_temp):
-            _stderr("Warning: {0} already exists. Please specify a different path.\n".format(keep_temp), quiet)
+    if keep_temp and os.path.exists(keep_temp):
+        check = MyFuncs.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
+        if not check:
             sys.exit()
+        keep_temp = os.path.abspath(keep_temp)
 
     tool_urls = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
                  'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
@@ -711,16 +713,55 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         tmp_dir = MyFuncs.TempDir()
         tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
 
-        params = re.split(' ', params, )
-        for indx, token in enumerate(params):
-            if os.path.exists(token):
-                params[indx] = os.path.abspath(token)
-        params = ' '.join(params)
+        params = re.split(' ', params)
 
         Sb.hash_sequence_ids(seqbuddy, 8)
-
+        copy_outfmt = str(seqbuddy.out_format)
         seqbuddy.out_format = 'fasta'
         seqbuddy.write(tmp_in)
+        seqbuddy.out_format = copy_outfmt
+
+        # Catch output parameters if passed into the third party program
+        for indx, param in enumerate(params):
+            # PAGAN
+            if param == "-f":
+                try:
+                    seqbuddy.out_format = br.parse_format(params[indx + 1])
+                except (TypeError, AttributeError, IndexError):
+                    pass
+                del params[indx + 1]
+                del params[indx]
+                break
+            # PRANK
+            elif param.startswith("-f="):
+                param = re.match("-f=(.*)", param)
+                try:
+                    seqbuddy.out_format = br.parse_format(param.group(1))
+                except (TypeError, AttributeError):
+                    pass
+                del params[indx]
+                break
+            # ClustalOmega
+            elif param.startswith("--outfmt="):
+                param = re.match("--outfmt=(.*)", param)
+                try:
+                    seqbuddy.out_format = br.parse_format(param.group(1))
+                except (TypeError, AttributeError):
+                    pass
+                del params[indx]
+                break
+            # ClustalW2
+            elif param.startswith("-output="):
+                param = re.match("-output=(.*)", param)
+                try:
+                    seqbuddy.out_format = br.parse_format(param.group(1))
+                except (TypeError, AttributeError):
+                    pass
+                del params[indx]
+                break
+
+        params = ' '.join(params)
+
         if tool in ['clustalomega', 'clustalo']:
             command = '{0} {1} -i {2} -o {3}/result -v'.format(tool, params, tmp_in, tmp_dir.path)
         elif tool.startswith('clustal'):
@@ -756,7 +797,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                 output = result.read()
         elif tool == 'prank':
             extension = 'fas'
-            if '-f=nexus' in params or '-f=nexus' in params:
+            if '-f=nexus' in params:
                 extension = 'nex'
             elif '-f=phylipi' in params or '-f=phylips' in params:
                 extension = 'phy'
@@ -791,16 +832,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                     contents += line
                 prev_line = line
             output = contents
-        if tool.startswith('clustalw') and 'nexus' in params or '=NEXUS' in params:  # if taxa has gap chars
-            contents = ''
-            for indx, line in enumerate(output.splitlines(keepends=True)):
-                if indx > 6 and not line.startswith('\n') and ';' not in line:
-                    split = re.split(' ', line, maxsplit=1)
-                    contents += "'" + split[0] + "' " + split[1]
-                else:
-                    contents += line
-            output = contents
-        alignbuddy = AlignBuddy(output, out_format=seqbuddy.in_format)
+        alignbuddy = AlignBuddy(output, out_format=seqbuddy.out_format)
 
         seqbuddy_recs = []
         for alb_rec in alignbuddy.records():
@@ -815,26 +847,9 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
         for _hash, sb_rec in seqbuddy.hash_map.items():
             rename(alignbuddy, _hash, sb_rec)
-            for alignment in alignbuddy.alignments:
-                for rec in alignment:
-                    if _hash in rec.annotations:
-                        rec.annotations.pop(_hash)
-                    to_pop = []
-                    for key in rec.annotations:
-                        if _hash in rec.annotations[key]:
-                            to_pop.append(key)
-                    for key in to_pop:
-                        rec.annotations.pop(key)
-                    rec.name = re.sub(_hash, '', rec.name)
-                    rec.description = re.sub(_hash, '', rec.description)
-        _stderr('\n')
 
         if keep_temp:
-            try:
-                copytree(tmp_dir.path, keep_temp)
-            except FileExistsError:
-                # Should never get here
-                pass
+            MyFuncs.copydir(tmp_dir.path, keep_temp)
 
         _stderr("Returning to AlignBuddy...\n\n", quiet)
         return alignbuddy
@@ -1156,7 +1171,7 @@ def argparse_init():
 
             elif len(sys.argv) > ga_indx + 2 or extra_args:
                 # There must be optional arguments being passed into the alignment tool
-                sys.argv[ga_indx + 2] = "%s " % sys.argv[ga_indx + 2].rstrip()
+                sys.argv[ga_indx + 2] = " %s" % sys.argv[ga_indx + 2].rstrip()
 
     import argparse
 
@@ -1443,7 +1458,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             generated_msas = generate_msa(seqbuddy, args[0], params, in_args.keep_temp, in_args.quiet)
             if in_args.out_format:
                 generated_msas.set_format(in_args.out_format)
-            _stdout(str(generated_msas))
+            _print_aligments(generated_msas)
         except AttributeError as e:
             _raise_error(e, "generate_alignment", "is not a supported alignment tool")
         _exit("generate_alignment")
