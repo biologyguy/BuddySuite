@@ -27,7 +27,7 @@ from time import time
 from math import floor, ceil
 import os
 from tempfile import TemporaryDirectory
-from shutil import copytree, rmtree
+from shutil import copytree, rmtree, copyfile
 from re import sub
 import string
 from random import choice
@@ -140,7 +140,7 @@ def pretty_time(seconds):
         minutes = floor(seconds / 60)
         seconds -= (minutes * 60)
         output = "%i days, %i hrs, %i min, %i sec" % (days, hours, minutes, seconds)
-        
+
     return output
 
 
@@ -201,7 +201,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
         # fire up the multi-core!!
         if not quiet:
             d_print.write("\tJob 0 of %s" % len(iterable))
-    
+
         for next_iter in iterable:
             if type(iterable) is dict:
                 next_iter = iterable[next_iter]
@@ -261,7 +261,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                     elapsed = round(time()) - start_time
                     d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (len(iterable), pretty_time(elapsed),
                                                                                len(child_list)))
-            
+
         if not quiet:
             d_print.write("\tDONE: %s jobs in %s\n" % (len(iterable), pretty_time(elapsed)))
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
@@ -415,6 +415,16 @@ def walklevel(some_dir, level=1):
         num_sep_this = root.count(os.path.sep)
         if num_sep + level <= num_sep_this:
             del dirs[:]
+
+
+def copydir(source, dest):
+    for root, dirs, files in os.walk(source):
+        if not os.path.isdir(root):
+            os.makedirs(root)
+        for each_file in files:
+            rel_path = root.replace(source, '').lstrip(os.sep)
+            dest_path = os.path.join(dest, rel_path, each_file)
+            copyfile(os.path.join(root, each_file), dest_path)
 
 
 def normalize(data, trim_ends=1.0):
