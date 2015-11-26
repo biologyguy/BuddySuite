@@ -425,8 +425,8 @@ class BuddyInstall(object):
 
         if system() == 'Darwin':
             if not os.path.exists("{0}/.profile".format(home_dir)):
-                make_file = open("{0}/.profile".format(home_dir), 'w')
-                make_file.close()
+                open("{0}/.profile".format(home_dir), 'w').close()
+
             with open("{0}/.profile".format(home_dir)) as file:
                 contents = file.read()
                 if re.search(regex, contents) is None:
@@ -437,8 +437,8 @@ class BuddyInstall(object):
 
         if system() == 'Linux':
             if not os.path.exists("{0}/.bashrc".format(home_dir)):
-                make_file = open("{0}/.bashrc".format(home_dir), 'w')
-                make_file.close()
+                open("{0}/.bashrc".format(home_dir), 'w').close()
+
             with open("{0}/.bashrc".format(home_dir)) as file:
                 contents = file.read()
                 if re.search(regex, contents) is None:
@@ -675,10 +675,8 @@ def cmd_install():
     print("\nProviding a valid email address is recommended if using DatabaseBuddy to access NCBI, as they will "
           "attempt to contact you before blocking your IP if you are not adhering to their usage limitations.\n")
 
-    if email_address != '':
-        if not ask("Your email address is currently set to \033[1m%s\033[m, "
-                   "would you like to keep it the same? ([y]/n): "
-                   % email_address):
+    if email_address != '' and not ask("Your email address is currently set to \033[1m%s\033[m, "
+                                       "would you like to keep it the same? ([y]/n): " % email_address):
             email_address = ''
 
     if email_address == '':

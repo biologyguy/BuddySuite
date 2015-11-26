@@ -600,7 +600,7 @@ def _old2new(feat, old_rec, new_rec):
                 continue
 
             if not start:
-                if old_front_seq == "" or new_front_seq == old_front_seq:
+                if old_front_seq in ["", new_front_seq]:
                     start = indx + 1
                     new_feat_seq += residue
                     if new_feat_seq == old_feat_seq:
