@@ -1222,10 +1222,11 @@ class Installer(Frame):
                                           "  Anonymized usage statistics and crash reports will be\n"
                                           "  automatically transmitted to the BuddySuite developers.",
                                      command=self.toggle_diagnostics, pady=50 * scale_factor, justify="left")
-        if self.send_diagnostics:
-            diagnostic_box.toggle()
 
         diagnostic_box.pack(side=BOTTOM)
+
+        if self.send_diagnostics:
+            diagnostic_box.select()
 
         frame.pack(side=TOP, padx=10 * scale_factor, pady=10 * scale_factor, fill=BOTH)
         self.container.append(frame)
