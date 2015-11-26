@@ -1420,7 +1420,8 @@ for func in alb_flags:
     func = re.sub("_", " ", func)
     alignbuddy_blurb += "\n    - %s" % func
 
-phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic tree files in Newick, Nexus, and NeXML formats.\n\n"
+phylobuddy_blurb = "Read, write, analyze, and manipulate phylogenetic " \
+                   "tree files in Newick, Nexus, and NeXML formats.\n\n"
 
 phylobuddy_blurb += "The %s available tools:" % len(br.pb_flags)
 pb_flags = OrderedDict(sorted(br.pb_flags.items(), key=lambda x: x[0]))
@@ -1439,7 +1440,9 @@ for func in db_flags:
     databasebuddy_blurb += "\n    - %s" % func
 
 if __name__ == '__main__':
+    # noinspection PyUnboundLocalVariable
     app = Installer(master=root)
+    # noinspection PyUnboundLocalVariable
     root.geometry("{0}x{1}+{2}+{3}".format(str(int(sw / 3)), str(int(sh / 2)), str(int(sw / 4)), str(int(sh / 4))))
     root.lift()
     root.call('wm', 'attributes', '.', '-topmost', True)

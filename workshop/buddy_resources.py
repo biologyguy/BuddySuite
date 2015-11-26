@@ -38,6 +38,14 @@ from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
 if __name__ == '__main__':
+    import SeqBuddy
+    import AlignBuddy
+    import PhyloBuddy
+    import DatabaseBuddy
+    print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
+    print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
+    print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
+    print("DatabaseBuddy: %s" % DatabaseBuddy.VERSION.short())
     sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
 
