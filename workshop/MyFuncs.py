@@ -389,7 +389,7 @@ class SafetyValve(object):  # Use this class if you're afraid of an infinite loo
         self.global_reps -= 1
         self.counter += 1
         if self.global_reps == 0:
-            raise RuntimeError("Error: You just popped your global_reps safety valve. %s" % message)
+            raise RuntimeError("You just popped your global_reps safety valve. %s" % message)
         return True
 
     def test(self, state, message=""):  # test() keeps track of some variable 'state' to see if its value keeps changing
@@ -400,7 +400,7 @@ class SafetyValve(object):  # Use this class if you're afraid of an infinite loo
             self.state = str(state)
             
         if self.state_reps == 0:
-            raise RuntimeError("Error: You just popped your state_reps safety valve. %s" % message)
+            raise RuntimeError("You just popped your state_reps safety valve. %s" % message)
         return True
 
 
