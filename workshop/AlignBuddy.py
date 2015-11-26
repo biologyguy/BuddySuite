@@ -710,146 +710,155 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         _stderr('Please go to {0} to install {1}.\n'.format(tool_urls[tool], tool))
         sys.exit()
     else:
-        tmp_dir = MyFuncs.TempDir()
-        tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
-
-        params = re.split(' ', params)
-
+        valve = MyFuncs.SafetyValve(global_reps=400)
         Sb.hash_sequence_ids(seqbuddy, 8)
-        copy_outfmt = str(seqbuddy.out_format)
-        seqbuddy.out_format = 'fasta'
-        seqbuddy.write(tmp_in)
-        seqbuddy.out_format = copy_outfmt
+        while True:
+            valve.step("Generate alignment is failing to create temporary files. Please report this to "
+                       "the BuddySuite developers if recurring.")
+            try:
+                tmp_dir = MyFuncs.TempDir()
+                tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
 
-        # Catch output parameters if passed into the third party program
-        for indx, param in enumerate(params):
-            # PAGAN
-            if param == "-f":
-                try:
-                    seqbuddy.out_format = br.parse_format(params[indx + 1])
-                except (TypeError, AttributeError, IndexError):
-                    pass
-                del params[indx + 1]
-                del params[indx]
-                break
-            # PRANK
-            elif param.startswith("-f="):
-                param = re.match("-f=(.*)", param)
-                try:
-                    seqbuddy.out_format = br.parse_format(param.group(1))
-                except (TypeError, AttributeError):
-                    pass
-                del params[indx]
-                break
-            # ClustalOmega
-            elif param.startswith("--outfmt="):
-                param = re.match("--outfmt=(.*)", param)
-                try:
-                    seqbuddy.out_format = br.parse_format(param.group(1))
-                except (TypeError, AttributeError):
-                    pass
-                del params[indx]
-                break
-            # ClustalW2
-            elif param.startswith("-output="):
-                param = re.match("-output=(.*)", param)
-                try:
-                    seqbuddy.out_format = br.parse_format(param.group(1))
-                except (TypeError, AttributeError):
-                    pass
-                del params[indx]
-                break
+                params = re.split(' ', params)
 
-        params = ' '.join(params)
+                copy_outfmt = str(seqbuddy.out_format)
+                seqbuddy.out_format = 'fasta'
+                seqbuddy.write(tmp_in)
+                seqbuddy.out_format = copy_outfmt
 
-        if tool in ['clustalomega', 'clustalo']:
-            command = '{0} {1} -i {2} -o {3}/result -v'.format(tool, params, tmp_in, tmp_dir.path)
-        elif tool.startswith('clustal'):
-            command = '{0} -infile={1} {2} -outfile={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
-        elif tool == 'muscle':
-            command = '{0} -in {1} {2}'.format(tool, tmp_in, params)
-        elif tool == 'prank':
-            command = '{0} -d={1} {2} -o={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
-        elif tool == 'pagan':
-            command = '{0} -s {1} {2} -o {3}/result'.format(tool, tmp_in, params, tmp_dir.path)
-        else:
-            command = '{0} {1} {2}'.format(tool, params, tmp_in)
+                # Catch output parameters if passed into the third party program
+                for indx, param in enumerate(params):
+                    # PAGAN
+                    if param == "-f":
+                        try:
+                            seqbuddy.out_format = br.parse_format(params[indx + 1])
+                        except (TypeError, AttributeError, IndexError):
+                            pass
+                        del params[indx + 1]
+                        del params[indx]
+                        break
+                    # PRANK
+                    elif param.startswith("-f="):
+                        param = re.match("-f=(.*)", param)
+                        try:
+                            seqbuddy.out_format = br.parse_format(param.group(1))
+                        except (TypeError, AttributeError):
+                            pass
+                        del params[indx]
+                        break
+                    # ClustalOmega
+                    elif param.startswith("--outfmt="):
+                        param = re.match("--outfmt=(.*)", param)
+                        try:
+                            seqbuddy.out_format = br.parse_format(param.group(1))
+                        except (TypeError, AttributeError):
+                            pass
+                        del params[indx]
+                        break
+                    # ClustalW2
+                    elif param.startswith("-output="):
+                        param = re.match("-output=(.*)", param)
+                        try:
+                            seqbuddy.out_format = br.parse_format(param.group(1))
+                        except (TypeError, AttributeError):
+                            pass
+                        del params[indx]
+                        break
 
-        try:
-            if tool in ['prank', 'pagan', 'clustalomega', 'clustalo']:
-                if quiet:
-                    output = Popen(command, shell=True, universal_newlines=True,
-                                   stdout=PIPE, stderr=PIPE).communicate()
+                params = ' '.join(params)
+
+                if tool in ['clustalomega', 'clustalo']:
+                    command = '{0} {1} -i {2} -o {3}/result -v'.format(tool, params, tmp_in, tmp_dir.path)
+                elif tool.startswith('clustal'):
+                    command = '{0} -infile={1} {2} -outfile={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
+                elif tool == 'muscle':
+                    command = '{0} -in {1} {2}'.format(tool, tmp_in, params)
+                elif tool == 'prank':
+                    command = '{0} -d={1} {2} -o={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
+                elif tool == 'pagan':
+                    command = '{0} -s {1} {2} -o {3}/result'.format(tool, tmp_in, params, tmp_dir.path)
                 else:
-                    output = Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).communicate()
-            else:
-                if quiet:
-                    output = Popen(command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
-                else:
-                    output = Popen(command, shell=True, stdout=PIPE).communicate()
-                output = output[0].decode()
-        except CalledProcessError:
-            _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
-            sys.exit()
+                    command = '{0} {1} {2}'.format(tool, params, tmp_in)
 
-        if tool.startswith('clustal'):
-            with open('{0}/result'.format(tmp_dir.path)) as result:
-                output = result.read()
-        elif tool == 'prank':
-            extension = 'fas'
-            if '-f=nexus' in params:
-                extension = 'nex'
-            elif '-f=phylipi' in params or '-f=phylips' in params:
-                extension = 'phy'
-            possible_files = os.listdir(tmp_dir.path)
-            filename = 'result.best.{0}'.format(extension)
-            for _file in possible_files:
-                if 'result.best' in _file and extension in _file:
-                    filename = _file
-            with open('{0}/{1}'.format(tmp_dir.path, filename)) as result:
-                output = result.read()
-        elif tool == 'pagan':
-            extension = 'fas'
-            if '-f nexus' in params:
-                extension = 'nex'
-            elif '-f phylipi' in params or '-f phylips' in params:
-                extension = 'phy'
-            with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
-                output = result.read()
+                try:
+                    if tool in ['prank', 'pagan', 'clustalomega', 'clustalo']:
+                        if quiet:
+                            output = Popen(command, shell=True, universal_newlines=True,
+                                           stdout=PIPE, stderr=PIPE).communicate()
+                        else:
+                            output = Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).communicate()
+                    else:
+                        if quiet:
+                            output = Popen(command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+                        else:
+                            output = Popen(command, shell=True, stdout=PIPE).communicate()
+                        output = output[0].decode()
+                except CalledProcessError:
+                    _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
+                    sys.exit()
 
-        # Fix broken outputs to play nicely with AlignBuddy parsers
-        if (tool == 'mafft' and '--clustalout' in params) or \
-                (tool.startswith('clustalw2') and '-output' not in params) or \
-                (tool in ['clustalomega', 'clustalo'] and ('clustal' in params or '--outfmt clu' in params or
-                 '--outfmt=clu' in params)):
-            # Clustal format extra spaces
-            contents = ''
-            prev_line = ''
-            for line in output.splitlines(keepends=True):
-                if line.startswith(' ') and len(line) == len(prev_line) + 1:
-                    contents += line[1:]
-                else:
-                    contents += line
-                prev_line = line
-            output = contents
-        alignbuddy = AlignBuddy(output, out_format=seqbuddy.out_format)
+                if tool.startswith('clustal'):
+                    with open('{0}/result'.format(tmp_dir.path)) as result:
+                        output = result.read()
+                elif tool == 'prank':
+                    extension = 'fas'
+                    if '-f=nexus' in params:
+                        extension = 'nex'
+                    elif '-f=phylipi' in params or '-f=phylips' in params:
+                        extension = 'phy'
+                    possible_files = os.listdir(tmp_dir.path)
+                    filename = 'result.best.{0}'.format(extension)
+                    for _file in possible_files:
+                        if 'result.best' in _file and extension in _file:
+                            filename = _file
+                    with open('{0}/{1}'.format(tmp_dir.path, filename)) as result:
+                        output = result.read()
+                elif tool == 'pagan':
+                    extension = 'fas'
+                    if '-f nexus' in params:
+                        extension = 'nex'
+                    elif '-f phylipi' in params or '-f phylips' in params:
+                        extension = 'phy'
+                    with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
+                        output = result.read()
 
-        seqbuddy_recs = []
-        for alb_rec in alignbuddy.records():
-            for indx, sb_rec in enumerate(seqbuddy.records):
-                if sb_rec.id == alb_rec.id:
-                    seqbuddy_recs.append(sb_rec)
-                    del seqbuddy.records[indx]
-                    break
+                # Fix broken outputs to play nicely with AlignBuddy parsers
+                if (tool == 'mafft' and '--clustalout' in params) or \
+                        (tool.startswith('clustalw2') and '-output' not in params) or \
+                        (tool in ['clustalomega', 'clustalo'] and ('clustal' in params or '--outfmt clu' in params or
+                         '--outfmt=clu' in params)):
+                    # Clustal format extra spaces
+                    contents = ''
+                    prev_line = ''
+                    for line in output.splitlines(keepends=True):
+                        if line.startswith(' ') and len(line) == len(prev_line) + 1:
+                            contents += line[1:]
+                        else:
+                            contents += line
+                        prev_line = line
+                    output = contents
+                alignbuddy = AlignBuddy(output, out_format=seqbuddy.out_format)
 
-        seqbuddy.records = seqbuddy_recs
-        br.remap_gapped_features(seqbuddy_recs, alignbuddy.records())
+                seqbuddy_recs = []
+                for alb_rec in alignbuddy.records():
+                    for indx, sb_rec in enumerate(seqbuddy.records):
+                        if sb_rec.id == alb_rec.id:
+                            seqbuddy_recs.append(sb_rec)
+                            del seqbuddy.records[indx]
+                            break
 
-        for _hash, sb_rec in seqbuddy.hash_map.items():
-            rename(alignbuddy, _hash, sb_rec)
+                seqbuddy.records = seqbuddy_recs
+                br.remap_gapped_features(seqbuddy_recs, alignbuddy.records())
 
-        if keep_temp:
-            MyFuncs.copydir(tmp_dir.path, keep_temp)
+                for _hash, sb_rec in seqbuddy.hash_map.items():
+                    rename(alignbuddy, _hash, sb_rec)
+
+                if keep_temp:
+                    MyFuncs.copydir(tmp_dir.path, keep_temp)
+                break
+
+            except FileNotFoundError:
+                pass
 
         _stderr("Returning to AlignBuddy...\n\n", quiet)
         return alignbuddy

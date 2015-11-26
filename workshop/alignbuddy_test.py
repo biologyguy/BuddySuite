@@ -793,7 +793,6 @@ def test_clustalomega_outputs():
 def test_clustalomega_multi_param():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal --iter=1')
-    tester.write("temp.del")
     assert align_to_hash(tester) == '25480f7a9340ff643bb7eeb326e8f981'
 
 

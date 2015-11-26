@@ -353,17 +353,19 @@ def test_check_blast_bin(capsys):
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert Sb._check_for_blast_bin(_bin)
 
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
         with mock.patch('MyFuncs.ask', return_value=False):
             assert not Sb._check_for_blast_bin("blastp")
 
         with mock.patch('MyFuncs.ask', return_value=True):
             with mock.patch("SeqBuddy._download_blast_binaries", return_value=False):
-                assert not Sb._check_for_blast_bin("foo")
+                check = Sb._check_for_blast_bin("foo")
+                assert not check
                 out, err = capsys.readouterr()
                 assert "Failed to download foo" in err
 
-            assert not Sb._check_for_blast_bin("blastp")
+            Sb._check_for_blast_bin("blastp")
             out, err = capsys.readouterr()
             assert "blastp downloaded" in err
             assert os.path.isfile("./blastp")
@@ -373,26 +375,22 @@ def test_check_blast_bin(capsys):
 # ######################  '_download_blast_binaries' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
-def test_dl_blast_bins():
-    sys_memory = int(sys.maxsize)
-    for platform in ["darwin", "linux32", "linux64", "win"]:
-        sys.maxsize = 2000000000 if platform == "linux32" else sys_memory
-        platform = "linux" if "linux" in platform else platform
-        Sb._download_blast_binaries(ignore_pre_install=True, system=platform)
-        if platform != "win":
-            assert os.path.isfile('./blastdbcmd')
-            assert os.path.isfile('./blastn')
-            assert os.path.isfile('./blastp')
-            os.remove("./blastdbcmd")
-            os.remove("./blastn")
-            os.remove("./blastp")
-        else:
-            assert os.path.isfile('./blastdbcmd.exe')
-            assert os.path.isfile('./blastn.exe')
-            assert os.path.isfile('./blastp.exe')
-            os.remove("./blastdbcmd.exe")
-            os.remove("./blastn.exe")
-            os.remove("./blastp.exe")
+@pytest.mark.parametrize("platform", ["darwin", "linux32", "linux64", "win"])
+def test_dl_blast_bins(monkeypatch, platform):
+    tmp_dir = MyFuncs.TempDir()
+    monkeypatch.chdir(tmp_dir.path)
+    if platform == "linux32":
+        monkeypatch.setattr("sys.maxsize", 2000000000)
+    platform = "linux" if "linux" in platform else platform
+    Sb._download_blast_binaries(ignore_pre_install=True, system=platform)
+    if platform != "win":
+        assert os.path.isfile('./blastdbcmd')
+        assert os.path.isfile('./blastn')
+        assert os.path.isfile('./blastp')
+    else:
+        assert os.path.isfile('./blastdbcmd.exe')
+        assert os.path.isfile('./blastn.exe')
+        assert os.path.isfile('./blastp.exe')
 
 
 # ######################  '_feature_rc' ###################### #

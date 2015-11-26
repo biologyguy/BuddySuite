@@ -38,7 +38,6 @@ from urllib import request, error
 from copy import deepcopy
 from random import sample, choice, randint, random
 from math import floor, ceil, log
-from tempfile import TemporaryDirectory
 from subprocess import Popen, PIPE
 from shutil import which
 from hashlib import md5
@@ -360,7 +359,9 @@ def _check_for_blast_bin(blast_bin):
     prompt = MyFuncs.ask("%s binary not found. Try to download it? [yes]/no: " % blast_bin)
     if prompt:
         os.chdir(script_location)
-        if _download_blast_binaries(**{blast_bin: True}):
+        bins = dict(blastn=False, blastp=False, blastdcmd=False)
+        bins[blast_bin] = True
+        if _download_blast_binaries(**bins):
             _stderr("%s downloaded.\n" % blast_bin)
         else:
             _stderr("Failed to download %s.\n" % blast_bin)
@@ -1000,12 +1001,12 @@ def bl2seq(seqbuddy):
 
     from multiprocessing import Lock
     lock = Lock()
-    tmp_dir = TemporaryDirectory()
+    tmp_dir = MyFuncs.TempDir()
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy)
     seqs_copy = seqbuddy.records[:]
-    subject_file = "%s/subject.fa" % tmp_dir.name
+    subject_file = "%s/subject.fa" % tmp_dir.path
     for subject in seqbuddy.records:
         with open(subject_file, "w") as ifile:
             SeqIO.write(subject, ifile, "fasta")
@@ -1013,7 +1014,7 @@ def bl2seq(seqbuddy):
         MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
-    with open("%s/blast_results.txt" % tmp_dir.name, "r") as _ifile:
+    with open("%s/blast_results.txt" % tmp_dir.path, "r") as _ifile:
         output_list = _ifile.read().strip().split("\n")
 
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
