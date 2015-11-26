@@ -712,6 +712,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     else:
         valve = MyFuncs.SafetyValve(global_reps=400)
         Sb.hash_sequence_ids(seqbuddy, 8)
+        alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
                        "the BuddySuite developers if recurring.")
@@ -786,7 +787,8 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                             output = Popen(command, shell=True, universal_newlines=True,
                                            stdout=PIPE, stderr=PIPE).communicate()
                         else:
-                            output = Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).communicate()
+                            output = Popen(command, shell=True, universal_newlines=True,
+                                           stdout=sys.stderr).communicate()
                     else:
                         if quiet:
                             output = Popen(command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
@@ -1282,15 +1284,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
-    def _exit(tool, skip=skip_exit):
+    def _exit(_tool, skip=skip_exit):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("AlignBuddy", VERSION.short(), tool)
+        usage.increment("AlignBuddy", VERSION.short(), _tool)
         usage.save()
         sys.exit()
 
-    def _raise_error(_err, tool, check_string=None):
+    def _raise_error(_err, _tool, check_string=None):
         if check_string:
             if type(check_string) == str:
                 check_string = [check_string]
@@ -1302,7 +1304,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             if re_raise:
                 raise _err
         _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
-        _exit(tool)
+        _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Alignment lengths

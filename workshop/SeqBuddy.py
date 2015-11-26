@@ -986,7 +986,7 @@ def bl2seq(seqbuddy):
             except ConnectionRefusedError:
                 continue
         with lock:
-            with open("%s/blast_results.txt" % tmp_dir.name, "a") as _ofile:
+            with open("%s/blast_results.txt" % tmp_dir.path, "a") as _ofile:
                 _ofile.write(_result)
         return
 
@@ -2448,7 +2448,7 @@ def pull_random_recs(seqbuddy, count=1):
     """
     count = abs(count) if abs(count) <= len(seqbuddy.records) else len(seqbuddy.records)
     random_recs = []
-    for i in range(count):
+    for _ in range(count):
         rand_index = randint(0, len(seqbuddy.records) - 1)
         random_recs.append(seqbuddy.records.pop(rand_index))
     seqbuddy.records = random_recs

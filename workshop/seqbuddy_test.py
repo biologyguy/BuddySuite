@@ -140,7 +140,7 @@ class Resources(object):
         self.res_paths = OrderedDict()
         for _type in self.resources:
             self.sb_objs[_type] = OrderedDict([(key, Sb.SeqBuddy(resource(path)))
-                                                for key, path in self.resources[_type].items()])
+                                               for key, path in self.resources[_type].items()])
 
             self.res_paths[_type] = OrderedDict([(key, resource(path)) for key, path in self.resources[_type].items()])
 
@@ -338,6 +338,7 @@ def test_guesserror_in_handle():
 
 def test_no__input():
     with pytest.raises(TypeError):
+        # noinspection PyArgumentList
         Sb.SeqBuddy()
 
 
@@ -646,6 +647,7 @@ def test_bl2seq():
 
 
 def test_bl2_no_binary():
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
         with mock.patch('builtins.input', return_value="n"):
             with pytest.raises(RuntimeError):
@@ -1728,6 +1730,7 @@ def test_bl2s_ui(capsys):
     assert string2hash(out) == "d24495bd87371cd0720084b5d723a4fc"
     assert err == "Warning: There are records with duplicate ids which will be renamed.\n"
 
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
         with mock.patch('builtins.input', return_value="n"):
             with pytest.raises(SystemExit):

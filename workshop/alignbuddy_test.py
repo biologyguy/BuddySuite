@@ -893,7 +893,8 @@ lc_hashes = {'o d g': '2a42c56df314609d042bdbfa742871a3', 'o d n': 'cb1169c2dd35
              'm d py': '0974ac9aefb2fb540957f15c4869c242', 'm d s': 'a217b9f6000f9eeff98faeb9fd09efe4',
              'm p py': 'd13551548c9c1e966d0519755a8fb4eb', 'm p s': '00661f7afb419c6bb8c9ac654af7c976'}
 
-hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],) for key, alignbuddy in alb_resources.get("o m d p g py s").items()]
+hashes = [(alignbuddy, uc_hashes[key], lc_hashes[key],)
+          for key, alignbuddy in alb_resources.get("o m d p g py s").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,uc_hash,lc_hash", hashes)
@@ -933,7 +934,8 @@ rev_hashes = {'o d g': 'a593a2cd979f52c356c61e10ca9a1317', 'o d n': '82fea6e3d36
               'o d py': 'd6e79a5faeaff396aa7eab0b460c3eb9', 'o p g': '39af830e6d3605ea1dd04979a4a33f54',
               'o p n': '85b3562b0eb0246d7dab56a4bcc6e2ae', 'o p py': 'f4c0924087fdb624823d02e909d94e95',
               'm d py': '9d6b6087d07f7d1fd701591ab7cb576d', 'm p py': '439f57b891dd2a72724b10c124f96378'}
-hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key]) for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
+hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key])
+          for key, alignbuddy in alb_resources.get("m o d p g n py").items()]
 
 
 @pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)

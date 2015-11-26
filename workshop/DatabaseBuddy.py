@@ -843,7 +843,8 @@ class UniProtRestClient(object):
                     if _rec.id not in self.dbbuddy.records:
                         # ToDo: fix failures
                         print(_rec.id)
-                        self.dbbuddy.failures.setdefault("# Uniprot fetch: Ids not in dbbuddy.records", []).append(_rec.id)
+                        self.dbbuddy.failures.setdefault("# Uniprot fetch: Ids not"
+                                                         " in dbbuddy.records", []).append(_rec.id)
                     else:
                         self.dbbuddy.records[_rec.id].record = _rec
 

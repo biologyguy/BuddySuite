@@ -355,6 +355,7 @@ def test_display_trees(monkeypatch):
 
 
 def test_display_trees_error():
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['DISPLAY']
         with pytest.raises(SystemError):
@@ -473,14 +474,15 @@ def test_generate_trees_edge_cases():
     with pytest.raises(RuntimeError):
         Pb.generate_tree(tester, "fasttree", "-s 12345")
 
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
         with pytest.raises(ProcessLookupError):
             Pb.generate_tree(tester, "raxml")
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
-@pytest.mark.parametrize("key,phylobuddy", pb_resources.get("m o k s l").items())
-def test_hash_ids(key, phylobuddy):
+@pytest.mark.parametrize("phylobuddy", pb_resources.get_list("m o k s l"))
+def test_hash_ids(phylobuddy):
     orig_hash = phylo_to_hash(phylobuddy)
     Pb.hash_ids(phylobuddy)
     assert phylo_to_hash(phylobuddy) != orig_hash
@@ -687,6 +689,7 @@ def test_display_trees_ui(capsys, monkeypatch):
     monkeypatch.setattr(ete3.TreeNode, "show", show)
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
 
+    # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['DISPLAY']
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
@@ -769,7 +772,10 @@ def test_hash_ids_ui(capsys, monkeypatch):
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
     def hash_ids(*args):
+        if args:
+            pass
         raise ValueError("Foo bar")
+
     test_in_args.hash_ids = [[1, "nodes"]]
     monkeypatch.setattr(Pb, "hash_ids", hash_ids)
     with pytest.raises(ValueError):
