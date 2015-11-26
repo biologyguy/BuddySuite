@@ -1051,6 +1051,47 @@ def test_trimal2():
 
 
 # ################################################# COMMAND LINE UI ################################################## #
+# ###################### argparse_init() ###################### #
+def test_argparse_init(capsys):
+    sys.argv = ['AlignBuddy.py', resource("Mnemiopsis_pep.phy"), "-con", "-o", "stockholm"]
+    temp_in_args, alignbuddy = Alb.argparse_init()
+    assert align_to_hash(alignbuddy) == "5d9a03d9e1b4bf72d991257d3a696306"
+
+    sys.argv = ['AlignBuddy.py', resource("Mnemiopsis_pep.phy"), "-con", "-o", "foo"]
+    with pytest.raises(SystemExit):
+        Alb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "Format type 'foo' is not recognized/supported" in err
+
+    sys.argv = ['AlignBuddy.py', resource("gibberish.fa"), "-con"]
+    with pytest.raises(SystemExit):
+        Alb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "GuessError: Could not determine format from _input file" in err
+
+    sys.argv = ['AlignBuddy.py', resource("gibberish.fa"), "-con", "-f", "phylip"]
+    with pytest.raises(SystemExit):
+        Alb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "ValueError: First line should have two integers" in err
+
+    sys.argv = ['AlignBuddy.py', resource("malformed_phylip_records.physs"), "-con", "-f", "phylipss"]
+    with pytest.raises(SystemExit):
+        Alb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "PhylipError: Malformed Phylip --> 9 sequences expected, 8 found." in err
+
+    sys.argv = ['AlignBuddy.py', resource("Mnemiopsis_pep.phy"), "-con", "-f", "foo"]
+    with pytest.raises(SystemExit):
+        Alb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "TypeError: Format type 'foo' is not recognized/supported" in err
+
+    sys.argv = ['AlignBuddy.py', resource("Mnemiopsis_pep.fa"), "--quiet", "--generate_alignment", "mafft", "--reorder"]
+    temp_in_args, alignbuddy = Alb.argparse_init()
+    assert alignbuddy == []
+
+
 # ##################### '-al', '--alignment_lengths' ###################### ##
 def test_alignment_lengths_ui(capsys):
     test_in_args = deepcopy(in_args)
