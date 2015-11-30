@@ -202,15 +202,15 @@ class Resources(object):
     def get_list(self, code="", mode="objs"):
         return [value for key, value in self.get(code=code, mode=mode).items()]
 
-    def get_one(self, key, mode="objs"):
-        output = self.get_list(key, mode)
+    def get_one(self, code, mode="objs"):
+        output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
 
-    def deets(self, key):
-        key = key.split()
-        return {"num_aligns": self.code_dict["num_aligns"][key[0]],
-                "type": self.code_dict["type"][key[1]],
-                "format": br.parse_format(self.code_dict["format"][key[2]])}
+    def deets(self, code):
+        code = code.split()
+        return {"num_aligns": self.code_dict["num_aligns"][code[0]],
+                "type": self.code_dict["type"][code[1]],
+                "format": br.parse_format(self.code_dict["format"][code[2]])}
 
 
 alb_resources = Resources()

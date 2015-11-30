@@ -195,14 +195,14 @@ class Resources(object):
     def get_list(self, code="", mode="objs"):
         return [value for key, value in self.get(code=code, mode=mode).items()]
 
-    def get_one(self, key, mode="objs"):
-        output = self.get_list(key, mode)
+    def get_one(self, code, mode="objs"):
+        output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
 
-    def deets(self, key):
-        key = key.split()
-        return {"type": self.code_dict["type"][key[0]],
-                "format": br.parse_format(self.code_dict["format"][key[1]])}
+    def deets(self, code):
+        code = code.split()
+        return {"type": self.code_dict["type"][code[0]],
+                "format": br.parse_format(self.code_dict["format"][code[1]])}
 
 sb_resources = Resources()
 

@@ -105,7 +105,7 @@ class Resources(object):
             self.res_paths[num] = OrderedDict([(key, resource(path)) for key, path in self.resources[num].items()])
 
         self.code_dict = OrderedDict([("num_trees", OrderedDict([("o", "one"), ("m", "multi")])),
-                                      ("format", OrderedDict([("k", "newick"), ("s", "nexus"), ("l", "nexml")]))])
+                                      ("format", OrderedDict([("k", "newick"), ("n", "nexus"), ("l", "nexml")]))])
 
     def _parse_code(self, code=""):
         results = OrderedDict([("num_trees", []), ("format", [])])
@@ -152,14 +152,14 @@ class Resources(object):
     def get_list(self, code="", mode="objs"):
         return [value for key, value in self.get(code=code, mode=mode).items()]
 
-    def get_one(self, key, mode="objs"):
-        output = self.get_list(key, mode)
+    def get_one(self, code, mode="objs"):
+        output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
 
-    def deets(self, key):
-        key = key.split()
-        return {"num_trees": self.code_dict["num_trees"][key[0]],
-                "format": br.parse_format(self.code_dict["format"][key[1]])}
+    def deets(self, code):
+        code = code.split()
+        return {"num_trees": self.code_dict["num_trees"][code[0]],
+                "format": br.parse_format(self.code_dict["format"][code[1]])}
 
 pb_resources = Resources()
 
@@ -170,7 +170,7 @@ phylo_files = ['multi_tree.newick', 'multi_tree.nex', 'multi_tree.xml', 'single_
 file_types = ['newick', 'nexus', 'nexml', 'newick', 'nexus', 'nexml']
 
 
-@pytest.mark.parametrize("key,pb_path", pb_resources.get("o m k s l", "paths").items())
+@pytest.mark.parametrize("key,pb_path", pb_resources.get("o m k n l", "paths").items())
 def test_instantiate_phylobuddy_from_file(key, pb_path):
     _format = pb_resources.deets(key)["format"]
     assert type(Pb.PhyloBuddy(pb_path, _in_format=_format)) == Pb.PhyloBuddy
@@ -481,7 +481,7 @@ def test_generate_trees_edge_cases():
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
-@pytest.mark.parametrize("phylobuddy", pb_resources.get_list("m o k s l"))
+@pytest.mark.parametrize("phylobuddy", pb_resources.get_list("m o k n l"))
 def test_hash_ids(phylobuddy):
     orig_hash = phylo_to_hash(phylobuddy)
     Pb.hash_ids(phylobuddy)
@@ -498,7 +498,7 @@ def test_hash_ids_edges():
     assert "Hash length must be greater than 0" in str(e)
 
     with pytest.raises(ValueError) as e:
-        Pb.hash_ids(pb_resources.get_one("m s"), hash_length=1)
+        Pb.hash_ids(pb_resources.get_one("m n"), hash_length=1)
     assert "Insufficient number of hashes available to cover all sequences." in str(e)
 
     tester = Pb.PhyloBuddy(resource("tree_with_node_lables.nwk"))
@@ -757,18 +757,18 @@ def test_hash_ids_ui(capsys, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.hash_ids = [[1, "nodes"]]
 
-    Pb.command_line_ui(test_in_args, pb_resources.get_one("o s"), skip_exit=True)
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("o s"))
+    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("o n"))
     assert "Warning: The hash_length parameter was passed in with the value 1" in err
 
     test_in_args.hash_ids = [[-1, "nodes"]]
 
-    Pb.command_line_ui(test_in_args, pb_resources.get_one("m s"), skip_exit=True)
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("m s"))
+    assert string2hash(out) != phylo_to_hash(pb_resources.get_one("m n"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
     def hash_ids(*args):
@@ -779,7 +779,7 @@ def test_hash_ids_ui(capsys, monkeypatch):
     test_in_args.hash_ids = [[1, "nodes"]]
     monkeypatch.setattr(Pb, "hash_ids", hash_ids)
     with pytest.raises(ValueError):
-        Pb.command_line_ui(test_in_args, pb_resources.get_one("o s"))
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"))
     out, err = capsys.readouterr()
     assert not err
 
