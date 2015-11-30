@@ -21,6 +21,9 @@ repository: https://github.com/biologyguy/BuddySuite
 Description:
 Installation script for the BuddySuite package
 """
+from __future__ import print_function
+
+import buddy_resources as br
 
 import shutil
 import os
@@ -40,8 +43,6 @@ from subprocess import Popen
 from inspect import getsourcefile
 from collections import OrderedDict
 from random import choice
-
-import buddy_resources as br
 
 import argparse
 

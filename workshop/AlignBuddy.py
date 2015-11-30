@@ -25,6 +25,13 @@ and allows maintenance of rich feature annotation following alignment.
 """
 
 # ##################################################### IMPORTS ###################################################### #
+from __future__ import print_function
+
+# BuddySuite specific
+import buddy_resources as br
+import SeqBuddy as Sb
+import MyFuncs
+
 # Standard library
 import sys
 import os
@@ -46,10 +53,6 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 
-# BuddySuite specific
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment

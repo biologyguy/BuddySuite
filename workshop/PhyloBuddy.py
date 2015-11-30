@@ -24,6 +24,13 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 """
 
 # ##################################################### IMPORTS ###################################################### #
+from __future__ import print_function
+
+# BuddySuite specific
+import buddy_resources as br
+from MyFuncs import TempDir
+import AlignBuddy as Alb
+
 # Standard library
 import sys
 import os
@@ -79,11 +86,6 @@ from dendropy.datamodel.treemodel import Tree, Node
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
-
-# BuddySuite specific
-from MyFuncs import TempDir
-import buddy_resources as br
-import AlignBuddy as Alb
 
 
 # ##################################################### WISH LIST #################################################### #

@@ -22,7 +22,12 @@ repository: https://github.com/biologyguy/BuddySuite
 Description: Collection of resources used by all BuddySuite tools,
              including dictionaries of the commands available for each Buddy tool
 """
+from __future__ import print_function
 import sys
+if sys.version_info[0] < 3:
+    print("Error: Attempting to run BuddySuite with Python %s.%s. Python 3 required." %
+          (sys.version_info[0], sys.version_info[1]))
+    sys.exit()
 import argparse
 import datetime
 from collections import OrderedDict

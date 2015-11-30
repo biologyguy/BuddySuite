@@ -28,6 +28,13 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 # from pprint import pprint
 # import pdb
 # import time
+from __future__ import print_function
+
+# BuddySuite specific
+import buddy_resources as br
+import MyFuncs
+
+# Standard library
 import sys
 import os
 import re
@@ -57,10 +64,6 @@ from Bio.Alphabet import IUPAC
 from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
 from Bio import AlignIO
-
-# BuddySuite specific
-import MyFuncs
-import buddy_resources as br
 
 
 # ##################################################### WISH LIST #################################################### #

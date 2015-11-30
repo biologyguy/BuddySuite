@@ -27,6 +27,13 @@ Collection of functions that interact with public sequence databases. Pull them 
 # Standard library
 # import pdb
 # import timeit
+from __future__ import print_function
+
+# BuddySuite specific
+import buddy_resources as br
+from MyFuncs import *
+
+# Standard library
 import sys
 import os
 import re
@@ -51,9 +58,6 @@ from Bio import SeqIO
 from Bio import BiopythonWarning
 warnings.simplefilter('ignore', BiopythonWarning)
 
-# BuddySuite specific
-from MyFuncs import *
-import buddy_resources as br
 
 # ##################################################### WISH LIST #################################################### #
 # - Catch memory limits before they are overblown by big fetches. Python std-lib doesn't seem to have a tool for this.
