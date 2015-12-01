@@ -42,7 +42,7 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
  [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
  [ETE toolkit](http://etetoolkit.org/download/).
  
-## Standalone installation 
+## Standalone installation
 The installer will only run on Mac and Linux. If you would like to try the BuddySuite on Windows,
  you will need to install the development version
  ([see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
@@ -64,6 +64,18 @@ Once the BuddySuite moves out of beta, the installer will only bundle stable rel
  If bugs are found they will be fixed, but the *expected* behavior will not be changed once the release is finalized. 
  Likewise, new features added to the development versions will not become available in the installer until the 
  next release. Versions of each tool or the installer can be displayed using the -v flag.
+
+## Getting started
+Once installed, you can access the modules from the command line using their full names:
+
+    $: SeqBuddy -h
+
+Or the shortcuts created by the installer:
+
+    $: sb -h
+
+For a detailed breakdown of the tools available within each module, check out the
+ [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
 
 ## Development version installation
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
