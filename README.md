@@ -65,6 +65,18 @@ Once the BuddySuite moves out of beta, the installer will only bundle stable rel
  Likewise, new features added to the development versions will not become available in the installer until the 
  next release. Versions of each tool or the installer can be displayed using the -v flag.
 
+## Getting started
+Once installed, you can access the modules from the command line using their full names:
+
+    $: SeqBuddy -h
+
+Or the shortcuts created by the installer:
+
+    $: sb -h
+
+For a detailed breakdown of the tools available within each module, check out the
+ [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
+
 ## Development version installation
 All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
  official release versions, and may have extra dependencies. The easiest way to get the development version
