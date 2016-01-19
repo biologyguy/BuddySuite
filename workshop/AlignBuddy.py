@@ -860,6 +860,15 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
                 if keep_temp:
                     MyFuncs.copydir(tmp_dir.path, keep_temp)
+                    # Loop through each saved file and rename any hashes that have been carried over
+                    for root, dirs, files in os.walk(keep_temp):
+                        for next_file in files:
+                            with open("%s/%s" % (root, next_file), "r") as ifile:
+                                contents = ifile.read()
+                            for _hash, sb_rec in seqbuddy.hash_map.items():
+                                contents = re.sub(_hash, sb_rec, contents)
+                            with open("%s/%s" % (root, next_file), "w") as ofile:
+                                ofile.write(contents)
                 break
 
             except FileNotFoundError:
