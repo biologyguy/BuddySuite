@@ -319,9 +319,15 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
 
         return "%s\n" % output.rstrip()
 
-    def write(self, file_path):
+    def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:
-            ofile.write(str(self))
+            if out_format:
+                out_format_save = str(self.out_format)
+                self.out_format = out_format
+                ofile.write(str(self))
+                self.out_format = out_format_save
+            else:
+                ofile.write(str(self))
         return
 
 
