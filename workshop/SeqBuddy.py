@@ -1048,17 +1048,19 @@ def bl2seq(seqbuddy):
     return output_dict
 
 
-def blast(seqbuddy, blast_db):
+def blast(subject, query, **kwargs):
     """
     ToDo: - Implement makeblastdb
           - Allow extra blast parameters
 
     Runs a BLAST search against a specified database, returning all significant matches.
-    :param seqbuddy: SeqBuddy object
-    :param blast_db: The location of the BLAST database to run the sequences against
+    :param subject: SeqBuddy object
+    :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
+    :param kwargs:  - quiet -> [True|False]
+                    - blast_args -> [<any extra blast command line arguments>] !!TODO!!
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
-    blast_bin = "blastp" if seqbuddy.alpha == IUPAC.protein else "blastn"
+    blast_bin = "blastp" if subject.alpha == IUPAC.protein else "blastn"
     if not _check_for_blast_bin(blast_bin):
         raise SystemError("%s not found in system path." % blast_bin)
 
@@ -1068,30 +1070,47 @@ def blast(seqbuddy, blast_db):
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
 
+    if type(query) == SeqBuddy:
+        if not _check_for_blast_bin("makeblastdb"):
+            raise SystemError("blastdbcmd not found in system path.")
+        query_sb = hash_sequence_ids(query)
+        temp_dir = MyFuncs.TempDir()
+        query_sb.write("%s/query.fa" % temp_dir.path, out_format="fasta")
+        dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
+        makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}/query.fa -out {1}/query_db "
+                            "-parse_seqids".format(dbtype, temp_dir.path), shell=True,
+                            stdout=PIPE).communicate()[0].decode()
+        if "quiet" not in kwargs or not kwargs["quiet"]:
+            _stderr(makeblastdb)
+        query = "%s/query_db" % temp_dir.path
+
+    else:
+        query_sb = None
+
     # Try to catch the common variations of the database names that might be given as input
-    if blast_db[-2:] in [".p", ".n"]:
-        blast_db = blast_db[:-2]
+    if query[-2:] in [".p", ".n"]:
+        query = query[:-2]
 
-    if blast_db[-3:] in extensions[blast_bin]:
-        blast_db = blast_db[:-4]
+    if query[-3:] in extensions[blast_bin]:
+        query = query[:-4]
 
-    blast_db = os.path.abspath(blast_db)
+    query = os.path.abspath(query)
 
     # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
     # Check that complete blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_bin]:
-        if not os.path.isfile("%s.%s" % (blast_db, extension)):
+        if not os.path.isfile("%s.%s" % (query, extension)):
             raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
                                "used with makeblastdb." % extension)
 
-    seqbuddy = clean_seq(seqbuddy)  # in case there are gaps or something in the sequences
+    subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
     tmp_dir = MyFuncs.TempDir()
     with open("%s/tmp.fa" % tmp_dir.path, "w") as ofile:
-        SeqIO.write(seqbuddy.records, ofile, "fasta")
+        SeqIO.write(subject.records, ofile, "fasta")
 
     Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 4 -evalue 0.01 -outfmt 6" %
-          (blast_bin, blast_db, tmp_dir.path, tmp_dir.path), shell=True).wait()
+          (blast_bin, query, tmp_dir.path, tmp_dir.path), shell=True).wait()
 
     with open("%s/out.txt" % tmp_dir.path, "r") as ifile:
         blast_results = ifile.read()
@@ -1110,13 +1129,16 @@ def blast(seqbuddy, blast_db):
 
     with open("%s/seqs.fa" % tmp_dir.path, "w") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (blast_db, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
 
     new_seqs = SeqBuddy("%s/seqs.fa" % tmp_dir.path)
-
+    new_seqs.out_format = subject.out_format
+    if query_sb:
+        for _hash, seq_id in query_sb.hash_map.items():
+            rename(new_seqs, _hash, seq_id)
     return new_seqs
 
 
@@ -1304,7 +1326,7 @@ def count_residues(seqbuddy):
 
 def degenerate_sequence(seqbuddy, table=1):
     """
-    Generate degenerate codon sequence 
+    Generate degenerate codon sequence
     :param seqbuddy: The SeqBuddy object to be analyzed
     :param table: The degenerate codon table to use
     :return: A SeqBuddy object containing a degenerate nucleotide sequence
@@ -1317,7 +1339,7 @@ def degenerate_sequence(seqbuddy, table=1):
     Other inspiration
     https://github.com/carlosp420/degenerate-dna
 
-    Zwick, A., Regier, J.C. & Zwickl, D.J. (2012). "Resolving Discrepancy between Nucleotides and Amino Acids in 
+    Zwick, A., Regier, J.C. & Zwickl, D.J. (2012). "Resolving Discrepancy between Nucleotides and Amino Acids in
     Deep-Level Arthropod Phylogenomics: Differentiating Serine Codons in 21-Amino-Acid Models". PLoS ONE 7(11): e47450.
 
     Regier, J.C., Shultz, J.W., Zwick, A., Hussey, A., Ball, B., Wetzer, R. Martin, J.W. & Cunningham, C.W. (2010).
@@ -1340,14 +1362,14 @@ def degenerate_sequence(seqbuddy, table=1):
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
 
-    # Vertebrate Mitochondrial Code codons 
+    # Vertebrate Mitochondrial Code codons
     dgndict[2] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR',
                   'ATT': 'ATY', 'AGA': 'AGA', 'AGG': 'AGG', 'AGC': 'AGY', 'AGT': 'AGY', 'CAA': 'CAR', 'CAG': 'CAR',
                   'CGA': 'CGN', 'CGC': 'CGN', 'CGG': 'CGN', 'CGT': 'CGN', 'CTA': 'YTN', 'CTC': 'YTN', 'CTG': 'YTN',
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Yeast Mitochondrial Code codons
     dgndict[3] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1355,7 +1377,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'CTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'TTR',
                   'TTG': 'TTR'}
-    
+
     # Mold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code Codons
     dgndict[4] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1363,7 +1385,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Invertebrate Mitochondrial Code codons
     dgndict[5] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
                   'AGT': 'AGN', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1371,7 +1393,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Ciliate / Dasycladacean / Hexamita Nuclear Code codons
     dgndict[6] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'YAR', 'CAG': 'YAR',
@@ -1379,7 +1401,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'YAR', 'TAC': 'TAY',
                   'TAG': 'YAR', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Echinoderm and Flatworm Mitochondrial Code codons
     dgndict[7] = {'AAA': 'AAH', 'AAC': 'AAH', 'AAG': 'AAG', 'AAT': 'AAH', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
                   'AGT': 'AGN', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1387,7 +1409,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Euplotid Nuclear Code codons
     dgndict[8] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1395,7 +1417,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGH', 'TGC': 'TGH', 'TGG': 'TGG', 'TGT': 'TGH', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Bacterial / Archaeal / Plant Plastid Code codons
     dgndict[9] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                   'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1403,7 +1425,7 @@ def degenerate_sequence(seqbuddy, table=1):
                   'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                   'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
                   'TTG': 'YTN'}
-    
+
     # Alternative Yeast Nuclear Code codons
     dgndict[10] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'MGN', 'AGC': 'AGY', 'AGG': 'MGN',
                    'AGT': 'AGY', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1411,7 +1433,7 @@ def degenerate_sequence(seqbuddy, table=1):
                    'CTT': 'YTN', 'GGA': 'GGN', 'GGC': 'GGN', 'GGG': 'GGN', 'GGT': 'GGN', 'TAA': 'TAA', 'TAC': 'TAY',
                    'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGA', 'TGC': 'TGY', 'TGG': 'TGG', 'TGT': 'TGY', 'TTA': 'YTN',
                    'TTG': 'YTN'}
-    
+
     # Ascidian Mitochondrial Code codons
     dgndict[11] = {'AAA': 'AAR', 'AAC': 'AAY', 'AAG': 'AAR', 'AAT': 'AAY', 'AGA': 'RGN', 'AGC': 'AGY', 'AGG': 'RGN',
                    'AGT': 'AGY', 'ATA': 'ATR', 'ATC': 'ATY', 'ATG': 'ATR', 'ATT': 'ATY', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1419,7 +1441,7 @@ def degenerate_sequence(seqbuddy, table=1):
                    'CTT': 'YTN', 'GGA': 'RGN', 'GGC': 'RGN', 'GGG': 'RGN', 'GGT': 'RGN', 'TAA': 'TAA', 'TAC': 'TAY',
                    'TAG': 'TAG', 'TAT': 'TAY', 'TGA': 'TGR', 'TGC': 'TGY', 'TGG': 'TGR', 'TGT': 'TGY', 'TTA': 'YTN',
                    'TTG': 'YTN'}
-    
+
     # Alternative Flatworm Mitochondrial Code codons
     dgndict[12] = {'AAA': 'AAH', 'AAC': 'AAH', 'AAG': 'AAG', 'AAT': 'AAH', 'AGA': 'AGN', 'AGC': 'AGN', 'AGG': 'AGN',
                    'AGT': 'AGN', 'ATA': 'ATH', 'ATC': 'ATH', 'ATG': 'ATG', 'ATT': 'ATH', 'CAA': 'CAR', 'CAG': 'CAR',
@@ -1447,7 +1469,7 @@ def degenerate_sequence(seqbuddy, table=1):
         i = 0
         degen_string = ""
         while i < seq_length:
-            _codon = str(_rec.seq[i:i + 3])           
+            _codon = str(_rec.seq[i:i + 3])
             degen_string += base_dict[_codon] if _codon in base_dict else _codon
             i += 3
         _rec.seq = Seq(str(degen_string), alphabet=IUPAC.ambiguous_dna)
@@ -2556,7 +2578,8 @@ def rename(seqbuddy, query, replace="", num=0):
     replace = re.sub("\s+", "_", replace)  # Do not allow any whitespace in IDs
     for rec in seqbuddy.records:
         new_name = br.replacements(rec.id, query, replace, num)
-        rec.description = rec.description[len(rec.id) + 1:]
+        if re.match(rec.id, rec.description):
+            rec.description = rec.description[len(rec.id) + 1:]
         rec.id = new_name
         rec.name = new_name
     return seqbuddy
@@ -2989,7 +3012,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # BLAST
     if in_args.blast:
         try:
-            blast_res = blast(seqbuddy, in_args.blast)
+            try:
+                blast_query = SeqBuddy(in_args.blast)
+                blast_res = blast(seqbuddy, blast_query, quiet=in_args.quiet)
+            except br.GuessError:
+                blast_res = blast(seqbuddy, in_args.blast, quiet=in_args.quiet)
+
             if len(blast_res.records) > 0:
                 _print_recs(blast_res)
             else:
