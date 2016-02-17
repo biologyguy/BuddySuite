@@ -1468,7 +1468,7 @@ def test_purge():
 
 
 # ######################  '-ri', '--rename_ids' ###################### #
-hashes = ["8b4a9e3d3bb58cf8530ee18b9df67ff1", "144cc5ed20678a818bce908c475ae450", "243024bfd2f686e6a6e0ef65aa963494",
+hashes = ["8b4a9e3d3bb58cf8530ee18b9df67ff1", "78c73f97117bd937fd5cf52f4bd6c26e", "243024bfd2f686e6a6e0ef65aa963494",
           "98bb9b57f97555d863054ddb526055b4", "2443c47a712f19099e94fc015dc980a9", "65196fd4f2a4e339e1545f6ed2a6acc3"]
 hashes = [(Sb.make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
@@ -1499,6 +1499,10 @@ def test_rename_ids2():
     tester = Sb.make_copy(sb_objects[0])
     Sb.rename(tester, "[A-Z]", "?", -20)
     assert seqs_to_hash(tester) == "451993d7e816881e2700697263b1d8fa"
+
+    tester = Sb.make_copy(sb_objects[0])
+    Sb.rename(tester, "[a-z]", "?", 2, store_old_id=True)
+    assert seqs_to_hash(tester) == "959fe04c0366c9a143052a02f090707e"
 
     with pytest.raises(AttributeError) as e:
         Sb.rename(tester, "[a-z]", "\\1?", -2)
@@ -2511,13 +2515,7 @@ def test_rename_ids_ui(capsys):
     with pytest.raises(SystemExit):
         Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
     out, err = capsys.readouterr()
-    assert "rename_ids requires two or three argments:" in err
-
-    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "foo"]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "rename_ids requires two or three argments:" in err
+    assert "Please provide at least a query and a replacement string" in err
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", "foo"]]
     with pytest.raises(SystemExit):
@@ -2530,6 +2528,21 @@ def test_rename_ids_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]))
     out, err = capsys.readouterr()
     assert "There are more replacement" in err
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "store"]]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "54f65b222f7dd2db010d73054dbbd0a9"
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", "store", 2]]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "54f65b222f7dd2db010d73054dbbd0a9"
+
+    test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "store"]]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[1]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7e14a33700db6a32b1a99f0f9fd76f53"
 
 
 # ######################  '-rs', '--replace_subseq' ###################### #

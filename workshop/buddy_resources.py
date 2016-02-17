@@ -103,6 +103,7 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class Usage(object):
+    # ToDo: Check internet connectivity!!!
     def __init__(self):
         self.config = config_values()
         if self.config["install_path"]:
@@ -834,7 +835,7 @@ sb_flags = {"annotate": {"flag": "ano",
             "make_ids_unique": {"flag": "miu",
                                 "action": "append",
                                 "nargs": "*",
-                                "metavar": ("<seperator(string)>", "<padding(int)>"),
+                                "metavar": ("<separator(string)>", "<padding(int)>"),
                                 "help": "Add a number at the end of replicate ids to make them unique"},
             "map_features_nucl2prot": {"flag": "fn2p",
                                        "action": "store_true",
@@ -903,7 +904,7 @@ sb_flags = {"annotate": {"flag": "ano",
                            "metavar": "args",
                            "nargs": "*",
                            "help": "Replace some pattern in ids with something else. "
-                                   "args: <pattern>, <substitution>, [max replacements (int)]"},
+                                   "args: <pattern>, <substitution>, [max replacements (int)], ['store']"},
             "replace_subseq": {"flag": "rs",
                                "action": "append",
                                "metavar": "args",

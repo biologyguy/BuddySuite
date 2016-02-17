@@ -2570,13 +2570,14 @@ def purge(seqbuddy, threshold):
     return seqbuddy
 
 
-def rename(seqbuddy, query, replace="", num=0):
+def rename(seqbuddy, query, replace="", num=0, store_old_id=False):
     """
     Rename sequence IDs
     :param seqbuddy: SeqBuddy object
     :param query: The pattern to be searched for
     :param replace: The string to be substituted
     :param num: The maximum number of substitutions to make
+    :param store_old_id: Keep a copy of the original ID in the description line
     :return: The modified SeqBuddy object
     """
     replace = re.sub("\s+", "_", replace)  # Do not allow any whitespace in IDs
@@ -2584,6 +2585,8 @@ def rename(seqbuddy, query, replace="", num=0):
         new_name = br.replacements(rec.id, query, replace, num)
         if re.match(rec.id, rec.description):
             rec.description = rec.description[len(rec.id) + 1:]
+        if store_old_id:
+            rec.description = "%s %s" % (rec.id, rec.description)
         rec.id = new_name
         rec.name = new_name
     return seqbuddy
@@ -3790,17 +3793,25 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Renaming
     if in_args.rename_ids:
         args = in_args.rename_ids[0]
-        if len(args) not in [2, 3]:
-            _raise_error(AttributeError("rename_ids requires two or three argments: "
-                                        "query, replacement, [max replacements]"), "rename_ids")
-        num = 0
-        try:
-            num = num if len(args) == 2 else int(args[2])
-        except ValueError:
-            _raise_error(ValueError("Max replacements argument must be an integer"), "rename_ids")
+        if len(args) < 2:
+            _raise_error(AttributeError("Please provide at least a query and a replacement string"), "rename_ids")
 
+        query, replace = args[0:2]
+        num = 0
+        store = False
+
+        if len(args) > 2:
+            args = args[2:]
+            if "store" in args:
+                store = True
+                del args[args.index("store")]
+
+            try:
+                num = num if not len(args) else int(args[0])
+            except ValueError:
+                _raise_error(ValueError("Max replacements argument must be an integer"), "rename_ids")
         try:
-            _print_recs(rename(seqbuddy, args[0], args[1], num))
+            _print_recs(rename(seqbuddy, query=query, replace=replace, num=num, store_old_id=store))
         except AttributeError as e:
             _raise_error(e, "rename_ids", "There are more replacement")
         _exit("rename_ids")
