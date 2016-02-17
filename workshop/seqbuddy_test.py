@@ -1154,7 +1154,11 @@ def test_cases(seqbuddy, uc_hash, lc_hash):  # NOTE: Biopython always writes gen
 def test_make_ids_unique():
     tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
     Sb.make_ids_unique(tester)
-    assert seqs_to_hash(tester) == "3f84819b81185d49a7357947ca7f0707"
+    assert seqs_to_hash(tester) == "363c7ed14be59bcacede092b8f334a52"
+
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.make_ids_unique(tester, sep="-", padding=4)
+    assert seqs_to_hash(tester) == "0054df3003ba16287159147f3b85dc7b"
 
 
 # ######################  '-fn2p', '--map_features_nucl2prot' ###################### #
@@ -2239,11 +2243,23 @@ def test_lower_and_upper_ui(capsys):
 # ######################  '-mui', '--make_ids_unique' ###################### #
 def test_make_ids_unique_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.make_ids_unique = True
+    test_in_args.make_ids_unique = [[]]
     tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "3f84819b81185d49a7357947ca7f0707"
+    assert string2hash(out) == "363c7ed14be59bcacede092b8f334a52"
+
+    test_in_args.make_ids_unique = [["-", 4]]
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "0054df3003ba16287159147f3b85dc7b"
+
+    test_in_args.make_ids_unique = [[4, "-"]]
+    tester = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "0054df3003ba16287159147f3b85dc7b"
 
 
 # ######################  '-fn2p', '--map_features_nucl2prot' ###################### #

@@ -447,6 +447,7 @@ def replacements(input_str, query, replace="", num=0):
 
 
 def send_traceback(tool, e):
+    # ToDo: Explicitly state the tool being called in the ErrorReport. It's not always obvious...
     config = config_values()
     tb = "%s\n" % config["user_hash"]
     for _line in traceback.format_tb(sys.exc_info()[2]):
@@ -747,9 +748,9 @@ sb_flags = {"annotate": {"flag": "ano",
             "delete_repeats": {"flag": "drp",
                                "action": "append",
                                "nargs": "*",
-                               "metavar": "columns (int)",
-                               "help": "Strip repeat records (ids and/or identical sequences. "
-                                       "Optional, pass in an integer to specify number of columns for deleted IDs"},
+                               "metavar": ("[columns (int)]", "[scope (all|ids|seqs)]"),
+                               "help": "Strip repeat records (ids and/or identical sequences). "
+                                       "Defaults: 1 'all'"},
             "delete_small": {"flag": "dsm",
                              "action": "store",
                              "metavar": "<threshold (int)>",
@@ -831,7 +832,9 @@ sb_flags = {"annotate": {"flag": "ano",
                           "action": "store_true",
                           "help": "Convert all sequences to lowercase"},
             "make_ids_unique": {"flag": "miu",
-                                "action": "store_true",
+                                "action": "append",
+                                "nargs": "*",
+                                "metavar": ("<seperator(string)>", "<padding(int)>"),
                                 "help": "Add a number at the end of replicate ids to make them unique"},
             "map_features_nucl2prot": {"flag": "fn2p",
                                        "action": "store_true",

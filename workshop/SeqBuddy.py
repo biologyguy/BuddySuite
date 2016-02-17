@@ -2079,11 +2079,13 @@ def make_groups(seqbuddy, split_patterns=(), num_chars=None, regex=None):
     return new_seqbuddies
 
 
-def make_ids_unique(seqbuddy):
+def make_ids_unique(seqbuddy, sep="", padding=0):
     """
     Rename all repeat IDs
     Note: the edge case where a new ID creates a new conflict is not handled
     :param seqbuddy: SeqBuddy object
+    :param sep: Pattern to place between id and number
+    :param padding: Pad number with zeros
     :return: The modified SeqBuddy object
     """
     ids = OrderedDict()
@@ -2095,7 +2097,9 @@ def make_ids_unique(seqbuddy):
     for key, recs in ids.items():
         if len(recs) > 1:
             for indx, rec in enumerate(recs):
-                rec.id = "%s-%s" % (rec.id, indx + 1)
+                if re.match(rec.id, rec.description):
+                    rec.description = rec.description[len(rec.id) + 1:]
+                rec.id = "%s%s%s" % (rec.id, sep, str(indx + 1).zfill(padding))
         records += recs
     seqbuddy.records = records
     return seqbuddy
@@ -3618,7 +3622,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Make unique IDs
     if in_args.make_ids_unique:
-        _print_recs(make_ids_unique(seqbuddy))
+        args = in_args.make_ids_unique[0]
+        padding = 0
+        sep = ""
+        if args:
+            for arg in args:
+                try:
+                    padding = int(arg)
+                except ValueError:
+                    sep = arg
+        _print_recs(make_ids_unique(seqbuddy, sep=sep, padding=padding))
         _exit("make_ids_unique")
 
     # Map features from cDNA over to protein
