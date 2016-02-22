@@ -1050,9 +1050,8 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: - Implement makeblastdb
-          - Allow extra blast parameters
-
+    ToDo: - Sort out makeblastdb download
+          - Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
@@ -1060,6 +1059,9 @@ def blast(subject, query, **kwargs):
                     - blast_args -> [<any extra blast command line arguments>] !!TODO!!
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
+
+    kwargs["quiet"] = False if "quiet" not in kwargs or not kwargs["quiet"] else True
+
     blast_bin = "blastp" if subject.alpha == IUPAC.protein else "blastn"
     if not _check_for_blast_bin(blast_bin):
         raise SystemError("%s not found in system path." % blast_bin)
@@ -1080,8 +1082,9 @@ def blast(subject, query, **kwargs):
         makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}/query.fa -out {1}/query_db "
                             "-parse_seqids".format(dbtype, temp_dir.path), shell=True,
                             stdout=PIPE).communicate()[0].decode()
-        if "quiet" not in kwargs or not kwargs["quiet"]:
-            _stderr(makeblastdb)
+        makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
+        makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
+        _stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
         query = "%s/query_db" % temp_dir.path
 
     else:
@@ -1109,8 +1112,51 @@ def blast(subject, query, **kwargs):
     with open("%s/tmp.fa" % tmp_dir.path, "w") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
-    Popen("%s -db %s -query %s/tmp.fa -out %s/out.txt -num_threads 4 -evalue 0.01 -outfmt 6" %
-          (blast_bin, query, tmp_dir.path, tmp_dir.path), shell=True).wait()
+    num_threads = 4
+    evalue = 0.01
+    if "blast_args" in kwargs and kwargs["blast_args"]:
+        # Clean up any parameters that the user may be including that will break SeqBuddy
+        black_list = ["db", "query", "subject", "out", "outfmt"]
+        for no_no in black_list:
+            if re.search("\-%s" % no_no, kwargs["blast_args"]):
+                _stderr("Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" % no_no,
+                        quiet=kwargs["quiet"])
+                kwargs["blast_args"] = re.sub("\-%s .*\-" % no_no, "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("\-%s .*$" % no_no, "", kwargs["blast_args"])
+
+        num_threads_search = re.search("\-num_threads ([0-9]+)", kwargs["blast_args"])
+        if num_threads_search:
+            try:
+                num_threads = int(num_threads_search.group(1))
+                kwargs["blast_args"] = re.sub("\-num_threads .*\-", "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("\-num_threads .*$", "", kwargs["blast_args"])
+
+            except ValueError:
+                raise ValueError("-num_threads expects an integer.")
+
+        evalue_search = re.search("\-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
+        if evalue_search:
+            try:
+                evalue = float(evalue_search.group(1))
+                kwargs["blast_args"] = re.sub("\-evalue .*\-", "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("\-evalue .*$", "", kwargs["blast_args"])
+
+            except ValueError:
+                raise ValueError("-evalue expects a number.")
+
+    else:
+        kwargs["blast_args"] = ""
+
+    blast_command = "%s -db %s -query %s/tmp.fa -out %s/out.txt -outfmt 6 -num_threads %s -evalue %s %s" % \
+                    (blast_bin, query, tmp_dir.path, tmp_dir.path, num_threads, evalue, kwargs["blast_args"])
+
+    _stderr("Running...\n%s\n############################################################\n\n" %
+            re.sub("\-db.*\-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
+    blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
+    blast_output = blast_output[1].decode("utf-8")
+
+    if "Error" in blast_output:
+        raise RuntimeError(blast_output)
 
     with open("%s/out.txt" % tmp_dir.path, "r") as ifile:
         blast_results = ifile.read()
@@ -2817,6 +2863,27 @@ def uppercase(seqbuddy):
 
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
+    # Catching params to prevent weird collisions with 3rd party arguments
+    if '--blast' in sys.argv:  # Only plast at the moment, but other flags may come up in the future.
+        sys.argv[sys.argv.index('--blast')] = '-bl'
+    if '-bl' in sys.argv:
+        sb_flag_indx = sys.argv.index('-bl')
+        if len(sys.argv) > sb_flag_indx + 1:
+            extra_args = None
+            for indx, param in enumerate(sys.argv[sb_flag_indx + 1:]):
+                if param in ["-a", "--alpha", "-f", "--in_format", "-i", "--in_place", "-k", "--keep_temp", "-o", "--out_format",
+                             "-q", "--quiet", "-t", "--test"]:
+                    extra_args = sb_flag_indx + 1 + indx
+                    break
+
+            if extra_args == sb_flag_indx + 1 or extra_args == sb_flag_indx + 2:
+                # No conflicts possible, continue on your way
+                pass
+
+            elif len(sys.argv) > sb_flag_indx + 2 or extra_args:
+                # There must be optional arguments being passed into the alignment tool
+                sys.argv[sb_flag_indx + 2] = " %s" % sys.argv[sb_flag_indx + 2].rstrip()
+
     import argparse
 
     def fmt(prog):
@@ -3018,21 +3085,26 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # BLAST
     if in_args.blast:
+        args = in_args.blast[0]
+        params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
+        blast_res = None
         try:
             try:
-                blast_query = SeqBuddy(in_args.blast)
-                blast_res = blast(seqbuddy, blast_query, quiet=in_args.quiet)
+                blast_query = SeqBuddy(args[0])
+                blast_res = blast(seqbuddy, blast_query, quiet=in_args.quiet, blast_args=params)
             except br.GuessError:
-                blast_res = blast(seqbuddy, in_args.blast, quiet=in_args.quiet)
+                blast_res = blast(seqbuddy, in_args.blast, quiet=in_args.quiet, blast_args=params)
+            except ValueError as e:
+                _raise_error(e, "blast", ["num_threads expects an integer.", ""])
 
             if len(blast_res.records) > 0:
                 _print_recs(blast_res)
             else:
                 _stdout("No significant matches found\n")
-            _exit("blast")
 
         except (RuntimeError, SystemError) as e:
             _raise_error(e, "blast")
+        _exit("blast")
 
     # Clean Seq
     if in_args.clean_seq:

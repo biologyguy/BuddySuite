@@ -58,6 +58,7 @@ from Bio.Alphabet import IUPAC
 # - Map features from a sequence file over to the alignment
 # - Back-translate
 # - Support for MEGA, NBRF/PIR
+# - Pairwise percent identity/similarity (build in support for all substitution matricies)
 
 # #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #

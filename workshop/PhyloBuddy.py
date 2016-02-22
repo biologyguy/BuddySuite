@@ -106,6 +106,12 @@ def decode_accessions(_phylobuddy):
 
 # 'Clean' a tree, as implemented in phyutility
 
+# Pull random tree, pull every nth tree, and pull specific tree
+
+# Pull random tips
+
+# Prune clade (ie, prune away all tips from the common ancestor of two or more tips)
+
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
 # Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
 
