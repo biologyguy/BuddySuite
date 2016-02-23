@@ -78,14 +78,30 @@ For a detailed breakdown of the tools available within each module, check out th
  [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
 
 ## Development version installation
-All new features are developed in the 'workshop' versions of the buddy programs. These may be less stable than the
- official release versions, and may have extra dependencies. The easiest way to get the development version
- up and running is to [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
+The easiest way to get the development version up and running is to
+ [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
 
     $: git clone https://github.com/biologyguy/BuddySuite.git
 
-For further information on dependencies and how to contribute to the project, please see the
- [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers).
+Then move into the repo and switch to the 'development' branch:
+    
+    $: cd BuddySuite
+    $: git checkout develop
+
+All of the individual Buddy toolkits are located in the 'workshop' directory. The 
+ ['development' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
+ and tested, so things may be less stable here; it's usually pretty solid though. If you're interested in contributing
+ to the project, please ensure you are working from this branch.
+  
+See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
+ development version dependencies and how to contribute to the project.
+
+
+## Citation
+There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+
+[DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
+
 
 ## Contact
 Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
