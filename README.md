@@ -86,7 +86,7 @@ The easiest way to get the development version up and running is to
 Then move into the repo and switch to the 'development' branch:
     
     $: cd BuddySuite
-    $: git checkout -b develop master
+    $: git checkout develop
 
 All of the individual Buddy toolkits are located in the 'workshop' directory. The 
  ['development' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
