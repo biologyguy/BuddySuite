@@ -92,6 +92,7 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class Usage(object):
+    # ToDo: Check internet connectivity!!!
     def __init__(self):
         self.config = config_values()
         if self.config["install_path"]:
@@ -436,6 +437,7 @@ def replacements(input_str, query, replace="", num=0):
 
 
 def send_traceback(tool, e):
+    # ToDo: Explicitly state the tool being called in the ErrorReport. It's not always obvious...
     config = config_values()
     tb = "%s\n" % config["user_hash"]
     for _line in traceback.format_tb(sys.exc_info()[2]):
@@ -677,10 +679,11 @@ sb_flags = {"annotate": {"flag": "ano",
                        "help": "All-by-all blast among sequences using bl2seq. "
                                "Only Returns the top hit from each search"},
             "blast": {"flag": "bl",
-                      "action": "store",
-                      "metavar": "<path/to/blast_db>",
-                      "help": "Search a BLAST database with your sequence file using common settings, "
-                              "returning the hits"},
+                      "action": "append",
+                      "nargs": "+",
+                      "metavar": ("subject", "<blast params>"),
+                      "help": "Search a BLAST database or subject sequence file with your query sequence file, "
+                              "returning the full hits"},
             "clean_seq": {"flag": "cs",
                           "action": "append",
                           "nargs": "*",
@@ -736,9 +739,9 @@ sb_flags = {"annotate": {"flag": "ano",
             "delete_repeats": {"flag": "drp",
                                "action": "append",
                                "nargs": "*",
-                               "metavar": "columns (int)",
-                               "help": "Strip repeat records (ids and/or identical sequences. "
-                                       "Optional, pass in an integer to specify number of columns for deleted IDs"},
+                               "metavar": ("[columns (int)]", "[scope (all|ids|seqs)]"),
+                               "help": "Strip repeat records (ids and/or identical sequences). "
+                                       "Defaults: 1 'all'"},
             "delete_small": {"flag": "dsm",
                              "action": "store",
                              "metavar": "<threshold (int)>",
@@ -820,7 +823,9 @@ sb_flags = {"annotate": {"flag": "ano",
                           "action": "store_true",
                           "help": "Convert all sequences to lowercase"},
             "make_ids_unique": {"flag": "miu",
-                                "action": "store_true",
+                                "action": "append",
+                                "nargs": "*",
+                                "metavar": ("<separator(string)>", "<padding(int)>"),
                                 "help": "Add a number at the end of replicate ids to make them unique"},
             "map_features_nucl2prot": {"flag": "fn2p",
                                        "action": "store_true",
@@ -889,7 +894,7 @@ sb_flags = {"annotate": {"flag": "ano",
                            "metavar": "args",
                            "nargs": "*",
                            "help": "Replace some pattern in ids with something else. "
-                                   "args: <pattern>, <substitution>, [max replacements (int)]"},
+                                   "args: <pattern>, <substitution>, [max replacements (int)], ['store']"},
             "replace_subseq": {"flag": "rs",
                                "action": "append",
                                "metavar": "args",
