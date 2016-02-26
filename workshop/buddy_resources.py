@@ -42,17 +42,6 @@ from MyFuncs import TempFile
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
-if __name__ == '__main__':
-    import SeqBuddy
-    import AlignBuddy
-    import PhyloBuddy
-    import DatabaseBuddy
-    print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
-    print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
-    print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
-    print("DatabaseBuddy: %s" % DatabaseBuddy.VERSION.short())
-    sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
-
 
 # ##################################################### CLASSES ###################################################### #
 class GuessError(Exception):
@@ -1209,3 +1198,38 @@ db_modifiers = {"database": {"flag": "d",
                 #         "action": "store_true",
                 #         "help": "Run the function and return any stderr/stdout other than sequences"}
                 }
+
+
+if __name__ == '__main__':
+    main_parser = argparse.ArgumentParser(prog='buddy_resources')
+
+    main_parser.add_argument('-v', '--version', help='Show module version #s', action='store_true')
+    main_parser.add_argument('-t', '--tools', help="List all tools", action='store_true')
+
+    in_args = main_parser.parse_args()
+
+    if in_args.version:
+        import SeqBuddy
+        import AlignBuddy
+        import PhyloBuddy
+        import DatabaseBuddy
+        print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
+        print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
+        print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
+        print("DatabaseBuddy: %s" % DatabaseBuddy.VERSION.short())
+        sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
+
+    if in_args.tools:
+        print("### SeqBuddy")
+        for key in sb_flags:
+            print(key)
+        print("\n### AlignBuddy")
+        for key in alb_flags:
+            print(key)
+        print("\n### PhyloBuddy")
+        for key in pb_flags:
+            print(key)
+        print("\n### DatabaseBuddy")
+        for key in db_flags:
+            print(key)
+        sys.exit()
