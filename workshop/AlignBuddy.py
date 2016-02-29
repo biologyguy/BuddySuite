@@ -56,6 +56,8 @@ from Bio.Alphabet import IUPAC
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
+# - Annotate alignment (entire columns or subsets of sequences)
+# - Pull random records
 # - Back-translate
 # - Support for MEGA, NBRF/PIR
 # - Pairwise percent identity/similarity (build in support for all substitution matricies)
@@ -907,7 +909,7 @@ def map_features2alignment(seqbuddy, alignbuddy):
                 if residue not in GAP_CHARS:
                     chars += 1
 
-                if not start and chars - 1 == feat.location.start:
+                if start is None and chars - 1 == feat.location.start:
                     start = int(indx)
 
                 if chars == feat.location.end:
