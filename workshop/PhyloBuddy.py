@@ -749,7 +749,7 @@ def rename(phylobuddy, query, replace):
     return phylobuddy
 
 
-def root(phylobuddy, root_nodes=None):
+def root(phylobuddy, *root_nodes):
     """
     Place a new root on trees
     :param phylobuddy: PhyloBuddy object
@@ -759,15 +759,20 @@ def root(phylobuddy, root_nodes=None):
     """
     def _root(_tree, _root_nodes=None):
         if _root_nodes:
-            _root_nodes = _root_nodes if type(_root_nodes) == list else [_root_nodes]
+            all_nodes = []
+            for regex in root_nodes:
+                for indx, id_list in list_ids(PhyloBuddy([_tree])).items():
+                    for next_id in id_list:
+                        if re.search(regex, next_id):
+                            all_nodes.append(next_id)
             mrca = None
-            if len(_root_nodes) == 1:
-                leaf_node = _tree.find_node_with_taxon_label(_root_nodes[0])
+            if len(all_nodes) == 1:
+                leaf_node = _tree.find_node_with_taxon_label(all_nodes[0])
                 if leaf_node:
                     mrca = leaf_node._parent_node
 
             else:
-                mrca = _tree.mrca(taxon_labels=root_nodes)
+                mrca = _tree.mrca(taxon_labels=all_nodes)
 
             if mrca:
                 _tree.reroot_at_node(mrca, update_bipartitions=True, suppress_unifurcations=False)
@@ -1266,7 +1271,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     if in_args.root:
         root_nodes = in_args.root[0]
         if root_nodes:
-            root(phylobuddy, root_nodes)
+            root(phylobuddy, *root_nodes)
         else:
             root(phylobuddy)
         _print_trees(phylobuddy)

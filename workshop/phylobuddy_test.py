@@ -577,14 +577,14 @@ def test_root_leaf(phylobuddy, next_hash):
     tester = Pb.root(phylobuddy, "firSA25a")
     assert phylo_to_hash(tester) == next_hash
 
-hashes = ['757489907bd5c82882d084ffcb22cfba', '5a31e678a809ad9a3b3d675da3a70dad', '4e7d156b8e16923eccb0998478f29a01',
-          '05a83105f54340839dca64a62a22026e', 'f0e26202274a191c9939835b25c1fae4', 'e97c246dc7ebf4d80363f836beff4a81']
+hashes = ['edcc2400de6b0a4fb05c0a5159215ecd', '09e4c41d22f43b847677eec8be899a72', '89d62bd49d89daa14d2986fe8b826221',
+          'b6be77f1d16776554c5a61598ddb6899', '034f6fcb778284bd1bb9db34525f108e', '21d6e13646df1eb75cecb7b10e913eb0']
 hashes = [(Pb.make_copy(pb_objects[x]), next_hash) for x, next_hash in enumerate(hashes)]
 
 
 @pytest.mark.parametrize("phylobuddy, next_hash", hashes)
 def test_root_mrca(phylobuddy, next_hash):
-    tester = Pb.root(phylobuddy, ["firSA25a", "penSH31b"])
+    tester = Pb.root(phylobuddy, "ovi47[ab]", "penIT11b")
     assert phylo_to_hash(tester) == next_hash
 
 
@@ -854,12 +854,6 @@ def test_rename_ids_ui(capsys):
 def test_root_ui_midpoint(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.root = [[]]
-
-    Pb.command_line_ui(test_in_args, Pb.make_copy(pb_objects[0]), skip_exit=True)
-    out, err = capsys.readouterr()
-    assert string2hash(out) == "25ea14c2e89530a0fb48163c0ef2a102"
-
-    test_in_args.root = [[True]]
 
     Pb.command_line_ui(test_in_args, Pb.make_copy(pb_objects[0]), skip_exit=True)
     out, err = capsys.readouterr()
