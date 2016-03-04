@@ -845,12 +845,14 @@ def test_generate_alignment_keep_temp(monkeypatch):
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % TEMP_DIR.path)
 
 
+@pytest.mark.generate_alignments
 def test_generate_alignments_genbank():
     tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.gb"))
     tester = Alb.generate_msa(tester, "mafft")
     assert align_to_hash(tester) == "759d0e208f799fe46d35c15804ea3b5a"
 
 
+@pytest.mark.generate_alignments
 def test_generate_alignments_edges1(capsys):
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
 
@@ -871,11 +873,41 @@ args = [("prank", "-f=phylipi"), ("clustalomega", "--outfmt=foo"), ("clustalw2",
         ("prank", "-f=nexus"), ("prank", "-f=foo"), ("pagan", "-f foo"), ("pagan", "-f nexus"), ("pagan", "-f phylipi")]
 
 
+@pytest.mark.generate_alignments
 @pytest.mark.parametrize("tool,params", args)
 def test_generate_alignments_edges2(tool, params):
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Sb.pull_recs(tester, "α[2345]")
     Alb.generate_msa(tester, tool, params, quiet=True)
+
+
+# ######################  '-hi', '--hash_ids' ###################### #
+def test_hash_seq_ids():
+    tester = alb_resources.get_one("o p g")
+    Alb.hash_ids(tester)
+    assert len(tester.records()[0].id) == 10
+
+    tester = alb_resources.get_one("m d pr")
+    Alb.hash_ids(tester, 25)
+    assert len(tester.records()[0].id) == 25
+    assert len(tester.hash_map) == 34
+
+
+def test_hash_seq_ids_errors():
+    tester = alb_resources.get_one("o d f")
+
+    with pytest.raises(TypeError) as e:
+        Alb.hash_ids(tester, "foo")
+    assert str(e.value) == "Hash length argument must be an integer, not <class 'str'>"
+
+    with pytest.raises(ValueError) as e:
+        Alb.hash_ids(tester, 0)
+    assert str(e.value) == "Hash length must be greater than 0"
+
+    tester.alignments *= 10
+    with pytest.raises(ValueError) as e:
+        Alb.hash_ids(tester, 1)
+    assert "Insufficient number of hashes available to cover all sequences." in str(e.value)
 
 
 # #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
@@ -906,8 +938,8 @@ def test_cases(alignbuddy, uc_hash, lc_hash):
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
-hashes = {"o p n": "79078260e8725a0d7ccbed9400c78eae", "o p pr": "8764f4dca44022041cf55f9495bf401a",
-          "o p psr": "8764f4dca44022041cf55f9495bf401a", "o p s": "372daf72435e2f1a06531b5c030995c6",
+hashes = {"o p n": "79078260e8725a0d7ccbed9400c78eae", "o p pr": "02b977e5b086125255b792788014708a",
+          "o p psr": "02b977e5b086125255b792788014708a", "o p s": "372daf72435e2f1a06531b5c030995c6",
           "o d n": "9fece109249f4d787c13e6fb2742843d", "o d pr": "899c6ab534f7af07e744eb173e94bd50",
           "o d psr": "899c6ab534f7af07e744eb173e94bd50", "o d s": "79cf44688165842eba1bb45b3543d458"}
 hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("o p d n pr psr s").items()]
@@ -1243,6 +1275,7 @@ def test_extract_range_ui(capsys):
 
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
+@pytest.mark.generate_alignments
 def test_generate_alignment_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
@@ -1266,6 +1299,29 @@ def test_generate_alignment_ui(capsys):
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
     out, err = capsys.readouterr()
     assert "foo is not a supported alignment tool" in err
+
+
+# ######################  '-hsi', '--hash_ids' ###################### #
+def test_hash_seq_ids_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.hash_ids = [None]
+    tester = alb_resources.get_one("m p s")
+    ids = [rec.id for rec in tester.records()]
+    Alb.command_line_ui(test_in_args, tester, True)
+    for indx, rec in enumerate(tester.records()):
+        assert rec.id != ids[indx]
+        assert ids[indx] == tester.hash_map[rec.id]
+
+    test_in_args.hash_ids = [0]
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "Warning: The hash_length parameter was passed in with the value 0. This is not a positive integer" in err
+
+    tester.alignments *= 10
+    test_in_args.hash_ids = [1]
+    Alb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert "cover all sequences, so it has been increased to 2" in err
 
 
 # ###############################  '-li', '--list_ids' ############################## #

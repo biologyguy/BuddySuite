@@ -881,6 +881,35 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         return alignbuddy
 
 
+def hash_ids(alignbuddy, hash_length=10):
+    """
+    Replace all IDs with random hashes
+    :param alignbuddy: AlignBuddy object
+    :param hash_length: Specifies the length of the new hashed IDs
+    :return: The modified AlignBuddy object, with a new attribute `hash_map` added
+    """
+    try:
+        hash_length = int(hash_length)
+    except ValueError:
+        raise TypeError("Hash length argument must be an integer, not %s" % type(hash_length))
+
+    if hash_length < 1:
+        raise ValueError("Hash length must be greater than 0")
+
+    if 32 ** hash_length <= len(alignbuddy.records()) * 2:
+        raise ValueError("Insufficient number of hashes available to cover all sequences. "
+                         "Hash length must be increased.")
+
+    hash_map = OrderedDict()
+    for alignment in alignbuddy.alignments:
+        temp_seqbuddy = Sb.SeqBuddy(list(alignment))
+        Sb.hash_sequence_ids(temp_seqbuddy, hash_length)
+        for _hash, _id in temp_seqbuddy.hash_map.items():
+            hash_map[_hash] = _id
+    alignbuddy.hash_map = hash_map
+    return alignbuddy
+
+
 def lowercase(alignbuddy):
     """
     Converts all sequence residues to lowercase.
@@ -1488,6 +1517,36 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         except AttributeError as e:
             _raise_error(e, "generate_alignment", "is not a supported alignment tool")
         _exit("generate_alignment")
+
+    # Hash ids
+    if in_args.hash_ids:
+        if in_args.hash_ids[0] == 0:
+            hash_length = 0
+        elif not in_args.hash_ids[0]:
+            hash_length = 10
+        else:
+            hash_length = in_args.hash_ids[0]
+
+        if hash_length < 1:
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            hash_length = 10
+
+        if 32 ** hash_length <= len(alignbuddy.records()) * 2:
+            holder = ceil(log(len(alignbuddy.records()) * 2, 32))
+            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
+                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            hash_length = holder
+        hash_ids(alignbuddy, hash_length)
+
+        hash_table = "# Hash table\n"
+        for _hash, orig_id in alignbuddy.hash_map.items():
+            hash_table += "%s,%s\n" % (_hash, orig_id)
+        hash_table += "\n"
+
+        _stderr(hash_table, in_args.quiet)
+        _print_aligments(alignbuddy)
+        _exit("hash_seq_ids")
 
     # List identifiers
     if in_args.list_ids:
