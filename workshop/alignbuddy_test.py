@@ -296,6 +296,21 @@ def test_records_iter():
         counter += 1
     assert counter == 29
 
+testers = alb_resources.get_list("o p g py pr pss psr")
+
+
+@pytest.mark.parametrize("alignbuddy", testers)
+def test_lengths_single(alignbuddy):
+    print(alignbuddy._out_format)
+    assert alignbuddy.lengths()[0] == 681
+
+testers = alb_resources.get_list("m p py pr pss psr")
+
+
+@pytest.mark.parametrize("alignbuddy", testers)
+def test_lengths_multi(alignbuddy):
+    print(alignbuddy._out_format)
+    assert alignbuddy.lengths()[1] == 480
 
 hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
           'o p py': '968ed9fa772e65750f201000d7da670f', 'o p pr': 'ce423d5b99d5917fbef6f3b47df40513',
@@ -345,7 +360,21 @@ def test_write1(next_hash, alignbuddy):
     assert tester == next_hash
 
 
-def test_write2():  # Unloopable components
+hashes = {'m p c': '9c6773e7d24000f8b72dd9d25620cff1', 'm p s': '9c6773e7d24000f8b72dd9d25620cff1',
+          'm p py': '1f172a3beef76e8e3d42698bb2c3c87d', 'm p pr': '3fef9a05058a5259ebd517d1500388d4',
+          'm p pss': '1f172a3beef76e8e3d42698bb2c3c87d', 'm p psr': '3fef9a05058a5259ebd517d1500388d4'}
+albs = [(hashes[key], alignbuddy) for key, alignbuddy in alb_resources.get("m p").items()]
+
+
+@pytest.mark.parametrize("next_hash,alignbuddy", albs)
+def test_write2(next_hash, alignbuddy):
+    temp_file = MyFuncs.TempFile()
+    alignbuddy.write(temp_file.path, out_format="phylipr")
+    out = temp_file.read()
+    assert string2hash(out) == next_hash
+
+
+def test_write3():  # Unloopable components
     tester = alb_resources.get_one("m p py")
     tester.set_format("fasta")
     with pytest.raises(ValueError):

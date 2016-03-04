@@ -182,6 +182,12 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
             seq_recs[rec.id].append(rec)
         return seq_recs
 
+    def lengths(self):
+        lengths = []
+        for indx, alignment in enumerate(self.alignments):
+            lengths.append(len(alignment[0]))
+        return lengths
+
     def print(self):
         print(str(self))
         return
@@ -243,9 +249,15 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
         else:
             return "%s\n" % output.rstrip()
 
-    def write(self, file_path):
+    def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:
-            ofile.write(str(self))
+            if out_format:
+                out_format_save = str(self._out_format)
+                self.set_format(out_format)
+                ofile.write(str(self))
+                self.set_format(out_format_save)
+            else:
+                ofile.write(str(self))
         return
 
 
