@@ -620,6 +620,13 @@ def _old2new(feat, old_rec, new_rec):
 
 
 def remap_gapped_features(old_records, new_records):
+    """
+    If adding, subtracting, or moving around in a sequence, the features need to be shifted to accomodate.
+    This only works if all of the original non-gap residues are present in the new record
+    :param old_records: Starting sequence (can be gapped as well)
+    :param new_records: New sequence with different gap pattern
+    :return:
+    """
     # Start by forcing feature start-end positions onto actual residues, in cases were they fall on gaps
     for old_rec, new_rec in zip(old_records, new_records):
         features = []
@@ -634,6 +641,76 @@ def remap_gapped_features(old_records, new_records):
         new_rec.features = features
     return new_records
 
+
+class PositionMap:
+    """
+    Build a list that maps original alignment columns to new positions if columns have been removed
+    This will not work if new columns are being added.
+    :usage: Instantiate a new object, and for each column in the original alignment, call the 'extend' method,
+            specifying whether that column exists in the new alignment or not. Remap the features on the new alignment
+            by calling the remap_features method.
+    """
+    def __init__(self):
+        self.position_map = []
+        self.starting_position_filled = False
+
+    def extend(self, exists=True):
+        if len(self.position_map) == 0:
+            if exists:
+                self.starting_position_filled = True
+            self.position_map.append((0, exists))
+
+        else:
+            if exists and not self.starting_position_filled:
+                self.position_map.append((0, True))
+                self.starting_position_filled = True
+            elif exists and self.starting_position_filled:
+                self.position_map.append((self.position_map[-1][0] + 1, True))
+            else:
+                self.position_map.append((self.position_map[-1][0], False))
+        return
+
+    def remap_features(self, old_alignment, new_alignment):
+        new_alignments = list(new_alignment)
+        for indx, rec in enumerate(old_alignment):
+            new_features = []
+            for feature in rec.features:
+                feature = self._remap(feature)
+                if feature:
+                    new_features.append(feature)
+            new_alignments[indx].features = new_features
+        return
+
+    def _remap(self, feature):
+        if type(feature.location) == FeatureLocation:
+            start = self.position_map[feature.location.start][0]
+            end = self.position_map[feature.location.end - 1][0]
+            keep = False
+            for i in self.position_map[start:end]:
+                if i[1]:
+                    keep = True
+                    break
+            if keep:
+                end += 1
+                location = FeatureLocation(start, end, strand=feature.location.strand)
+                feature.location = location
+                return feature
+            else:
+                return None
+
+        else:  # CompoundLocation
+            parts = []
+            for part in feature:
+                part = self._remap(part)
+                if part:
+                    parts.append(part)
+            if len(parts) > 1:
+                feature.location = CompoundLocation(parts, operator='order')
+            elif len(parts) == 1:
+                feature.location = FeatureLocation(parts[0])
+            else:
+                feature = None
+            return feature
 
 # #################################################### VARIABLES ##################################################### #
 

@@ -183,9 +183,7 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
         return seq_recs
 
     def lengths(self):
-        lengths = []
-        for indx, alignment in enumerate(self.alignments):
-            lengths.append(len(alignment[0]))
+        lengths = [alignment.get_alignment_length() for alignment in self.alignments]
         return lengths
 
     def print(self):
@@ -1079,7 +1077,7 @@ def trimal(alignbuddy, threshold):
     :param threshold: The threshold value or trimming algorithm to be used
     :return: The trimmed AlignBuddy object
     """
-    def gappyout(_gap_distr):
+    def gappyout(_gap_distr, _position_map):
         _max_gaps = 0
         # If there are no columns with zero gaps, scan through the distribution to find where the columns start
         for i in _gap_distr:
@@ -1138,6 +1136,9 @@ def trimal(alignbuddy, threshold):
         for col, gaps in enumerate(each_column):
             if gaps <= _max_gaps:
                 cuts.append(col)
+                _position_map.extend(True)
+            else:
+                _position_map.extend(False)
 
         _new_alignment = alignment[:, 0:0]
         for _col in cuts:
@@ -1145,7 +1146,6 @@ def trimal(alignbuddy, threshold):
 
         return _new_alignment
 
-    alignbuddy_copy = make_copy(alignbuddy)
     for alignment_index, alignment in enumerate(alignbuddy.alignments):
         if not alignment:
             continue  # Prevent crash if the alignment doesn't have any records in it
@@ -1153,6 +1153,10 @@ def trimal(alignbuddy, threshold):
         gap_distr = [0 for _ in range(len(alignment) + 1)]
         num_columns = alignment.get_alignment_length()
         each_column = [0 for _ in range(num_columns)]
+
+        # Each position_map index corresponds to the original column position, values are tuples of the new position
+        # and whether the column still exists (True) or has been deleted (False)
+        position_map = br.PositionMap()
 
         max_gaps = 0
         for indx in range(num_columns):
@@ -1167,6 +1171,9 @@ def trimal(alignbuddy, threshold):
             for next_col, num_gaps in enumerate(each_column):
                 if num_gaps <= max_gaps:
                     new_alignment += alignment[:, next_col:next_col + 1]
+                    position_map.extend(True)
+                else:
+                    position_map.extend(False)
 
         # Remove any columns that contain nothing but gaps
         elif threshold == "clean":
@@ -1175,10 +1182,13 @@ def trimal(alignbuddy, threshold):
             for next_col, num_gaps in enumerate(each_column):
                 if num_gaps <= max_gaps:
                     new_alignment += alignment[:, next_col:next_col + 1]
+                    position_map.extend(True)
+                else:
+                    position_map.extend(False)
 
         # trimAl algorithm for removing gaps, depending on size of alignment and distribution of seqs
         elif threshold == "gappyout":
-            new_alignment = gappyout(gap_distr)
+            new_alignment = gappyout(gap_distr, position_map)
 
         elif threshold == "strict":  # ToDo: Implement
             new_alignment = False
@@ -1197,12 +1207,15 @@ def trimal(alignbuddy, threshold):
             for next_col, num_gaps in enumerate(each_column):
                 if num_gaps <= max_gaps:
                     new_alignment += alignment[:, next_col:next_col + 1]
+                    position_map.extend(True)
+                else:
+                    position_map.extend(False)
         else:
             raise NotImplementedError("%s not an implemented trimal method" % threshold)
 
+        position_map.remap_features(alignbuddy.alignments[alignment_index], new_alignment)
         alignbuddy.alignments[alignment_index] = new_alignment
-    # ToDo: Features are not mapping correctly. Mostly they are just totally broken, because the remap function
-    br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
+
     return alignbuddy
 
 
