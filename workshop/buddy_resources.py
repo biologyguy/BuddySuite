@@ -671,25 +671,26 @@ class PositionMap:
         return
 
     def remap_features(self, old_alignment, new_alignment):
-        new_alignments = list(new_alignment)
+        new_records = list(new_alignment)
         for indx, rec in enumerate(old_alignment):
             new_features = []
             for feature in rec.features:
                 feature = self._remap(feature)
                 if feature:
                     new_features.append(feature)
-            new_alignments[indx].features = new_features
+            new_records[indx].features = new_features
         return
 
     def _remap(self, feature):
         if type(feature.location) == FeatureLocation:
-            start = self.position_map[feature.location.start][0]
-            end = self.position_map[feature.location.end - 1][0]
             keep = False
-            for i in self.position_map[start:end]:
+            for i in self.position_map[feature.location.start:feature.location.end]:
                 if i[1]:
                     keep = True
                     break
+
+            start = self.position_map[feature.location.start][0]
+            end = self.position_map[feature.location.end - 1][0]
             if keep:
                 end += 1
                 location = FeatureLocation(start, end, strand=feature.location.strand)

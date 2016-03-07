@@ -678,12 +678,15 @@ def extract_range(alignbuddy, start, end):
     """
     alb_copy = make_copy(alignbuddy)
     for indx, alignment in enumerate(alignbuddy.alignments):
+        position_map = br.PositionMap()
+        for i in range(alignment.get_alignment_length()):
+            if start <= i <= end:
+                position_map.extend(True)
+            else:
+                position_map.extend(False)
+
         alignbuddy.alignments[indx] = alignment[:, start:end]
-    for rec in alignbuddy.records():
-        rec.features = []
-
-    br.remap_gapped_features(alb_copy.records(), alignbuddy.records())
-
+        position_map.remap_features(alb_copy.alignments[indx], alignbuddy.alignments[indx])
     return alignbuddy
 
 
