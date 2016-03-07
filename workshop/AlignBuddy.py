@@ -398,6 +398,78 @@ def _stdout(message, quiet=False):
     return
 
 
+class FeatureReMapper:
+    """
+    Build a list that maps original alignment columns to new positions if columns have been removed
+    This will not work if new columns are being added.
+    :usage: Instantiate a new object, and for each column in the original alignment, call the 'extend' method,
+            specifying whether that column exists in the new alignment or not. Remap the features on the new alignment
+            by calling the remap_features method.
+    """
+    def __init__(self):
+        self.position_map = []
+        self.starting_position_filled = False
+
+    def extend(self, exists=True):
+        if len(self.position_map) == 0:
+            if exists:
+                self.starting_position_filled = True
+            self.position_map.append((0, exists))
+
+        else:
+            if exists and not self.starting_position_filled:
+                self.position_map.append((0, True))
+                self.starting_position_filled = True
+            elif exists and self.starting_position_filled:
+                self.position_map.append((self.position_map[-1][0] + 1, True))
+            else:
+                self.position_map.append((self.position_map[-1][0], False))
+        return
+
+    def remap_features(self, old_alignment, new_alignment):
+        new_records = list(new_alignment)
+        for indx, rec in enumerate(old_alignment):
+            new_features = []
+            for feature in rec.features:
+                feature = self._remap(feature)
+                if feature:
+                    new_features.append(feature)
+            new_records[indx].features = new_features
+        return
+
+    def _remap(self, feature):
+        if type(feature.location) == FeatureLocation:
+            keep = False
+            for i in self.position_map[feature.location.start:feature.location.end]:
+                if i[1]:
+                    keep = True
+                    break
+
+            start = self.position_map[feature.location.start][0]
+            end = self.position_map[feature.location.end - 1][0]
+            if keep:
+                end += 1
+                location = FeatureLocation(start, end, strand=feature.location.strand)
+                feature.location = location
+                return feature
+            else:
+                return None
+
+        else:  # CompoundLocation
+            parts = []
+            for sub_feature in feature.location.parts:
+                sub_feature = self._remap(SeqFeature(sub_feature))
+                if sub_feature:
+                    parts.append(sub_feature.location)
+            if len(parts) > 1:
+                feature.location = CompoundLocation(parts, operator='order')
+            elif len(parts) == 1:
+                feature.location = FeatureLocation(parts[0].start, parts[0].end, strand=parts[0].strand)
+            else:
+                feature = None
+            return feature
+
+
 # ################################################ MAIN API FUNCTIONS ################################################ #
 def alignment_lengths(alignbuddy):
     """
@@ -678,7 +750,7 @@ def extract_range(alignbuddy, start, end):
     """
     alb_copy = make_copy(alignbuddy)
     for indx, alignment in enumerate(alignbuddy.alignments):
-        position_map = br.PositionMap()
+        position_map = FeatureReMapper()
         for i in range(alignment.get_alignment_length()):
             if start <= i <= end:
                 position_map.extend(True)
@@ -1159,7 +1231,7 @@ def trimal(alignbuddy, threshold):
 
         # Each position_map index corresponds to the original column position, values are tuples of the new position
         # and whether the column still exists (True) or has been deleted (False)
-        position_map = br.PositionMap()
+        position_map = FeatureReMapper()
 
         max_gaps = 0
         for indx in range(num_columns):
