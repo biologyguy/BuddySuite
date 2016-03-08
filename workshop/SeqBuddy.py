@@ -2475,10 +2475,34 @@ def order_ids(seqbuddy, reverse=False):
     :param reverse: Reverses the sequence order
     :return: The sorted SeqBuddy object
     """
-    output = [(_rec.id, _rec) for _rec in seqbuddy.records]
-    output = sorted(output, key=lambda x: x[0], reverse=reverse)
-    output = [rec[1] for rec in output]
-    seqbuddy.records = output
+    def process_current_group(_group):
+        if _group:
+            _group = [(int(re.search("[0-9]+", x.id).group(0)), x) for x in _group]
+            _group = sorted(_group, key=lambda l: l[0], reverse=reverse)
+            _group = [x[1] for x in _group]
+        return _group
+
+    # Do an initial sort
+    records = [(_rec.id, _rec) for _rec in seqbuddy.records]
+    records = sorted(records, key=lambda x: x[0], reverse=reverse)
+    records = [rec[1] for rec in records]
+
+    # Now take into account numeric-order
+    new_order = []
+    current_group = []
+    for rec in records:
+        if re.search("[0-9]", rec.id):
+            if current_group and re.match("([^0-9]*)", rec.id).group(0) != re.match("([^0-9]*)",
+                                                                                    current_group[-1].id).group(0):
+                new_order += process_current_group(current_group)
+                current_group = []
+            current_group.append(rec)
+        else:
+            new_order += process_current_group(current_group)
+            current_group = []
+            new_order.append(rec)
+    new_order += process_current_group(current_group)
+    seqbuddy.records = new_order
     return seqbuddy
 
 

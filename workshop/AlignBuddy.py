@@ -1053,39 +1053,16 @@ def map_features2alignment(seqbuddy, alignbuddy):
 
 
 def order_ids(alignbuddy, reverse=False):
-    # ToDo: Add a mode for multi-digit number awareness (e.g., place panx2 before panx10)
     """
     Sorts the alignments by ID, alphabetically
     :param alignbuddy: AlignBuddy object
     :param reverse: Reverses the order
     :return: The modified AlignBuddy object
     """
-    def process_current_group(_group):
-        if _group:
-            _group = [(int(re.search("[0-9]+", x.id).group(0)), x) for x in _group]
-            _group = sorted(_group, key=lambda l: l[0], reverse=reverse)
-            _group = [x[1] for x in _group]
-        return _group
-
     for indx, alignment in enumerate(alignbuddy.alignments):
-        alignment.sort(reverse=reverse)
-
-        # Be aware of numeric-order
-        new_alignment_order = []
-        current_group = []
-        for rec in alignment:
-            if re.search("[0-9]", rec.id):
-                if current_group and re.match("([^0-9]*)", rec.id).group(0) != re.match("([^0-9]*)",
-                                                                                        current_group[-1].id).group(0):
-                    new_alignment_order += process_current_group(current_group)
-                    current_group = []
-                current_group.append(rec)
-            else:
-                new_alignment_order += process_current_group(current_group)
-                current_group = []
-                new_alignment_order.append(rec)
-        new_alignment_order += process_current_group(current_group)
-        alignbuddy.alignments[indx] = MultipleSeqAlignment(new_alignment_order)
+        alignment = Sb.SeqBuddy(list(alignment))
+        Sb.order_ids(alignment, reverse=reverse)
+        alignbuddy.alignments[indx] = MultipleSeqAlignment(alignment.records)
     return alignbuddy
 
 

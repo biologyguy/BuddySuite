@@ -496,6 +496,9 @@ def test_stdout(capsys):
     assert out == ""
 
 
+# ToDo: def test_feature_remapper()
+
+
 # ################################################ MAIN API FUNCTIONS ################################################ #
 # ##########################################  '-al', '--alignment_lengths' ########################################### #
 def test_alignment_lengths():
@@ -1042,13 +1045,21 @@ hashes = [(alignbuddy, fwd_hashes[key], rev_hashes[key])
 
 
 @pytest.mark.parametrize("alignbuddy,fwd_hash,rev_hash", hashes)
-def test_order_ids(alignbuddy, fwd_hash, rev_hash):
+def test_order_ids1(alignbuddy, fwd_hash, rev_hash):
     Alb.order_ids(alignbuddy)
     assert align_to_hash(alignbuddy) == fwd_hash
 
     Alb.order_ids(alignbuddy, reverse=True)
     assert align_to_hash(alignbuddy) == rev_hash
 
+
+def test_order_ids2():
+    alignbuddy = alb_resources.get_one("o p n")
+    Alb.rename(alignbuddy, "Mle-Panxα4", "Mle004-Panxα4")
+    Alb.rename(alignbuddy, "Mle-Panxα5", "Mle05-Panxα5")
+    Alb.rename(alignbuddy, "Mle-Panxα9", "aMle-PanxαBlahh")
+    Alb.order_ids(alignbuddy)
+    assert align_to_hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
 
 # ##################### '-pr', '--pull_records' ###################### ##
 hashes = {'o d g': '7d1091e16adc09e658563867e7c6bc35', 'o d n': 'd82e66c57548bcf8cba202b13b070ead',
