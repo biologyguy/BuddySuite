@@ -28,7 +28,7 @@ from __future__ import print_function
 
 # BuddySuite specific
 import buddy_resources as br
-from MyFuncs import TempDir
+from MyFuncs import TempDir, walklevel
 import AlignBuddy as Alb
 
 # Standard library
@@ -136,6 +136,7 @@ class PhyloBuddy(object):
         raw_seq = None
         in_file = None
         self.trees = []
+        self.hash_map = []  # Only used when hash_ids() function is called
         tree_classes = [Tree]  # Dendropy Tree
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -518,7 +519,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
 
     else:
         tmp_dir = TempDir()
-        tmp_in = "{0}/tmp.del".format(tmp_dir.path)
+        tmp_in = "{0}/pb_input.aln".format(tmp_dir.path)
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
             parameters = params
@@ -539,8 +540,9 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
         params = ' '.join(params)
 
         # ToDo: Hash IDs before running, and then re-map afterwards
+        Alb.hash_ids(alignbuddy)
         alignbuddy.set_format('phylipsr')  # Supported by most tree builders
-        with open("{0}/tmp.del".format(tmp_dir.path), 'w') as out_file:
+        with open("{0}/pb_input.aln".format(tmp_dir.path), 'w') as out_file:
             out_file.write(str(alignbuddy))  # Most tree builders require an input file
 
         if tool == 'raxml':
@@ -593,7 +595,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
             if tool in ['raxml', 'phyml']:  # If tool writes to file
                 Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                 if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
-                        and not os.path.isfile('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)):
+                        and not os.path.isfile('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)):
                     raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
                 output = check_output(command, shell=True, universal_newlines=True)
@@ -614,13 +616,26 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
                     output += result.read()
 
         elif tool == 'phyml':
-            with open('{0}/tmp.del_phyml_tree.txt'.format(tmp_dir.path)) as result:
+            with open('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)) as result:
                 output += result.read()
 
         if keep_temp:  # Store temp files
             shutil.copytree(tmp_dir.path, keep_temp)
 
         phylobuddy = PhyloBuddy(output)
+
+        for _hash, _id in alignbuddy.hash_map.items():
+            rename(phylobuddy, _hash, _id)
+
+        if keep_temp:
+            _root, dirs, files = next(walklevel(keep_temp))
+            for file in files:
+                with open("%s/%s" % (_root, file), "r") as ifile:
+                    contents = ifile.read()
+                for _hash, _id in alignbuddy.hash_map.items():
+                    contents = re.sub(_hash, _id, contents)
+                with open("%s/%s" % (_root, file), "w") as ofile:
+                    ofile.write(contents)
 
         _stderr("Returning to PhyloBuddy...\n\n")
 

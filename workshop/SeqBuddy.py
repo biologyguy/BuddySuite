@@ -137,6 +137,7 @@ class SeqBuddy(object):  # Open a file or read a handle and parse, or convert ra
         raw_sequence = None
         in_file = None
         self.alpha = alpha
+        self.hash_map = {}  # This is only used by functions that use hash_id()
 
         # SeqBuddy obj
         if type(sb_input) == SeqBuddy:
@@ -1075,7 +1076,7 @@ def blast(subject, query, **kwargs):
     if type(query) == SeqBuddy:
         if not _check_for_blast_bin("makeblastdb"):
             raise SystemError("blastdbcmd not found in system path.")
-        query_sb = hash_sequence_ids(query)
+        query_sb = hash_ids(query)
         temp_dir = MyFuncs.TempDir()
         query_sb.write("%s/query.fa" % temp_dir.path, out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
@@ -1963,7 +1964,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     return seqbuddy
 
 
-def hash_sequence_ids(seqbuddy, hash_length=10):
+def hash_ids(seqbuddy, hash_length=10):
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
@@ -3617,7 +3618,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
 
-        hash_sequence_ids(seqbuddy, hash_length)
+        hash_ids(seqbuddy, hash_length)
 
         hash_table = "# Hash table\n"
         for _hash, orig_id in seqbuddy.hash_map.items():

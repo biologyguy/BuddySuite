@@ -76,6 +76,7 @@ class AlignBuddy(object):  # Open a file or read a handle and parse, or convert 
         in_handle = None
         raw_seq = None
         in_file = None
+        self.hash_map = []  # This variable is only filled if the hash_ids() fuction is called.
 
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -802,7 +803,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         sys.exit()
     else:
         valve = MyFuncs.SafetyValve(global_reps=400)
-        Sb.hash_sequence_ids(seqbuddy, 8)
+        Sb.hash_ids(seqbuddy, 8)
         alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
@@ -988,7 +989,7 @@ def hash_ids(alignbuddy, hash_length=10):
     hash_map = OrderedDict()
     for alignment in alignbuddy.alignments:
         temp_seqbuddy = Sb.SeqBuddy(list(alignment))
-        Sb.hash_sequence_ids(temp_seqbuddy, hash_length)
+        Sb.hash_ids(temp_seqbuddy, hash_length)
         for _hash, _id in temp_seqbuddy.hash_map.items():
             hash_map[_hash] = _id
     alignbuddy.hash_map = hash_map

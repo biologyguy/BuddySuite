@@ -1068,10 +1068,10 @@ def test_restriction_sites(capsys):
 # ######################  '-hsi', '--hash_sequence_ids' ###################### #
 def test_hash_seq_ids():
     tester = Sb.SeqBuddy(Sb.make_copy(sb_objects[0]))
-    Sb.hash_sequence_ids(tester)
+    Sb.hash_ids(tester)
     assert len(tester.records[0].id) == 10
 
-    tester = Sb.hash_sequence_ids(tester, 25)
+    tester = Sb.hash_ids(tester, 25)
     assert len(tester.records[0].id) == 25
     assert len(tester.hash_map) == 13
 
@@ -1079,16 +1079,16 @@ def test_hash_seq_ids():
 def test_hash_seq_ids_errors():
     tester = Sb.SeqBuddy(Sb.make_copy(sb_objects[0]))
     with pytest.raises(TypeError) as e:
-        Sb.hash_sequence_ids(tester, "foo")
+        Sb.hash_ids(tester, "foo")
     assert str(e.value) == "Hash length argument must be an integer, not <class 'str'>"
 
     with pytest.raises(ValueError) as e:
-        Sb.hash_sequence_ids(tester, 0)
+        Sb.hash_ids(tester, 0)
     assert str(e.value) == "Hash length must be greater than 0"
 
     tester.records *= 10
     with pytest.raises(ValueError) as e:
-        Sb.hash_sequence_ids(tester, 1)
+        Sb.hash_ids(tester, 1)
     assert "Insufficient number of hashes available to cover all sequences." in str(e.value)
 
 

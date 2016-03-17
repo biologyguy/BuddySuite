@@ -456,7 +456,7 @@ def test_fasttree_multi_param():
     temp_file = MyFuncs.TempFile()
     tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
     tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
-    assert phylo_to_hash(tester) == '28debf1cc6a7ab69f94c69626fbe5db0'
+    assert phylo_to_hash(tester) == '0877f4e8f46c3f77390dbf962d24ff71'
 
 
 def test_generate_trees_edge_cases():
@@ -883,7 +883,7 @@ def test_screw_formats_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "nexus"
 
-    Pb.command_line_ui(test_in_args, Pb.make_copy(pb_objects[0]), skip_exit=True)
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "543d2fc90ca1f391312d6b8fe896c59c"
 
@@ -891,7 +891,7 @@ def test_screw_formats_ui(capsys):
 def test_screw_formats_fail(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "foo"
-    Pb.command_line_ui(test_in_args, Pb.make_copy(pb_objects[0]), skip_exit=True)
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     foo_out, foo_err = capsys.readouterr()
     assert foo_err == "Error: unknown format 'foo'\n"
 
