@@ -92,7 +92,6 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 
 class Usage(object):
-    # ToDo: Check internet connectivity!!!
     def __init__(self):
         self.config = config_values()
         if self.config["install_path"]:
@@ -127,7 +126,7 @@ class Usage(object):
         if self.config["diagnostics"] == "True" and send_report:
             self.stats.setdefault("last_upload", datetime.date.today().isoformat())
             if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
-                                                                       '%Y-%m-%d')).days >= 1:
+                                                                       '%Y-%m-%d')).days >= 7:
                 self.send_report()
                 return
         with open(self.usage_file_path, "w") as ofile:
@@ -140,11 +139,13 @@ class Usage(object):
         temp_file = TempFile()
         json.dump(self.stats, temp_file.get_handle())
         try:
-            ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+            ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=1)
             ftp.storlines("STOR usage_%s" % temp_file.name, temp_file.get_handle("rb"))
             self.clear_stats()
             self.stats["last_upload"] = str(datetime.date.today())
         except all_errors as e:
+            if "timed out" in str(e):
+                return
             print("FTP Error: %s" % e)
 
         self.save(send_report=False)
@@ -218,10 +219,11 @@ def error_report(error_msg):
     temp_file = TempFile()
     temp_file.write(error_msg)
     try:
-        ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy")
+        ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
         ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))
     except all_errors as e:
-        print("FTP Error: %s" % e)
+        if "timed out" not in str(e):
+            print("FTP Error: %s" % e)
 
 
 def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
@@ -240,10 +242,10 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     if _flags:
         _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
         parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-        for func, in_args in _flags.items():
-            args = ("-%s" % in_args["flag"], "--%s" % func)
+        for func, _in_args in _flags.items():
+            args = ("-%s" % _in_args["flag"], "--%s" % func)
             kwargs = {}
-            for cmd, val in in_args.items():
+            for cmd, val in _in_args.items():
                 if cmd == 'flag':
                     continue
                 kwargs[cmd] = val
@@ -252,10 +254,10 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     if _modifiers:
         _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
         parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-        for func, in_args in _modifiers.items():
-            args = ("-%s" % in_args["flag"], "--%s" % func)
+        for func, _in_args in _modifiers.items():
+            args = ("-%s" % _in_args["flag"], "--%s" % func)
             kwargs = {}
-            for cmd, val in in_args.items():
+            for cmd, val in _in_args.items():
                 if cmd == 'flag':
                     continue
                 kwargs[cmd] = val
@@ -345,7 +347,7 @@ def phylip_sequential_read(sequence, relaxed=True):
 
     temp_file = TempFile()
     aligns = []
-    for key, seqs in align_dict.items():
+    for _key, seqs in align_dict.items():
         records = []
         seqs = re.sub("[\n\t]", " ", seqs).strip()
         while seqs != "":
@@ -356,7 +358,7 @@ def phylip_sequential_read(sequence, relaxed=True):
                 _id = re.match("([^ ]+) +", seqs).group(1)
                 seqs = re.sub("[^ ]+ +", "", seqs, count=1)
             rec = ""
-            while len(rec) < key[1]:
+            while len(rec) < _key[1]:
                 breakdown = re.match("([^ ]+)", seqs)
                 if not breakdown:
                     raise PhylipError("Malformed Phylip --> Less sequence found than expected")
@@ -367,15 +369,15 @@ def phylip_sequential_read(sequence, relaxed=True):
 
             records.append((_id, rec))
 
-        if len(records) != key[0]:
-            raise PhylipError("Malformed Phylip --> %s sequences expected, %s found." % (key[0], len(records)))
+        if len(records) != _key[0]:
+            raise PhylipError("Malformed Phylip --> %s sequences expected, %s found." % (_key[0], len(records)))
 
         key_list = []
         output = ""
         for seq_id, seq in records:
-            if key[1] != len(seq):
+            if _key[1] != len(seq):
                 raise PhylipError("Malformed Phylip --> Sequence %s has %s columns, %s expected." %
-                                  (seq_id, len(seq), key[1]))
+                                  (seq_id, len(seq), _key[1]))
             if seq_id in key_list:
                 if relaxed:
                     raise PhylipError("Malformed Phylip --> Repeat ID %s." % seq_id)
