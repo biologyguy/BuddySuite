@@ -1822,11 +1822,18 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _exit("uppercase")
 
 if __name__ == '__main__':
+    initiation = []
     try:
-        command_line_ui(*argparse_init())
+        initiation = argparse_init()  # initiation = [in_agrs, alignbuddy]
+        command_line_ui(*initiation)
     except (KeyboardInterrupt, br.GuessError) as _e:
         print(_e)
     except SystemExit:
         pass
     except Exception as _e:
-        br.send_traceback("AlignBuddy", _e)
+        function = ""
+        for next_arg in vars(initiation[0]):
+            if getattr(initiation[0], next_arg) and next_arg in br.alb_flags:
+                function = next_arg
+                break
+        br.send_traceback("AlignBuddy", function, _e)

@@ -2691,11 +2691,18 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
     launch_live_shell()
 
 if __name__ == '__main__':
+    initiation = []
     try:
-        command_line_ui(*argparse_init())
+        initiation = argparse_init()
+        command_line_ui(*initiation)
     except (KeyboardInterrupt, br.GuessError) as e:
         print(e)
     except SystemExit:
         pass
     except Exception as e:
-        br.send_traceback("DbBuddy", e)
+        function = ""
+        for next_arg in vars(initiation[0]):
+            if getattr(initiation[0], next_arg) and next_arg in br.db_flags:
+                function = next_arg
+                break
+        br.send_traceback("DbBuddy", function, e)

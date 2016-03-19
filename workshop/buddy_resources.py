@@ -214,9 +214,10 @@ def config_values():
 
 
 # Might want to include date in error file name
-def error_report(error_msg):
+def error_report(error_msg, tool, function):
     from ftplib import FTP, all_errors
     temp_file = TempFile()
+    temp_file.write("%s::%s\n" % (tool, function))
     temp_file.write(error_msg)
     try:
         ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
@@ -438,15 +439,14 @@ def replacements(input_str, query, replace="", num=0):
     return new_str
 
 
-def send_traceback(tool, e):
-    # ToDo: Explicitly state the tool being called in the ErrorReport. It's not always obvious...
+def send_traceback(tool, function, e):
     config = config_values()
     tb = "%s\n" % config["user_hash"]
     for _line in traceback.format_tb(sys.exc_info()[2]):
         _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
         tb += _line
     tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
-    print("\033[m%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, tb))
+    print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
 
     send_diagnostic = True if config["diagnostics"] == "True" else False
     if not send_diagnostic:
@@ -463,7 +463,7 @@ def send_traceback(tool, e):
 
     if send_diagnostic:
         print("Preparing error report for FTP upload...\nSending...\n")
-        error_report(tb)
+        error_report(tb, tool, function)
         print("Success, thank you.\n")
 
 
