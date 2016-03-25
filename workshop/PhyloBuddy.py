@@ -542,8 +542,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
         # ToDo: Hash IDs before running, and then re-map afterwards
         Alb.hash_ids(alignbuddy)
         alignbuddy.set_format('phylipsr')  # Supported by most tree builders
-        with open("{0}/pb_input.aln".format(tmp_dir.path), 'w') as out_file:
-            out_file.write(str(alignbuddy))  # Most tree builders require an input file
+        alignbuddy.write("{0}/pb_input.aln".format(tmp_dir.path))  # Most tree builders require an input file
 
         if tool == 'raxml':
             params = remove_invalid_params({'-s': True, '-n': True, '-w': True})

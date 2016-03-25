@@ -1996,13 +1996,15 @@ def hash_ids(seqbuddy, hash_length=10):
             else:
                 hash_list.append(new_hash)
                 break
+        if re.match(seqbuddy.records[i].id, seqbuddy.records[i].description):
+            seqbuddy.records[i].description = seqbuddy.records[i].description[len(seqbuddy.records[i].id) + 1:]
+
         seqbuddy.records[i].id = new_hash
         seqbuddy.records[i].name = new_hash
 
     hash_map = OrderedDict()
     for i in range(len(hash_list)):
         hash_map[hash_list[i]] = seq_ids[i]
-
     seqbuddy.hash_map = hash_map
     return seqbuddy
 
