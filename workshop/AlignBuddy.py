@@ -820,7 +820,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         _stderr('Please go to {0} to install {1}.\n'.format(tool_urls[tool], tool))
         sys.exit()
     else:
-        valve = MyFuncs.SafetyValve(global_reps=400)
+        valve = MyFuncs.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
         alignbuddy = False
         while True:
@@ -913,26 +913,18 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                     with open('{0}/result'.format(tmp_dir.path)) as result:
                         output = result.read()
                 elif tool == 'prank':
-                    extension = 'fas'
-                    if '-f=nexus' in params:
-                        extension = 'nex'
-                    elif '-f=phylipi' in params or '-f=phylips' in params:
-                        extension = 'phy'
                     possible_files = os.listdir(tmp_dir.path)
-                    filename = 'result.best.{0}'.format(extension)
+                    filename = 'result.best.fas'
                     for _file in possible_files:
-                        if 'result.best' in _file and extension in _file:
+                        if 'result.best' in _file and "fas" in _file:
                             filename = _file
                     with open('{0}/{1}'.format(tmp_dir.path, filename)) as result:
                         output = result.read()
                 elif tool == 'pagan':
-                    extension = 'fas'
-                    if '-f nexus' in params:
-                        extension = 'nex'
-                    elif '-f phylipi' in params or '-f phylips' in params:
-                        extension = 'phy'
-                    with open('{0}/result.{1}'.format(tmp_dir.path, extension)) as result:
+                    with open('{0}/result.fas'.format(tmp_dir.path)) as result:
                         output = result.read()
+                    if os.path.isfile("./warnings"):  # Pagan spits out this file (I've never seen anything in it)
+                        os.remove("./warnings")
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
                 if (tool == 'mafft' and '--clustalout' in params) or \
@@ -966,9 +958,8 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                     rename(alignbuddy, _hash, sb_rec)
 
                 if keep_temp:
-                    MyFuncs.copydir(tmp_dir.path, keep_temp)
                     # Loop through each saved file and rename any hashes that have been carried over
-                    for root, dirs, files in os.walk(keep_temp):
+                    for root, dirs, files in os.walk(tmp_dir.path):
                         for next_file in files:
                             with open("%s/%s" % (root, next_file), "r") as ifile:
                                 contents = ifile.read()
@@ -976,9 +967,12 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                                 contents = re.sub(_hash, sb_rec, contents)
                             with open("%s/%s" % (root, next_file), "w") as ofile:
                                 ofile.write(contents)
+
+                    MyFuncs.copydir(tmp_dir.path, keep_temp)
+
                 break
 
-            except FileNotFoundError:
+            except FileNotFoundError as e:
                 pass
 
         _stderr("Returning to AlignBuddy...\n\n", quiet)

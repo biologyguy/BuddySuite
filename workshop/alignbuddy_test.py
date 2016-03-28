@@ -758,7 +758,7 @@ def test_prank_outputs1():
 def test_prank_outputs2():
     # PHYLIPI
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', '-f=phylipi -once')
+    tester = Alb.generate_msa(tester, 'prank', params='-f=phylipi -once')
     assert tester._out_format == 'phylip-relaxed'
 
 
@@ -766,7 +766,7 @@ def test_prank_outputs2():
 def test_prank_outputs3():
     # PHYLIPS
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', '-f=phylips -once')
+    tester = Alb.generate_msa(tester, 'prank', params='-f=phylips -once')
     assert tester._out_format == 'phylipsr'
 
 
@@ -853,7 +853,7 @@ def test_clustalomega_inputs3():
     # STOCKHOLM
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.stklm"))
     tester = Alb.generate_msa(tester, 'clustalomega')
-    assert align_to_hash(tester) == '50134ac9533c09808d915c1fb863ab26'
+    assert align_to_hash(tester) == 'd6654e3db3818cc3427cb9241113fdfa'
 
 
 @pytest.mark.generate_alignments
@@ -877,7 +877,7 @@ def test_clustalomega_outputs3():
     # STOCKHOLM
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=stockholm')
-    assert align_to_hash(tester) == '141b89b420f104c1fa3285828c8f3161'
+    assert align_to_hash(tester) == '4c24975c033abcf15911a61cb9663a97'
 
 
 @pytest.mark.generate_alignments
@@ -927,12 +927,11 @@ def test_generate_alignment_keep_temp(monkeypatch):
 
     monkeypatch.setattr("MyFuncs.ask", ask_false)
     with pytest.raises(SystemExit):
-        Alb.generate_msa(tester, "pagan", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
+        Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
 
     monkeypatch.setattr("MyFuncs.ask", ask_true)
-    Alb.generate_msa(tester, "pagan", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
-    assert os.path.isfile("%s/ga_temp_files/result.fas" % TEMP_DIR.path)
-    assert os.path.isfile("%s/ga_temp_files/result.tre" % TEMP_DIR.path)
+    Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
+    assert os.path.isfile("%s/ga_temp_files/result" % TEMP_DIR.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % TEMP_DIR.path)
 
 
@@ -1731,6 +1730,3 @@ def test_uppercase_ui(capsys):
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "6f3f234d796520c521cb85c66a3e239a"
-
-if __name__ == '__main__':
-    test_bootstrap()
