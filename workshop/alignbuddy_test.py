@@ -511,6 +511,23 @@ def test_alignment_lengths():
     assert lengths[1] == 1440
 
 
+# ##############################################  '-bts', '--bootstrap' ############################################## #
+def test_bootstrap():
+    # Test an amino acid file
+    tester = Alb.bootstrap(alb_resources.get_one("m p py"))
+    assert tester.lengths() == [681, 480]
+
+    tester = Alb.bootstrap(alb_resources.get_one("m p py"), 3)
+    assert tester.lengths() == [681, 681, 681, 480, 480, 480]
+
+    # Also get a really short alignment, and make sure all the expected columns are showing up
+    tester = Alb.extract_range(alb_resources.get_one("o d n"), 13, 15)
+    _hashes = ["19157b79a55467e22e503d7da0f48862", "dd16e900e9c885224b65a97cb382df3b",
+               "9c2f83134a03dec93ca51ce22960779d", "02d6ada0beaf429e73a5f1b29ac00fff"]
+    for _ in range(20):
+        assert align_to_hash(Alb.bootstrap(tester)) in _hashes
+
+
 # ##############################################  '-cs', '--clean_seqs' ############################################## #
 def test_clean_seqs():
     # Test an amino acid file
@@ -1222,6 +1239,22 @@ def test_alignment_lengths_ui(capsys):
     assert err == ""
 
 
+# ##################### '-bts', '--bootstrap' ###################### ##
+def test_bootstrap_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.bootstrap = [False]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    tester = Alb.AlignBuddy(out)
+    assert tester.lengths() == [481, 683]
+
+    test_in_args.bootstrap = [3]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    tester = Alb.AlignBuddy(out)
+    assert tester.lengths() == [481, 481, 481, 683, 683, 683]
+
+
 # ##################### '-cs', '--clean_seqs' ###################### ##
 def test_clean_seqs_ui(capsys):
     test_in_args = deepcopy(in_args)
@@ -1698,3 +1731,6 @@ def test_uppercase_ui(capsys):
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "6f3f234d796520c521cb85c66a3e239a"
+
+if __name__ == '__main__':
+    test_bootstrap()

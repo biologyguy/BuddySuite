@@ -61,9 +61,12 @@ from Bio.Alphabet import IUPAC
 # - Back-translate
 # - Support for MEGA, NBRF/PIR
 # - Pairwise percent identity/similarity (build in support for all substitution matricies)
+# - Generate jackknifes
 
 # #################################################### CHANGE LOG #################################################### #
-# ##################################################### GLOBALS ###################################################### #
+# - Bootstrap function
+#
+# ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
 VERSION = br.Version("AlignBuddy", 1, 0, br.contributors)
 
@@ -482,6 +485,21 @@ def alignment_lengths(alignbuddy):
     for alignment in alignbuddy.alignments:
         output.append(alignment.get_alignment_length())
     return output
+
+
+def bootstrap(alignbuddy, num_bootstraps=1):
+    new_alignments = []
+    for alignment in alignbuddy.alignments:
+        for _ in range(num_bootstraps):
+            length = alignment.get_alignment_length()
+            position = random.randint(0, length - 1)
+            new_alignment = alignment[:, position:position + 1]
+            for _ in range(length - 1):
+                position = random.randint(0, length - 1)
+                new_alignment += alignment[:, position:position + 1]
+            new_alignments.append(new_alignment)
+    alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy._out_format)
+    return alignbuddy
 
 
 def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
@@ -1463,6 +1481,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                 _stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
                 _stdout("%s\n" % count)
         _exit("alignment_lengths")
+
+    # Bootstrap
+    if in_args.bootstrap:
+        num_bootstraps = in_args.bootstrap[0] if in_args.bootstrap[0] else 1
+        _print_aligments(bootstrap(alignbuddy, num_bootstraps))
+        _exit("bootstrap")
 
     # Clean Seq
     if in_args.clean_seq:
