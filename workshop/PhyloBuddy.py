@@ -40,7 +40,7 @@ import re
 import shutil
 from math import log, ceil
 from io import StringIO, TextIOWrapper
-from subprocess import Popen, CalledProcessError, check_output
+from subprocess import Popen, CalledProcessError, check_output, PIPE
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -491,7 +491,7 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
     return output
 
 
-def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
+def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
     # ToDo Check that this works for other versions of RAxML and PhyML
     """
     Calls tree building tools to generate trees
@@ -499,6 +499,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
     :param tool: The tree building tool to be used (raxml/phyml/fasttree)
     :param params: Additional parameters to be passed to the tree building tool
     :param keep_temp: Determines if/where the temporary files will be kept
+    :param quiet: Suppress all output form alignment programs
     :return: A PhyloBuddy object containing the trees produced.
     """
 
@@ -592,12 +593,18 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
 
         try:
             if tool in ['raxml', 'phyml']:  # If tool writes to file
-                Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+                if quiet:
+                    Popen(command, shell=True, universal_newlines=True, stdout=PIPE, stderr=PIPE).communicate()
+                else:
+                    Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                 if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
                         and not os.path.isfile('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)):
                     raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
             else:  # If tool outputs to stdout
-                output = check_output(command, shell=True, universal_newlines=True)
+                if quiet:
+                    output = check_output(command, shell=True, universal_newlines=True, stderr=PIPE)
+                else:
+                    output = check_output(command, shell=True, universal_newlines=True)
 
         except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
             raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
@@ -636,7 +643,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None):
                 with open("%s/%s" % (_root, file), "w") as ofile:
                     ofile.write(contents)
 
-        _stderr("Returning to PhyloBuddy...\n\n")
+        _stderr("Returning to PhyloBuddy...\n\n", quiet)
 
         return phylobuddy
 
@@ -1172,7 +1179,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         params = None if not in_args.generate_tree else in_args.generate_tree[0]
         generated_trees = None
         try:
-            generated_trees = generate_tree(alignbuddy, phylo_program, params, in_args.keep_temp)
+            generated_trees = generate_tree(alignbuddy, phylo_program, params, in_args.keep_temp, quiet=in_args.quiet)
         except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as e:
             _raise_error(e, "generate_tree")
         except FileNotFoundError as e:

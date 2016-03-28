@@ -402,12 +402,14 @@ def test_distance_unknown_method():
 def test_raxml_inputs():
     # Nucleotide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
-    tester = Pb.generate_tree(tester, 'raxml')
-    assert phylo_to_hash(tester) == '706ba436f8657ef3aee7875217dd07c0'
+    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml')) == '706ba436f8657ef3aee7875217dd07c0'
+
     # Peptide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
-    tester = Pb.generate_tree(tester, 'raxml')
-    assert phylo_to_hash(tester) == 'fc35569091eeba49ac4dcec7fc6890bf'
+    assert phylo_to_hash(Pb.generate_tree(Alb.make_copy(tester), 'raxml')) == 'fc35569091eeba49ac4dcec7fc6890bf'
+
+    # Quiet
+    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml', quiet=True)) == 'fc35569091eeba49ac4dcec7fc6890bf'
 
 
 @pytest.mark.generate_trees
@@ -443,7 +445,10 @@ def test_fasttree_inputs():
     # Nucleotide
     alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
-    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345')
+    tester = Pb.generate_tree(Alb.make_copy(alignbuddy), 'fasttree', '-seed 12345')
+    assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
+
+    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', quiet=True)
     assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
 
     alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
