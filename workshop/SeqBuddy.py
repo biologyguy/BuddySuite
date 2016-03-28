@@ -1666,6 +1666,99 @@ def dna2rna(seqbuddy):
     return seqbuddy
 
 
+def extract_range(seqbuddy, positions):
+    """
+    Fine grained control of what residues to pull out of the sequences
+    :param seqbuddy: SeqBuddy object
+    :param positions: Position code describing which residues to pull (str)
+
+    Position Code:  - Always a string
+                    - Comma-separated
+                    - Three types of extraction:
+                        - Singlets: "2,5,9,-5"
+                        - Ranges: "40:75,89:100,432:-45"
+                        - mth of nth: "1/5,3/5"
+    """
+    positions = re.sub("\s", "", positions).split(",")
+
+    def process_single(num, max_len):
+        if num == 0:
+            num = 1
+        elif num < 0:
+            if abs(num) > max_len:
+                num = 1
+            else:
+                num += max_len + 1
+        elif num > max_len:
+            num = max_len
+        return num
+
+    def create_residue_list(_rec, _positions):
+        rec_len = len(_rec.seq)
+        singlets = []
+        for position in _positions:
+            # Singlets
+            try:
+                single = process_single(int(position), rec_len)
+                singlets.append(single - 1)
+                continue
+            except ValueError:
+                pass
+
+            try:
+                # mth of nth
+                if "/" in position:
+                    start, end = position.split("/")
+                    end = process_single(int(end), rec_len)
+                    if ":" in start:
+                        range_start, range_end = start.split(":")
+                        range_end = process_single(-1, end) if not range_end else process_single(int(range_end), end)
+                        range_start = 1 if not range_start else process_single(int(range_start), end)
+
+                        if range_start > range_end:
+                            raise ValueError
+
+                        for i in range(range_start, range_end + 1):
+                            singlets += range(i - 1, rec_len, end)
+
+                    else:
+                        start = process_single(int(start), end)
+                        singlets += range(start - 1, rec_len, end)
+
+                # Ranges
+                elif ":" in position:
+                    start, end = position.split(":")
+                    start = 1 if not start else process_single(int(start), rec_len)
+                    end = process_single(-1, rec_len) if not end else process_single(int(end), rec_len)
+                    singlets += range(start - 1, end)
+
+                # Fail...
+                else:
+                    raise ValueError()
+
+            except ValueError:
+                raise ValueError("Unable to decode the positions string '%s'." % position)
+
+        singlets = list(set(singlets))
+        singlets = sorted(singlets)
+        return singlets
+
+    new_records = []
+    for rec in seqbuddy.records:
+        new_rec_positions = create_residue_list(rec, positions)
+        new_records.append("")
+        seq = str(rec.seq)
+        for position in new_rec_positions:
+            new_records[-1] += seq[position]
+        rec.seq = Seq(new_records[-1], alphabet=rec.seq.alphabet)
+        # ToDo: Feature remapping....
+        rec.features = []
+        new_records[-1] = rec
+
+    seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format)
+    return seqbuddy
+
+'''
 def extract_range(seqbuddy, start, end):
     """
     Retrieves subsequences in a specified range
@@ -1703,7 +1796,7 @@ def extract_range(seqbuddy, start, end):
             features.append(feature)
         rec.features = features
     return seqbuddy
-
+'''
 
 def find_cpg(seqbuddy):
     """
@@ -3330,6 +3423,17 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(seqbuddy)
         _exit('degenerate_sequence')
 
+    # Extract positions
+    if in_args.extract_region:
+        try:
+            args = ",".join(in_args.extract_region[0])
+            seqbuddy = extract_range(seqbuddy, args)
+            _print_recs(seqbuddy)
+        except ValueError as e:
+            _raise_error(e, "extract_positions", "Unable to decode the positions string")
+        _exit("extract_positions")
+
+    '''
     # Extract regions
     if in_args.extract_region:
         try:
@@ -3339,6 +3443,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _raise_error(e, "extract_region", "The value given for end of range is smaller than for the start")
 
         _exit("extract_region")
+    '''
 
     # Find CpG
     if in_args.find_CpG:

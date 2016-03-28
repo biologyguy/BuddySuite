@@ -494,7 +494,7 @@ def bootstrap(alignbuddy, num_bootstraps=1):
             length = alignment.get_alignment_length()
             position = random.randint(0, length - 1)
             new_alignment = alignment[:, position:position + 1]
-            for _ in range(length - 1):
+            for i in range(length - 1):
                 position = random.randint(0, length - 1)
                 new_alignment += alignment[:, position:position + 1]
             new_alignments.append(new_alignment)
@@ -972,7 +972,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
                 break
 
-            except FileNotFoundError as e:
+            except FileNotFoundError:
                 pass
 
         _stderr("Returning to AlignBuddy...\n\n", quiet)
