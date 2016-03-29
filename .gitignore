@@ -18,6 +18,7 @@
 # Unit test html coverage files
 workshop/htmlcov/*
 .coverage
+.cache
 
 # Test/build files
 dependencies.conf
