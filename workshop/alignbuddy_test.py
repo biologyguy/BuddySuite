@@ -521,7 +521,7 @@ def test_bootstrap():
     assert tester.lengths() == [681, 681, 681, 480, 480, 480]
 
     # Also get a really short alignment, and make sure all the expected columns are showing up
-    tester = Alb.extract_range(alb_resources.get_one("o d n"), 13, 15)
+    tester = Alb.extract_regions(alb_resources.get_one("o d n"), 13, 15)
     _hashes = ["19157b79a55467e22e503d7da0f48862", "dd16e900e9c885224b65a97cb382df3b",
                "9c2f83134a03dec93ca51ce22960779d", "02d6ada0beaf429e73a5f1b29ac00fff"]
     for _ in range(20):
@@ -601,7 +601,7 @@ def test_consensus(alignbuddy, next_hash):
 # ###########################################  '-dr', '--delete_records' ############################################ #
 hashes = {'o d g': 'b418ba198da2b4a268a962db32cc2a31', 'o d n': '355a98dad5cf382797eb907e83940978',
           'o d py': 'fe9a2776558f3fe9a1732c777c4bc9ac', 'o d s': '35dc92c4f4697fb508eb1feca43d9d75',
-          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': '5cf2d10d05814958b0a018f0db1daf6c',
+          'o r n': '96e6964115200d46c7cb4eb975718304', 'o p g': '50e09d37a92af595f6fe881d4e57bfc5',
           'o p n': '1cfaa4109c5db8fbfeaedabdc57af655', 'o p py': '1d0e7b4d8e89b42b0ef7cc8c40ed1a93',
           'o p s': '1578d98739d2aa6196463957c7b408fa', 'm d py': 'db4ed247b40707e8e1f0622bb420733b',
           'm d s': 'de5beddbc7f0a7f8e3dc2d5fd43b7b29', 'm p py': '31f91f7dc548e4b075bfb0fdd7d5c82c',
@@ -680,7 +680,7 @@ def test_enforce_triplets_error():
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
-# ###########################################  'er', '--extract_range' ############################################ #
+# ###########################################  'er', '--extract_regions' ############################################ #
 hashes = {'o d g': 'aaa69d3abb32876a2774d981a274cbad', 'o d n': '10ca718b74f3b137c083a766cb737f31',
           'o d py': 'd738a9ab3ab200a7e013177e1042e86c', 'o p g': '836ca0e0d42da0679b9dc8fe4a6e390a',
           'o p n': '5f400edc6f0990c0cd6eb52ae7687e39', 'o p py': '69c9ad73ae02525150d4682f9dd68093',
@@ -690,7 +690,7 @@ hashes = [(alignbuddy, hashes[key]) for key, alignbuddy in alb_resources.get("m 
 
 @pytest.mark.parametrize("alignbuddy,next_hash", hashes)
 def test_extract_range(alignbuddy, next_hash):
-    tester = Alb.extract_range(alignbuddy, 0, 50)
+    tester = Alb.extract_regions(alignbuddy, 0, 50)
     assert align_to_hash(tester) == next_hash
 
 
@@ -1368,20 +1368,20 @@ def test_enforce_triplets_ui(capsys):
     assert "Nucleic acid sequence required, not protein." in err
 
 
-# ##################### '-er', '--extract_range' ###################### ##
-def test_extract_range_ui(capsys):
+# ##################### '-er', '--extract_regions' ###################### ##
+def test_extract_regions_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.extract_range = [10, 110]
+    test_in_args.extract_regions = [10, 110]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
 
-    test_in_args.extract_range = [110, 10]
+    test_in_args.extract_regions = [110, 10]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
 
-    test_in_args.extract_range = [-110, 10]
+    test_in_args.extract_regions = [-110, 10]
     with pytest.raises(SystemExit):
         Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"))
     out, err = capsys.readouterr()
@@ -1704,12 +1704,12 @@ def test_trimal_ui(capsys):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "f600d3a5310d4cc405882c818217e867"
+    assert string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "f600d3a5310d4cc405882c818217e867"
+    assert string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)

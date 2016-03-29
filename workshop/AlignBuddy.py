@@ -443,19 +443,13 @@ class FeatureReMapper:
 
     def _remap(self, feature):
         if type(feature.location) == FeatureLocation:
-            keep = False
-            for i in self.position_map[feature.location.start:feature.location.end]:
-                if i[1]:
-                    keep = True
-                    break
-
-            start = self.position_map[feature.location.start][0]
-            end = self.position_map[feature.location.end - 1][0]
-            if keep:
-                end += 1
-                location = FeatureLocation(start, end, strand=feature.location.strand)
-                feature.location = location
-                return feature
+            for pos, present in self.position_map[feature.location.start:feature.location.end]:
+                if present:
+                    start = pos
+                    end = self.position_map[feature.location.end - 1][0] + 1
+                    location = FeatureLocation(start, end, strand=feature.location.strand)
+                    feature.location = location
+                    return feature
             else:
                 return None
 
@@ -759,7 +753,7 @@ def enforce_triplets(alignbuddy):
     return alignbuddy
 
 
-def extract_range(alignbuddy, start, end):
+def extract_regions(alignbuddy, start, end):
     """
     Extracts all columns within a given range
     :param alignbuddy: AlignBuddy object
@@ -1595,12 +1589,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _exit("enforce_triplets")
 
     # Extract range
-    if in_args.extract_range:
-        start, end = sorted(in_args.extract_range)
+    if in_args.extract_regions:
+        start, end = sorted(in_args.extract_regions)
         if start < 1 or end < 1:
-            _raise_error(ValueError("Please specify positive integer indices"), "extract_range")
-        _print_aligments(extract_range(alignbuddy, start - 1, end))
-        _exit("extract_range")
+            _raise_error(ValueError("Please specify positive integer indices"), "extract_regions")
+        _print_aligments(extract_regions(alignbuddy, start - 1, end))
+        _exit("extract_regions")
 
     # Generate Alignment
     if in_args.generate_alignment:
