@@ -479,6 +479,77 @@ def _feature_rc(feature, seq_len):
     return feature
 
 
+class FeatureReMapper:
+    """
+    Build a list that maps original residues to new positions if residues have been removed
+    This will not work if new columns are being added.
+    :usage: Instantiate a new object, and for each position in the original sequence, call the 'extend' method,
+            specifying whether that residue exists in the new alignment or not. Remap the features on the new sequence
+            by calling the remap_features method.
+    """
+    def __init__(self, old_seq):
+        self.old_seq = old_seq  # SeqRecord
+        self.position_map = []
+        self.starting_position_filled = False
+
+    def extend(self, exists=True):
+        if len(self.old_seq.seq) < len(self.position_map) + 1:
+            raise AttributeError("The position map has already been fully populated.")
+
+        if len(self.position_map) == 0:
+            if exists:
+                self.starting_position_filled = True
+            self.position_map.append((0, exists))
+
+        else:
+            if exists and not self.starting_position_filled:
+                self.position_map.append((0, True))
+                self.starting_position_filled = True
+            elif exists and self.starting_position_filled:
+                self.position_map.append((self.position_map[-1][0] + 1, True))
+            else:
+                self.position_map.append((self.position_map[-1][0], False))
+        return
+
+    def remap_features(self, new_seq):
+        if len(self.old_seq.seq) != len(self.position_map):
+            raise AttributeError("The position map has not been fully populated.")
+
+        new_features = []
+        for feature in self.old_seq.features:
+            feature = self._remap(feature)
+            if feature:
+                new_features.append(feature)
+        new_seq.features = new_features
+        return new_seq
+
+    def _remap(self, feature):
+        if type(feature.location) == FeatureLocation:
+            for pos, present in self.position_map[feature.location.start:feature.location.end]:
+                if present:
+                    start = pos
+                    end = self.position_map[feature.location.end - 1][0] + 1
+                    location = FeatureLocation(start, end, strand=feature.location.strand)
+                    feature.location = location
+                    return feature
+            else:
+                return None
+
+        else:  # CompoundLocation
+            parts = []
+            for sub_feature in feature.location.parts:
+                sub_feature = self._remap(SeqFeature(sub_feature))
+                if sub_feature:
+                    parts.append(sub_feature.location)
+            if len(parts) > 1:
+                feature.location = CompoundLocation(parts, operator='order')
+            elif len(parts) == 1:
+                feature.location = FeatureLocation(parts[0].start, parts[0].end, strand=parts[0].strand)
+            else:
+                feature = None
+            return feature
+
+
 def _guess_alphabet(seqbuddy):
     """
     Looks through the characters in the SeqBuddy records to determine the most likely alphabet
@@ -1666,7 +1737,7 @@ def dna2rna(seqbuddy):
     return seqbuddy
 
 
-def extract_range(seqbuddy, positions):
+def extract_regions(seqbuddy, positions):
     """
     Fine grained control of what residues to pull out of the sequences
     :param seqbuddy: SeqBuddy object
@@ -1696,10 +1767,10 @@ def extract_range(seqbuddy, positions):
     def create_residue_list(_rec, _positions):
         rec_len = len(_rec.seq)
         singlets = []
-        for position in _positions:
+        for _position in _positions:
             # Singlets
             try:
-                single = process_single(int(position), rec_len)
+                single = process_single(int(_position), rec_len)
                 singlets.append(single - 1)
                 continue
             except ValueError:
@@ -1707,8 +1778,8 @@ def extract_range(seqbuddy, positions):
 
             try:
                 # mth of nth
-                if "/" in position:
-                    start, end = position.split("/")
+                if "/" in _position:
+                    start, end = _position.split("/")
                     end = process_single(int(end), rec_len)
                     if ":" in start:
                         range_start, range_end = start.split(":")
@@ -1726,10 +1797,11 @@ def extract_range(seqbuddy, positions):
                         singlets += range(start - 1, rec_len, end)
 
                 # Ranges
-                elif ":" in position:
-                    start, end = position.split(":")
+                elif ":" in _position:
+                    start, end = _position.split(":")
                     start = 1 if not start else process_single(int(start), rec_len)
                     end = process_single(-1, rec_len) if not end else process_single(int(end), rec_len)
+                    start, end = sorted([start, end])
                     singlets += range(start - 1, end)
 
                 # Fail...
@@ -1737,7 +1809,7 @@ def extract_range(seqbuddy, positions):
                     raise ValueError()
 
             except ValueError:
-                raise ValueError("Unable to decode the positions string '%s'." % position)
+                raise ValueError("Unable to decode the positions string '%s'." % _position)
 
         singlets = list(set(singlets))
         singlets = sorted(singlets)
@@ -1746,57 +1818,23 @@ def extract_range(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
-        new_records.append("")
-        seq = str(rec.seq)
-        for position in new_rec_positions:
-            new_records[-1] += seq[position]
-        rec.seq = Seq(new_records[-1], alphabet=rec.seq.alphabet)
-        # ToDo: Feature remapping....
-        rec.features = []
-        new_records[-1] = rec
+        new_seq = ""
+        remapper = FeatureReMapper(rec)
+        for indx, residue in enumerate(str(rec.seq)):
+            if indx in new_rec_positions:
+                remapper.extend(True)
+                new_seq += residue
+            else:
+                remapper.extend(False)
+        new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+        new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+        if rec.features:
+            new_seq = remapper.remap_features(new_seq)
+        new_records.append(new_seq)
 
     seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format)
     return seqbuddy
 
-'''
-def extract_range(seqbuddy, start, end):
-    """
-    Retrieves subsequences in a specified range
-    :param seqbuddy: SeqBuddy object
-    :param start: The starting point
-    :param end: The end point
-    :return: The modified SeqBuddy object
-    """
-    start = 1 if int(start) < 1 else start
-    # Don't use the standard index-starts-at-0... end must be left for the range to be inclusive
-    start, end = int(start) - 1, int(end)
-    if end < start:
-        raise ValueError("The value given for end of range is smaller than for the start of range.")
-
-    for rec in seqbuddy.records:
-        rec.seq = Seq(str(rec.seq)[start:end], alphabet=rec.seq.alphabet)
-        rec.description += " Sub-sequence extraction, from residue %s to %s" % (start + 1, end)
-        features = []
-        for feature in rec.features:
-            if feature.location.end < start:
-                continue
-            if feature.location.start > end:
-                continue
-
-            feat_start = feature.location.start - start
-            if feat_start < 0:
-                feat_start = 0
-
-            feat_end = feature.location.end - start
-            if feat_end > len(str(rec.seq)):
-                feat_end = len(str(rec.seq))
-
-            new_location = FeatureLocation(feat_start, feat_end)
-            feature.location = new_location
-            features.append(feature)
-        rec.features = features
-    return seqbuddy
-'''
 
 def find_cpg(seqbuddy):
     """
@@ -3423,27 +3461,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(seqbuddy)
         _exit('degenerate_sequence')
 
-    # Extract positions
-    if in_args.extract_region:
+    # Extract regions
+    if in_args.extract_regions:
         try:
-            args = ",".join(in_args.extract_region[0])
-            seqbuddy = extract_range(seqbuddy, args)
+            args = ",".join(in_args.extract_regions[0])
+            seqbuddy = extract_regions(seqbuddy, args)
             _print_recs(seqbuddy)
         except ValueError as e:
+            # ToDo: output some information about position string syntax
             _raise_error(e, "extract_positions", "Unable to decode the positions string")
         _exit("extract_positions")
-
-    '''
-    # Extract regions
-    if in_args.extract_region:
-        try:
-            extract_range(seqbuddy, *in_args.extract_region)
-            _print_recs(seqbuddy)
-        except ValueError as e:
-            _raise_error(e, "extract_region", "The value given for end of range is smaller than for the start")
-
-        _exit("extract_region")
-    '''
 
     # Find CpG
     if in_args.find_CpG:

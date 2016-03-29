@@ -982,23 +982,21 @@ def test_back_transcribe_pep_exception():  # Asserts that a TypeError will be th
         Sb.rna2dna(sb_objects[6])
 
 
-# ######################  '-er', '--extract_range' ###################### #
-hashes = ["201235ed91ad0ed9a7021136487fed94", "3e791c6a6683516aff9572c24f38f0b3", "4063ab66ced2fafb080ceba88965d2bb",
-          "33e6347792aead3c454bac0e05a292c6", "9a5c491aa293c6cedd48c4c249d55aff", "d724df01ae688bfac4c6dfdc90027440",
-          "904a188282f19599a78a9d7af4169de6", "b8413624b9e684a14fc9f398a62e3965", "6a27222d8f60ee8496cbe0c41648a116",
-          "c9a1dd913190f95bba5eca6a89685c75", "6f579144a43dace285356ce6eb326d3b", "38d571c9681b4fa420e3d8b54c507f9c"]
+# ######################  '-er', '--extract_regions' ###################### #
+hashes = ["8c2fac57aedf6b0dab3d0f5bcf88e99f", "25ad9670e8a6bac7962ab46fd79251e5", "4063ab66ced2fafb080ceba88965d2bb",
+          "33e6347792aead3c454bac0e05a292c6", "9a5c491aa293c6cedd48c4c249d55aff", "cd8d857feba9b6e459b8a9d56f11b7f5",
+          "2586d1e3fc283e6f5876251c1c57efce", "a9c22659967916dcdae499c06d1aaafb", "6a27222d8f60ee8496cbe0c41648a116",
+          "c9a1dd913190f95bba5eca6a89685c75", "6f579144a43dace285356ce6eb326d3b", "727099e0abb89482760eeb20f7edd0cd"]
 hashes = [(Sb.make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
-
+@pytest.mark.foo
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
-def test_extract_range(seqbuddy, next_hash):
-    tester = Sb.extract_range(seqbuddy, 50, 300)
+def test_extract_regions(seqbuddy, next_hash):
+    tester = Sb.extract_regions(Sb.make_copy(seqbuddy), "50:300")
     assert seqs_to_hash(tester) == next_hash
 
-
-def test_extract_range_end_less_than_start():
-    with pytest.raises(ValueError):
-        Sb.extract_range(sb_objects[0], 500, 50)
+    tester = Sb.extract_regions(Sb.make_copy(seqbuddy), "300:50")
+    assert seqs_to_hash(tester) == next_hash
 
 
 # #####################  '-fcpg', '--find_CpG' ###################### ##
@@ -1969,19 +1967,19 @@ def test_delete_small_ui(capsys):
     assert string2hash(out) == "196adf08d4993c51050289e5167dacdf"
 
 
-# ######################  '-er', '--extract_region' ###################### #
+# ######################  '-er', '--extract_regions' ###################### #
 def test_extract_region_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.extract_region = [50, 300]
+    test_in_args.extract_regions = [["50:300"]]
     Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[1]), True)
     out, err = capsys.readouterr()
-    assert string2hash(out) == "3e791c6a6683516aff9572c24f38f0b3"
+    assert string2hash(out) == "25ad9670e8a6bac7962ab46fd79251e5"
 
     with pytest.raises(SystemExit):
-        test_in_args.extract_region = [300, 50]
+        test_in_args.extract_regions = [["foo"]]
         Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[1]))
     out, err = capsys.readouterr()
-    assert "The value given for end of range is smaller than for" in err
+    assert "Unable to decode the positions string" in err
 
 
 # ######################  '-fcpg', '--find_cpg' ###################### #
