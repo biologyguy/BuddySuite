@@ -1137,7 +1137,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
         if align_set:
-            alignbuddy = Alb.AlignBuddy(alignbuddy, align_set._in_format, align_set._out_format)
+            alignbuddy = Alb.AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
         else:
             alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.in_format, in_args.out_format)
 

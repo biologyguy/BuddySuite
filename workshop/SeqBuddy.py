@@ -68,46 +68,74 @@ from Bio import AlignIO
 
 # ##################################################### WISH LIST #################################################### #
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
+    """
+    :param matrix:
+    """
     x = matrix
     return x
 
 
 def predict_orfs():
-    # Add all predicted open reading frames to seqrecord features list
-    # http://www.ncbi.nlm.nih.gov/gorf/gorf.html
+    """
+    Add all predicted open reading frames to seqrecord features list
+    http://www.ncbi.nlm.nih.gov/gorf/gorf.html
+    :return:
+    """
     return
 
 
 def auto_annotate():
-    # Find common plasmid features in sequences
+    """
+    Find common plasmid features in sequences
+    """
     return
 
 
 def mutate():
-    # Apply some model of evolution to generate new sequences from input
+    """
+    Apply some model of evolution to generate new sequences from input
+    :return:
+    """
     return
 
 
 def random_aa(_length, number, matrix):
-    # create random prot sequences. Not sure exactly how to implement this yet, because it would theoretically not start
-    # from input sequences...
+    """
+    create random prot sequences. Not sure exactly how to implement this yet, because it would theoretically not start
+    from input sequences...
+    :param _length:
+    :param number:
+    :param matrix:
+    """
     x = [_length, number, matrix]
     return x
 
 
 def random_dna(_length, number, matrix):
-    # create random DNA sequences.
+    """
+    create random DNA sequences.
+    :param _length:
+    :param number:
+    :param matrix:
+    :return:
+    """
     x = [_length, number, matrix]
     return x
 
 
 def divergence_value():
-    # http://bioinformatics.org/sms/uneven.html
+    """
+    http://bioinformatics.org/sms/uneven.html
+    """
     return
 
 
 def incremental_rename(query, replace):
-    # Append a number to the end of each replacement to ensure unique ids
+    """
+    Append a number to the end of each replacement to ensure unique ids
+    :param query:
+    :param replace:
+    """
     x = (query, replace)
     return x
 
@@ -127,7 +155,11 @@ OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "em
 
 
 # ##################################################### SEQBUDDY ##################################################### #
-class SeqBuddy(object):  # Open a file or read a handle and parse, or convert raw into a Seq object
+class SeqBuddy(object):
+    """
+    Core class.
+    Open a file or read a handle and parse, or convert raw into a Seq object
+    """
     def __init__(self, sb_input, in_format=None, out_format=None, alpha=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
@@ -477,7 +509,7 @@ def _feature_rc(feature, seq_len):
     return feature
 
 
-class FeatureReMapper:
+class FeatureReMapper(object):
     """
     Build a list that maps original residues to new positions if residues have been removed
     This will not work if new columns are being added.
@@ -491,10 +523,15 @@ class FeatureReMapper:
         self.starting_position_filled = False
 
     def extend(self, exists=True):
+        """
+        Iterates the position map, adding an index and whether the new sequence contains the residue.
+        Extend() must be called exactly len(self.old_seq) times.
+        :param exists: Specify whether the next residue exists or not
+        """
         if len(self.old_seq.seq) < len(self.position_map) + 1:
             raise AttributeError("The position map has already been fully populated.")
 
-        if len(self.position_map) == 0:
+        if not self.position_map:
             if exists:
                 self.starting_position_filled = True
             self.position_map.append((0, exists))
@@ -510,6 +547,10 @@ class FeatureReMapper:
         return
 
     def remap_features(self, new_seq):
+        """
+        Add all the features from self.old_seq that still exist onto new_seq
+        :param new_seq: SeqRecord containing the new sequence that was used to build self.position_map
+        """
         if len(self.old_seq.seq) != len(self.position_map):
             raise AttributeError("The position map has not been fully populated.")
 
@@ -522,6 +563,10 @@ class FeatureReMapper:
         return new_seq
 
     def _remap(self, feature):
+        """
+        Deal with the weirdness that is SeqRecord features... Compares self.old_seq features against self.position_map
+        :param feature: A feature from self.old_seq
+        """
         if type(feature.location) == FeatureLocation:
             for pos, present in self.position_map[feature.location.start:feature.location.end]:
                 if present:
@@ -1771,9 +1816,11 @@ def extract_regions(seqbuddy, positions):
                 single = process_single(int(_position), rec_len)
                 singlets.append(single - 1)
                 continue
-            except ValueError:
-                pass
-
+            except ValueError as e:
+                if "invalid literal for int() with base 10" in str(e):
+                    pass
+                else:
+                    raise e
             try:
                 # mth of nth
                 if "/" in _position:
@@ -2139,8 +2186,8 @@ def hash_ids(seqbuddy, hash_length=10):
         seqbuddy.records[i].name = new_hash
 
     hash_map = OrderedDict()
-    for i in range(len(hash_list)):
-        hash_map[hash_list[i]] = seq_ids[i]
+    for indx, _hash in enumerate(hash_list):
+        hash_map[hash_list[indx]] = seq_ids[indx]
     seqbuddy.hash_map = hash_map
     return seqbuddy
 
