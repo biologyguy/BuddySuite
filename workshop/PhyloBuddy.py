@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: PhyloBuddy.py
-version: 1.0
+version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -97,31 +97,21 @@ def decode_accessions(_phylobuddy):
     # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
     return _phylobuddy
 
-
-# Compare two trees, and add colour to the nodes that differ. [ ]
-
-# Implement sum_bootstrap(), but generalize to any value.
-
-# Regex taxa names
-
-# 'Clean' a tree, as implemented in phyutility
-
-# Pull random tree, pull every nth tree, and pull specific tree
-
-# Pull random tips
-
-# Prune clade (ie, prune away all tips from the common ancestor of two or more tips)
-
+# - Compare two trees, and add colour to the nodes that differ. [ ]
+# - Implement sum_bootstrap(), but generalize to any value.
+# - Regex taxa names
+# - 'Clean' a tree, as implemented in phyutility
+# - Pull random tree, pull every nth tree, and pull specific tree
+# - Pull random tips
+# - Prune clade (ie, prune away all tips from the common ancestor of two or more tips)
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
-# Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
+# - Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
+# - Try hard to remove any dependency on PyQt4 (preferably remove ETE3 completely if possible). ete3.NodeStyle() cannot
+# be imported without PyQt4
 
-# Try hard to remove any dependency on PyQt4 (preferably remove ETE3 completely if possible). ete3.NodeStyle() cannot be
-# imported without PyQt4
-
-# #################################################### CHANGE LOG #################################################### #
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, 0, br.contributors)
+VERSION = br.Version("PhyloBuddy", 1, 1, br.contributors)
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 

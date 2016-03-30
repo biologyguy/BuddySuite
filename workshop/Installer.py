@@ -9,7 +9,7 @@ without restriction.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-version: 1.0
+version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -46,7 +46,7 @@ from random import choice
 
 import argparse
 
-_version = br.Version("BuddySuite", 1, 0, br.contributors)
+_version = br.Version("BuddySuite", 1, 1, br.contributors)
 
 
 def fmt(prog):

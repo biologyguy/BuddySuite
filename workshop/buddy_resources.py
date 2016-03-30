@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: buddy_resources.py
-version: 1.0
+version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -646,7 +646,7 @@ def remap_gapped_features(old_records, new_records):
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=497, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=720, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=299, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=25, github="https://github.com/biojerm")]
 

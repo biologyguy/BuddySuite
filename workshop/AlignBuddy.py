@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: AlignBuddy.py
-version: 1.0
+version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -63,12 +63,9 @@ from Bio.Alphabet import IUPAC
 # - Pairwise percent identity/similarity (build in support for all substitution matricies)
 # - Generate jackknifes
 
-# #################################################### CHANGE LOG #################################################### #
-# - Bootstrap function
-#
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, 0, br.contributors)
+VERSION = br.Version("AlignBuddy", 1, 1, br.contributors)
 
 
 # #################################################### ALIGNBUDDY #################################################### #
