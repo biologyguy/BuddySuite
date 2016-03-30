@@ -58,7 +58,9 @@ class RunTime(object):
         elapsed = 0
         while True:
             with open("%s" % check_file_path, "r") as ifile:
-                if ifile.read() == "Running":
+                if round(time()) - start_time == elapsed:
+                    continue
+                elif ifile.read() == "Running":
                     d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
                     elapsed = round(time()) - start_time
                 else:
