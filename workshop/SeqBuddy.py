@@ -119,8 +119,6 @@ def incremental_rename(query, replace):
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
 
-# ##################################################### CHANGE LOG ################################################### #
-
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 1, 0, br.contributors)
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
@@ -1085,7 +1083,7 @@ def bl2seq(seqbuddy):
     tmp_dir = MyFuncs.TempDir()
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
-    make_ids_unique(seqbuddy)
+    make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.path
     for subject in seqbuddy.records:
@@ -1124,7 +1122,7 @@ def blast(subject, query, **kwargs):
     """
     ToDo: - Sort out makeblastdb download
           - Allow mixed sequence types (blastx?)
-    Runs a BLAST search against a specified database, returning all significant matches.
+    Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
     :param kwargs:  - quiet -> [True|False]
@@ -1820,7 +1818,6 @@ def extract_regions(seqbuddy, positions):
         new_rec_positions = create_residue_list(rec, positions)
         new_seq = ""
         if rec.features:  # This is super slow for large records...
-            print(rec.features)
             remapper = FeatureReMapper(rec)
             for indx, residue in enumerate(str(rec.seq)):
                 if indx in new_rec_positions:

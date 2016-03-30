@@ -662,37 +662,37 @@ def test_bl2_no_binary():
 # ######################  '-bl', '--blast' ###################### #
 def test_blastn():
     tester = Sb.pull_recs(Sb.make_copy(sb_objects[0]), '8', True)
-    tester = Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
+    tester = Sb.blast(tester, resource("blast/Mnemiopsis_cds.n"))
     assert seqs_to_hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
 
     with pytest.raises(RuntimeError) as e:
         tester = Sb.make_copy(sb_objects[0])
-        Sb.blast(tester, blast_db=resource("Mnemiopsis_cds.nhr"))
+        Sb.blast(tester, resource("Mnemiopsis_cds.nhr"))
     assert "The .nhr file of your blast database was not found" in str(e.value)
 
     with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
         with pytest.raises(SystemError) as e:
-            Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
+            Sb.blast(tester, resource("blast/Mnemiopsis_cds.n"))
         assert 'blastn not found in system path' in str(e.value)
 
     tester = Sb.SeqBuddy(">Seq1\nATGCGCGCTACGCTAGCTAGCTAGCTCGCATGCAT")
-    tester = Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_cds.n"))
+    tester = Sb.blast(tester, resource("blast/Mnemiopsis_cds.n"))
     assert len(tester.records) == 0
 
 
 def test_blastp():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8', True)
-    tester = Sb.blast(seqbuddy, blast_db=resource("blast/Mnemiopsis_pep.p"))
+    tester = Sb.blast(seqbuddy, resource("blast/Mnemiopsis_pep.p"))
     assert seqs_to_hash(tester) == "4237c79672c1cf1d4a9bdb160a53a4b9"
 
     with pytest.raises(RuntimeError) as e:
         tester = Sb.make_copy(sb_objects[6])
-        Sb.blast(tester, blast_db=resource("Mnemiopsis_cds.phr"))
+        Sb.blast(tester, resource("Mnemiopsis_cds.phr"))
     assert "The .phr file of your blast database was not found" in str(e.value)
 
     with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
         with pytest.raises(SystemError) as e:
-            Sb.blast(tester, blast_db=resource("blast/Mnemiopsis_pep.n"))
+            Sb.blast(tester, resource("blast/Mnemiopsis_pep.n"))
         assert 'blastp not found in system path' in str(e.value)
 
 
@@ -989,7 +989,7 @@ hashes = ["8c2fac57aedf6b0dab3d0f5bcf88e99f", "25ad9670e8a6bac7962ab46fd79251e5"
           "c9a1dd913190f95bba5eca6a89685c75", "6f579144a43dace285356ce6eb326d3b", "727099e0abb89482760eeb20f7edd0cd"]
 hashes = [(Sb.make_copy(sb_objects[indx]), value) for indx, value in enumerate(hashes)]
 
-@pytest.mark.foo
+
 @pytest.mark.parametrize("seqbuddy,next_hash", hashes)
 def test_extract_regions(seqbuddy, next_hash):
     tester = Sb.extract_regions(Sb.make_copy(seqbuddy), "50:300")
