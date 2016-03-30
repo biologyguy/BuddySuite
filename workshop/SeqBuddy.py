@@ -1819,17 +1819,25 @@ def extract_regions(seqbuddy, positions):
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
         new_seq = ""
-        remapper = FeatureReMapper(rec)
-        for indx, residue in enumerate(str(rec.seq)):
-            if indx in new_rec_positions:
-                remapper.extend(True)
-                new_seq += residue
-            else:
-                remapper.extend(False)
-        new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-        new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
-        if rec.features:
+        if rec.features:  # This is super slow for large records...
+            print(rec.features)
+            remapper = FeatureReMapper(rec)
+            for indx, residue in enumerate(str(rec.seq)):
+                if indx in new_rec_positions:
+                    remapper.extend(True)
+                    new_seq += residue
+                else:
+                    remapper.extend(False)
+            new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
             new_seq = remapper.remap_features(new_seq)
+        else:
+            seq = str(rec.seq)
+            for indx in new_rec_positions:
+                new_seq += seq[indx]
+            new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+
         new_records.append(new_seq)
 
     seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format)
