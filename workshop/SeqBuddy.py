@@ -57,7 +57,7 @@ sys.path.insert(0, "./")  # For stand alone executable, where dependencies are p
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
-from Bio.Restriction import *
+from Bio.Restriction import RestrictionBatch, CommOnly, AllEnzymes, Analysis
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC

@@ -40,7 +40,7 @@ from io import StringIO, TextIOWrapper
 import random
 import re
 from collections import OrderedDict
-from shutil import *
+from shutil import which
 from subprocess import Popen, PIPE, CalledProcessError
 from math import log, ceil
 
