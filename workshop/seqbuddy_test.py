@@ -1011,13 +1011,20 @@ def test_find_cpg():
 def test_find_pattern():
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
     assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
+    tester.out_format = "fasta"
+    assert seqs_to_hash(tester) == "6f23f80b52ffb736bbecc9f4c72d8fab"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T")
     assert seqs_to_hash(tester) == "9ec8561c264bff6f7166855d60457df1"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg")
     assert seqs_to_hash(tester) == "ec43ce98c9ae577614403933b2c5f37a"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg", include_feature=False)
-    tester.write("temp.del")
     assert seqs_to_hash(tester) == "2e02a8e079267bd9add3c39f759b252c"
+    tester = Sb.find_pattern(sb_resources.get_one("p g"), "[bz]{2}x{50,100}[bz]{2}", ambig=True)
+    assert seqs_to_hash(tester) == "339ff26803a2d12267d873458d40bca2"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGN{6}", ambig=True)
+    assert seqs_to_hash(tester) == "ac9adb42fbfa9cf22f033e9a02130985"
+    tester = Sb.find_pattern(sb_resources.get_one("r f"), "AUGGN{6}", ambig=True)
+    assert seqs_to_hash(tester) == "b7abcb4334232e38dfbac9f46234501a"
 
 
 # #####################  '-frp', '--find_repeats' ###################### ##
@@ -2006,6 +2013,7 @@ def test_find_cpg_ui(capsys):
 
 
 # ######################  '-fp', '--find_pattern' ###################### #
+@pytest.mark.foo
 def test_find_pattern_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
@@ -2014,6 +2022,13 @@ def test_find_pattern_ui(capsys):
 
     assert string2hash(out) == "ec43ce98c9ae577614403933b2c5f37a"
     assert string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
+
+    test_in_args.find_pattern = ["ATGGN{6}", "ambig"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) == "ac9adb42fbfa9cf22f033e9a02130985"
+    assert string2hash(err) == "f54ddf323e0d8fecb2ef52084d048531"
 
 
 # ######################  '-frp', '--find_repeats' ###################### #

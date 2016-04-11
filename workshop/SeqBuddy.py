@@ -1974,17 +1974,58 @@ def find_cpg(seqbuddy):
     return seqbuddy
 
 
-def find_pattern(seqbuddy, *patterns, include_feature=True):  # TODO ambiguous letters mode
+def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True):
     """
     Finds ﻿occurrences of a sequence pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: regex patterns
+    :param ambig: Convert any ambiguous letter codes in the search pattern into regex
     :param include_feature: Include a new 'match' feature to records
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patters"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
     lowercase(seqbuddy)
     for pattern in patterns:
+        pattern_backup = str(pattern)
+        if ambig and seqbuddy.alpha == IUPAC.protein:
+            pattern = re.sub("[xX]", "[ARNDCQEGHILKMFPSTWYVX]", pattern)
+            pattern = re.sub("[bB]", "[NDB]", pattern)
+            pattern = re.sub("[zZ]", "[QEZ]", pattern)
+
+        elif ambig and seqbuddy.alpha in [IUPAC.ambiguous_dna or IUPAC.unambiguous_dna]:
+            pattern = re.sub("[kK]", "[GT]", pattern)
+            pattern = re.sub("[mM]", "[AC]", pattern)
+            pattern = re.sub("[rR]", "[AG]", pattern)
+            pattern = re.sub("[yY]", "[CT]", pattern)
+            pattern = re.sub("[sS]", "[CG]", pattern)
+            pattern = re.sub("[wW]", "[AT]", pattern)
+            pattern = re.sub("[bB]", "[CGT]", pattern)
+            pattern = re.sub("[vV]", "[CGA]", pattern)
+            pattern = re.sub("[hH]", "[ACT]", pattern)
+            pattern = re.sub("[dD]", "[AGT]", pattern)
+            pattern = re.sub("[xnXN]", "[ATCG]", pattern)
+
+        elif ambig and seqbuddy.alpha in [IUPAC.ambiguous_rna or IUPAC.unambiguous_rna]:
+            pattern = re.sub("[kK]", "[GU]", pattern)
+            pattern = re.sub("[mM]", "[AC]", pattern)
+            pattern = re.sub("[rR]", "[AG]", pattern)
+            pattern = re.sub("[yY]", "[CU]", pattern)
+            pattern = re.sub("[sS]", "[CG]", pattern)
+            pattern = re.sub("[wW]", "[AU]", pattern)
+            pattern = re.sub("[bB]", "[CGU]", pattern)
+            pattern = re.sub("[vV]", "[CGA]", pattern)
+            pattern = re.sub("[hH]", "[ACU]", pattern)
+            pattern = re.sub("[dD]", "[AGU]", pattern)
+            pattern = re.sub("[xnXN]", "[AUCG]", pattern)
+
+        if ambig:
+            safety_valve = MyFuncs.SafetyValve()
+            # Strip out any double square brackets
+            while re.search("\[[^[\]]*?\[[^]]*\]", pattern):
+                safety_valve.step("Ambiguous %s regular expression '%s' failed compile." %
+                                  (seqbuddy.alpha, pattern_backup))
+                pattern = re.sub("(\[[^[\]]*?)\[([^]]*)\]", r"\1\2", pattern, count=1)
+
         for rec in seqbuddy.records:
             _add_buddy_data(rec, 'find_patterns')
             indices = []
@@ -1995,7 +2036,7 @@ def find_pattern(seqbuddy, *patterns, include_feature=True):  # TODO ambiguous l
                 indices.append(match.start())
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                                   type='match', qualifiers={'regex': pattern, 'added_by': 'SeqBuddy'}))
+                                                   type='match', qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -2004,9 +2045,9 @@ def find_pattern(seqbuddy, *patterns, include_feature=True):  # TODO ambiguous l
             rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
 
             if not rec.buddy_data['find_patterns']:
-                rec.buddy_data['find_patterns'] = OrderedDict({pattern: indices})
+                rec.buddy_data['find_patterns'] = OrderedDict({pattern_backup: indices})
             else:
-                rec.buddy_data['find_patterns'][pattern] = indices
+                rec.buddy_data['find_patterns'][pattern_backup] = indices
     return seqbuddy
 
 
@@ -3556,7 +3597,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Find pattern
     if in_args.find_pattern:
-        find_pattern(seqbuddy, *in_args.find_pattern)
+        ambig = True if 'ambig' in in_args.find_pattern else False
+        if ambig:
+            del in_args.find_pattern[in_args.find_pattern.index("ambig")]
+
+        find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
         for pattern in in_args.find_pattern:
             output = ""
             num_matches = 0
