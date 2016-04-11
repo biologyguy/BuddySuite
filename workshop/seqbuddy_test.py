@@ -1007,13 +1007,17 @@ def test_find_cpg():
 
 
 # #####################  '-fp', '--find_pattern' ###################### ##
+@pytest.mark.foo
 def test_find_pattern():
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATGGT")
-    assert seqs_to_hash(tester) == "a2e110d3ba14ea5d1b236a8abef7341a"
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATg{2}T")
-    assert seqs_to_hash(tester) == "c8a3e2e8b97f47c5cc41f04a44243e34"
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATg{2}T", "tga.{1,6}tg")
-    assert seqs_to_hash(tester) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
+    assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T")
+    assert seqs_to_hash(tester) == "9ec8561c264bff6f7166855d60457df1"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg")
+    assert seqs_to_hash(tester) == "ec43ce98c9ae577614403933b2c5f37a"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg", include_feature=False)
+    tester.write("temp.del")
+    assert seqs_to_hash(tester) == "2e02a8e079267bd9add3c39f759b252c"
 
 
 # #####################  '-frp', '--find_repeats' ###################### ##
@@ -2005,11 +2009,11 @@ def test_find_cpg_ui(capsys):
 def test_find_pattern_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
-    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[1]), True)
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
-    assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
+    assert string2hash(out) == "ec43ce98c9ae577614403933b2c5f37a"
+    assert string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
 
 
 # ######################  '-frp', '--find_repeats' ###################### #
