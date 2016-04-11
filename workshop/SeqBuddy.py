@@ -1974,11 +1974,12 @@ def find_cpg(seqbuddy):
     return seqbuddy
 
 
-def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
+def find_pattern(seqbuddy, *patterns, include_feature=True):  # TODO ambiguous letters mode
     """
     Finds ﻿occurrences of a sequence pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: regex patterns
+    :param include_feature: Include a new 'match' feature to records
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patters"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
@@ -1992,12 +1993,13 @@ def find_pattern(seqbuddy, *patterns):  # TODO ambiguous letters mode
             last_match = 0
             for match in matches:
                 indices.append(match.start())
-                rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                               type='match', qualifiers={'regex': pattern, 'added_by': 'SeqBuddy'}))
+                if include_feature:
+                    rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
+                                                   type='match', qualifiers={'regex': pattern, 'added_by': 'SeqBuddy'}))
                 if match.start() > 0:
-                    new_seq += str(rec.seq[last_match:match.start() - 1])
+                    new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
-                last_match = match.end() + 1
+                last_match = match.end()
             new_seq += str(rec.seq[last_match:])
             rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
 
