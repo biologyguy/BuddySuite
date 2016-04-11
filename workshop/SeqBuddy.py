@@ -32,6 +32,7 @@ from __future__ import print_function
 
 # BuddySuite specific
 import buddy_resources as br
+import AlignBuddy as Alb
 import MyFuncs
 
 # Standard library
@@ -41,6 +42,7 @@ import re
 import string
 import zipfile
 import shutil
+import time
 from urllib import request, error
 from copy import deepcopy
 from random import sample, choice, randint, random
@@ -3110,6 +3112,160 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
     return seqbuddy
 
 
+def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
+    try:
+        from suds.client import Client
+    except ImportError:
+        raise ImportError("Please install the 'suds' package to run topcons2_wsdl.py:\n\n$ pip install suds-py3")
+
+    import zipfile
+    import urllib.request
+
+    wsdl_url = "http://v2.topcons.net/pred/api_submitseq/?wsdl"
+    max_filesize = 9 * 1024 * 1024
+
+    printer = MyFuncs.DynamicPrint(out_type="stderr", quiet=quiet)
+    temp_dir = MyFuncs.TempDir()
+    clean_seq(seqbuddy, skip_list="*")
+    seqbuddy_copy = make_copy(seqbuddy)
+    if seqbuddy.alpha != IUPAC.protein:
+        translate_cds(seqbuddy)
+    seqbuddy.out_format = "fasta"
+    hash_ids(seqbuddy)
+    seqbuddy_copy.hash_map = seqbuddy.hash_map
+
+    printer.write("Preparing jobs.")
+    jobs = [""]
+    for indx, rec in enumerate(seqbuddy.records):
+        rec = rec.format("fasta")
+        if len(jobs[-1] + rec) <= max_filesize:
+            jobs[-1] += rec
+        else:
+            if len(rec) > max_filesize:
+                raise ValueError("Record '%s' is too large to send to TOPCONS. Max record size is 9Mb" %
+                                 seqbuddy_copy.records[indx].id)
+            jobs.append(rec)
+
+    printer.write("Transmitting sequences to TOPCONS server")
+    job_ids = []
+    for job in jobs:
+        myclient = Client(wsdl_url, cache=None)
+        ret_value = myclient.service.submitjob(job, "", "", "")
+        if len(ret_value) >= 1:
+            jobid, result_url, numseq_str, errinfo, warninfo = ret_value[0][:5]
+            if jobid not in ["None", ""]:
+                job_ids.append(jobid)
+                temp_dir.subdir(jobid)
+            else:
+                raise ConnectionError("Failed to submit TOPCONS job.\n%s" % errinfo)
+        else:
+            raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
+
+    results = []
+    wait = True
+    while len(results) != len(jobs):
+        if wait:
+            for i in range(10):
+                slash = "/" if i % 2 == 0 else "\\"
+                printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s" %
+                              (len(results), len(jobs), slash))
+                time.sleep(1)
+
+        wait = True
+        for indx, jobid in enumerate(job_ids):
+            printer.write("Checking job %s of %s" % (len(results), len(jobs)))
+            myclient = Client(wsdl_url, cache=None)
+            ret_value = myclient.service.checkjob(jobid)
+            if len(ret_value) >= 1:
+                status, result_url, errinfo = ret_value[0][:3]
+                if status == "Failed":
+                    raise ConnectionError("Job failed...\nServer message: %s" % errinfo)
+                elif status == "Finished":
+                    outfile = "%s/%s.zip" % (temp_dir.path, jobid)
+                    printer.write("Retrieving job %s of %s" % (len(results), len(jobs)))
+                    urllib.request.urlretrieve(result_url, outfile)
+                    if os.path.exists(outfile):
+                        results.append(jobid)
+                        del job_ids[indx]
+                        wait = False
+                        break
+                    else:
+                        raise FileNotFoundError("File lost.")
+                elif status == "None":
+                    raise ConnectionError("The job seems to have been lost by the server." % errinfo)
+
+    for indx, jobid in enumerate(results):
+        printer.write("Extracting results %s of %s" % (indx + 1, len(results)))
+        with zipfile.ZipFile("%s/%s.zip" % (temp_dir.path, jobid)) as zf:
+            zf.extractall(temp_dir.path)
+        os.remove("%s/%s.zip" % (temp_dir.path, jobid))
+
+    printer.write("Processing results...")
+    records = []
+    for jobid in results:
+        with open("%s/%s/query.result.txt" % (temp_dir.path, jobid), "r") as ifile:
+            topcons = ifile.read()
+
+        topcons = topcons.split(
+            "##############################################################################")[2:-1]
+
+        for rec in topcons:
+            printer.write("Processing results... %s" % len(records))
+            seq_id = re.search("Sequence name: (.*)", rec).group(1).strip()
+            seq = re.search("Sequence:\n([A-Z]+)", rec).group(1).strip()
+            alignment = ""
+            for algorithm in ["TOPCONS", "OCTOPUS", "Philius", "PolyPhobius", "SCAMPI", "SPOCTOPUS"]:
+                top_file = re.search("%s predicted topology:\n([ioMS]+)" % algorithm, rec).group(1).strip()
+                top_file = re.sub("[^M]", "i", top_file)
+                alignment += ">%s\n%s\n\n" % (algorithm, top_file)
+
+            alignment = Alb.AlignBuddy(alignment)
+            Alb.consensus_sequence(alignment)
+            cons_seq = SeqBuddy(">%s\n%s\n" % (seq_id, seq), out_format="genbank")
+            counter = 1
+            for tmd in re.finditer("([MX]+)", str(alignment.records()[0].seq)):
+                annotate(cons_seq, "TMD%s" % counter, "%s-%s" % (tmd.start(), tmd.end()))
+                counter += 1
+            records.append(cons_seq.records[0])
+
+    seqbuddy = SeqBuddy(records)
+
+    for _hash, seq_id in seqbuddy_copy.hash_map.items():
+        rename(seqbuddy, _hash, seq_id)
+
+    if keep_temp:
+        for _root, dirs, files in MyFuncs.walklevel(temp_dir.path):
+            for file in files:
+                with open("%s/%s" % (_root, file), "r") as ifile:
+                    contents = ifile.read()
+                for _hash, _id in seqbuddy_copy.hash_map.items():
+                    contents = re.sub(_hash, _id, contents)
+                with open("%s/%s" % (_root, file), "w") as ofile:
+                    ofile.write(contents)
+
+        os.makedirs(keep_temp, exist_ok=True)
+        _root, dirs, files = next(MyFuncs.walklevel(temp_dir.path))
+        for file in files:
+            shutil.copyfile("%s/%s" % (_root, file), "%s/%s" % (keep_temp, file))
+        for _dir in dirs:
+            shutil.copytree("%s/%s" % (_root, _dir), "%s/%s" % (keep_temp, _dir))
+
+    find_pattern(seqbuddy_copy, "\*", include_feature=False)
+    for indx, rec in enumerate(seqbuddy_copy.records):
+        for match in rec.buddy_data['find_patterns']["\*"]:
+            rec_2 = seqbuddy.records[indx]
+            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+
+    if seqbuddy_copy.alpha != IUPAC.protein:
+        seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
+    else:
+        seqbuddy = merge(seqbuddy_copy, seqbuddy)
+
+    printer.write("")
+    return seqbuddy
+
+
 def uppercase(seqbuddy):
     """
     Converts all sequence characters to uppercase.
@@ -4241,6 +4397,27 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             seqbuddy.out_format = in_args.out_format
         _print_recs(seqbuddy)
         _exit("translate6frames")
+
+    # Transmembrane domains
+    if in_args.transmembrane_domains:
+        try:
+            seqbuddy = transmembrane_domains(seqbuddy, quiet=in_args.quiet, keep_temp=in_args.keep_temp)
+            if not in_args.out_format and seqbuddy.out_format not in ["gb", "genbank", "embl"]:
+                seqbuddy.out_format = "gb"
+
+        except ImportError as e:
+            _raise_error(e, "transmembrane_domains", "Please install the 'suds' package")
+        except ValueError as e:
+            _raise_error(e, "transmembrane_domains", "is too large to send to TOPCONS. Max record size is 9Mb")
+        except ConnectionError as e:
+            _raise_error(e, "transmembrane_domains",
+                         ["Failed to submit TOPCONS job.", "Job failed...\nServer message",
+                          "The job seems to have been lost by the server."])
+        except FileNotFoundError as e:
+            _raise_error(e, "transmembrane_domains", "File lost.")
+
+        _print_recs(seqbuddy)
+        _exit("transmembrane_domains")
 
     # Uppercase
     if in_args.uppercase:

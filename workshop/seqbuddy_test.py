@@ -1685,6 +1685,31 @@ def test_translate_edges_and_exceptions(capsys):
     assert string2hash(err) == "9e2a0b4b03f54c209d3a9111792762df"
 
 
+# ######################  '-tmd', '--transmembrane_domains' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_pep():
+    tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True)
+    tester.out_format = "gb"
+    assert seqs_to_hash(tester) == "7285d3c6d60ccb656e39d6f134d1df8b"
+
+
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_cds():
+    TEMP_DIR.subdir("topcons")
+    tester = sb_resources.get_one("d f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % TEMP_DIR.path)
+    tester.out_format = "gb"
+    assert seqs_to_hash(tester) == "e5c9bd89810a39090fc3326e51e1ac6a"
+    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons" % TEMP_DIR.path))
+    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
+    assert files
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 # ##################### '-ano', '--annotate' ###################### ##
 def test_annotate_ui(capsys):
@@ -2766,3 +2791,24 @@ def test_translate6frames_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[6]))
     out, err = capsys.readouterr()
     assert "TypeError: You need to supply DNA or RNA sequences to translate" in err
+
+
+# ######################  '-tmd', '--transmembrane_domains' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.transmembrane_domains = True
+    test_in_args.quiet = True
+    tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7285d3c6d60ccb656e39d6f134d1df8b"
+
+    test_in_args.quiet = False
+    tester = Sb.SeqBuddy(">rec\n%s" % ("M" * 9437174))
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "ValueError: Record 'rec' is too large to send to TOPCONS." in err
