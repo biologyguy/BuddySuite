@@ -1295,7 +1295,7 @@ def test_merge():
     tester.records[0].seq = tester.records[1].seq
     with pytest.raises(RuntimeError) as e:
         Sb.merge(tester, Sb.make_copy(sb_objects[1]))
-    assert "Record mismatch: ID" in str(e.value)
+    assert "Sequence mismatch for record 'Mle-Panxα1'" in str(e.value)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #

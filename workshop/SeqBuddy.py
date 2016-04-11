@@ -146,6 +146,7 @@ def incremental_rename(query, replace):
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
+# - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 1, 1, br.contributors)
@@ -2190,7 +2191,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     return seqbuddy
 
 
-def hash_ids(seqbuddy, hash_length=10):
+def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
@@ -2567,8 +2568,13 @@ def merge(*seqbuddy):
     """
 
     def merge_records(rec1, rec2):
-        if str(rec1.seq) != str(rec2.seq):
-            raise RuntimeError("Record mismatch: ID %s" % rec1.id)
+        # Deal with case issues and trailing stop codons
+        rec1_seq = str(rec1.seq).lower()
+        rec1_seq = re.sub("\*$", "", rec1_seq)
+        rec2_seq = str(rec2.seq).lower()
+        rec2_seq = re.sub("\*$", "", rec2_seq)
+        if rec1_seq != rec2_seq:
+            raise RuntimeError("Sequence mismatch for record '%s'" % rec1.id)
         already_present = False
         for feat2 in rec2.features:
             for feat1 in rec1.features:
@@ -2588,7 +2594,8 @@ def merge(*seqbuddy):
             else:
                 seq_dict[seq_id] = merge_records(seq_dict[seq_id], rec)
 
-    seqbuddy = SeqBuddy([rec for _id, rec in seq_dict.items()])
+    seqbuddy = SeqBuddy([rec for _id, rec in seq_dict.items()], in_format=seqbuddy[0].in_format,
+                        out_format=seqbuddy[0].out_format, alpha=seqbuddy[0].alpha)
     seqbuddy = order_ids(seqbuddy)
     seqbuddy = order_features_by_position(seqbuddy)
     return seqbuddy
