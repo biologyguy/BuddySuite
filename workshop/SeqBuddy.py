@@ -3112,7 +3112,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
     return seqbuddy
 
 
-def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
+def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consider detecting when the download has stalled and restart. Can do this by adding an exception in the dl_progress function that triggers if stuff gets stuck.
     try:
         from suds.client import Client
     except ImportError:
@@ -3120,6 +3120,10 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
 
     import zipfile
     import urllib.request
+
+    def dl_progress(count, block_size, total_size):
+        percent = int(count * block_size * 100 / total_size)
+        printer.write("Retrieving job %s of %s: ... %d%%" % (len(results), len(jobs), percent))
 
     wsdl_url = "http://v2.topcons.net/pred/api_submitseq/?wsdl"
     max_filesize = 9 * 1024 * 1024
@@ -3165,7 +3169,7 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
     wait = True
     while len(results) != len(jobs):
         if wait:
-            for i in range(10):
+            for i in range(15):
                 slash = "/" if i % 2 == 0 else "\\"
                 printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s" %
                               (len(results), len(jobs), slash))
@@ -3183,7 +3187,7 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
                 elif status == "Finished":
                     outfile = "%s/%s.zip" % (temp_dir.path, jobid)
                     printer.write("Retrieving job %s of %s" % (len(results), len(jobs)))
-                    urllib.request.urlretrieve(result_url, outfile)
+                    urllib.request.urlretrieve(result_url, filename=outfile, reporthook=dl_progress)
                     if os.path.exists(outfile):
                         results.append(jobid)
                         del job_ids[indx]
@@ -3192,7 +3196,7 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
                     else:
                         raise FileNotFoundError("File lost.")
                 elif status == "None":
-                    raise ConnectionError("The job seems to have been lost by the server." % errinfo)
+                    raise ConnectionError("The job seems to have been lost by the server.\n%s" % errinfo)
 
     for indx, jobid in enumerate(results):
         printer.write("Extracting results %s of %s" % (indx + 1, len(results)))
