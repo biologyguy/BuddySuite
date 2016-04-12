@@ -285,9 +285,12 @@ class BuddyInstall(object):
             print("Install path: " + install_directory)
             os.makedirs(install_directory, exist_ok=True)
             print("Directory added: {0}".format(install_directory))
-            if not os.path.exists("{0}/.buddysuite".format(home_dir)):
+            try:
                 os.symlink(install_directory, "{0}/.buddysuite".format(home_dir))
                 print("Shortcut added: {0} ==> {1}/.buddysuite".format(install_directory, home_dir))
+            except FileExistsError:
+                print("Shortcut retained: {0} ==> {1}/.buddysuite".format(install_directory, home_dir))
+                pass
 
             if user_system in ['Darwin', 'Linux', 'Unix']:  # We don't support windows
                 user_system = 'Linux' if user_system == "Unix" else user_system
