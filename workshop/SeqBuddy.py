@@ -364,6 +364,13 @@ class SeqBuddy(object):
                 ofile.write(str(self))
         return
 
+    def print_hashmap(self):
+        output = ""
+        if self.hash_map:
+            for _hash, orig_id in self.hash_map.items():
+                output += "%s,%s\n" % (_hash, orig_id)
+        return output
+
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _add_buddy_data(rec, key=None, data=None):
@@ -4021,8 +4028,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         hash_ids(seqbuddy, hash_length)
 
         hash_table = "# Hash table\n"
-        for _hash, orig_id in seqbuddy.hash_map.items():
-            hash_table += "%s,%s\n" % (_hash, orig_id)
+        hash_table += seqbuddy.print_hashmap()
         hash_table += "\n"
 
         _stderr(hash_table, in_args.quiet)
