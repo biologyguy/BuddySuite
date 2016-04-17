@@ -309,6 +309,15 @@ def test_to_string(capsys):
     assert str(tester) == "Error: No sequences in object.\n"
 
 
+def test_print_hashmap():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    Sb.hash_ids(tester)
+    test_hashes = ["FEhFs96uVr", "5dOVoJsEaC", "muOhKHqlRK", "99id32X9JY", "hflijfeJXB", "0m9x7xeSqC", "qwgaHU3fms",
+                   "uD7zXF2uEp", "btvnHXOJbc", "GiHvUV1n55", "dJm5uViNsC", "to4ctKvNG7", "VN579cevl3"]
+    orig_ids = [rec_id for _hash, rec_id in tester.hash_map.items()]
+    tester.hash_map = OrderedDict(zip(test_hashes, orig_ids))
+    assert string2hash(tester.print_hashmap()) == "cdb9fdf429108404be7b93d2ea201d6f"
+
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
 sb_objects = [Sb.SeqBuddy(resource(x)) for x in seq_files]

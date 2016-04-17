@@ -31,6 +31,7 @@ from shutil import copytree, rmtree, copyfile
 import re
 import string
 from random import choice
+import signal
 
 
 class Timer(object):
@@ -489,7 +490,7 @@ def sendmail(sender, recipient, subject, message):
     return
 
 
-def ask(input_prompt, default="yes"):
+def ask(input_prompt, default="yes", timeout=0):
     if default == "yes":
         yes_list = ["yes", "y", '']
         no_list = ["no", "n", "abort"]
@@ -497,12 +498,24 @@ def ask(input_prompt, default="yes"):
         yes_list = ["yes", "y"]
         no_list = ["no", "n", "abort", '']
 
-    _response = input(input_prompt)
-    while True:
-        if _response.lower() in yes_list:
-            return True
-        elif _response.lower() in no_list:
-            return False
-        else:
-            print("Response not understood. Valid options are 'yes' and 'no'.")
-            _response = input(input_prompt)
+    def kill(*args):
+        raise TimeoutError
+
+    try:
+        signal.signal(signal.SIGALRM, kill)
+        signal.alarm(timeout)
+        _response = input(input_prompt)
+        signal.alarm(0)
+        while True:
+            if _response.lower() in yes_list:
+                return True
+            elif _response.lower() in no_list:
+                return False
+            else:
+                print("Response not understood. Valid options are 'yes' and 'no'.")
+                signal.alarm(timeout)
+                _response = input(input_prompt)
+                signal.alarm(0)
+
+    except TimeoutError:
+        return False
