@@ -941,6 +941,9 @@ def test_delete_records2():
     tester = Sb.delete_records(Sb.make_copy(sb_objects[0]), ['α1', 'α2'])
     assert seqs_to_hash(tester) == "eca4f181dae3d7998464ff71e277128f"
 
+    tester = Sb.delete_records(Sb.make_copy(sb_objects[0]), 'α1|α2')
+    assert seqs_to_hash(tester) == "eca4f181dae3d7998464ff71e277128f"
+
     with pytest.raises(ValueError) as e:
         Sb.delete_records(Sb.make_copy(sb_objects[0]), dict)
     assert "'patterns' must be a list or a string." in str(e.value)

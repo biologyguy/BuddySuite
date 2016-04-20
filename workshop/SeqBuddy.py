@@ -782,6 +782,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
     If a single SeqFeature, use a tuple (start, end) or FeatureLocation object
     If a CompoundFeature, us a list of tuples [(start1, end1), (start2, end2)] or CompoundFeature object
     NOTE!!! If feeding in tuples, the 'start' index begins at 1, while Feature objects start at 0.
+    :type location: str list tuple FeatureLocation CompoundFeature
     :param strand: The feature's orientation (+/-/None)
     :param qualifiers: Further information to append to the new feature
     The argument can be a dictionary or a list ["foo: bar", "fizz: buzz"]
@@ -1698,6 +1699,7 @@ def delete_records(seqbuddy, patterns):
     Deletes records with IDs matching a regex pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: A single regex pattern, or list of patterns, to search with
+    :type patterns: list str
     :return: The modified SeqBuddy object
     """
     if type(patterns) == str:
@@ -1705,17 +1707,19 @@ def delete_records(seqbuddy, patterns):
     if type(patterns) != list:
         raise ValueError("'patterns' must be a list or a string.")
 
+    for indx, pattern in enumerate(patterns):
+        patterns[indx] = ".*" if pattern == "*" else pattern
+
+    patterns = "|".join(patterns)
+
     retained_records = []
-    for pattern in patterns:
-        pattern = ".*" if pattern == "*" else pattern
-        deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), pattern).records]
-        for rec in seqbuddy.records:
-            if rec.id in deleted:
-                continue
-            else:
-                retained_records.append(rec)
-        seqbuddy.records = retained_records
-        retained_records = []
+    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns).records]
+    for rec in seqbuddy.records:
+        if rec.id in deleted:
+            continue
+        else:
+            retained_records.append(rec)
+    seqbuddy.records = retained_records
     return seqbuddy
 
 
@@ -2835,6 +2839,7 @@ def pull_recs(seqbuddy, regex, description=False):
     Retrieves sequences with names/IDs matching a search pattern
     :param seqbuddy: SeqBuddy object
     :param regex: List of regex expressions or single regex
+    :type regex: str list
     :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
@@ -3235,7 +3240,7 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consi
             cons_seq = SeqBuddy(">%s\n%s\n" % (seq_id, seq), out_format="genbank")
             counter = 1
             for tmd in re.finditer("([MX]+)", str(alignment.records()[0].seq)):
-                annotate(cons_seq, "TMD%s" % counter, "%s-%s" % (tmd.start(), tmd.end()))
+                annotate(cons_seq, "TMD%s" % counter, location="%s-%s" % (tmd.start(), tmd.end()))
                 counter += 1
             records.append(cons_seq.records[0])
 
@@ -3447,8 +3452,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         flocation = in_args.annotate[1]
 
         if len(in_args.annotate) >= 3:
-            for next_arg in in_args.annotate[2:]:
-                feature_attrs = duck_type(next_arg, **feature_attrs)
+            for _next_arg in in_args.annotate[2:]:
+                feature_attrs = duck_type(_next_arg, **feature_attrs)
 
             if not feature_attrs["qualifiers"]:
                 feature_attrs["qualifiers"] = None
