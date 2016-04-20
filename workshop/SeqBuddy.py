@@ -353,6 +353,9 @@ class SeqBuddy(object):
 
         return "%s\n" % output.rstrip()
 
+    def __len__(self):
+        return len(self.records)
+
     def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:
             if out_format:
@@ -900,7 +903,7 @@ def ave_seq_length(seqbuddy, clean=False):
     sum_length = 0.
     for rec in seqbuddy.records:
         sum_length += len(rec.seq)
-    return sum_length / len(seqbuddy.records)
+    return sum_length / len(seqbuddy)
 
 
 def back_translate(seqbuddy, mode='random', species=None):
@@ -2222,11 +2225,11 @@ def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
     if hash_length < 1:
         raise ValueError("Hash length must be greater than 0")
 
-    if 32 ** hash_length <= len(seqbuddy.records) * 2:
+    if 32 ** hash_length <= len(seqbuddy) * 2:
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
 
-    for i in range(len(seqbuddy.records)):
+    for i in range(len(seqbuddy)):
         new_hash = ""
         seq_ids.append(seqbuddy.records[i].id)
         while True:
@@ -2430,7 +2433,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
 
     stderr_written = False
     if mode == "list":
-        if len(prot_copy.records) != len(nucl_copy.records):
+        if len(prot_copy) != len(nucl_copy):
             raise ValueError("The two input files do not contain the same number of sequences")
 
         record_map = list(zip(nucl_copy.records, prot_copy.records))
@@ -2516,7 +2519,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
 
     stderr_written = False
     if mode == "list":
-        if len(prot_copy.records) != len(nucl_copy.records):
+        if len(prot_copy) != len(nucl_copy):
             raise ValueError("The two input files do not contain the same number of sequences, try using 'key' mode.")
 
         record_map = list(zip(prot_copy.records, nucl_copy.records))
@@ -2684,7 +2687,7 @@ def num_seqs(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: The int number of sequences
     """
-    return len(seqbuddy.records)
+    return len(seqbuddy)
 
 
 def order_features_alphabetically(seqbuddy, reverse=False):
@@ -2761,9 +2764,9 @@ def order_ids_randomly(seqbuddy):
     :param seqbuddy: SeqBuddy object
     :return: The reordered SeqBuddy object
     """
-    if len(seqbuddy.records) < 2:
+    if len(seqbuddy) < 2:
         return seqbuddy
-    elif len(seqbuddy.records) == 2:
+    elif len(seqbuddy) == 2:
         seqbuddy.records.reverse()
         return seqbuddy
 
@@ -2782,8 +2785,8 @@ def order_ids_randomly(seqbuddy):
     while valve.step("order_ids_randomly() was unable to reorder your sequences. This shouldn't happen, so please"
                      "contact the developers to let then know about this error."):
         sb_copy = make_copy(seqbuddy)
-        for _ in range(len(sb_copy.records)):
-            random_index = randint(1, len(sb_copy.records)) - 1
+        for _ in range(len(sb_copy)):
+            random_index = randint(1, len(sb_copy)) - 1
             output.append(sb_copy.records.pop(random_index))
         if ["%s%s" % (rec.id, rec.seq) for rec in seqbuddy.records] != ["%s%s" % (rec.id, rec.seq) for rec in output]:
             break
@@ -2800,10 +2803,10 @@ def pull_random_recs(seqbuddy, count=1):
     :param count: The number of random records to pull (int)
     :return: The original SeqBuddy object with only the selected records remaining
     """
-    count = abs(count) if abs(count) <= len(seqbuddy.records) else len(seqbuddy.records)
+    count = abs(count) if abs(count) <= len(seqbuddy) else len(seqbuddy)
     random_recs = []
     for _ in range(count):
-        rand_index = randint(0, len(seqbuddy.records) - 1)
+        rand_index = randint(0, len(seqbuddy) - 1)
         random_recs.append(seqbuddy.records.pop(rand_index))
     seqbuddy.records = random_recs
     return seqbuddy
@@ -3056,7 +3059,7 @@ def translate6frames(seqbuddy):
     rframe3 = translate_cds(rframe3, quiet=True)
 
     output = []
-    for i in range(len(frame1.records)):
+    for i in range(len(frame1)):
         frame1.records[i].id = "%s_f1" % frame1.records[i].id
         frame2.records[i].id = "%s_f2" % frame2.records[i].id
         frame3.records[i].id = "%s_f3" % frame3.records[i].id
@@ -3529,7 +3532,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             except ValueError as e:
                 _raise_error(e, "blast", ["num_threads expects an integer.", ""])
 
-            if len(blast_res.records) > 0:
+            if len(blast_res) > 0:
                 _print_recs(blast_res)
             else:
                 _stdout("No significant matches found\n")
@@ -3793,7 +3796,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     num_matches += len(indices)
 
             _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(seqbuddy.records), pattern), in_args.quiet)
+                    "pattern '{2}' ####\n".format(num_matches, len(seqbuddy), pattern), in_args.quiet)
             _stderr("%s\n" % output, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
@@ -3918,7 +3921,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
 
         taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
-        if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy.records):
+        if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy):
             taxa_groups = make_groups(seqbuddy, num_chars=5)
 
         for next_seqbuddy in taxa_groups:
@@ -4024,8 +4027,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
             hash_length = 10
 
-        if 32 ** hash_length <= len(seqbuddy.records) * 2:
-            holder = ceil(log(len(seqbuddy.records) * 2, 32))
+        if 32 ** hash_length <= len(seqbuddy) * 2:
+            holder = ceil(log(len(seqbuddy) * 2, 32))
             _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
                     "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
