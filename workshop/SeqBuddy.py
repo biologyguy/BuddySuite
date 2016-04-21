@@ -3170,40 +3170,12 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     printer.write("Cleaning sequences")
     clean_seq(seqbuddy, skip_list="*")
 
-    if job_ids and type(job_ids) == str:
-        job_ids = [job_ids]
+    job_ids = [] if not job_ids else job_ids
+    job_ids = [job_ids] if type(job_ids) == str else job_ids
 
     printer.write("Hashing sequence IDs")
 
-    if job_ids:
-        jobs = []
-        seqbuddy_recs = []
-        for jobid in job_ids:
-            if not os.path.isfile("%s/%s.hashmap" % (job_dir, jobid)):
-                raise FileNotFoundError("SeqBuddy does not have the necessary hash map to process job id '%s'. This"
-                                        " could be a configuration issue, or you may be attempting to access a job"
-                                        " submitted on a different computer. See the GitHub wiki for further details"
-                                        " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains"
-                                        % jobid)
-            with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
-                jobs.append({"hash_map": OrderedDict(), "records": []})
-                for line in ifile:
-                    line = line.strip().split(",")
-                    for indx, rec in enumerate(seqbuddy.records):
-                        if rec.id == line[1]:
-                            seqbuddy.hash_map[line[0]] = line[1]
-                            rec = SeqBuddy([rec])
-                            rename(rec, line[1], line[0])
-                            jobs[-1]["records"].append(rec)
-                            jobs[-1]["hash_map"][line[0]] = line[1]
-                            seqbuddy_recs.append(rec.records[0])
-                            del seqbuddy.records[indx]
-                            break
-
-    else:
-        hash_ids(seqbuddy)
-
-    hash_map = seqbuddy.hash_map
+    hash_map = {}
     seqbuddy_copy = make_copy(seqbuddy)
     seqbuddy.out_format = "fasta"
 
@@ -3214,8 +3186,38 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         printer.write("Translating to protein")
         translate_cds(seqbuddy)
 
-    if not job_ids:
-        jobs = [{"hash_map": OrderedDict(), "records": []}]
+    jobs = []
+
+    if job_ids:
+        seqbuddy_recs = []
+        for jobid in job_ids:
+            if not os.path.isfile("%s/%s.hashmap" % (job_dir, jobid)):
+                raise FileNotFoundError("SeqBuddy does not have the necessary hash map to process job id '%s'. This"
+                                        " could be a configuration issue, or you may be attempting to access a job"
+                                        " submitted on a different computer. See the GitHub wiki for further details"
+                                        " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains"
+                                        % jobid)
+            with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
+                jobs.append({"type": "previous", "hash_map": OrderedDict(), "records": []})
+                for line in ifile:
+                    line = line.strip().split(",")
+                    for indx, rec in enumerate(seqbuddy.records):
+                        if rec.id == line[1]:
+                            hash_map[line[0]] = line[1]
+                            rec = SeqBuddy([rec])
+                            rename(rec, line[1], line[0])
+                            jobs[-1]["records"].append(rec)
+                            jobs[-1]["hash_map"][line[0]] = line[1]
+                            seqbuddy_recs.append(rec.records[0])
+                            del seqbuddy.records[indx]
+                            break
+
+    if len(seqbuddy):
+        hash_ids(seqbuddy)
+        for _hash, rec_id in seqbuddy.hash_map.items():
+            hash_map[_hash] = rec_id
+
+        jobs.append({"type": "new", "hash_map": OrderedDict(), "records": []})
         seqbuddy_size = len(seqbuddy.records)
         printer.write("Preparing jobs for upload (0 of %s records processed)" % seqbuddy_size)
         rec_string = ""
@@ -3229,34 +3231,32 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                 if len(rec.format("fasta")) > max_seqsize:
                     raise ValueError("Record '%s' is too large to send to TOPCONS. Max record size is 9Mb" %
                                      seqbuddy.hash_map[rec.id])
-                jobs.append({"hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}), "records": [rec]})
+                jobs.append({"type": "new", "hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}), "records": [rec]})
                 rec_string = ""
 
-        for indx, job in enumerate(jobs):
-            job["records"] = SeqBuddy(job["records"], out_format="fasta")
-            job["records"].hash_map = job["hash_map"]
-            jobs[indx] = job["records"]
+        for job in jobs:
+            if job["type"] == "new":
+                job["records"] = SeqBuddy(job["records"], out_format="fasta")
+                job["records"].hash_map = job["hash_map"]
 
-        job_ids = []
         for indx, job in enumerate(jobs):
-            printer.write("Uploading job %s of %s" % (indx + 1, len(jobs)))
-            myclient = Client(wsdl_url, cache=None)
-            ret_value = myclient.service.submitjob(str(job), "", "", "")
-            if len(ret_value) >= 1:
-                jobid, result_url, numseq_str, errinfo, warninfo = ret_value[0][:5]
-                if jobid not in ["None", ""]:
-                    printer.clear()
-                    _stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
-                    job_ids.append(jobid)
-                    temp_dir.subdir(jobid)
-                    with open("%s/%s.hashmap" % (job_dir, jobid), "w") as ofile:
-                        ofile.write(job.print_hashmap())
+            if job["type"] == "new":
+                printer.write("Uploading job %s of %s" % (indx + 1, len(jobs)))
+                myclient = Client(wsdl_url, cache=None)
+                ret_value = myclient.service.submitjob(str(job["records"]), "", "", "")
+                if len(ret_value) >= 1:
+                    jobid, result_url, numseq_str, errinfo, warninfo = ret_value[0][:5]
+                    if jobid not in ["None", ""]:
+                        printer.clear()
+                        _stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
+                        job_ids.append(jobid)
+                        temp_dir.subdir(jobid)
+                        with open("%s/%s.hashmap" % (job_dir, jobid), "w") as ofile:
+                            ofile.write(job["records"].print_hashmap())
+                    else:
+                        raise ConnectionError("Failed to submit TOPCONS job.\n%s" % errinfo)
                 else:
-                    raise ConnectionError("Failed to submit TOPCONS job.\n%s" % errinfo)
-            else:
-                raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
-
-        seqbuddy.records = []  # This is to allow the addition of sequences outside of previously completed jobs.
+                    raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
 
     results = []
     failed = []
@@ -3363,7 +3363,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             records.append(cons_seq.records[0])
 
     printer.write("Creating new SeqBuddy object")
-    seqbuddy = SeqBuddy(records + seqbuddy.records)
+    seqbuddy = SeqBuddy(records)
 
     if keep_temp:
         printer.write("Preparing TOPCONS files to be saved")
@@ -3410,7 +3410,8 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     for _hash, seq_id in hash_map.items():
         rename(seqbuddy, _hash, seq_id)
 
-    printer.write("")
+    printer.write("************** Complete **************")
+    printer.new_line()
     return seqbuddy
 
 
