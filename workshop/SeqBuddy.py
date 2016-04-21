@@ -3192,11 +3192,13 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         seqbuddy_recs = []
         for jobid in job_ids:
             if not os.path.isfile("%s/%s.hashmap" % (job_dir, jobid)):
-                raise FileNotFoundError("SeqBuddy does not have the necessary hash map to process job id '%s'. This"
-                                        " could be a configuration issue, or you may be attempting to access a job"
-                                        " submitted on a different computer. See the GitHub wiki for further details"
-                                        " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains"
-                                        % jobid)
+                printer.clear()
+                error_message = "SeqBuddy does not have the necessary hash-map to process job id '%s'. This could be" \
+                                " a job id typo, a configuration issue, or you may be attempting to access a job" \
+                                " submitted by a different computer. See the GitHub wiki for further details" \
+                                " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains" % jobid
+                raise FileNotFoundError(error_message)
+
             with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
                 jobs.append({"type": "previous", "hash_map": OrderedDict(), "records": []})
                 for line in ifile:
@@ -3229,6 +3231,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                 jobs[-1]["hash_map"][rec.id] = seqbuddy.hash_map[rec.id]
             else:
                 if len(rec.format("fasta")) > max_seqsize:
+                    printer.clear()
                     raise ValueError("Record '%s' is too large to send to TOPCONS. Max record size is 9Mb" %
                                      seqbuddy.hash_map[rec.id])
                 jobs.append({"type": "new", "hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}), "records": [rec]})
@@ -3254,8 +3257,10 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         with open("%s/%s.hashmap" % (job_dir, jobid), "w") as ofile:
                             ofile.write(job["records"].print_hashmap())
                     else:
+                        printer.clear()
                         raise ConnectionError("Failed to submit TOPCONS job.\n%s" % errinfo)
                 else:
+                    printer.clear()
                     raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
 
     results = []
@@ -3279,6 +3284,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             if len(ret_value) >= 1:
                 status, result_url, errinfo = ret_value[0][:3]
                 if status == "Failed":
+                    printer.clear()
                     raise ConnectionError("Job failed...\nServer message: %s" % errinfo)
                 elif status == "Finished":
                     outfile = "%s/%s.zip" % (temp_dir.path, jobid)
@@ -3324,6 +3330,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     break
 
                 elif status == "None":
+                    printer.clear()
                     raise ConnectionError("The job seems to have been lost by the server.\n%s" % errinfo)
 
     for indx, jobid in enumerate(results):
