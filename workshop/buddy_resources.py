@@ -38,7 +38,7 @@ import traceback
 import re
 
 sys.path.insert(0, "./")
-from MyFuncs import TempFile
+import MyFuncs
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
@@ -136,7 +136,7 @@ class Usage(object):
     def send_report(self):
         self.stats["date"] = str(datetime.date.today())
         from ftplib import FTP, all_errors
-        temp_file = TempFile()
+        temp_file = MyFuncs.TempFile()
         json.dump(self.stats, temp_file.get_handle())
         try:
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=1)
@@ -216,7 +216,7 @@ def config_values():
 # Might want to include date in error file name
 def error_report(error_msg, tool, function):
     from ftplib import FTP, all_errors
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     temp_file.write("%s::%s\n" % (tool, function))
     temp_file.write(error_msg)
     try:
@@ -346,7 +346,7 @@ def phylip_sequential_read(sequence, relaxed=True):
     for indx in range(int(len(alignments) / 3)):
         align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]), indx)] = alignments[indx * 3 + 2]
 
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     aligns = []
     for _key, seqs in align_dict.items():
         records = []
@@ -450,9 +450,10 @@ def send_traceback(tool, function, e):
 
     send_diagnostic = True if config["diagnostics"] == "True" else False
     if not send_diagnostic:
-        prompt = input("\033[1mWould you like to send a crash report with the above "
-                       "traceback to the developers ([y]/n)?\033[m")
-        if prompt.lower() in ["y", "yes", ""]:
+        prompt = MyFuncs.ask("\033[1mWould you like to send a crash report with the above "
+                             "traceback to the developers ([y]/n)?\033[m", timeout=20)
+
+        if prompt:
             send_diagnostic = True
 
     else:
