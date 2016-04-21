@@ -3261,9 +3261,11 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     results = []
     failed = []
     wait = True
+    delay = 1
     while len(results) + len(failed) != len(jobs):
         if wait:
-            for i in range(5):
+            delay *= 2 if delay < 300 else delay
+            for i in range(delay):
                 slash = ["/", "—", "\\", "|"]
                 printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s " %
                               (len(results) + len(failed), len(jobs), slash[i % 4]))
@@ -3342,6 +3344,8 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         for rec in topcons:
             printer.write("Processing results... %s" % len(records))
             seq_id = re.search("Sequence name: (.*)", rec).group(1).strip()
+            if seq_id not in hash_map:
+                continue
             seq = re.search("Sequence:\n([A-Z]+)", rec).group(1).strip()
             alignment = ""
             for algorithm in ["TOPCONS", "OCTOPUS", "Philius", "PolyPhobius", "SCAMPI", "SPOCTOPUS"]:
@@ -3411,7 +3415,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         rename(seqbuddy, _hash, seq_id)
 
     printer.write("************** Complete **************")
-    printer.new_line()
+    printer.new_line(2)
     return seqbuddy
 
 
