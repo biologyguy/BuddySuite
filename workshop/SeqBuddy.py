@@ -2893,6 +2893,14 @@ def purge(seqbuddy, threshold):
     return seqbuddy
 
 
+def cd_hit(seqbuddy, threshold):
+    """
+    :param seqbuddy: SeqBuddy object
+    :param threshold: Maximum sequence identity
+    """
+    return seqbuddy
+
+
 def rename(seqbuddy, query, replace="", num=0, store_old_id=False):
     """
     Rename sequence IDs
@@ -3127,7 +3135,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
     return seqbuddy
 
 
-def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consider detecting when the download has stalled and restart. Can do this by adding an exception in the dl_progress function that triggers if stuff gets stuck.
+def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):
     try:
         from suds.client import Client
     except ImportError:
@@ -3137,62 +3145,88 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consi
     import urllib.request
 
     def dl_progress(count, block_size, total_size):
-        percent = int(count * block_size * 100 / total_size)
-        printer.write("Retrieving job %s of %s: ... %d%%" % (len(results), len(jobs), percent))
+        percent = count * block_size * 100 / total_size
+        valve.test(percent)
+        printer.write("Retrieving job %s of %s: ... %d%%" % (indx + 1, len(jobs), int(percent)))
 
     wsdl_url = "http://v2.topcons.net/pred/api_submitseq/?wsdl"
-    max_filesize = 9 * 1024 * 1024
+    max_seqsize = 9 * 1024 * 1024
+    max_filesize = 1024 * 1024
 
     printer = MyFuncs.DynamicPrint(out_type="stderr", quiet=quiet)
     temp_dir = MyFuncs.TempDir()
+    job_dir = "%s/topcons" % br.config_values()["install_path"]
+    os.makedirs(job_dir, exist_ok=True)
+
+    printer.write("Cleaning sequences")
     clean_seq(seqbuddy, skip_list="*")
-    seqbuddy_copy = make_copy(seqbuddy)
-    if seqbuddy.alpha != IUPAC.protein:
-        translate_cds(seqbuddy)
-    seqbuddy.out_format = "fasta"
+
+    printer.write("Hashing sequence IDs")
     hash_ids(seqbuddy)
-    seqbuddy_copy.hash_map = seqbuddy.hash_map
+    hash_map = seqbuddy.hash_map
+    seqbuddy_copy = make_copy(seqbuddy)
+    seqbuddy.out_format = "fasta"
 
-    printer.write("Preparing jobs.")
-    jobs = [""]
+    printer.write("Stripping meta data")
+    delete_metadata(seqbuddy)
+
+    if seqbuddy.alpha != IUPAC.protein:
+        printer.write("Translating to protein")
+        translate_cds(seqbuddy)
+
+    seqbuddy_size = len(seqbuddy.records)
+    printer.write("Preparing jobs for upload (0 of %s records processed)" % seqbuddy_size)
+    jobs = [{"hash_map": OrderedDict(), "records": []}]
+    rec_string = ""
     for indx, rec in enumerate(seqbuddy.records):
-        rec = rec.format("fasta")
-        if len(jobs[-1] + rec) <= max_filesize:
-            jobs[-1] += rec
+        printer.write("Preparing jobs for upload (%s of %s records processed)" % (indx + 1, seqbuddy_size))
+        rec_string += rec.format("fasta")
+        if len(rec.format("fasta") + rec_string) <= max_filesize:
+            jobs[-1]["records"].append(rec)
+            jobs[-1]["hash_map"][rec.id] = seqbuddy.hash_map[rec.id]
         else:
-            if len(rec) > max_filesize:
+            if len(rec.format("fasta")) > max_seqsize:
                 raise ValueError("Record '%s' is too large to send to TOPCONS. Max record size is 9Mb" %
-                                 seqbuddy_copy.records[indx].id)
-            jobs.append(rec)
+                                 seqbuddy.hash_map[rec.id])
+            jobs.append({"hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}), "records": [rec]})
+            rec_string = ""
 
-    printer.write("Transmitting sequences to TOPCONS server")
+    for indx, job in enumerate(jobs):
+        job["records"] = SeqBuddy(job["records"], out_format="fasta")
+        job["records"].hash_map = job["hash_map"]
+        jobs[indx] = job["records"]
+
     job_ids = []
-    for job in jobs:
+    for indx, job in enumerate(jobs):
+        printer.write("Uploading job %s of %s" % (indx + 1, len(jobs)))
         myclient = Client(wsdl_url, cache=None)
-        ret_value = myclient.service.submitjob(job, "", "", "")
+        ret_value = myclient.service.submitjob(str(job), "", "", "")
         if len(ret_value) >= 1:
             jobid, result_url, numseq_str, errinfo, warninfo = ret_value[0][:5]
             if jobid not in ["None", ""]:
                 job_ids.append(jobid)
                 temp_dir.subdir(jobid)
+                with open("%s/%s.hashmap" % (job_dir, jobid), "w") as ofile:
+                    ofile.write(job.print_hashmap())
             else:
                 raise ConnectionError("Failed to submit TOPCONS job.\n%s" % errinfo)
         else:
             raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
 
     results = []
+    failed = []
     wait = True
-    while len(results) != len(jobs):
+    while len(results) + len(failed) != len(jobs):
         if wait:
-            for i in range(15):
-                slash = "/" if i % 2 == 0 else "\\"
-                printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s" %
-                              (len(results), len(jobs), slash))
+            for i in range(600):
+                slash = ["/", "—", "\\", "|"]
+                printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s " %
+                              (len(results) + len(failed), len(jobs), slash[i % 4]))
                 time.sleep(1)
 
         wait = True
         for indx, jobid in enumerate(job_ids):
-            printer.write("Checking job %s of %s" % (len(results), len(jobs)))
+            printer.write("Checking job %s of %s" % (len(results) + len(failed), len(jobs)))
             myclient = Client(wsdl_url, cache=None)
             ret_value = myclient.service.checkjob(jobid)
             if len(ret_value) >= 1:
@@ -3201,20 +3235,52 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consi
                     raise ConnectionError("Job failed...\nServer message: %s" % errinfo)
                 elif status == "Finished":
                     outfile = "%s/%s.zip" % (temp_dir.path, jobid)
-                    printer.write("Retrieving job %s of %s" % (len(results), len(jobs)))
-                    urllib.request.urlretrieve(result_url, filename=outfile, reporthook=dl_progress)
+                    printer.write("Retrieving job %s of %s" % (indx + 1, len(jobs)))
+                    tries = 1
+                    while True:
+                        valve = MyFuncs.SafetyValve(state_reps=25)
+                        try:
+                            urllib.request.urlretrieve(result_url, filename=outfile, reporthook=dl_progress)
+                            break
+
+                        except RuntimeError:
+                            printer.write("Download stalled, restarting... try %s of 5" % tries)
+                            time.sleep(5 * tries)
+                            tries += 1
+
+                        except urllib.error.ContentTooShortError:
+                            printer.write("Download file wrong size, restarting... try %s of 5" % tries)
+                            time.sleep(5 * tries)
+                            tries += 1
+
+                        except urllib.error.HTTPError:
+                            printer.write("HTTPError reported, restarting... try %s of 5" % tries)
+                            time.sleep(150 * tries)
+                            tries += 1
+
+                        if tries >= 5:
+                            break
+
                     if os.path.exists(outfile):
                         results.append(jobid)
-                        del job_ids[indx]
-                        wait = False
-                        break
+
                     else:
-                        raise FileNotFoundError("File lost.")
+                        _stderr("\nError: Failed to download TOPCONS job {0} after 5 attempts. "
+                                "The data will be saved on the server for manual retrieval.\n"
+                                "A sequence name hash-map has been saved to {0}.hashmap".format(jobid), quiet=quiet)
+                        with open("%s.hashmap" % jobid, "w") as ofile:
+                            ofile.write(seqbuddy.print_hashmap())
+                        failed.append(jobid)
+
+                    del job_ids[indx]
+                    wait = False
+                    break
+
                 elif status == "None":
                     raise ConnectionError("The job seems to have been lost by the server.\n%s" % errinfo)
 
     for indx, jobid in enumerate(results):
-        printer.write("Extracting results %s of %s" % (indx + 1, len(results)))
+        printer.write("Extracting results %s of %s (%s)" % (indx + 1, len(results), jobid))
         with zipfile.ZipFile("%s/%s.zip" % (temp_dir.path, jobid)) as zf:
             zf.extractall(temp_dir.path)
         os.remove("%s/%s.zip" % (temp_dir.path, jobid))
@@ -3234,34 +3300,38 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consi
             seq = re.search("Sequence:\n([A-Z]+)", rec).group(1).strip()
             alignment = ""
             for algorithm in ["TOPCONS", "OCTOPUS", "Philius", "PolyPhobius", "SCAMPI", "SPOCTOPUS"]:
-                top_file = re.search("%s predicted topology:\n([ioMS]+)" % algorithm, rec).group(1).strip()
+                if re.search("%s predicted topology:\n\*\*\*No topology could be "
+                             "produced with this method\*\*\*" % algorithm, rec):
+                    continue
+                top_file = re.search("%s predicted topology:\n([ioMSs]+)" % algorithm, rec).group(1).strip()
                 top_file = re.sub("[^M]", "i", top_file)
                 alignment += ">%s\n%s\n\n" % (algorithm, top_file)
 
-            alignment = Alb.AlignBuddy(alignment)
-            Alb.consensus_sequence(alignment)
             cons_seq = SeqBuddy(">%s\n%s\n" % (seq_id, seq), out_format="genbank")
-            counter = 1
-            for tmd in re.finditer("([MX]+)", str(alignment.records()[0].seq)):
-                annotate(cons_seq, "TMD%s" % counter, location="%s-%s" % (tmd.start(), tmd.end()))
-                counter += 1
+            if alignment:
+                alignment = Alb.AlignBuddy(alignment)
+                Alb.consensus_sequence(alignment)
+                counter = 1
+                for tmd in re.finditer("([MX]+)", str(alignment.records()[0].seq)):
+                    annotate(cons_seq, "TMD%s" % counter, "%s-%s" % (tmd.start(), tmd.end()))
+                    counter += 1
             records.append(cons_seq.records[0])
 
+    printer.write("Creating new SeqBuddy object")
     seqbuddy = SeqBuddy(records)
 
-    for _hash, seq_id in seqbuddy_copy.hash_map.items():
-        rename(seqbuddy, _hash, seq_id)
-
     if keep_temp:
+        printer.write("Preparing TOPCONS files to be saved")
         for _root, dirs, files in MyFuncs.walklevel(temp_dir.path):
             for file in files:
                 with open("%s/%s" % (_root, file), "r") as ifile:
                     contents = ifile.read()
-                for _hash, _id in seqbuddy_copy.hash_map.items():
+                for _hash, _id in hash_map.items():
                     contents = re.sub(_hash, _id, contents)
                 with open("%s/%s" % (_root, file), "w") as ofile:
                     ofile.write(contents)
 
+        printer.write("Saving TOPCONS files")
         os.makedirs(keep_temp, exist_ok=True)
         _root, dirs, files = next(MyFuncs.walklevel(temp_dir.path))
         for file in files:
@@ -3269,17 +3339,31 @@ def transmembrane_domains(seqbuddy, quiet=False, keep_temp=None):  # ToDo: Consi
         for _dir in dirs:
             shutil.copytree("%s/%s" % (_root, _dir), "%s/%s" % (keep_temp, _dir))
 
+    printer.write("Checking for gap characters")
     find_pattern(seqbuddy_copy, "\*", include_feature=False)
-    for indx, rec in enumerate(seqbuddy_copy.records):
-        for match in rec.buddy_data['find_patterns']["\*"]:
-            rec_2 = seqbuddy.records[indx]
-            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
-            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+    processed_inds = []
+    records = []
+    for orig_rec in seqbuddy_copy.records:
+        for indx, new_rec in enumerate(seqbuddy.records):
+            if indx in processed_inds:
+                continue
+            if new_rec.id == orig_rec.id:
+                for match in orig_rec.buddy_data['find_patterns']["\*"]:
+                    new_seq = str(new_rec.seq)[:match] + "*" + str(new_rec.seq)[match + 1:]
+                    new_rec.seq = Seq(new_seq, alphabet=new_rec.seq.alphabet)
+                processed_inds.append(indx)
+                records.append(orig_rec)
+                break
 
+    printer.write("Merging sequence features")
+    seqbuddy_copy = SeqBuddy(records, alpha=seqbuddy_copy.alpha)
     if seqbuddy_copy.alpha != IUPAC.protein:
         seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
     else:
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
+
+    for _hash, seq_id in hash_map.items():
+        rename(seqbuddy, _hash, seq_id)
 
     printer.write("")
     return seqbuddy
