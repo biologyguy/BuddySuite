@@ -170,7 +170,7 @@ class SeqBuddy(object):
         raw_sequence = None
         in_file = None
         self.alpha = alpha
-        self.hash_map = {}  # This is only used by functions that use hash_id()
+        self.hash_map = OrderedDict()  # This is only used by functions that use hash_id()
 
         # SeqBuddy obj
         if type(sb_input) == SeqBuddy:
@@ -3175,7 +3175,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     printer.write("Hashing sequence IDs")
 
-    hash_map = {}
+    hash_map = OrderedDict()
     seqbuddy_copy = make_copy(seqbuddy)
     seqbuddy.out_format = "fasta"
 
@@ -3263,14 +3263,32 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     printer.clear()
                     raise ConnectionError("Failed to submit TOPCONS job. Are you connected to the internet?")
 
+    # Need to match up all hashed ids in seqbuddy_copy for downstream stuff
+    records = []
+    for _hash, rec_id in hash_map.items():
+        for indx, rec in enumerate(seqbuddy_copy.records):
+            if rec.id == rec_id:
+                rec.id = _hash
+                records.append(rec)
+                del seqbuddy_copy.records[indx]
+                break
+    seqbuddy_copy.records = records
+
+    # Stops are converted to Xs by TOPCONS, so find them now for later replacement
+    stop_positions = {}
+    if seqbuddy_copy.alpha == IUPAC.protein:
+        printer.write("Identifying stop codons")
+        seqbuddy_copy = find_pattern(seqbuddy_copy, "\*", include_feature=False)
+        stop_positions = {rec.id: rec.buddy_data['find_patterns']['\*'] for rec in seqbuddy_copy.records}
+
     results = []
     failed = []
     wait = True
     delay = 1
     while len(results) + len(failed) != len(jobs):
         if wait:
-            delay *= 2 if delay < 300 else delay
-            for i in range(delay):
+            delay *= 1.5 if delay < 300 else delay
+            for i in range(round(delay)):
                 slash = ["/", "—", "\\", "|"]
                 printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s " %
                               (len(results) + len(failed), len(jobs), slash[i % 4]))
@@ -3395,27 +3413,16 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         for _dir in dirs:
             shutil.copytree("%s/%s" % (_root, _dir), "%s/%s" % (keep_temp, _dir))
 
-    printer.write("Checking for gap characters")
-    find_pattern(seqbuddy_copy, "\*", include_feature=False)
-    processed_inds = []
-    records = []
-    for orig_rec in seqbuddy_copy.records:
-        for indx, new_rec in enumerate(seqbuddy.records):
-            if indx in processed_inds:
-                continue
-            if new_rec.id == orig_rec.id:
-                for match in orig_rec.buddy_data['find_patterns']["\*"]:
-                    new_seq = str(new_rec.seq)[:match] + "*" + str(new_rec.seq)[match + 1:]
-                    new_rec.seq = Seq(new_seq, alphabet=new_rec.seq.alphabet)
-                processed_inds.append(indx)
-                records.append(orig_rec)
-                break
-
     printer.write("Merging sequence features")
-    seqbuddy_copy = SeqBuddy(records, alpha=seqbuddy_copy.alpha)
     if seqbuddy_copy.alpha != IUPAC.protein:
         seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
     else:
+        for indx, rec in enumerate(seqbuddy.records):
+            matches = stop_positions[rec.id]
+            for match in matches:
+                new_seq = str(rec.seq)[:match] + "*" + str(rec.seq)[match + 1:]
+                rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
+
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
 
     for _hash, seq_id in hash_map.items():
@@ -4578,7 +4585,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                          ["Failed to submit TOPCONS job.", "Job failed...\nServer message",
                           "The job seems to have been lost by the server."])
         except FileNotFoundError as e:
-            _raise_error(e, "transmembrane_domains", ["File lost.", "SeqBuddy does not have the necessary hash map"])
+            _raise_error(e, "transmembrane_domains", ["File lost.", "SeqBuddy does not have the necessary hash-map"])
 
         _print_recs(seqbuddy)
         _exit("transmembrane_domains")
