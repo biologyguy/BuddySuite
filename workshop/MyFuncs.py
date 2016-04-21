@@ -119,11 +119,15 @@ class DynamicPrint(object):
             next(self._writer)
         return
 
-    def new_line(self):
+    def new_line(self, number=1):
         if not self.quiet:
-            self.out_type.write("\n")
+            self.out_type.write("\n" * number)
             self.out_type.flush()
             self._last_print = ""
+        return
+
+    def clear(self):
+        self.write("")
         return
 
 
