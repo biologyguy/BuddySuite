@@ -3676,7 +3676,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 blast_query = SeqBuddy(args[0])
                 blast_res = blast(seqbuddy, blast_query, quiet=in_args.quiet, blast_args=params)
             except br.GuessError:
-                blast_res = blast(seqbuddy, in_args.blast, quiet=in_args.quiet, blast_args=params)
+                blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
                 _raise_error(e, "blast", ["num_threads expects an integer.", ""])
 
