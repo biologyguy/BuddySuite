@@ -4424,13 +4424,22 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Pull records
     if in_args.pull_records:
-        description = False
-        for indx, arg in enumerate(in_args.pull_records):
-            if arg == "full":
-                description = True
-                del in_args.pull_records[indx]
-                break
-        _print_recs(pull_recs(seqbuddy, in_args.pull_records, description))
+        if "full" in in_args.pull_records:
+            description = True
+            del in_args.pull_records[in_args.pull_records.index("full")]
+        else:
+            description = False
+
+        search_terms = []
+        for arg in in_args.pull_records:
+            if os.path.isfile(arg):
+                with open(arg, "r") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
+        _print_recs(pull_recs(seqbuddy, search_terms, description))
         _exit("pull_records")
 
     # Purge

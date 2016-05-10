@@ -2555,6 +2555,13 @@ def test_pull_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
 
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.pull_records = [temp_file.path]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
 
 # ######################  '-prg', '--purge' ###################### #
 def test_purge_ui(capsys):
