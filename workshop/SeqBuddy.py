@@ -345,6 +345,10 @@ class SeqBuddy(object):
                         _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
                                 "Format changed to phylip-relaxed.\n")
                         SeqIO.write(self.records, _ofile, "phylip-relaxed")
+                    elif "Locus identifier" in str(e) and "is too long" in str(e) \
+                            and self.out_format in ["gb", "genbank"]:
+                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        SeqIO.write(self.records, _ofile, "embl")
                     else:
                         raise e
 
