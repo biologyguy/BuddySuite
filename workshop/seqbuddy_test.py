@@ -1958,6 +1958,7 @@ def test_delete_metadata_ui(capsys):
 
 
 # ######################  '-dr', '--delete_records' ###################### #
+@pytest.mark.foo
 def test_delete_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_records = ['α1']
@@ -1983,6 +1984,14 @@ def test_delete_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
+
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.delete_records = [temp_file.path, "3"]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
+    assert string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
 
 
 # ######################  '-drp', '--delete_repeats' ###################### #

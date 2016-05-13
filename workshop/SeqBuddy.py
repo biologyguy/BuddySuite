@@ -3776,7 +3776,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Delete records
     if in_args.delete_records:
-        try:
+        try:  # Check to see if the last argument is an integer, which will set number of columns
             if len(in_args.delete_records) == 1:
                 columns = 1
             else:
@@ -3785,11 +3785,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except ValueError:
             columns = 1
 
+        search_terms = []
+        for arg in in_args.delete_records:
+            if os.path.isfile(arg):
+                with open(arg, "r") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
         deleted_seqs = []
-        for next_pattern in in_args.delete_records:
+        for next_pattern in search_terms:
             deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
 
-        seqbuddy = delete_records(seqbuddy, in_args.delete_records)
+        seqbuddy = delete_records(seqbuddy, search_terms)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
@@ -3804,7 +3813,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         if len(deleted_seqs) == 0:
             stderr_out = "# ################################################################ #\n"
-            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records)
+            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(search_terms)
             stderr_out += "# ################################################################ #\n"
             _stderr(stderr_out, in_args.quiet)
         _print_recs(seqbuddy)
