@@ -2911,7 +2911,6 @@ def rename(seqbuddy, query, replace="", num=0, store_old_id=False):
     :param store_old_id: Keep a copy of the original ID in the description line
     :return: The modified SeqBuddy object
     """
-    replace = re.sub("\s+", "_", replace)  # Do not allow any whitespace in IDs
     for rec in seqbuddy.records:
         new_name = br.replacements(rec.id, query, replace, num)
         if re.match(rec.id, rec.description):

@@ -1019,7 +1019,6 @@ def test_find_cpg():
 
 
 # #####################  '-fp', '--find_pattern' ###################### ##
-@pytest.mark.foo
 def test_find_pattern():
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
     assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
@@ -1958,7 +1957,6 @@ def test_delete_metadata_ui(capsys):
 
 
 # ######################  '-dr', '--delete_records' ###################### #
-@pytest.mark.foo
 def test_delete_records_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.delete_records = ['α1']
@@ -2059,7 +2057,6 @@ def test_find_cpg_ui(capsys):
 
 
 # ######################  '-fp', '--find_pattern' ###################### #
-@pytest.mark.foo
 def test_find_pattern_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
