@@ -1019,7 +1019,6 @@ def test_find_cpg():
 
 
 # #####################  '-fp', '--find_pattern' ###################### ##
-@pytest.mark.foo
 def test_find_pattern():
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
     assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
@@ -1984,6 +1983,14 @@ def test_delete_records_ui(capsys):
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.delete_records = [temp_file.path, "3"]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
+    assert string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
+
 
 # ######################  '-drp', '--delete_repeats' ###################### #
 def test_delete_repeats_ui(capsys):
@@ -2050,7 +2057,6 @@ def test_find_cpg_ui(capsys):
 
 
 # ######################  '-fp', '--find_pattern' ###################### #
-@pytest.mark.foo
 def test_find_pattern_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
@@ -2551,6 +2557,13 @@ def test_pull_records_ui(capsys):
     assert string2hash(out) == "db52337c628fd8d8d70a5581355c51a5"
 
     test_in_args.pull_records = ["α1", "α2"]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.pull_records = [temp_file.path]
     Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
     out, err = capsys.readouterr()
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"

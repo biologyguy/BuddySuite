@@ -345,6 +345,10 @@ class SeqBuddy(object):
                         _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
                                 "Format changed to phylip-relaxed.\n")
                         SeqIO.write(self.records, _ofile, "phylip-relaxed")
+                    elif "Locus identifier" in str(e) and "is too long" in str(e) \
+                            and self.out_format in ["gb", "genbank"]:
+                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        SeqIO.write(self.records, _ofile, "embl")
                     else:
                         raise e
 
@@ -3017,7 +3021,6 @@ def rename(seqbuddy, query, replace="", num=0, store_old_id=False):
     :param store_old_id: Keep a copy of the original ID in the description line
     :return: The modified SeqBuddy object
     """
-    replace = re.sub("\s+", "_", replace)  # Do not allow any whitespace in IDs
     for rec in seqbuddy.records:
         new_name = br.replacements(rec.id, query, replace, num)
         if re.match(rec.id, rec.description):
@@ -3781,7 +3784,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 blast_query = SeqBuddy(args[0])
                 blast_res = blast(seqbuddy, blast_query, quiet=in_args.quiet, blast_args=params)
             except br.GuessError:
-                blast_res = blast(seqbuddy, in_args.blast, quiet=in_args.quiet, blast_args=params)
+                blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
                 _raise_error(e, "blast", ["num_threads expects an integer.", ""])
 
@@ -3881,7 +3884,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Delete records
     if in_args.delete_records:
-        try:
+        try:  # Check to see if the last argument is an integer, which will set number of columns
             if len(in_args.delete_records) == 1:
                 columns = 1
             else:
@@ -3890,11 +3893,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except ValueError:
             columns = 1
 
+        search_terms = []
+        for arg in in_args.delete_records:
+            if os.path.isfile(arg):
+                with open(arg, "r") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
         deleted_seqs = []
-        for next_pattern in in_args.delete_records:
+        for next_pattern in search_terms:
             deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
 
-        seqbuddy = delete_records(seqbuddy, in_args.delete_records)
+        seqbuddy = delete_records(seqbuddy, search_terms)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
@@ -3909,7 +3921,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         if len(deleted_seqs) == 0:
             stderr_out = "# ################################################################ #\n"
-            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(in_args.delete_records)
+            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(search_terms)
             stderr_out += "# ################################################################ #\n"
             _stderr(stderr_out, in_args.quiet)
         _print_recs(seqbuddy)
@@ -4541,13 +4553,22 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Pull records
     if in_args.pull_records:
-        description = False
-        for indx, arg in enumerate(in_args.pull_records):
-            if arg == "full":
-                description = True
-                del in_args.pull_records[indx]
-                break
-        _print_recs(pull_recs(seqbuddy, in_args.pull_records, description))
+        if "full" in in_args.pull_records:
+            description = True
+            del in_args.pull_records[in_args.pull_records.index("full")]
+        else:
+            description = False
+
+        search_terms = []
+        for arg in in_args.pull_records:
+            if os.path.isfile(arg):
+                with open(arg, "r") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
+        _print_recs(pull_recs(seqbuddy, search_terms, description))
         _exit("pull_records")
 
     # Purge

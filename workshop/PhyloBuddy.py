@@ -499,7 +499,8 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
     if keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(keep_temp):
-            raise FileExistsError()
+            raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
+                                  "choose another location to save temporary files." % (tool, keep_temp.split('/')[-1]))
 
     if tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
         raise AttributeError("{0} is not a valid alignment tool.".format(tool))
@@ -530,9 +531,8 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                 params[indx] = os.path.abspath(token)
         params = ' '.join(params)
 
-        # ToDo: Hash IDs before running, and then re-map afterwards
-        Alb.hash_ids(alignbuddy)
-        alignbuddy.set_format('phylipsr')  # Supported by most tree builders
+        Alb.hash_ids(alignbuddy, 8)
+        alignbuddy.set_format('phylipss') if tool == "phyml" else alignbuddy.set_format('fasta')
         alignbuddy.write("{0}/pb_input.aln".format(tmp_dir.path))  # Most tree builders require an input file
 
         if tool == 'raxml':
@@ -601,15 +601,20 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
         if tool == 'raxml':  # Pull tree from written file
             num_runs = re.search('-[#N] ([0-9]+)', params)
-            num_runs = int(num_runs.group(1))
-            if num_runs > 1:
+            num_runs = 0 if not num_runs else int(num_runs.group(1))
+
+            if os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
+                with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r") as result:
+                    output += result.read()
+            elif os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)):
+                with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path), "r") as result:
+                    output += result.read()
+            elif num_runs > 1:
                 for tree_indx in range(num_runs):
                     with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx)) as result:
                         output += result.read()
-
             else:
-                with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) as result:
-                    output += result.read()
+                raise NotImplementedError("Could not find any RAxML results.\n%s" % command)
 
         elif tool == 'phyml':
             with open('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)) as result:
