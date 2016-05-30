@@ -10,7 +10,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: SeqBuddy.py
-version: 1.1
+version: 1.2
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -2284,6 +2284,112 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
+def prosite_scan(seqbuddy, quiet=False):
+    import urllib.parse
+    import urllib.request
+    import urllib.error
+    from multiprocessing import Lock
+    import platform
+
+    base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
+    check_interval = 10
+    urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
+    client_revision = '$Revision: ???? $'
+    client_version = '1.0'
+    if len(client_revision) > 11:
+        client_version = client_revision[11:-2]
+    # Prepend client specific agent string.
+    user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
+        client_version, os.path.basename(__file__),
+        platform.python_version(), platform.system(),
+        urllib_agent
+    )
+    http_headers = {'User-Agent': user_agent}
+    user_deets = br.config_values()
+
+    def rest_request(url, request_data=None):
+        try:
+            # Set the User-agent.
+            req = urllib.request.Request(url, None, http_headers)
+            if request_data:
+                # Make the submission (HTTP POST).
+                req_h = urllib.request.urlopen(req, request_data)
+            else:
+                # Make the request (HTTP GET).
+                req_h = urllib.request.urlopen(req)
+            result = req_h.read().decode("utf-8")
+            req_h.close()
+        # Errors are indicated by HTTP status codes.
+        except urllib.error.HTTPError as e:
+            raise ConnectionError(e.file.read().decode())
+        return result
+
+    def run_prosite(_rec, args):
+        out_file_path = args[0]
+        email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
+        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': True, 'database': 'prosite',
+                  'scanControl': 'both', 'stype': 'protein'}
+        # Submit the job
+        request_data = urllib.parse.urlencode(params)
+        request_data = request_data.encode()
+        job_id = rest_request('%s/run/' % base_url, request_data)
+        # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
+        result = 'PENDING'
+        while result == 'RUNNING' or result == 'PENDING':
+            result = rest_request('%s/status/%s' % (base_url, job_id))
+            if result == 'RUNNING' or result == 'PENDING':
+                time.sleep(check_interval)
+
+        result = rest_request('%s/result/%s/out' % (base_url, job_id))
+        feature_list = []
+        for feature in result.split(">")[1:]:
+            feat_type = re.match('EMBOSS_001 : (.*)', feature)
+            feat_type = feat_type.groups(0)[0].split(" ")[1]
+            feat_type = feat_type[:15]  # Need to limit the feature length, because gb format breaks otherwise
+            spans = re.findall('([0-9]+ \- [0-9]+)', feature)
+            for span in spans:
+                span = span.split(" ")
+                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
+                feature_list.append(feature)
+
+        temp_seq = SeqBuddy([_rec], out_format="gb")
+        temp_seq.records[0].features = feature_list
+        temp_seq = order_features_by_position(temp_seq)
+
+        with lock:
+            with open(out_file_path, "a") as out_file:
+                out_file.write("%s\n" % str(temp_seq))
+        return
+
+    lock = Lock()
+
+    temp_file = MyFuncs.TempFile()
+    hash_ids(seqbuddy)
+    clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
+    seqbuddy_copy = make_copy(seqbuddy)
+    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later)
+    if seqbuddy.alpha != IUPAC.protein:
+        translate_cds(seqbuddy)
+
+    MyFuncs.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
+    seqbuddy = SeqBuddy(temp_file.path)
+
+    # ToDo: Change this to pull_recs, because I don't think the index order is ensured...
+    find_pattern(seqbuddy_copy, "\*", include_feature=False)
+    for indx, rec in enumerate(seqbuddy_copy.records):
+        for match in rec.buddy_data['find_patterns']["\*"]:
+            rec_2 = seqbuddy.records[indx]
+            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+
+    if seqbuddy_copy.alpha != IUPAC.protein:
+        seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
+    else:
+        seqbuddy = merge(seqbuddy_copy, seqbuddy)
+
+    return seqbuddy
+
+
 def isoelectric_point(seqbuddy):
     """
     Calculate the isoelectric points
@@ -3148,8 +3254,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     try:
         from suds.client import Client
     except ImportError:
-        raise ImportError("Please install the 'suds' package to run topcons2_wsdl.py:\n\n$ pip install suds-py3")
-
+        raise ImportError("Please install the 'suds' package to run transmembrane_domains:\n\n$ pip install suds-py3")
     import zipfile
     import urllib.request
 
@@ -4410,6 +4515,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     if in_args.order_ids_randomly:
         _print_recs(order_ids_randomly(seqbuddy))
         _exit("order_ids_randomly")
+
+    # Prosite Scan
+    if in_args.prosite_scan:
+        try:
+            seqbuddy = prosite_scan(seqbuddy)
+        except ConnectionError as e:
+            _raise_error(e, "prosite_scan", "HTTP")
+
+        if not in_args.out_format:
+            seqbuddy.out_format = "gb"
+        _print_recs(seqbuddy)
+        _exit("prosite")
 
     # Pull random records
     if in_args.pull_random_record:
