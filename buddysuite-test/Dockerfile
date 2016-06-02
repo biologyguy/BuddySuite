@@ -11,7 +11,12 @@ RUN apt-get -y install \
     python3-pyqt4 \
     bzip2 \
     build-essential \
+    phyml \
+    raxml \
     ;
+
+# pick a raxml to name `raxml`
+run ln -s /usr/bin/raxmlHPC /usr/bin/raxml
 
 # set up a docker user and allow it to sudo
 RUN useradd -m docker && \
@@ -31,6 +36,7 @@ RUN /home/docker/miniconda/bin/conda create -q -n test-environment python=3.5 \
       scipy \
       numpy \
       pyqt \
+      fasttree \
       ;
 
 # NOTE: installing python3-pyqt4 via apt-get installs the dependencies for this
