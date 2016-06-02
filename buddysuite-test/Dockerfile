@@ -8,6 +8,7 @@ RUN apt-get -y install \
     sudo \
     wget \
     python3 \
+    python3-pyqt4 \
     bzip2 \
     build-essential \
     ;
@@ -29,7 +30,12 @@ RUN /home/docker/miniconda/bin/conda config --add channels bioconda
 RUN /home/docker/miniconda/bin/conda create -q -n test-environment python=3.5 \
       scipy \
       numpy \
+      pyqt \
       ;
+
+# NOTE: installing python3-pyqt4 via apt-get installs the dependencies for this
+#       package; installing pyqt via conda installs the application itself into
+#       the conda environment.
 
 # install stuff into the virtualenv
 RUN /home/docker/miniconda/envs/test-environment/bin/pip install \
