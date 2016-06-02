@@ -89,10 +89,18 @@ Then move into the repo and switch to the 'development' branch:
     $: git checkout develop
 
 All of the individual Buddy toolkits are located in the 'workshop' directory. The 
- ['development' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
+ ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
  and tested, so things may be less stable here; it's usually pretty solid though. If you're interested in contributing
  to the project, please ensure you are working from this branch.
-  
+
+To run the tests, use docker to get all of the dependencies installed:
+
+    $: docker build -t buddysuite-test:latest buddysuite-test
+
+and then run the tests with
+
+    $: docker run -v $PWD:/home/docker/buddysuite buddysuite-test:latest
+
 See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
  development version dependencies and how to contribute to the project.
 

@@ -71,7 +71,7 @@ parser.add_argument("-m", nargs="?")
 parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
-in_args = parser.parse_args()
+in_args = parser.parse_args([])
 
 
 def seqs_to_hash(_seqbuddy, mode='hash'):

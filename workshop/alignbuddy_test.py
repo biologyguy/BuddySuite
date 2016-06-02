@@ -72,7 +72,7 @@ parser.add_argument("-m", nargs="?")
 parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
-in_args = parser.parse_args()
+in_args = parser.parse_args([])
 
 
 def align_to_hash(_alignbuddy, mode='hash'):
