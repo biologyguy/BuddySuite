@@ -357,7 +357,8 @@ def test_display_trees(monkeypatch):
 def test_display_trees_error():
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
-        del os.environ['DISPLAY']
+        if 'DISPLAY' in os.environ:
+            del os.environ['DISPLAY']
         with pytest.raises(SystemError):
             Pb.display_trees(Pb.make_copy(pb_objects[0]))
 
