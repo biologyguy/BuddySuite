@@ -31,7 +31,7 @@ from __future__ import print_function
 
 # BuddySuite specific
 import buddy_resources as br
-from MyFuncs import *
+import MyFuncs
 
 # Standard library
 import sys
@@ -343,7 +343,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                         _rec.type == "nucleotide" and _rec.record]
             prot_recs = [_rec.record for _accession, _rec in group.items() if
                          _rec.type == "protein" and _rec.record]
-            tmp_dir = TemporaryDirectory()
+            tmp_dir = MyFuncs.TemporaryDirectory()
             if len(nuc_recs) > 0:
                 with open("%s/seqs.tmp" % tmp_dir.name, "w") as _ofile:
                     SeqIO.write(nuc_recs[:_num], _ofile, self.out_format)
@@ -662,7 +662,7 @@ class UniProtRestClient(object):
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
         self.server = server
-        self.temp_dir = TempDir()
+        self.temp_dir = MyFuncs.TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
         self.results_file = "%s/results.txt" % self.temp_dir.path
@@ -765,12 +765,12 @@ class UniProtRestClient(object):
 
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
-        runtime = RunTime(prefix="\t")
+        runtime = MyFuncs.RunTime(prefix="\t")
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             runtime.start()
-            run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
+            MyFuncs.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
+                                           func_args=[self.http_errors_file, self.results_file, params, Lock()])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             runtime.start()
@@ -813,11 +813,11 @@ class UniProtRestClient(object):
                 else:
                     accessions[-1] += ",%s" % _rec.accession
 
-            runtime = RunTime(prefix="\t")
+            runtime = MyFuncs.RunTime(prefix="\t")
             runtime.start()
             params = {"format": "txt"}
-            run_multicore_function(accessions, self.query_uniprot, max_processes=10,
-                                   func_args=[self.http_errors_file, self.results_file, params, Lock()], quiet=True)
+            MyFuncs.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True,
+                                           func_args=[self.http_errors_file, self.results_file, params, Lock()])
             runtime.end()
             errors = self._parse_error_file()
             if errors:
@@ -858,7 +858,7 @@ class NCBIClient(object):
         Entrez.email = CONFIG["email"]
         Entrez.tool = "buddysuite"
         self.dbbuddy = _dbbuddy
-        self.temp_dir = TempDir()
+        self.temp_dir = MyFuncs.TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
         self.results_file = "%s/results.txt" % self.temp_dir.path
@@ -905,7 +905,7 @@ class NCBIClient(object):
         lock = args[0]
         error = False
         handle = False
-        timer = time()
+        timer = MyFuncs.time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
@@ -928,7 +928,7 @@ class NCBIClient(object):
                         </DocSum>
                     </eSummaryResult>
                 '''
-                timer = time() - timer
+                timer = MyFuncs.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
                 break
@@ -949,7 +949,7 @@ class NCBIClient(object):
     def _get_taxa(self, _taxa_ids):
         self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
-        run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
+        MyFuncs.run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
             results = [x for x in results if x]
@@ -964,7 +964,7 @@ class NCBIClient(object):
         lock = args[0]
         error = False
         handle = False
-        timer = time()
+        timer = MyFuncs.time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
@@ -974,7 +974,7 @@ class NCBIClient(object):
                     703125412
                     703125416
                 '''
-                timer = time() - timer
+                timer = MyFuncs.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
                 break
@@ -995,10 +995,10 @@ class NCBIClient(object):
     def _get_gis(self, accns):  # These accns should include version numbers
         self._clear_files()
         accns = self._split_for_url(accns)
-        runtime = RunTime(prefix="\t")
+        runtime = MyFuncs.RunTime(prefix="\t")
         _stderr("Converting NCBI accessions to gi numbers...\n")
         runtime.start()
-        run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
+        MyFuncs.run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
         runtime.end()
         with open(self.results_file, "r") as ifile:
             results = ifile.read().split("\n### END ###\n")
@@ -1011,7 +1011,7 @@ class NCBIClient(object):
         lock = args[0]
         error = False
         handle = False
-        timer = time()
+        timer = MyFuncs.time()
         for i in range(self.max_attempts):
             try:
                 # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
@@ -1042,7 +1042,7 @@ class NCBIClient(object):
                         </DocSum>
                     </eSummaryResult>
                 '''
-                timer = time() - timer
+                timer = MyFuncs.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
                 break
@@ -1063,10 +1063,10 @@ class NCBIClient(object):
     def _fetch_summaries(self, gi_nums):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        runtime = RunTime(prefix="\t")
+        runtime = MyFuncs.RunTime(prefix="\t")
         _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
+        MyFuncs.run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
         runtime.end()
         with open(self.results_file, "r") as _ifile:
             results = _ifile.read().split("\n### END ###\n")
@@ -1203,7 +1203,7 @@ class NCBIClient(object):
         database, lock = args
         error = False
         handle = False
-        timer = time()
+        timer = MyFuncs.time()
         for i in range(self.max_attempts):
             try:
                 handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
@@ -1278,7 +1278,7 @@ class NCBIClient(object):
                       421 qttrememrk mknsqgfsgs s
                 //
                 '''
-                timer = time() - timer
+                timer = MyFuncs.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
                 break
@@ -1299,10 +1299,10 @@ class NCBIClient(object):
     def _get_seq(self, gi_nums, database):
         self._clear_files()
         gi_nums = self._split_for_url(gi_nums)
-        runtime = RunTime(prefix="\t")
+        runtime = MyFuncs.RunTime(prefix="\t")
         _stderr("Fetching full sequence records from NCBI...\n")
         runtime.start()
-        run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
+        MyFuncs.run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
         runtime.end()
         with open(self.results_file, "r") as ifile:
             results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
@@ -1335,7 +1335,7 @@ class NCBIClient(object):
 class EnsemblRestClient(object):
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
         self.dbbuddy = _dbbuddy
-        self.temp_dir = TempDir()
+        self.temp_dir = MyFuncs.TempDir()
         self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
         open(self.http_errors_file, "w").close()
         self.results_file = "%s/results.txt" % self.temp_dir.path
@@ -1391,7 +1391,7 @@ class EnsemblRestClient(object):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         if len(accns) > 0:
             _stderr("Fetching sequence from Ensembl...\n")
-            runtime = RunTime(prefix="\t")
+            runtime = MyFuncs.RunTime(prefix="\t")
             runtime.start()
             data = self.perform_rest_action("sequence/id", data={"ids": accns},
                                             headers={"Content-type": "text/x-seqxml+xml"})
@@ -1449,9 +1449,9 @@ class EnsemblRestClient(object):
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             _stderr("Searching Ensembl for %s...\n" % search_term)
-            runtime = RunTime(prefix="\t")
+            runtime = MyFuncs.RunTime(prefix="\t")
             runtime.start()
-            run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
+            MyFuncs.run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
             runtime.end()
             with open(self.results_file, "r") as ifile:
                 results = ifile.read().split("\n### END ###")
@@ -1822,7 +1822,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if amount_seq_requested > 5000000:
             confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
-                            "Continue (y/[n])?{3}".format(GREEN, pretty_number(amount_seq_requested),
+                            "Continue (y/[n])?{3}".format(GREEN, MyFuncs.pretty_number(amount_seq_requested),
                                                           YELLOW, self.terminal_default))
             if confirm.lower() not in ["yes", "y"]:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
@@ -1834,7 +1834,7 @@ Further details about each command can be accessed by typing 'help <command>'
             if self.dbbuddy.records[_accn].record:
                 seq_retrieved += self.dbbuddy.records[_accn].size
 
-        _stdout("Retrieved %s residues of sequence data\n\n" % pretty_number(seq_retrieved),
+        _stdout("Retrieved %s residues of sequence data\n\n" % MyFuncs.pretty_number(seq_retrieved),
                 format_out=self.terminal_default)
         self.dump_session()
 
@@ -1862,7 +1862,7 @@ Further details about each command can be accessed by typing 'help <command>'
             self.dump_session()
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:
-                    client.temp_dir = TempDir()
+                    client.temp_dir = MyFuncs.TempDir()
                     client.http_errors_file = "%s/errors.txt" % client.temp_dir.path
                     open(client.http_errors_file, "w").close()
                     client.results_file = "%s/results.txt" % client.temp_dir.path
@@ -2569,7 +2569,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
     # Live Shell
     def launch_live_shell():
         # Create a temp file for crash handling
-        temp_file = TempFile(byte_mode=True)
+        temp_file = MyFuncs.TempFile(byte_mode=True)
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
             LiveSearch(dbbuddy, temp_file)
