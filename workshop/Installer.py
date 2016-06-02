@@ -527,7 +527,7 @@ def cmd_install():
         exit()
 
     print("\nBefore continuing please understand that software created by US government employees is in the "
-          "PUBLIC DOMAIN, and can be used for any purpose without restriction. Not all software in this package is"
+          "PUBLIC DOMAIN, and can be used for any purpose without restriction. Not all software in this package is "
           "in the public domain, however, and all copyright restrictions on those works still apply.\n"
           "BuddySuite is provided 'as is', WITHOUT WARRANTY of any kind. The full license can be found at "
           "https://raw.githubusercontent.com/biologyguy/BuddySuite/master/LICENSE\n")

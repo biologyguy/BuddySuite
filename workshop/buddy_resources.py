@@ -38,7 +38,7 @@ import traceback
 import re
 
 sys.path.insert(0, "./")
-from MyFuncs import TempFile
+import MyFuncs
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
@@ -136,7 +136,7 @@ class Usage(object):
     def send_report(self):
         self.stats["date"] = str(datetime.date.today())
         from ftplib import FTP, all_errors
-        temp_file = TempFile()
+        temp_file = MyFuncs.TempFile()
         json.dump(self.stats, temp_file.get_handle())
         try:
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=1)
@@ -216,7 +216,7 @@ def config_values():
 # Might want to include date in error file name
 def error_report(error_msg, tool, function):
     from ftplib import FTP, all_errors
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     temp_file.write("%s::%s\n" % (tool, function))
     temp_file.write(error_msg)
     try:
@@ -346,7 +346,7 @@ def phylip_sequential_read(sequence, relaxed=True):
     for indx in range(int(len(alignments) / 3)):
         align_dict[(int(alignments[indx * 3]), int(alignments[indx * 3 + 1]), indx)] = alignments[indx * 3 + 2]
 
-    temp_file = TempFile()
+    temp_file = MyFuncs.TempFile()
     aligns = []
     for _key, seqs in align_dict.items():
         records = []
@@ -450,9 +450,10 @@ def send_traceback(tool, function, e):
 
     send_diagnostic = True if config["diagnostics"] == "True" else False
     if not send_diagnostic:
-        prompt = input("\033[1mWould you like to send a crash report with the above "
-                       "traceback to the developers ([y]/n)?\033[m")
-        if prompt.lower() in ["y", "yes", ""]:
+        prompt = MyFuncs.ask("\033[1mWould you like to send a crash report with the above "
+                             "traceback to the developers ([y]/n)?\033[m", timeout=20)
+
+        if prompt:
             send_diagnostic = True
 
     else:
@@ -768,7 +769,8 @@ sb_flags = {"annotate": {"flag": "ano",
                              "action": "store",
                              "nargs": "+",
                              "metavar": "<regex>",
-                             "help": "Search for subsequences, returning the start positions of all matches"},
+                             "help": "Search for subsequences, returning the start positions of all matches. Include "
+                                     "the word 'ambig' to search with ambiguous character codes."},
             "find_repeats": {"flag": "frp",
                              "action": "append",
                              "nargs": "?",
@@ -875,6 +877,9 @@ sb_flags = {"annotate": {"flag": "ano",
             "order_ids_randomly": {"flag": "oir",
                                    "action": "store_true",
                                    "help": "Randomly reorder the position of each record"},
+            "prosite_scan": {"flag": "psc",
+                             "action": "store_true",
+                             "help": "Annotate sequence features with Prosite Scan. Internet connection required."},
             "pull_random_record": {"flag": "prr",
                                    "action": "append",
                                    "nargs": "?",
@@ -937,29 +942,31 @@ sb_flags = {"annotate": {"flag": "ano",
             "translate6frames": {"flag": "tr6",
                                  "action": "store_true",
                                  "help": "Translate nucleotide sequences into all six reading frames"},
+            "transmembrane_domains": {"flag": "tmd",
+                                      "nargs": "*",
+                                      "action": "append",
+                                      "metavar": "Job ID",
+                                      "help": "Annotate transmembrane domains using TOPCONS2 (internet required)"},
             "uppercase": {"flag": "uc",
                           "action": "store_true",
                           "help": "Convert all sequences to uppercase"}}
-                          
 
 sb_modifiers = {"alpha": {"flag": "a",
                           "action": "store",
                           "help": "If you want the file read with a specific alphabet"},
                 "in_format": {"flag": "f",
                               "action": "store",
-                              "help": "If SeqBuddy can't guess the file format, just specify it directly"},
+                              "help": "If SeqBuddy can't guess the file format, try specifying it directly"},
                 "in_place": {"flag": "i",
                              "action": "store_true",
                              "help": "Rewrite the input file in-place. Be careful!"},
+                "keep_temp": {"flag": "k",
+                              "action": "store",
+                              "help": "Save temporary files created by generate_tree in current working directory"},
                 "out_format": {"flag": "o",
                                "metavar": "",
                                "action": "store",
                                "help": "If you want a specific format output"},
-                "params": {"flag": "p",
-                           "action": "store",
-                           "metavar": "",
-                           "nargs": "+",
-                           "help": "Free form arguments for some functions"},
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},
@@ -1083,7 +1090,7 @@ alb_flags = {"alignment_lengths": {"flag": "al",
 
 alb_modifiers = {"in_format": {"flag": "f",
                                "action": "store",
-                               "help": "If AlignBuddy can't guess the file format, just specify it directly"},
+                               "help": "If AlignBuddy can't guess the file format, try specifying it directly"},
                  "in_place": {"flag": "i",
                               "action": "store_true",
                               "help": "Rewrite the input file in-place. Be careful!"},
