@@ -10,4 +10,4 @@ TEST_SCRIPTS+=('phylobuddy_test.py')
 
 cd ~/buddysuite/workshop
 # disable cacheprovider since it requires r/w access to the test directory
-py.test -p no:cacheprovider -m "not internet" "${@}" $TEST_SCRIPTS
+py.test -p no:cacheprovider -m "not internet and not display" "${@}" $TEST_SCRIPTS
