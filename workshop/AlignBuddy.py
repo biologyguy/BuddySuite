@@ -470,7 +470,9 @@ def alignment_lengths(alignbuddy):
     """
     Returns a list of alignment lengths
     :param alignbuddy: The AlignBuddy object to be analyzed
+    :type alignbuddy: AlignBuddy
     :return: A list of alignment lengths
+    :rtype: list
     """
     output = []
     for alignment in alignbuddy.alignments:
@@ -479,6 +481,12 @@ def alignment_lengths(alignbuddy):
 
 
 def bootstrap(alignbuddy, num_bootstraps=1):
+    """
+    Returns new alignments by sampling columns from orginal alignment
+    :param alignbuddy: The AlignBuddy object to be copied
+    :type alignbuddy: AlignBuddy
+    :rtype: AlignBuddy
+    """
     new_alignments = []
     for alignment in alignbuddy.alignments:
         for _ in range(num_bootstraps):
@@ -501,6 +509,7 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     :param ambiguous: Specifies whether ambiguous characters should be kept or not
     :param skip_list: Optional list of characters to be left alone
     :return: The cleaned AlignBuddy object
+    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     # Protect gaps from being cleaned by Sb.clean_seq
@@ -525,6 +534,7 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     :param group_pattern: Regex that matches some regular part of the sequence IDs, dictating who is bound to who
     :param align_name_pattern: Regex that matches something for the whole alignment
     :return: AlignBuddy object containing a single concatenated alignment
+    :rtype: AlignBuddy
     """
     if len(alignbuddy.alignments) < 2:
         raise AttributeError("Please provide at least two alignments.")
@@ -626,6 +636,7 @@ def consensus_sequence(alignbuddy):
     Generates a simple majority-rule consensus sequence
     :param alignbuddy: The AlignBuddy object to be processed
     :return: The modified AlignBuddy object (with a single record in each alignment)
+    :rtype: AlignBuddy
     """
     consensus_sequences = []
     for alignment in alignbuddy.alignments:
@@ -658,6 +669,7 @@ def delete_records(alignbuddy, regex):
     :param alignbuddy: AlignBuddy object
     :param regex: The regex pattern to search with (duck typed for list or string)
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     if type(regex) == str:
         regex = [regex]
@@ -683,6 +695,7 @@ def dna2rna(alignbuddy):  # Transcribe
     Convert DNA into RNA
     :param alignbuddy: AlignBuddy object
     :return: Modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
@@ -696,6 +709,7 @@ def enforce_triplets(alignbuddy):
     Organizes nucleotide alignment into triplets
     :param alignbuddy: AlignBuddy object
     :return: The rearranged AlignBuddy object
+    :rtype: AlignBuddy
     """
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -757,6 +771,7 @@ def extract_regions(alignbuddy, start, end):
     :param start: The starting residue (indexed from 0)
     :param end: The end residue (inclusive)
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     alb_copy = make_copy(alignbuddy)
     for indx, alignment in enumerate(alignbuddy.alignments):
@@ -783,6 +798,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress stderr output
     :return: An AlignBuddy object containing the alignment produced.
+    :rtype: AlignBuddy
     """
     if params is None:
         params = ''
@@ -976,6 +992,7 @@ def hash_ids(alignbuddy, hash_length=10):
     :param alignbuddy: AlignBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
     :return: The modified AlignBuddy object, with a new attribute `hash_map` added
+    :rtype: AlignBuddy
     """
     try:
         hash_length = int(hash_length)
@@ -1004,6 +1021,7 @@ def lowercase(alignbuddy):
     Converts all sequence residues to lowercase.
     :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).lower(), alphabet=rec.seq.alphabet)
@@ -1016,6 +1034,7 @@ def map_features2alignment(seqbuddy, alignbuddy):
     :param seqbuddy: SeqBuddy object
     :param alignbuddy: AlignBuddy object
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     def feat_map(feat, _sb_rec, _alb_rec):
         new_location = feat.location
@@ -1062,6 +1081,7 @@ def order_ids(alignbuddy, reverse=False):
     :param alignbuddy: AlignBuddy object
     :param reverse: Reverses the order
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     for indx, alignment in enumerate(alignbuddy.alignments):
         alignment = Sb.SeqBuddy(list(alignment))
@@ -1077,6 +1097,7 @@ def pull_records(alignbuddy, regex, description=False):
     :param regex: List of regex expressions or single regex
     :param description: Allow search in description string
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     if type(regex) == str:
         regex = [regex]
@@ -1105,6 +1126,7 @@ def rename(alignbuddy, query, replace="", num=0):
     :param replace: The string to be substituted
     :param num: The maximum number of substitutions to make
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     seqbuddy = Sb.SeqBuddy(alignbuddy.records())
     Sb.rename(seqbuddy, query, replace, num)
@@ -1116,6 +1138,7 @@ def rna2dna(alignbuddy):  # Reverse-transcribe
     Convert RNA into DNA.
     :param alignbuddy: AlignBuddy object
     :return: Modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
@@ -1129,6 +1152,7 @@ def translate_cds(alignbuddy):
     Translates a nucleotide alignment into a protein alignment.
     :param alignbuddy: The AlignBuddy object to be translated
     :return: The translated AlignBuddy object
+    :rtype: AlignBuddy
     """
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -1156,6 +1180,7 @@ def trimal(alignbuddy, threshold):
     :param alignbuddy: The AlignBuddy object to be trimmed
     :param threshold: The threshold value or trimming algorithm to be used
     :return: The trimmed AlignBuddy object
+    :rtype: AlignBuddy
     """
     def gappyout(_gap_distr, _position_map):
         _max_gaps = 0
@@ -1304,6 +1329,7 @@ def uppercase(alignbuddy):
     Converts all sequence residues to uppercase.
     :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).upper(), alphabet=rec.seq.alphabet)
