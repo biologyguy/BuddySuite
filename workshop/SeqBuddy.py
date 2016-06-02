@@ -661,7 +661,7 @@ def _guess_format(_input):
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
             _input = StringIO(_input.read())
-        if _input.read() == "":
+        if _input.read() == b"":
             return "empty file"
         _input.seek(0)
 
