@@ -2371,14 +2371,24 @@ def prosite_scan(seqbuddy, quiet=False):
     hash_ids(seqbuddy)
     clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
     seqbuddy_copy = make_copy(seqbuddy)
-    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later)
+    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later) @TODO clean seq after translating
     if seqbuddy.alpha != IUPAC.protein:
         translate_cds(seqbuddy)
 
     MyFuncs.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
     seqbuddy = SeqBuddy(temp_file.path)
 
-    # ToDo: Change this to pull_recs, because I don't think the index order is ensured...
+    new_records = []
+
+    for rec in seqbuddy_copy.records:
+        for indx, rec2 in enumerate(seqbuddy.records):
+            if rec.id == rec2.id:
+                new_records.append(rec2)
+                del seqbuddy.records[indx]
+                break
+
+    seqbuddy.records = new_records
+
     find_pattern(seqbuddy_copy, "\*", include_feature=False)
     for indx, rec in enumerate(seqbuddy_copy.records):
         for match in rec.buddy_data['find_patterns']["\*"]:

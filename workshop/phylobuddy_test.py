@@ -348,6 +348,7 @@ def test_consensus_tree_95(phylobuddy, next_hash):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
+@pytest.mark.display
 def test_display_trees(monkeypatch):
     show = mock.Mock(return_value=True)
     monkeypatch.setattr(ete3.TreeNode, "show", show)
@@ -687,6 +688,7 @@ def test_consensus_tree_ui(capsys):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
+@pytest.mark.display
 def test_display_trees_ui(capsys, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.display_trees = True
@@ -694,9 +696,15 @@ def test_display_trees_ui(capsys, monkeypatch):
     monkeypatch.setattr(ete3.TreeNode, "show", show)
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
 
+def test_display_trees_ui_no_display(capsys, monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.display_trees = True
+    show = mock.Mock(return_value=True)
+    monkeypatch.setattr(ete3.TreeNode, "show", show)
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
-        del os.environ['DISPLAY']
+        if 'DISPLAY' in os.environ:
+            del os.environ['DISPLAY']
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
         out, err = capsys.readouterr()
 

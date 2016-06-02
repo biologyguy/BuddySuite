@@ -292,8 +292,9 @@ def _convert_to_ete(_tree, ignore_color=False):
                 try:
                     style = ete3.NodeStyle()
                 except AttributeError as e:
-                    if "'module' object has no attribute 'NodeStyle'" in str(e):
+                    if "has no attribute 'NodeStyle'" in str(e):
                         raise AttributeError("Unable to import NodeStyle... You probably need to install pyqt.")
+                    raise
                 style['fgcolor'] = node.pb_color
                 style['hz_line_color'] = node.pb_color
                 node.set_style(style)
@@ -347,7 +348,7 @@ def _guess_format(_input):
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # trees > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding='utf-8')
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         # Die if file is empty
