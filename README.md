@@ -21,6 +21,28 @@ The BuddySuite modules are designed to be 'one-stop-shop' command line tools for
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
  and Mac OS X, however, so it is unclear how well the suite will work within Windows.
 
+## Installation 
+Installation should be extremely easy on Mac and Linux using the graphical installer (Windows users must install the
+ development version, [see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
+
+[Click here](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite_installer.py) to download the graphical
+ installer and run it from the command line
+    
+    $: cd /path/to/download/folder
+    $: chmod +x BuddySuite_installer.py
+    $: ./BuddySuite_installer.py
+
+By default, the installer will create short-form symbolic links for the main tools in your system $PATH ('sb' for
+ SeqBuddy, 'alb' for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly
+ ([examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each
+ tool will also be added to $PATH. If working outside the context of a graphical OS (on a cluster, for example), the
+ installer will run in command-line mode (also accessible with the -cmd flag on graphical systems, if you prefer that).
+
+The BuddySuite installer will only bundle stable release versions of the BuddySuite. If bugs are found they will be
+ hot-fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
+ to the development versions will not become available in the installer until the next release. Versions of each tool or
+ the installer can be displayed using the -v flag.
+
 ## Dependencies
 This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
  installed on your system, I highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
@@ -42,29 +64,6 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
  [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
  [ETE toolkit](http://etetoolkit.org/download/).
  
-## Standalone installation 
-The installer will only run on Mac and Linux. If you would like to try the BuddySuite on Windows,
- you will need to install the development version
- ([see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
-
-[Download the graphical installer](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite.py)
- and run it from the command line
-    
-    $: cd /path/to/download/folder
-    $: chmod +x BuddySuite.py
-    $: ./BuddySuite.py
-
-By default, the installer will create short-form symbolic links for the main tools in your PATH ('sb' for SeqBuddy, 'alb'
- for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly ([examples in the
- wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each tool will also be
- added to PATH. If working outside the context of a graphical OS (on a cluster, for example), the installer will run
- in command-line mode (also accessible with the -cmd flag on graphical systems, if you prefer that).
-
-Once the BuddySuite moves out of beta, the installer will only bundle stable release versions of the BuddySuite. 
- If bugs are found they will be fixed, but the *expected* behavior will not be changed once the release is finalized. 
- Likewise, new features added to the development versions will not become available in the installer until the 
- next release. Versions of each tool or the installer can be displayed using the -v flag.
-
 ## Getting started
 Once installed, you can access the modules from the command line using their full names:
 
