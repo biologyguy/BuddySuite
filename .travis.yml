@@ -1,0 +1,11 @@
+sudo: required
+services:
+  - docker
+
+# install all of the required software into a docker image
+install:
+  - docker build -t buddysuite-test:latest buddysuite-test
+
+# and now run the image
+script:
+  - docker run -v $PWD:/home/docker/buddysuite buddysuite-test:latest

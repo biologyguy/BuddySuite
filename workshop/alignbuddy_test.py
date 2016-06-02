@@ -72,7 +72,7 @@ parser.add_argument("-m", nargs="?")
 parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
-in_args = parser.parse_args()
+in_args = parser.parse_args([])
 
 
 def align_to_hash(_alignbuddy, mode='hash'):
@@ -280,7 +280,7 @@ def test_empty_file():
 def test_set_format():
     tester = alb_resources.get_list("o d g")[0]
     tester.set_format("fasta")
-    assert tester._out_format == "fasta"
+    assert tester.out_format == "fasta"
 
 
 def test_records():
@@ -301,7 +301,7 @@ testers = alb_resources.get_list("o p g py pr pss psr")
 
 @pytest.mark.parametrize("alignbuddy", testers)
 def test_lengths_single(alignbuddy):
-    print(alignbuddy._out_format)
+    print(alignbuddy.out_format)
     assert alignbuddy.lengths()[0] == 681
 
 testers = alb_resources.get_list("m p py pr pss psr")
@@ -309,7 +309,7 @@ testers = alb_resources.get_list("m p py pr pss psr")
 
 @pytest.mark.parametrize("alignbuddy", testers)
 def test_lengths_multi(alignbuddy):
-    print(alignbuddy._out_format)
+    print(alignbuddy.out_format)
     assert alignbuddy.lengths()[1] == 480
 
 hashes = {'o p g': 'bf8485cbd30ff8986c2f50b677da4332', 'o p n': '17ff1b919cac899c5f918ce8d71904f6',
@@ -743,7 +743,7 @@ def test_prank_inputs():
     # FASTA
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
     tester = Alb.generate_msa(tester, 'prank', '-once')
-    assert tester._out_format == 'fasta'
+    assert tester.out_format == 'fasta'
 
 
 @pytest.mark.generate_alignments
@@ -751,7 +751,7 @@ def test_prank_outputs1():
     # NEXUS
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
     tester = Alb.generate_msa(tester, 'prank', '-f=nexus -once')
-    assert tester._out_format == 'nexus'
+    assert tester.out_format == 'nexus'
 
 
 @pytest.mark.generate_alignments
@@ -759,7 +759,7 @@ def test_prank_outputs2():
     # PHYLIPI
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
     tester = Alb.generate_msa(tester, 'prank', params='-f=phylipi -once')
-    assert tester._out_format == 'phylip-relaxed'
+    assert tester.out_format == 'phylip-relaxed'
 
 
 @pytest.mark.generate_alignments
@@ -767,7 +767,7 @@ def test_prank_outputs3():
     # PHYLIPS
     tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
     tester = Alb.generate_msa(tester, 'prank', params='-f=phylips -once')
-    assert tester._out_format == 'phylipsr'
+    assert tester.out_format == 'phylipsr'
 
 
 @pytest.mark.generate_alignments

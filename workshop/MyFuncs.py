@@ -31,6 +31,7 @@ from shutil import copytree, rmtree, copyfile
 import re
 import string
 from random import choice
+import signal
 
 
 class Timer(object):
@@ -58,7 +59,9 @@ class RunTime(object):
         elapsed = 0
         while True:
             with open("%s" % check_file_path, "r") as ifile:
-                if ifile.read() == "Running":
+                if round(time()) - start_time == elapsed:
+                    continue
+                elif ifile.read() == "Running":
                     d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
                     elapsed = round(time()) - start_time
                 else:
@@ -116,11 +119,15 @@ class DynamicPrint(object):
             next(self._writer)
         return
 
-    def new_line(self):
+    def new_line(self, number=1):
         if not self.quiet:
-            self.out_type.write("\n")
+            self.out_type.write("\n" * number)
             self.out_type.flush()
             self._last_print = ""
+        return
+
+    def clear(self):
+        self.write("")
         return
 
 
@@ -487,7 +494,7 @@ def sendmail(sender, recipient, subject, message):
     return
 
 
-def ask(input_prompt, default="yes"):
+def ask(input_prompt, default="yes", timeout=0):
     if default == "yes":
         yes_list = ["yes", "y", '']
         no_list = ["no", "n", "abort"]
@@ -495,12 +502,24 @@ def ask(input_prompt, default="yes"):
         yes_list = ["yes", "y"]
         no_list = ["no", "n", "abort", '']
 
-    _response = input(input_prompt)
-    while True:
-        if _response.lower() in yes_list:
-            return True
-        elif _response.lower() in no_list:
-            return False
-        else:
-            print("Response not understood. Valid options are 'yes' and 'no'.")
-            _response = input(input_prompt)
+    def kill(*args):
+        raise TimeoutError
+
+    try:
+        signal.signal(signal.SIGALRM, kill)
+        signal.alarm(timeout)
+        _response = input(input_prompt)
+        signal.alarm(0)
+        while True:
+            if _response.lower() in yes_list:
+                return True
+            elif _response.lower() in no_list:
+                return False
+            else:
+                print("Response not understood. Valid options are 'yes' and 'no'.")
+                signal.alarm(timeout)
+                _response = input(input_prompt)
+                signal.alarm(0)
+
+    except TimeoutError:
+        return False

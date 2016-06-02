@@ -71,7 +71,7 @@ parser.add_argument("-m", nargs="?")
 parser.add_argument("-n", nargs="?")
 parser.add_argument("--cov", nargs="?")
 parser.add_argument("--cov-report", nargs="?")
-in_args = parser.parse_args()
+in_args = parser.parse_args([])
 
 
 def seqs_to_hash(_seqbuddy, mode='hash'):
@@ -308,6 +308,15 @@ def test_to_string(capsys):
     tester.records = []
     assert str(tester) == "Error: No sequences in object.\n"
 
+
+def test_print_hashmap():
+    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
+    Sb.hash_ids(tester)
+    test_hashes = ["FEhFs96uVr", "5dOVoJsEaC", "muOhKHqlRK", "99id32X9JY", "hflijfeJXB", "0m9x7xeSqC", "qwgaHU3fms",
+                   "uD7zXF2uEp", "btvnHXOJbc", "GiHvUV1n55", "dJm5uViNsC", "to4ctKvNG7", "VN579cevl3"]
+    orig_ids = [rec_id for _hash, rec_id in tester.hash_map.items()]
+    tester.hash_map = OrderedDict(zip(test_hashes, orig_ids))
+    assert string2hash(tester.print_hashmap()) == "cdb9fdf429108404be7b93d2ea201d6f"
 
 # Now that we know that all the files are being turned into SeqBuddy objects okay, make them all objects so it doesn't
 # need to be done over and over for each subsequent test.
@@ -932,6 +941,9 @@ def test_delete_records2():
     tester = Sb.delete_records(Sb.make_copy(sb_objects[0]), ['α1', 'α2'])
     assert seqs_to_hash(tester) == "eca4f181dae3d7998464ff71e277128f"
 
+    tester = Sb.delete_records(Sb.make_copy(sb_objects[0]), 'α1|α2')
+    assert seqs_to_hash(tester) == "eca4f181dae3d7998464ff71e277128f"
+
     with pytest.raises(ValueError) as e:
         Sb.delete_records(Sb.make_copy(sb_objects[0]), dict)
     assert "'patterns' must be a list or a string." in str(e.value)
@@ -1008,12 +1020,22 @@ def test_find_cpg():
 
 # #####################  '-fp', '--find_pattern' ###################### ##
 def test_find_pattern():
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATGGT")
-    assert seqs_to_hash(tester) == "a2e110d3ba14ea5d1b236a8abef7341a"
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATg{2}T")
-    assert seqs_to_hash(tester) == "c8a3e2e8b97f47c5cc41f04a44243e34"
-    tester = Sb.find_pattern(Sb.make_copy(sb_objects[1]), "ATg{2}T", "tga.{1,6}tg")
-    assert seqs_to_hash(tester) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
+    assert seqs_to_hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
+    tester.out_format = "fasta"
+    assert seqs_to_hash(tester) == "6f23f80b52ffb736bbecc9f4c72d8fab"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T")
+    assert seqs_to_hash(tester) == "9ec8561c264bff6f7166855d60457df1"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg")
+    assert seqs_to_hash(tester) == "ec43ce98c9ae577614403933b2c5f37a"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg", include_feature=False)
+    assert seqs_to_hash(tester) == "2e02a8e079267bd9add3c39f759b252c"
+    tester = Sb.find_pattern(sb_resources.get_one("p g"), "[bz]{2}x{50,100}[bz]{2}", ambig=True)
+    assert seqs_to_hash(tester) == "339ff26803a2d12267d873458d40bca2"
+    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGN{6}", ambig=True)
+    assert seqs_to_hash(tester) == "ac9adb42fbfa9cf22f033e9a02130985"
+    tester = Sb.find_pattern(sb_resources.get_one("r f"), "AUGGN{6}", ambig=True)
+    assert seqs_to_hash(tester) == "b7abcb4334232e38dfbac9f46234501a"
 
 
 # #####################  '-frp', '--find_repeats' ###################### ##
@@ -1284,7 +1306,7 @@ def test_merge():
     tester.records[0].seq = tester.records[1].seq
     with pytest.raises(RuntimeError) as e:
         Sb.merge(tester, Sb.make_copy(sb_objects[1]))
-    assert "Record mismatch: ID" in str(e.value)
+    assert "Sequence mismatch for record 'Mle-Panxα1'" in str(e.value)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
@@ -1674,6 +1696,31 @@ def test_translate_edges_and_exceptions(capsys):
     assert string2hash(err) == "9e2a0b4b03f54c209d3a9111792762df"
 
 
+# ######################  '-tmd', '--transmembrane_domains' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_pep():
+    tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True)
+    tester.out_format = "gb"
+    assert seqs_to_hash(tester) == "7285d3c6d60ccb656e39d6f134d1df8b"
+
+
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_cds():
+    TEMP_DIR.subdir("topcons")
+    tester = sb_resources.get_one("d f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % TEMP_DIR.path)
+    tester.out_format = "gb"
+    assert seqs_to_hash(tester) == "e5c9bd89810a39090fc3326e51e1ac6a"
+    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons" % TEMP_DIR.path))
+    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
+    assert files
+
+
 # ################################################# COMMAND LINE UI ################################################## #
 # ##################### '-ano', '--annotate' ###################### ##
 def test_annotate_ui(capsys):
@@ -1936,6 +1983,14 @@ def test_delete_records_ui(capsys):
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.delete_records = [temp_file.path, "3"]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
+    assert string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
+
 
 # ######################  '-drp', '--delete_repeats' ###################### #
 def test_delete_repeats_ui(capsys):
@@ -2005,11 +2060,18 @@ def test_find_cpg_ui(capsys):
 def test_find_pattern_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.find_pattern = ["ATg{2}T", "tga.{1,6}tg"]
-    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[1]), True)
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert string2hash(out) == "0e11b2c0e9451fbfcbe39e3b5be2cf60"
-    assert string2hash(err) == "f2bb95f89e7b9e198f18a049afbe4a93"
+    assert string2hash(out) == "ec43ce98c9ae577614403933b2c5f37a"
+    assert string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
+
+    test_in_args.find_pattern = ["ATGGN{6}", "ambig"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+
+    assert string2hash(out) == "ac9adb42fbfa9cf22f033e9a02130985"
+    assert string2hash(err) == "f54ddf323e0d8fecb2ef52084d048531"
 
 
 # ######################  '-frp', '--find_repeats' ###################### #
@@ -2499,6 +2561,13 @@ def test_pull_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
 
+    temp_file = MyFuncs.TempFile()
+    temp_file.write("α1\nα2")
+    test_in_args.pull_records = [temp_file.path]
+    Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
 
 # ######################  '-prg', '--purge' ###################### #
 def test_purge_ui(capsys):
@@ -2747,3 +2816,24 @@ def test_translate6frames_ui(capsys):
         Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[6]))
     out, err = capsys.readouterr()
     assert "TypeError: You need to supply DNA or RNA sequences to translate" in err
+
+
+# ######################  '-tmd', '--transmembrane_domains' ###################### #
+@pytest.mark.internet
+@pytest.mark.slow
+def test_transmembrane_domains_ui(capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.transmembrane_domains = True
+    test_in_args.quiet = True
+    tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert string2hash(out) == "7285d3c6d60ccb656e39d6f134d1df8b"
+
+    test_in_args.quiet = False
+    tester = Sb.SeqBuddy(">rec\n%s" % ("M" * 9437174))
+    with pytest.raises(SystemExit):
+        Sb.command_line_ui(test_in_args, tester)
+    out, err = capsys.readouterr()
+    assert "ValueError: Record 'rec' is too large to send to TOPCONS." in err
