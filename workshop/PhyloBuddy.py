@@ -113,7 +113,7 @@ def decode_accessions(_phylobuddy):
 CONFIG = br.config_values()
 VERSION = br.Version("PhyloBuddy", 1, 1, br.contributors)
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
-PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
+PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "FastTree"]
 
 
 # #################################################### PHYLOBUDDY #################################################### #
@@ -333,7 +333,7 @@ def _get_tree_binaries(_tool):
 
     tool_dict = {'raxml': 'http://sco.h-its.org/exelixis/web/software/raxml/index.html',
                  'phyml': 'http://www.atgc-montpellier.fr/phyml/versions.php',
-                 'fasttree': 'http://www.microbesonline.org/fasttree/#Install'}
+                 'FastTree': 'http://www.microbesonline.org/fasttree/#Install'}
     return tool_dict[_tool]
 
 
@@ -487,7 +487,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
     """
     Calls tree building tools to generate trees
     :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
-    :param tool: The tree building tool to be used (raxml/phyml/fasttree)
+    :param tool: The tree building tool to be used (raxml/phyml/FastTree)
     :param params: Additional parameters to be passed to the tree building tool
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress all output form alignment programs
@@ -496,14 +496,16 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
     if params is None:
         params = ''
-    tool = tool.lower()
 
     if keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(keep_temp):
             raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
                                   "choose another location to save temporary files." % (tool, keep_temp.split('/')[-1]))
 
-    if tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
+    # handle the deprecated tool name 'fasttree'
+    tool = {'fasttree': 'FastTree'}.get(tool, tool)
+
+    if tool not in ['raxml', 'phyml', 'FastTree']:  # Supported tools
         raise AttributeError("{0} is not a valid alignment tool.".format(tool))
 
     if shutil.which(tool) is None:  # Tool must be callable from command line
@@ -569,12 +571,12 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
             command = '{0} -i {1} {2}'.format(tool, tmp_in, params)
 
-        elif tool == 'fasttree':
+        elif tool == 'FastTree':
             if '-n ' not in params and '--multiple' not in params and len(alignbuddy.alignments) > 1:
                 params += ' -n {0}'.format(len(alignbuddy.alignments))  # Number of alignments to be input
             if alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna,
                                     IUPAC.unambiguous_rna]:
-                command = '{0} {1} -nt {2}'.format(tool, params, tmp_in)  # fasttree must be told what alphabet to use
+                command = '{0} {1} -nt {2}'.format(tool, params, tmp_in)  # FastTree must be told what alphabet to use
             else:
                 command = '{0} {1} {2}'.format(tool, params, tmp_in)
         else:

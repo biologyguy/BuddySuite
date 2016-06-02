@@ -325,8 +325,8 @@ def test_guess_format():
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
 # ###################### 'ct', '--consensus_tree' ###################### #
-hashes = ["f20cbd5aae5971cce8efbda15e4e0b7e", "109c2be4172dc15a7dad477d0041933f",
-          "5a813bf69c5f3202842b15c3d7d19846", "59956aecc03e49a4d3cce8505b80b088"]
+hashes = ["a565a2b86bafbc06cee02197c4a8428a", "64d4b94950652cd754c22aff9ae0dc32",
+          "3319ac115720a67f9941968e26b2762a", "59956aecc03e49a4d3cce8505b80b088"]
 hashes = [(Pb.make_copy(pb_objects[x]), hashes[x]) for x in range(4)]
 
 
@@ -336,8 +336,8 @@ def test_consensus_tree(phylobuddy, next_hash):
     assert phylo_to_hash(tester) == next_hash
 
 
-hashes = ["447862ed1ed6e98f2fb535ecce70218b", "253aef020f7b5bc36ed03fe2ad8f0837",
-          "77afcc1db9757c9f29a195e7ef380c0c", "59956aecc03e49a4d3cce8505b80b088"]
+hashes = ["df1cbcf1ba7e01fc11930af1a4dd61ce", "fa8a14163e6e55baa5b648a9b60a44d0",
+          "043f8088bde0644dd2c06076802493f5", "59956aecc03e49a4d3cce8505b80b088"]
 hashes = [(Pb.make_copy(pb_objects[x]), hashes[x]) for x in range(4)]
 
 
@@ -446,7 +446,7 @@ def test_fasttree_inputs():
     # Nucleotide
     alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
-    tester = Pb.generate_tree(Alb.make_copy(alignbuddy), 'fasttree', '-seed 12345')
+    tester = Pb.generate_tree(Alb.make_copy(alignbuddy), 'FastTree', '-seed 12345')
     assert phylo_to_hash(tester) == 'd7f505182dd1a1744b45cc326096f70c'
 
     tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', quiet=True)
@@ -461,7 +461,7 @@ def test_fasttree_inputs():
 def test_fasttree_multi_param():
     temp_file = MyFuncs.TempFile()
     tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
-    tester = Pb.generate_tree(tester, 'fasttree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
+    tester = Pb.generate_tree(tester, 'FastTree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
     assert phylo_to_hash(tester) == '0877f4e8f46c3f77390dbf962d24ff71'
 
 
