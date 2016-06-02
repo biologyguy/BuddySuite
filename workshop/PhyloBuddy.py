@@ -347,7 +347,7 @@ def _guess_format(_input):
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # trees > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding='utf-8')
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         # Die if file is empty

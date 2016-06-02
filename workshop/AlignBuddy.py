@@ -147,7 +147,7 @@ class AlignBuddy(object):
                 alignments = list(AlignIO.parse(_input, self.in_format))
 
         elif os.path.isfile(_input):
-            with open(_input, "r") as _input:
+            with open(_input, "r", encoding='utf-8') as _input:
                 if self.in_format == "phylipss":
                     alignments = list(br.phylip_sequential_read(_input.read(), relaxed=False))
                 elif self.in_format == "phylipsr":
@@ -307,7 +307,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding='utf-8')
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
