@@ -287,15 +287,6 @@ hashes = [(Pb.make_copy(pb_objects[x]), hashes[x]) for x in range(len(pb_objects
 
 
 @pytest.mark.parametrize("phylobuddy,next_hash", hashes)
-def test_print(phylobuddy, next_hash, capsys):
-    phylobuddy.print()
-    out, err = capsys.readouterr()
-    out = "{0}\n".format(out.rstrip())
-    tester = md5(out.encode()).hexdigest()
-    assert tester == next_hash
-
-
-@pytest.mark.parametrize("phylobuddy,next_hash", hashes)
 def test_str(phylobuddy, next_hash):
     tester = str(phylobuddy)
     tester = md5(tester.encode()).hexdigest()

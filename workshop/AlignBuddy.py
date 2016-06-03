@@ -165,36 +165,6 @@ class AlignBuddy(object):
                 rec.seq.alphabet = self.alpha
         self.alignments = alignments
 
-    def set_format(self, in_format):
-        self.out_format = br.parse_format(in_format)
-
-    def records_iter(self):
-        for alignment in self.alignments:
-            for rec in alignment:
-                yield rec
-
-    def records(self):
-        seq_recs = []
-        for alignment in self.alignments:
-            for rec in alignment:
-                seq_recs.append(rec)
-        return seq_recs
-
-    def records_dict(self):  # Note that multiple records can have the same ID. Each item in the dict is a list of recs
-        seq_recs = OrderedDict()
-        for rec in self.records():
-            seq_recs.setdefault(rec.id, [])
-            seq_recs[rec.id].append(rec)
-        return seq_recs
-
-    def lengths(self):
-        lengths = [alignment.get_alignment_length() for alignment in self.alignments]
-        return lengths
-
-    def print(self):
-        print(str(self))
-        return
-
     def __str__(self):
         empty_alignments = []
         for indx, alignment in enumerate(self.alignments):
@@ -251,6 +221,32 @@ class AlignBuddy(object):
             return "%s\n\n" % output.rstrip()
         else:
             return "%s\n" % output.rstrip()
+
+    def set_format(self, in_format):
+        self.out_format = br.parse_format(in_format)
+
+    def records_iter(self):
+        for alignment in self.alignments:
+            for rec in alignment:
+                yield rec
+
+    def records(self):
+        seq_recs = []
+        for alignment in self.alignments:
+            for rec in alignment:
+                seq_recs.append(rec)
+        return seq_recs
+
+    def records_dict(self):  # Note that multiple records can have the same ID. Each item in the dict is a list of recs
+        seq_recs = OrderedDict()
+        for rec in self.records():
+            seq_recs.setdefault(rec.id, [])
+            seq_recs[rec.id].append(rec)
+        return seq_recs
+
+    def lengths(self):
+        lengths = [alignment.get_alignment_length() for alignment in self.alignments]
+        return lengths
 
     def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:

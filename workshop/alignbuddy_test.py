@@ -337,14 +337,6 @@ albs = [(hashes[key], alignbuddy) for key, alignbuddy in alb_resources.get("").i
 
 
 @pytest.mark.parametrize("next_hash,alignbuddy", albs)
-def test_print(next_hash, alignbuddy, capsys):
-    alignbuddy.print()
-    out, err = capsys.readouterr()
-    tester = string2hash(out[:-1])
-    assert tester == next_hash
-
-
-@pytest.mark.parametrize("next_hash,alignbuddy", albs)
 def test_str(next_hash, alignbuddy):
     tester = str(alignbuddy)
     tester = string2hash(tester)

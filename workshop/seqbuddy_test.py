@@ -280,9 +280,6 @@ def test_to_dict():
 def test_to_string(capsys):
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
     assert string2hash(str(tester)) == "b831e901d8b6b1ba52bad797bad92d14"
-    tester.print()
-    out, err = capsys.readouterr()
-    assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
 
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.gb"))
     assert string2hash(str(tester)) == "2e02a8e079267bd9add3c39f759b252c"
@@ -2821,9 +2818,10 @@ def test_translate6frames_ui(capsys):
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
+@pytest.mark.foo1
 def test_transmembrane_domains_ui(capsys):
     test_in_args = deepcopy(in_args)
-    test_in_args.transmembrane_domains = True
+    test_in_args.transmembrane_domains = [True]
     test_in_args.quiet = True
     tester = sb_resources.get_one("p f")
     Sb.pull_recs(tester, "Panxα[234]")

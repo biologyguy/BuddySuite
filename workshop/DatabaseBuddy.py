@@ -159,6 +159,30 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     if search_term not in self.records:
                         self.search_terms.append(search_term)
 
+    def __hash__(self):
+        _records = tuple([(_key, _value) for _key, _value in self.records.items()])
+        return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and ((self.records, self.out_format) == (other.records, other.out_format))
+
+    def __str__(self):
+        _output = "############################\n"
+        _output += "### DatabaseBuddy object ###\n"
+        _output += "Databases:    %s\n" % ", ".join(self.databases)
+        _output += "Out format:   %s\n" % self.out_format
+        _output += "Searches:     "
+        _output += "None\n" if not self.search_terms else "%s\n" % ", ".join(self.search_terms)
+
+        breakdown = self.record_breakdown()
+        _output += "Full Recs:    %s\n" % len(breakdown["full"])
+        _output += "Summary Recs: %s\n" % len(breakdown["summary"])
+        _output += "ACCN only:    %s\n" % len(breakdown["accession"])
+        _output += "Trash bin:  %s\n" % len(self.trash_bin)
+        _output += "Failures:     %s\n" % len(self.failures)
+        _output += "############################\n"
+        return _output
+
     def filter_records(self, regex, mode):
         if mode not in ["keep", "remove", "restore"]:
             raise ValueError("The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not %s." % mode)
@@ -365,31 +389,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _output = re.sub("\\033\[[0-9]*m", "", _output)
             _output = re.sub("  +", "\t", _output)
             destination.write(_output)
-
-    def __hash__(self):
-        _records = tuple([(_key, _value) for _key, _value in self.records.items()])
-        return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
-
-    def __eq__(self, other):
-        return isinstance(other, type(self)) and ((self.records, self.out_format) == (other.records, other.out_format))
-
-    def __str__(self):
-        _output = "############################\n"
-        _output += "### DatabaseBuddy object ###\n"
-        _output += "Databases:    %s\n" % ", ".join(self.databases)
-        _output += "Out format:   %s\n" % self.out_format
-        _output += "Searches:     "
-        _output += "None\n" if not self.search_terms else "%s\n" % ", ".join(self.search_terms)
-
-        breakdown = self.record_breakdown()
-        _output += "Full Recs:    %s\n" % len(breakdown["full"])
-        _output += "Summary Recs: %s\n" % len(breakdown["summary"])
-        _output += "ACCN only:    %s\n" % len(breakdown["accession"])
-        _output += "Trash bin:  %s\n" % len(self.trash_bin)
-        _output += "Failures:     %s\n" % len(self.failures)
-        _output += "############################\n"
-
-        return _output
 
 
 # ################################################# SUPPORT CLASSES ################################################## #

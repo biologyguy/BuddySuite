@@ -239,10 +239,6 @@ class PhyloBuddy(object):
                 for _node in _tree.nodes():
                     _node.edge_length = 1.0
 
-    def print(self):
-        print(self)
-        return
-
     def __str__(self):
         if len(self.trees) == 0:
             return "Error: No trees in object.\n"

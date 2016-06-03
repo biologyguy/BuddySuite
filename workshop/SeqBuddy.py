@@ -293,21 +293,6 @@ class SeqBuddy(object):
 
         self.records = sequences
 
-    def to_dict(self):
-        sb_copy = find_repeats(make_copy(self))
-        if len(sb_copy.repeat_ids) > 0:
-            raise RuntimeError("There are repeat IDs in self.records\n%s" %
-                               ", ".join([key for key, recs in sb_copy.repeat_ids.items()]))
-
-        records_dict = OrderedDict()
-        for rec in self.records:
-            records_dict[rec.id] = rec
-        return records_dict
-
-    def print(self):
-        print(str(self).strip())
-        return
-
     def __str__(self):
         if len(self.records) == 0:
             return "Error: No sequences in object.\n"
@@ -359,6 +344,17 @@ class SeqBuddy(object):
 
     def __len__(self):
         return len(self.records)
+
+    def to_dict(self):
+        sb_copy = find_repeats(make_copy(self))
+        if len(sb_copy.repeat_ids) > 0:
+            raise RuntimeError("There are repeat IDs in self.records\n%s" %
+                               ", ".join([key for key, recs in sb_copy.repeat_ids.items()]))
+
+        records_dict = OrderedDict()
+        for rec in self.records:
+            records_dict[rec.id] = rec
+        return records_dict
 
     def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:
