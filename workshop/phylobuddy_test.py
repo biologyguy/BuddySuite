@@ -71,14 +71,14 @@ in_args = parser.parse_args([])
 def phylo_to_hash(_phylobuddy, mode='hash'):
     if mode != "hash":
         return str(_phylobuddy)
-    _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode()).hexdigest()
+    _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode('utf-8')).hexdigest()
     return _hash
 
 root_dir = os.getcwd()
 
 
 def string2hash(_input):
-    return md5(_input.encode()).hexdigest()
+    return md5(_input.encode('utf-8')).hexdigest()
 
 
 def resource(file_name):
