@@ -285,6 +285,7 @@ class TempDir(object):
         self.dir = next(self._make_dir())
         self.path = self.dir.name
         self.subdirs = []
+        self.subfiles = []
 
     def _make_dir(self):
         tmp_dir = TemporaryDirectory()
@@ -306,6 +307,23 @@ class TempDir(object):
         _dir = _dir.split("/")[-1]
         del self.subdirs[self.subdirs.index(_dir)]
         rmtree("%s/%s" % (self.path, _dir))
+        return
+
+    def subfile(self, file_name=None):
+        if not file_name:
+            file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+            root, dirs, files = next(walklevel(self.path))
+            while file_name in files:  # Catch the very unlikely case that a duplicate occurs
+                file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
+
+        open("%s/%s" % (self.path, file_name), "w").close()
+        self.subfiles.append(file_name)
+        return "%s/%s" % (self.path, file_name)
+
+    def del_subfile(self, _file):
+        _file = _file.split("/")[-1]
+        del self.subfiles[self.subfiles.index(_file)]
+        os.remove("%s/%s" % (self.path, _file))
         return
 
     def save(self, location, keep_hash=False):
