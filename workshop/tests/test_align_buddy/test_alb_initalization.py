@@ -20,14 +20,14 @@ def test_can_create_align_buddy(alb_resources):
             'stockholm'
     """
 
-    for molecule in alb_resources.resource_list:  # dna, rna, pep
-        for quantity in alb_resources.resource_list[molecule]:  # single, multi
+    for molecule in alb_resources.resources:  # dna, rna, pep
+        for quantity in alb_resources.resources[molecule]:  # single, multi
             # rna resource only has a single alignment file so skip multi
             if molecule == 'rna' and quantity == 'multi':
                 continue
 
-            for file_type in alb_resources.resource_list[molecule][quantity]:  # clustal, fasta, etc
-                assert bool(AlignBuddy(alb_resources.resource_list[molecule][quantity][file_type]))
+            for file_type in alb_resources.resources[molecule][quantity]:  # clustal, fasta, etc
+                assert bool(AlignBuddy(alb_resources.resources[molecule][quantity][file_type]))
 
 
 def test_throws_errors_on_invalid_files(alignment_bad_resources):
