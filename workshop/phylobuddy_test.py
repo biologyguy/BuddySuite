@@ -71,14 +71,14 @@ in_args = parser.parse_args([])
 def phylo_to_hash(_phylobuddy, mode='hash'):
     if mode != "hash":
         return str(_phylobuddy)
-    _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode()).hexdigest()
+    _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode('utf-8')).hexdigest()
     return _hash
 
 root_dir = os.getcwd()
 
 
 def string2hash(_input):
-    return md5(_input.encode()).hexdigest()
+    return md5(_input.encode('utf-8')).hexdigest()
 
 
 def resource(file_name):
@@ -397,21 +397,20 @@ def test_distance_unknown_method():
     with pytest.raises(AttributeError):
         Pb.distance(Pb.make_copy(pb_objects[0]), method='foo')
 
-
 # ######################  'gt', '--generate_trees' ###################### #
 # Hashes are for RAxML version 8.2.3
 @pytest.mark.generate_trees
 def test_raxml_inputs():
     # Nucleotide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
-    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml')) == '706ba436f8657ef3aee7875217dd07c0'
+    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml')) == 'b991a103accdb1c980971e6b69b2e6e6'
 
     # Peptide
     tester = Alb.AlignBuddy(resource("Mnemiopsis_pep.nex"))
-    assert phylo_to_hash(Pb.generate_tree(Alb.make_copy(tester), 'raxml')) == 'fc35569091eeba49ac4dcec7fc6890bf'
+    assert phylo_to_hash(Pb.generate_tree(Alb.make_copy(tester), 'raxml')) == '71cd35bc4cfa766799ccecbe1c335175'
 
     # Quiet
-    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml', quiet=True)) == 'fc35569091eeba49ac4dcec7fc6890bf'
+    assert phylo_to_hash(Pb.generate_tree(tester, 'raxml', quiet=True)) == '71cd35bc4cfa766799ccecbe1c335175'
 
 
 @pytest.mark.generate_trees
