@@ -1,0 +1,908 @@
+LOCUS       Mle-Panxα9              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα9
+VERSION     Mle-Panxα9
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(10..87,88..265,266..446,447..621,622..1007,
+                     1008..1528)
+                     /created_by="User"
+                     /label="ML47742a"
+                     /modified_by="User"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="47%"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1061..1153
+ORIGIN
+        1 ---------a tgttaga--- ---------- ---------- ---------- catactttca
+       61 aagtttaaag gagttactcc ttttaaaggt ataacgatag atgacgggtg ggatcaactc
+      121 aatcggagtt ttatgttcgt cctgctcgtt gtcatgggaa cgactgtcac tgtccggcaa
+      181 tacaccggca gtgt---cat cagttgtgac ggcttcaaaa agttt----- ----------
+      241 -------gga tccacttttg cggaggatta ctgttggacc cagggactgt acacagtttt
+      301 agaaggatat gaccaaccca gc---caaaa tatcccttac cca------- ----------
+      361 ---------- ggcctccttc cagacgaggc accaccctgt ---------- ------acac
+      421 c---agtcag actcaag--- -----gacgg tacgaggtta aagtgcccag accctgatca
+      481 gttgttgtca ccgacgcgga tatcccacct atggtaccag tgggtccctt tttacttctg
+      541 gttggcggct gctgccttct tcatgcccta ccttctgtac aagaattt-- -tggcatggg
+      601 agatatcaag cctctcgtga gat------t actacacaat ccagtagaat cagaccagga
+      661 g------tta aagaagatga cagacaaggc tgcaacatgg ctgttctaca agtttgacct
+      721 gtacatgagc gaacagtcgc tcctagcaag tctcaccaga aaacac---g gtcttggtct
+      781 atccatggtc tttgtaaaga tcctatacgc cgcagtgtcg ttcgggtgtt tcctcctgac
+      841 cgctgagatg ttctcaattg gagattttaa aaccta-tgg atcagaatgg atcaagaagt
+      901 taaagttg-- ---------- -----gaaga taatctagct acggaggaaa aggataaact
+      961 ttttcctaag atggtggcat gtgaagtgaa acgctggggt gcatcaggta ttgaggagga
+     1021 acaagggatg tgtgtcctgg cccccaacgt aatcaaccaa tacctcttcc ttattctctg
+     1081 gttctgtctg gtattcgtga tgttctgcaa cattgtctcc atattcgcct ccctcatcaa
+     1141 gctcctcttc acctacggct cctaccgccg cctcctttcc accg---cct tcctgaggga
+     1201 cgactccgcc atcaaacaca ---------t gtacttcaac gtggggtcgt cagggagatt
+     1261 gatattgcac gtgctggcga acaacaccgc cccgcgcgtc ttcgagg-ac atcctgctga
+     1321 ccctggcccc caagctga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tccaacggaa
+     1501 actcagaggt aacggaaaag ctttgtag-- ---------- ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα7A             2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα7A
+VERSION     Mle-Panxα7A
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..176,177..371,372..513,514..643,644..799,800..1007,
+                     1008..2043)
+                     /created_by="User"
+                     /label="ML218922a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            509..571
+     TMD3            752..847
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 1008..1017
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1016..1025
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1019..1028
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 1026..1035
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            1061..1153
+     splice_acceptor 1201..1210
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1204..1213
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_acceptor 1209..1218
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1311..1320
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1318..1327
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1323..1332
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1344..1353
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1514..1523
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1518..1527
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 1521..1530
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_donor    1573..1582
+                     /created_by="User"
+                     /label="Donor"
+     splice_donor    1701..1710
+                     /created_by="User"
+                     /label="Donor"
+ORIGIN
+        1 atg------g gggtggaaat ---------- ---------- -------tct gtttcccata
+       61 atcaacagag ccaccgctcc gatcaagtct gttaacatcg acgatttgag tagtcagctc
+      121 aaccgaactt ttatgtttta cttatcgctg actttcgcca tcactatcac catcaggcag
+      181 cagctaggcg gagcgtacat tgcttgtgac ggattctcca gagac----- ----------
+      241 -gaggaatat gaacggtttg cagaggagtg gtgctggagt agtggaatct acactatcaa
+      301 ggaggcttat gagatgagca ac---agagt cagcccttat ccg------- ----------
+      361 ---------- ggaataatcc cagaaaatct accagcctgt ---------- ------atag
+      421 a---gatgga gctgata--- -----tctgg gggcagagta gagtgtcctg aagagaaaga
+      481 cgtcaagcct ttcaccagga tataccaatc ttggtaccca tttgtgatgt tttactattg
+      541 gctgactgct ttgatgtttt tcttgccgta ccagctttac aaggtctt-- -tggttttga
+      601 agacgtcaaa gcggttgtag cta------t gttgcagaac ccggtagagg atggctttga
+      661 g------aag aaggagctga taaaaagggg ttcagtgtgg ctgtatctta aatctacaat
+      721 gaccctttcc aacccttcag tttactcgag cttcatcgtg aaacac---a gcctagcttt
+      781 ctacgctctt actgtcaagg ttatgtattt ggggaacaca cttcttatgt actggctgac
+      841 tcacaaaatg ttcaagtttg gatcgtttgc ggagta-cgg tcttctctgg gacacaagaa
+      901 accca----- ---------- -----cttaa caacgtccag agccttgttc aagagaaatt
+      961 gttcccaaaa gttgcagcgt gcgaagtaaa gcgctttggt gcatcgggac ttgaggagga
+     1021 ccaaggtatg tgcatgctgg ctctaaacgt ccttaaccag tacctcttct taatcttctg
+     1081 gttctgtctc cttttcgtga caatagtcaa caccatatcc ctcctcctca ccctccttaa
+     1141 catcatctct ccttgcttta tgctccaaca gtttctcctg gcct---cct ctcttgatag
+     1201 gagtccagct gtcggtgtca tatccaagct gtatcttgac tgtggttcct cgctaaggtt
+     1261 catcatgact atatttgctt ggaatgtaga cccaaaattg tttgggg-ag attttagtac
+     1321 agctcaactc tctccttgcc aaggatgaat cgcccagggc tgaagtgctg aagcggcgtt
+     1381 caaaaaaagt gaaagttcca agtccaagaa agcctaaact cttatttcat gaagaaatta
+     1441 agaaaaagtt aataaagagg actgaacgaa aagatgataa cctaaccaat ttcacgaata
+     1501 tgtcgaaaat tagcaagaag tttgaaggcc tcaa------ -----aaaaa gaaatctcct
+     1561 tcagacgaaa agcatcatta atgtaagcgt tcctaagaaa atgagcgagt tagaagtaga
+     1621 agaagatttc attcttactc ctactgaaga aagtggtatc caaaacaacc ctgacaccaa
+     1681 gtatgctcaa gaggatgtac tggactcaga gtacgtagtg gtggaacaat cag-------
+     1741 -tcccagaaa caatgacaga gcaggaatca gtggaggaat cagtcccaga gataagtaaa
+     1801 gctgagcaag aaggcgggag ctcagatcac atcgatgttg aggagacccc gccagcatca
+     1861 gatgttgatc gcgaagtcaa ctctccgatt gttcagcacg aatatcaggt tcagatcgac
+     1921 ttggtttccg acgatggaag cgcccatcgt ttatcgtcag atgaagctct ttttccgctg
+     1981 cggatcccta ttgtgaaatt gaatggcgat gttctgtcat taagatccga gagtttgcag
+     2041 taa
+//
+LOCUS       Mle-Panxα1              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα1
+VERSION     Mle-Panxα1
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..726,727..2043)
+                     /created_by="User"
+                     /label="ML078817"
+     TMD1            124..186
+     TMD2            512..574
+     TMD3            779..841
+     TMD4            1052..1144
+ORIGIN
+        1 atgtactgga tatttga--- ---------- ---------- ---------- gatttgtcaa
+       61 gagataaagc gagctcaatc ctgccgaaag ttcgcgatag acggaccatt cgactggacg
+      121 aaccggatta tcatgccaac actcatggta atctgctgct ttctccaaac cttcaccttc
+      181 atgttcggca gcaa---cat cagctgtatc ggcttcgaga agttg----- ----------
+      241 -------gaa aggaactttg tggaggagta ctgctggacc cagggtatct atacaagcaa
+      301 ggctgcgtat aacatgcca- -----ttaca tactccctac ccg------- ----------
+      361 ---------- gggattgccc cct---gtgt gcccgagtat ---------- ------gatc
+      421 ccg------- ---------- -----tgact cagaagtatt ggttaccctg tgg-------
+      481 ggtggaggaa gaagacaagg cttatcattt gtggtatcag tgggttccgt tttactttct
+      541 cgctgtggcc gtgggttatt atttgccatt tcttatcttg aagggttc-- -aaagctgca
+      601 tcaggtgaag ccgctgatta cgt------a tttgatgaac cagaggaacc tggagactga
+      661 t------cct aaccatttgg taggaaagct atcgcattgg atcttcagac agcttgttta
+      721 ttcaaggttt gcggccacct ctacaatcag aatgtactgg cacgactggg ggcttgtcct
+      781 ccttgtttgc tctgtaaaga tcctctacct taccgtctct cttatccacc tctttgccac
+      841 tgccaagatg ttccacatcg gcaactggtt tacgta-cgg gatcatgttc gcgcggcgc-
+      901 ---------- ---------- -----agcaa cagtcacact acccacgtta aggatgtgtt
+      961 cttcccgaag atggtggcct gtaagatcga gacatggagt ttcacaggga agaatcatct
+     1021 tcacgggatg tgtgttttag ctctgaacgt gatgaaccaa tatttgtttt tgatcgtgtg
+     1081 gtacgtcaac gtaatcatca tcttcctcaa cagtatcagc tgtatttaca ctatagtcaa
+     1141 gttttgtagc cctaacatcg ttcaccaccg gatagtcaac tcct---cct ccttagacga
+     1201 ccaccatgac tttacccgga ---------t gtttggttat gtgggacctt ccggacggat
+     1261 aatcctggct aaaatgtcgg aacatatgcc ggggtacatg ctgaaac-aa gtagccaaga
+     1321 aggtgacaga gaagatag-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- atatagagaa
+     1501 tgaaaagaat agagggagag ccccgactat taagtttacc aaggttaacg gtcagccctc
+     1561 agagctgg-- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ----ccagac agcctctcat gcacctgaac gctctgatgt tagggatggt
+     1741 tcctcagaat ctaccagaac ctaaaattca gaatatccaa cggtcgcaga aaaaagtacg
+     1801 gtt------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ---tctggtt
+     2041 taa
+//
+LOCUS       Mle-Panxα3              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα3
+VERSION     Mle-Panxα3
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..187,188..452,453..574,575..676,677..856,857..993,
+                     994..1184,1185..1723)
+                     /created_by="User"
+                     /label="ML036514a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
+ORIGIN
+        1 atg---ttgt tgctcgg--- ---------- ---------- ---------- ctcactcgga
+       61 acgatcaaga acttgagcat cttcaaagac ctgtccttgg acgactggct ggatcagatg
+      121 aacaggacct tcatgtttct actgctctgt ttcatgggaa caattgtcgc cgttagtcag
+      181 tacactggta aaaa---cat atcttgcgat ggctttacga agttc----- ----------
+      241 -------gga gaagatttct cgcaagacta ctgctggacc cagggcttgt acacgattaa
+      301 agaagcgtac gacttgcccg ag---tccca gatcccgtat cct------- ----------
+      361 ---------- gggattatcc ctgaaaacgt gccggcatgt ---------- ------agag
+      421 a---gcacgc tctgaaa--- -----aacgg aggaaagata gtctgccctc ctgaagatca
+      481 agtgaagccc ctgacccggg ctcgacatct ctggtaccag tggatacctt tctacttctg
+      541 ggtgatagct ccagtcttct atctccctta catgtttgtg aaaaggat-- -gggacttga
+      601 cagaatgaaa cctctgttga aga------t catgagcgac tactaccact gcactacaga
+      661 gacaccttca gaggagataa tagtgaagtg tgcagactgg gtatacaaca gtatagtaga
+      721 caggctgtca gagggcagca gctggacaag ctggagaaac agacac---g gtcttggtct
+      781 ggctgtcttg gtcagcaagt tcatgtatct cggaggtagt gtcctcgtca tgatgatgac
+      841 cactctcatg ttccaggttg gtgatttcaa gacgta-cgg tatagagtgg ttgaggcagt
+      901 tccctaat-- ---------- -----ccaga aaactattcg acctcagtta aacacaaact
+      961 attccccaaa atggtagcct gtgagataaa acgatggggc actaccgggc tagaagagga
+     1021 gaatggaatg tgtgtccttg ccccgaatgt catctaccag tacatttttc taatcatgtg
+     1081 gttcgctcta gccatcacca tatgcaccaa cttcggcaac atatttttct atctcttcaa
+     1141 gctgacagcc actagataca cttacaacaa attggtggcc acaggacatt tctcccacaa
+     1201 gcacccaggt tggaagttca ---------t gtactaccgg attgggacgt caggtcgcgt
+     1261 tctcctgaac attgtcgctc aaaacacgaa ccctatcatt ttcgggg-ct atcatggaaa
+     1321 aactgacacc ttcagtcatt aa-------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- -------gca tttgaggata
+     1501 ggtcacgtgc ccggggagta tttaa----- ---------- ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------c ggacccagca tag------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα12             2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα12
+VERSION     Mle-Panxα12
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..100,101..190,191..371,372..498,499..656,657..819,
+                     820..1007,1008..1080,1081..1208,1209..2043)
+                     /created_by="User"
+                     /label="ML25997a"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
+ORIGIN
+        1 atg------g ttattga--- ---------- ---------- ---------- catcctctcc
+       61 ggttttaagg ggatcacgcc cttcaaaggc atcactttag acgatggatg ggatcaaatc
+      121 aacaggagtt ttatgttcgt tctgtgcgtt ttaatgggaa cggtggtgac ggtgcggcag
+      181 tacgcgggag gaat---tat atcatgtgac ggcttcacca aatac----- ----------
+      241 -------tcg ggctcgttta gcgaggatta ctgttggaca cagggtcttt acaccatcaa
+      301 ggaagcctat gatctcctca cc---atgaa tgtgccttat cca------- ----------
+      361 ---------- ggtgtcatcc ctgaggacat gcccacctgt ---------- ------atcg
+      421 a---gcggga acttata--- -----aatgg aggccgagtg tcctgccccg accctgaaac
+      481 agtcaaacca cccacaagag tctaccactt atggtaccaa tgggttccat tctacttctg
+      541 gctcgcagct gccgccttct tcttccctta tctcatctac aaacattt-- -cggcgttgg
+      601 cgacctcaaa cccctcatcc aaa------t gctccacaac cctattgttg acgaaggtga
+      661 c------cag aactgcatgg ccgaaaaagc tagcatgtgg ctcttctaca aactgaacgt
+      721 tttcatgaac gagaacacaa tcttcgctat cctgactgaa aaacac---c gacttttctt
+      781 cattgttatg ctcgtcaagg tgctctatct gatcatcagt attctggccc tctaccttac
+      841 ggacgagatg ttccacatcg gctcctttgt ctcgta-cgg gagcgagtgg gcgacctccc
+      901 tgcccgag-- ---------- -----ggaga caacgagacg actctcgtta aagacaaact
+      961 cttccccaag atggtcgctt gtgagatcaa acgatgggga cctaccggtc tcgaggagga
+     1021 acagggcatg tgtgtgttgg ctcccaacgt tatcaaccaa tatctcttcc tcatcctctg
+     1081 gttcgccatt attttctgca ttgcttgcaa ctgtttgtcc gtcctcttcg cccttacaaa
+     1141 gctggtcttc gtcttgggct cctacaagag gctcctagcc agtg---ctt tcctcaagga
+     1201 tgaactccac tacaaacaca ---------t gttcttcaac attggtacaa gtggacgagt
+     1261 tctcctacaa atcgttgcga cgaatgtgtc accgcgggtc ttcgagt-cc atcatggcta
+     1321 accttgcgac caagttga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tagctgaacg
+     1501 tttgaaggga aacggcaaag gtagcgtc-- ---------- ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 tag
+//
+LOCUS       Mle-Panxα11             2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα11
+VERSION     Mle-Panxα11
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..71,72..187,188..420,424..583,584..791,792..944,
+                     945..1091,1092..1210,1211..1567)
+                     /created_by="User"
+                     /label="ML25999a"
+     TMD1            121..183
+     splice_acceptor 424..433
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
+ORIGIN
+        1 atg------c tgatctc--- ---------- ---------- ---------- gagcttagtt
+       61 cagttcagca ggttatctcc ttttaaggag ataactatag atgacgggtg ggaccaactt
+      121 aacaggagtt tcatgttcgt tctgatggtt atctgtggaa ctatcgtcac tgtccgacaa
+      181 catacaggta acat---cat ctcgtgtaac ggtttcacaa aatac----- ----------
+      241 -------gac ggatccttct ccgaggacta ctgctggacg cagggactct acacgatcag
+      301 ggaggcgtac cacgtgagcg ac---gtcaa cgtcccttat ccc------- ----------
+      361 ---------- ggagttatcc cggaggagat cccactctgt ---------- ------ctag
+      421 g---agacaa ttgtgat--- -----aagct agcaaa---- ---------- ----------
+      481 ---cagcaac accactcgag tgtatcatct gtggtaccag tggatcccct tctacttctg
+      541 gctcgcttcc gccgccttct tcctccctta tctgatctac aagagata-- -cggatttgg
+      601 agatatcaag cctctgatcc aca------t gctgtacaat cctctcgacg gggacgaagg
+      661 a------gtg aaggcagatt cggagaaggc ctcaatctgg ctttatcaca gattctctat
+      721 ctacatgaac gagcattcca tgtacgccaa ctttatggag agacac---g gaatcggcat
+      781 tctcgttatc gctatcaagg tgatgtacct gatcatctcc gtcctactca tggtcatgac
+      841 cgccatgatg ttcgagctgg ctgacttcaa gcagta-cgg tattgtgtgg gcccaacagt
+      901 ggcctgac-- ---------- -----cctcc tgccaatgtc acaggaatca aggacctgct
+      961 cttccccaag atggttgctt gcgagatcaa gagatgggga cctactggtc tggaggacga
+     1021 gaacggaatg tgtgtcctgg cccccaacgt catcaaccag tacatattcc tcatcctctg
+     1081 gtgggccctt gttttcacca ttgtctctaa cgttttcaac gtactggctg gagttataag
+     1141 aatcgtcttc atctatggtt cttaccgccg gatgttggct agcg---ctt tcctcagaga
+     1201 tgatcctcat tacaagaagg ---------t ctactacaag atcggcacct ccggtcgggt
+     1261 tatcctgaac atgctggcag cctccatctc tccgacctgc ttccagg-ag atcatgaaca
+     1321 acgtctgtcc gcgtctca-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tccgggccca
+     1501 cgtctccaag aagggacgaa acctgggc-- ---------- ---------g acgaccccct
+     1561 gttgtag--- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα4              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα4
+VERSION     Mle-Panxα4
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
+ORIGIN
+        1 atg------g ttattga--- ---------- ---------- ---------- gctgctagct
+       61 ggatacaaag gtctgtcccc gtttaaagac gcgactgttg acgactcatg ggaccaaata
+      121 aaccgatgtt acgtgttcat cgccatggtg gtgatgggtg ctgtgactac aatgaggcaa
+      181 tactctggaa catt---gat tgcatgtgac gggttcacga agttc----- ----------
+      241 -------cac cctcagtttg cagaagatta ctgctggagc ataggaatgt acacggtacg
+      301 cgaggcctat gacttgccca gc---agtat ggttgcatac ccc------- ----------
+      361 ---------- ggagtgatac cctgggatat gcctgcatgt ---------- ------gttc
+      421 c---acgtct cctgaag--- -----aacgg aaccaggacc aaatgtggca gtgagaagga
+      481 cgttatgccc tcagagaaaa tctaccactt gtggtaccag tgggcaagtt tctacttctg
+      541 gatagtggct atactgtact acgcgccgta tataatgttc aaacagtt-- -gggaggggg
+      601 agagtacaag cccctgatca agc------t actttgtctt gcgtctggat ctcctgaaca
+      661 acag---atg caggacatcc aggagcgtgt cgtcaagtgg cttttcttca ggtttaagac
+      721 ctacatattc gctaagggtt actacgcgtg gct---acgt aaaaac---a gtttcagtat
+      781 cgctatcggc gtgacaaaat tgtcctatct cctgataact atccttgtgt tctacttaac
+      841 aggcttcatg ttcgaatatg gctctaacac gtggtaccgg tacggtgctg actggtacgg
+      901 taccagattc tcctcgtacc acgaaactaa caactcaatc acactcacaa aggacatcat
+      961 cttcccaaag atggtagcgt gtgagatcaa gcgatggggt ccctcaggga ttgaggttga
+     1021 gaccgctcag tgcgtacttg ccccgaatgt gctctaccag taccttttcc tctttacttg
+     1081 gtacctcctg atcgcggtat tcttcactaa cctcatcagt tgtttcctcc acatttctga
+     1141 gatgttcttc tctaacggta cgtacaacag gatgatagat caag---gaa tgttgccaga
+     1201 caagcccagt tatcggtacg ---------t cttcatgaac attggcgccg gtggcagaga
+     1261 gatagtccag attctaacag acaattccaa ccccctcttg tttagca-ag atatttgacg
+     1321 atcttaccaa tttactaatc ac-------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- -------tac ttccaaaaac
+     1501 gctgacgtca ttgaaaacct gtcgaagt-- ---------- ---------t ggattcctcc
+     1561 gtaattga-- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- --------ac taggcagcaa agactcaatc taa------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα8              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα8
+VERSION     Mle-Panxα8
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     gene            1..222
+                     /created_by="User"
+                     /label="ML07312a"
+     CDS             order(1..222,223..371,372..498,499..593,594..696,697..908,
+                     909..1007,1008..1507,1508..1726)
+                     /Innexin_02=""
+                     /created_by="User"
+                     /label="Innexin 02"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            779..841
+     TMD4            1052..1144
+ORIGIN
+        1 atg------g tgctgga--- ---------- ---------- ---------- agtgctcgct
+       61 ctcttccccc ggctagcccc cttcaaagtg ataactctgg atgacgtgtg ggaccagtgg
+      121 aaccggagct tcatgttcat catgacggtc ctgtttggaa gtatagtgac tatacggtct
+      181 tacacgggaa gtgt---tat agaatgtgat ggctttctta aggta----- ----------
+      241 -------cca gtggagtttg ctaaagatta ttgttggaca cagggaatct acactctcag
+      301 agaaggatac gattatcaca gt---tctct cttgccatat ccc------- ----------
+      361 ---------- ggggtgtttc ctgaagacgc tcctggctgt ---------- ------ttag
+      421 a---caaagt attagac--- -----aatgg aggaagggtt atttgtccca tggataaaaa
+      481 gtacagaaag tatcagaggg tttaccattc ctggtatcag ttcactgctt tctacttttg
+      541 gacagcatcc tgcgctttct tccttcctta catgatgttt aagttttt-- -tggaatggg
+      601 tgatttgaag ccggtgatat cca------t gttacacaat cctgtggaga ccgctgaaga
+      661 g------ttg gatatgctca cgaagaaagc tgccagatgg ctgtacgtgc gagtccacgc
+      721 ctacatccac actgaccaat actacggcaa gagggtggag aaacac---c tcctcttctt
+      781 ctccataatg ctaaccaagt cgtgctatct cctcttctca gtgctgctct tctggcttac
+      841 tgagaaaatg tttcacatcg gcagtttctt cagtta-cgg tgtcgactgg gctgcagagg
+      901 agcctgagcc t--------- -----ggtga agattataaa acactcatac aagacaagct
+      961 cttcccaaaa atggcatctt gtgaaataaa aagatgggga actacaggga tagaggaaga
+     1021 gcaaggaatg tgtgttctag cagctaacgt catcaaccaa tatctcttcc tcatcttctg
+     1081 gggagggatg gtcgtcacca tcatcgtcaa cgtcctctct gttctcatcg ccctcagcaa
+     1141 cctctgtttt atccagggag cataccggaa tctcctcgct actg---cct tcctccggga
+     1201 cgaacctgct tactcggaaa ---------t ctggagaaaa tccggaacct ccgggcgggt
+     1261 catcttgcag ctgatcgcca agaatgtgaa ccccaannnn nnnnnnncac gtgctgaacg
+     1321 agctggtgaa cttgctga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- --------gg ttggcggaga
+     1501 ggtcaggtgc cttgtggagc gatgt----- ---------- ---------- ---ttttcct
+     1561 tgaacagg-- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------c cgcatatacc acacctggtg aagtga---- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα6              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα6
+VERSION     Mle-Panxα6
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..166,167..371,372..498,499..643,644..815,816..908,
+                     926..1007,1008..1564)
+                     /created_by="User"
+                     /label="ML25993"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 428..437
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     TMD2            512..574
+     splice_acceptor 555..564
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 576..585
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            782..844
+     splice_acceptor 1008..1017
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD4            1052..1144
+     splice_donor    1148..1157
+                     /created_by="User"
+                     /label="Donor"
+ORIGIN
+        1 atg------t tattgga--- ---------- ---------- ---------- gatattagcg
+       61 aacttcaaag gagcgacacc tttcaaagaa atagttctag atgacaagtg ggaccagatt
+      121 aaccgatgtt acatgttcct gctgtgtgtg attttcggaa ctgtcgtgac attcagacag
+      181 tataccggtg gtat---cat tgcttgtgac ggtctgacaa agttc----- ----------
+      241 -------tca gctgcctttg cggaggacta ttgctggacg cagggtcttt ataccataaa
+      301 ggaggcgtat gacatagtgg at---aattc cttaccttac cca------- ----------
+      361 ---------- ggactgctac cggaagatgc gcctccctgt ---------- ------ctct
+      421 c---cagacg attagtg--- -----tctgg tggaagaata gaatgtcctc ctgctgacct
+      481 gtacttggaa ccaacaaggg ttcatcacac atggtatcag tggataccgt tttacttttg
+      541 ggtcatatcc atagcgttca ttggtcctta catagtctac aagcagct-- -gggtgtcaa
+      601 cgaactgaag cctattctgg caa------t gcttcataac ccggttgatg gtgacgatgt
+      661 t------aca aaggatcaaa taagcaaagt ctcaagatgg ttagctatca agctgaacat
+      721 ctttatccaa gaaaaatcta cctatgccaa gatcactcag agccat---a ggatgtttat
+      781 tctaatcttt ttaactaaaa tattctatct tggagtaagt ttggctacaa tgtattttac
+      841 tgacaccatg tttgaatccg gccgctacct tactta-cgg cagcgaatgg ttcgcatctc
+      901 tcgataag-- ---------- -----caatc aaactacaca agttttgtgc gagacagact
+      961 gttcccgaaa atggtggcat gtgagatcaa gagatggggt ccttcaggta tggaggagga
+     1021 acaagggatg tgtgttcttg ctccgaacgt gatgaaccaa tatctcttcc tcatcttctg
+     1081 gttcgcactc gtcttcacca tcttctccaa caccttctcc atcttcttct ccgtttcgac
+     1141 ccactgtttt attgacggtg ggtaccagag gtttatccag agct---gct ttctaaaaga
+     1201 aaacagcaaa ctgaagttca ---------t ctatttcaat tgtgggacta ctggccggac
+     1261 ttatctgcat ctaattgcca aaaacgttaa ccctcggatt tttgaac-ag ctcatcatca
+     1321 aacttagtgc agatttag-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- ttgaggagaa
+     1501 aaataagcaa cacttaaagg ggtcaaag-- ---------- ---------g acatactagt
+     1561 ttga------ ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα10B            2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα10B
+VERSION     Mle-Panxα10B
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..87,88..265,266..621,622..1007,1008..1508,
+                     1509..1525)
+                     /created_by="User"
+                     /label="ML32831a"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 88..97
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 101..110
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 129..138
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    256..265
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 266..275
+                     /created_by="User"
+                     /label="26%"
+     splice_donor    429..621
+                     /created_by="User"
+                     /label="67%"
+                     /modified_by="User"
+     splice_acceptor 622..637
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 645..654
+                     /created_by="User"
+                     /label="31%"
+     TMD2            788..850
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD3            1061..1105
+     TMD4            1109..1153
+     splice_donor    1499..1508
+                     /created_by="User"
+                     /label="90%"
+ORIGIN
+        1 atg---cgtt tatcagaaaa gtctacatca cacgattgca aagcttgcat cacacgatcg
+       61 cacaacgaag attgtgctag gagatggggt ataacgatag atgacgggtg ggatcaactc
+      121 aatcggagtt ttatgttcgg cctgctcgtt gtcatgggaa cgactgtcac tgtccggcaa
+      181 tacaccggca gtgt---cat cagttgtgac ggcttcaaaa agttt----- ----------
+      241 -------gga tctacttttg cggaggatta ctgttggacc cagggacagt acacagtttt
+      301 agaaggatat gaccaaccca ac---caaaa tatcccctgc cca------- ----------
+      361 ---gtaccca ggcctccttc cagacgaggc tccaccctga ---------- ------acac
+      421 catgagtcag actcaag--- ---------- ---------- ---------- ----------
+      481 ---------- ---------- ---------- ---------- ---------- ----------
+      541 ---------- ---------- ---------- ---------- ---------- ----------
+      601 ---------- ---------- gat------t tctacacaat ccagtagaat cagaccagga
+      661 a------ttg aagaagatga cagacaaggc cgcaacctgg ctgttctaca agtttgacct
+      721 gtacatgagc gaacagtcgc tcctagcaag tctgaccaat aaacac---g gtcttggtct
+      781 atctgtggtc tttgtaaaga tcctatatgc cgcagtttcg ttcgggtgtt ttctcctgac
+      841 cgctgatatg ttctcaattg gagatttcaa aaccta-tgg atcagaatgg attaataagt
+      901 tgaagttg-- ---------- -----gaaga taatctagct acggaggaaa aggataagct
+      961 ttttcctaaa atggtggcat gtgaagtgaa acgctggggt gcatcaggta ttgaagagga
+     1021 acaagggatg tgtgtcctgg cccccaacgt aatcaaccaa tacctattcc ttattctctg
+     1081 gttctgtctg gtattcgtga tgttctgcaa cattgtctcc atattcgcct ccctcatcaa
+     1141 gctcctcttc acctacggct cctaccgccg tctcctttcc accg---cct tcctgaggga
+     1201 cgactccgcc atcaaacaca ---------t gtacttcaac gtggggtcgt cagggagatt
+     1261 gatattgcac gtgctggcga acaacaccgc cccgcgcgtc ttcgagg-ac atcctgctga
+     1321 ccctggcccc caagctga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tccaacggaa
+     1501 actcagagct aaggactatg actaa----- ---------- ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα5              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα5
+VERSION     Mle-Panxα5
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..187,188..371,372..520,521..1534)
+                     /created_by="User"
+                     /label="ML223536a"
+                     /modified_by="User"
+     TMD1            121..183
+     TMD2            512..574
+     TMD3            782..844
+     TMD4            1052..1144
+ORIGIN
+        1 atg------a tctactg--- ---------- ---------- ---------- ggtgtgggcg
+       61 gtgtttaaac ggatggcacc tttcaaggtg gtcactcttg acgacaggtg ggaccagatg
+      121 aaccgcagct tcatgatgcc gctaaccatg tccttcgctt atctcatcga ctatgggatc
+      181 attgcaggat ccac---aat caagtgcact ggatttgaag attcc----- ----------
+      241 -ttccgatcg gaagcttttg tagacgagta ctgttggact cagggaatct atacactgag
+      301 agaagcgtac gatctcgaga ac---acaaa aataccctac cca------- ----------
+      361 ---------- ggtataatac cggagggatt cccgaactgc ---------- ------atgc
+      421 c---ttatga aagatgg--- -----gatgg gatgaaagtg gaatgtccca aggaggaaca
+      481 gtacctgaaa cccactcggg tttatcacct atactatcag cacatccaac tctacttctg
+      541 gctggtgtgc acactcttct acctccccta catggtggga atctgtct-- -aggtttcaa
+      601 ctacaccaaa cctctcatca atc------t tctccacaac cctctcacca gagacgagga
+      661 ggag---ctc gaggctctgc tggacaaagc tgcccggtct ctgagactcc gtctggatat
+      721 ttactccgac cagaaatcct ggtttgatct gctctaccga cgacat---a caatgttgta
+      781 tctcctcttc tttatcaagc tgcagtacct tggattttct gtagcgattc ttggtctcac
+      841 tcaagccaag tttaagatcg gcaactttgt aacgta-tgg gtttgagtgg gttgggagtc
+      901 aagtccct-- ---------- -----aacgg ctccacctat actctagttc aacacaaact
+      961 cttcccaaag atggctgcct gtgagatcaa acgctgggga gcatcaggtt tagacgtttt
+     1021 gagagggatg tgtgttcttc cccaaaatgt ttcaaactca tacatctttc tcgtattctg
+     1081 gatttttctt ctgctcacca tcctgggcaa tgtcataggg tgcatcctga ccgtgaaaca
+     1141 gtacttggtg aaatcagagg gttacagcaa gcttgttgcc tgta---ctt tct---ggaa
+     1201 tgattggaat ctgagacatt ---------t gtattggaat gtaggggggt caggccgggt
+     1261 gattcttcat catctggcag ataacctcca tccctgtact tttgaga-aa cttattagga
+     1321 ggtactggtg gctgaaga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- ggaacgagta
+     1501 tgtccagtat aatggacatc taaagacttc ttag------ ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα2              2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα2
+VERSION     Mle-Panxα2
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..180,181..371,372..643,644..785,786..908,926..1726)
+                     /created_by="User"
+                     /label=""
+                     /modified_by="User"
+     TMD1            121..183
+     splice_donor    171..180
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 181..190
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 188..198
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 220..229
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 222..231
+                     /created_by="User"
+                     /label="Acceptor"
+                     /modified_by="User"
+     splice_donor    335..371
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 428..437
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 432..449
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 464..473
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 476..485
+                     /created_by="User"
+                     /label="Acceptor"
+     splice_acceptor 480..489
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD2            509..571
+     splice_acceptor 583..592
+                     /created_by="User"
+                     /label="Acceptor"
+     TMD3            779..841
+     TMD4            1052..1144
+ORIGIN
+        1 atg------g tattgga--- ---------- ---------- -------tct catttctgga
+       61 agcttgaatg gctttttaaa gatcaagtca gttagcatcg acgatcagtg ggaccagatt
+      121 aacagaacct atttggtcat gttttgtatt ttatctggta caatcatgac ctttaaacag
+      181 aatttaggat caata-atac actgtatatc ggatgcaaga ggcgacgaca gttcgtttgc
+      241 ggatgctcat gcgacatttg tgcaagacta ttgtgctgct caagggctgt acactttaaa
+      301 agaagtgtat gacaagtctt ggccagatga aattccttac cca------- ----------
+      361 ---------- ggtattctcc aaatgaaaac aatcggttgt ---------- ------ttcc
+      421 cggggagaca gttcaaa--- -----aacgg aacccccatc cagtgcccgg acgagaaaga
+      481 tctgaaaccc ttcacaacgg tctatcatgt ctggtacatg ttcgtaccgt tctacttctg
+      541 cgctgttggc atcgcttttt acttccccta cacggttttc agacacctca gcggcatcta
+      601 cgacatcaag cctatgttga acagccttgc cctcgacatt ggggcctaca cggaggagga
+      661 c------ata agtcgacgta tagacaatgt ctcgaggtgg ttgtacatca agttggatcc
+      721 ctacatgaac aacatgcttc cttatactca gatagttcac aaacat---t ccatctttta
+      781 cacggtgatg ttggtgaagg tgatgtacct agctaccagt gtttctattt tttacgccac
+      841 tcaccggata ttcgaccaag gaaactttgc actcta-cgg atacgatgtt ctaatgagca
+      901 taccacag-- ---------- -----gaaac aagctataa- -----agtga tggacacaat
+      961 cttccctaaa atggttggct gtgagatcaa catgtggggc cggactggcg aacagagcga
+     1021 atctcttctg tgtgtcctcc ctcaaaacat cggcaaccaa tacttcttcc ttatattctg
+     1081 gtttctcctg attctcacca tactttccaa ctgtatctct gtaatagtga ccatattcag
+     1141 atttatattc gttagtggga gctacaaaag gttcctggct acca---gcc tcttgaatca
+     1201 cgaagaacga tacaagctgg ---------t gtttacacat gtcggcacga ctggaagata
+     1261 cattttactg ctctgtgccg atcatagcaa ccccaaaata ttcgagg-at cttctagaga
+     1321 tcgtctgttc ccttctca-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tagcaaacta
+     1501 tcacaaaaga aagaggagtc gggataag-- ---------- ---------- -ggacacagt
+     1561 cgagcggagg ---------- ---------- ---------- ------gggt agggactaaa
+     1621 gggcga---- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---cacggtc tgtcttttgt ggactcaacc gtgtga---- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
+LOCUS       Mle-Panxα10A            2043 bp    DNA              UNK 01-JAN-1980
+DEFINITION  
+ACCESSION   Mle-Panxα10A
+VERSION     Mle-Panxα10A
+KEYWORDS    .
+SOURCE      
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+     CDS             order(1..87,88..265,266..343,344..446,447..621,622..1007,
+                     1008..1508,1509..1525)
+                     /created_by="User"
+                     /label="ML32831a"
+                     /modified_by="User"
+     splice_donor    78..87
+                     /created_by="User"
+                     /label="Donor"
+     splice_acceptor 88..97
+                     /created_by="User"
+                     /label="36%"
+                     /modified_by="User"
+     splice_acceptor 101..110
+                     /created_by="User"
+                     /label="7%"
+                     /modified_by="User"
+     TMD1            121..183
+     splice_acceptor 129..138
+                     /created_by="User"
+                     /label="20%"
+     splice_donor    256..265
+                     /created_by="User"
+                     /label=""
+     splice_acceptor 266..275
+                     /created_by="User"
+                     /label="26%"
+     splice_acceptor 386..395
+                     /created_by="User"
+                     /label="18%"
+     splice_acceptor 389..398
+                     /created_by="User"
+                     /label="17%"
+     splice_donor    437..446
+                     /created_by="User"
+                     /label="91%"
+                     /modified_by="User"
+     splice_donor    447..449
+                     /created_by="User"
+                     /label="34%"
+     TMD2            512..574
+     splice_acceptor 521..530
+                     /created_by="User"
+                     /label="7%"
+     splice_donor    612..621
+                     /created_by="User"
+                     /label="71%"
+     splice_acceptor 622..637
+                     /created_by="User"
+                     /label="42%"
+     splice_acceptor 645..654
+                     /created_by="User"
+                     /label="31%"
+     TMD3            782..844
+     splice_donor    998..1007
+                     /created_by="User"
+                     /label="72%"
+                     /modified_by="User"
+     TMD4            1061..1153
+     splice_donor    1499..1508
+                     /created_by="User"
+                     /label="90%"
+ORIGIN
+        1 atg---cgtt tatcagaaaa gtctacatca cacgattgca aagcttgcat cacacgatcg
+       61 cacaacgaag attgtgctag gagatggggt ataacgatag atgacgggtg ggatcaactc
+      121 aatcggagtt ttatgttcgg cctgctcgtt gtcatgggaa cgactgtcac tgtccggcaa
+      181 tacaccggca gtgt---cat cagttgtgac ggcttcaaaa agttt----- ----------
+      241 -------gga tctacttttg cggaggatta ctgttggacc cagggacagt acacagtttt
+      301 agaaggatat gaccaaccca ac---caaaa tatcccctgc ccattgcccg ctgcgtttgc
+      361 tccgtacccc gggattttcc cggaggagct atcgcactgt ctggttggcg ctcgtaaagc
+      421 c---ggccag tctgaggacc tgattaacgg tacgaggtta aagtgcccag accctgatca
+      481 gttgttgtca ccgacgcgga tatcccacct atggtaccag tgggtccctt tttacttctg
+      541 gctggcggct gctgccttct tcatgcccta cctattgtac aagaattt-- -tggcatagg
+      601 agatatcaag cctctcgtga gat------t tctacacaat ccagtagaat cagaccagga
+      661 a------ttg aagaagatga cagacaaggc cgcaacctgg ctgttctaca agtttgacct
+      721 gtacatgagc gaacagtcgc tcctagcaag tctgaccaat aaacac---g gtcttggtct
+      781 atctgtggtc tttgtaaaga tcctatatgc cgcagtttcg ttcgggtgtt ttctcctgac
+      841 cgctgatatg ttctcaattg gagatttcaa aaccta-tgg atcagaatgg attaataagt
+      901 tgaagttg-- ---------- -----gaaga taatctagct acggaggaaa aggataagct
+      961 ttttcctaaa atggtggcat gtgaagtgaa acgctggggt gcatcaggta ttgaagagga
+     1021 acaagggatg tgtgtcctgg cccccaacgt aatcaaccaa tacctattcc ttattctctg
+     1081 gttctgtctg gtattcgtga tgttctgcaa cattgtctcc atattcgcct ccctcatcaa
+     1141 gctcctcttc acctacggct cctaccgccg tctcctttcc accg---cct tcctgaggga
+     1201 cgactccgcc atcaaacaca ---------t gtacttcaac gtggggtcgt cagggagatt
+     1261 gatattgcac gtgctggcga acaacaccgc cccgcgcgtc ttcgagg-ac atcctgctga
+     1321 ccctggcccc caagctga-- ---------- ---------- ---------- ----------
+     1381 ---------- ---------- ---------- ---------- ---------- ----------
+     1441 ---------- ---------- ---------- ---------- ---------- tccaacggaa
+     1501 actcagagct aaggactatg actaa----- ---------- ---------- ----------
+     1561 ---------- ---------- ---------- ---------- ---------- ----------
+     1621 ---------- ---------- ---------- ---------- ---------- ----------
+     1681 ---------- ---------- ---------- ---------- ---------- ----------
+     1741 ---------- ---------- ---------- ---------- ---------- ----------
+     1801 ---------- ---------- ---------- ---------- ---------- ----------
+     1861 ---------- ---------- ---------- ---------- ---------- ----------
+     1921 ---------- ---------- ---------- ---------- ---------- ----------
+     1981 ---------- ---------- ---------- ---------- ---------- ----------
+     2041 ---
+//
