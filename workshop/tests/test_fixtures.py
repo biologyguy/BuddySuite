@@ -1,37 +1,39 @@
 # coding=utf-8
-""" verify that fixtures are working as expected """
+"""
+verify that fixtures are working as expected. I.e., test the tests before testing ;)
+"""
 import os
 
 
 class TestAlignmentResourceFixture:
-    def test_alignment_valid_resources_has_values(self, alignment_valid_resources):
+    def test_alignment_valid_resources_has_values(self, alb_resources):
         """ checks that the alignment resource fixture has values """
-        assert alignment_valid_resources
-        assert isinstance(alignment_valid_resources, dict)
+        assert alb_resources
+        assert isinstance(alb_resources.resource_list, dict)
 
         # check subject type
-        assert alignment_valid_resources['dna']
-        assert alignment_valid_resources['rna']
-        assert alignment_valid_resources['pep']
+        assert alb_resources.resource_list['dna']
+        assert alb_resources.resource_list['rna']
+        assert alb_resources.resource_list['pep']
 
         # check quantity types
-        for molecule in alignment_valid_resources:
+        for molecule in alb_resources.resource_list:
             for quantity in ['multi', 'single']:
                 # rna resource only has a single alignment file so skip multi
                 if molecule == 'rna' and quantity == 'multi':
                     continue
 
-                assert bool(alignment_valid_resources[molecule][quantity])
+                assert bool(alb_resources.resource_list[molecule][quantity])
 
-    def test_alignment_valid_resources_files_exist(self, alignment_valid_resources):
-        """ verifies that the alignment_valid_resources fixture points to real files """
-        for molecule in alignment_valid_resources:  # dna, rna, pep
+    def test_alignment_valid_resources_files_exist(self, alb_resources):
+        """ verifies that the alb_resources fixture points to real files """
+        for molecule in alb_resources.resource_list:  # dna, rna, pep
             for quantity in ['multi', 'single']:
                 # rna resource only has a single alignment file so skip multi
                 if molecule == 'rna' and quantity == 'multi':
                     continue
 
-                for _, path in alignment_valid_resources[molecule][quantity].items():
+                for _, path in alb_resources.resource_list[molecule][quantity].items():
                     assert os.path.isfile(path)
 
     def test_alignment_bad_resources_file_exists(self, alignment_bad_resources):
