@@ -28,9 +28,9 @@ and allows maintenance of rich feature annotation following alignment.
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
+from buddysuite import buddy_resources as br
+from buddysuite import SeqBuddy as Sb
+from buddysuite import MyFuncs
 
 # Standard library
 import sys
