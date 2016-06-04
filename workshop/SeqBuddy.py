@@ -1410,9 +1410,8 @@ def count_codons(seqbuddy):
     output = OrderedDict()
     for rec in seqbuddy.records:
         sequence = rec.seq
-        if len(sequence) % 3 != 0:
-            while len(sequence) % 3 != 0:
-                sequence = sequence[:-1]
+        while len(sequence) % 3 != 0:
+            sequence = sequence[:-1]
         data_table = {}
         num_codons = len(sequence) / 3
         while len(sequence) > 0:
