@@ -5,6 +5,7 @@ verify that fixtures are working as expected. I.e., test the tests before testin
 import os
 
 
+# ToDo: Full coverage of the conftest.py file
 class TestAlignmentResourceFixture:
     def test_alignment_valid_resources_has_values(self, alb_resources):
         """ checks that the alignment resource fixture has values """

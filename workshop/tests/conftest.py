@@ -95,12 +95,14 @@ def alb_resources():
                                         "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                         "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm"}
 
-        def _parse_code(self, code=""):
+        def parse_code(self, code="", strict=False):
             """
             Take in the letter codes for a query and determine the final groups to be returned
             When codes from a particular category are ommited, pull in all possibilities for that categroy
             :param code: Letter codes (explained in Class definition)
             :type code: str
+            :param strict: Only return the exact resources included in code (don't inflate empty types)
+            :type strict: bool
             :return: The complete group of resources to be used
             :rtype: dict
             """
@@ -115,7 +117,7 @@ def alb_resources():
 
             # Fill up fields with all possibilities if nothing is given
             for result_type in results:
-                if not results[result_type]:
+                if not results[result_type] and not strict:
                     results[result_type] = [key for key in self.code_dict[result_type]]
             return results
 
@@ -129,7 +131,7 @@ def alb_resources():
             :return: AlignBuddy objects or resource paths as controlled by mode {key: resource}
             :rtype: dict
             """
-            files = self._parse_code(code)
+            files = self.parse_code(code)
             output = {}
             slc = self.single_letter_codes
             for molecule in files["molecule"]:
@@ -169,5 +171,6 @@ def alignment_bad_resources():
             'single': {file_format: name.format(path=resource_path) for file_format, name in [
                 ('fasta', '{path}/gibberish.fa')]}
         },
+        'blank': "%s/blank.fa" % resource_path
     }
     return resource_list
