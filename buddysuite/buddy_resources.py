@@ -38,7 +38,7 @@ import traceback
 import re
 
 sys.path.insert(0, "./")
-import MyFuncs
+from buddysuite import MyFuncs
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 

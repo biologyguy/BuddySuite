@@ -27,9 +27,9 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-from MyFuncs import TempDir, walklevel
-import AlignBuddy as Alb
+from buddysuite import buddy_resources as br
+from buddysuite.MyFuncs import TempDir, walklevel
+from buddysuite import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -1335,7 +1335,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _print_trees(phylobuddy)
         _exit("unroot")
 
-if __name__ == '__main__':
+def main():
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, phylobuddy]
@@ -1351,3 +1351,7 @@ if __name__ == '__main__':
                 function = next_arg
                 break
         br.send_traceback("PhyloBuddy", function, _e)
+
+if __name__ == '__main__':
+    main()
+

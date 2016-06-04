@@ -30,8 +30,8 @@ Collection of functions that interact with public sequence databases. Pull them 
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import MyFuncs
+from buddysuite import buddy_resources as br
+from buddysuite import MyFuncs
 
 # Standard library
 import sys
@@ -2689,7 +2689,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
     # Default to LiveSearch
     launch_live_shell()
 
-if __name__ == '__main__':
+def main():
     initiation = []
     try:
         initiation = argparse_init()
@@ -2705,3 +2705,7 @@ if __name__ == '__main__':
                 function = next_arg
                 break
         br.send_traceback("DbBuddy", function, e)
+
+if __name__ == '__main__':
+    main()
+

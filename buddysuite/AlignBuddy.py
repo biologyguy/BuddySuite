@@ -28,9 +28,9 @@ and allows maintenance of rich feature annotation following alignment.
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
+from buddysuite import buddy_resources as br
+from buddysuite import SeqBuddy as Sb
+from buddysuite import MyFuncs
 
 # Standard library
 import sys
@@ -40,7 +40,7 @@ from io import StringIO, TextIOWrapper
 import random
 import re
 from collections import OrderedDict
-from shutil import which
+from shutil import *
 from subprocess import Popen, PIPE, CalledProcessError
 from math import log, ceil
 
@@ -69,11 +69,7 @@ VERSION = br.Version("AlignBuddy", 1, 1, br.contributors)
 
 
 # #################################################### ALIGNBUDDY #################################################### #
-class AlignBuddy(object):
-    """
-    Core class.
-    Open a file or read a handle and parse, or convert raw into a Seq object
-    """
+class AlignBuddy(object):  # Open a file or read a handle and parse, or convert raw into a Seq object
     def __init__(self, _input, in_format=None, out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
@@ -106,12 +102,12 @@ class AlignBuddy(object):
         except TypeError:  # This happens when testing something other than a string.
             pass
 
-        self.in_format = br.parse_format(in_format) if in_format else guess_format(_input)
+        self._in_format = br.parse_format(in_format) if in_format else guess_format(_input)
 
-        if self.in_format == "empty file":
+        if self._in_format == "empty file":
             raise br.GuessError("Empty file")
 
-        if not self.in_format:
+        if not self._in_format:
             if in_file:
                 raise br.GuessError("Could not determine format from _input file '%s'.\n"
                                     "Try explicitly setting with -f flag." % in_file)
@@ -125,7 +121,7 @@ class AlignBuddy(object):
                 raise br.GuessError("Unable to determine format or input type. "
                                     "Please check how AlignBuddy is being called.")
 
-        self.out_format = self.in_format if not out_format else br.parse_format(out_format)
+        self._out_format = self._in_format if not out_format else br.parse_format(out_format)
         # ####  ALIGNMENTS  #### #
         if type(_input) == AlignBuddy:
             alignments = _input.alignments
@@ -139,21 +135,21 @@ class AlignBuddy(object):
             alignments = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-            if self.in_format == "phylipss":
+            if self._in_format == "phylipss":
                 alignments = list(br.phylip_sequential_read(_input.read(), relaxed=False))
-            elif self.in_format == "phylipsr":
+            elif self._in_format == "phylipsr":
                 alignments = list(br.phylip_sequential_read(_input.read()))
             else:
-                alignments = list(AlignIO.parse(_input, self.in_format))
+                alignments = list(AlignIO.parse(_input, self._in_format))
 
         elif os.path.isfile(_input):
-            with open(_input, "r", encoding='utf-8') as _input:
-                if self.in_format == "phylipss":
+            with open(_input, "r") as _input:
+                if self._in_format == "phylipss":
                     alignments = list(br.phylip_sequential_read(_input.read(), relaxed=False))
-                elif self.in_format == "phylipsr":
+                elif self._in_format == "phylipsr":
                     alignments = list(br.phylip_sequential_read(_input.read()))
                 else:
-                    alignments = list(AlignIO.parse(_input, self.in_format))
+                    alignments = list(AlignIO.parse(_input, self._in_format))
 
         else:  # May be unreachable
             alignments = None
@@ -165,65 +161,8 @@ class AlignBuddy(object):
                 rec.seq.alphabet = self.alpha
         self.alignments = alignments
 
-    def __str__(self):
-        empty_alignments = []
-        for indx, alignment in enumerate(self.alignments):
-            if not len(alignment):
-                empty_alignments.append(indx)
-        empty_alignments = sorted(empty_alignments, reverse=True)
-        for indx in empty_alignments:
-            del self.alignments[indx]
-
-        if len(self.alignments) == 0:
-            return "AlignBuddy object contains no alignments.\n"
-
-        # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
-        # The following is a work around...
-        if self.out_format in ["gb", "genbank"]:
-            for rec in self.records_iter():
-                try:
-                    if re.search("(\. )+", rec.annotations['organism']):
-                        rec.annotations['organism'] = "."
-                except KeyError:
-                    pass
-
-        self.out_format = self.out_format.lower()
-        multiple_alignments_unsupported = ["fasta", "gb", "genbank", "nexus"]
-        if self.out_format in multiple_alignments_unsupported and len(self.alignments) > 1:
-            raise ValueError("%s format does not support multiple alignments in one file.\n" % self.out_format)
-
-        if self.out_format == "phylipsr":
-            output = br.phylip_sequential_out(self)
-
-        elif self.out_format == "phylipss":
-            output = br.phylip_sequential_out(self, relaxed=False)
-
-        else:
-            tmp_dir = MyFuncs.TempDir()
-            with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
-                try:
-                    AlignIO.write(self.alignments, ofile, self.out_format)
-                except ValueError as e:
-                    if "Sequences must all be the same length" in str(e):
-                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                "Format changed to fasta to accommodate proper printing of records.\n")
-                        AlignIO.write(self.alignments, ofile, "fasta")
-                    elif "Repeated name" in str(e) and self.out_format == "phylip":
-                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
-                                "Format changed to phylip-relaxed.\n")
-                        AlignIO.write(self.alignments, ofile, "phylip-relaxed")
-                    else:
-                        raise e
-
-            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
-                output = ifile.read()
-        if self.out_format == "clustal":
-            return "%s\n\n" % output.rstrip()
-        else:
-            return "%s\n" % output.rstrip()
-
     def set_format(self, in_format):
-        self.out_format = br.parse_format(in_format)
+        self._out_format = br.parse_format(in_format)
 
     def records_iter(self):
         for alignment in self.alignments:
@@ -248,10 +187,71 @@ class AlignBuddy(object):
         lengths = [alignment.get_alignment_length() for alignment in self.alignments]
         return lengths
 
+    def print(self):
+        print(str(self))
+        return
+
+    def __str__(self):
+        empty_alignments = []
+        for indx, alignment in enumerate(self.alignments):
+            if not len(alignment):
+                empty_alignments.append(indx)
+        empty_alignments = sorted(empty_alignments, reverse=True)
+        for indx in empty_alignments:
+            del self.alignments[indx]
+
+        if len(self.alignments) == 0:
+            return "AlignBuddy object contains no alignments.\n"
+
+        # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
+        # The following is a work around...
+        if self._out_format in ["gb", "genbank"]:
+            for rec in self.records_iter():
+                try:
+                    if re.search("(\. )+", rec.annotations['organism']):
+                        rec.annotations['organism'] = "."
+                except KeyError:
+                    pass
+
+        self._out_format = self._out_format.lower()
+        multiple_alignments_unsupported = ["fasta", "gb", "genbank", "nexus"]
+        if self._out_format in multiple_alignments_unsupported and len(self.alignments) > 1:
+            raise ValueError("%s format does not support multiple alignments in one file.\n" % self._out_format)
+
+        if self._out_format == "phylipsr":
+            output = br.phylip_sequential_out(self)
+
+        elif self._out_format == "phylipss":
+            output = br.phylip_sequential_out(self, relaxed=False)
+
+        else:
+            tmp_dir = MyFuncs.TempDir()
+            with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
+                try:
+                    AlignIO.write(self.alignments, ofile, self._out_format)
+                except ValueError as e:
+                    if "Sequences must all be the same length" in str(e):
+                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
+                                "Format changed to fasta to accommodate proper printing of records.\n")
+                        AlignIO.write(self.alignments, ofile, "fasta")
+                    elif "Repeated name" in str(e) and self._out_format == "phylip":
+                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
+                                "Format changed to phylip-relaxed.\n")
+                        AlignIO.write(self.alignments, ofile, "phylip-relaxed")
+                    else:
+                        raise e
+
+            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
+                output = ifile.read()
+        if self._out_format == "clustal":
+            return "%s\n\n" % output.rstrip()
+        else:
+            return "%s\n" % output.rstrip()
+
     def write(self, file_path, out_format=None):
         with open(file_path, "w") as ofile:
             if out_format:
-                out_format_save = str(self.out_format)
+                out_format_save = str(self._out_format)
                 self.set_format(out_format)
                 ofile.write(str(self))
                 self.set_format(out_format_save)
@@ -299,11 +299,11 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
     # Pull value directly from object if appropriate
     if type(_input) == AlignBuddy:
-        return _input.in_format
+        return _input._in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r", encoding='utf-8')
+        _input = open(_input, "r")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
@@ -399,7 +399,7 @@ def _stdout(message, quiet=False):
     return
 
 
-class FeatureReMapper(object):
+class FeatureReMapper:
     """
     Build a list that maps original alignment columns to new positions if columns have been removed
     This will not work if new columns are being added.
@@ -412,11 +412,7 @@ class FeatureReMapper(object):
         self.starting_position_filled = False
 
     def extend(self, exists=True):
-        """
-        Iterates the position map, adding an index and whether the new alignment contains the column.
-        :param exists: Specify whether the next column exists or not
-        """
-        if not self.position_map:
+        if len(self.position_map) == 0:
             if exists:
                 self.starting_position_filled = True
             self.position_map.append((0, exists))
@@ -432,11 +428,6 @@ class FeatureReMapper(object):
         return
 
     def remap_features(self, old_alignment, new_alignment):
-        """
-        Add all the features from old_alignment that still exist onto new_alignment
-        :param old_alignment: AlignRecord
-        :param new_alignment: AlignRecord
-        """
         new_records = list(new_alignment)
         for indx, rec in enumerate(old_alignment):
             new_features = []
@@ -448,10 +439,6 @@ class FeatureReMapper(object):
         return
 
     def _remap(self, feature):
-        """
-        Deal with the weirdness that is SeqRecord features... Compares old features against self.position_map
-        :param feature: A feature from the old alignment
-        """
         if type(feature.location) == FeatureLocation:
             for pos, present in self.position_map[feature.location.start:feature.location.end]:
                 if present:
@@ -483,9 +470,7 @@ def alignment_lengths(alignbuddy):
     """
     Returns a list of alignment lengths
     :param alignbuddy: The AlignBuddy object to be analyzed
-    :type alignbuddy: AlignBuddy
     :return: A list of alignment lengths
-    :rtype: list
     """
     output = []
     for alignment in alignbuddy.alignments:
@@ -494,13 +479,6 @@ def alignment_lengths(alignbuddy):
 
 
 def bootstrap(alignbuddy, num_bootstraps=1):
-    """
-    Sample len(alignbuddy) columns with replacement, and make new alignment(s)
-    :param alignbuddy: The AlignBuddy object to be bootstrapped
-    :param num_bootstraps: The number of new alignments to be generated
-    :type alignbuddy: AlignBuddy
-    :rtype: AlignBuddy
-    """
     new_alignments = []
     for alignment in alignbuddy.alignments:
         for _ in range(num_bootstraps):
@@ -511,7 +489,7 @@ def bootstrap(alignbuddy, num_bootstraps=1):
                 position = random.randint(0, length - 1)
                 new_alignment += alignment[:, position:position + 1]
             new_alignments.append(new_alignment)
-    alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
+    alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy._out_format)
     return alignbuddy
 
 
@@ -523,7 +501,6 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     :param ambiguous: Specifies whether ambiguous characters should be kept or not
     :param skip_list: Optional list of characters to be left alone
     :return: The cleaned AlignBuddy object
-    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     # Protect gaps from being cleaned by Sb.clean_seq
@@ -548,7 +525,6 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     :param group_pattern: Regex that matches some regular part of the sequence IDs, dictating who is bound to who
     :param align_name_pattern: Regex that matches something for the whole alignment
     :return: AlignBuddy object containing a single concatenated alignment
-    :rtype: AlignBuddy
     """
     if len(alignbuddy.alignments) < 2:
         raise AttributeError("Please provide at least two alignments.")
@@ -650,7 +626,6 @@ def consensus_sequence(alignbuddy):
     Generates a simple majority-rule consensus sequence
     :param alignbuddy: The AlignBuddy object to be processed
     :return: The modified AlignBuddy object (with a single record in each alignment)
-    :rtype: AlignBuddy
     """
     consensus_sequences = []
     for alignment in alignbuddy.alignments:
@@ -683,7 +658,6 @@ def delete_records(alignbuddy, regex):
     :param alignbuddy: AlignBuddy object
     :param regex: The regex pattern to search with (duck typed for list or string)
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     if type(regex) == str:
         regex = [regex]
@@ -709,7 +683,6 @@ def dna2rna(alignbuddy):  # Transcribe
     Convert DNA into RNA
     :param alignbuddy: AlignBuddy object
     :return: Modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
@@ -723,7 +696,6 @@ def enforce_triplets(alignbuddy):
     Organizes nucleotide alignment into triplets
     :param alignbuddy: AlignBuddy object
     :return: The rearranged AlignBuddy object
-    :rtype: AlignBuddy
     """
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -785,7 +757,6 @@ def extract_regions(alignbuddy, start, end):
     :param start: The starting residue (indexed from 0)
     :param end: The end residue (inclusive)
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     alb_copy = make_copy(alignbuddy)
     for indx, alignment in enumerate(alignbuddy.alignments):
@@ -812,7 +783,6 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress stderr output
     :return: An AlignBuddy object containing the alignment produced.
-    :rtype: AlignBuddy
     """
     if params is None:
         params = ''
@@ -1006,7 +976,6 @@ def hash_ids(alignbuddy, hash_length=10):
     :param alignbuddy: AlignBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
     :return: The modified AlignBuddy object, with a new attribute `hash_map` added
-    :rtype: AlignBuddy
     """
     try:
         hash_length = int(hash_length)
@@ -1035,7 +1004,6 @@ def lowercase(alignbuddy):
     Converts all sequence residues to lowercase.
     :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).lower(), alphabet=rec.seq.alphabet)
@@ -1048,7 +1016,6 @@ def map_features2alignment(seqbuddy, alignbuddy):
     :param seqbuddy: SeqBuddy object
     :param alignbuddy: AlignBuddy object
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     def feat_map(feat, _sb_rec, _alb_rec):
         new_location = feat.location
@@ -1095,7 +1062,6 @@ def order_ids(alignbuddy, reverse=False):
     :param alignbuddy: AlignBuddy object
     :param reverse: Reverses the order
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     for indx, alignment in enumerate(alignbuddy.alignments):
         alignment = Sb.SeqBuddy(list(alignment))
@@ -1111,7 +1077,6 @@ def pull_records(alignbuddy, regex, description=False):
     :param regex: List of regex expressions or single regex
     :param description: Allow search in description string
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     if type(regex) == str:
         regex = [regex]
@@ -1140,7 +1105,6 @@ def rename(alignbuddy, query, replace="", num=0):
     :param replace: The string to be substituted
     :param num: The maximum number of substitutions to make
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     seqbuddy = Sb.SeqBuddy(alignbuddy.records())
     Sb.rename(seqbuddy, query, replace, num)
@@ -1152,7 +1116,6 @@ def rna2dna(alignbuddy):  # Reverse-transcribe
     Convert RNA into DNA.
     :param alignbuddy: AlignBuddy object
     :return: Modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
@@ -1166,7 +1129,6 @@ def translate_cds(alignbuddy):
     Translates a nucleotide alignment into a protein alignment.
     :param alignbuddy: The AlignBuddy object to be translated
     :return: The translated AlignBuddy object
-    :rtype: AlignBuddy
     """
     if alignbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
@@ -1194,7 +1156,6 @@ def trimal(alignbuddy, threshold):
     :param alignbuddy: The AlignBuddy object to be trimmed
     :param threshold: The threshold value or trimming algorithm to be used
     :return: The trimmed AlignBuddy object
-    :rtype: AlignBuddy
     """
     def gappyout(_gap_distr, _position_map):
         _max_gaps = 0
@@ -1311,8 +1272,10 @@ def trimal(alignbuddy, threshold):
 
         elif threshold == "strict":  # ToDo: Implement
             new_alignment = False
+            pass
         elif threshold == "strictplus":  # ToDo: Implement
             new_alignment = False
+            pass
         elif type(threshold) in [int, float]:
             if threshold >= 1:
                 max_gaps = round(threshold)
@@ -1341,7 +1304,6 @@ def uppercase(alignbuddy):
     Converts all sequence residues to uppercase.
     :param alignbuddy: The AlignBuddy object to be modified.
     :return: The modified AlignBuddy object
-    :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
         rec.seq = Seq(str(rec.seq).upper(), alphabet=rec.seq.alphabet)
@@ -1350,10 +1312,7 @@ def uppercase(alignbuddy):
 
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
-    """
-    Catching params to prevent weird collisions with alignment program arguments
-    :return: in_args from argparse, new AlignBuddy object
-    """
+    # Catching params to prevent weird collisions with alignment program arguments
     if '--generate_alignment' in sys.argv:
         sys.argv[sys.argv.index('--generate_alignment')] = '-ga'
     if '-ga' in sys.argv:
@@ -1366,7 +1325,7 @@ def argparse_init():
                     extra_args = ga_indx + 1 + indx
                     break
 
-            if extra_args in [ga_indx + 1, ga_indx + 2]:
+            if extra_args == ga_indx + 1 or extra_args == ga_indx + 2:
                 # No conflicts possible, continue on your way
                 pass
 
@@ -1414,7 +1373,7 @@ def argparse_init():
                 align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
                 alignbuddy += align_set.alignments
 
-            alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
+            alignbuddy = AlignBuddy(alignbuddy, align_set._in_format, align_set._out_format)
 
     except br.GuessError as e:
         _stderr("GuessError: %s\n" % e, in_args.quiet)
@@ -1455,6 +1414,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
+            pass
 
         elif in_args.in_place:
             _in_place(_output, in_args.alignments[0])
@@ -1531,7 +1491,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
     if in_args.concat_alignments:
         try:
             args = in_args.concat_alignments[0]
-            if args:
+            if len(args) > 0:
                 try:
                     group_int = int(args[0])
                     if group_int >= 0:
@@ -1588,7 +1548,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         deleted_recs = []
         num_deleted = 0
         for alignment in pulled.alignments:
-            if alignment:
+            if len(alignment) > 0:
                 deleted_recs.append([])
                 for rec in alignment:
                     num_deleted += 1
@@ -1795,10 +1755,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             _path = os.path.abspath(in_args.alignments[0]).split("/")
             if "." in _path[-1]:
                 _file = str(_path[-1]).split(".")
-                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy.out_format])
+                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy._out_format])
 
             else:
-                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy.out_format])
+                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy._out_format])
 
             os.remove(in_args.alignments[0])
             in_args.alignments[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
@@ -1826,7 +1786,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         padding = '{:0>%sd}' % int(ceil(log(len(alignments), 10)))  # Allows sequential numbering, padded with zeros
         for indx, alignment in enumerate(alignments):
             alignbuddy.alignments = [alignment]
-            ext = br.format_to_extension[alignbuddy.out_format]
+            ext = br.format_to_extension[alignbuddy._out_format]
             in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
             _stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
             open(in_args.alignments[0], "w").close()
@@ -1870,7 +1830,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(uppercase(alignbuddy))
         _exit("uppercase")
 
-if __name__ == '__main__':
+def main():
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, alignbuddy]
@@ -1886,3 +1846,7 @@ if __name__ == '__main__':
                 function = next_arg
                 break
         br.send_traceback("AlignBuddy", function, _e)
+
+if __name__ == '__main__':
+    main()
+
