@@ -4,7 +4,7 @@
 import pytest
 import MyFuncs
 import io
-from buddysuite.AlignBuddy import AlignBuddy, guess_alphabet, guess_format
+from buddysuite.AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
 from buddysuite.buddy_resources import GuessError, parse_format, PhylipError
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
@@ -236,11 +236,11 @@ def test_guess_format(alb_resources, alignment_bad_resources):
         guess_format({"Dummy dict": "Type not recognized by guess_format()"})
     assert "Unsupported _input argument in guess_format()" in str(e)
 
-"""
-def test_make_copy(alb_resources):
+
+def test_make_copy(alb_resources, helpers):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
-        align_to_hash(tester) == align_to_hash(alb)
+        helpers.align_to_hash(tester) == helpers.align_to_hash(alb)
 
 
 def test_stderr(capsys):
@@ -264,4 +264,4 @@ def test_stdout(capsys):
 
 
 # ToDo: def test_feature_remapper()
-"""
+
