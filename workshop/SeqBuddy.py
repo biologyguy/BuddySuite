@@ -1403,7 +1403,7 @@ def count_codons(seqbuddy):
     """
     if seqbuddy.alpha not in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna, IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
         raise TypeError("Nucleic acid sequence required, not protein or other.")
-    if seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
+    elif seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna]:
         codontable = CodonTable.ambiguous_dna_by_name['Standard'].forward_table
     else:
         codontable = CodonTable.ambiguous_rna_by_name['Standard'].forward_table
@@ -1418,18 +1418,17 @@ def count_codons(seqbuddy):
             codon = str(sequence[:3]).upper()
             if codon in data_table:
                 data_table[codon][1] += 1
+            elif codon.upper() in ['ATG', 'AUG']:
+                data_table[codon] = ['M', 1, 0.0]
+            elif codon.upper() == 'NNN':
+                data_table[codon] = ['X', 1, 0.0]
+            elif codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
+                data_table[codon] = ['*', 1, 0.0]
             else:
-                if codon.upper() in ['ATG', 'AUG']:
-                    data_table[codon] = ['M', 1, 0.0]
-                elif codon.upper() == 'NNN':
-                    data_table[codon] = ['X', 1, 0.0]
-                elif codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
-                    data_table[codon] = ['*', 1, 0.0]
-                else:
-                    try:
-                        data_table[codon] = [codontable[codon.upper()], 1, 0.0]
-                    except KeyError:
-                        _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
+                try:
+                    data_table[codon] = [codontable[codon.upper()], 1, 0.0]
+                except KeyError:
+                    _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
             data_table[codon][2] = round(data_table[codon][1] / float(num_codons) * 100, 3)
