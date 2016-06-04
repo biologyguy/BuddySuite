@@ -3,9 +3,11 @@
 """ tests basic functionality of AlignBuddy class """
 import pytest
 import MyFuncs
-from AlignBuddy import AlignBuddy
-from buddy_resources import GuessError, PhylipError
+import io
+from AlignBuddy import AlignBuddy, guess_alphabet, guess_format
+from buddy_resources import GuessError, parse_format, PhylipError
 from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import IUPAC
 
 
 def test_instantiate_alignbuddy_from_file(alb_resources):
@@ -172,3 +174,94 @@ def test_write3(alb_resources, helpers):  # Unloopable components
     tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % helpers.resource_path)
     tester.set_format("phylip-strict")
     assert helpers.align_to_hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+
+
+# ################################################# HELPER FUNCTIONS ################################################# #
+def test_guess_error(alignment_bad_resources):
+    # File path
+    with pytest.raises(GuessError):
+        unrecognizable = alignment_bad_resources['protein']['single']['phylip']
+        AlignBuddy(unrecognizable)
+
+    with open(unrecognizable, 'r') as ifile:
+        # Raw
+        with pytest.raises(GuessError) as e:
+            AlignBuddy(ifile.read())
+        assert "Could not determine format from raw input" in str(e)
+
+        # Handle
+        with pytest.raises(GuessError) as e:
+            ifile.seek(0)
+            AlignBuddy(ifile)
+        assert "Could not determine format from input file-like object" in str(e)
+
+    # GuessError output
+    try:
+        AlignBuddy(unrecognizable)
+    except GuessError as e:
+        assert "Could not determine format from _input file" in str(e) and \
+               "\nTry explicitly setting with -f flag." in str(e)
+
+
+def test_guess_alphabet(alb_resources):
+    for alb in alb_resources.get_list("d"):
+        assert guess_alphabet(alb) == IUPAC.ambiguous_dna
+    for alb in alb_resources.get_list("p"):
+        assert guess_alphabet(alb) == IUPAC.protein
+    for alb in alb_resources.get_list("r"):
+        assert guess_alphabet(alb) == IUPAC.ambiguous_rna
+
+    assert not guess_alphabet(AlignBuddy("", in_format="fasta"))
+
+
+def test_guess_format(alb_resources, alignment_bad_resources):
+    assert guess_format(["dummy", "list"]) == "stockholm"
+
+    for key, obj in alb_resources.get().items():
+        assert guess_format(obj) == parse_format(alb_resources.get_key(key)["format"])
+
+    for key, path in alb_resources.get(mode="paths").items():
+        assert guess_format(path) == parse_format(alb_resources.get_key(key)["format"])
+        with open(path, "r") as ifile:
+            assert guess_format(ifile) == parse_format(alb_resources.get_key(key)["format"])
+            ifile.seek(0)
+            string_io = io.StringIO(ifile.read())
+        assert guess_format(string_io) == parse_format(alb_resources.get_key(key)["format"])
+
+    guess_format(alignment_bad_resources['blank']) == "empty file"
+    assert not guess_format(alignment_bad_resources['dna']['single']['phylipss_recs'])
+    assert not guess_format(alignment_bad_resources['dna']['single']['phylipss_cols'])
+
+    with pytest.raises(GuessError) as e:
+        guess_format({"Dummy dict": "Type not recognized by guess_format()"})
+    assert "Unsupported _input argument in guess_format()" in str(e)
+
+"""
+def test_make_copy(alb_resources):
+    for alb in alb_resources.get_list():
+        tester = make_copy(alb)
+        align_to_hash(tester) == align_to_hash(alb)
+
+
+def test_stderr(capsys):
+    _stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    _stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+
+
+def test_stdout(capsys):
+    _stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    _stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+
+# ToDo: def test_feature_remapper()
+"""

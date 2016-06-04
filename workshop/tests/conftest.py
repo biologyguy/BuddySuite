@@ -3,6 +3,7 @@
 """ Fixtures for py.test  """
 import pytest
 import os
+from hashlib import md5
 from copy import deepcopy
 import AlignBuddy as Alb
 
@@ -10,7 +11,7 @@ import AlignBuddy as Alb
 resource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def alb_resources():
     """
     Create a shared Resources object of alignment files and Alb objects
@@ -121,6 +122,28 @@ def alb_resources():
                     results[result_type] = [key for key in self.code_dict[result_type]]
             return results
 
+        def get_key(self, code):
+            code = code.split()
+            if len(code) != 3:
+                raise AttributeError("Only explicit three-component codes are accepted")
+            for letter in code:
+                if letter not in self.single_letter_codes:
+                    raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
+
+            output = {}
+            for component in ["molecule", "num_aligns", "format"]:
+                for indx, letter in enumerate(code):
+                    if letter in self.code_dict[component]:
+                        if component in output:
+                            raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
+                                                 "component of the key" % component)
+                        output[component] = self.single_letter_codes[letter]
+                        del code[indx]
+                        break
+
+            # return [output["molecule"], output["num_aligns"], output["format"]]
+            return output
+
         def get(self, code="", mode="objs"):
             """
             Returns copies of AlignBuddy objects of the path to their resource files
@@ -163,14 +186,42 @@ def alb_resources():
     return resources_obj
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def alignment_bad_resources():
     """ A dict of invalid file resources """
     resource_list = {
         'dna': {
             'single': {file_format: name.format(path=resource_path) for file_format, name in [
-                ('fasta', '{path}/gibberish.fa')]}
+                ('fasta', '{path}/gibberish.fa'), ('phylipss_recs', '{path}/malformed_phylip_records.physs'),
+                ('phylipss_cols', '{path}/malformed_phylip_columns.physs')]}
+        },
+        'protein': {
+            'single': {file_format: name.format(path=resource_path) for file_format, name in [
+                ('phylip', '{path}/unrecognizable.phy')]}
         },
         'blank': "%s/blank.fa" % resource_path
     }
     return resource_list
+
+
+@pytest.fixture(scope="session")
+def helpers():
+    class Helpers(object):
+        def __init__(self):
+            self.resource_path = resource_path
+
+        @staticmethod
+        def align_to_hash(alignbuddy=None, mode='hash'):
+            if not alignbuddy:
+                raise AttributeError("AlignBuddy object required")
+
+            if mode != "hash":
+                return str(alignbuddy)
+            _hash = md5("{0}".format(str(alignbuddy)).encode("utf-8")).hexdigest()
+            return _hash
+
+        @staticmethod
+        def string2hash(_input):
+            return md5(_input.encode("utf-8")).hexdigest()
+    helper_obj = Helpers()
+    return helper_obj
