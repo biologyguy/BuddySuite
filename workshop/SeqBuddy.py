@@ -1408,7 +1408,9 @@ def count_codons(seqbuddy):
     else:
         codontable = CodonTable.ambiguous_rna_by_name['Standard'].forward_table
     output = OrderedDict()
-    for rec in seqbuddy.records:
+    seqbuddy_copy = make_copy(seqbuddy)
+    seqbuddy_copy = clean_seq(seqbuddy_copy)
+    for rec in seqbuddy_copy.records:
         sequence = rec.seq
         while len(sequence) % 3 != 0:
             sequence = sequence[:-1]
