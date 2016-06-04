@@ -28,9 +28,9 @@ and allows maintenance of rich feature annotation following alignment.
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
+from buddysuite import buddy_resources as br
+from buddysuite import SeqBuddy as Sb
+from buddysuite import MyFuncs
 
 # Standard library
 import sys
@@ -1870,7 +1870,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(uppercase(alignbuddy))
         _exit("uppercase")
 
-if __name__ == '__main__':
+def main():
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, alignbuddy]
@@ -1886,3 +1886,7 @@ if __name__ == '__main__':
                 function = next_arg
                 break
         br.send_traceback("AlignBuddy", function, _e)
+
+if __name__ == '__main__':
+    main()
+

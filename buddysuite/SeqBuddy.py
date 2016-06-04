@@ -31,9 +31,9 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import AlignBuddy as Alb
-import MyFuncs
+from buddysuite import buddy_resources as br
+from buddysuite import AlignBuddy as Alb
+from buddysuite import MyFuncs
 
 # Standard library
 import sys
@@ -4739,8 +4739,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
 
-
-if __name__ == '__main__':
+def main():
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, seqbuddy]
@@ -4756,3 +4755,7 @@ if __name__ == '__main__':
                 function = next_arg
                 break
         br.send_traceback("SeqBuddy", function, _e)
+
+if __name__ == '__main__':
+    main()
+
