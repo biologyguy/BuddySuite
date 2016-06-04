@@ -13,6 +13,6 @@ TEST_SCRIPTS+=('tests/test_align_buddy/test_alb_class_and_helpers.py')
 TEST_SCRIPTS+=('tests/test_align_buddy/test_alb_api.py')
 TEST_SCRIPTS+=('tests/test_align_buddy/test_alb_ui.py')
 
-cd ~/buddysuite/workshop
+cd ~/BuddySuite/buddysuite
 # disable cacheprovider since it requires r/w access to the test directory
 py.test -p no:cacheprovider -m "not internet and not display" "${@}" $TEST_SCRIPTS

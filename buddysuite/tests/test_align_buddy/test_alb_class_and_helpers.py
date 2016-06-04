@@ -4,8 +4,8 @@
 import pytest
 import MyFuncs
 import io
-from AlignBuddy import AlignBuddy, guess_alphabet, guess_format
-from buddy_resources import GuessError, parse_format, PhylipError
+from buddysuite.AlignBuddy import AlignBuddy, guess_alphabet, guess_format
+from buddysuite.buddy_resources import GuessError, parse_format, PhylipError
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
