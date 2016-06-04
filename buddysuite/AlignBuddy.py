@@ -26,15 +26,18 @@ and allows maintenance of rich feature annotation following alignment.
 
 # ##################################################### IMPORTS ###################################################### #
 from __future__ import print_function
-
+import sys
+import os
+sys.path.insert(0, os.path.abspath("../"))
+#print(sys.path)
 # BuddySuite specific
 from buddysuite import buddy_resources as br
 from buddysuite import SeqBuddy as Sb
 from buddysuite import MyFuncs
 
 # Standard library
-import sys
-import os
+#import sys
+#import os
 from copy import deepcopy
 from io import StringIO, TextIOWrapper
 import random
@@ -271,6 +274,7 @@ def guess_alphabet(alignments):
     elif type(alignments) == list:
         align_list = alignments
     else:
+        print(type(alignments))
         align_list = [alignments]
     seq_list = []
     for alignment in align_list:
