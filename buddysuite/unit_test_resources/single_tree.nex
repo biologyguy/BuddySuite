@@ -1,0 +1,53 @@
+#NEXUS
+
+BEGIN TAXA;
+    DIMENSIONS NTAX=42;
+    TAXLABELS
+        penHA34a
+        penHA34b
+        penHA32b
+        penHA32a
+        penSH30b
+        penSH30a
+        penSH28b
+        penSH28a
+        penIT13b
+        penIT13a
+        penIT12a
+        firSA26b
+        firGU7b
+        firGU8b
+        firSP18b
+        firSP20b
+        firSP36b
+        firSP39b
+        penSH31a
+        penSH31b
+        firSP19b
+        firSP17b
+        penIT12b
+        firSA24a
+        firSA24b
+        firSA25a
+        firSA26a
+        firGU7a
+        firGU8a
+        firSP17a
+        firSP18a
+        firSP19a
+        firSP20a
+        firSP36a
+        firSP39a
+        firSA25b
+        firSP40b
+        firSP40a
+        penIT11b
+        penIT11a
+        ovi47a
+        ovi47b
+  ;
+END;
+
+BEGIN TREES;
+    TREE 1 = [&U] ((((penHA34a:1.0,penHA34b:1.0,penHA32b:1.0,penHA32a:1.0,penSH30b:1.0,penSH30a:1.0,penSH28b:1.0,penSH28a:1.0,penIT13b:1.0,penIT13a:1.0,penIT12a:1.0,firSA26b:1.0,firGU7b:1.0,firGU8b:1.0,firSP18b:1.0,firSP20b:1.0,firSP36b:1.0,firSP39b:1.0,penSH31a:1.0,penSH31b:1.0):1.0,(firSP19b:1.0,(firSP17b:1.0,penIT12b:1.0):1.0):1.0):1.0,firSA24a:1.0,firSA24b:1.0,firSA25a:1.0,firSA26a:1.0,firGU7a:1.0,firGU8a:1.0,firSP17a:1.0,firSP18a:1.0,firSP19a:1.0,firSP20a:1.0,firSP36a:1.0,firSP39a:1.0,(firSA25b:1.0,firSP40b:1.0):1.0,firSP40a:1.0,penIT11b:1.0,penIT11a:1.0):1.0,(ovi47a:1.0,ovi47b:1.0):1.0):1.0;
+END;
