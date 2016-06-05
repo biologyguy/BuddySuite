@@ -127,7 +127,7 @@ class AlignBuddy(object):
 
         self.out_format = self.in_format if not out_format else br.parse_format(out_format)
         # ####  ALIGNMENTS  #### #
-        if type(_input) == AlignBuddy:
+        if _input.__class__.__name__ == 'AlignBuddy':
             alignments = _input.alignments
 
         elif isinstance(_input, list):
@@ -266,12 +266,11 @@ def guess_alphabet(alignments):
     :param alignments: Duck typed --> AlignBuddy object, list of alignment objects, or a single alignment object
     :return:
     """
-    if type(alignments) == AlignBuddy:
+    if alignments.__class__.__name__ == 'AlignBuddy':
         align_list = alignments.alignments
     elif type(alignments) == list:
         align_list = alignments
     else:
-        print(type(alignments))
         align_list = [alignments]
     seq_list = []
     for alignment in align_list:
@@ -299,7 +298,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return "stockholm"
 
     # Pull value directly from object if appropriate
-    if type(_input) == AlignBuddy:
+    if _input.__class__.__name__ == 'AlignBuddy':
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
