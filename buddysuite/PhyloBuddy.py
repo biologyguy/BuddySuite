@@ -27,9 +27,9 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 from __future__ import print_function
 
 # BuddySuite specific
-from buddysuite import buddy_resources as br
-from buddysuite.MyFuncs import TempDir, walklevel
-from buddysuite import AlignBuddy as Alb
+import buddy_resources as br
+from MyFuncs import TempDir, walklevel
+import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -47,7 +47,7 @@ from copy import deepcopy
 # Third party
 # import Bio.Phylo
 # from Bio.Phylo import PhyloXML, NeXML, Newick
-sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio.Alphabet import IUPAC
 
 try:

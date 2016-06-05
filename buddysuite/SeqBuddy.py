@@ -31,9 +31,9 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 from __future__ import print_function
 
 # BuddySuite specific
-from buddysuite import buddy_resources as br
-from buddysuite import AlignBuddy as Alb
-from buddysuite import MyFuncs
+import buddy_resources as br
+import AlignBuddy as Alb
+import MyFuncs
 
 # Standard library
 import sys
@@ -55,7 +55,7 @@ from collections import OrderedDict
 from xml.sax import SAXParseException
 
 # Third party
-sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord

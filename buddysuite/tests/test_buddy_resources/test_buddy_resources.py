@@ -1,8 +1,8 @@
 #!/use/bin/env python3
 # coding=utf-8
 
-import buddysuite.buddy_resources as br
 import pytest
+import buddy_resources as br
 
 
 def test_parse_format():

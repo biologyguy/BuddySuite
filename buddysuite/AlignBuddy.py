@@ -26,18 +26,15 @@ and allows maintenance of rich feature annotation following alignment.
 
 # ##################################################### IMPORTS ###################################################### #
 from __future__ import print_function
-import sys
-import os
-sys.path.insert(0, os.path.abspath("../"))
-#print(sys.path)
+
 # BuddySuite specific
-from buddysuite import buddy_resources as br
-from buddysuite import SeqBuddy as Sb
-from buddysuite import MyFuncs
+import buddy_resources as br
+import SeqBuddy as Sb
+import MyFuncs
 
 # Standard library
-#import sys
-#import os
+import sys
+import os
 from copy import deepcopy
 from io import StringIO, TextIOWrapper
 import random
@@ -48,7 +45,7 @@ from subprocess import Popen, PIPE, CalledProcessError
 from math import log, ceil
 
 # Third party
-sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
@@ -379,7 +376,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return None  # Unable to determine format from file handle
 
     else:
-        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % type(_input))
 
 
 def make_copy(alignbuddy):

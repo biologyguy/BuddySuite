@@ -37,9 +37,9 @@ import json
 import traceback
 import re
 
-sys.path.insert(0, "./")
-sys.path.insert(0, os.path.abspath("../"))
-from buddysuite import MyFuncs
+#sys.path.insert(0, "./")
+#sys.path.insert(0, os.path.abspath("../"))
+import MyFuncs
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 

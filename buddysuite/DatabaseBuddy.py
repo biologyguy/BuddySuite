@@ -30,8 +30,8 @@ Collection of functions that interact with public sequence databases. Pull them 
 from __future__ import print_function
 
 # BuddySuite specific
-from buddysuite import buddy_resources as br
-from buddysuite import MyFuncs
+import buddy_resources as br
+import MyFuncs
 
 # Standard library
 import sys
@@ -52,7 +52,7 @@ import readline
 import pickle
 
 # Third party
-sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
+# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
 from Bio import BiopythonWarning
