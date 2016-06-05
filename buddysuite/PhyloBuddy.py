@@ -190,13 +190,13 @@ class PhyloBuddy(object):
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
             tmp_dir = TempDir()
-            with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
+            with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                 _ofile.write(in_handle)
 
             # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
             if figtree is not None:
-                with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
+                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                     _ofile.write(figtree[0])
 
             if self.in_format != 'nexml':
@@ -212,7 +212,7 @@ class PhyloBuddy(object):
             figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
             if figtree is not None:
                 tmp_dir = TempDir()
-                with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
+                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                     _ofile.write(figtree[0])
                 _input = "%s/tree.tmp" % tmp_dir.path
             if self.in_format != 'nexml':
@@ -262,7 +262,7 @@ class PhyloBuddy(object):
         return _output
 
     def write(self, _file_path):
-        with open(_file_path, "w") as _ofile:
+        with open(_file_path, "w", encoding="utf-8") as _ofile:
             _ofile.write(str(self))
         return
 
@@ -276,7 +276,7 @@ def _convert_to_ete(_tree, ignore_color=False):
     :return: An ETE Tree object
     """
     tmp_dir = TempDir()
-    with open("%s/tree.tmp" % tmp_dir.path, "w") as _ofile:
+    with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
         _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
                                                                   suppress_annotations=False, suppress_rooting=True)))
 
@@ -307,7 +307,7 @@ def _extract_figtree_metadata(_file_path):
     :param _file_path: Specifies the nexus file path
     :return: A length 2 tuple containing the nexus data and the figtree block
     """
-    with open(_file_path, "r") as _tree_file:
+    with open(_file_path, "r", encoding="utf-8") as _tree_file:
         filedata = _tree_file.read()
     extract_fig = re.search('(begin figtree;)', filedata)
     if extract_fig is not None:
@@ -603,20 +603,21 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
             num_runs = 0 if not num_runs else int(num_runs.group(1))
 
             if os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
-                with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r") as result:
+                with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                     output += result.read()
             elif os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)):
-                with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path), "r") as result:
+                with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                     output += result.read()
             elif num_runs > 1:
                 for tree_indx in range(num_runs):
-                    with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx)) as result:
+                    with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx),
+                              "r", encoding="utf-8") as result:
                         output += result.read()
             else:
                 raise NotImplementedError("Could not find any RAxML results.\n%s" % command)
 
         elif tool == 'phyml':
-            with open('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)) as result:
+            with open('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                 output += result.read()
 
         if keep_temp:  # Store temp files
@@ -630,11 +631,11 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
         if keep_temp:
             _root, dirs, files = next(walklevel(keep_temp))
             for file in files:
-                with open("%s/%s" % (_root, file), "r") as ifile:
+                with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                     contents = ifile.read()
                 for _hash, _id in alignbuddy.hash_map.items():
                     contents = re.sub(_hash, _id, contents)
-                with open("%s/%s" % (_root, file), "w") as ofile:
+                with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
                     ofile.write(contents)
 
         _stderr("Returning to PhyloBuddy...\n\n", quiet)
@@ -855,9 +856,9 @@ def show_diff(phylobuddy):  # Doesn't work.
             node.add_feature('pb_color', '#00ff00')
 
     tmp_dir = TempDir()
-    with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
+    with open("%s/tree1.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
-    with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
+    with open("%s/tree2.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
@@ -924,10 +925,10 @@ def show_unique(phylobuddy):
         output = re.sub("name=\]", "]", output)
         return output
 
-    with open("%s/tree1.tmp" % tmp_dir.path, "w") as ofile:
+    with open("%s/tree1.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         ofile.write(delete_inner_names(trees[0].write(features=[])))
 
-    with open("%s/tree2.tmp" % tmp_dir.path, "w") as ofile:
+    with open("%s/tree2.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         ofile.write(delete_inner_names(trees[1].write(features=[])))
 
     pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
@@ -1063,7 +1064,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
-            with open(os.path.abspath(file_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
@@ -1310,7 +1311,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
 
                 os.remove(in_args.trees[0])
                 in_args.trees[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
-                open(in_args.trees[0], "w").close()
+                open(in_args.trees[0], "w", encoding="utf-8").close()
 
             _print_trees(phylobuddy)
         _exit("screw_formats")
@@ -1335,6 +1336,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _print_trees(phylobuddy)
         _exit("unroot")
 
+
 def main():
     initiation = []
     try:
@@ -1354,4 +1356,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

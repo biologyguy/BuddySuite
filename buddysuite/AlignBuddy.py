@@ -200,7 +200,7 @@ class AlignBuddy(object):
 
         else:
             tmp_dir = MyFuncs.TempDir()
-            with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
+            with open("%s/aligns.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
                 try:
                     AlignIO.write(self.alignments, ofile, self.out_format)
                 except ValueError as e:
@@ -215,7 +215,7 @@ class AlignBuddy(object):
                     else:
                         raise e
 
-            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
+            with open("%s/aligns.tmp" % tmp_dir.path, "r", encoding="utf-8") as ifile:
                 output = ifile.read()
         if self.out_format == "clustal":
             return "%s\n\n" % output.rstrip()
@@ -249,7 +249,7 @@ class AlignBuddy(object):
         return lengths
 
     def write(self, file_path, out_format=None):
-        with open(file_path, "w") as ofile:
+        with open(file_path, "w", encoding="utf-8") as ofile:
             if out_format:
                 out_format_save = str(self.out_format)
                 self.set_format(out_format)
@@ -925,13 +925,13 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                             output = Popen(command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
                         else:
                             output = Popen(command, shell=True, stdout=PIPE).communicate()
-                        output = output[0].decode()
+                        output = output[0].decode("utf-8")
                 except CalledProcessError:
                     _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
                     sys.exit()
 
                 if tool.startswith('clustal'):
-                    with open('{0}/result'.format(tmp_dir.path)) as result:
+                    with open('{0}/result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'prank':
                     possible_files = os.listdir(tmp_dir.path)
@@ -939,10 +939,10 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                     for _file in possible_files:
                         if 'result.best' in _file and "fas" in _file:
                             filename = _file
-                    with open('{0}/{1}'.format(tmp_dir.path, filename)) as result:
+                    with open('{0}/{1}'.format(tmp_dir.path, filename), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'pagan':
-                    with open('{0}/result.fas'.format(tmp_dir.path)) as result:
+                    with open('{0}/result.fas'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output = result.read()
                     if os.path.isfile("./warnings"):  # Pagan spits out this file (I've never seen anything in it)
                         os.remove("./warnings")
@@ -982,11 +982,11 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                     # Loop through each saved file and rename any hashes that have been carried over
                     for root, dirs, files in os.walk(tmp_dir.path):
                         for next_file in files:
-                            with open("%s/%s" % (root, next_file), "r") as ifile:
+                            with open("%s/%s" % (root, next_file), "r", encoding="utf-8") as ifile:
                                 contents = ifile.read()
                             for _hash, sb_rec in seqbuddy.hash_map.items():
                                 contents = re.sub(_hash, sb_rec, contents)
-                            with open("%s/%s" % (root, next_file), "w") as ofile:
+                            with open("%s/%s" % (root, next_file), "w", encoding="utf-8") as ofile:
                                 ofile.write(contents)
 
                     MyFuncs.copydir(tmp_dir.path, keep_temp)
@@ -1469,7 +1469,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s" % _output, in_args.quiet)
         else:
-            with open(os.path.abspath(file_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
@@ -1802,7 +1802,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
 
             os.remove(in_args.alignments[0])
             in_args.alignments[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
-            open(in_args.alignments[0], "w").close()
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
         _print_aligments(alignbuddy)
         _exit("screw_formats")
 
@@ -1829,7 +1829,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
             ext = br.format_to_extension[alignbuddy.out_format]
             in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
             _stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
-            open(in_args.alignments[0], "w").close()
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
             _print_aligments(alignbuddy)
         _exit("split_to_files")
 
@@ -1870,6 +1870,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         _print_aligments(uppercase(alignbuddy))
         _exit("uppercase")
 
+
 def main():
     initiation = []
     try:
@@ -1889,4 +1890,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -58,7 +58,7 @@ class RunTime(object):
         start_time = round(time())
         elapsed = 0
         while True:
-            with open("%s" % check_file_path, "r") as ifile:
+            with open("%s" % check_file_path, "r", encoding="utf-8") as ifile:
                 if round(time()) - start_time == elapsed:
                     continue
                 elif ifile.read() == "Running":
@@ -316,7 +316,7 @@ class TempDir(object):
             while file_name in files:  # Catch the very unlikely case that a duplicate occurs
                 file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        open("%s/%s" % (self.path, file_name), "w").close()
+        open("%s/%s" % (self.path, file_name), "w", encoding="utf-8").close()
         self.subfiles.append(file_name)
         return "%s/%s" % (self.path, file_name)
 
@@ -343,7 +343,7 @@ class TempFile(object):
         dir_hash = self._tmp_dir.path.split("/")[-1]
         self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
-        open(self.path, "w").close()
+        open(self.path, "w", encoding="utf-8").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
         self.mode = mode

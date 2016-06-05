@@ -101,10 +101,10 @@ class Usage(object):
             self.usage_file_path = "/tmp/usage.json"
 
         if not os.path.isfile(self.usage_file_path):
-            with open(self.usage_file_path, "w") as ofile:
+            with open(self.usage_file_path, "w", encoding="utf-8") as ofile:
                 ofile.write("{}")
         try:
-            with open(self.usage_file_path) as ifile:
+            with open(self.usage_file_path, "r", encoding="utf-8") as ifile:
                 self.stats = json.load(ifile)
                 if not self.stats:  # Empty file needs to be populated with a little info
                     self.clear_stats()
@@ -130,7 +130,7 @@ class Usage(object):
                                                                        '%Y-%m-%d')).days >= 7:
                 self.send_report()
                 return
-        with open(self.usage_file_path, "w") as ofile:
+        with open(self.usage_file_path, "w", encoding="utf-8") as ofile:
             json.dump(self.stats, ofile)
         return
 

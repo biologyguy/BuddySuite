@@ -259,7 +259,7 @@ class SeqBuddy(object):
                 sequences = list(SeqIO.parse(sb_input, self.in_format))
 
         elif os.path.isfile(sb_input):
-            with open(sb_input, "r") as sb_input:
+            with open(sb_input, "r", encoding="utf-8") as sb_input:
                 if self.in_format in ["phylipss", "phylipsr"]:
                     relaxed = False if self.in_format == "phylipss" else True
                     aligns = br.phylip_sequential_read(sb_input.read(), relaxed=relaxed)
@@ -318,7 +318,7 @@ class SeqBuddy(object):
             output = "\n\n".join([str(rec.seq) for rec in self.records])
         else:
             tmp_dir = MyFuncs.TempDir()
-            with open("%s/seqs.tmp" % tmp_dir.path, "w") as _ofile:
+            with open("%s/seqs.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                 try:
                     SeqIO.write(self.records, _ofile, self.out_format)
                 except ValueError as e:
@@ -337,7 +337,7 @@ class SeqBuddy(object):
                     else:
                         raise e
 
-            with open("%s/seqs.tmp" % tmp_dir.path, "r") as ifile:
+            with open("%s/seqs.tmp" % tmp_dir.path, "r", encoding="utf-8") as ifile:
                 output = ifile.read()
 
         return "%s\n" % output.rstrip()
@@ -357,7 +357,7 @@ class SeqBuddy(object):
         return records_dict
 
     def write(self, file_path, out_format=None):
-        with open(file_path, "w") as ofile:
+        with open(file_path, "w", encoding="utf-8") as ofile:
             if out_format:
                 out_format_save = str(self.out_format)
                 self.out_format = out_format
@@ -652,7 +652,7 @@ def _guess_format(_input):
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding="utf-8")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
@@ -1124,7 +1124,7 @@ def bl2seq(seqbuddy):
             except ConnectionRefusedError:
                 continue
         with lock:
-            with open("%s/blast_results.txt" % tmp_dir.path, "a") as _ofile:
+            with open("%s/blast_results.txt" % tmp_dir.path, "a", encoding="utf-8") as _ofile:
                 _ofile.write(_result)
         return
 
@@ -1146,13 +1146,13 @@ def bl2seq(seqbuddy):
     seqs_copy = seqbuddy.records[:]
     subject_file = "%s/subject.fa" % tmp_dir.path
     for subject in seqbuddy.records:
-        with open(subject_file, "w") as ifile:
+        with open(subject_file, "w", encoding="utf-8") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
         MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
-    with open("%s/blast_results.txt" % tmp_dir.path, "r") as _ifile:
+    with open("%s/blast_results.txt" % tmp_dir.path, "r", encoding="utf-8") as _ifile:
         output_list = _ifile.read().strip().split("\n")
 
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
@@ -1238,7 +1238,7 @@ def blast(subject, query, **kwargs):
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
     tmp_dir = MyFuncs.TempDir()
-    with open("%s/tmp.fa" % tmp_dir.path, "w") as ofile:
+    with open("%s/tmp.fa" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
     num_threads = 4
@@ -1287,7 +1287,7 @@ def blast(subject, query, **kwargs):
     if "Error" in blast_output:
         raise RuntimeError(blast_output)
 
-    with open("%s/out.txt" % tmp_dir.path, "r") as ifile:
+    with open("%s/out.txt" % tmp_dir.path, "r", encoding="utf-8") as ifile:
         blast_results = ifile.read()
         records = blast_results.split("\n")
 
@@ -1302,7 +1302,7 @@ def blast(subject, query, **kwargs):
 
         hit_ids.append(hit_id)
 
-    with open("%s/seqs.fa" % tmp_dir.path, "w") as ofile:
+    with open("%s/seqs.fa" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
             hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
@@ -2083,7 +2083,7 @@ def find_repeats(seqbuddy):
     # Need to work from a copy though, so sequences aren't overwritten
     seqbuddy_copy = make_copy(seqbuddy)
     for rec in seqbuddy_copy.records:
-        seq = str(rec.seq).encode()
+        seq = str(rec.seq).encode("utf-8")
         seq = md5(seq).hexdigest()
         rec.seq = Seq(seq)
         if rec.id in repeat_ids:
@@ -2331,7 +2331,7 @@ def prosite_scan(seqbuddy, quiet=False):
                   'scanControl': 'both', 'stype': 'protein'}
         # Submit the job
         request_data = urllib.parse.urlencode(params)
-        request_data = request_data.encode()
+        request_data = request_data.encode("utf-8")
         job_id = rest_request('%s/run/' % base_url, request_data)
         # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
         result = 'PENDING'
@@ -2357,7 +2357,7 @@ def prosite_scan(seqbuddy, quiet=False):
         temp_seq = order_features_by_position(temp_seq)
 
         with lock:
-            with open(out_file_path, "a") as out_file:
+            with open(out_file_path, "a", encoding="utf-8") as out_file:
                 out_file.write("%s\n" % str(temp_seq))
         return
 
@@ -3313,7 +3313,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                                 " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains" % jobid
                 raise FileNotFoundError(error_message)
 
-            with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
+            with open("%s/%s.hashmap" % (job_dir, jobid), "r", encoding="utf-8") as ifile:
                 jobs.append({"type": "previous", "hash_map": OrderedDict(), "records": []})
                 for line in ifile:
                     line = line.strip().split(",")
@@ -3368,7 +3368,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         _stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
                         job_ids.append(jobid)
                         temp_dir.subdir(jobid)
-                        with open("%s/%s.hashmap" % (job_dir, jobid), "w") as ofile:
+                        with open("%s/%s.hashmap" % (job_dir, jobid), "w", encoding="utf-8") as ofile:
                             ofile.write(job["records"].print_hashmap())
                     else:
                         printer.clear()
@@ -3453,7 +3453,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         _stderr("\nError: Failed to download TOPCONS job {0} after 5 attempts. "
                                 "The data will be saved on the server for manual retrieval.\n"
                                 "A sequence name hash-map has been saved to {0}.hashmap".format(jobid), quiet=quiet)
-                        with open("%s.hashmap" % jobid, "w") as ofile:
+                        with open("%s.hashmap" % jobid, "w", encoding="utf-8") as ofile:
                             ofile.write(seqbuddy.print_hashmap())
                         failed.append(jobid)
 
@@ -3474,7 +3474,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     printer.write("Processing results...")
     records = []
     for jobid in results:
-        with open("%s/%s/query.result.txt" % (temp_dir.path, jobid), "r") as ifile:
+        with open("%s/%s/query.result.txt" % (temp_dir.path, jobid), "r", encoding="utf-8") as ifile:
             topcons = ifile.read()
 
         topcons = topcons.split(
@@ -3512,11 +3512,11 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         printer.write("Preparing TOPCONS files to be saved")
         for _root, dirs, files in MyFuncs.walklevel(temp_dir.path):
             for file in files:
-                with open("%s/%s" % (_root, file), "r") as ifile:
+                with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                     contents = ifile.read()
                 for _hash, _id in hash_map.items():
                     contents = re.sub(_hash, _id, contents)
-                with open("%s/%s" % (_root, file), "w") as ofile:
+                with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
                     ofile.write(contents)
 
         printer.write("Saving TOPCONS files")
@@ -3648,7 +3648,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     "file. Nothing was written.\n", in_args.quiet)
             _stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
-            with open(os.path.abspath(file_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
             _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
@@ -3902,7 +3902,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         search_terms = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
-                with open(arg, "r") as ifile:
+                with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
                         search_terms.append(line.strip())
             else:
@@ -4199,7 +4199,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
                                                 br.format_to_extension[next_seqbuddy.out_format])
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
+            open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
 
         _exit("group_by_prefix")
@@ -4229,7 +4229,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
                                                 br.format_to_extension[next_seqbuddy.out_format])
             _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
-            open(in_args.sequence[0], "w").close()
+            open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
 
         _exit("group_by_regex")
@@ -4568,7 +4568,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         search_terms = []
         for arg in in_args.pull_records:
             if os.path.isfile(arg):
-                with open(arg, "r") as ifile:
+                with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
                         search_terms.append(line.strip())
             else:
@@ -4658,7 +4658,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
             os.remove(in_args.sequence[0])
             in_args.sequence[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
-            open(in_args.sequence[0], "w").close()
+            open(in_args.sequence[0], "w", encoding="utf-8").close()
 
         _print_recs(seqbuddy)
         _exit("screw_formats")
@@ -4739,6 +4739,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         _print_recs(uppercase(seqbuddy))
         _exit("uppercase")
 
+
 def main():
     initiation = []
     try:
@@ -4758,4 +4759,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
