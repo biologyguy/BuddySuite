@@ -20,7 +20,6 @@ RUN apt-get -y install \
     build-essential \
     phyml \
     raxml \
-    git \
     ;
 
 # pick a raxml to name `raxml`
@@ -64,18 +63,6 @@ RUN /home/docker/miniconda/envs/test-environment/bin/pip install \
     pytest-colordots \
     ;
 
-#RUN echo "Cloning git repo"
-#RUN sudo git clone --depth=50 --branch=develop https://github.com/biologyguy/BuddySuite.git
-
-#RUN sudo rm -r /BuddySuite/buddysuite
-ADD buddysuite /buddysuite
 # and run the test step when the image runs
-
-#ADD test.sh /BuddySuite/docker-build/test.sh
 ADD test.sh /home/docker/test.sh
-#ADD buddysuite /BuddySuite/buddysuite
-ADD buddysuite /buddysuite
-RUN echo "Running test suite"
-#CMD ls /BuddySuite/buddysuite
-#CMD /bin/bash /BuddySuite/docker-build/test.sh
 CMD /bin/bash /home/docker/test.sh
