@@ -439,7 +439,7 @@ def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs)
     else:
         current_path = os.getcwd()
 
-    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/build_dir/blast_binaries/'
+    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/blast_binaries/'
     bins_to_dl = []
     current_os = sys.platform if "system" not in kwargs else kwargs["system"]
     if current_os.startswith('darwin'):
