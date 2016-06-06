@@ -37,7 +37,7 @@ from unittest import mock
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 
-sys.path.insert(0, "./")
+sys.path.insert(0, os.path.abspath("../"))
 import buddy_resources as br
 import SeqBuddy as Sb
 import MyFuncs

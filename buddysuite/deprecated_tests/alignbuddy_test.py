@@ -39,7 +39,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
-sys.path.insert(0, "./")
+sys.path.insert(0, os.path.abspath("../"))
 import MyFuncs
 import AlignBuddy as Alb
 import SeqBuddy as Sb

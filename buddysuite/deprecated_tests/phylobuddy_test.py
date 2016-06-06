@@ -32,7 +32,7 @@ from collections import OrderedDict
 from unittest import mock
 import ete3
 
-sys.path.insert(0, "./")
+sys.path.insert(0, os.path.abspath("../"))
 import buddy_resources as br
 import PhyloBuddy as Pb
 import AlignBuddy as Alb

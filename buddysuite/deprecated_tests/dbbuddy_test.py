@@ -27,7 +27,7 @@ import os
 import sys
 from hashlib import md5
 
-sys.path.insert(0, "./")
+sys.path.insert(0, os.path.abspath("../"))
 import DatabaseBuddy as Db
 import buddy_resources as br
 import MyFuncs
