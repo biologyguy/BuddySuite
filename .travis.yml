@@ -8,4 +8,4 @@ install:
 
 # and now run the image
 script:
-  - docker run -v $PWD:/home/docker/buddysuite docker-build:latest
+  - docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
