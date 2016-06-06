@@ -4,7 +4,7 @@
 export PATH="$HOME/miniconda/bin:$PATH"
 source activate test-environment
 
-cd /buddysuite/tests
+cd /home/docker/BuddySuite/buddysuite/tests
 
 #sudo git pull
 

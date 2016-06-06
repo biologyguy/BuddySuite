@@ -8,6 +8,7 @@ import sys
 
 from resources import Resources, RESOURCE_PATH, Alb
 
+
 @pytest.fixture(scope="session")
 def alb_resources():
     """
