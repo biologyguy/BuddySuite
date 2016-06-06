@@ -3,8 +3,10 @@
 """ Fixtures for py.test  """
 import pytest
 from hashlib import md5
-from tests import Resources, RESOURCE_PATH
+import os
+import sys
 
+from resources import Resources, RESOURCE_PATH, Alb
 
 @pytest.fixture(scope="session")
 def alb_resources():

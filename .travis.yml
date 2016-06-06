@@ -4,8 +4,8 @@ services:
 
 # install all of the required software into a docker image
 install:
-  - docker build -t buddysuite-test:latest buddysuite-test
+  - docker build -t docker-build:latest docker-build
 
 # and now run the image
 script:
-  - docker run -v $PWD:/home/docker/buddysuite buddysuite-test:latest
+  - docker run -v $PWD:/home/docker/buddysuite docker-build:latest
