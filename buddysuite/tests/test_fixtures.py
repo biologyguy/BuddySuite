@@ -1,4 +1,5 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
+
 """
 verify that fixtures are working as expected. I.e., test the tests before testing ;)
 """

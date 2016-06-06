@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# coding=utf-8
+# -*- coding: utf-8 -*-
+
 """ tests basic functionality of AlignBuddy class """
 import pytest
 import AlignBuddy as Alb

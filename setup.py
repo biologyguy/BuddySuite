@@ -7,7 +7,8 @@ PACKAGES = [
 DEPENDENCIES = [
     'biopython',
     'ete3',
-    'dendropy'
+    'dendropy',
+    'pytest'
 ]
 
 DATA_FILES = [
@@ -38,7 +39,7 @@ KEYWORDS = [
 ]
 
 ENTRY_POINTS = {
-    'console_scripts' : [
+    'console_scripts': [
         'alignbuddy = buddysuite.AlignBuddy:main',
         'databasebuddy = buddysuite.DatabaseBuddy:main',
         'phylobuddy = buddysuite.PhyloBuddy:main',
@@ -46,18 +47,17 @@ ENTRY_POINTS = {
     ]
 }
 
-setup(name = 'buddysuite',
-      version = '1.1.0',
-      description = 'BuddySuite is a collection of command line utilities written in Python for working with biological data.',
-      author = 'Stephen Bond',
-      author_email = 'steve.bond@gmail.com',
-      url = 'https://github.com/biologyguy/BuddySuite',
-      packages = PACKAGES,
-      install_requires = DEPENDENCIES,
-      entry_points = ENTRY_POINTS,
-      license = 'Public Domain',
-      keywords = KEYWORDS,
-      data_files = DATA_FILES,
-      zip_safe = True
-)
-
+setup(name='buddysuite',
+      version='1.1.0',
+      description='BuddySuite is a collection of command line utilities written in Python for '
+                  'working with biological data.',
+      author='Stephen Bond',
+      author_email='steve.bond@gmail.com',
+      url='https://github.com/biologyguy/BuddySuite',
+      packages=PACKAGES,
+      install_requires=DEPENDENCIES,
+      entry_points=ENTRY_POINTS,
+      license='Public Domain',
+      keywords=KEYWORDS,
+      data_files=DATA_FILES,
+      zip_safe=True)

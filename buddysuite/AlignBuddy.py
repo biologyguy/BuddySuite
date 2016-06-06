@@ -127,7 +127,7 @@ class AlignBuddy(object):
 
         self.out_format = self.in_format if not out_format else br.parse_format(out_format)
         # ####  ALIGNMENTS  #### #
-        if _input.__class__.__name__.split(".")[-1] == 'AlignBuddy':
+        if _input.__class__.__name__ == 'AlignBuddy':
             alignments = _input.alignments
 
         elif isinstance(_input, list):
@@ -266,7 +266,7 @@ def guess_alphabet(alignments):
     :param alignments: Duck typed --> AlignBuddy object, list of alignment objects, or a single alignment object
     :return:
     """
-    if alignments.__class__.__name__.split(".")[-1] == 'AlignBuddy':
+    if alignments.__class__.__name__ == 'AlignBuddy':
         align_list = alignments.alignments
     elif type(alignments) == list:
         align_list = alignments
@@ -298,16 +298,16 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
         return "stockholm"
 
     # Pull value directly from object if appropriate
-    if _input.__class__.__name__.split(".")[-1] == 'AlignBuddy':
+    if _input.__class__.__name__ == 'AlignBuddy':
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r", encoding='utf-8')
+        _input = open(_input, "r")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-            _input = StringIO(_input.read())
+            _input = StringIO(_input.read().decode("utf-8"))
         if _input.read() == "":
             return "empty file"
         _input.seek(0)
@@ -1492,7 +1492,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
                     break
             if re_raise:
                 raise _err
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__.split(".")[-1], str(_err)), in_args.quiet)
+        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
