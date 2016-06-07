@@ -23,26 +23,40 @@ Being pure Python, the BuddySuite should be cross platform. Development and test
  and Mac OS X, however, so it is unclear how well the suite will work within Windows.
 
 ## Installation 
-Installation should be extremely easy on Mac and Linux using the graphical installer (Windows users must install the
- development version, [see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
+Clone the repository to your local machine and run setup.py installer
 
-[Click here](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite_installer.py) to download the graphical
- installer and run it from the command line
+    $: git clone https://github.com/biologyguy/BuddySuite.git
+    $: cd BuddySuite
+    $: python3 setup.py install
     
-    $: cd /path/to/download/folder
-    $: chmod +x BuddySuite_installer.py
-    $: ./BuddySuite_installer.py
+This will ensure you have downloaded the necessary python dependencies and adds links to each program into your path.
+ For example, the following command should return something similar (the exact path will be system specific).
+ 
+    $: which seqbuddy
+    >>> /usr/local/anaconda/bin/seqbuddy
 
-By default, the installer will create short-form symbolic links for the main tools in your system $PATH ('sb' for
- SeqBuddy, 'alb' for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly
- ([examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each
- tool will also be added to $PATH. If working outside the context of a graphical OS (on a cluster, for example), the
- installer will run in command-line mode (also accessible with the -cmd flag on graphical systems, if you prefer that).
+You may choose to also create a set of short-form symbolic links to each program, which can be very convenient if
+ using the programs on a regular basis. First check to make sure your short-form command doesn't already exist; the
+ following should not return anything:
+ 
+    $: which sb
+    >>>
 
-The BuddySuite installer will only bundle stable release versions of the BuddySuite. If bugs are found they will be
- hot-fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
- to the development versions will not become available in the installer until the next release. Versions of each tool or
- the installer can be displayed using the -v flag.
+Assuming no conflict, create a new symbolic link (note that the following can be system specific, your installation
+ could be in a different directory)
+
+    $: ln -s /usr/local/anaconda/bin/seqbuddy /usr/local/anaconda/bin/sb
+    $: which sb
+    >>> /usr/local/anaconda/bin/sb
+
+All of the ([examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
+
+*Tool* | *Short-form*
+---------- | -------- 
+AlignBuddy | alb
+DatabaseBuddy | db
+PhyloBuddy | pb
+SeqBuddy | sb
 
 ## Dependencies
 This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
@@ -55,22 +69,16 @@ AlignBuddy and PhyloBuddy can be used to launch a number of third party alignmen
  installation of these optional programs is up to you. For example, if you wish to use PhyloBuddy to build a 
  phylogenetic tree with RAxML, you will first need to get RAxML into your system PATH. 
 
-All other dependencies come prepackaged with the installer, so you only need to worry about the following if you
- are using the unstable workshop version of BuddySuite.
-
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
  [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH, SeqBuddy.py will
- attempt to download the binaries if any BLAST dependant functions are called. [BioPython](http://biopython.org/) is
- used heavily by the entire suite; any version earlier than 16.6 will cause unit tests to fail. PhyloBuddy requires 
- [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
- [ETE toolkit](http://etetoolkit.org/download/).
+ attempt to download the binaries if any BLAST dependant functions are called.
  
 ## Getting started
 Once installed, you can access the modules from the command line using their full names:
 
-    $: SeqBuddy -h
+    $: seqbuddy -h
 
-Or the shortcuts created by the installer:
+Or the short-form shortcuts if you create them:
 
     $: sb -h
 
@@ -78,32 +86,46 @@ For a detailed breakdown of the tools available within each module, check out th
  [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
 
 ## Development version installation
-The easiest way to get the development version up and running is to
- [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
+The easiest way to get the development environment up and running is to
+ [fork](https://help.github.com/articles/fork-a-repo/) the repository and then clone from your github account.
 
-    $: git clone https://github.com/biologyguy/BuddySuite.git
+    $: git clone https://github.com/<YOUR USER ID>/BuddySuite.git
 
-Then move into the repo and switch to the 'development' branch:
+Then move into the repo, switch to the 'develop' branch, and run setup.py (to get dependencies):
     
     $: cd BuddySuite
     $: git checkout develop
+    $: python3 setup.py install
+
+Now set the symbolic links to the repo version of each tool, e.g.:
+
+    $: ln -s /<your>/<path>/<to>/BuddySuite/buddysuite/SeqBuddy.py /usr/local/bin/sb
+    $: which sb
+    >>> /usr/local/bin/sb
 
 All of the individual Buddy toolkits are located in the 'buddysuite' directory. The 
  ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
  and tested, so things may be less stable here; it's usually pretty solid though. If you're interested in contributing
  to the project, please ensure you are working from this branch.
 
-To run the tests, use docker to get all of the dependencies installed:
-
-    $: docker build -t docker-build:latest docker-build
-
-and then run the tests with
-
-    $: docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
-
 See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
  development version dependencies and how to contribute to the project.
 
+## Unit tests
+We are striving for high unit test coverage with py.test. There are two ways to run the unit tests, each of which
+ should be executed before making a pull request. The first method is faster and will be used more frequently.
+
+    $: cd BuddySuite/buddysuite
+    $: bash run_tests.hs
+
+The second method should be run just before submitting a pull request, and uses
+ [Docker](https://docs.docker.com/engine/installation/) to build a clean linux environment with all dependencies. 
+ The tests are then run in a VM that mimics the environment used by Travis-CI to monitor the state of the BuddySuite
+ repository:
+    
+    $: cd BuddySuite
+    $: docker build -t docker-build:latest docker-build
+    $: docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
 
 ## Citation
 There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
