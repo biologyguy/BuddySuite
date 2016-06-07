@@ -6,7 +6,7 @@ from hashlib import md5
 import os
 import sys
 
-from resources import Resources, RESOURCE_PATH, Alb
+from __init__ import Resources, RESOURCE_PATH, Alb
 
 
 @pytest.fixture(scope="session")
