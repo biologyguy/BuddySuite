@@ -39,7 +39,11 @@ import re
 
 #sys.path.insert(0, "./")
 #sys.path.insert(0, os.path.abspath("../"))
-import MyFuncs
+try:
+    from buddysuite import MyFuncs
+except ImportError:
+    import MyFuncs
+
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 

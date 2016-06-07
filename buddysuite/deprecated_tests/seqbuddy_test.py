@@ -38,9 +38,14 @@ from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 
 sys.path.insert(0, os.path.abspath("../"))
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite import SeqBuddy as Sb
+    from buddysuite import MyFuncs
+except ImportError:
+    import buddy_resources as br
+    import SeqBuddy as Sb
+    import MyFuncs
 
 VERSION = Sb.VERSION
 WRITE_FILE = MyFuncs.TempFile()
@@ -352,10 +357,11 @@ def test_no__input():
 def test_make_copy():
     assert seqs_to_hash(Sb.make_copy(sb_objects[0])) == seqs_to_hash(sb_objects[0])
 
-
+"""
 # ######################  '_check_for_blast_bin' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
+@pytest.mark.blast
 def test_check_blast_bin(capsys):
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert Sb._check_for_blast_bin(_bin)
@@ -382,6 +388,7 @@ def test_check_blast_bin(capsys):
 # ######################  '_download_blast_binaries' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
+@pytest.mark.blast
 @pytest.mark.parametrize("platform", ["darwin", "linux32", "linux64", "win"])
 def test_dl_blast_bins(monkeypatch, platform):
     tmp_dir = MyFuncs.TempDir()
@@ -398,7 +405,7 @@ def test_dl_blast_bins(monkeypatch, platform):
         assert os.path.isfile('./blastdbcmd.exe')
         assert os.path.isfile('./blastn.exe')
         assert os.path.isfile('./blastp.exe')
-
+"""
 
 # ######################  '_feature_rc' ###################### #
 def test_feature_rc():
@@ -432,6 +439,7 @@ def test_guess_alphabet():
 
 
 # ######################  'guess_format' ###################### #
+@pytest.mark.foo
 def test_guess_format():
     assert Sb._guess_format(["foo", "bar"]) == "gb"
     assert Sb._guess_format(sb_objects[0]) == "fasta"
@@ -664,8 +672,9 @@ def test_bl2_no_binary():
                 seqbuddy = Sb.make_copy(sb_objects[6])
                 Sb.bl2seq(seqbuddy)
 
-
+"""
 # ######################  '-bl', '--blast' ###################### #
+@pytest.mark.blast
 def test_blastn():
     tester = Sb.pull_recs(Sb.make_copy(sb_objects[0]), '8', True)
     tester = Sb.blast(tester, resource("blast/Mnemiopsis_cds.n"))
@@ -685,7 +694,7 @@ def test_blastn():
     tester = Sb.blast(tester, resource("blast/Mnemiopsis_cds.n"))
     assert len(tester.records) == 0
 
-
+@pytest.mark.blast
 def test_blastp():
     seqbuddy = Sb.pull_recs(Sb.SeqBuddy(resource(seq_files[6])), '8', True)
     tester = Sb.blast(seqbuddy, resource("blast/Mnemiopsis_pep.p"))
@@ -700,7 +709,7 @@ def test_blastp():
         with pytest.raises(SystemError) as e:
             Sb.blast(tester, resource("blast/Mnemiopsis_pep.n"))
         assert 'blastp not found in system path' in str(e.value)
-
+"""
 
 # ######################  '-cs', '--clean_seq'  ###################### #
 def test_clean_seq():
@@ -1692,7 +1701,7 @@ def test_translate_edges_and_exceptions(capsys):
     out, err = capsys.readouterr()
     assert string2hash(err) == "9e2a0b4b03f54c209d3a9111792762df"
 
-
+"""
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
@@ -1716,7 +1725,7 @@ def test_transmembrane_domains_cds():
     _root, dirs, files = next(MyFuncs.walklevel("%s/topcons" % TEMP_DIR.path))
     _root, dirs, files = next(MyFuncs.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
     assert files
-
+"""
 
 # ################################################# COMMAND LINE UI ################################################## #
 # ##################### '-ano', '--annotate' ###################### ##
@@ -1799,6 +1808,7 @@ def test_bl2s_ui(capsys):
 
 
 # ######################  '-bl', '--blast' ###################### #
+@pytest.mark.blast
 def test_blast_ui(capsys):
     test_in_args = deepcopy(in_args)
     test_in_args.blast = resource("blast/Mnemiopsis_cds")
@@ -2814,7 +2824,7 @@ def test_translate6frames_ui(capsys):
     out, err = capsys.readouterr()
     assert "TypeError: You need to supply DNA or RNA sequences to translate" in err
 
-
+"""
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
 @pytest.mark.internet
 @pytest.mark.slow
@@ -2835,3 +2845,4 @@ def test_transmembrane_domains_ui(capsys):
         Sb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
     assert "ValueError: Record 'rec' is too large to send to TOPCONS." in err
+"""

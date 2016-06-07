@@ -3,8 +3,12 @@
 
 """ tests basic functionality of AlignBuddy class """
 import pytest
-import AlignBuddy as Alb
-import SeqBuddy as Sb
+try:
+    from buddysuite import AlignBuddy as Alb
+    from buddysuite import SeqBuddy as Sb
+except ImportError:
+    import AlignBuddy as Alb
+    import SeqBuddy as Sb
 
 
 # ##########################################  '-al', '--alignment_lengths' ########################################### #

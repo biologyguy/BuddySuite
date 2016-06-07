@@ -27,9 +27,14 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-from MyFuncs import TempDir, walklevel
-import AlignBuddy as Alb
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite.MyFuncs import TempDir, walklevel
+    from buddysuite import AlignBuddy as Alb
+except ImportError:
+    import buddy_resources as br
+    from MyFuncs import TempDir, walklevel
+    import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -177,7 +182,7 @@ class PhyloBuddy(object):
         self.out_format = self.in_format if not _out_format else _out_format
 
         # ####  RECORDS  #### #
-        if type(_input) == PhyloBuddy:
+        if _input.__class__.__name__ == "PhyloBuddy":
             self.trees = _input.trees
 
         elif isinstance(_input, list):
@@ -339,7 +344,7 @@ def _guess_format(_input):
         return "newick"
 
     # Pull value directly from object if appropriate
-    if type(_input) == PhyloBuddy:
+    if _input.__class__.__name__ == "PhyloBuddy":
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # trees > 0
@@ -1037,7 +1042,7 @@ def argparse_init():
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected. Process will be aborted.\n")
                 sys.exit()
             tree_set = PhyloBuddy(tree_set, in_args.in_format, in_args.out_format)
             phylobuddy += tree_set.trees

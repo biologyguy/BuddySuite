@@ -40,10 +40,16 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
 sys.path.insert(0, os.path.abspath("../"))
-import MyFuncs
-import AlignBuddy as Alb
-import SeqBuddy as Sb
-import buddy_resources as br
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite import SeqBuddy as Sb
+    from buddysuite import AlignBuddy as Alb
+    from buddysuite import MyFuncs
+except ImportError:
+    import MyFuncs
+    import AlignBuddy as Alb
+    import SeqBuddy as Sb
+    import buddy_resources as br
 
 TEMP_DIR = MyFuncs.TempDir()
 VERSION = Sb.VERSION
@@ -901,7 +907,7 @@ def test_mafft_multi_param():
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert align_to_hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
 
-
+"""
 @pytest.mark.generate_alignments
 def test_generate_alignment_keep_temp(monkeypatch):
     tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
@@ -925,7 +931,7 @@ def test_generate_alignment_keep_temp(monkeypatch):
     Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
     assert os.path.isfile("%s/ga_temp_files/result" % TEMP_DIR.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % TEMP_DIR.path)
-
+"""
 
 @pytest.mark.generate_alignments
 def test_generate_alignments_genbank():

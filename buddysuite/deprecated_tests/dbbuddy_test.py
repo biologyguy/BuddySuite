@@ -28,9 +28,15 @@ import sys
 from hashlib import md5
 
 sys.path.insert(0, os.path.abspath("../"))
-import DatabaseBuddy as Db
-import buddy_resources as br
-import MyFuncs
+try:
+    from buddysuite import DatabaseBuddy as Db
+    from buddysuite import buddy_resources as br
+    from buddysuite import MyFuncs
+except ImportError:
+    import DatabaseBuddy as Db
+    import buddy_resources as br
+    import MyFuncs
+
 
 
 def result_to_hash(_dbbuddy, mode='hash'):

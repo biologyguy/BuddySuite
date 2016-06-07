@@ -26,7 +26,10 @@ Description: Collection of PyTest unit tests for the buddy_resources.py module
 import pytest
 from subprocess import Popen, PIPE
 
-import buddy_resources as Br
+try:
+    from buddysuite import buddy_resources as Br
+except ImportError:
+    import buddy_resources as Br
 
 # None of this has not been properly vetted yet
 '''

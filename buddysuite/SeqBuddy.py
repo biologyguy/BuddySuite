@@ -31,9 +31,14 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import AlignBuddy as Alb
-import MyFuncs
+try:
+    from buddysuite import AlignBuddy as Alb
+    from buddysuite import buddy_resources as br
+    from buddysuite import MyFuncs
+except ImportError:
+    import buddy_resources as br
+    import AlignBuddy as Alb
+    import MyFuncs
 
 # Standard library
 import sys
@@ -173,7 +178,7 @@ class SeqBuddy(object):
         self.hash_map = OrderedDict()  # This is only used by functions that use hash_id()
 
         # SeqBuddy obj
-        if type(sb_input) == SeqBuddy:
+        if sb_input.__class__.__name__ == "SeqBuddy":
             sb_input = make_copy(sb_input)
 
         # Handles
@@ -211,7 +216,7 @@ class SeqBuddy(object):
         if in_format:
             self.in_format = in_format
 
-        elif type(sb_input) == SeqBuddy:
+        elif sb_input.__class__.__name__ == "SeqBuddy":
             self.in_format = sb_input.in_format
 
         else:
@@ -237,7 +242,7 @@ class SeqBuddy(object):
         self.out_format = self.in_format if not out_format else out_format
 
         # ####  RECORDS  #### #
-        if type(sb_input) == SeqBuddy:
+        if sb_input.__class__.__name__ == "SeqBuddy":
             sequences = sb_input.records
 
         elif isinstance(sb_input, list):
@@ -647,7 +652,7 @@ def _guess_format(_input):
         return "gb"
 
     # Pull value directly from object if appropriate
-    if type(_input) == SeqBuddy:
+    if _input.__class__.__name__ == "SeqBuddy":
         return _input.in_format
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
@@ -1201,7 +1206,7 @@ def blast(subject, query, **kwargs):
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
 
-    if type(query) == SeqBuddy:
+    if query.__class__.__name__ == "SeqBuddy":
         if not _check_for_blast_bin("makeblastdb"):
             raise SystemError("blastdbcmd not found in system path.")
         query_sb = hash_ids(query)
@@ -3616,7 +3621,7 @@ def argparse_init():
     try:
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected. Process will be aborted.\n")
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records

@@ -30,8 +30,12 @@ Collection of functions that interact with public sequence databases. Pull them 
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import MyFuncs
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite import MyFuncs
+except ImportError:
+    import buddy_resources as br
+    import MyFuncs
 
 # Standard library
 import sys

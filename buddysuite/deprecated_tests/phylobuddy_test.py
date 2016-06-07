@@ -33,10 +33,16 @@ from unittest import mock
 import ete3
 
 sys.path.insert(0, os.path.abspath("../"))
-import buddy_resources as br
-import PhyloBuddy as Pb
-import AlignBuddy as Alb
-import MyFuncs
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite import PhyloBuddy as Pb
+    from buddysuite import AlignBuddy as Alb
+    from buddysuite import MyFuncs
+except ImportError:
+    import buddy_resources as br
+    import PhyloBuddy as Pb
+    import AlignBuddy as Alb
+    import MyFuncs
 
 VERSION = Pb.VERSION
 WRITE_FILE = MyFuncs.TempFile()

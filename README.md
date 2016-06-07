@@ -99,7 +99,7 @@ To run the tests, use docker to get all of the dependencies installed:
 
 and then run the tests with
 
-    $: docker run -v $PWD:/home/docker/buddysuite docker-build:latest
+    $: docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
 
 See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
  development version dependencies and how to contribute to the project.

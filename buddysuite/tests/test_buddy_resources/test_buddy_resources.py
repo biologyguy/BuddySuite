@@ -2,7 +2,10 @@
 # coding=utf-8
 
 import pytest
-import buddy_resources as br
+try:
+    from buddysuite import buddy_resources as br
+except ImportError:
+    import buddy_resources as br
 
 
 def test_parse_format():

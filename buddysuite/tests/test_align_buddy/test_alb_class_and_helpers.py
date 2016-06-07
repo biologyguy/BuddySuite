@@ -2,12 +2,18 @@
 # coding=utf-8
 """ tests basic functionality of AlignBuddy class """
 import pytest
-import MyFuncs
 import io
-from AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
-from buddy_resources import GuessError, parse_format, PhylipError
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
+
+try:
+    from buddysuite import MyFuncs
+    from buddysuite.AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
+    from buddysuite.buddy_resources import GuessError, parse_format, PhylipError
+except ImportError:
+    import MyFuncs
+    from AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
+    from buddy_resources import GuessError, parse_format, PhylipError
 
 
 def test_instantiate_alignbuddy_from_file(alb_resources):

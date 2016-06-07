@@ -28,9 +28,14 @@ and allows maintenance of rich feature annotation following alignment.
 from __future__ import print_function
 
 # BuddySuite specific
-import buddy_resources as br
-import SeqBuddy as Sb
-import MyFuncs
+try:
+    from buddysuite import buddy_resources as br
+    from buddysuite import SeqBuddy as Sb
+    from buddysuite import MyFuncs
+except ImportError:
+    import buddy_resources as br
+    import SeqBuddy as Sb
+    import MyFuncs
 
 # Standard library
 import sys
@@ -1410,7 +1415,7 @@ def argparse_init():
         if not in_args.generate_alignment:
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                    sys.exit("Warning: No input detected. Process will be aborted.")
+                    sys.exit("Warning: No input detected. Process will be aborted.\n")
                 align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
                 alignbuddy += align_set.alignments
 

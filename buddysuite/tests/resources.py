@@ -7,13 +7,20 @@ main_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, main_dir)
 sys.path.insert(0, os.path.abspath(".."))
 
-import AlignBuddy as Alb
-import SeqBuddy as Sb
-import PhyloBuddy as Pb
-import DatabaseBuddy as Db
-import buddy_resources as br
-import MyFuncs
-
+try:
+    from buddysuite import AlignBuddy as Alb
+    from buddysuite import SeqBuddy as Sb
+    from buddysuite import PhyloBuddy as Pb
+    from buddysuite import DatabaseBuddy as Db
+    from buddysuite import buddy_resources as br
+    from buddysuite import MyFuncs
+except ImportError:
+    import AlignBuddy as Alb
+    import SeqBuddy as Sb
+    import PhyloBuddy as Pb
+    import DatabaseBuddy as Db
+    import buddy_resources as br
+    import MyFuncs
 
 # This file (conftest.py) must be in the same directory as unit_test_resources
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
