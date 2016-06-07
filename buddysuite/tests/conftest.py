@@ -14,7 +14,6 @@ def alb_resources():
     """
     Create a shared Resources object of alignment files and Alb objects
     """
-
     resources_obj = Resources()
     return resources_obj
 

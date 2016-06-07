@@ -25,6 +25,7 @@ except ImportError:
 # This file (conftest.py) must be in the same directory as unit_test_resources
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
 
+
 class Resources(object):
     """
     Resources are organized by molecule, number of alignmentts, and file format
