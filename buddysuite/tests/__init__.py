@@ -5,7 +5,6 @@ from copy import deepcopy
 
 main_dir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, main_dir)
-sys.path.insert(0, os.path.abspath(".."))
 
 try:
     from buddysuite import AlignBuddy as Alb
