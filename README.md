@@ -49,7 +49,7 @@ Assuming no conflict, create a new symbolic link (note that the following can be
     $: which sb
     >>> /usr/local/anaconda/bin/sb
 
-All of the ([examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
+All of the [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
 
 *Tool* | *Short-form*
 ---------- | -------- 
@@ -72,6 +72,9 @@ AlignBuddy and PhyloBuddy can be used to launch a number of third party alignmen
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
  [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH, SeqBuddy.py will
  attempt to download the binaries if any BLAST dependant functions are called.
+ 
+See the [Dependencies](https://github.com/biologyguy/BuddySuite/wiki/Dependencies) page for a full list of all
+ third-party packages and software that BuddySuite requires or wraps.
  
 ## Getting started
 Once installed, you can access the modules from the command line using their full names:
