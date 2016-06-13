@@ -2289,7 +2289,14 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
-def prosite_scan(seqbuddy, quiet=False):
+def prosite_scan(seqbuddy, common_match=True, quiet=False):
+    """
+    Search for PROSITE scan motifs in sequences (via REST service)
+    :param seqbuddy: Input seqbuddy object
+    :param common_match: This will include things like post-translational modification sites
+    :param quiet: Suppress all stderr
+    :return:
+    """
     import urllib.parse
     import urllib.request
     import urllib.error
@@ -2332,8 +2339,8 @@ def prosite_scan(seqbuddy, quiet=False):
     def run_prosite(_rec, args):
         out_file_path = args[0]
         email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
-        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': True, 'database': 'prosite',
-                  'scanControl': 'both', 'stype': 'protein'}
+        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
+                  'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
         # Submit the job
         request_data = urllib.parse.urlencode(params)
         request_data = request_data.encode("utf-8")
@@ -4542,7 +4549,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Prosite Scan
     if in_args.prosite_scan:
         try:
-            seqbuddy = prosite_scan(seqbuddy)
+            if in_args.prosite_scan[0].lower() == "strict":
+                seqbuddy = prosite_scan(seqbuddy, common_match=False)
+            else:
+                seqbuddy = prosite_scan(seqbuddy)
         except ConnectionError as e:
             _raise_error(e, "prosite_scan", "HTTP")
 
