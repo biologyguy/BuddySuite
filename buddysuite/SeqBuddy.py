@@ -379,6 +379,13 @@ class SeqBuddy(object):
                 output += "%s,%s\n" % (_hash, orig_id)
         return output
 
+    def reverse_hashmap(self):
+        if self.hash_map:
+            for _hash, seq_id in self.hash_map.items():
+                rename(self, _hash, seq_id)
+            self.hash_map = OrderedDict()
+        return
+
 
 # ################################################# HELPER FUNCTIONS ################################################# #
 def _add_buddy_data(rec, key=None, data=None):
@@ -1317,8 +1324,7 @@ def blast(subject, query, **kwargs):
     new_seqs = SeqBuddy("%s/seqs.fa" % tmp_dir.path)
     new_seqs.out_format = subject.out_format
     if query_sb:
-        for _hash, seq_id in query_sb.hash_map.items():
-            rename(new_seqs, _hash, seq_id)
+        query_sb.reverse_hashmap()
     return new_seqs
 
 
@@ -2408,7 +2414,8 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
         seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
     else:
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
-
+    seqbuddy.hash_map = seqbuddy_copy.hash_map
+    seqbuddy.reverse_hashmap()
     return seqbuddy
 
 
@@ -4549,7 +4556,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Prosite Scan
     if in_args.prosite_scan:
         try:
-            if in_args.prosite_scan[0].lower() == "strict":
+            if in_args.prosite_scan[0] and in_args.prosite_scan[0].lower() == "strict":
                 seqbuddy = prosite_scan(seqbuddy, common_match=False)
             else:
                 seqbuddy = prosite_scan(seqbuddy)
