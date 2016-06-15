@@ -10,16 +10,20 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+# Install whatever possible with apt-get
 RUN apt-get update
 RUN apt-get -y install \
     sudo \
     wget \
+    tar \
     python3 \
     python3-pyqt4 \
     bzip2 \
     build-essential \
     phyml \
-    raxml;
+    raxml \
+    clustalo \
+    clustalw;
 
 # pick a raxml to name `raxml`
 run ln -s /usr/bin/raxmlHPC /usr/bin/raxml
@@ -30,8 +34,8 @@ RUN useradd -m docker && \
     echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER docker
 
-# do the install step now
-RUN wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && bash ~/miniconda.sh -b -p $HOME/miniconda
+# Setup miniconda and install a bunch of things with that
+RUN wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && bash ~/miniconda.sh -b -p $HOME/miniconda
 
 RUN /home/docker/miniconda/bin/conda config --set always_yes yes --set changeps1 no
 RUN /home/docker/miniconda/bin/conda config --add channels r
@@ -44,13 +48,16 @@ RUN /home/docker/miniconda/bin/conda install \
     biopython \
     six \
     pyqt \
-    fasttree;
+    fasttree \
+    mafft \
+    prank \
+    muscle;
 
 # NOTE: installing python3-pyqt4 via apt-get installs the dependencies for this
 #       package; installing pyqt via conda installs the application itself into
 #       the conda environment.
 
-# Install stuff not supported by conda
+# Grab things tracked in PyPI but not yet supported by conda
 RUN /home/docker/miniconda/bin/pip install --upgrade pip
 RUN /home/docker/miniconda/bin/pip install \
     py \
@@ -60,6 +67,11 @@ RUN /home/docker/miniconda/bin/pip install \
     pytest-colordots \
     ete3 \
     dendropy;
+
+
+# Get a few funny programs not covered by any package managers
+RUN wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/docker/pagan.tgz
+RUN tar -xzf /home/docker/pagan.tgz -C /home/docker && ln -s /home/docker/pagan/bin/pagan /home/docker/miniconda/bin/pagan
 
 # and run the test step when the image runs
 ADD test.sh /home/docker/test.sh
