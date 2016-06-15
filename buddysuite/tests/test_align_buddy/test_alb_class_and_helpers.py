@@ -55,12 +55,12 @@ def test_instantiate_alignbuddy_from_list(alb_resources):
         AlignBuddy(alignbuddy.alignments)
 
 
-def test_instantiation_alignbuddy_errors(alignment_bad_resources):
+def test_instantiation_alignbuddy_errors(alb_bad_resources):
     with pytest.raises(GuessError) as e:
-        AlignBuddy(alignment_bad_resources["dna"]["single"]["fasta"])
+        AlignBuddy(alb_bad_resources["dna"]["single"]["fasta"])
     assert "Could not determine format from _input file" in str(e)
 
-    tester = open(alignment_bad_resources["dna"]["single"]["fasta"], "r")
+    tester = open(alb_bad_resources["dna"]["single"]["fasta"], "r")
     with pytest.raises(GuessError) as e:
         AlignBuddy(tester.read())
     assert "Could not determine format from raw" in str(e)
@@ -71,17 +71,17 @@ def test_instantiation_alignbuddy_errors(alignment_bad_resources):
     assert "Could not determine format from input file-like object" in str(e)
 
 
-def test_empty_file(alignment_bad_resources):
-    with open(alignment_bad_resources["blank"], "r") as ifile:
+def test_empty_file(alb_bad_resources):
+    with open(alb_bad_resources["blank"], "r") as ifile:
         with pytest.raises(GuessError) as e:
             AlignBuddy(ifile)
         assert "Empty file" in str(e)
 
 
-def test_throws_errors_on_invalid_files(alignment_bad_resources):
+def test_throws_errors_on_invalid_files(alb_bad_resources):
     """ expect AlignBuddy to raise errors on invalid filesr """
     with pytest.raises(GuessError):
-        AlignBuddy(alignment_bad_resources['dna']['single']['fasta'])
+        AlignBuddy(alb_bad_resources['dna']['single']['fasta'])
 
 
 # ##################### AlignBuddy methods ###################### ##
@@ -137,17 +137,17 @@ hashes = [('o p g', 'bf8485cbd30ff8986c2f50b677da4332'), ('o p n', '17ff1b919cac
 
 
 @pytest.mark.parametrize('key,next_hash', hashes)
-def test_str(alb_resources, helpers, key, next_hash):
+def test_str(alb_resources, alb_helpers, key, next_hash):
     tester = str(alb_resources.get_one(key))
-    assert helpers.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
+    assert alb_helpers.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
 
 
 @pytest.mark.parametrize('key,next_hash', hashes)
-def test_write1(alb_resources, helpers, key, next_hash):
+def test_write1(alb_resources, alb_helpers, key, next_hash):
     temp_file = MyFuncs.TempFile()
     alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path)
-    tester_hash = helpers.string2hash(temp_file.read())
+    tester_hash = alb_helpers.string2hash(temp_file.read())
     assert tester_hash == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d24000f8b72dd9d25620cff1'),
@@ -156,15 +156,15 @@ hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d240
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_write2(alb_resources, helpers, key, next_hash):
+def test_write2(alb_resources, alb_helpers, key, next_hash):
     alignbuddy = alb_resources.get_one(key)
     temp_file = MyFuncs.TempFile()
     alignbuddy.write(temp_file.path, out_format="phylipr")
     out = temp_file.read()
-    assert helpers.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert alb_helpers.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
-def test_write3(alb_resources, helpers):  # Unloopable components
+def test_write3(alb_resources, alb_helpers):  # Unloopable components
     tester = alb_resources.get_one("m p py")
     tester.set_format("fasta")
     with pytest.raises(ValueError):
@@ -175,18 +175,18 @@ def test_write3(alb_resources, helpers):  # Unloopable components
 
     tester = alb_resources.get_one("o d pr")
     tester.set_format("phylipi")
-    assert helpers.align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
+    assert alb_helpers.align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
 
-    tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % helpers.resource_path)
+    tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % alb_helpers.resource_path)
     tester.set_format("phylip-strict")
-    assert helpers.align_to_hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+    assert alb_helpers.align_to_hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-def test_guess_error(alignment_bad_resources):
+def test_guess_error(alb_bad_resources):
     # File path
     with pytest.raises(GuessError):
-        unrecognizable = alignment_bad_resources['protein']['single']['phylip']
+        unrecognizable = alb_bad_resources['protein']['single']['phylip']
         AlignBuddy(unrecognizable)
 
     with open(unrecognizable, 'r') as ifile:
@@ -220,7 +220,7 @@ def test_guess_alphabet(alb_resources):
     assert not guess_alphabet(AlignBuddy("", in_format="fasta"))
 
 
-def test_guess_format(alb_resources, alignment_bad_resources):
+def test_guess_format(alb_resources, alb_bad_resources):
     assert guess_format(["dummy", "list"]) == "stockholm"
 
     for key, obj in alb_resources.get().items():
@@ -234,19 +234,19 @@ def test_guess_format(alb_resources, alignment_bad_resources):
             string_io = io.StringIO(ifile.read())
         assert guess_format(string_io) == parse_format(alb_resources.get_key(key)["format"])
 
-    guess_format(alignment_bad_resources['blank']) == "empty file"
-    assert not guess_format(alignment_bad_resources['dna']['single']['phylipss_recs'])
-    assert not guess_format(alignment_bad_resources['dna']['single']['phylipss_cols'])
+    guess_format(alb_bad_resources['blank']) == "empty file"
+    assert not guess_format(alb_bad_resources['dna']['single']['phylipss_recs'])
+    assert not guess_format(alb_bad_resources['dna']['single']['phylipss_cols'])
 
     with pytest.raises(GuessError) as e:
         guess_format({"Dummy dict": "Type not recognized by guess_format()"})
     assert "Unsupported _input argument in guess_format()" in str(e)
 
 
-def test_make_copy(alb_resources, helpers):
+def test_make_copy(alb_resources, alb_helpers):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
-        helpers.align_to_hash(tester) == helpers.align_to_hash(alb)
+        alb_helpers.align_to_hash(tester) == alb_helpers.align_to_hash(alb)
 
 
 def test_stderr(capsys):

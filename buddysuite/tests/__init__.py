@@ -25,7 +25,134 @@ except ImportError:
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
 
 
-class Resources(object):
+class SbResources(object):
+    def __init__(self):
+        base_dict_structure = {'dna': {}, 'rna': {}, 'pep': {}}
+
+        self.resources = deepcopy(base_dict_structure)
+        self.resources['dna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+            ("clustal", "{path}/Mnemiopsis_cds.clus"),
+            ("fasta", "{path}/Mnemiopsis_cds.fa"),
+            ("gb", "{path}/Mnemiopsis_cds.gb"),
+            ("nexus", "{path}/Mnemiopsis_cds.nex"),
+            ("phylip", "{path}/Mnemiopsis_cds.phy"),
+            ("phylipr", "{path}/Mnemiopsis_cds.phyr"),
+            ("phylipss", "{path}/Mnemiopsis_cds.physs"),
+            ("phylipsr", "{path}/Mnemiopsis_cds.physr"),
+            ("stockholm", "{path}/Mnemiopsis_cds.stklm")]}
+
+        self.resources['rna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+            ("fasta", "{path}/Mnemiopsis_rna.fa"),
+            ("nexus", "{path}/Mnemiopsis_rna.nex")]}
+        self.resources['pep'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+            ("fasta", "{path}/Mnemiopsis_pep.fa"),
+            ("gb", "{path}/Mnemiopsis_pep.gb"),
+            ("nexus", "{path}/Mnemiopsis_pep.nex"),
+            ("phylip", "{path}/Mnemiopsis_pep.phy"),
+            ("phylipr", "{path}/Mnemiopsis_pep.phyr"),
+            ("phylipss", "{path}/Mnemiopsis_pep.physs"),
+            ("phylipsr", "{path}/Mnemiopsis_pep.physr"),
+            ("stockholm", "{path}/Mnemiopsis_pep.stklm")]}
+
+        # Create new SeqBuddy objects for each resource file
+        self.sb_objs = deepcopy(base_dict_structure)
+        for mol in self.resources:
+            for file_format in self.resources[mol]:
+                self.sb_objs[mol][file_format] = Sb.SeqBuddy(self.resources[mol][file_format])
+
+        self.code_dict = {"molecule": {"p": "pep", "d": "dna", "r": "rna"},
+                          "format": {"c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
+                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm"}}
+
+        self.single_letter_codes = {"p": "pep", "d": "dna", "r": "rna",
+                                    "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
+                                    "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm"}
+
+    def parse_code(self, code="", strict=False):
+        """
+        Take in the letter codes for a query and determine the final groups to be returned
+        When codes from a particular category are ommited, pull in all possibilities for that categroy
+        :param code: Letter codes (explained in Class definition)
+        :type code: str
+        :param strict: Only return the exact resources included in code (don't inflate empty types)
+        :type strict: bool
+        :return: The complete group of resources to be used
+        :rtype: dict
+        """
+        results = {"molecule": [], "format": []}
+        code = code.split()
+        for i in code:
+            for j in results:
+                if i in self.code_dict[j]:
+                    results[j].append(i)
+
+        # Fill up a field with all possibilities if nothing is given
+        for result_type in results:
+            if not results[result_type] and not strict:
+                results[result_type] = [key for key in self.code_dict[result_type]]
+        return results
+
+    def get_key(self, code):
+        code = code.split()
+        if len(code) != 3:
+            raise AttributeError("Only explicit three-component codes are accepted")
+        for letter in code:
+            if letter not in self.single_letter_codes:
+                raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
+
+        output = {}
+        for component in ["molecule", "format"]:
+            for indx, letter in enumerate(code):
+                if letter in self.code_dict[component]:
+                    if component in output:
+                        raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
+                                             "component of the key" % component)
+                    output[component] = self.single_letter_codes[letter]
+                    del code[indx]
+                    break
+
+        # return [output["molecule"], output["format"]]
+        return output
+
+    def get(self, code="", mode="objs"):
+        """
+        Returns copies of SeqBuddy objects
+        :param code:
+        :param mode: {"objs", "paths"}
+        :return: OrderedDict {key: resource}
+        """
+        files = self.parse_code(code)
+        output = {}
+        slc = self.single_letter_codes
+        for molecule in files["molecule"]:
+            for _format in files["format"]:
+                try:
+                    if mode == "paths":
+                        new_obj = self.resources[slc[molecule]][slc[_format]]
+                    elif mode == "objs":
+                        new_obj = self.sb_objs[slc[molecule]][slc[_format]]
+                        new_obj = Sb.make_copy(new_obj)
+                    else:
+                        raise ValueError("The 'mode' parameter only accepts 'objs' or 'paths' as input.")
+                    output["%s %s" % (molecule, _format)] = new_obj
+                except KeyError:
+                    pass
+        return output
+
+    def get_list(self, code="", mode="objs"):
+        return [value for key, value in self.get(code=code, mode=mode).items()]
+
+    def get_one(self, code, mode="objs"):
+        output = self.get_list(code, mode)
+        return None if not output or len(output) > 1 else output[0]
+
+    def deets(self, code):
+        code = code.split()
+        return {"type": self.code_dict["type"][code[0]],
+                "format": br.parse_format(self.code_dict["format"][code[1]])}
+
+
+class AlbResources(object):
     """
     Resources are organized by molecule, number of alignmentts, and file format
 

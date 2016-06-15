@@ -42,6 +42,6 @@ class TestAlignmentResourceFixture:
                 for _, path in alb_resources.resources[molecule][quantity].items():
                     assert os.path.isfile(path)
 
-    def test_alignment_bad_resources_file_exists(self, alignment_bad_resources):
+    def test_alignment_bad_resources_file_exists(self, alb_bad_resources):
         """ ensure that our bad test files exist """
-        assert os.path.isfile(alignment_bad_resources['dna']['single']['fasta'])
+        assert os.path.isfile(alb_bad_resources['dna']['single']['fasta'])

@@ -32,7 +32,7 @@ def test_alignment_lengths(alb_resources):
 
 
 # ##############################################  '-bts', '--bootstrap' ############################################## #
-def test_bootstrap(alb_resources, helpers):
+def test_bootstrap(alb_resources, alb_helpers):
     # Test an amino acid file
     tester = Alb.bootstrap(alb_resources.get_one("m p py"))
     assert tester.lengths() == [681, 480]
@@ -45,22 +45,22 @@ def test_bootstrap(alb_resources, helpers):
     _hashes = ["19157b79a55467e22e503d7da0f48862", "dd16e900e9c885224b65a97cb382df3b",
                "9c2f83134a03dec93ca51ce22960779d", "02d6ada0beaf429e73a5f1b29ac00fff"]
     for _ in range(20):
-        assert helpers.align_to_hash(Alb.bootstrap(tester)) in _hashes
+        assert alb_helpers.align_to_hash(Alb.bootstrap(tester)) in _hashes
 
 
 # ##############################################  '-cs', '--clean_seqs' ############################################## #
-def test_clean_seqs(alb_resources, helpers):
+def test_clean_seqs(alb_resources, alb_helpers):
     # Test an amino acid file
     tester = Alb.clean_seq(alb_resources.get_one("m p py"))
-    assert helpers.align_to_hash(tester) == "07a861a1c80753e7f89f092602271072"
+    assert alb_helpers.align_to_hash(tester) == "07a861a1c80753e7f89f092602271072"
 
-    tester = Alb.clean_seq(Alb.AlignBuddy("%s/ambiguous_dna_alignment.fa" % helpers.resource_path),
+    tester = Alb.clean_seq(Alb.AlignBuddy("%s/ambiguous_dna_alignment.fa" % alb_helpers.resource_path),
                            ambiguous=False, rep_char="X")
-    assert helpers.align_to_hash(tester) == "6755ea1408eddd0e5f267349c287d989"
+    assert alb_helpers.align_to_hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
 
 # ###########################################  '-cta', '--concat_alignments' ######################################### #
-def test_concat_alignments(alb_resources, helpers):
+def test_concat_alignments(alb_resources, alb_helpers):
     with pytest.raises(AttributeError) as e:
         Alb.concat_alignments(alb_resources.get_one("p o g"), '.*')
     assert "Please provide at least two alignments." in str(e)
@@ -76,31 +76,31 @@ def test_concat_alignments(alb_resources, helpers):
         Alb.concat_alignments(tester, 'Panx')
     assert "Replicate matches" in str(e)
 
-    tester = Sb.SeqBuddy("%s/Cnidaria_pep.nexus" % helpers.resource_path)
+    tester = Sb.SeqBuddy("%s/Cnidaria_pep.nexus" % alb_helpers.resource_path)
     Sb.pull_recs(tester, "Ccr|Cla|Hec")
     tester = Alb.AlignBuddy(str(tester))
     tester.alignments.append(tester.alignments[0])
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
 
     tester.set_format("gb")
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
                                                        "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
                                                        "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
                                                        "...", "Panx.*")) == 'e754350b0397cf54f531421d1e85774f'
 
     tester.set_format("gb")
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
                                                        "...", "(P)an(x)(.)")) == '5c6653aec09489cadcbed68fbd2f7465'
 
     shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
-    assert helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
+    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
 
 # ###########################################  '-con', '--consensus' ############################################ #
@@ -114,9 +114,9 @@ hashes = [('o d g', '888a13e13666afb4d3d851ca9150b442'), ('o d n', '560d4fc4be7a
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_consensus(alb_resources, helpers, key, next_hash):
+def test_consensus(alb_resources, alb_helpers, key, next_hash):
     tester = Alb.consensus_sequence(alb_resources.get_one(key))
-    assert helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
@@ -130,9 +130,9 @@ hashes = [('o d g', 'b418ba198da2b4a268a962db32cc2a31'), ('o d n', '355a98dad5cf
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_delete_records(alb_resources, helpers, key, next_hash):
+def test_delete_records(alb_resources, alb_helpers, key, next_hash):
     tester = Alb.delete_records(alb_resources.get_one(key), "α[1-5]|β[A-M]")
-    assert helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
@@ -145,11 +145,11 @@ hashes = [('o d g', '4bf291d91d4b27923ef07c660b011c72', '2a42c56df314609d042bdbf
 
 
 @pytest.mark.parametrize("key,d2r_hash,r2d_hash", hashes)
-def test_transcribe(alb_resources, helpers, key, d2r_hash, r2d_hash):
+def test_transcribe(alb_resources, alb_helpers, key, d2r_hash, r2d_hash):
     tester = Alb.dna2rna(alb_resources.get_one(key))
-    assert helpers.align_to_hash(tester) == d2r_hash, tester.write("error_files/%s" % d2r_hash)
+    assert alb_helpers.align_to_hash(tester) == d2r_hash, tester.write("error_files/%s" % d2r_hash)
     tester = Alb.rna2dna(tester)
-    assert helpers.align_to_hash(tester) == r2d_hash, tester.write("error_files/%s" % r2d_hash)
+    assert alb_helpers.align_to_hash(tester) == r2d_hash, tester.write("error_files/%s" % r2d_hash)
 
 
 def test_transcribe_exceptions(alb_resources):
@@ -179,9 +179,9 @@ hashes = [('o d g', '6ff2a8a7c58bb6ac0d98fe373981e220'), ('o d n', 'c907d29434fe
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_enforce_triplets(key, next_hash, alb_resources, helpers):
+def test_enforce_triplets(key, next_hash, alb_resources, alb_helpers):
     tester = Alb.enforce_triplets(alb_resources.get_one(key))
-    assert helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 def test_enforce_triplets_error(alb_resources):
@@ -204,290 +204,40 @@ hashes = [('o d g', 'aaa69d3abb32876a2774d981a274cbad'), ('o d n', '10ca718b74f3
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_extract_range(key, next_hash, alb_resources, helpers):
+def test_extract_range(key, next_hash, alb_resources, alb_helpers):
     tester = Alb.extract_regions(alb_resources.get_one(key), 0, 50)
-    assert helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
-"""
-ToDo: All of these tests need to be run on mock output in this test suite, then the third party software
-Can be run in another test suite.
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
-# This is tested for PAGAN version 0.61. NOTE: Do not split these up. Only one instance of Pagan can run at a time
-@pytest.mark.generate_alignments
-def test_pagan():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'pagan')
-    assert align_to_hash(tester) == 'da1c6bb365e2da8cb4e7fad32d7dafdb'
+# ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
 
-    # NEXUS
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'pagan', '-f nexus')
-    assert align_to_hash(tester) == 'f93607e234441a2577fa7d8a387ef7ec'
-
-    # PHYLIPI
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'pagan', '-f phylipi')
-    assert align_to_hash(tester) == '09dd492fde598670d7cfee61d4e2eab8'
-
-    # PHYLIPS
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'pagan', '-f phylips')
-    assert align_to_hash(tester) == '249c88cb64d41c47388514c65bf8fff1'
-
-    # Multi-param
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'pagan', '-f nexus --translate')
-    assert align_to_hash(tester) == 'dd140ec4eb895ce75d574498a58aa28a'
-
-    # A few edge cases
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_recs(tester, "α[2345]")
-    Alb.generate_msa(tester, "pagan", "-f foo", quiet=True)
-
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_recs(tester, "α[2345]")
-    Alb.generate_msa(tester, "pagan", "-f nexus", quiet=True)
-
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_recs(tester, "α[2345]")
-    Alb.generate_msa(tester, "pagan", "-f phylipi", quiet=True)
+def test_pagan(alb_resources, alb_helpers):
+    pass
 
 
-# PRANK is not deterministic, so just test that something reasonable is returned
-@pytest.mark.generate_alignments
-def test_prank_inputs():
-    # FASTA
-    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', '-once')
-    assert tester.out_format == 'fasta'
+def test_prank():
+    pass
 
 
-@pytest.mark.generate_alignments
-def test_prank_outputs1():
-    # NEXUS
-    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', '-f=nexus -once')
-    assert tester.out_format == 'nexus'
+def test_muscle():
+    pass
 
 
-@pytest.mark.generate_alignments
-def test_prank_outputs2():
-    # PHYLIPI
-    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', params='-f=phylipi -once')
-    assert tester.out_format == 'phylip-relaxed'
+def test_clustalw2():
+    pass
 
 
-@pytest.mark.generate_alignments
-def test_prank_outputs3():
-    # PHYLIPS
-    tester = Sb.pull_recs(Sb.SeqBuddy(resource("Mnemiopsis_cds.fa")), 'α1')
-    tester = Alb.generate_msa(tester, 'prank', params='-f=phylips -once')
-    assert tester.out_format == 'phylipsr'
+def test_clustalomega():
+    pass
 
 
-@pytest.mark.generate_alignments
-def test_muscle_inputs():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'muscle')
-    assert align_to_hash(tester) == '5ec18f3e0c9f5cf96944a1abb130232f'
+def test_mafft():
+    pass
 
 
-@pytest.mark.generate_alignments
-def test_muscle_outputs():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'muscle', '-clw')
-    assert align_to_hash(tester) == '91542667cef761ccaf39d8cb4e877944'
-
-
-@pytest.mark.generate_alignments
-def test_muscle_multi_param():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
-    assert align_to_hash(tester) == '91542667cef761ccaf39d8cb4e877944'
-
-
-@pytest.mark.generate_alignments
-def test_clustalw2_inputs():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalw2')
-    assert align_to_hash(tester) == '955440b5139c8e6d7d3843b7acab8446'
-
-
-@pytest.mark.generate_alignments
-def test_clustalw2_outputs1():
-    # NEXUS
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalw2', '-output=nexus')
-    assert align_to_hash(tester) == 'f4a61a8c2d08a1d84a736231a4035e2e'
-
-
-@pytest.mark.generate_alignments
-def test_clustalw2_outputs2():
-    # PHYLIP
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalw2', '-output=phylip')
-    assert align_to_hash(tester) == 'a9490f124039c6a2a6193d27d3d01205'
-
-
-@pytest.mark.generate_alignments
-def test_clustalw2_outputs3():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalw2', '-output=fasta')
-    assert align_to_hash(tester) == '955440b5139c8e6d7d3843b7acab8446'
-
-
-@pytest.mark.generate_alignments
-def test_clustalw2_multi_param():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalw2', '-output=phylip -noweights')
-    assert align_to_hash(tester) == 'ae9126eb8c482a82d4060d175803c478'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_inputs1():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalomega')
-    assert align_to_hash(tester) == 'f5afdc7c76ab822bdc95230329766aba'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_inputs2():
-    # PHYLIP
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.phy"))
-    tester = Alb.generate_msa(tester, 'clustalomega')
-    assert align_to_hash(tester) == '8299780bf9485b89a2f3462ead666142'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_inputs3():
-    # STOCKHOLM
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.stklm"))
-    tester = Alb.generate_msa(tester, 'clustalomega')
-    assert align_to_hash(tester) == 'd6654e3db3818cc3427cb9241113fdfa'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_outputs1():
-    # CLUSTAL
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal')
-    assert align_to_hash(tester) == '970f6e4389f77a30563763937a3d32bc'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_outputs2():
-    # PHYLIP
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=phylip')
-    assert align_to_hash(tester) == '692c6af848bd90966f15908903894dbd'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_outputs3():
-    # STOCKHOLM
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=stockholm')
-    assert align_to_hash(tester) == '4c24975c033abcf15911a61cb9663a97'
-
-
-@pytest.mark.generate_alignments
-def test_clustalomega_multi_param():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal --iter=1')
-    assert align_to_hash(tester) == '25480f7a9340ff643bb7eeb326e8f981'
-
-
-@pytest.mark.generate_alignments
-def test_mafft_inputs():
-    # FASTA
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'mafft')
-    assert align_to_hash(tester) == 'f94e0fd591dad83bd94201f0af038904'
-
-
-@pytest.mark.generate_alignments
-def test_mafft_outputs():
-    # CLUSTAL
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'mafft', '--clustalout')
-    assert align_to_hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
-
-
-@pytest.mark.generate_alignments
-def test_mafft_multi_param():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
-    assert align_to_hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
-
-
-@pytest.mark.generate_alignments
 def test_generate_alignment_keep_temp(monkeypatch):
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    TEMP_DIR.subdir("ga_temp_files")
-
-    def ask_false(*ask_args):
-        if ask_args:
-            pass
-        return False
-
-    def ask_true(*ask_args):
-        if ask_args:
-            pass
-        return True
-
-    monkeypatch.setattr("MyFuncs.ask", ask_false)
-    with pytest.raises(SystemExit):
-        Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
-
-    monkeypatch.setattr("MyFuncs.ask", ask_true)
-    Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
-    assert os.path.isfile("%s/ga_temp_files/result" % TEMP_DIR.path)
-    assert os.path.isfile("%s/ga_temp_files/tmp.fa" % TEMP_DIR.path)
-
-
-@pytest.mark.generate_alignments
-def test_generate_alignments_genbank():
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_pep.gb"))
-    tester = Alb.generate_msa(tester, "mafft")
-    assert align_to_hash(tester) == "f894ff6060ec5c2904f48ba0c5cdc8fd"
-
-
-@pytest.mark.generate_alignments
-def test_generate_alignments_edges1(capsys):
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-
-    with pytest.raises(AttributeError) as e:
-        Alb.generate_msa(tester, "foo")
-    assert "foo is not a supported alignment tool." in str(e)
-
-    # noinspection PyUnresolvedReferences
-    with mock.patch.dict('os.environ'):
-        del os.environ['PATH']
-        with pytest.raises(SystemExit):
-            Alb.generate_msa(tester, "mafft")
-        out, err = capsys.readouterr()
-        assert "#### Could not find mafft in $PATH. ####\n" in err
-
-
-args = [("prank", "-f=phylipi"), ("clustalomega", "--outfmt=foo"), ("clustalw2", "-output=foo"),
-        ("prank", "-f=nexus"), ("prank", "-f=foo")]
-
-
-@pytest.mark.generate_alignments
-@pytest.mark.parametrize("tool,params", args)
-def test_generate_alignments_edges2(tool, params):
-    tester = Sb.SeqBuddy(resource("Mnemiopsis_cds.fa"))
-    tester = Sb.pull_recs(tester, "α[2345]")
-    Alb.generate_msa(tester, tool, params, quiet=True)
-"""
+    pass
 
 
 # ######################  '-hi', '--hash_ids' ###################### #
@@ -535,11 +285,11 @@ hashes = [('o d g', '2a42c56df314609d042bdbfa742871a3', '2a42c56df314609d042bdbf
 
 
 @pytest.mark.parametrize("key,uc_hash,lc_hash", hashes)
-def test_cases(key, uc_hash, lc_hash, alb_resources, helpers):
+def test_cases(key, uc_hash, lc_hash, alb_resources, alb_helpers):
     tester = Alb.uppercase(alb_resources.get_one(key))
-    assert helpers.align_to_hash(tester) == uc_hash, tester.write("error_files/%s" % uc_hash)
+    assert alb_helpers.align_to_hash(tester) == uc_hash, tester.write("error_files/%s" % uc_hash)
     tester = Alb.lowercase(tester)
-    assert helpers.align_to_hash(tester) == lc_hash, tester.write("error_files/%s" % lc_hash)
+    assert alb_helpers.align_to_hash(tester) == lc_hash, tester.write("error_files/%s" % lc_hash)
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
@@ -550,15 +300,15 @@ hashes = [('o p n', '79078260e8725a0d7ccbed9400c78eae'), ('o p pr', '02b977e5b08
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_map_features2alignment(key, next_hash, alb_resources, helpers):
+def test_map_features2alignment(key, next_hash, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     if alignbuddy.alpha == IUPAC.protein:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_pep.gb" % helpers.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_pep.gb" % alb_helpers.resource_path)
     else:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_cds.gb" % helpers.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_cds.gb" % alb_helpers.resource_path)
     tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
     tester.set_format("genbank")
-    assert helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-oi', '--order_ids' ############################################ #
@@ -573,22 +323,22 @@ hashes = [('o d g', '37df4bfa14878fc2772710da243942b6', '7dc190f41c9fb1f96956abd
 
 
 @pytest.mark.parametrize("key,fwd_hash,rev_hash", hashes)
-def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, helpers):
+def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     Alb.order_ids(alignbuddy)
-    assert helpers.align_to_hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files/%s" % fwd_hash)
+    assert alb_helpers.align_to_hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files/%s" % fwd_hash)
 
     Alb.order_ids(alignbuddy, reverse=True)
-    assert helpers.align_to_hash(alignbuddy) == rev_hash, alignbuddy.write("error_files/%s" % rev_hash)
+    assert alb_helpers.align_to_hash(alignbuddy) == rev_hash, alignbuddy.write("error_files/%s" % rev_hash)
 
 
-def test_order_ids2(alb_resources, helpers):
+def test_order_ids2(alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one("o p n")
     Alb.rename(alignbuddy, "Mle-Panxα4", "Mle004-Panxα4")
     Alb.rename(alignbuddy, "Mle-Panxα5", "Mle05-Panxα5")
     Alb.rename(alignbuddy, "Mle-Panxα9", "aMle-PanxαBlahh")
     Alb.order_ids(alignbuddy)
-    assert helpers.align_to_hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
+    assert alb_helpers.align_to_hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
 
 # ##################### '-pr', '--pull_records' ###################### ##
 hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
@@ -598,10 +348,10 @@ hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_pull_records(key, next_hash, alb_resources, helpers):
+def test_pull_records(key, next_hash, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
-    assert helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-ri', '--rename_ids' ############################################ #
@@ -612,10 +362,10 @@ hashes = [('o d g', 'c35db8b8353ef2fb468b0981bd960a38'), ('o d n', '243024bfd2f6
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_rename_ids(key, next_hash, alb_resources, helpers):
+def test_rename_ids(key, next_hash, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     Alb.rename(alignbuddy, 'Panx', 'Test', 0)
-    assert helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 # ###########################################  'tr', '--translate' ############################################ #
@@ -630,10 +380,10 @@ hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', 'a949edce9852
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_translate1(key, next_hash, alb_resources, helpers):
+def test_translate1(key, next_hash, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     Alb.translate_cds(alignbuddy)
-    assert helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert alb_helpers.align_to_hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 def test_translate2(alb_resources):
@@ -649,11 +399,6 @@ def test_translate2(alb_resources):
     assert "Record 'Mle-Panxα9' is protein." in str(e)
 
 # ###########################################  'tm', '--trimal' ############################################ #
-hashes = {'o d psr': {3: '5df948e4b2cb6c0d0740984445655135', 0.7: '384563eb411713e90cb2fea0c799bf0d'},
-          'm d psr': {3: '0e93f0a8c77da8ec974eeca311ca6636', 0.7: 'b15f333416e9dd44834f468d5cd4ca8d'},
-          'o p psr': {3: 'b87f927511aade73bc795e024af8975e', 0.7: 'e0f5ce9201249daf4bb3b4f70a7b5ce8'},
-          'm p psr': {3: 'f0f2115e29f6dfcb75036d90b06edab4', 0.7: 'f443fbe1831fe368a11edc51e25fa330'}}
-
 hashes = [('o d psr', '5df948e4b2cb6c0d0740984445655135', '384563eb411713e90cb2fea0c799bf0d'),
           ('m d psr', '0e93f0a8c77da8ec974eeca311ca6636', 'b15f333416e9dd44834f468d5cd4ca8d'),
           ('o p psr', 'b87f927511aade73bc795e024af8975e', 'e0f5ce9201249daf4bb3b4f70a7b5ce8'),
@@ -661,34 +406,34 @@ hashes = [('o d psr', '5df948e4b2cb6c0d0740984445655135', '384563eb411713e90cb2f
 
 
 @pytest.mark.parametrize("key,hash3,hash07", hashes)
-def test_trimal(key, hash3, hash07, alb_resources, helpers):
+def test_trimal(key, hash3, hash07, alb_resources, alb_helpers):
     alignbuddy = alb_resources.get_one(key)
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 3)
-    assert helpers.align_to_hash(tester1) == hash3, alignbuddy.write("error_files/%s" % hash3)
+    assert alb_helpers.align_to_hash(tester1) == hash3, alignbuddy.write("error_files/%s" % hash3)
 
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 0.7)
-    assert helpers.align_to_hash(tester1) == hash07, alignbuddy.write("error_files/%s" % hash07)
+    assert alb_helpers.align_to_hash(tester1) == hash07, alignbuddy.write("error_files/%s" % hash07)
 
 
-def test_trimal2(alb_resources, helpers):
-    assert helpers.align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
+def test_trimal2(alb_resources, alb_helpers):
+    assert alb_helpers.align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
     tester = alb_resources.get_one("o p n")
     tester.alignments[0]._records = tester.alignments[0]._records[:5]
     Alb.trimal(tester, 'clean')
-    assert helpers.align_to_hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
+    assert alb_helpers.align_to_hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
     tester = alb_resources.get_one("o p n")
     tester_dir = TEMPDIR.subdir()
     tester.write("%s/trimal" % tester_dir)
-    assert helpers.align_to_hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
+    assert alb_helpers.align_to_hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
     """ Probably not a good idea to be calling binaries like this...
     real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
     real_trimal = real_trimal[0].decode()
     with open("%s/trimal" % tester_dir, "w") as ofile:
         ofile.write(real_trimal)
     tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
-    assert helpers.align_to_hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
+    assert alb_helpers.align_to_hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
     """
     records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]
     tester = Alb.AlignBuddy([MultipleSeqAlignment(records)])
