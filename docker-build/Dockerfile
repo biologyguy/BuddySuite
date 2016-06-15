@@ -15,7 +15,7 @@ RUN apt-get -y install \
     sudo \
     wget \
     python3 \
-    python3-pyqt4 \
+    #python3-pyqt4 \
     bzip2 \
     build-essential \
     phyml \
@@ -42,7 +42,7 @@ RUN /home/docker/miniconda/bin/conda config --add channels bioconda
 RUN /home/docker/miniconda/bin/conda create -q -n test-environment python=3.5 \
       scipy \
       numpy \
-      pyqt \
+      #pyqt \
       fasttree \
       ;
 
@@ -53,11 +53,11 @@ RUN /home/docker/miniconda/bin/conda create -q -n test-environment python=3.5 \
 # install stuff into the virtualenv
 RUN /home/docker/miniconda/envs/test-environment/bin/pip install \
     biopython==1.66 \
-    ete3==3.0.0b35 \
-    DendroPy==4.1.0 \
+    #ete3==3.0.0b35 \
+    #DendroPy==4.1.0 \
     py==1.4.31 \
     pytest==2.9.2 \
-    six==1.10.0 \
+    #six==1.10.0 \
     pytest-xdist \
     pytest-cov \
     pytest-colordots \

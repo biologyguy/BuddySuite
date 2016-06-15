@@ -439,6 +439,7 @@ class FeatureReMapper(object):
     def remap_features(self, old_alignment, new_alignment):
         """
         Add all the features from old_alignment that still exist onto new_alignment
+        This is quite efficient, as it doesn't nedd to touch the whole sequence
         :param old_alignment: AlignRecord
         :param new_alignment: AlignRecord
         """
@@ -481,6 +482,10 @@ class FeatureReMapper(object):
             else:
                 feature = None
             return feature
+
+    def append_pos_map(self, alignment):
+        alignment.position_map = self.position_map
+        return
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -978,6 +983,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                             break
 
                 seqbuddy.records = seqbuddy_recs
+                # ToDo: Change remap_gapped_features to multicore
                 br.remap_gapped_features(seqbuddy_recs, alignbuddy.records())
 
                 for _hash, sb_rec in seqbuddy.hash_map.items():
@@ -1114,6 +1120,7 @@ def pull_records(alignbuddy, regex, description=False):
     Retrieves rows with names/IDs matching a search pattern
     :param alignbuddy: The AlignBuddy object to be pulled from
     :param regex: List of regex expressions or single regex
+    :type regex: str list tuple
     :param description: Allow search in description string
     :return: The modified AlignBuddy object
     :rtype: AlignBuddy
@@ -1336,6 +1343,7 @@ def trimal(alignbuddy, threshold):
             raise NotImplementedError("%s not an implemented trimal method" % threshold)
 
         position_map.remap_features(alignbuddy.alignments[alignment_index], new_alignment)
+        position_map.append_pos_map(new_alignment)
         alignbuddy.alignments[alignment_index] = new_alignment
 
     return alignbuddy
