@@ -95,8 +95,10 @@ def alb_bad_resources():
     resource_list = {
         'dna': {
             'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-                ('fasta', '{path}/gibberish.fa'), ('phylipss_recs', '{path}/malformed_phylip_records.physs'),
-                ('phylipss_cols', '{path}/malformed_phylip_columns.physs')]}
+                ('fasta', '{path}/gibberish.fa'),
+                ('phylipss_recs', '{path}/malformed_phylip_records.physs'),
+                ('phylipss_cols', '{path}/malformed_phylip_columns.physs'),
+                ('ambiguous', '{path}/ambiguous_dna_alignment.fa')]}
         },
         'protein': {
             'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
