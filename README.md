@@ -23,14 +23,14 @@ Being pure Python, the BuddySuite should be cross platform. Development and test
  and Mac OS X, however, so it is unclear how well the suite will work within Windows.
 
 ## Installation 
-Clone the repository to your local machine and run setup.py installer
+Clone the repository to your local machine and run setup.py installer:
 
     $: git clone https://github.com/biologyguy/BuddySuite.git
     $: cd BuddySuite
     $: python3 setup.py install
     
 This will ensure you have downloaded the necessary python dependencies and adds links to each program into your path.
- For example, the following command should return something similar (the exact path will be system specific).
+ For example, the following command should return something similar (the exact path will be system specific):
  
     $: which seqbuddy
     >>> /usr/local/anaconda/bin/seqbuddy
@@ -43,11 +43,26 @@ You may choose to also create a set of short-form symbolic links to each program
     >>>
 
 Assuming no conflict, create a new symbolic link (note that the following can be system specific, your installation
- could be in a different directory)
+ could be in a different directory):
 
     $: ln -s /usr/local/anaconda/bin/seqbuddy /usr/local/anaconda/bin/sb
     $: which sb
     >>> /usr/local/anaconda/bin/sb
+
+A lighter-weight alternative to creating symbolic links is to create an alias for the command in your shell's rc file (e.g. ~/.bahsrc).
+ Use the following example to decide what to add to your rc file:
+
+    # BuddySuite aliases
+    alias alb='alignbuddy'
+    alias db='databasebuddy'
+    alias pb='phylobuddy'
+    alias sb='seqbuddy'
+
+Then `which` would return something along the lines of:
+
+    $: which sb
+    >>> alias sb='seqbuddy'
+    >>>         /usr/local/anaconda/bin/sb
 
 All of the [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
 
@@ -90,7 +105,7 @@ For a detailed breakdown of the tools available within each module, check out th
 
 ## Development version installation
 The easiest way to get the development environment up and running is to
- [fork](https://help.github.com/articles/fork-a-repo/) the repository and then clone from your github account.
+ [fork](https://help.github.com/articles/fork-a-repo/) the repository and then clone from your github account:
 
     $: git clone https://github.com/<YOUR USER ID>/BuddySuite.git
 
@@ -116,14 +131,14 @@ See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developer
 
 ## Unit tests
 We are striving for high unit test coverage with py.test. There are two ways to run the unit tests, each of which
- should be executed before making a pull request. The first method is faster and will be used more frequently.
+ should be executed before making a pull request. The first method is faster and will be used more frequently:
 
     $: cd BuddySuite/buddysuite
     $: bash run_tests.hs
 
 The second method should be run just before submitting a pull request, and uses
- [Docker](https://docs.docker.com/engine/installation/) to build a clean linux environment with all dependencies. 
- The tests are then run in a VM that mimics the environment used by Travis-CI to monitor the state of the BuddySuite
+ [Docker](https://docs.docker.com/engine/installation/) to build a clean Linux environment with all dependencies. 
+ The tests are then run in a container that mimics the environment used by Travis-CI to monitor the state of the BuddySuite
  repository:
     
     $: cd BuddySuite
