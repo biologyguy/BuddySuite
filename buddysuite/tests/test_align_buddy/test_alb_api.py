@@ -83,20 +83,20 @@ def test_concat_alignments(alb_resources, alb_helpers):
     assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
 
     tester.set_format("gb")
-    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
-                                                       "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
+    assert alb_helpers.align_to_hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
-    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
-                                                       "(.).(.)-Panx(.)")) == '5ac908ebf7918a45664a31da480fda58'
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
+    assert alb_helpers.align_to_hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
-    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
-                                                       "...", "Panx.*")) == 'e754350b0397cf54f531421d1e85774f'
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "Panx.*")
+    assert alb_helpers.align_to_hash(tester2) == 'e754350b0397cf54f531421d1e85774f'
 
     tester.set_format("gb")
-    assert alb_helpers.align_to_hash(Alb.concat_alignments(Alb.make_copy(tester),
-                                                       "...", "(P)an(x)(.)")) == '5c6653aec09489cadcbed68fbd2f7465'
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "(P)an(x)(.)")
+    assert alb_helpers.align_to_hash(tester2) == '5c6653aec09489cadcbed68fbd2f7465'
 
     shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
@@ -418,7 +418,8 @@ def test_trimal(key, hash3, hash07, alb_resources, alb_helpers):
 
 
 def test_trimal2(alb_resources, alb_helpers):
-    assert alb_helpers.align_to_hash(Alb.trimal(alb_resources.get_one("o p n"), 'all')) == "8faaf09741ddb3137653cb77ee66974a"
+    tester = Alb.trimal(alb_resources.get_one("o p n"), 'all')
+    assert alb_helpers.align_to_hash(tester) == "8faaf09741ddb3137653cb77ee66974a"
     tester = alb_resources.get_one("o p n")
     tester.alignments[0]._records = tester.alignments[0]._records[:5]
     Alb.trimal(tester, 'clean')

@@ -844,6 +844,18 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                  'clustalomega': 'http://www.clustal.org/omega/#Download',
                  'clustalo': 'http://www.clustal.org/omega/#Download'}
 
+    if tool in ["clustalomega", "clustalo"]:
+        if which('clustalomega'):
+            tool = "clustalomega"
+        else:
+            tool = "clustalo"
+
+    if tool in ['clustalw', 'clustalw2', 'clustal']:
+        for tool_check in ['clustalw', 'clustalw2', 'clustal']:
+            if which(tool_check):
+                tool = tool_check
+                break
+
     if tool not in tool_urls:
         raise AttributeError("{0} is not a supported alignment tool.".format(tool))
     if which(tool) is None:
