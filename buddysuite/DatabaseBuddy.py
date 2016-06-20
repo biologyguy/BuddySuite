@@ -391,7 +391,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         else:
             # remove any escape characters and convert space padding to tabs if writing the file
             _output = re.sub("\\033\[[0-9]*m", "", _output)
-            _output = re.sub("  +", "\t", _output)
+            #_output = re.sub("  +", "\t", _output)
             destination.write(_output)
 
 
@@ -2139,7 +2139,7 @@ Further details about each command can be accessed by typing 'help <command>'
             if non_full > 0:
                 _stdout('''\
 NOTE: There are %s summary records in the Live Session, and only full records can be written
-  in '%s' format. Use the 'download' command to retrieve full records.
+  in '%s' format. Use the 'fetch' command to retrieve full records.
 ''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
             _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
                     format_out=self.terminal_default)
