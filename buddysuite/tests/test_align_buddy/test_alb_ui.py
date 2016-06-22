@@ -10,7 +10,7 @@ without restriction.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-name: alignbuddy_tests.py
+name: test_alb_ui.py
 version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
@@ -24,20 +24,11 @@ Description: Collection of PyTest unit tests for the AlignBuddy.py program
 """
 
 import pytest
-from hashlib import md5
 import os
 import sys
 import argparse
-import io
 from copy import deepcopy
-from collections import OrderedDict
-from subprocess import Popen, PIPE
 from unittest import mock
-
-from Bio.Alphabet import IUPAC
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.Align import MultipleSeqAlignment
 
 sys.path.insert(0, os.path.abspath("../"))
 try:
@@ -112,7 +103,8 @@ def test_argparse_init(capsys, alb_resources, alb_helpers, alb_bad_resources):
     out, err = capsys.readouterr()
     assert "TypeError: Format type 'foo' is not recognized/supported" in err
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"), "--quiet", "--generate_alignment", "mafft", "--reorder"]
+    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                "--quiet", "--generate_alignment", "mafft", "--reorder"]
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert alignbuddy == []
 
