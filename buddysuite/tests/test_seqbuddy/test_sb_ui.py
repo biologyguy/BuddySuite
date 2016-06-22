@@ -120,3 +120,27 @@ def test_count_codons_ui(capsys, sb_resources, sb_helpers):
         Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"))
     out, err = capsys.readouterr()
     assert "Nucleic acid sequence required, not protein" in err
+
+
+# ######################  '-efs', '--extract_feature_sequences' ###################### #
+def test_extact_feature_sequences_ui(capsys, sb_resources, sb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.extract_feature_sequences = [["CDS"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "7e8a80caf902575c5eb3fc6ba8563956"
+
+    test_in_args.extract_feature_sequences = [["TMD"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "13944b21484d5ea22af4fe57cc8074df"
+
+    test_in_args.extract_feature_sequences = [["TMD", "splice_a"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "78629d308a89b458fb02e71d5568c978"
+
+    test_in_args.extract_feature_sequences = [["foo"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "3cdbd5c8790f12871f8e04e40e315c93"

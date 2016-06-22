@@ -1808,6 +1808,58 @@ def dna2rna(seqbuddy):
     return seqbuddy
 
 
+def extract_feature_sequences(seqbuddy, patterns):
+    """
+    Pull out specific features from annotated sequences
+    :param seqbuddy: SeqBuddy object
+    :type seqbuddy: SeqBuddy
+    :param patterns: The feature(s) to be extracted
+    :type patterns: list str
+    :return: Modified SeqBuddy object
+    :rtype: SeqBuddy
+    """
+    def check_patterns(_feature):
+        for pattern in patterns:
+            if re.search(pattern, _feature.type):
+                return True
+        return False
+
+    if type(patterns) == str:
+        patterns = [patterns]
+
+    new_recs = []
+    for rec in seqbuddy.records:
+        keep_ranges = []
+        for feature in rec.features:
+            if check_patterns(feature):
+                if type(feature.location) == CompoundLocation:
+                    keep_ranges += [[int(x.start), int(x.end)] for x in feature.location.parts]
+                else:
+                    keep_ranges.append([int(feature.location.start), int(feature.location.end)])
+        if not keep_ranges:
+            rec.seq = Seq("", alphabet=rec.seq.alphabet)
+            rec.features = []
+            new_recs.append(rec)
+        else:
+            keep_ranges = sorted(keep_ranges, key=lambda x: x[0])
+            final_positions = ""
+            active_range = keep_ranges[0]
+            for _range in keep_ranges[1:]:
+                if active_range[1] >= _range[0]:
+                    active_range[1] = max(active_range[1], _range[1])
+                else:
+                    final_positions += "%s:%s," % (active_range[0] + 1, active_range[1])
+                    active_range = [_range[0], _range[1]]
+
+            final_positions += "%s:%s" % (active_range[0] + 1, active_range[1])
+            single_rec = SeqBuddy([rec])
+            single_rec = extract_regions(single_rec, final_positions)
+            new_recs.append(single_rec.records[0])
+
+    seqbuddy.records = new_recs
+    return seqbuddy
+
+
 def extract_regions(seqbuddy, positions):
     """
     Fine grained control of what residues to pull out of the sequences
@@ -4027,6 +4079,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _raise_error(e, "degenerate_sequence", "Nucleic acid sequence required, not protein")
         _print_recs(seqbuddy)
         _exit('degenerate_sequence')
+
+    # Extact features
+    if in_args.extract_feature_sequences:
+        seqbuddy = extract_feature_sequences(seqbuddy, in_args.extract_feature_sequences[0])
+        _print_recs(seqbuddy)
+        _exit("extract_feature_sequences")
 
     # Extract regions
     if in_args.extract_regions:

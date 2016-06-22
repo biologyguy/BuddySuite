@@ -168,3 +168,26 @@ def test_count_codons_pep_exception(sb_resources):
     tester = Sb.make_copy(sb_resources.get_one("p f"))
     with pytest.raises(TypeError):
         Sb.count_codons(tester)
+
+
+# ######################  '-efs', '--extract_feature_sequences' ###################### #
+def test_extract_feature_sequences(sb_resources, sb_helpers):
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, "CDS")
+    assert sb_helpers.seqs_to_hash(tester) == "7e8a80caf902575c5eb3fc6ba8563956"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD"])
+    assert sb_helpers.seqs_to_hash(tester) == "13944b21484d5ea22af4fe57cc8074df"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD", "splice_a"])
+    assert sb_helpers.seqs_to_hash(tester) == "78629d308a89b458fb02e71d5568c978"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, "foo")
+    assert sb_helpers.seqs_to_hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, [])
+    assert sb_helpers.seqs_to_hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
