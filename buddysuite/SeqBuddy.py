@@ -812,10 +812,16 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
         recs = seqbuddy.records
 
     for rec1 in recs:
-        for rec2 in old.records:
-            if rec1.id == rec2.id:
-                old.records.remove(rec2)
-
+        while True:
+            breakout = True
+            for indx2, rec2 in enumerate(old.records):
+                if rec1.id == rec2.id:
+                    del old.records[indx2]
+                    breakout = False
+                    break
+            if breakout:
+                break
+                
     if isinstance(location, list) or isinstance(location, tuple):
         locations = []
         if isinstance(location[0], int):
