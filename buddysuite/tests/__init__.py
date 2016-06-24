@@ -318,3 +318,117 @@ class AlbResources(object):
             raise AttributeError("Only explicit three-component codes are accepted")
         output = self.get_list(code, mode)
         return None if not output else output[0]
+
+
+class PbResources(object):
+    def __init__(self):
+        base_dict_structure = {'single': {}, 'multi': {}}
+
+        self.resources = deepcopy(base_dict_structure)
+        self.resources['single'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+            ("newick", "{path}/single_tree.newick"),
+            ("nexus", "{path}/single_tree.nex"),
+            ("nexml", "{path}/single_tree.xml")]}
+
+        self.resources['multi'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+            ("newick", "{path}/multi_tree.newick"),
+            ("nexus", "{path}/multi_tree.nex"),
+            ("nexml", "{path}/multi_tree.xml")]}
+
+
+        # Create new PhyloBuddy objects for each resrouce file
+        self.pb_objs = deepcopy(base_dict_structure)
+        for num in self.resources:
+            for file_format in self.resources[num]:
+                self.pb_objs[num][file_format] = Pb.PhyloBuddy(self.resources[num][file_format])
+
+        self.code_dict = {"num_trees": {"o": "single", "m": "multi"},
+                          "format": {"k": "newick", "n": "nexus", "l": "nexml"}}
+
+        self.single_letter_codes = {"o": "single", "m": "multi",
+                                    "k": "newick", "n": "nexus", "l": "nexml"}
+
+    def parse_code(self, code="", strict=False):
+        """
+        Take in the letter codes for a query and determine the final groups to be returned
+        When codes from a particular category are ommited, pull in all possibilities for that categroy
+        :param code: Letter codes (explained in Class definition)
+        :type code: str
+        :param strict: Only return the exact resources included in code (don't inflate empty types)
+        :type strict: bool
+        :return: The complete group of resources to be used
+        :rtype: dict
+        """
+        results = {"num_trees": [], "format": []}
+        code = code.split()
+        for i in code:
+            for j in results:
+                if i in self.code_dict[j]:
+                    results[j].append(i)
+
+        # Fill up a field with all possibilities if nothing is given
+        for result_type in results:
+            if not results[result_type] and not strict:
+                results[result_type] = [key for key in self.code_dict[result_type]]
+        return results
+
+    def get_key(self, code):
+        code = code.split()
+        if len(code) != 2:
+            raise AttributeError("Only explicit two-component codes are accepted")
+        for letter in code:
+            if letter not in self.single_letter_codes:
+                raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
+
+        output = {}
+        for component in ["num_trees", "format"]:
+            for indx, letter in enumerate(code):
+                if letter in self.code_dict[component]:
+                    if component in output:
+                        raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
+                                             "component of the key" % component)
+                    output[component] = self.single_letter_codes[letter]
+                    del code[indx]
+                    break
+
+        # return [output["num_trees"], output["format"]]
+        return output
+
+    def get(self, code="", mode="objs"):
+        """
+        Returns copies of PhyloBuddy objects, the
+        :param code:
+        :param mode: {"objs", "paths"}
+        :return: OrderedDict {key: resource}
+        """
+        files = self.parse_code(code)
+        output = {}
+        slc = self.single_letter_codes
+        for num_trees in files["num_trees"]:
+            for _format in files["format"]:
+                try:
+                    if mode == "paths":
+                        new_obj = self.resources[slc[num_trees]][slc[_format]]
+                    elif mode == "objs":
+                        new_obj = self.pb_objs[slc[num_trees]][slc[_format]]
+                        new_obj = Pb.make_copy(new_obj)
+                    else:
+                        raise ValueError("The 'mode' parameter only accepts 'objs' or 'paths' as input.")
+                    output["%s %s" % (num_trees, _format)] = new_obj
+                except KeyError:
+                    pass
+        return output
+
+    def get_list(self, code="", mode="objs"):
+        return [value for key, value in self.get(code=code, mode=mode).items()]
+
+    def get_one(self, code, mode="objs"):
+        if len(code.split()) != 2:
+            raise AttributeError("Only explicit two-component codes are accepted")
+        output = self.get_list(code, mode)
+        return None if not output else output[0]
+
+    def deets(self, code):
+        code = code.split()
+        return {"num_trees": self.code_dict["num_trees"][code[0]],
+                "format": br.parse_format(self.code_dict["format"][code[1]])}
