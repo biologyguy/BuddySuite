@@ -821,7 +821,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
                     break
             if breakout:
                 break
-                
+
     if isinstance(location, list) or isinstance(location, tuple):
         locations = []
         if isinstance(location[0], int):

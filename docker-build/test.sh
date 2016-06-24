@@ -19,9 +19,25 @@ TEST_SCRIPTS='test_buddy_resources.py '
 py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
 
 #### AlignBuddy
-cd /home/docker/BuddySuite/buddysuite/tests/test_align_buddy
+cd /home/docker/BuddySuite/buddysuite/tests/test_alignbuddy
 TEST_SCRIPTS='test_alb_class_and_helpers.py '
 TEST_SCRIPTS+='test_alb_api.py '
 TEST_SCRIPTS+='test_alb_ui.py '
 TEST_SCRIPTS+='test_alb_3rd_party.py '
+py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
+
+#### SeqBuddy
+cd /home/docker/BuddySuite/buddysuite/tests/test_seqbuddy
+TEST_SCRIPTS='test_sb_class_and_helpers.py '
+TEST_SCRIPTS+='test_sb_api.py '
+TEST_SCRIPTS+='test_sb_ui.py '
+TEST_SCRIPTS+='test_sb_3rd_party.py '
+py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
+
+#### PhyloBuddy
+cd /home/docker/BuddySuite/buddysuite/tests/test_phylobuddy
+TEST_SCRIPTS='test_pb_class_and_helpers.py '
+TEST_SCRIPTS+='test_pb_api.py '
+TEST_SCRIPTS+='test_pb_ui.py '
+TEST_SCRIPTS+='test_pb_3rd_party.py '
 py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider

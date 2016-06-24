@@ -110,6 +110,10 @@ def decending_order(phylobuddy):
 def ascending_order(phylobuddy):
     return phylobuddy
 
+
+def robinson_foulds(phylobuddy):
+    return phylobuddy
+
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
 # - Regex taxa names
