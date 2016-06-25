@@ -142,24 +142,16 @@ def pb_resources():
     resources_obj = PbResources()
     return resources_obj
 
-"""
+
 @pytest.fixture(scope="session")
-def sb_bad_resources():
+def pb_odd_resources():
     # A dict of invalid file resources
-    resource_list = {
-        'dna': {
-            'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-                ('fasta', '{path}/gibberish.fa'), ('phylipss_recs', '{path}/malformed_phylip_records.physs'),
-                ('phylipss_cols', '{path}/malformed_phylip_columns.physs')]}
-        },
-        'protein': {
-            'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-                ('phylip', '{path}/unrecognizable.phy')]}
-        },
-        'blank': "%s/blank.fa" % RESOURCE_PATH
-    }
+    resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
+        ('blank', '{path}/blank.fa'),
+        ('unrecognizable', '{path}/unrecognizable.phy'),
+        ('figtree', '{path}/figtree.nexus')
+    ]}
     return resource_list
-"""
 
 
 @pytest.fixture(scope="session")
