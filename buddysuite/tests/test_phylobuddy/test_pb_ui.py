@@ -23,12 +23,10 @@ Description: Collection of PyTest unit tests for the PhyloBuddy.py program
 
 
 import pytest
-from hashlib import md5
 import os
 import sys
 import argparse
 from copy import deepcopy
-from collections import OrderedDict
 from unittest import mock
 import ete3
 
@@ -103,3 +101,23 @@ def test_in_place_ui(capsys, pb_resources):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Warning: The -i flag was passed in, but the positional" in err
+
+
+# ###################### 'ct', '--consensus_tree' ###################### #
+def test_consensus_tree_ui(capsys, pb_resources, pb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.consensus_tree = [False]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
+
+    test_in_args.consensus_tree = [0.9]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "baf9b2def2c0fa2ff97d3a16d24b4738"
+
+    test_in_args.consensus_tree = [1.5]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
+    assert err == "Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n"

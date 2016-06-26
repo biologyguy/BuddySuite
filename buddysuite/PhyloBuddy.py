@@ -420,7 +420,7 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def consensus_tree(phylobuddy, frequency=.5):  # ToDo: Remove the length parameters from the tree
+def consensus_tree(phylobuddy, frequency=.5):
     """
     Create a consensus tree from two or more trees.
     :param phylobuddy: PhyloBuddy object
@@ -428,7 +428,14 @@ def consensus_tree(phylobuddy, frequency=.5):  # ToDo: Remove the length paramet
     :return: The modified PhyloBuddy object
     """
     _trees = TreeList(phylobuddy.trees)
-    _consensus = _trees.consensus(min_freq=frequency)
+    _consensus = _trees.consensus(min_freq=frequency, suppress_edge_lengths=True)
+    for node in _consensus:
+        for annotation in ['length_mean', 'length_median', 'length_sd', 'length_hpd95',
+                           'length_quant_5_95', 'length_range']:
+            for indx, _next in enumerate(node.edge.annotations):
+                if re.search("%s=" % annotation, str(_next)):
+                    del node.edge.annotations[indx]
+                    break
     phylobuddy.trees = [_consensus]
     return phylobuddy
 
