@@ -148,7 +148,8 @@ def pb_odd_resources():
         ('blank', '{path}/blank.fa'),
         ('unrecognizable', '{path}/unrecognizable.phy'),
         ('figtree', '{path}/figtree.nexus'),
-        ('compare', '{path}/compare_trees.newick')
+        ('compare', '{path}/compare_trees.newick'),
+        ('node_lables', '{path}/tree_with_node_lables.nwk')
     ]}
     return resource_list
 
@@ -174,4 +175,3 @@ def pb_helpers():
     helper_obj = Helpers()
     return helper_obj
 # ###############################  -  DatabaseBuddy  -  ############################### #
-
