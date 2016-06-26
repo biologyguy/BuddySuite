@@ -3,11 +3,9 @@
 """ Fixtures for py.test  """
 import pytest
 from hashlib import md5
-import os
-import sys
 import re
 
-from __init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, Alb, br, MyFuncs
+from __init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, br, MyFuncs
 
 
 # #################################  -  SeqBuddy  -  ################################## #
@@ -121,7 +119,7 @@ def alb_helpers():
                 raise AttributeError("AlignBuddy object required")
 
             if mode != "hash":
-                return str(alignbuddy)
+                return "{0}".format(str(alignbuddy))
             _hash = md5("{0}".format(str(alignbuddy)).encode("utf-8")).hexdigest()
             return _hash
 
@@ -149,7 +147,8 @@ def pb_odd_resources():
     resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
         ('blank', '{path}/blank.fa'),
         ('unrecognizable', '{path}/unrecognizable.phy'),
-        ('figtree', '{path}/figtree.nexus')
+        ('figtree', '{path}/figtree.nexus'),
+        ('compare', '{path}/compare_trees.newick')
     ]}
     return resource_list
 
@@ -161,9 +160,10 @@ def pb_helpers():
             self.resource_path = RESOURCE_PATH
             self.write_file = MyFuncs.TempFile()
 
-        def phylo_to_hash(self, _phylobuddy, mode='hash'):
+        @staticmethod
+        def phylo_to_hash(_phylobuddy, mode='hash'):
             if mode != "hash":
-                return str(_phylobuddy)
+                return "{0}\n".format(str(_phylobuddy).rstrip())
             _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode('utf-8')).hexdigest()
             return _hash
 
