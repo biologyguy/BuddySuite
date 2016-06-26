@@ -474,31 +474,25 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
         raise AttributeError('{0} is an invalid comparison method.'.format(method))
 
     output = OrderedDict()
-    keypairs = []
-
     for indx1, tree1 in enumerate(phylobuddy.trees):  # Compares all-by-all
-        for indx2, tree2 in enumerate(phylobuddy.trees):
-            if tree1 is not tree2:  # Will not compare to itself
-                key1 = 'tree_{0}'.format(indx1 + 1) if tree1.label not in [None, ''] else tree1.label
-                key2 = 'tree_{0}'.format(indx2 + 1) if tree2.label not in [None, ''] else tree2.label
-                if key1 not in output.keys():
-                    output[key1] = OrderedDict()
-                if key2 not in output.keys():
-                    output[key2] = OrderedDict()
-                if (key2, key1) not in keypairs:  # Prevent repeated (reversed) searches
-                    keypairs.append((key1, key2))
-                    if method == 'wrf':
-                        output[key1][key2] = treecompare.weighted_robinson_foulds_distance(tree1, tree2)
-                        output[key2][key1] = output[key1][key2]
-                    elif method == 'uwrf':
-                        output[key1][key2] = treecompare.symmetric_difference(tree1, tree2)
-                        output[key2][key1] = output[key1][key2]
-                    # elif _method == 'mgk':
-                    #     _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
-                    #     _output[_key2][_key1] = _output[_key1][_key2]
-                    else:
-                        output[key1][key2] = treecompare.euclidean_distance(tree1, tree2)
-                        output[key2][key1] = output[key1][key2]
+        key1 = 'tree_{0}'.format(indx1 + 1) if tree1.label in [None, 'None', ''] else tree1.label
+        output.setdefault(key1, OrderedDict())
+        for indx2, tree2 in enumerate(list(phylobuddy.trees)[indx1 + 1:]):
+            indx2 += indx1 + 1
+            key2 = 'tree_{0}'.format(indx2 + 1) if tree2.label in [None, 'None', ''] else tree2.label
+            output.setdefault(key2, OrderedDict())
+
+            if method == 'wrf':
+                output[key1][key2] = treecompare.weighted_robinson_foulds_distance(tree1, tree2)
+
+            elif method == 'uwrf':
+                output[key1][key2] = treecompare.symmetric_difference(tree1, tree2)
+
+            # elif _method == 'mgk':
+            #     _output[_key1][_key2] = treecompare.mason_gamer_kellogg_score(_tree1, _tree2)
+
+            else:
+                output[key1][key2] = treecompare.euclidean_distance(tree1, tree2)
     return output
 
 
@@ -1146,12 +1140,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
             output = distance(phylobuddy)
 
         _stderr('Tree 1\tTree 2\tValue\n')
-        keypairs = []
         for key1 in output:
             for key2 in output[key1]:
-                if (key2, key1) not in keypairs:
-                    keypairs.append((key1, key2))
-                    _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+                _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
         _exit("distance")
 
     # Generate Tree

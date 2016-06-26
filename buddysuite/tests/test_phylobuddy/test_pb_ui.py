@@ -121,3 +121,36 @@ def test_consensus_tree_ui(capsys, pb_resources, pb_helpers):
     out, err = capsys.readouterr()
     assert pb_helpers.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
     assert err == "Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n"
+
+
+# ###################### 'dis', '--distance' ###################### #
+def test_distance_ui(capsys, pb_resources, pb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.distance = [False]  # Should default to wrf
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
+    assert err == "Tree 1	Tree 2	Value\n"
+
+    test_in_args.distance = ["wrf"]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
+    assert err == "Tree 1	Tree 2	Value\n"
+
+    test_in_args.distance = ["uwrf"]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "9dd162b4cc4fa28f402e6f31ef2fb349"
+    assert err == "Tree 1	Tree 2	Value\n"
+
+    test_in_args.distance = ["ed"]
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "a49e54a6c14ab4dbbf73d3f7d1d6aa82"
+    assert err == "Tree 1	Tree 2	Value\n"
+
+    test_in_args.distance = ["foo"]
+    with pytest.raises(AttributeError) as err:
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+        assert "foo is an invalid comparison method." in err
