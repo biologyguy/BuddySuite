@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Created on: Aug 28 2015 
+# Created on: Aug 28 2015
 
 """
 This program is free software in the public domain as stipulated by the Copyright Law
@@ -19,9 +19,9 @@ institute: Computational and Statistical Genomics Branch, Division of Intramural
 repository: https://github.com/biologyguy/BuddySuite
 © license: None, this work is public domain
 
-Description: Functions used by cron on the ftp server.
-             CAUTION!! Do not point cron directly at this unless you want a huge security hole.
-             In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You've been warned.
+Functions used by cron on the ftp server.
+CAUTION!! Do not point cron directly at this unless you want a huge security hole.
+In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You've been warned.
 """
 
 import sys
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
             try:
                 subject = "BuddySuite|error_reports|%s" % date.today()
-                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
+                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                 ofile.write(email_msg)
             try:
                 subject = "BuddySuite|usage_reports|%s" % date.today()
-                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
+                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
