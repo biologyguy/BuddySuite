@@ -383,7 +383,6 @@ class SeqBuddy(object):
         if self.hash_map:
             for _hash, seq_id in self.hash_map.items():
                 rename(self, _hash, seq_id)
-            self.hash_map = OrderedDict()
         return
 
 
@@ -2276,7 +2275,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     return seqbuddy
 
 
-def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
+def hash_ids(seqbuddy, hash_length=10):
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
@@ -2290,6 +2289,22 @@ def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
         hash_length = int(hash_length)
     except ValueError:
         raise TypeError("Hash length argument must be an integer, not %s" % type(hash_length))
+
+    # If a hash_map already exists and fits all the specs, re-apply it.
+    if seqbuddy.hash_map and len(seqbuddy.hash_map) == len(seqbuddy):
+        # work from a copy, just in case we find an id that doesn't match and we need to start from scratch
+        seqbuddy_copy = make_copy(seqbuddy)
+        re_apply_hash_map = True
+        for rec, _hash_id in zip(seqbuddy_copy.records, list(seqbuddy_copy.hash_map.items())):
+            if rec.id != _hash_id[1]:
+                re_apply_hash_map = False
+                break
+            rec.id = _hash_id[0]
+            rec.name = _hash_id[0]
+
+        if re_apply_hash_map:
+            seqbuddy.records = seqbuddy_copy.records
+            return seqbuddy
 
     if hash_length < 1:
         raise ValueError("Hash length must be greater than 0")

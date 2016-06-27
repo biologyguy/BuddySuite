@@ -1097,9 +1097,20 @@ def test_hash_seq_ids():
     Sb.hash_ids(tester)
     assert len(tester.records[0].id) == 10
 
+    tester = Sb.SeqBuddy(Sb.make_copy(sb_objects[0]))
     tester = Sb.hash_ids(tester, 25)
     assert len(tester.records[0].id) == 25
     assert len(tester.hash_map) == 13
+
+    tester_copy = Sb.make_copy(tester)
+    tester_copy.reverse_hashmap()
+    tester_copy = Sb.hash_ids(tester_copy, 25)
+    assert tester_copy.records[0].id == tester.records[0].id
+
+    tester_copy.reverse_hashmap()
+    tester_copy.records[0].id = tester_copy.records[0].id[:-1]
+    tester_copy = Sb.hash_ids(tester_copy, 25)
+    assert tester_copy.records[0].id != tester.records[0].id
 
 
 def test_hash_seq_ids_errors():
