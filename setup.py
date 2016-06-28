@@ -12,7 +12,9 @@ DEPENDENCIES = [
     'ete3',
     'six',
     'dendropy',
-    'pytest'
+    'pytest',
+    'scipy',
+    'numpy'
 ]
 
 DATA_FILES = [
