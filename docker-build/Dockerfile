@@ -51,7 +51,8 @@ RUN /home/docker/miniconda/bin/conda install \
     fasttree \
     mafft \
     prank \
-    muscle;
+    muscle \
+    blast;
 
 # NOTE: installing python3-pyqt4 via apt-get installs the dependencies for this
 #       package; installing pyqt via conda installs the application itself into
