@@ -5,16 +5,19 @@ import pytest
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 from collections import OrderedDict
+from unittest import mock, TestCase
+import os
+from shutil import which
 
 try:
     from buddysuite import MyFuncs
     from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc
+        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddysuite.buddy_resources import GuessError
 except ImportError:
     import MyFuncs
     from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc
+        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddy_resources import GuessError
 
 
@@ -80,7 +83,7 @@ def test_to_dict(sb_resources, sb_helpers):
         tester.to_dict()
 
 
-def test_to_string(capsys, sb_resources, sb_helpers):
+def test_to_string(sb_resources, sb_helpers):
     tester = sb_resources.get_one("o d f")
     assert sb_helpers.string2hash(str(tester)) == "b831e901d8b6b1ba52bad797bad92d14"
 
@@ -153,55 +156,38 @@ def test_make_copy(sb_resources, sb_helpers):
     tester_copy = make_copy(tester)
     assert sb_helpers.seqs_to_hash(tester) == sb_helpers.seqs_to_hash(tester_copy)
 
-"""
+
 # ######################  '_check_for_blast_bin' ###################### #
-@pytest.mark.internet
-@pytest.mark.slow
-@pytest.mark.blast
+
+
 def test_check_blast_bin(capsys):
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert _check_for_blast_bin(_bin)
 
-    # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
-        with mock.patch('MyFuncs.ask', return_value=False):
+        assert not _check_for_blast_bin("blastp")
+        out, err = capsys.readouterr()
+        assert "blastp binary not found." in err
+        assert "Please install BLAST+ executables." in err
+
+    conda_bin = "/".join(which("conda").split("/")[:-1])
+    pre_installed_conda_blast = False
+    if os.path.isfile("%s/blastp" % conda_bin):
+        Popen("conda remove blast", shell=True).wait()
+        pre_installed_conda_blast = True
+
+    with mock.patch.dict(os.environ, {"PATH": conda_bin}):
+        with mock.patch('buddysuite.MyFuncs.ask', return_value=False):
             assert not _check_for_blast_bin("blastp")
-
-        with mock.patch('MyFuncs.ask', return_value=True):
-            with mock.patch("SeqBuddy._download_blast_binaries", return_value=False):
-                check = _check_for_blast_bin("foo")
-                assert not check
-                out, err = capsys.readouterr()
-                assert "Failed to download foo" in err
-
-            _check_for_blast_bin("blastp")
             out, err = capsys.readouterr()
-            assert "blastp downloaded" in err
-            assert os.path.isfile("./blastp")
-            os.remove("./blastp")
+            assert "blastp binary not found." in err
+            assert "Abort..." in err
 
+        with mock.patch('buddysuite.MyFuncs.ask', return_value=True):
+            assert _check_for_blast_bin("blastp")
 
-# ######################  '_download_blast_binaries' ###################### #
-@pytest.mark.internet
-@pytest.mark.slow
-@pytest.mark.blast
-@pytest.mark.parametrize("platform", ["darwin", "linux32", "linux64", "win"])
-def test_dl_blast_bins(monkeypatch, platform):
-    tmp_dir = MyFuncs.TempDir()
-    monkeypatch.chdir(tmp_dir.path)
-    if platform == "linux32":
-        monkeypatch.setattr("sys.maxsize", 2000000000)
-    platform = "linux" if "linux" in platform else platform
-    _download_blast_binaries(ignore_pre_install=True, system=platform)
-    if platform != "win":
-        assert os.path.isfile('./blastdbcmd')
-        assert os.path.isfile('./blastn')
-        assert os.path.isfile('./blastp')
-    else:
-        assert os.path.isfile('./blastdbcmd.exe')
-        assert os.path.isfile('./blastn.exe')
-        assert os.path.isfile('./blastp.exe')
-"""
+    if not pre_installed_conda_blast:
+        Popen("conda remove blast", shell=True).wait()
 
 
 # ######################  '_feature_rc' ###################### #
