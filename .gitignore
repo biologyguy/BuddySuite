@@ -16,6 +16,7 @@
 .DS_Store
 
 # Unit test html coverage files
+buddysuite/tests/htmlcov/
 buddysuite/htmlcov/*
 .coverage
 .cache
@@ -29,5 +30,3 @@ dependencies.conf
 .ipynb_checkpoints/*
 *\.ipynb
 
-# Coverage reports
-/buddysuite/tests/htmlcov/
