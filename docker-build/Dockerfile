@@ -21,12 +21,8 @@ RUN apt-get -y install \
     bzip2 \
     build-essential \
     phyml \
-    raxml \
     clustalo \
     clustalw;
-
-# pick a raxml to name `raxml`
-run ln -s /usr/bin/raxmlHPC /usr/bin/raxml
 
 # set up a docker user and allow it to sudo
 RUN useradd -m docker && \
@@ -49,9 +45,11 @@ RUN /home/docker/miniconda/bin/conda install \
     six \
     pyqt \
     fasttree \
+    raxml \
     mafft \
     prank \
-    muscle;
+    muscle \
+    blast;
 
 # NOTE: installing python3-pyqt4 via apt-get installs the dependencies for this
 #       package; installing pyqt via conda installs the application itself into
@@ -72,6 +70,10 @@ RUN /home/docker/miniconda/bin/pip install \
 # Get a few funny programs not covered by any package managers
 RUN wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/docker/pagan.tgz
 RUN tar -xzf /home/docker/pagan.tgz -C /home/docker && ln -s /home/docker/pagan/bin/pagan /home/docker/miniconda/bin/pagan
+
+# Set links to 3rd party programs (This needs to be fixed in PhyloBuddy and AlignBuddy)
+RUN sudo ln -s /home/docker/miniconda/bin/raxmlHPC /usr/bin/raxml
+RUN sudo ln -s /home/docker/miniconda/bin/FastTree  /usr/bin/fasttree
 
 # and run the test step when the image runs
 ADD test.sh /home/docker/test.sh

@@ -15,7 +15,6 @@ except ImportError:
 from unittest import mock
 import ete3
 import os
-import sys
 
 # ###################### 'ct', '--consensus_tree' ###################### #
 hashes = [('m k', 'acd3fb34cce867c37684244701f9f5bf'), ('m n', 'eede64c804e531cb1c99e4240589b04b'),
@@ -40,7 +39,6 @@ def test_consensus_tree_95(key, next_hash, pb_resources, pb_helpers):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
-@pytest.mark.display
 def test_display_trees(monkeypatch, pb_resources):
     show = mock.Mock(return_value=True)
     monkeypatch.setattr(ete3.TreeNode, "show", show)
@@ -212,14 +210,9 @@ def test_rename_nodes(pb_odd_resources, pb_helpers):
 
 
 # ###################### 'rt', '--root' ###################### #
-osx_hashes = [('m k', '25ea14c2e89530a0fb48163c0ef2a102'), ('m n', 'e3711259d579cbf0511a5ded66dfd437'),
-              ('m l', '8135cec021240619c27d61288885d8e1'), ('o k', '05a83105f54340839dca64a62a22026e'),
-              ('o n', 'f0e26202274a191c9939835b25c1fae4'), ('o l', 'e97c246dc7ebf4d80363f836beff4a81')]
-
-linux_hashes = [('m k', '8a7fdd9421e0752c9cd58a1e073186c7'), ('m n', 'c16b19aaa11678595f6ed4e7c6b77955'),
-                ('m l', '773e71730ccf270ea3a7cd37a7c0990d'), ('o k', 'eacf232776eea70b5de156328e10ecc7'),
-                ('o n', '53caffda3fed5b9004b79effc6d29c36'), ('o l', '3137d568fe07d88620c08480a15006d3')]
-hashes = osx_hashes if sys.platform == "darwin" else linux_hashes
+hashes = [('m k', '8a7fdd9421e0752c9cd58a1e073186c7'), ('m n', 'c16b19aaa11678595f6ed4e7c6b77955'),
+          ('m l', '773e71730ccf270ea3a7cd37a7c0990d'), ('o k', 'eacf232776eea70b5de156328e10ecc7'),
+          ('o n', '53caffda3fed5b9004b79effc6d29c36'), ('o l', '3137d568fe07d88620c08480a15006d3')]
 
 
 @pytest.mark.parametrize("key, next_hash", hashes)

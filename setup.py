@@ -10,8 +10,11 @@ PACKAGES = [
 DEPENDENCIES = [
     'biopython',
     'ete3',
+    'six',
     'dendropy',
-    'pytest'
+    'pytest',
+    'scipy',
+    'numpy'
 ]
 
 DATA_FILES = [

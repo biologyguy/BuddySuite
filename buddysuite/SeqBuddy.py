@@ -383,7 +383,6 @@ class SeqBuddy(object):
         if self.hash_map:
             for _hash, seq_id in self.hash_map.items():
                 rename(self, _hash, seq_id)
-            self.hash_map = OrderedDict()
         return
 
 
@@ -416,97 +415,27 @@ def _check_for_blast_bin(blast_bin):
     """
     if which(blast_bin):
         return True
-
-    current_dir = os.getcwd()
-    script_location = os.path.realpath(__file__)
-    script_location = re.sub('SeqBuddy\.py', '', script_location)
-
-    prompt = MyFuncs.ask("%s binary not found. Try to download it? [yes]/no: " % blast_bin)
-    if prompt:
-        os.chdir(script_location)
-        bins = dict(blastn=False, blastp=False, blastdcmd=False)
-        bins[blast_bin] = True
-        if _download_blast_binaries(**bins):
-            _stderr("%s downloaded.\n" % blast_bin)
-        else:
-            _stderr("Failed to download %s.\n" % blast_bin)
-        os.chdir(current_dir)
-
-    return False if not which(blast_bin) else True
-
-
-def _download_blast_binaries(blastn=True, blastp=True, blastdcmd=True, **kwargs):
-    """
-    :param blastn: Install blastn? (bool)
-    :param blastp: Install blastp? (bool)
-    :param blastdcmd: Install blastdbcmd? (bool)
-    :param kwargs: Just used for unit test options at the moment
-                   ignore_pre_install: bool
-                   system: {'darwin', 'linux', 'win'}
-    :return: True on success, False on failure
-    """
-
-    if os.path.isdir(os.path.abspath('~/.buddysuite')) and "ignore_pre_install" not in kwargs:
-        current_path = os.path.abspath('~/.buddysuite')
     else:
-        current_path = os.getcwd()
+        _stderr("%s binary not found. " % blast_bin)
 
-    binary_source = 'https://raw.github.com/biologyguy/BuddySuite/master/workshop/blast_binaries/'
-    bins_to_dl = []
-    current_os = sys.platform if "system" not in kwargs else kwargs["system"]
-    if current_os.startswith('darwin'):
-        if blastdcmd:
-            bins_to_dl.append('Darwin_blastdbcmd.zip')
-        if blastn:
-            bins_to_dl.append('Darwin_blastn.zip')
-        if blastp:
-            bins_to_dl.append('Darwin_blastp.zip')
-    elif current_os.startswith('linux'):
-        system_bits = "32" if sys.maxsize < 3000000000 else "64"
-        if blastdcmd:
-            bins_to_dl.append('Linux_blastdbcmd%s.zip' % system_bits)
-        if blastn:
-            bins_to_dl.append('Linux_blastn%s.zip' % system_bits)
-        if blastp:
-            bins_to_dl.append('Linux_blastp%s.zip' % system_bits)
-    elif current_os.startswith('win'):
-        if blastdcmd:
-            bins_to_dl.append('Win32_blastdbcmd.zip')
-        if blastn:
-            bins_to_dl.append('Win32_blastn.zip')
-        if blastp:
-            bins_to_dl.append('Win32_blastp.zip')
-    else:
-        return False
-
-    file_to_name = {'Darwin_blastdbcmd.zip': 'blastdbcmd', 'Darwin_blastn.zip': 'blastn',
-                    'Darwin_blastp.zip': 'blastp', 'Linux_blastdbcmd32.zip': 'blastdbcmd',
-                    'Linux_blastn32.zip': 'blastn', 'Linux_blastp32.zip': 'blastp',
-                    'Linux_blastdbcmd64.zip': 'blastdbcmd', 'Linux_blastn64.zip': 'blastn',
-                    'Linux_blastp64.zip': 'blastp', 'Win32_blastdbcmd.zip': 'blastdbcmd.exe',
-                    'Win32_blastn.zip': 'blastn.exe', 'Win32_blastp.zip': 'blastp.exe'}
-
-    os.makedirs("{0}/__tempdir__".format(current_path), exist_ok=True)
-    try:
-        for blast_bin in bins_to_dl:
-            with request.urlopen('{0}{1}'.format(binary_source, blast_bin)) as reader, \
-                    open("{0}/__tempdir__/{1}".format(current_path, blast_bin), mode='wb') as writer:
-                shutil.copyfileobj(reader, writer)
-            zip_file = zipfile.ZipFile("{0}/__tempdir__/{1}".format(current_path, blast_bin))
-            zip_file.extractall(path=current_path)
-            if current_os.startswith('win'):
-                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '.exe', blast_bin)),
-                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
+    if which("conda"):
+        prompt = MyFuncs.ask("Would you like to install BLAST with BioConda? [yes]/no: ")
+        if prompt:
+            Popen("conda config --add channels r", shell=True).wait()
+            Popen("conda config --add channels bioconda", shell=True).wait()
+            Popen("conda update -q conda", shell=True).wait()
+            Popen("conda install blast", shell=True).wait()
+            if which(blast_bin):
+                return True
             else:
-                os.rename('{0}/{1}'.format(current_path, re.sub('\.zip', '', blast_bin)),
-                          '{0}/{1}'.format(current_path, file_to_name[blast_bin]))
-            os.chmod('{0}/{1}'.format(current_path, file_to_name[blast_bin]), 0o755)
-            print("File added: {0}/{1}".format(current_path, file_to_name[blast_bin]))
-        shutil.rmtree("{0}/__tempdir__".format(current_path))
-    except error.URLError:
+                _stderr("Failed to install BLAST+ executables with Conda.\n")
+                return False
+        else:
+            _stderr("Abort...\n")
+            return False
+    else:
+        _stderr("Please install BLAST+ executables.\n")
         return False
-
-    return True
 
 
 def _feature_rc(feature, seq_len):
@@ -2276,7 +2205,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
     return seqbuddy
 
 
-def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
+def hash_ids(seqbuddy, hash_length=10):
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
@@ -2290,6 +2219,22 @@ def hash_ids(seqbuddy, hash_length=10):  # ToDo: unhash
         hash_length = int(hash_length)
     except ValueError:
         raise TypeError("Hash length argument must be an integer, not %s" % type(hash_length))
+
+    # If a hash_map already exists and fits all the specs, re-apply it.
+    if seqbuddy.hash_map and len(seqbuddy.hash_map) == len(seqbuddy):
+        # work from a copy, just in case we find an id that doesn't match and we need to start from scratch
+        seqbuddy_copy = make_copy(seqbuddy)
+        re_apply_hash_map = True
+        for rec, _hash_id in zip(seqbuddy_copy.records, list(seqbuddy_copy.hash_map.items())):
+            if rec.id != _hash_id[1]:
+                re_apply_hash_map = False
+                break
+            rec.id = _hash_id[0]
+            rec.name = _hash_id[0]
+
+        if re_apply_hash_map:
+            seqbuddy.records = seqbuddy_copy.records
+            return seqbuddy
 
     if hash_length < 1:
         raise ValueError("Hash length must be greater than 0")

@@ -25,7 +25,12 @@ def sb_odd_resources():
         ('blank', '{path}/blank.fa'),
         ('unrecognizable', '{path}/unrecognizable.phy'),
         ('gibberish', '{path}/gibberish.fa'),
-        ('phylipss_cols', '{path}/malformed_phylip_columns.physs')
+        ('phylipss_cols', '{path}/malformed_phylip_columns.physs'),
+        ('duplicate', '{path}/Duplicate_seqs.fa'),
+        ('ambiguous_dna', '{path}/ambiguous_dna.fa'),
+        ('ambiguous_rna', '{path}/ambiguous_rna.fa'),
+        ('blastn', '{path}/blast/Mnemiopsis_cds.n'),
+        ('blastp', '{path}/blast/Mnemiopsis_pep.p')
     ]}
     return resource_list
 
