@@ -158,8 +158,7 @@ def test_make_copy(sb_resources, sb_helpers):
 
 
 # ######################  '_check_for_blast_bin' ###################### #
-
-
+@pytest.mark.internet
 def test_check_blast_bin(capsys):
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert _check_for_blast_bin(_bin)
@@ -184,8 +183,18 @@ def test_check_blast_bin(capsys):
             assert "Abort..." in err
 
         with mock.patch('buddysuite.MyFuncs.ask', return_value=True):
-            assert _check_for_blast_bin("blastp")
-
+            # Try a few times in case there's an internet TimeOutError
+            attempts = 0
+            while True:
+                try:
+                    attempts += 1
+                    assert _check_for_blast_bin("blastp")
+                    break
+                except TimeoutError as err:
+                    if attempts < 3:
+                        continue
+                    else:
+                        raise err
     if not pre_installed_conda_blast:
         Popen("conda remove blast", shell=True).wait()
 
