@@ -32,7 +32,6 @@ from __future__ import print_function
 # BuddySuite specific
 try:
     from buddysuite import buddy_resources as br
-    from buddysuite import br
 except ImportError:
     import buddy_resources as br
 
