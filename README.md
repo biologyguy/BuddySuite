@@ -21,6 +21,8 @@ The BuddySuite modules are designed to be 'one-stop-shop' command line tools for
 
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
  and Mac OS X, however, so it is unclear how well the suite will work within Windows.
+ 
+If you're new to the command line, or simply want to get a better feel for how BuddySuite works, check out the [Beginners Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide).
 
 ## Installation 
 Clone the repository to your local machine and run setup.py installer:
