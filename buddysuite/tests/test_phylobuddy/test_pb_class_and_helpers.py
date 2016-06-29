@@ -135,7 +135,7 @@ def test_str(key, next_hash, pb_resources, pb_helpers):
 
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_write1(key, next_hash, pb_resources, pb_helpers):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester = pb_resources.get_one(key)
     tester.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
