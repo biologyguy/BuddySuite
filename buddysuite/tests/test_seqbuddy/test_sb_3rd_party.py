@@ -19,7 +19,7 @@ except ImportError:
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
-if blast_version not in ["2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0"]:
+if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0"]:
     raise ValueError("Untested Blast version (%s). Please update the tests as necessary "
                      "(each version of blast seems to do something a little different...)" % blast_version)
 
