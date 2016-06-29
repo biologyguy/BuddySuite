@@ -2134,13 +2134,14 @@ def find_repeats(seqbuddy):
 
 
 # ToDo: Make sure cut sites are not already in the features list
-def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None):
+def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
     :param seqbuddy: SeqBuddy object
     :param enzyme_group: "commercial", "all", or a list of specific enzyme names
     :param min_cuts: The minimum cut threshold
     :param max_cuts: The maximum cut threshold
+    :param quiet: Suppress stderr
     :return: annotated SeqBuddy object, and a dictionary of restriction sites added as the `restriction_sites` attribute
     """
     if seqbuddy.alpha == IUPAC.protein:
@@ -2177,7 +2178,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
             try:
                 batch.add(enzyme)
             except ValueError:
-                _stderr("Warning: %s not a known enzyme\n" % enzyme)
+                _stderr("Warning: %s not a known enzyme\n" % enzyme, quiet=quiet)
 
     sites = []
     for rec in seqbuddy.records:
@@ -2186,7 +2187,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
-                _stderr("Warning: Double-cutters not supported.\n")
+                _stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
                 pass
             elif min_cuts <= len(value) <= max_cuts:
                 try:
@@ -2195,7 +2196,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None)
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
                         rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
                 except TypeError:
-                    _stderr("Warning: No-cutters not supported.\n")
+                    _stderr("Warning: No-cutters not supported.\n", quiet=quiet)
                     pass
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
@@ -4177,7 +4178,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         clean_seq(seqbuddy)
         try:
-            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
+            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, quiet=in_args.quiet)
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
