@@ -234,16 +234,16 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
         return True
 
     try:
-        monkeypatch.setattr("buddysuite.br.ask", ask_false)
+        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_false)
     except ImportError:
-        monkeypatch.setattr("br.ask", ask_false)
+        monkeypatch.setattr("buddy_resources.ask", ask_false)
     with pytest.raises(SystemExit):
         Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
 
     try:
-        monkeypatch.setattr("buddysuite.br.ask", ask_true)
+        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_true)
     except ImportError:
-        monkeypatch.setattr("br.ask", ask_true)
+        monkeypatch.setattr("buddy_resources.ask", ask_true)
     Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/result" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % temp_dir.path)
