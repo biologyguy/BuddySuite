@@ -10,14 +10,14 @@ from Bio.Alphabet import IUPAC
 try:
     from buddysuite import AlignBuddy as Alb
     from buddysuite import SeqBuddy as Sb
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
 except ImportError:
     import AlignBuddy as Alb
     import SeqBuddy as Sb
-    import MyFuncs
+    import buddy_resources as br
 
 
-TEMPDIR = MyFuncs.TempDir()
+TEMPDIR = br.TempDir()
 
 
 # ##########################################  '-al', '--alignment_lengths' ########################################### #

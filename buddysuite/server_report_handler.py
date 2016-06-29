@@ -26,7 +26,7 @@ In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You'
 
 import sys
 import os
-import MyFuncs
+import buddysuite.buddy_resources as br
 from datetime import date
 from hashlib import md5
 import re
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     in_args = parser.parse_args()
 
-    root, dirs, reports = next(MyFuncs.walklevel(in_args.report_folder))
+    root, dirs, reports = next(br.walklevel(in_args.report_folder))
 
     if in_args.errors:
         with open("/home/buddysuite_resources/resolved_errors", "r") as ifile:
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
             try:
                 subject = "BuddySuite|error_reports|%s" % date.today()
-                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
+                br.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
                 ofile.write(email_msg)
             try:
                 subject = "BuddySuite|usage_reports|%s" % date.today()
-                MyFuncs.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
+                br.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)

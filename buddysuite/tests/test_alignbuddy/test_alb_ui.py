@@ -35,14 +35,12 @@ try:
     from buddysuite import buddy_resources as br
     from buddysuite import SeqBuddy as Sb
     from buddysuite import AlignBuddy as Alb
-    from buddysuite import MyFuncs
 except ImportError:
-    import MyFuncs
     import AlignBuddy as Alb
     import SeqBuddy as Sb
     import buddy_resources as br
 
-TEMP_DIR = MyFuncs.TempDir()
+TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION
 
 

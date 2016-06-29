@@ -4,11 +4,11 @@
 import pytest
 
 try:
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
     from buddysuite.PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
     from buddysuite.buddy_resources import GuessError
 except ImportError:
-    import MyFuncs
+    import buddy_resources as br
     from PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
     from buddy_resources import GuessError
 

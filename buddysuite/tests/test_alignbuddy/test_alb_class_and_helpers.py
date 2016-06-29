@@ -7,11 +7,11 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
 try:
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
     from buddysuite.AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
     from buddysuite.buddy_resources import GuessError, parse_format, PhylipError
 except ImportError:
-    import MyFuncs
+    import buddy_resources as br
     from AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
     from buddy_resources import GuessError, parse_format, PhylipError
 
@@ -144,7 +144,7 @@ def test_str(alb_resources, alb_helpers, key, next_hash):
 
 @pytest.mark.parametrize('key,next_hash', hashes)
 def test_write1(alb_resources, alb_helpers, key, next_hash):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path)
     tester_hash = alb_helpers.string2hash(temp_file.read())
@@ -158,7 +158,7 @@ hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d240
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_write2(alb_resources, alb_helpers, key, next_hash):
     alignbuddy = alb_resources.get_one(key)
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     alignbuddy.write(temp_file.path, out_format="phylipr")
     out = temp_file.read()
     assert alb_helpers.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)

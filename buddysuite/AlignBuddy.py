@@ -31,11 +31,9 @@ from __future__ import print_function
 try:
     from buddysuite import buddy_resources as br
     from buddysuite import SeqBuddy as Sb
-    from buddysuite import MyFuncs
 except ImportError:
     import buddy_resources as br
     import SeqBuddy as Sb
-    import MyFuncs
 
 # Standard library
 import sys
@@ -204,7 +202,7 @@ class AlignBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False)
 
         else:
-            tmp_dir = MyFuncs.TempDir()
+            tmp_dir = br.TempDir()
             with open("%s/aligns.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
                 try:
                     AlignIO.write(self.alignments, ofile, self.out_format)
@@ -830,7 +828,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     tool = tool.lower()
 
     if keep_temp and os.path.exists(keep_temp):
-        check = MyFuncs.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
+        check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
         if not check:
             sys.exit()
         keep_temp = os.path.abspath(keep_temp)
@@ -863,14 +861,14 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         _stderr('Please go to {0} to install {1}.\n'.format(tool_urls[tool], tool))
         sys.exit()
     else:
-        valve = MyFuncs.SafetyValve(global_reps=10)
+        valve = br.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
         alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
                        "the BuddySuite developers if recurring.")
             try:
-                tmp_dir = MyFuncs.TempDir()
+                tmp_dir = br.TempDir()
                 tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
 
                 params = re.split(' ', params)
@@ -1012,7 +1010,7 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
                             with open("%s/%s" % (root, next_file), "w", encoding="utf-8") as ofile:
                                 ofile.write(contents)
 
-                    MyFuncs.copydir(tmp_dir.path, keep_temp)
+                    br.copydir(tmp_dir.path, keep_temp)
 
                 break
 

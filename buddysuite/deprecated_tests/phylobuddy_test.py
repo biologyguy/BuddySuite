@@ -37,15 +37,13 @@ try:
     from buddysuite import buddy_resources as br
     from buddysuite import PhyloBuddy as Pb
     from buddysuite import AlignBuddy as Alb
-    from buddysuite import MyFuncs
 except ImportError:
     import buddy_resources as br
     import PhyloBuddy as Pb
     import AlignBuddy as Alb
-    import MyFuncs
 
 VERSION = Pb.VERSION
-WRITE_FILE = MyFuncs.TempFile()
+WRITE_FILE = br.TempFile()
 
 
 def fmt(prog):
@@ -301,7 +299,7 @@ def test_str(phylobuddy, next_hash):
 
 @pytest.mark.parametrize("phylobuddy,next_hash", hashes)
 def test_write1(phylobuddy, next_hash):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     phylobuddy.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
     tester = md5(out.encode()).hexdigest()
@@ -439,7 +437,7 @@ def test_phyml_multi_param():
 
 @pytest.mark.generate_trees
 def test_fasttree_inputs():
-    temp_dir = MyFuncs.TempDir()
+    temp_dir = br.TempDir()
     # Nucleotide
     alignbuddy = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
 
@@ -456,14 +454,14 @@ def test_fasttree_inputs():
 
 @pytest.mark.generate_trees
 def test_fasttree_multi_param():
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester = Alb.AlignBuddy(resource("Alignments_cds.phyr"))
     tester = Pb.generate_tree(tester, 'FastTree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
     assert phylo_to_hash(tester) == '0877f4e8f46c3f77390dbf962d24ff71'
 
 
 def test_generate_trees_edge_cases():
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester = Alb.AlignBuddy(resource("Mnemiopsis_cds.nex"))
     with pytest.raises(FileExistsError):
         Pb.generate_tree(tester, "raxml", keep_temp=temp_file.path)
@@ -907,7 +905,7 @@ def test_screw_formats_fail(capsys):
 
 
 def test_screw_formats_inplace_ui(capsys):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     with open(resource("compare_trees.newick"), "r") as ifile:
         temp_file.write(ifile.read())
 

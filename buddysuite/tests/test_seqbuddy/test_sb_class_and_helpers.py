@@ -10,12 +10,12 @@ import os
 from shutil import which
 
 try:
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
     from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddysuite.buddy_resources import GuessError
 except ImportError:
-    import MyFuncs
+    import buddy_resources as br
     from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddy_resources import GuessError
@@ -176,13 +176,13 @@ def test_check_blast_bin(capsys):
         pre_installed_conda_blast = True
 
     with mock.patch.dict(os.environ, {"PATH": conda_bin}):
-        with mock.patch('buddysuite.MyFuncs.ask', return_value=False):
+        with mock.patch('buddysuite.br.ask', return_value=False):
             assert not _check_for_blast_bin("blastp")
             out, err = capsys.readouterr()
             assert "blastp binary not found." in err
             assert "Abort..." in err
 
-        with mock.patch('buddysuite.MyFuncs.ask', return_value=True):
+        with mock.patch('buddysuite.br.ask', return_value=True):
             # Try a few times in case there's an internet TimeOutError
             attempts = 0
             while True:
@@ -240,7 +240,7 @@ def test_guess_format(sb_resources, sb_odd_resources):
     with pytest.raises(GuessError):
         _guess_format("foo")
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write('''\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <nex:nexml
