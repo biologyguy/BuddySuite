@@ -3875,9 +3875,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Count residues
     if in_args.count_residues:
+        seqbuddy = replace_subsequence(seqbuddy, "[-.]", "")
         if in_args.count_residues[0] and str(in_args.count_residues[0].lower()) in "concatenate":
             seqbuddy = concat_seqs(seqbuddy)
-
         count_residues(seqbuddy)
         output = ""
         for rec in seqbuddy.records:
