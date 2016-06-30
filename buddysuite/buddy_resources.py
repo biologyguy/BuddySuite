@@ -36,9 +36,14 @@ from configparser import ConfigParser
 import json
 import traceback
 import re
-
-#sys.path.insert(0, "./")
-#sys.path.insert(0, os.path.abspath("../"))
+from multiprocessing import Process, cpu_count
+from time import time
+from math import floor, ceil
+from tempfile import TemporaryDirectory
+from shutil import copytree, rmtree, copyfile
+import string
+from random import choice
+import signal
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -478,60 +483,6 @@ def copydir(source, dest):
             copyfile(os.path.join(root, each_file), dest_path)
 
 
-def normalize(data, trim_ends=1.0):
-    if 0. > trim_ends > 1.0:
-        raise ValueError("normalize() trim_ends parameter should be between 0.5 and 1.0")
-
-    if trim_ends > 0.5:
-        trim_ends = 1 - trim_ends
-
-    max_limit = ceil(len(data) * (1 - trim_ends)) - 1
-    min_limit = -1 * (max_limit + 1)
-
-    if type(data) == dict:
-        sorted_data = sorted([data[key] for key in data])
-        _max = sorted_data[max_limit]
-        _min = sorted_data[min_limit]
-        data_range = _max - _min
-        for key in data:
-            data[key] = (data[key] - _min) / data_range
-            data[key] = 1. if data[key] > 1. else data[key]
-            data[key] = 0. if data[key] < 0. else data[key]
-
-    else:
-        sorted_data = sorted(data)
-        _max = sorted_data[max_limit]
-        _min = sorted_data[min_limit]
-        data_range = _max - _min
-        for i in range(len(data)):
-            data[i] = (data[i] - _min) / data_range
-            data[i] = 1. if data[i] > 1. else data[i]
-            data[i] = 0. if data[i] < 0. else data[i]
-
-    return data
-
-
-# This will only work if SMTP is running locally
-def sendmail(sender, recipient, subject, message):
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-
-    msg = MIMEMultipart()
-    msg.preamble = subject
-    msg.add_header("From", sender)
-    msg.add_header("Subject", subject)
-    msg.add_header("To", recipient)
-
-    msg.attach(MIMEText(message))
-
-    smtp = smtplib.SMTP('localhost')
-    smtp.starttls()
-    smtp.sendmail(sender, recipient, msg.as_string())
-    smtp.quit()
-    return
-
-
 def ask(input_prompt, default="yes", timeout=0):
     if default == "yes":
         yes_list = ["yes", "y", '']
@@ -561,6 +512,7 @@ def ask(input_prompt, default="yes", timeout=0):
 
     except TimeoutError:
         return False
+
 
 # ##################################################### CLASSES ###################################################### #
 class GuessError(Exception):
