@@ -30,7 +30,9 @@ def sb_odd_resources():
         ('ambiguous_dna', '{path}/ambiguous_dna.fa'),
         ('ambiguous_rna', '{path}/ambiguous_rna.fa'),
         ('blastn', '{path}/blast/Mnemiopsis_cds.n'),
-        ('blastp', '{path}/blast/Mnemiopsis_pep.p')
+        ('blastp', '{path}/blast/Mnemiopsis_pep.p'),
+        ('dummy_feats', '{path}/Mnemiopsis_cds_dummy_features.gb'),
+        ('cnidaria_pep', '{path}/Cnidaria_pep.nexus')
     ]}
     return resource_list
 
