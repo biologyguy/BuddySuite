@@ -23,6 +23,7 @@ def sb_odd_resources():
     # A dict of invalid file resources
     resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
         ('blank', '{path}/blank.fa'),
+        ('figtree', '{path}/figtree.nexus'),
         ('unrecognizable', '{path}/unrecognizable.phy'),
         ('gibberish', '{path}/gibberish.fa'),
         ('phylipss_cols', '{path}/malformed_phylip_columns.physs'),
@@ -32,7 +33,8 @@ def sb_odd_resources():
         ('blastn', '{path}/blast/Mnemiopsis_cds.n'),
         ('blastp', '{path}/blast/Mnemiopsis_pep.p'),
         ('dummy_feats', '{path}/Mnemiopsis_cds_dummy_features.gb'),
-        ('cnidaria_pep', '{path}/Cnidaria_pep.nexus')
+        ('cnidaria_pep', '{path}/Cnidaria_pep.nexus'),
+        ('mixed', '{path}/mixed_alpha.fa')
     ]}
     return resource_list
 
