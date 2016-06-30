@@ -10,15 +10,13 @@ import os
 from shutil import which
 
 try:
-    from buddysuite import buddy_resources as br
+    import buddysuite.buddy_resources as br
     from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
-    from buddysuite.buddy_resources import GuessError
 except ImportError:
     import buddy_resources as br
     from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
-    from buddy_resources import GuessError
 
 
 def test_instantiate_seqbuddy_from_file(sb_resources):
@@ -125,21 +123,21 @@ def test_print_hashmap(sb_resources, sb_helpers):
 # ################################################# HELPER FUNCTIONS ################################################# #
 # ######################  'GuessError' ###################### #
 def test_guesserror_raw_seq():
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
     try:
         SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
-    except GuessError as e:
+    except br.GuessError as e:
         assert "File not found, or could not determine format from raw input" in str(e)
 
 
 def test_guesserror_infile(sb_odd_resources):
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         SeqBuddy(sb_odd_resources["gibberish"])
 
 
 def test_guesserror_in_handle(sb_odd_resources):
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         with open(sb_odd_resources["gibberish"], "r") as ifile:
             SeqBuddy(ifile)
 
@@ -158,49 +156,54 @@ def test_make_copy(sb_resources, sb_helpers):
 
 
 # ######################  '_check_for_blast_bin' ###################### #
-@pytest.mark.internet
-def test_check_blast_bin(capsys):
-    def patch_dict(resource):
-        with mock.patch.dict(os.environ, {"PATH": conda_bin}):
-            with mock.patch(resource, return_value=False):
-                assert not _check_for_blast_bin("blastp")
-                _out, _err = capsys.readouterr()
-                assert "blastp binary not found." in _err
-                assert "Abort..." in _err
-
-            with mock.patch(resource, return_value=True):
-                # Try a few times in case there's an internet TimeOutError
-                attempts = 0
-                while True:
-                    try:
-                        attempts += 1
-                        assert _check_for_blast_bin("blastp")
-                        break
-                    except TimeoutError as _err:
-                        if attempts < 3:
-                            continue
-                        else:
-                            raise _err
-
+def test_check_blast_bin_success():
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert _check_for_blast_bin(_bin)
 
+
+def test_check_blast_bin_error(capsys):
     with mock.patch.dict(os.environ, {"PATH": ""}):
         assert not _check_for_blast_bin("blastp")
         out, err = capsys.readouterr()
         assert "blastp binary not found." in err
         assert "Please install BLAST+ executables." in err
 
+
+@pytest.mark.internet
+def test_check_blast_bin_download(monkeypatch, capsys):
+    def patch_ask(_bool):
+        try:
+            monkeypatch.setattr("buddysuite.buddy_resources.ask", lambda _: _bool)
+        except ImportError:
+            monkeypatch.setattr("buddy_resources.ask", lambda _: _bool)
+
+    # Nuke user's conda installed blast bins if present, then reinstall at the end of test
     conda_bin = "/".join(which("conda").split("/")[:-1])
     pre_installed_conda_blast = False
     if os.path.isfile("%s/blastp" % conda_bin):
         Popen("conda remove blast", shell=True).wait()
         pre_installed_conda_blast = True
 
-    try:
-        patch_dict('buddy_resources.ask')
-    except ImportError:
-        patch_dict('buddysuite.buddy_resources.ask')
+    with mock.patch.dict(os.environ, {"PATH": conda_bin}):
+        patch_ask(False)
+        assert not _check_for_blast_bin("blastp")
+        _out, _err = capsys.readouterr()
+        assert "blastp binary not found." in _err
+        assert "Abort..." in _err
+
+        patch_ask(True)
+        # Try a few times in case there's an internet TimeOutError
+        attempts = 0
+        while True:
+            try:
+                attempts += 1
+                assert _check_for_blast_bin("blastp")
+                break
+            except TimeoutError as _err:
+                if attempts < 3:
+                    continue
+                else:
+                    raise _err
 
     if not pre_installed_conda_blast:
         Popen("conda remove blast", shell=True).wait()
@@ -244,7 +247,7 @@ def test_guess_format(sb_resources, sb_odd_resources):
     assert _guess_format(sb_resources.get_one("d f")) == "fasta"
     assert _guess_format(sb_resources.get_one("d f", mode="paths")) == "fasta"
     assert _guess_format(sb_odd_resources["blank"]) == "empty file"
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         _guess_format("foo")
 
     temp_file = br.TempFile()
