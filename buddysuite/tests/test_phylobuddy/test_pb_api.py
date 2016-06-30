@@ -6,11 +6,11 @@ import pytest
 try:
     from buddysuite import PhyloBuddy as Pb
     from buddysuite import AlignBuddy as Alb
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
 except ImportError:
     import PhyloBuddy as Pb
     import AlignBuddy as Alb
-    import MyFuncs
+    import buddy_resources as br
 
 from unittest import mock
 import ete3

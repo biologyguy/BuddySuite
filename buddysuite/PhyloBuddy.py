@@ -29,11 +29,11 @@ from __future__ import print_function
 # BuddySuite specific
 try:
     from buddysuite import buddy_resources as br
-    from buddysuite.MyFuncs import TempDir, walklevel
+    from buddysuite.buddy_resources import TempDir, walklevel
     from buddysuite import AlignBuddy as Alb
 except ImportError:
     import buddy_resources as br
-    from MyFuncs import TempDir, walklevel
+    from buddy_resources import TempDir, walklevel
     import AlignBuddy as Alb
 
 # Standard library

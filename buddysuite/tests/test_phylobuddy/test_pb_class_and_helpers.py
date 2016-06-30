@@ -4,11 +4,11 @@
 import pytest
 
 try:
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
     from buddysuite.PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
     from buddysuite.buddy_resources import GuessError
 except ImportError:
-    import MyFuncs
+    import buddy_resources as br
     from PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
     from buddy_resources import GuessError
 
@@ -135,7 +135,7 @@ def test_str(key, next_hash, pb_resources, pb_helpers):
 
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_write1(key, next_hash, pb_resources, pb_helpers):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester = pb_resources.get_one(key)
     tester.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())

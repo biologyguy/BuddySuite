@@ -34,11 +34,9 @@ from __future__ import print_function
 try:
     from buddysuite import AlignBuddy as Alb
     from buddysuite import buddy_resources as br
-    from buddysuite import MyFuncs
 except ImportError:
     import buddy_resources as br
     import AlignBuddy as Alb
-    import MyFuncs
 
 # Standard library
 import sys
@@ -322,7 +320,7 @@ class SeqBuddy(object):
         elif self.out_format == "raw":
             output = "\n\n".join([str(rec.seq) for rec in self.records])
         else:
-            tmp_dir = MyFuncs.TempDir()
+            tmp_dir = br.TempDir()
             with open("%s/seqs.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                 try:
                     SeqIO.write(self.records, _ofile, self.out_format)
@@ -419,7 +417,7 @@ def _check_for_blast_bin(blast_bin):
         _stderr("%s binary not found. " % blast_bin)
 
     if which("conda"):
-        prompt = MyFuncs.ask("Would you like to install BLAST with BioConda? [yes]/no: ")
+        prompt = br.ask("Would you like to install BLAST with BioConda? [yes]/no: ")
         if prompt:
             Popen("conda config --add channels r", shell=True).wait()
             Popen("conda config --add channels bioconda", shell=True).wait()
@@ -1086,7 +1084,7 @@ def bl2seq(seqbuddy):
 
     from multiprocessing import Lock
     lock = Lock()
-    tmp_dir = MyFuncs.TempDir()
+    tmp_dir = br.TempDir()
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
@@ -1096,7 +1094,7 @@ def bl2seq(seqbuddy):
         with open(subject_file, "w", encoding="utf-8") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        MyFuncs.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
+        br.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
     with open("%s/blast_results.txt" % tmp_dir.path, "r", encoding="utf-8") as _ifile:
@@ -1152,7 +1150,7 @@ def blast(subject, query, **kwargs):
         if not _check_for_blast_bin("makeblastdb"):
             raise SystemError("blastdbcmd not found in system path.")
         query_sb = hash_ids(query)
-        temp_dir = MyFuncs.TempDir()
+        temp_dir = br.TempDir()
         query_sb.write("%s/query.fa" % temp_dir.path, out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
         makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}/query.fa -out {1}/query_db "
@@ -1184,7 +1182,7 @@ def blast(subject, query, **kwargs):
 
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
-    tmp_dir = MyFuncs.TempDir()
+    tmp_dir = br.TempDir()
     with open("%s/tmp.fa" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
@@ -2034,7 +2032,7 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True):
             pattern = re.sub("[xnXN]", "[AUCG]", pattern)
 
         if ambig:
-            safety_valve = MyFuncs.SafetyValve()
+            safety_valve = br.SafetyValve()
             # Strip out any double square brackets
             while re.search("\[[^[\]]*?\[[^]]*\]", pattern):
                 safety_valve.step("Ambiguous %s regular expression '%s' failed compile." %
@@ -2385,7 +2383,7 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
 
     lock = Lock()
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     hash_ids(seqbuddy)
     clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
     seqbuddy_copy = make_copy(seqbuddy)
@@ -2393,7 +2391,7 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
     if seqbuddy.alpha != IUPAC.protein:
         translate_cds(seqbuddy)
 
-    MyFuncs.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
+    br.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
     seqbuddy = SeqBuddy(temp_file.path)
 
     new_records = []
@@ -2920,7 +2918,7 @@ def order_ids_randomly(seqbuddy):
         return seqbuddy
 
     output = []
-    valve = MyFuncs.SafetyValve(global_reps=1000)
+    valve = br.SafetyValve(global_reps=1000)
     while valve.step("order_ids_randomly() was unable to reorder your sequences. This shouldn't happen, so please"
                      "contact the developers to let then know about this error."):
         sb_copy = make_copy(seqbuddy)
@@ -3299,8 +3297,8 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     max_seqsize = 9 * 1024 * 1024
     max_filesize = 1024 * 1024
 
-    printer = MyFuncs.DynamicPrint(out_type="stderr", quiet=quiet)
-    temp_dir = MyFuncs.TempDir()
+    printer = br.DynamicPrint(out_type="stderr", quiet=quiet)
+    temp_dir = br.TempDir()
     job_dir = "%s/topcons" % br.config_values()["install_path"]
     os.makedirs(job_dir, exist_ok=True)
 
@@ -3446,7 +3444,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     printer.write("Retrieving job %s of %s" % (len(results) + len(failed) + 1, len(jobs)))
                     tries = 1
                     while True:
-                        valve = MyFuncs.SafetyValve(state_reps=25)
+                        valve = br.SafetyValve(state_reps=25)
                         try:
                             urllib.request.urlretrieve(result_url, filename=outfile, reporthook=dl_progress)
                             break
@@ -3533,7 +3531,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     if keep_temp:
         printer.write("Preparing TOPCONS files to be saved")
-        for _root, dirs, files in MyFuncs.walklevel(temp_dir.path):
+        for _root, dirs, files in br.walklevel(temp_dir.path):
             for file in files:
                 with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                     contents = ifile.read()
@@ -3544,7 +3542,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
         printer.write("Saving TOPCONS files")
         os.makedirs(keep_temp, exist_ok=True)
-        _root, dirs, files = next(MyFuncs.walklevel(temp_dir.path))
+        _root, dirs, files = next(br.walklevel(temp_dir.path))
         for file in files:
             shutil.copyfile("%s/%s" % (_root, file), "%s/%s" % (keep_temp, file))
         for _dir in dirs:
@@ -3878,9 +3876,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Count residues
     if in_args.count_residues:
+        seqbuddy = replace_subsequence(seqbuddy, "[-.]", "")
         if in_args.count_residues[0] and str(in_args.count_residues[0].lower()) in "concatenate":
             seqbuddy = concat_seqs(seqbuddy)
-
         count_residues(seqbuddy)
         output = ""
         for rec in seqbuddy.records:

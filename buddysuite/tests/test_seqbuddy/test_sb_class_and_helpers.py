@@ -10,12 +10,12 @@ import os
 from shutil import which
 
 try:
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
     from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddysuite.buddy_resources import GuessError
 except ImportError:
-    import MyFuncs
+    import buddy_resources as br
     from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
         _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
     from buddy_resources import GuessError
@@ -160,6 +160,28 @@ def test_make_copy(sb_resources, sb_helpers):
 # ######################  '_check_for_blast_bin' ###################### #
 @pytest.mark.internet
 def test_check_blast_bin(capsys):
+    def patch_dict(resource):
+        with mock.patch.dict(os.environ, {"PATH": conda_bin}):
+            with mock.patch(resource, return_value=False):
+                assert not _check_for_blast_bin("blastp")
+                _out, _err = capsys.readouterr()
+                assert "blastp binary not found." in _err
+                assert "Abort..." in _err
+
+            with mock.patch(resource, return_value=True):
+                # Try a few times in case there's an internet TimeOutError
+                attempts = 0
+                while True:
+                    try:
+                        attempts += 1
+                        assert _check_for_blast_bin("blastp")
+                        break
+                    except TimeoutError as _err:
+                        if attempts < 3:
+                            continue
+                        else:
+                            raise _err
+
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
         assert _check_for_blast_bin(_bin)
 
@@ -175,26 +197,11 @@ def test_check_blast_bin(capsys):
         Popen("conda remove blast", shell=True).wait()
         pre_installed_conda_blast = True
 
-    with mock.patch.dict(os.environ, {"PATH": conda_bin}):
-        with mock.patch('buddysuite.MyFuncs.ask', return_value=False):
-            assert not _check_for_blast_bin("blastp")
-            out, err = capsys.readouterr()
-            assert "blastp binary not found." in err
-            assert "Abort..." in err
+    try:
+        patch_dict('buddy_resources.ask')
+    except ImportError:
+        patch_dict('buddysuite.buddy_resources.ask')
 
-        with mock.patch('buddysuite.MyFuncs.ask', return_value=True):
-            # Try a few times in case there's an internet TimeOutError
-            attempts = 0
-            while True:
-                try:
-                    attempts += 1
-                    assert _check_for_blast_bin("blastp")
-                    break
-                except TimeoutError as err:
-                    if attempts < 3:
-                        continue
-                    else:
-                        raise err
     if not pre_installed_conda_blast:
         Popen("conda remove blast", shell=True).wait()
 
@@ -240,7 +247,7 @@ def test_guess_format(sb_resources, sb_odd_resources):
     with pytest.raises(GuessError):
         _guess_format("foo")
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write('''\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <nex:nexml

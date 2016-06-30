@@ -44,14 +44,12 @@ try:
     from buddysuite import buddy_resources as br
     from buddysuite import SeqBuddy as Sb
     from buddysuite import AlignBuddy as Alb
-    from buddysuite import MyFuncs
 except ImportError:
-    import MyFuncs
     import AlignBuddy as Alb
     import SeqBuddy as Sb
     import buddy_resources as br
 
-TEMP_DIR = MyFuncs.TempDir()
+TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION
 
 
@@ -351,7 +349,7 @@ def test_str(next_hash, alignbuddy):
 
 @pytest.mark.parametrize("next_hash,alignbuddy", albs)
 def test_write1(next_hash, alignbuddy):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     alignbuddy.write(temp_file.path)
     out = temp_file.read()
     tester = string2hash(out)
@@ -366,7 +364,7 @@ albs = [(hashes[key], alignbuddy) for key, alignbuddy in alb_resources.get("m p"
 
 @pytest.mark.parametrize("next_hash,alignbuddy", albs)
 def test_write2(next_hash, alignbuddy):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     alignbuddy.write(temp_file.path, out_format="phylipr")
     out = temp_file.read()
     assert string2hash(out) == next_hash
@@ -923,11 +921,11 @@ def test_generate_alignment_keep_temp(monkeypatch):
             pass
         return True
 
-    monkeypatch.setattr("MyFuncs.ask", ask_false)
+    monkeypatch.setattr("br.ask", ask_false)
     with pytest.raises(SystemExit):
         Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
 
-    monkeypatch.setattr("MyFuncs.ask", ask_true)
+    monkeypatch.setattr("br.ask", ask_true)
     Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % TEMP_DIR.path)
     assert os.path.isfile("%s/ga_temp_files/result" % TEMP_DIR.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % TEMP_DIR.path)

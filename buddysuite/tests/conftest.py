@@ -5,7 +5,7 @@ import pytest
 from hashlib import md5
 import re
 
-from __init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, br, MyFuncs
+from __init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, br
 
 
 # #################################  -  SeqBuddy  -  ################################## #
@@ -40,7 +40,7 @@ def sb_helpers():
     class Helpers(object):
         def __init__(self):
             self.resource_path = RESOURCE_PATH
-            self.write_file = MyFuncs.TempFile()
+            self.write_file = br.TempFile()
 
         def seqs_to_hash(self, _seqbuddy, mode='hash'):
             if _seqbuddy.out_format in ["gb", "genbank"]:
@@ -157,7 +157,7 @@ def pb_helpers():
     class Helpers(object):
         def __init__(self):
             self.resource_path = RESOURCE_PATH
-            self.write_file = MyFuncs.TempFile()
+            self.write_file = br.TempFile()
 
         @staticmethod
         def phylo_to_hash(_phylobuddy, mode='hash'):

@@ -35,15 +35,13 @@ try:
     from buddysuite import buddy_resources as br
     from buddysuite import PhyloBuddy as Pb
     from buddysuite import AlignBuddy as Alb
-    from buddysuite import MyFuncs
 except ImportError:
     import buddy_resources as br
     import PhyloBuddy as Pb
     import AlignBuddy as Alb
-    import MyFuncs
 
 VERSION = Pb.VERSION
-WRITE_FILE = MyFuncs.TempFile()
+WRITE_FILE = br.TempFile()
 
 
 def fmt(prog):
@@ -362,7 +360,7 @@ def test_screw_formats_fail(capsys, pb_resources):
 
 
 def test_screw_formats_inplace_ui(capsys, pb_odd_resources):
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     with open(pb_odd_resources["compare"], "r") as ifile:
         temp_file.write(ifile.read())
 

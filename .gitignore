@@ -28,3 +28,6 @@ dependencies.conf
 # IPython
 .ipynb_checkpoints/*
 *\.ipynb
+
+# Coverage reports
+/buddysuite/tests/htmlcov/

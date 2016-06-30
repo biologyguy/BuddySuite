@@ -31,11 +31,9 @@ sys.path.insert(0, os.path.abspath("../"))
 try:
     from buddysuite import DatabaseBuddy as Db
     from buddysuite import buddy_resources as br
-    from buddysuite import MyFuncs
 except ImportError:
     import DatabaseBuddy as Db
     import buddy_resources as br
-    import MyFuncs
 
 
 

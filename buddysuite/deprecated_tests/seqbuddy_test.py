@@ -41,15 +41,13 @@ sys.path.insert(0, os.path.abspath("../"))
 try:
     from buddysuite import buddy_resources as br
     from buddysuite import SeqBuddy as Sb
-    from buddysuite import MyFuncs
 except ImportError:
     import buddy_resources as br
     import SeqBuddy as Sb
-    import MyFuncs
 
 VERSION = Sb.VERSION
-WRITE_FILE = MyFuncs.TempFile()
-TEMP_DIR = MyFuncs.TempDir()
+WRITE_FILE = br.TempFile()
+TEMP_DIR = br.TempDir()
 
 
 def fmt(prog):
@@ -368,10 +366,10 @@ def test_check_blast_bin(capsys):
 
     # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
-        with mock.patch('MyFuncs.ask', return_value=False):
+        with mock.patch('br.ask', return_value=False):
             assert not Sb._check_for_blast_bin("blastp")
 
-        with mock.patch('MyFuncs.ask', return_value=True):
+        with mock.patch('br.ask', return_value=True):
             with mock.patch("SeqBuddy._download_blast_binaries", return_value=False):
                 check = Sb._check_for_blast_bin("foo")
                 assert not check
@@ -391,7 +389,7 @@ def test_check_blast_bin(capsys):
 @pytest.mark.blast
 @pytest.mark.parametrize("platform", ["darwin", "linux32", "linux64", "win"])
 def test_dl_blast_bins(monkeypatch, platform):
-    tmp_dir = MyFuncs.TempDir()
+    tmp_dir = br.TempDir()
     monkeypatch.chdir(tmp_dir.path)
     if platform == "linux32":
         monkeypatch.setattr("sys.maxsize", 2000000000)
@@ -448,7 +446,7 @@ def test_guess_format():
     with pytest.raises(br.GuessError):
         Sb._guess_format("foo")
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write('''\
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <nex:nexml
@@ -1596,7 +1594,7 @@ def test_select_frame(seqbuddy, next_hash, shift):
 
 def test_select_frame_edges():
     tester = Sb.select_frame(Sb.make_copy(sb_objects[0]), 2)
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester.write(temp_file.path)
     tester = Sb.select_frame(Sb.SeqBuddy(temp_file.path), 1)
     assert seqs_to_hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
@@ -1733,8 +1731,8 @@ def test_transmembrane_domains_cds():
     tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % TEMP_DIR.path)
     tester.out_format = "gb"
     assert seqs_to_hash(tester) == "e5c9bd89810a39090fc3326e51e1ac6a"
-    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons" % TEMP_DIR.path))
-    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
+    _root, dirs, files = next(br.walklevel("%s/topcons" % TEMP_DIR.path))
+    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
     assert files
 """
 
@@ -2001,7 +1999,7 @@ def test_delete_records_ui(capsys):
     assert string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write("α1\nα2")
     test_in_args.delete_records = [temp_file.path, "3"]
     Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)
@@ -2197,7 +2195,7 @@ def test_guess_alpha_ui(capsys):
     out, err = capsys.readouterr()
     assert out == "PIPE\t-->\tdna\n"
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write(">seq1\n123456789")
     text_io = io.open(temp_file.path, "r")
     test_in_args.sequence = [text_io]
@@ -2413,7 +2411,7 @@ def test_map_features_prot2nucl_ui(capsys):
     assert string2hash(out) == "bbbfc9ebc83d3abe3bb3160a38d208e3"
 
     with pytest.raises(SystemExit):
-        temp_file = MyFuncs.TempFile()
+        temp_file = br.TempFile()
         duplicate_seqs = Sb.SeqBuddy(resource("Duplicate_seqs.fa"))
         Sb.back_translate(duplicate_seqs)
         duplicate_seqs.write(temp_file.path)
@@ -2579,7 +2577,7 @@ def test_pull_records_ui(capsys):
     out, err = capsys.readouterr()
     assert string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
 
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     temp_file.write("α1\nα2")
     test_in_args.pull_records = [temp_file.path]
     Sb.command_line_ui(test_in_args, Sb.make_copy(sb_objects[0]), True)

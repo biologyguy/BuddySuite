@@ -13,11 +13,11 @@ from unittest import mock
 try:
     from buddysuite import AlignBuddy as Alb
     from buddysuite import SeqBuddy as Sb
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
 except ImportError:
     import AlignBuddy as Alb
     import SeqBuddy as Sb
-    import MyFuncs
+    import buddy_resources as br
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -220,7 +220,7 @@ def test_mafft_multi_param(sb_resources, alb_helpers):
 
 def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     tester = sb_resources.get_one("d f")
-    temp_dir = MyFuncs.TempDir()
+    temp_dir = br.TempDir()
     temp_dir.subdir("ga_temp_files")
 
     def ask_false(*ask_args):
@@ -234,16 +234,16 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
         return True
 
     try:
-        monkeypatch.setattr("buddysuite.MyFuncs.ask", ask_false)
+        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_false)
     except ImportError:
-        monkeypatch.setattr("MyFuncs.ask", ask_false)
+        monkeypatch.setattr("buddy_resources.ask", ask_false)
     with pytest.raises(SystemExit):
         Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
 
     try:
-        monkeypatch.setattr("buddysuite.MyFuncs.ask", ask_true)
+        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_true)
     except ImportError:
-        monkeypatch.setattr("MyFuncs.ask", ask_true)
+        monkeypatch.setattr("buddy_resources.ask", ask_true)
     Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/result" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % temp_dir.path)

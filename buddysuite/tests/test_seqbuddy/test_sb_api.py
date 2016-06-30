@@ -9,13 +9,13 @@ import os
 
 try:
     from buddysuite import SeqBuddy as Sb
-    from buddysuite import MyFuncs
+    from buddysuite import buddy_resources as br
 except ImportError:
     import SeqBuddy as Sb
-    import MyFuncs
+    import buddy_resources as br
 
 
-TEMPDIR = MyFuncs.TempDir()
+TEMPDIR = br.TempDir()
 
 
 # ##################### '-ano', '--annotate' ###################### ##
@@ -1121,7 +1121,7 @@ def test_select_frame(seqbuddy, next_hash, shift):
 
 def test_select_frame_edges():
     tester = Sb.select_frame(Sb.make_copy(sb_objects[0]), 2)
-    temp_file = MyFuncs.TempFile()
+    temp_file = br.TempFile()
     tester.write(temp_file.path)
     tester = Sb.select_frame(Sb.SeqBuddy(temp_file.path), 1)
     assert seqs_to_hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
@@ -1258,7 +1258,7 @@ def test_transmembrane_domains_cds():
     tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % TEMP_DIR.path)
     tester.out_format = "gb"
     assert seqs_to_hash(tester) == "e5c9bd89810a39090fc3326e51e1ac6a"
-    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons" % TEMP_DIR.path))
-    _root, dirs, files = next(MyFuncs.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
+    _root, dirs, files = next(br.walklevel("%s/topcons" % TEMP_DIR.path))
+    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
     assert files
 """
