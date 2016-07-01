@@ -453,7 +453,8 @@ def _feature_rc(feature, seq_len):
         end = seq_len - feature.location.end
         shift = end - feature.location.start
         feature = br.shift_features(feature, shift, seq_len)[0]
-        feature.strand *= -1
+        if feature.strand is not None:
+            feature.strand *= -1
     else:
         raise TypeError("_feature_rc requires a feature with either FeatureLocation or CompoundLocation, "
                         "not %s" % type(feature.location))
@@ -1989,14 +1990,63 @@ def find_cpg(seqbuddy):
     return seqbuddy
 
 
-def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True):
+def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
+    """
+    Finds all the open reading frames in the sequences and their reverse complements.
+    :param seqbuddy: SeqBuddy object
+    :param include_feature: Add a new 'orf' feature to records
+    :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_orfs"].
+    """
+    seqbuddy = clean_seq(seqbuddy)
+    if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        pattern = "aug(...)+(uaa|uag|uga)"
+    elif seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.ambiguous_dna]:
+        pattern = "atg((...))+(taa|tag|tga)"
+    else:
+        raise TypeError("Nucleic acid sequence required, not protein.")
+
+    reverse = make_copy(seqbuddy)
+    reverse = reverse_complement(reverse)
+    seqbuddy = find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+    reverse = find_pattern(reverse, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+
+    for rec in seqbuddy.records:
+        indices = []
+        _add_buddy_data(rec, 'find_orfs')
+        for feature in rec.features:
+            if 'regex' in feature.qualifiers.keys() and feature.qualifiers['regex'] == pattern:
+                if include_feature:
+                    feature.type = "orf"
+                    feature.strand = +1
+                    feature.qualifiers.pop("regex")
+                    indices.append((int(feature.location.start), int(feature.location.end)))
+                else:
+                    rec.features.remove(feature)
+        if include_buddy_data:
+            if not rec.buddy_data['find_orfs']:
+                rec.buddy_data['find_orfs'] = {'+': [], '-': []}
+            rec.buddy_data['find_orfs']['+'].append(indices)
+
+    for indx, rec in enumerate(reverse.records):
+        indices = []
+        if include_feature:
+            for feature in rec.features:
+                seqbuddy.records[indx].features.append(SeqFeature(location=FeatureLocation(
+                    start=len(rec.seq)-feature.location.start, end=len(rec.seq)-feature.location.end),
+                    type='orf', qualifiers={'added_by': 'SeqBuddy'}, strand=-1))
+                indices.append((int(len(rec.seq)-feature.location.start), int(len(rec.seq)-feature.location.end)))
+        if include_buddy_data:
+            seqbuddy.records[indx].buddy_data['find_orfs']['-'].append(indices)
+    return seqbuddy
+
+def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include_buddy_data=True):
     """
     Finds ﻿occurrences of a sequence pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: regex patterns
     :param ambig: Convert any ambiguous letter codes in the search pattern into regex
-    :param include_feature: Include a new 'match' feature to records
-    :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patters"].
+    :param include_feature: Add a new 'match' feature to records
+    :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patterns"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
     lowercase(seqbuddy)
@@ -2042,7 +2092,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True):
                 pattern = re.sub("(\[[^[\]]*?)\[([^]]*)\]", r"\1\2", pattern, count=1)
 
         for rec in seqbuddy.records:
-            _add_buddy_data(rec, 'find_patterns')
+            if include_buddy_data:
+                _add_buddy_data(rec, 'find_patterns')
             indices = []
             matches = re.finditer(pattern, str(rec.seq), flags=re.IGNORECASE)
             new_seq = ""
@@ -2059,10 +2110,11 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True):
             new_seq += str(rec.seq[last_match:])
             rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
 
-            if not rec.buddy_data['find_patterns']:
-                rec.buddy_data['find_patterns'] = OrderedDict({pattern_backup: indices})
-            else:
-                rec.buddy_data['find_patterns'][pattern_backup] = indices
+            if include_buddy_data:
+                if not rec.buddy_data['find_patterns']:
+                    rec.buddy_data['find_patterns'] = OrderedDict({pattern_backup: indices})
+                else:
+                    rec.buddy_data['find_patterns'][pattern_backup] = indices
     return seqbuddy
 
 
@@ -4071,6 +4123,22 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         except TypeError as e:
             _raise_error(e, "find_CpG", "DNA sequence required, not protein or RNA.")
+
+    # Find orfs
+    if in_args.find_orfs:
+        find_orfs(seqbuddy)
+        output = ""
+        for rec in seqbuddy.records:
+            pos_indices = rec.buddy_data['find_orfs']['+']
+            neg_indices =rec.buddy_data['find_orfs']['-']
+            if not len(pos_indices) and not len(neg_indices):
+                output += "{0}: None\n".format(rec.id)
+            else:
+                output += "# {0}\n".format(rec.id)
+                output += "(+) ORFs: {0}\n(-) ORFs: {1}\n".format(", ".join([str(x[0]) for x in pos_indices]), "".join([str(y[0]) for y in neg_indices]))
+        _stderr("%s\n" % output, in_args.quiet)
+        _print_recs(seqbuddy)
+        _exit("find_orfs")
 
     # Find pattern
     if in_args.find_pattern:

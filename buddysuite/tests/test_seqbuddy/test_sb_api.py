@@ -548,6 +548,34 @@ def test_find_cpg(sb_resources, sb_helpers):
     tester = Sb.find_cpg(tester)
     assert sb_helpers.seqs_to_hash(tester) == "9499f524da0c35a60502031e94864928"
 
+# #####################  '-orf', '--find_orf' ###################### ##
+def test_find_orf_basic(sb_helpers):
+    tester = Sb.SeqBuddy("ATGAAATTTCCCGGGTAG", in_format='raw', out_format='gb')
+    tester = Sb.find_orfs(tester)
+    assert sb_helpers.seqs_to_hash(tester) == "100c4f29e758b33b8803f46dba1a75ef"
+    assert sb_helpers.features2hash(tester) == "e47d6ea2a9572729024b55258411a579"
+
+def test_find_orf_standard(sb_resources, sb_helpers):
+    tester = Sb.find_orfs(sb_resources.get_one("d g"))
+    assert sb_helpers.seqs_to_hash(tester) == "16e5d3242e55841eb990885881cd571e"
+    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
+    tester.out_format = "fasta"
+    assert sb_helpers.seqs_to_hash(tester) == "25073539df4a982b7f99c72dd280bb8f"
+    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
+    tester = Sb.find_orfs(sb_resources.get_one("d g"))
+    assert sb_helpers.seqs_to_hash(tester) == "16e5d3242e55841eb990885881cd571e"
+    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), include_feature=False)
+    assert sb_helpers.seqs_to_hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
+    assert sb_helpers.features2hash(tester) == "969ab7e60bba0d958ed17f6980b19059"
+    tester = Sb.find_orfs(sb_resources.get_one("r f"))
+    assert sb_helpers.seqs_to_hash(tester) == "013ebe2bc7d83c44f58344b865e1f55b"
+    assert sb_helpers.features2hash(tester) == "4abada6bf8fca7cb95166e9a4d9cdfb7"
+    tester.out_format = "gb"
+    assert sb_helpers.seqs_to_hash(tester) == "44ed0320bb7017bfface773ee5b7f318"
+    assert sb_helpers.features2hash(tester) == "4abada6bf8fca7cb95166e9a4d9cdfb7"
+    tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
+    assert sb_helpers.features2hash(tester) == "aa0c0c27a9b8cde585da2c42a9280f3c"
 
 # #####################  '-fp', '--find_pattern' ###################### ##
 def test_find_pattern(sb_resources, sb_helpers):
