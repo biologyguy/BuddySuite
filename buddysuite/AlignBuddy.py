@@ -1021,12 +1021,13 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
         return alignbuddy
 
 
-def hash_ids(alignbuddy, hash_length=10):
+def hash_ids(alignbuddy, hash_length=10, r_seed=None):
     """
     Replace all IDs with random hashes
     :param alignbuddy: AlignBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
-    :return: The modified AlignBuddy object, with a new attribute `hash_map` added
+    :param r_seed: Set the random generator seed value
+    :return: The modified AlignBuddy object, with a new attribute `hash_map` added to each alignment object
     :rtype: AlignBuddy
     """
     try:
@@ -1044,7 +1045,7 @@ def hash_ids(alignbuddy, hash_length=10):
     hash_map = OrderedDict()
     for alignment in alignbuddy.alignments:
         temp_seqbuddy = Sb.SeqBuddy(list(alignment))
-        Sb.hash_ids(temp_seqbuddy, hash_length)
+        Sb.hash_ids(temp_seqbuddy, hash_length, r_seed=r_seed)
         for _hash, _id in temp_seqbuddy.hash_map.items():
             hash_map[_hash] = _id
     alignbuddy.hash_map = hash_map

@@ -48,7 +48,7 @@ import shutil
 import time
 from urllib import request, error
 from copy import deepcopy
-from random import sample, choice, randint, random
+from random import sample, randint, random, Random
 from math import floor, ceil, log
 from subprocess import Popen, PIPE
 from shutil import which
@@ -2256,11 +2256,12 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     return seqbuddy
 
 
-def hash_ids(seqbuddy, hash_length=10):
+def hash_ids(seqbuddy, hash_length=10, r_seed=None):
     """
     Replaces the sequence IDs with random hashes
     :param seqbuddy: SeqBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
+    :param r_seed: Set the random generator seed value
     :return: The modified SeqBuddy object, with a new attribute `hash_map` added
     """
     hash_list = []
@@ -2294,11 +2295,13 @@ def hash_ids(seqbuddy, hash_length=10):
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
 
+    rand_gen = Random() if not r_seed else Random(r_seed)
     for i in range(len(seqbuddy)):
         new_hash = ""
         seq_ids.append(seqbuddy.records[i].id)
         while True:
-            new_hash = "".join([choice(string.ascii_letters + string.digits) for _ in range(hash_length)])
+            chars = string.ascii_letters + string.digits
+            new_hash = "".join([rand_gen.choice(chars) for _ in range(hash_length)])
             if new_hash in hash_list:
                 continue
             else:
