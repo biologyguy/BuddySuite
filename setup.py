@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from setuptools import setup
+from setuptools import setup, Command
+import os
 
 PACKAGES = [
     'buddysuite',
@@ -17,6 +18,7 @@ DEPENDENCIES = [
     'numpy'
 ]
 
+open("config.ini", "w").close()
 DATA_FILES = [
     ('config', ['config.ini'])
 ]
@@ -67,3 +69,5 @@ setup(name='buddysuite',
       keywords=KEYWORDS,
       data_files=DATA_FILES,
       zip_safe=True)
+
+os.remove("config.ini")
