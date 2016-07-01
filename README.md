@@ -25,48 +25,21 @@ Being pure Python, the BuddySuite should be cross platform. Development and test
 If you're new to the command line, or simply want to get a better feel for how BuddySuite works, check out the [Beginners Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide).
 
 ## Installation 
-Clone the repository to your local machine and run setup.py installer:
+Clone the repository to your local machine and run setup.py installer (or
+ [fork](https://help.github.com/articles/fork-a-repo/) it if planning to develop):
 
     $: git clone https://github.com/biologyguy/BuddySuite.git
     $: cd BuddySuite
-    $: python3 setup.py install
+    $: python3 setup.py install clean
     
-This will ensure you have downloaded the necessary python dependencies and adds links to each program into your path.
- For example, the following command should return something similar (the exact path will be system specific):
+The project should now be in your Python PATH along with sym-links to the executables. For example:
  
     $: which seqbuddy
     >>> /usr/local/anaconda/bin/seqbuddy
 
-You may choose to also create a set of short-form symbolic links to each program, which can be very convenient if
- using the programs on a regular basis. First check to make sure your short-form command doesn't already exist; the
- following should not return anything:
- 
-    $: which sb
-    >>>
-
-Assuming no conflict, create a new symbolic link (note that the following can be system specific, your installation
- could be in a different directory):
-
-    $: ln -s /usr/local/anaconda/bin/seqbuddy /usr/local/anaconda/bin/sb
-    $: which sb
-    >>> /usr/local/anaconda/bin/sb
-
-A lighter-weight alternative to creating symbolic links is to create an alias for the command in your shell's rc file (e.g. ~/.bahsrc).
- Use the following example to decide what to add to your rc file:
-
-    # BuddySuite aliases
-    alias alb='alignbuddy'
-    alias db='databasebuddy'
-    alias pb='phylobuddy'
-    alias sb='seqbuddy'
-
-Then `which` would return something along the lines of:
-
-    $: which sb
-    >>> alias sb='seqbuddy'
-    >>>         /usr/local/anaconda/bin/sb
-
-All of the [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
+We also recommend creating a set of short-form symbolic links or aliases to each program, which are very convenient if
+ using the programs on a regular basis. Furthermore, all of the 
+ [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
 
 *Tool* | *Short-form*
 ---------- | -------- 
@@ -74,10 +47,48 @@ AlignBuddy | alb
 DatabaseBuddy | db
 PhyloBuddy | pb
 SeqBuddy | sb
+ 
+First check to make sure the short-form command doesn't already exist; for example, the
+ following should not return anything:
+ 
+    $: which sb
+    >>>
+
+If there is a conflict, choose something else that seems reasonable (e.g., 'sbd' or 'sqb'). Now create a new symbolic
+ link or alias (this is optional):
+
+**Aliases**
+
+Copy the following into the -.bashrc- file in your home directory:
+  
+    alias sb="seqbuddy"
+    alias alb="alignbuddy"
+    alias pb="phylobuddy"
+    alias db="databasebuddy"
+
+Then restart your terminal
+
+**Symbolic Links**
+
+For each program, replace the necessary path components in the command below and run from the shell
+
+    $: ln -s /<your>/<path>/<to>/BuddySuite/buddysuite/SeqBuddy.py /usr/local/bin/sb
+
+You should now be able to see the short form commands in your PATH, e.g.,:
+
+    $: which sb
+    >>> /usr/local/bin/sb
+
+And to get started, simply use the 'help' flag
+
+    $: sb -h
+
+For a detailed breakdown of the tools available within each module, check out the
+ [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
 
 ## Dependencies
 This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
- installed on your system, I highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
+ installed on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
  from Continuum Analytics (if you experience any difficulty, 
  [click here](https://github.com/biologyguy/BuddySuite/wiki/anaconda)). Alternatively, the software can be downloaded 
  directly from the [Python Software Foundation](https://www.python.org/downloads/).
@@ -87,49 +98,18 @@ AlignBuddy and PhyloBuddy can be used to launch a number of third party alignmen
  phylogenetic tree with RAxML, you will first need to get RAxML into your system PATH. 
 
 The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
- [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH, SeqBuddy.py will
- attempt to download the binaries if any BLAST dependant functions are called.
+ [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
  
 See the [Dependencies](https://github.com/biologyguy/BuddySuite/wiki/Dependencies) page for a full list of all
  third-party packages and software that BuddySuite requires or wraps.
  
-## Getting started
-Once installed, you can access the modules from the command line using their full names:
 
-    $: seqbuddy -h
-
-Or the short-form shortcuts if you create them:
-
-    $: sb -h
-
-For a detailed breakdown of the tools available within each module, check out the
- [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
-
-## Development version installation
-The easiest way to get the development environment up and running is to
- [fork](https://help.github.com/articles/fork-a-repo/) the repository and then clone from your github account:
-
-    $: git clone https://github.com/<YOUR USER ID>/BuddySuite.git
-
-Then move into the repo, switch to the 'develop' branch, and run setup.py (to get dependencies):
-    
-    $: cd BuddySuite
-    $: git checkout develop
-    $: python3 setup.py install
-
-Now set the symbolic links to the repo version of each tool, e.g.:
-
-    $: ln -s /<your>/<path>/<to>/BuddySuite/buddysuite/SeqBuddy.py /usr/local/bin/sb
-    $: which sb
-    >>> /usr/local/bin/sb
-
-All of the individual Buddy toolkits are located in the 'buddysuite' directory. The 
- ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
- and tested, so things may be less stable here; it's usually pretty solid though. If you're interested in contributing
- to the project, please ensure you are working from this branch.
-
-See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
- development version dependencies and how to contribute to the project.
+## Developers
+All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
+ ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
+ implemented. If you're interested in contributing, please refer to the
+ [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on dependencies
+ and instructions.
 
 ## Unit tests
 We are striving for high unit test coverage with py.test. There are two ways to run the unit tests, each of which
@@ -146,6 +126,10 @@ The second method should be run just before submitting a pull request, and uses
     $: cd BuddySuite
     $: docker build -t docker-build:latest docker-build
     $: docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
+ 
+ Or just run the provided shell script:
+ 
+    $: ./run_docker.sh
 
 ## Citation
 There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
