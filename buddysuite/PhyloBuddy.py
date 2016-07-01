@@ -673,7 +673,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
         return phylobuddy
 
 
-def hash_ids(phylobuddy, hash_length=10, nodes=False):
+def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
     """
     Replaces the sequence IDs with random hashes
     :param phylobuddy: PhyloBuddy object
@@ -700,7 +700,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False):
 
             new_hash = ""
             while True:
-                new_hash = "".join([random.choice(string.ascii_letters + string.digits)
+                new_hash = "".join([rand_gen.choice(string.ascii_letters + string.digits)
                                     for _ in range(hash_length)])
                 if new_hash in self.hash_map:
                     continue
@@ -726,6 +726,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False):
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
 
+    rand_gen = random.Random() if not r_seed else Random(r_seed)
     hashes = HashFactory()
     for tree in phylobuddy.trees:
         hashes.add_tree()
