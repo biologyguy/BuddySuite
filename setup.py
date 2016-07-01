@@ -4,6 +4,23 @@
 from setuptools import setup, Command
 import os
 
+
+class CleanCommand(Command):
+    """Custom clean command to tidy up the project root.
+    http://stackoverflow.com/questions/3779915/why-does-python-setup-py-sdist-create-unwanted-project-egg-info-in-project-r"""
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    @staticmethod
+    def run():
+        os.system('rm -vrf ./build ./dist ./*.pyc ./*.tgz ./*.egg-info')
+
+
 PACKAGES = [
     'buddysuite',
 ]
@@ -68,6 +85,8 @@ setup(name='buddysuite',
       license='Public Domain',
       keywords=KEYWORDS,
       data_files=DATA_FILES,
-      zip_safe=True)
+      zip_safe=True,
+      cmdclass={'clean': CleanCommand}
+      )
 
 os.remove("config.ini")
