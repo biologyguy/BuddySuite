@@ -576,6 +576,10 @@ def test_find_orf_standard(sb_resources, sb_helpers):
     assert sb_helpers.features2hash(tester) == "4abada6bf8fca7cb95166e9a4d9cdfb7"
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     assert sb_helpers.features2hash(tester) == "aa0c0c27a9b8cde585da2c42a9280f3c"
+    tester = sb_resources.get_one("p g")
+    with pytest.raises(TypeError):
+        Sb.find_orfs(tester)
+
 
 # #####################  '-fp', '--find_pattern' ###################### ##
 def test_find_pattern(sb_resources, sb_helpers):
