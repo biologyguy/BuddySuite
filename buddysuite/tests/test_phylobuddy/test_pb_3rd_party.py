@@ -64,30 +64,31 @@ def test_raxml_multiple_searches(alb_resources, pb_helpers):
 #    tester = Pb.generate_tree(tester, 'raxml')
 #    assert pb_helpers.phylo_to_hash(tester) == ''
 
-"""  Need to sort this out for version 20160207
+
 # ######### PhyML ######### #
 phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
-phyml_version = re.search("([0-9]+)", phyml_version).group(0)
-if phyml_version not in ["20120412"]:
+phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
+if phyml_version not in ["20120412", "20160207", "3.2.20160701"]:
     raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 
-def test_phyml_inputs(alb_resources, pb_helpers):
+def test_phyml_dna(alb_resources, pb_helpers):
     # Nucleotide
-    tester = alb_resources.get_one("o d n")
+    tester = alb_resources.get_one("o d py")
     tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
-    assert pb_helpers.phylo_to_hash(tester) == 'd3a4e7601998885f333ddd714ca764db'
+    assert pb_helpers.phylo_to_hash(tester) in ['b61e75e4706d35e92f2208d438f52771',
+                                                'b0bdb3f5bf1fb2e44bef3c16f80c38f2',
+                                                'b9d3f11e332c3589110322e939aa41cc'], print(tester)
+
+
+def test_phyml_pep(alb_resources, pb_helpers):
     # Peptide
-    tester = alb_resources.get_one("o p n")
+    tester = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
-    assert pb_helpers.phylo_to_hash(tester) == '52c7d028341b250bcc867d57a68c794c'
+    assert pb_helpers.phylo_to_hash(tester) in ['7caa5c641fa83085c2980efca875112a',
+                                                '2bf0a204b2de7bc5132aa7073ecfb011',
+                                                '981d16e8f02989a8642095016c88af90'], print(tester)
 
-
-def test_phyml_multi_param(alb_resources, pb_helpers):
-    tester = alb_resources.get_one("o d n")
-    tester = Pb.generate_tree(tester, 'phyml', '-m GTR -o tl -b 2 --r_seed 12345')
-    assert pb_helpers.phylo_to_hash(tester) == '5434f29509eab76dd52dd69d2c0e186f'
-"""
 
 # ######### FastTree ######### #
 fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()

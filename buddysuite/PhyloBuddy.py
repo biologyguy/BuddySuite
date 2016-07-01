@@ -554,11 +554,13 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
             if os.path.exists(token):
                 params[indx] = os.path.abspath(token)
         params = ' '.join(params)
+        r_seed = re.search("r_seed ([0-9]+)", params)
+        r_seed = None if not r_seed else int(r_seed.group(1))
 
         phylo_objs = []
         for alignment in alignbuddy.alignments:  # Need to loop through one tree at a time
             sub_alignbuddy = Alb.AlignBuddy([alignment])
-            Alb.hash_ids(sub_alignbuddy, 8)
+            Alb.hash_ids(sub_alignbuddy, 8, r_seed=r_seed)
             sub_alignbuddy = Alb.clean_seq(sub_alignbuddy)
             sub_alignbuddy.set_format('phylipss') if tool == "phyml" else sub_alignbuddy.set_format('fasta')
 
@@ -617,6 +619,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                     else:
                         Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                     if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
+                            and not os.path.isfile('{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)) \
                             and not os.path.isfile('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)):
                         raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
                 else:  # If tool outputs to stdout
@@ -646,9 +649,10 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                     raise NotImplementedError("Could not find any RAxML results.\n%s" % command)
 
             elif tool == 'phyml':
-                with open('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                phyml_out = '{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)
+                phyml_out += '.txt' if not os.path.isfile(phyml_out) else ''
+                with open(phyml_out, "r", encoding="utf-8") as result:
                     output += result.read()
-
             if keep_temp:  # Store temp files
                 shutil.copytree(tmp_dir.path, keep_temp)
 
@@ -679,6 +683,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
     :param phylobuddy: PhyloBuddy object
     :param hash_length: Specifies the length of the new hashed IDs
     :param nodes: Also hash node labels
+    :param r_seed: Set the random generator seed value
     :return: The modified PhyloBuddy object, with a new attribute `hash_map` added
     """
 
