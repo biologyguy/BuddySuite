@@ -80,13 +80,12 @@ def sim_ident(matrix):  # Return the pairwise similarity and identity scores amo
     return x
 
 
-def predict_orfs():
+def cd_hit(seqbuddy, threshold):
     """
-    Add all predicted open reading frames to seqrecord features list
-    http://www.ncbi.nlm.nih.gov/gorf/gorf.html
-    :return:
+    :param seqbuddy: SeqBuddy object
+    :param threshold: Maximum sequence identity
     """
-    return
+    return seqbuddy
 
 
 def auto_annotate():
@@ -1353,27 +1352,30 @@ def count_codons(seqbuddy):
     else:
         codontable = CodonTable.ambiguous_rna_by_name['Standard'].forward_table
     output = OrderedDict()
-    for rec in seqbuddy.records:
-        sequence = rec.seq
+    sb_copy = make_copy(seqbuddy)
+    replace_subsequence(sb_copy, "[-.]")
+    uppercase(sb_copy)
+    for rec in sb_copy.records:
+        sequence = str(rec.seq)
         if len(sequence) % 3 != 0:
             while len(sequence) % 3 != 0:
                 sequence = sequence[:-1]
         data_table = {}
         num_codons = len(sequence) / 3
         while len(sequence) > 0:
-            codon = str(sequence[:3]).upper()
+            codon = str(sequence[:3])
             if codon in data_table:
                 data_table[codon][1] += 1
             else:
-                if codon.upper() in ['ATG', 'AUG']:
+                if codon in ['ATG', 'AUG']:
                     data_table[codon] = ['M', 1, 0.0]
-                elif codon.upper() == 'NNN':
+                elif codon == 'NNN':
                     data_table[codon] = ['X', 1, 0.0]
-                elif codon.upper() in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
+                elif codon in ['TAA', 'TAG', 'TGA', 'UAA', 'UAG', 'UGA']:
                     data_table[codon] = ['*', 1, 0.0]
                 else:
                     try:
-                        data_table[codon] = [codontable[codon.upper()], 1, 0.0]
+                        data_table[codon] = [codontable[codon], 1, 0.0]
                     except KeyError:
                         _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
@@ -2352,130 +2354,6 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
-def prosite_scan(seqbuddy, common_match=True, quiet=False):
-    """
-    Search for PROSITE scan motifs in sequences (via REST service)
-    :param seqbuddy: Input seqbuddy object
-    :param common_match: This will include things like post-translational modification sites
-    :param quiet: Suppress all stderr
-    :return:
-    """
-    import urllib.parse
-    import urllib.request
-    import urllib.error
-    from multiprocessing import Lock
-    import platform
-
-    base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
-    check_interval = 10
-    urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
-    client_revision = '$Revision: ???? $'
-    client_version = '1.0'
-    if len(client_revision) > 11:
-        client_version = client_revision[11:-2]
-    # Prepend client specific agent string.
-    user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
-        client_version, os.path.basename(__file__),
-        platform.python_version(), platform.system(),
-        urllib_agent
-    )
-    http_headers = {'User-Agent': user_agent}
-    user_deets = br.config_values()
-
-    def rest_request(url, request_data=None):
-        try:
-            # Set the User-agent.
-            req = urllib.request.Request(url, None, http_headers)
-            if request_data:
-                # Make the submission (HTTP POST).
-                req_h = urllib.request.urlopen(req, request_data)
-            else:
-                # Make the request (HTTP GET).
-                req_h = urllib.request.urlopen(req)
-            result = req_h.read().decode("utf-8")
-            req_h.close()
-        # Errors are indicated by HTTP status codes.
-        except urllib.error.HTTPError as e:
-            raise ConnectionError(e.file.read().decode())
-        return result
-
-    def run_prosite(_rec, args):
-        out_file_path = args[0]
-        email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
-        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
-                  'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
-        # Submit the job
-        request_data = urllib.parse.urlencode(params)
-        request_data = request_data.encode("utf-8")
-        job_id = rest_request('%s/run/' % base_url, request_data)
-        # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
-        result = 'PENDING'
-        while result == 'RUNNING' or result == 'PENDING':
-            result = rest_request('%s/status/%s' % (base_url, job_id))
-            if result == 'RUNNING' or result == 'PENDING':
-                time.sleep(check_interval)
-
-        result = rest_request('%s/result/%s/out' % (base_url, job_id))
-        feature_list = []
-        for feature in result.split(">")[1:]:
-            feat_type = re.match('EMBOSS_001 : (.*)', feature)
-            feat_type = feat_type.groups(0)[0].split(" ")[1]
-            feat_type = feat_type[:15]  # Need to limit the feature length, because gb format breaks otherwise
-            spans = re.findall('([0-9]+ \- [0-9]+)', feature)
-            for span in spans:
-                span = span.split(" ")
-                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
-                feature_list.append(feature)
-
-        temp_seq = SeqBuddy([_rec], out_format="gb")
-        temp_seq.records[0].features = feature_list
-        temp_seq = order_features_by_position(temp_seq)
-
-        with lock:
-            with open(out_file_path, "a", encoding="utf-8") as out_file:
-                out_file.write("%s\n" % str(temp_seq))
-        return
-
-    lock = Lock()
-
-    temp_file = br.TempFile()
-    hash_ids(seqbuddy)
-    clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
-    seqbuddy_copy = make_copy(seqbuddy)
-    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later) @TODO clean seq after translating
-    if seqbuddy.alpha != IUPAC.protein:
-        translate_cds(seqbuddy)
-
-    br.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
-    seqbuddy = SeqBuddy(temp_file.path)
-
-    new_records = []
-
-    for rec in seqbuddy_copy.records:
-        for indx, rec2 in enumerate(seqbuddy.records):
-            if rec.id == rec2.id:
-                new_records.append(rec2)
-                del seqbuddy.records[indx]
-                break
-
-    seqbuddy.records = new_records
-
-    find_pattern(seqbuddy_copy, "\*", include_feature=False)
-    for indx, rec in enumerate(seqbuddy_copy.records):
-        for match in rec.buddy_data['find_patterns']["\*"]:
-            rec_2 = seqbuddy.records[indx]
-            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
-            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
-
-    if seqbuddy_copy.alpha != IUPAC.protein:
-        seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
-    else:
-        seqbuddy = merge(seqbuddy_copy, seqbuddy)
-    seqbuddy.hash_map = seqbuddy_copy.hash_map
-    seqbuddy.reverse_hashmap()
-    return seqbuddy
-
-
 def isoelectric_point(seqbuddy):
     """
     Calculate the isoelectric points
@@ -2988,6 +2866,130 @@ def order_ids_randomly(seqbuddy):
     return seqbuddy
 
 
+def prosite_scan(seqbuddy, common_match=True, quiet=False):
+    """
+    Search for PROSITE scan motifs in sequences (via REST service)
+    :param seqbuddy: Input seqbuddy object
+    :param common_match: This will include things like post-translational modification sites
+    :param quiet: Suppress all stderr
+    :return:
+    """
+    import urllib.parse
+    import urllib.request
+    import urllib.error
+    from multiprocessing import Lock
+    import platform
+
+    base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
+    check_interval = 10
+    urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
+    client_revision = '$Revision: ???? $'
+    client_version = '1.0'
+    if len(client_revision) > 11:
+        client_version = client_revision[11:-2]
+    # Prepend client specific agent string.
+    user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
+        client_version, os.path.basename(__file__),
+        platform.python_version(), platform.system(),
+        urllib_agent
+    )
+    http_headers = {'User-Agent': user_agent}
+    user_deets = br.config_values()
+
+    def rest_request(url, request_data=None):
+        try:
+            # Set the User-agent.
+            req = urllib.request.Request(url, None, http_headers)
+            if request_data:
+                # Make the submission (HTTP POST).
+                req_h = urllib.request.urlopen(req, request_data)
+            else:
+                # Make the request (HTTP GET).
+                req_h = urllib.request.urlopen(req)
+            result = req_h.read().decode("utf-8")
+            req_h.close()
+        # Errors are indicated by HTTP status codes.
+        except urllib.error.HTTPError as e:
+            raise ConnectionError(e.file.read().decode())
+        return result
+
+    def run_prosite(_rec, args):
+        out_file_path = args[0]
+        email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
+        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
+                  'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
+        # Submit the job
+        request_data = urllib.parse.urlencode(params)
+        request_data = request_data.encode("utf-8")
+        job_id = rest_request('%s/run/' % base_url, request_data)
+        # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
+        result = 'PENDING'
+        while result == 'RUNNING' or result == 'PENDING':
+            result = rest_request('%s/status/%s' % (base_url, job_id))
+            if result == 'RUNNING' or result == 'PENDING':
+                time.sleep(check_interval)
+
+        result = rest_request('%s/result/%s/out' % (base_url, job_id))
+        feature_list = []
+        for feature in result.split(">")[1:]:
+            feat_type = re.match('EMBOSS_001 : (.*)', feature)
+            feat_type = feat_type.groups(0)[0].split(" ")[1]
+            feat_type = feat_type[:15]  # Need to limit the feature length, because gb format breaks otherwise
+            spans = re.findall('([0-9]+ \- [0-9]+)', feature)
+            for span in spans:
+                span = span.split(" ")
+                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
+                feature_list.append(feature)
+
+        temp_seq = SeqBuddy([_rec], out_format="gb")
+        temp_seq.records[0].features = feature_list
+        temp_seq = order_features_by_position(temp_seq)
+
+        with lock:
+            with open(out_file_path, "a", encoding="utf-8") as out_file:
+                out_file.write("%s\n" % str(temp_seq))
+        return
+
+    lock = Lock()
+
+    temp_file = br.TempFile()
+    hash_ids(seqbuddy)
+    clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
+    seqbuddy_copy = make_copy(seqbuddy)
+    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later) @TODO clean seq after translating
+    if seqbuddy.alpha != IUPAC.protein:
+        translate_cds(seqbuddy)
+
+    br.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
+    seqbuddy = SeqBuddy(temp_file.path)
+
+    new_records = []
+
+    for rec in seqbuddy_copy.records:
+        for indx, rec2 in enumerate(seqbuddy.records):
+            if rec.id == rec2.id:
+                new_records.append(rec2)
+                del seqbuddy.records[indx]
+                break
+
+    seqbuddy.records = new_records
+
+    find_pattern(seqbuddy_copy, "\*", include_feature=False)
+    for indx, rec in enumerate(seqbuddy_copy.records):
+        for match in rec.buddy_data['find_patterns']["\*"]:
+            rec_2 = seqbuddy.records[indx]
+            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+
+    if seqbuddy_copy.alpha != IUPAC.protein:
+        seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
+    else:
+        seqbuddy = merge(seqbuddy_copy, seqbuddy)
+    seqbuddy.hash_map = seqbuddy_copy.hash_map
+    seqbuddy.reverse_hashmap()
+    return seqbuddy
+
+
 def pull_random_recs(seqbuddy, count=1):
     """
     Return a random record or subset of records (without replacement)
@@ -3082,14 +3084,6 @@ def purge(seqbuddy, threshold):
             new_records.append(rec)
 
     seqbuddy.records = new_records
-    return seqbuddy
-
-
-def cd_hit(seqbuddy, threshold):
-    """
-    :param seqbuddy: SeqBuddy object
-    :param threshold: Maximum sequence identity
-    """
     return seqbuddy
 
 
