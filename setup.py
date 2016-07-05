@@ -64,7 +64,6 @@ def install():
 
     try:
         import buddysuite
-
         config = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
         reader = ConfigParser()
         reader.read(config)
@@ -82,7 +81,7 @@ def install():
         email_update = input("Email address (currently '%s'): " % email)
         email = email_update if email_update not in ['', email] else email
 
-    except (ImportError, NoOptionError):
+    except (ImportError, NoOptionError, KeyError):
         print('Welcome to BuddySuite!\nTo configure your installation, please answer the following questions:\n')
 
         diagnostics = ask(sip_blurb)
