@@ -42,16 +42,23 @@ class UninstallCommand(Command):
 
     @staticmethod
     def run():
-        try:
-            import buddysuite
-            os.remove("/".join(buddysuite.__file__.split("/")[:-2]))
-        except ImportError:
-            pass
-
         for buddy in ["seqbuddy", "alignbuddy", "phylobuddy", "databasebuddy"]:
             buddy = shutil.which(buddy)
             if buddy:
                 os.remove(buddy)
+        try:
+            import buddysuite
+        except ImportError:
+            return
+
+        egg = "/".join(buddysuite.__file__.split("/")[:-2])
+        data_dir = "%s/buddysuite_data" % "/".join(buddysuite.__file__.split("/")[:-3])
+        for _next in [egg, data_dir]:
+            try:
+                os.remove(_next)
+            except FileNotFoundError:
+                pass
+        return
 
 
 def install():
@@ -211,5 +218,18 @@ for root, dirs, foiles in os.walk("./"):
     for _dir in dirs:
         shutil.rmtree("%s/%s" % (pwd, _dir), ignore_errors=True)
         shutil.move("%s/%s" % (root, _dir), "%s/%s" % (pwd, _dir))
+
+# Big hack to include a buddysuite_data directory in the installation directory. There may be a clean way to do this,
+# but I haven't found it.
+if 'install' in sys.argv:
+    with open("bs_data.py", "w") as ofile:
+        ofile.write('''
+import buddysuite
+import os
+
+os.makedirs("%s/buddysuite_data" % "/".join(buddysuite.__file__.split("/")[:-3]), mode=0o777, exist_ok=True)
+''')
+    from subprocess import Popen
+    Popen("python bs_data.py", shell=True).wait()
 
 os.chdir(pwd)

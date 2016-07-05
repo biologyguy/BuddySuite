@@ -1502,6 +1502,7 @@ class LiveSearch(cmd.Cmd):
         :param _dbbuddy: pre-instantiated DbBuddy object
         :param crash_file: br.TempFile object instantiated in binary mode
         """
+        self.tmpdir = br.TempDir()
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
         hash_heading = ""
@@ -1538,14 +1539,21 @@ Further details about each command can be accessed by typing 'help <command>'
         self.crash_file = crash_file
         self.dump_session()
 
-        if CONFIG["install_path"]:
-            self.history_path = "%s/.cmd_history" % CONFIG["install_path"]
+        if CONFIG["data_dir"]:
+            self.history_path = "%s/cmd_history" % CONFIG["data_dir"]
 
         else:
-            self.history_path = "/tmp/.db_cmd_history"
+            self.history_path = "/%s/cmd_history" % self.tmpdir.path
 
-        if not os.path.isfile(self.history_path):
+        try:
+            if not os.path.isfile(self.history_path):
+                open(self.history_path, "w", encoding="utf-8").close()
+            else:
+                open(self.history_path, "r").close()
+        except PermissionError:
+            self.history_path = "/%s/cmd_history" % self.tmpdir.path
             open(self.history_path, "w", encoding="utf-8").close()
+
         readline.read_history_file(self.history_path)
 
         # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
@@ -2591,11 +2599,11 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
                     "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.\n" % (RED, tb, save_file))
 
-            send_diagnostic = True if CONFIG["diagnostics"] == "True" else False
+            send_diagnostic = True if CONFIG["diagnostics"] else False
             if not send_diagnostic:
-                prompt = input("%sWould you like to send a crash report with the above "
-                               "traceback to the developers ([y]/n)?\033[m" % BOLD)
-                if prompt.lower() in ["y", "yes", ""]:
+                prompt = br.ask("%sWould you like to send a crash report with the above "
+                                "traceback to the developers ([y]/n)?\033[m" % BOLD)
+                if prompt:
                     send_diagnostic = True
 
             else:
