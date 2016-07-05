@@ -1910,7 +1910,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.alb_flags:
                 function = next_arg
                 break
-        br.send_traceback("AlignBuddy", function, _e)
+        br.send_traceback("AlignBuddy", function, _e, VERSION)
 
 if __name__ == '__main__':
     main()

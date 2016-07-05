@@ -4858,7 +4858,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.sb_flags:
                 function = next_arg
                 break
-        br.send_traceback("SeqBuddy", function, _e)
+        br.send_traceback("SeqBuddy", function, _e, VERSION)
 
 if __name__ == '__main__':
     main()

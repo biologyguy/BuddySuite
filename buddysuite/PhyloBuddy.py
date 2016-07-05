@@ -1419,7 +1419,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.pb_flags:
                 function = next_arg
                 break
-        br.send_traceback("PhyloBuddy", function, _e)
+        br.send_traceback("PhyloBuddy", function, _e, VERSION)
 
 if __name__ == '__main__':
     main()

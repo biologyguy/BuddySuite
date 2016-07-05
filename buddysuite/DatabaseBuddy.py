@@ -2715,7 +2715,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.db_flags:
                 function = next_arg
                 break
-        br.send_traceback("DbBuddy", function, e)
+        br.send_traceback("DbBuddy", function, e, VERSION)
 
 if __name__ == '__main__':
     main()
