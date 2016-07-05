@@ -3348,8 +3348,16 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     printer = br.DynamicPrint(out_type="stderr", quiet=quiet)
     temp_dir = br.TempDir()
-    job_dir = "%s/topcons" % br.config_values()["install_path"]
-    os.makedirs(job_dir, exist_ok=True)
+    config = br.config_values()
+
+    job_dir = "/%s/topcons" % temp_dir.path if not config["data_dir"] else "%s/topcons" % config["data_dir"]
+    try:
+        os.makedirs(job_dir, exist_ok=True)
+        open("%s/del" % job_dir, "w").close()
+        os.remove("%s/del" % job_dir)
+    except PermissionError:
+        job_dir = "/%s/topcons" % temp_dir.path
+        os.makedirs(job_dir, exist_ok=True)
 
     printer.write("Cleaning sequences")
     clean_seq(seqbuddy, skip_list="*")

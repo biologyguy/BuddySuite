@@ -49,17 +49,8 @@ from pkg_resources import Requirement, resource_filename, DistributionNotFound
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
+
 # ################################################## MYFUNCS ################################################### #
-from multiprocessing import Process, cpu_count
-from time import time
-from math import floor, ceil
-from tempfile import TemporaryDirectory
-from shutil import copytree, rmtree, copyfile
-import string
-from random import choice
-import signal
-
-
 class Timer(object):
     def __init__(self):
         self.current_time = round(time())
@@ -565,24 +556,30 @@ class CustomHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 class Usage(object):
     def __init__(self):
+        self.tmpfile = TempFile()
         self.config = config_values()
-        if self.config["install_path"]:
-            self.usage_file_path = "%s/usage.json" % self.config["install_path"]
-        else:
-            self.usage_file_path = "/tmp/usage.json"
+        usage_file = None
+        if self.config["diagnostics"] and self.config["data_dir"]:
+            usage_file = "%s/buddysuite_usage.json" % self.config["data_dir"]
+            try:
+                if not os.path.isfile(usage_file):
+                    with open(usage_file, "w", encoding="utf-8") as ofile:
+                        ofile.write("{}")
 
-        if not os.path.isfile(self.usage_file_path):
-            with open(self.usage_file_path, "w", encoding="utf-8") as ofile:
-                ofile.write("{}")
-        try:
-            with open(self.usage_file_path, "r", encoding="utf-8") as ifile:
-                self.stats = json.load(ifile)
-                if not self.stats:  # Empty file needs to be populated with a little info
-                    self.clear_stats()
+                with open(usage_file, "r", encoding="utf-8") as ifile:
+                    self.stats = json.load(ifile)
+                    if not self.stats:  # Empty file needs to be populated with a little info
+                        self.clear_stats()
 
-        except ValueError:  # If the json file can't be read for whatever reason, start from scratch
-            print("Error reading usage json file. Starting from scratch.")
+            except (PermissionError, ValueError):
+                usage_file = None
+
+        if not usage_file:
+            self.tmpfile.write("{}")
             self.clear_stats()
+            usage_file = self.tmpfile.path
+
+        self.usage_file_path = usage_file
 
     def clear_stats(self):
         self.stats = {"user_hash": self.config["user_hash"]}
@@ -595,14 +592,17 @@ class Usage(object):
         return
 
     def save(self, send_report=True):
-        if self.config["diagnostics"] == "True" and send_report:
+        if self.config["diagnostics"] and send_report:
             self.stats.setdefault("last_upload", datetime.date.today().isoformat())
             if (datetime.datetime.today() - datetime.datetime.strptime(self.stats["last_upload"],
                                                                        '%Y-%m-%d')).days >= 7:
                 self.send_report()
                 return
-        with open(self.usage_file_path, "w", encoding="utf-8") as ofile:
-            json.dump(self.stats, ofile)
+        try:
+            with open(self.usage_file_path, "w", encoding="utf-8") as ofile:
+                json.dump(self.stats, ofile)
+        except PermissionError:
+            pass
         return
 
     def send_report(self):
@@ -669,9 +669,8 @@ Contributors:
 
 # #################################################### FUNCTIONS ##################################################### #
 def config_values():
-    # ToDo: "install_path" is deprecated. Remove it's use in DBBuddy, SeqBuddy:topcons, and usage tracking
-    options = {"install_path": False,
-               "email": "buddysuite@nih.gov",
+    # ToDo: "install_path" is deprecated. Remove it's use in DBBuddy, SeqBuddy:topcons
+    options = {"email": "buddysuite@nih.gov",
                "diagnostics": False,
                "user_hash": "hashless"}
     try:
@@ -680,11 +679,19 @@ def config_values():
         config.read(config_file)
         for _key, value in options.items():
             try:
-                options[_key] = config.get('DEFAULT', _key)
+                if _key in ['diagnostics']:
+                    options[_key] = config.getboolean('DEFAULT', _key)
+                else:
+                    options[_key] = config.get('DEFAULT', _key)
             except KeyError:
                 options[_key] = value
 
-    except (DistributionNotFound, NoOptionError):
+        import buddysuite
+        options["data_dir"] = "%s/buddysuite_data" % "/".join(buddysuite.__file__.split("/")[:-3])
+        if not os.path.isdir(options["data_dir"]):
+            options["data_dir"] = False
+    except DistributionNotFound:  # This occurs when buddysuite hasn't actually been installed
+        options["data_dir"] = False
         pass
 
     return options
@@ -925,19 +932,18 @@ def send_traceback(tool, function, e):
     tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
     print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
 
-    send_diagnostic = True if config["diagnostics"] == "True" else False
+    send_diagnostic = True if config["diagnostics"] else False
     if not send_diagnostic:
         prompt = ask("\033[1mWould you like to send a crash report with the above "
-                             "traceback to the developers ([y]/n)?\033[m", timeout=20)
+                     "traceback to the developers ([y]/n)?\033[m", timeout=20)
 
         if prompt:
             send_diagnostic = True
 
     else:
         print("An error report with the above traceback is being sent to the BuddySuite developers because "
-              "you have elected to participate in the Software Improvement Program. To opt-out of this "
-              "program in the future, re-run the BuddySuite installer and un-check the box on the "
-              "'Diagnostics' screen.\n")
+              "you have elected to participate in the Software Improvement Program. You may opt-out of this "
+              "program at any time by re-running the BuddySuite installer.\n")
 
     if send_diagnostic:
         print("Preparing error report for FTP upload...\nSending...\n")
