@@ -32,7 +32,7 @@ import argparse
 import datetime
 from collections import OrderedDict
 import os
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
 import json
 import traceback
 import re
@@ -44,6 +44,7 @@ from shutil import copytree, rmtree, copyfile
 import string
 from random import choice
 import signal
+from pkg_resources import Requirement, resource_filename
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -668,19 +669,21 @@ Contributors:
 
 # #################################################### FUNCTIONS ##################################################### #
 def config_values():
-    config_file = "%s/.buddysuite/config.ini" % os.path.expanduser('~')
-    if os.path.isfile(config_file):
+    # ToDo: "install_path" is deprecated. Remove it's use in DBBuddy, SeqBuddy:topcons, and usage tracking
+    try:
+        config_file = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
         config = ConfigParser()
         config.read(config_file)
-        options = {"install_path": config.get('Install_path', 'path'),
-                   "email": config.get('other', 'email'),
-                   "diagnostics": config.get('other', 'diagnostics'),
-                   "user_hash": config.get('other', 'user_hash')}
-    else:
+        options = {"install_path": False,
+                   "email": config.get('DEFAULT', 'email'),
+                   "diagnostics": config.get('DEFAULT', 'diagnostics'),
+                   "user_hash": config.get('DEFAULT', 'user_hash')}
+    except (NoOptionError, KeyError):
         options = {"install_path": False,
                    "email": "buddysuite@nih.gov",
                    "diagnostics": False,
                    "user_hash": "hashless"}
+
     return options
 
 
