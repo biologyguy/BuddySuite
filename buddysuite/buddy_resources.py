@@ -44,7 +44,7 @@ from shutil import copytree, rmtree, copyfile
 import string
 from random import choice
 import signal
-from pkg_resources import Requirement, resource_filename
+from pkg_resources import Requirement, resource_filename, DistributionNotFound
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -670,19 +670,22 @@ Contributors:
 # #################################################### FUNCTIONS ##################################################### #
 def config_values():
     # ToDo: "install_path" is deprecated. Remove it's use in DBBuddy, SeqBuddy:topcons, and usage tracking
+    options = {"install_path": False,
+               "email": "buddysuite@nih.gov",
+               "diagnostics": False,
+               "user_hash": "hashless"}
     try:
         config_file = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
         config = ConfigParser()
         config.read(config_file)
-        options = {"install_path": False,
-                   "email": config.get('DEFAULT', 'email'),
-                   "diagnostics": config.get('DEFAULT', 'diagnostics'),
-                   "user_hash": config.get('DEFAULT', 'user_hash')}
-    except (NoOptionError, KeyError):
-        options = {"install_path": False,
-                   "email": "buddysuite@nih.gov",
-                   "diagnostics": False,
-                   "user_hash": "hashless"}
+        for _key, value in options.items():
+            try:
+                options[_key] = config.get('DEFAULT', _key)
+            except KeyError:
+                options[_key] = value
+
+    except (DistributionNotFound, NoOptionError):
+        pass
 
     return options
 
