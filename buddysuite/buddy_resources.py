@@ -1603,7 +1603,12 @@ alb_modifiers = {"in_format": {"flag": "f",
 
 # #################################################### PHYLOBUDDY #################################################### #
 
-pb_flags = {"consensus_tree": {"flag": "ct",
+pb_flags = {"collapse_polytomies": {"flag": "cp",
+                                    "action": "append",
+                                    "nargs": "*",
+                                    "metavar": ("threshold", "{'bootstrap', 'length'}"),
+                                    "help": "Create a polytomy from any nodes with less support that threshold"},
+            "consensus_tree": {"flag": "ct",
                                "action": "append",
                                "nargs": "?",
                                "type": float,

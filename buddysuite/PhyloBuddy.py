@@ -113,9 +113,6 @@ def ascending_order(phylobuddy):
     return phylobuddy
 
 
-def robinson_foulds(phylobuddy): # Already done by distance function
-    return phylobuddy
-
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
 # - Regex taxa names
@@ -422,6 +419,32 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
+def collapse_polytomies(phylobuddy, threshold, mode="bootstrap"):
+    """
+    Remove nodes if their support value or branch length are below the given threshold
+    :param phylobuddy: PhyloBuddy objecct
+    :param threshold: Value below which the node will be removed
+    :type threshold: float
+    :param mode: Choose which value to apply threshold to (either 'bootstrap' or 'length')
+    :return: The modified PhyloBuddy object
+    """
+    if mode not in ["bootstrap", "length"]:
+        raise NameError("Mode must be 'bootstrap' or 'length'")
+    for tree in phylobuddy.trees:
+        tree.encode_bipartitions()
+        for node in tree.postorder_node_iter():
+            try:
+                value = node.label if mode == "bootstrap" else node.edge_length
+                if float(value) < threshold:
+                    for child in node.child_nodes():
+                        child.parent_node = node.parent_node
+                    node.parent_node.remove_child(node)
+                    tree.encode_bipartitions()
+            except TypeError:
+                continue
+    return phylobuddy
+
+
 def consensus_tree(phylobuddy, frequency=.5):
     """
     Create a consensus tree from two or more trees.
@@ -731,7 +754,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
 
-    rand_gen = random.Random() if not r_seed else Random(r_seed)
+    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
     hashes = HashFactory()
     for tree in phylobuddy.trees:
         hashes.add_tree()
@@ -1127,6 +1150,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Collapse polytomies
+    if in_args.collapse_polytomies:
+        phylobuddy = collapse_polytomies(phylobuddy, in_args.collapse_polytomies)
+        _print_trees(phylobuddy)
+        _exit("collapse_polytomies")
+
     # Consensus tree
     if in_args.consensus_tree:
         frequency = in_args.consensus_tree[0]
