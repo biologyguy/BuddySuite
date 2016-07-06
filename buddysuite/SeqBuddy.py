@@ -3841,7 +3841,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _stderr("Warning: There are records with duplicate ids which will be renamed.\n", quiet=in_args.quiet)
         try:
             output_dict = bl2seq(seqbuddy)
-            output_str = "#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n"
+            _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
             ids_already_seen = []
             for query_id, query_values in output_dict.items():
                 ids_already_seen.append(query_id)
@@ -3852,8 +3852,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                         continue
 
                     ident, length, evalue, bit_score = subj_values
-                    output_str += "%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score)
-            _stdout(output_str)
+                    _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
         except RuntimeError as e:
             _raise_error(e, "bl2seq", "not present in \$PATH or working directory")
         _exit("bl2seq")
@@ -3918,15 +3917,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             if in_args.count_codons[0] and str(in_args.count_codons[0].lower()) in "concatenate":
                 seqbuddy = concat_seqs(seqbuddy)
             codon_table = count_codons(seqbuddy)[1]
-            output = ""
             for sequence_id in codon_table:
-                output += '#### {0} ####\n'.format(sequence_id)
-                output += 'Codon\tAA\tNum\tPercent\n'
+                _stdout('#### {0} ####\n'.format(sequence_id))
+                _stdout('Codon\tAA\tNum\tPercent\n')
                 for codon in codon_table[sequence_id]:
                     data = codon_table[sequence_id][codon]
-                    output += '{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2])
-                output += '\n'
-            _stdout(output)
+                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
+                _stdout('\n')
         except TypeError as e:
             _raise_error(e, "count_codons", "Nucleic acid sequence required, not protein or other.")
         _exit("count_codons")
@@ -3937,16 +3934,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         if in_args.count_residues[0] and str(in_args.count_residues[0].lower()) in "concatenate":
             seqbuddy = concat_seqs(seqbuddy)
         count_residues(seqbuddy)
-        output = ""
         for rec in seqbuddy.records:
-            output += "%s\n" % str(rec.id)
+            _stdout("%s\n" % str(rec.id))
             for residue, counts in rec.buddy_data["res_count"].items():
                 try:
-                    output += "{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2))
+                    _stdout("{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2)))
                 except TypeError:
-                    output += "{0}:\t{1}\n".format(residue, counts)
-            output += "\n"
-        _stdout(output)
+                    _stdout("{0}:\t{1}\n".format(residue, counts))
+            _stdout("\n")
         _exit("count_residues")
 
     # Delete features
@@ -4683,16 +4678,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Purge
     if in_args.purge:
         purge(seqbuddy, in_args.purge)
-        record_map = "### Deleted record mapping ###\n"
-        for rec in seqbuddy.records:
-            record_map += "%s\n" % rec.id
+        _stderr("### Deleted record mapping ###\n", in_args.quiet)
+        for indx1, rec in enumerate(seqbuddy.records):
+            _stderr("%s\n" % rec.id, in_args.quiet)
             if rec.buddy_data["purge_set"]:
-                for del_seq_id in rec.buddy_data["purge_set"]:
-                    record_map += "%s, " % del_seq_id
-            record_map = record_map.strip(", ") + "\n\n"
-        record_map = record_map.strip() + "\n##############################\n\n"
+                for indx2, del_seq_id in enumerate(rec.buddy_data["purge_set"]):
+                    _stderr(del_seq_id, in_args.quiet)
+                    if indx2 + 1 != len(rec.buddy_data["purge_set"]):
+                        _stderr(", ", in_args.quiet)
+            if indx1 + 1 != len(seqbuddy.records):
+                _stderr("\n\n", in_args.quiet)
+            else:
+                _stderr("\n", in_args.quiet)
+        _stderr("##############################\n\n", in_args.quiet)
 
-        _stderr(record_map, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("purge")
 
