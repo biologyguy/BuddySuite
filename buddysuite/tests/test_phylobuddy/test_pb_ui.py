@@ -101,7 +101,7 @@ def test_in_place_ui(capsys, pb_resources):
     assert "Warning: The -i flag was passed in, but the positional" in err
 
 
-# ###################### 'cp', '--collapse_polytomies' ###################### #
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
 def test_collapse_polytomies_ui(capsys, pb_odd_resources, pb_helpers):
     test_in_args = deepcopy(in_args)
     test_in_args.collapse_polytomies = [[20]]

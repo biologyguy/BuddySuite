@@ -17,7 +17,7 @@ import ete3
 import os
 
 
-# ###################### 'cp', '--collapse_polytomies' ###################### #
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
 def test_collapse_polytomies(pb_odd_resources, pb_helpers):
     tester = Pb.PhyloBuddy(pb_odd_resources['support'])
     tester = Pb.collapse_polytomies(tester, 20)
