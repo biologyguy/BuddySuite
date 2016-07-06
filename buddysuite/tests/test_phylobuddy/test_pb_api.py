@@ -29,7 +29,7 @@ def test_collapse_polytomies(pb_odd_resources, pb_helpers):
 
     with pytest.raises(NameError) as err:
         Pb.collapse_polytomies(tester, threshold=0.1, mode='foo')
-        assert "Mode must be 'bootstrap' or 'length'" in str(err)
+        assert "Mode must be 'support' or 'length'" in str(err)
 
 # ###################### 'ct', '--consensus_tree' ###################### #
 hashes = [('m k', 'acd3fb34cce867c37684244701f9f5bf'), ('m n', 'eede64c804e531cb1c99e4240589b04b'),
