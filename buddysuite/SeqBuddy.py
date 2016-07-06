@@ -3994,20 +3994,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
-            raw = "# ####################### Deleted records ######################## #\n"
+            _stderr("# ####################### Deleted records ######################## #\n", in_args.quiet)
             for seq in deleted_seqs:
-                raw += "%s\t" % seq.id
-                if counter % columns == 0:
-                    raw = "%s\n" % raw.strip()
+                _stderr(seq.id, in_args.quiet)
+                if counter % columns == 0 or counter == len(deleted_seqs):
+                    _stderr("\n", in_args.quiet)
+                else:
+                    _stderr("\t", in_args.quiet)
                 counter += 1
-            raw = "%s\n# ################################################################ #\n" % raw.strip()
-            _stderr(raw, in_args.quiet)
+            _stderr("# ################################################################ #\n", in_args.quiet)
 
         if len(deleted_seqs) == 0:
-            stderr_out = "# ################################################################ #\n"
-            stderr_out += "# No sequence identifiers match %s\n" % ", ".join(search_terms)
-            stderr_out += "# ################################################################ #\n"
-            _stderr(stderr_out, in_args.quiet)
+            _stderr("# ################################################################ #\n", in_args.quiet)
+            _stderr("# No sequence identifiers match %s\n" % ", ".join(search_terms), in_args.quiet)
+            _stderr("# ################################################################ #\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("delete_records")
 
