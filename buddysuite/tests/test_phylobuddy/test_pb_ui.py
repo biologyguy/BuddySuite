@@ -101,6 +101,20 @@ def test_in_place_ui(capsys, pb_resources):
     assert "Warning: The -i flag was passed in, but the positional" in err
 
 
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
+def test_collapse_polytomies_ui(capsys, pb_odd_resources, pb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.collapse_polytomies = [[20]]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "1b0979265205b17ca7f34abbd02f6e26"
+
+    test_in_args.collapse_polytomies = [[0.1, 'length']]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "252572f7b9566c62df24d57065412240"
+
+
 # ###################### 'ct', '--consensus_tree' ###################### #
 def test_consensus_tree_ui(capsys, pb_resources, pb_helpers):
     test_in_args = deepcopy(in_args)

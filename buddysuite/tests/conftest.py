@@ -161,7 +161,10 @@ def pb_odd_resources():
         ('unrecognizable', '{path}/unrecognizable.phy'),
         ('figtree', '{path}/figtree.nexus'),
         ('compare', '{path}/compare_trees.newick'),
-        ('node_lables', '{path}/tree_with_node_lables.nwk')
+        ('node_lables', '{path}/tree_with_node_lables.nwk'),
+        ('lengths', '{path}/Mnemiopsis_pep.newick'),
+        ('bootstraps', '{path}/Mnemiopsis_pep_bootstraps.newick'),
+        ('support', '{path}/Mnemiopsis_pep_support.newick')
     ]}
     return resource_list
 

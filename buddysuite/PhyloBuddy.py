@@ -415,27 +415,28 @@ def _stdout(message, quiet=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def collapse_polytomies(phylobuddy, threshold, mode="bootstrap"):
+def collapse_polytomies(phylobuddy, threshold, mode="support"):
     """
     Remove nodes if their support value or branch length are below the given threshold
     :param phylobuddy: PhyloBuddy objecct
     :param threshold: Value below which the node will be removed
     :type threshold: float
-    :param mode: Choose which value to apply threshold to (either 'bootstrap' or 'length')
+    :param mode: Choose which value to apply threshold to (either 'support' or 'length')
     :return: The modified PhyloBuddy object
     """
-    if mode not in ["bootstrap", "length"]:
-        raise NameError("Mode must be 'bootstrap' or 'length'")
+    if mode not in ["support", "length"]:
+        raise NameError("Mode must be 'support' or 'length'")
     for tree in phylobuddy.trees:
         tree.encode_bipartitions()
         for node in tree.postorder_node_iter():
             try:
-                value = node.label if mode == "bootstrap" else node.edge_length
+                value = node.label if mode == "support" else node.edge_length
                 if float(value) < threshold:
                     for child in node.child_nodes():
                         child.parent_node = node.parent_node
-                    node.parent_node.remove_child(node)
-                    tree.encode_bipartitions()
+                    if node.parent_node:  # Ensure not working from the root
+                        node.parent_node.remove_child(node)
+                        tree.encode_bipartitions()
             except TypeError:
                 continue
     return phylobuddy
@@ -1157,7 +1158,16 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Collapse polytomies
     if in_args.collapse_polytomies:
-        phylobuddy = collapse_polytomies(phylobuddy, in_args.collapse_polytomies)
+        args = in_args.collapse_polytomies[0]
+        mode = "support"
+        threshold = 50
+        for arg in args:
+            try:
+                threshold = float(arg)
+            except ValueError:
+                mode = arg.lower() if arg.lower() in ["support", "length"] else mode
+
+        phylobuddy = collapse_polytomies(phylobuddy, threshold=threshold, mode=mode)
         _print_trees(phylobuddy)
         _exit("collapse_polytomies")
 

@@ -1628,7 +1628,7 @@ alb_modifiers = {"in_format": {"flag": "f",
 
 # #################################################### PHYLOBUDDY #################################################### #
 
-pb_flags = {"collapse_polytomies": {"flag": "cp",
+pb_flags = {"collapse_polytomies": {"flag": "cpt",
                                     "action": "append",
                                     "nargs": "*",
                                     "metavar": ("threshold", "{'bootstrap', 'length'}"),

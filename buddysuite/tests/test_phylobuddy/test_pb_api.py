@@ -16,6 +16,21 @@ from unittest import mock
 import ete3
 import os
 
+
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
+def test_collapse_polytomies(pb_odd_resources, pb_helpers):
+    tester = Pb.PhyloBuddy(pb_odd_resources['support'])
+    tester = Pb.collapse_polytomies(tester, 20)
+    assert pb_helpers.phylo_to_hash(tester) == "1b0979265205b17ca7f34abbd02f6e26"
+
+    tester = Pb.PhyloBuddy(pb_odd_resources['support'])
+    tester = Pb.collapse_polytomies(tester, threshold=0.1, mode='length')
+    assert pb_helpers.phylo_to_hash(tester) == "252572f7b9566c62df24d57065412240"
+
+    with pytest.raises(NameError) as err:
+        Pb.collapse_polytomies(tester, threshold=0.1, mode='foo')
+        assert "Mode must be 'support' or 'length'" in str(err)
+
 # ###################### 'ct', '--consensus_tree' ###################### #
 hashes = [('m k', 'acd3fb34cce867c37684244701f9f5bf'), ('m n', 'eede64c804e531cb1c99e4240589b04b'),
           ('m l', '73ac98a1656d1c4a52da16d3f096f8ce'), ('o k', '64f7df66253b104c300d13e344e2f216')]
