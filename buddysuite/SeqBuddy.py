@@ -4025,16 +4025,21 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                         scope = scope_option if scope_option.startswith(arg) else scope
 
         find_repeats(seqbuddy)
-        stderr_output = ""
+
+        if len(seqbuddy.repeat_ids) > 0:
+            _stderr("# ################################################################ #\n", in_args.quiet)
+
         if len(seqbuddy.repeat_ids) > 0 and scope in ["all", "ids"]:
-            stderr_output += "# Records with duplicate ids deleted\n"
+            _stderr("# Records with duplicate ids deleted\n", in_args.quiet)
             counter = 1
             for seq in seqbuddy.repeat_ids:
-                stderr_output += "%s\t" % seq
-                if counter % columns == 0:
-                    stderr_output = "%s\n" % stderr_output.strip()
+                _stderr(seq, in_args.quiet)
+                if counter % columns == 0 or counter == len(seqbuddy.repeat_ids):
+                    _stderr("\n", in_args.quiet)
+                else:
+                    _stderr("\t", in_args.quiet)
                 counter += 1
-            stderr_output = "%s\n\n" % stderr_output.strip()
+            _stderr("\n", in_args.quiet)
             seqbuddy = delete_repeats(seqbuddy, 'ids')
             find_repeats(seqbuddy)
 
@@ -4045,23 +4050,23 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                 rep_seq_ids[-1].append(rep_seq_id)
 
         if len(rep_seq_ids) > 0 and scope in ["all", "seqs"]:
-            stderr_output += "# Records with duplicate sequence deleted\n"
+            _stderr("# Records with duplicate sequence deleted\n", in_args.quiet)
             counter = 1
             for repeat_seqs in rep_seq_ids:
-                stderr_output += "["
-                for rep_seq in repeat_seqs:
-                    stderr_output += "%s, " % rep_seq
-                stderr_output = "%s], " % stderr_output.strip(", ")
-                if counter % columns == 0:
-                    stderr_output = "%s\n" % stderr_output.strip(", ")
+                _stderr("[", in_args.quiet)
+                for _indx, rep_seq in enumerate(repeat_seqs):
+                    _stderr(rep_seq, in_args.quiet)
+                    if _indx + 1 != len(repeat_seqs):
+                        _stderr(", ", in_args.quiet)
+                _stderr("]", in_args.quiet)
+                if counter % columns == 0 or counter == len(rep_seq_ids):
+                    _stderr("\n", in_args.quiet)
+                else:
+                    _stderr(", ", in_args.quiet)
                 counter += 1
-            stderr_output = "%s\n" % stderr_output.strip(", ")
 
-        if stderr_output != "":
-            stderr_output = "# ################################################################ #\n%s\n" \
-                            "# ################################################################ #\n\n" \
-                            % stderr_output.strip()
-            _stderr(stderr_output, in_args.quiet)
+        if len(rep_seq_ids) > 0:
+            _stderr("# ################################################################ #\n\n", in_args.quiet)
 
         else:
             _stderr("No duplicate records found\n", in_args.quiet)
@@ -4115,15 +4120,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
                     break
 
             if islands:
-                output = ""
-                for rec in seqbuddy.records:
+                _stderr('########### Islands identified ###########\n', in_args.quiet)
+                for _indx, rec in enumerate(seqbuddy.records):
                     if rec.buddy_data["cpgs"]:
                         value = ["%s-%s" % (x[0], x[1]) for x in rec.buddy_data["cpgs"]]
-                        output += "{0}: {1}\n".format(rec.id, ", ".join(value))
+                        _stderr("{0}: {1}".format(rec.id, ", ".join(value)), in_args.quiet)
+                        if _indx + 1 != len(seqbuddy.records):
+                            _stderr("\n", in_args.quiet)
 
-                _stderr('########### Islands identified ###########\n%s\n'
-                        '##########################################\n\n' %
-                        output.strip(), in_args.quiet)
+                _stderr('\n##########################################\n\n', in_args.quiet)
             else:
                 _stderr("# No Islands identified\n\n", in_args.quiet)
             _print_recs(seqbuddy)
@@ -4135,16 +4140,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
     # Find orfs
     if in_args.find_orfs:
         find_orfs(seqbuddy)
-        output = ""
         for rec in seqbuddy.records:
             pos_indices = rec.buddy_data['find_orfs']['+']
-            neg_indices =rec.buddy_data['find_orfs']['-']
-            if not len(pos_indices) and not len(neg_indices):
-                output += "{0}: None\n".format(rec.id)
+            neg_indices = rec.buddy_data['find_orfs']['-']
+            _stderr("# {0}\n".format(rec.id), in_args.quiet)
+            if len(pos_indices) > 0:
+                _stderr("(+) ORFs: None\n", in_args.quiet)
             else:
-                output += "# {0}\n".format(rec.id)
-                output += "(+) ORFs: {0}\n(-) ORFs: {1}\n".format(", ".join([str(x[0]) for x in pos_indices]), "".join([str(y[0]) for y in neg_indices]))
-        _stderr("%s\n" % output, in_args.quiet)
+                _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices])), in_args.quiet)
+            if len(neg_indices) > 0:
+                _stderr("(-) ORFs: None\n", in_args.quiet)
+            else:
+                _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices])), in_args.quiet)
+        _stderr("\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_orfs")
 
@@ -4156,19 +4164,21 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
         for pattern in in_args.find_pattern:
-            output = ""
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
-                if not len(indices):
-                    output += "{0}: None\n".format(rec.id)
-                else:
-                    output += "{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices]))
-                    num_matches += len(indices)
-
+                num_matches += len(indices)
             _stderr("#### {0} matches found across {1} sequences for "
                     "pattern '{2}' ####\n".format(num_matches, len(seqbuddy), pattern), in_args.quiet)
-            _stderr("%s\n" % output, in_args.quiet)
+            for rec in seqbuddy.records:
+                indices = rec.buddy_data['find_patterns'][pattern]
+                if not len(indices):
+                    _stderr("{0}: None\n".format(rec.id), in_args.quiet)
+                else:
+                    _stderr("{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices])), in_args.quiet)
+                    num_matches += len(indices)
+
+            _stderr("\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
 
@@ -4177,42 +4187,41 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         columns = 1 if not in_args.find_repeats[0] else in_args.find_repeats[0]
         find_repeats(seqbuddy)
 
-        output_str = ""
         if len(seqbuddy.repeat_ids) > 0:
-            output_str += "#### Records with duplicate IDs: ####\n"
+            _stdout("#### Records with duplicate IDs: ####\n")
             counter = 1
             for next_id in seqbuddy.repeat_ids:
-                output_str += "%s\t" % next_id
-                if counter % columns == 0:
-                    output_str = "%s\n" % output_str.strip()
+                if counter % columns == 0 or counter == len(seqbuddy.repeat_ids):
+                    _stdout("%s\n" % next_id)
+                else:
+                    _stdout("%s\t" % next_id)
                 counter += 1
 
-            output_str = "%s\n\n" % output_str.strip()
+            _stdout("\n")
 
         else:
-            output_str += "#### No records with duplicate IDs ####\n\n"
+            _stdout("#### No records with duplicate IDs ####\n\n")
 
         if len(seqbuddy.repeat_seqs) > 0:
-            output_str += "#### Records with duplicate sequences: ####\n"
+            _stdout("#### Records with duplicate sequences: ####\n")
             counter = 1
             for next_id in seqbuddy.repeat_seqs:
-                output_str += "["
-                for seq_id in seqbuddy.repeat_seqs[next_id]:
-                    output_str += "%s, " % seq_id
-                output_str = "%s], " % output_str.strip(", ")
+                _stdout("[")
+                for _indx, seq_id in enumerate(seqbuddy.repeat_seqs[next_id]):
+                    _stdout("%s" % seq_id)
+                    if _indx+1 != len(seqbuddy.repeat_seqs[next_id]):
+                        _stdout(", ")
+                _stdout("]")
 
-                if counter % columns == 0:
-                    output_str = "%s\n" % output_str.strip(", ")
+                if counter % columns != 0 and counter != len(seqbuddy.repeat_seqs):
+                    _stdout(", ")
+                else:
+                    _stdout("\n")
 
                 counter += 1
-
-            output_str = "%s\n\n" % output_str.strip(", ")
         else:
-            output_str += "#### No records with duplicate sequences ####\n\n"
+            _stdout("#### No records with duplicate sequences ####\n")
 
-        output_str = "{0}\n".format(output_str.strip())
-
-        _stdout(output_str)
         _exit("find_repeats")
 
     # Find restriction sites
@@ -4253,9 +4262,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
-        output = '# ### Restriction Sites (indexed at cut-site) ### #\n'
+        _stderr('# ### Restriction Sites (indexed at cut-site) ### #\n', in_args.quiet)
         for tup in seqbuddy.restriction_sites:
-            output += "{0}\n".format(tup[0])
+            _stderr("{0}\n".format(tup[0]), in_args.quiet)
             restriction_list = tup[1]
             restriction_list = [[key, value] for key, value in restriction_list.items()]
             restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
@@ -4263,10 +4272,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
             for _enzyme in restriction_list:
                 cut_sites = [str(x) for x in _enzyme[1]]
-                output += "{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites))
-            output += "\n"
-        output = "%s\n# ############################################### #\n\n" % output.strip()
-        _stderr(output, quiet=in_args.quiet)
+                _stderr("{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites)), in_args.quiet)
+            if tup != seqbuddy.restriction_sites[-1]:
+                _stderr("\n", in_args.quiet)
+        _stderr("# ############################################### #\n\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
@@ -4336,7 +4345,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
     # Guess alphabet
     if in_args.guess_alphabet:
-        output = ""
         for seq_set in in_args.sequence:
             try:
                 seqbuddy = SeqBuddy(seq_set)
@@ -4345,31 +4353,29 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
                 seq_set = seq_set.split("/")[-1]
-                output += "%s\t-->\t" % seq_set
+                _stdout("%s\t-->\t" % seq_set)
             else:
-                output += "PIPE\t-->\t"
+                _stdout("PIPE\t-->\t")
 
             if seqbuddy.alpha == IUPAC.protein:
-                output += "prot\n"
+                _stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                output += "dna\n"
+                _stdout("dna\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                output += "rna\n"
+                _stdout("rna\n")
             else:
-                output += "Undetermined\n"
-        _stdout(output)
+                _stdout("Undetermined\n")
         _exit("guess_alphabet")
 
     # Guess format
     if in_args.guess_format:
-        output = ""
         for seq_set in in_args.sequence:
             if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
                 _format = _guess_format(seq_set)
                 if _format:
-                    output += "PIPE\t-->\t%s\n" % _format
+                    _stdout("PIPE\t-->\t%s\n" % _format)
                 else:
-                    output += "PIPE\t-->\tUnknown\n"
+                    _stdout("PIPE\t-->\tUnknown\n")
             else:
                 try:
                     file_format = _guess_format(seq_set)
@@ -4378,10 +4384,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
                 seq_set = seq_set.split("/")[-1]
                 if not file_format:
-                    output += "%s\t-->\tUnknown\n" % seq_set
+                    _stdout("%s\t-->\tUnknown\n" % seq_set)
                 else:
-                    output += "%s\t-->\t%s\n" % (seq_set, file_format)
-        _stdout(output)
+                    _stdout("%s\t-->\t%s\n" % (seq_set, file_format))
         _exit("guess_format")
 
     # Hash sequence ids
@@ -4448,56 +4453,51 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
 
         isoelectric_point(seqbuddy)
         _stderr("ID\tpI\n")
-        output = ""
         for rec in seqbuddy.records:
-            output += "{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3))
-        _stdout(output)
+            _stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
         _exit("isoelectric_point")
 
     # List features
     if in_args.list_features:
-        output = ""
         for rec in seqbuddy.records:
-            output += '#### {0} ####\n'.format(rec.id)
+            _stdout('#### {0} ####\n'.format(rec.id))
             if len(rec.features) > 0:
                 for feat in rec.features:
-                    output += '{0}\n'.format(feat.type)
+                    _stdout('{0}\n'.format(feat.type))
                     if isinstance(feat.location, CompoundLocation):
-                        output += '\tLocations:\n'
+                        _stdout('\tLocations:\n')
                         for part in feat.location.parts:
-                            output += '\t\t{0}-{1}\n'.format(part.start, part.end)
+                            _stdout('\t\t{0}-{1}\n'.format(part.start, part.end))
                     elif isinstance(feat.location, FeatureLocation):
-                        output += '\tLocation:\n'
-                        output += '\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end)
+                        _stdout('\tLocation:\n')
+                        _stdout('\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end))
                     if feat.strand == 1:
-                        output += '\tStrand: Sense(+)\n'
+                        _stdout('\tStrand: Sense(+)\n')
                     elif feat.strand == -1:
-                        output += '\tStrand: Antisense(-)\n'
+                        _stdout('\tStrand: Antisense(-)\n')
                     if str(feat.id) != '<unknown id>':
-                        output += '\tID: {0}\n'.format(feat.id)
+                        _stdout('\tID: {0}\n'.format(feat.id))
                     if len(feat.qualifiers) > 0:
-                        output += '\tQualifiers:\n'
+                        _stdout('\tQualifiers:\n')
                         qualifs = OrderedDict(sorted(feat.qualifiers.items()))
                         for key, qual in qualifs.items():
-                            output += '\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'"))
+                            _stdout('\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'")))
                     if feat.ref is not None:
-                        output += '\ref: {0}'.format(feat.ref)
+                        _stdout('\ref: {0}'.format(feat.ref))
             else:
-                output += 'None\n'
+                _stdout('None\n')
+            _stdout("\n")
 
-            output = "%s\n\n" % output.strip()
-        _stdout(output)
         _exit("list_features")
 
     # List identifiers
     if in_args.list_ids:
         columns = 1 if not in_args.list_ids[0] else abs(in_args.list_ids[0])
-        output = ""
         for indx, rec in enumerate(seqbuddy.records):
-            output += "%s\t" % rec.id
-            if (indx + 1) % columns == 0:
-                output = "%s\n" % output.strip()
-        _stdout("%s\n" % output.strip())
+            if (indx + 1) % columns == 0 or (indx + 1) == len(seqbuddy.records):
+                _stdout("%s\n" % rec.id, )
+            else:
+                _stdout("%s\t" % rec.id)
         _exit("list_ids")
 
     # Lowercase
