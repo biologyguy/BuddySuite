@@ -434,8 +434,9 @@ def collapse_polytomies(phylobuddy, threshold, mode="bootstrap"):
                 if float(value) < threshold:
                     for child in node.child_nodes():
                         child.parent_node = node.parent_node
-                    node.parent_node.remove_child(node)
-                    tree.encode_bipartitions()
+                    if node.parent_node:  # Ensure not working from the root
+                        node.parent_node.remove_child(node)
+                        tree.encode_bipartitions()
             except TypeError:
                 continue
     return phylobuddy
@@ -1157,7 +1158,16 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Collapse polytomies
     if in_args.collapse_polytomies:
-        phylobuddy = collapse_polytomies(phylobuddy, in_args.collapse_polytomies)
+        args = in_args.collapse_polytomies[0]
+        mode = "bootstrap"
+        threshold = 50
+        for arg in args:
+            try:
+                threshold = float(arg)
+            except ValueError:
+                mode = arg.lower() if arg.lower() in ["bootstrap", "length"] else mode
+
+        phylobuddy = collapse_polytomies(phylobuddy, threshold=threshold, mode=mode)
         _print_trees(phylobuddy)
         _exit("collapse_polytomies")
 
