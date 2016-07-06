@@ -137,8 +137,8 @@ class PhyloBuddy(object):
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
-
-        in_handle = None
+        tmp_dir = TempDir()
+        in_from_handle = None
         raw_seq = None
         in_file = None
         self.trees = []
@@ -150,7 +150,7 @@ class PhyloBuddy(object):
                 temp = StringIO(_input.read())
                 _input = temp
             _input.seek(0)
-            in_handle = _input.read()
+            in_from_handle = _input.read()
             _input.seek(0)
 
         # Raw sequences
@@ -158,13 +158,17 @@ class PhyloBuddy(object):
             raw_seq = _input
             temp = StringIO(_input)
             _input = temp
-            in_handle = _input.read()
+            in_from_handle = _input.read()
             _input.seek(0)
 
         # File paths
         try:
             if os.path.isfile(_input):
                 in_file = _input
+                with open(_input, "r") as ifile:
+                    _input = StringIO(ifile.read())
+                    in_from_handle = _input.read()
+                    _input.seek(0)
 
         except TypeError:  # This happens when testing something other than a string.
             pass
@@ -183,9 +187,9 @@ class PhyloBuddy(object):
             elif raw_seq:
                 raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
                                     "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
-            elif in_handle:
+            elif in_from_handle:
                 raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(in_handle)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(in_from_handle)[:50])
             else:
                 raise br.GuessError("Unable to determine the format or input type. "
                                     "Please check how PhyloBuddy is being called.")
@@ -205,13 +209,13 @@ class PhyloBuddy(object):
             self.trees = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-            tmp_dir = TempDir()
             with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                _ofile.write(in_handle)
+                in_from_handle = clean_newick(in_from_handle)
+                _ofile.write(in_from_handle)
 
             # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
-            if figtree is not None:
+            if figtree:
                 with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                     _ofile.write(figtree[0])
 
@@ -224,19 +228,6 @@ class PhyloBuddy(object):
             for _tree in _trees:
                 self.trees.append(_tree)
 
-        elif os.path.isfile(_input):
-            figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
-            if figtree is not None:
-                tmp_dir = TempDir()
-                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                    _ofile.write(figtree[0])
-                _input = "%s/tree.tmp" % tmp_dir.path
-            if self.in_format != 'nexml':
-                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format, extract_comment_metadata=True)
-            else:
-                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format)
-            for _tree in _trees:
-                self.trees.append(_tree)
         else:
             raise br.GuessError("Not sure what type this is...")
 
@@ -381,6 +372,11 @@ def _guess_format(_input):
 
     else:
         raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+
+
+def clean_newick(tree_string):
+    tree_string = re.sub(r':([0-9]\.*[0-9]*)\[([0-9]+)\]', r'\2:\1', tree_string)
+    return tree_string
 
 
 def make_copy(_phylobuddy):
