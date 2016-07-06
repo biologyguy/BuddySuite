@@ -137,8 +137,8 @@ class PhyloBuddy(object):
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
-
-        in_handle = None
+        tmp_dir = TempDir()
+        in_from_handle = None
         raw_seq = None
         in_file = None
         self.trees = []
@@ -150,7 +150,7 @@ class PhyloBuddy(object):
                 temp = StringIO(_input.read())
                 _input = temp
             _input.seek(0)
-            in_handle = _input.read()
+            in_from_handle = _input.read()
             _input.seek(0)
 
         # Raw sequences
@@ -158,13 +158,17 @@ class PhyloBuddy(object):
             raw_seq = _input
             temp = StringIO(_input)
             _input = temp
-            in_handle = _input.read()
+            in_from_handle = _input.read()
             _input.seek(0)
 
         # File paths
         try:
             if os.path.isfile(_input):
                 in_file = _input
+                with open(_input, "r") as ifile:
+                    _input = StringIO(ifile.read())
+                    in_from_handle = _input.read()
+                    _input.seek(0)
 
         except TypeError:  # This happens when testing something other than a string.
             pass
@@ -183,9 +187,9 @@ class PhyloBuddy(object):
             elif raw_seq:
                 raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
                                     "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
-            elif in_handle:
+            elif in_from_handle:
                 raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(in_handle)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(in_from_handle)[:50])
             else:
                 raise br.GuessError("Unable to determine the format or input type. "
                                     "Please check how PhyloBuddy is being called.")
@@ -205,13 +209,13 @@ class PhyloBuddy(object):
             self.trees = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-            tmp_dir = TempDir()
             with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                _ofile.write(in_handle)
+                in_from_handle = clean_newick(in_from_handle)
+                _ofile.write(in_from_handle)
 
             # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
-            if figtree is not None:
+            if figtree:
                 with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
                     _ofile.write(figtree[0])
 
@@ -224,19 +228,6 @@ class PhyloBuddy(object):
             for _tree in _trees:
                 self.trees.append(_tree)
 
-        elif os.path.isfile(_input):
-            figtree = _extract_figtree_metadata(_input)  # FigTree data being discarded here too
-            if figtree is not None:
-                tmp_dir = TempDir()
-                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                    _ofile.write(figtree[0])
-                _input = "%s/tree.tmp" % tmp_dir.path
-            if self.in_format != 'nexml':
-                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format, extract_comment_metadata=True)
-            else:
-                _trees = Tree.yield_from_files(files=[_input], schema=self.in_format)
-            for _tree in _trees:
-                self.trees.append(_tree)
         else:
             raise br.GuessError("Not sure what type this is...")
 
@@ -381,6 +372,11 @@ def _guess_format(_input):
 
     else:
         raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
+
+
+def clean_newick(tree_string):
+    tree_string = re.sub(r':([0-9]\.*[0-9]*)\[([0-9]+)\]', r'\2:\1', tree_string)
+    return tree_string
 
 
 def make_copy(_phylobuddy):
@@ -641,9 +637,16 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                         Popen(command, shell=True, universal_newlines=True, stdout=PIPE, stderr=PIPE).communicate()
                     else:
                         Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
-                    if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
-                            and not os.path.isfile('{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)) \
-                            and not os.path.isfile('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)):
+                    file_found = False
+                    for path in ["%s/%s" % (tmp_dir.path, x) for x in ['RAxML_bestTree.result',
+                                                                       'RAxML_bootstrap.result',
+                                                                       'RAxML_bipartitions.result',
+                                                                       'pb_input.aln_phyml_tree',
+                                                                       'pb_input.aln_phyml_tree.txt']]:
+                        if os.path.isfile(path):
+                            file_found = True
+                            break
+                    if not file_found:
                         raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
                 else:  # If tool outputs to stdout
                     if quiet:
@@ -653,11 +656,13 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
             except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
                 raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
-
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
-                if os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
+                if re.search('\-b ([0-9]+)', params):
+                    with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                        output += result.read()
+                elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
                     with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)):
