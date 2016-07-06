@@ -641,9 +641,16 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                         Popen(command, shell=True, universal_newlines=True, stdout=PIPE, stderr=PIPE).communicate()
                     else:
                         Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
-                    if not os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)) \
-                            and not os.path.isfile('{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)) \
-                            and not os.path.isfile('{0}/pb_input.aln_phyml_tree.txt'.format(tmp_dir.path)):
+                    file_found = False
+                    for path in ["%s/%s" % (tmp_dir.path, x) for x in ['RAxML_bestTree.result',
+                                                                       'RAxML_bootstrap.result',
+                                                                       'RAxML_bipartitions.result',
+                                                                       'pb_input.aln_phyml_tree',
+                                                                       'pb_input.aln_phyml_tree.txt']]:
+                        if os.path.isfile(path):
+                            file_found = True
+                            break
+                    if not file_found:
                         raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
                 else:  # If tool outputs to stdout
                     if quiet:
@@ -653,11 +660,13 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
 
             except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
                 raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
-
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
-                if os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
+                if re.search('\-b ([0-9]+)', params):
+                    with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                        output += result.read()
+                elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
                     with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)):
