@@ -700,57 +700,58 @@ def config_values():
     return options
 
 
-# Might want to include date in error file name
-def error_report(error_msg, tool, function, version):
-    error_hash = md5(error_msg.encode("utf-8")).hexdigest()  # Hash the error
-    try:
-        if permission_to_upload(error_hash, version):  # Check if error is known and ask user to send error
-            temp_file = TempFile()
-            version_str = str(version.major)+"."+str(version.minor)
-            temp_file.write("%s\t%s::%s\t%s\n" % (error_hash, tool, function, version_str))
-            temp_file.write(error_msg)
-            print("Preparing error report for FTP upload...\nSending...\n")
-            ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
-            ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Upload error to FTP
-            print("Success, thank you.\n")
-    except all_errors as e:
-        if "timed out" not in str(e):
-            print("FTP Error: %s" % e)
-
-def permission_to_upload(error_hash, version):
-    if config_values()["diagnostics"]:  # Check if they have opted in to automatically send diagnostics
-        print("An error report with the above traceback is being sent to the BuddySuite developers because "
-              "you have elected to participate in the Software Improvement Program. To opt-out of this "
-              "program in the future, please edit the diagnostics field in your config.ini file.\n")
-        return True
-
+def error_report(trace_back, tool, function, version):
+    message = ""
+    error_hash = md5(trace_back.encode("utf-8")).hexdigest()  # Hash the error
     try:  # Check online to see if error has been reported before
-        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/master/" +
-                                         "buddysuite/error_codes",
-                                         timeout=2)
-    except:  # If there is an error, just kill BuddySuite.
-        sys.exit(1)
+        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/master/"
+                                         "diagnostics/error_codes", timeout=2)
+        error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
+        error_json = json.loads(error_string)  # Convert JSON into a data table
+        version_str = str(version.major) + "." + str(version.minor)
 
-    error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
-    error_json = json.loads(error_string)  # Convert JSON into a data table
-    version_str = str(version.major) + "." + str(version.minor)
+        if error_hash in error_json.keys():  # Check if error is known (if it's in the data table)
+            if error_json[error_hash][1] == "None" or error_json[error_hash][1] == version_str:  # If error not resolved
+                message += "This is a known bug since version %s, " \
+                           "but it has not been resolved yet.\n" % error_json[error_hash][0]
 
-    if error_hash in error_json.keys():  # Check if error is known (if it's in the data table)
-        if error_json[error_hash][1] == "None" or error_json[error_hash][1] == version_str:  # If error not resolved
-            if ask("This is a known issue since version {0}, ".format(error_json[error_hash][0]) +
-                   "but it has not been resolved. Your error data could be useful " +
-                   "for resolving the issue. Send an error report? ([y]/n)"):
-                return True  # Tell BuddySuite to go ahead and send the data
-        else:  # If error has been resolved
-            print("This issue was resolved in version " +
-                  "{0}. We recommend you upgrade to the latest version ".format(error_json[error_hash][0]) +
-                  "(if you downloaded BuddySuite using pip, use the command pip install buddysuite --upgrade).")
-    else:  # If error is unknown
-        if ask("This issue is not in the bug tracker. Your error data could be useful for resolving it. "
-               "Send an error report? ([y]/n)"):
-            return True  # Tell BuddySuite to go ahead and send the data
+            else:  # If error has been resolved
+                print("This bug was resolved in version %s. We recommend you upgrade to the latest version (if you "
+                      "downloaded BuddySuite using pip, use the command pip install "
+                      "buddysuite --upgrade).\n" % error_json[error_hash][1])
+                return
 
-    return False  # Tell BuddySuite not to send the data
+        else:  # If error is unknown
+            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker\n"
+
+    except request.exceptions.RequestException as err:  # If there is an error, just blow through
+        message += "Failed to locate known error codes:\n%s\n" % str(err)
+
+    config = config_values()
+    permission = config["diagnostics"]
+    if permission:
+        message += "An error report with the above traceback is being sent to the BuddySuite developers because " \
+                   "you have elected to participate in the Software Improvement Program. You may opt-out of this " \
+                   "program at any time by re-running the BuddySuite installer.\n"
+        print(message)
+    else:
+        permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to be sent to "
+                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message)
+    try:
+        if permission:
+            print("\nPreparing error report for FTP upload...")
+            temp_file = TempFile()
+            version_str = str(version.major) + "." + str(version.minor)
+            temp_file.write("%s\t%s::%s\t%s\nuser: %s\n" % (error_hash, tool, function, version_str, config['user_hash']))
+            temp_file.write(trace_back)
+            print("Connecting to FTP server...")
+            ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
+            print("Sending...")
+            ftp.storlines("STOR error_%s" % temp_file.name, open(temp_file.path, "rb"))  # Upload error to FTP
+            print("Success! Thank you.")
+    except all_errors as e:
+            print("Well... We tried. Seems there was a problem with the FTP upload\n%s" % e)
+    return
 
 
 def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
@@ -967,13 +968,14 @@ def replacements(input_str, query, replace="", num=0):
 
 def send_traceback(tool, function, e, version):
     config = config_values()  # Read the config file (so we can check the user hash)
-    tb = "%s\n" % config["user_hash"]
+    tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
         _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
         tb += _line
     tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
     print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
     error_report(tb, tool, function, version)
+    return
 
 
 def shift_features(features, shift, full_seq_len):
