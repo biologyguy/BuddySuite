@@ -63,7 +63,7 @@ in_args = parser.parse_args([])
 def test_argparse_init(capsys, alb_resources, alb_helpers, alb_odd_resources):
     sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "stockholm"]
     temp_in_args, alignbuddy = Alb.argparse_init()
-    assert alb_helpers.align_to_hash(alignbuddy) == "5d9a03d9e1b4bf72d991257d3a696306"
+    assert alb_helpers.align2hash(alignbuddy) == "5d9a03d9e1b4bf72d991257d3a696306"
 
     sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "foo"]
     with pytest.raises(SystemExit):

@@ -152,7 +152,7 @@ class SbHelpers(object):
         self.resource_path = RESOURCE_PATH
         self.write_file = br.TempFile()
 
-    def seqs_to_hash(self, _seqbuddy, mode='hash'):
+    def seqs2hash(self, _seqbuddy, mode='hash'):
         if _seqbuddy.out_format in ["gb", "genbank"]:
             for _rec in _seqbuddy.records:
                 try:
@@ -366,7 +366,7 @@ class AlbHelpers(object):
         self.resource_path = RESOURCE_PATH
 
     @staticmethod
-    def align_to_hash(alignbuddy=None, mode='hash'):
+    def align2hash(alignbuddy=None, mode='hash'):
         if not alignbuddy:
             raise AttributeError("AlignBuddy object required")
 
@@ -500,7 +500,7 @@ class PbHelpers(object):
         self.write_file = br.TempFile()
 
     @staticmethod
-    def phylo_to_hash(_phylobuddy, mode='hash'):
+    def phylo2hash(_phylobuddy, mode='hash'):
         if mode != "hash":
             return "{0}\n".format(str(_phylobuddy).rstrip())
         _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode('utf-8')).hexdigest()

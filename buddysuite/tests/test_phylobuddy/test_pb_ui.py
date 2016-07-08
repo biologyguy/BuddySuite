@@ -231,7 +231,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo_to_hash(pb_resources.get_one("o n"))
+    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("o n"))
     assert "Warning: The hash_length parameter was passed in with the value 1" in err
 
     test_in_args.hash_ids = [[-1, "nodes"]]
@@ -239,7 +239,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo_to_hash(pb_resources.get_one("m n"))
+    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("m n"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
     def hash_ids(*args):

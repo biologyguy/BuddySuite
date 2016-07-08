@@ -38,7 +38,7 @@ def test_instantiate_seqbuddy_from_seqbuddy(sb_resources, sb_helpers):
     for _path in sb_resources.get_list("", mode="paths"):
         input_buddy = SeqBuddy(_path)
         tester = SeqBuddy(input_buddy)
-        assert sb_helpers.seqs_to_hash(input_buddy) == sb_helpers.seqs_to_hash(tester)
+        assert sb_helpers.seqs2hash(input_buddy) == sb_helpers.seqs2hash(tester)
 
 
 def test_alpha_arg_dna(sb_resources):
@@ -147,7 +147,7 @@ def test_no__input():
 def test_make_copy(sb_resources, sb_helpers):
     tester = SeqBuddy(sb_resources.get_one("d f", mode="paths"))
     tester_copy = make_copy(tester)
-    assert sb_helpers.seqs_to_hash(tester) == sb_helpers.seqs_to_hash(tester_copy)
+    assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(tester_copy)
 
 
 # ######################  '_check_for_blast_bin' ###################### #

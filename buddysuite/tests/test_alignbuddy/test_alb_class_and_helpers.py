@@ -170,11 +170,11 @@ def test_write3(alb_resources, alb_helpers):  # Unloopable components
 
     tester = alb_resources.get_one("o d pr")
     tester.set_format("phylipi")
-    assert alb_helpers.align_to_hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
+    assert alb_helpers.align2hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
 
     tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % alb_helpers.resource_path)
     tester.set_format("phylip-strict")
-    assert alb_helpers.align_to_hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+    assert alb_helpers.align2hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -241,7 +241,7 @@ def test_guess_format(alb_resources, alb_odd_resources):
 def test_make_copy(alb_resources, alb_helpers):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
-        alb_helpers.align_to_hash(tester) == alb_helpers.align_to_hash(alb)
+        alb_helpers.align2hash(tester) == alb_helpers.align2hash(alb)
 
 
 def test_stderr(capsys):
@@ -265,4 +265,3 @@ def test_stdout(capsys):
 
 
 # ToDo: def test_feature_remapper()
-
