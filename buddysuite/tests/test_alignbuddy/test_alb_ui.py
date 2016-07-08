@@ -30,15 +30,9 @@ import argparse
 from copy import deepcopy
 from unittest import mock
 
-sys.path.insert(0, os.path.abspath("../"))
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import AlignBuddy as Alb
-    import SeqBuddy as Sb
-    import buddy_resources as br
+from ... import AlignBuddy as Alb
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION

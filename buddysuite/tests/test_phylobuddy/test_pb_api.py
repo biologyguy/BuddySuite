@@ -3,14 +3,9 @@
 
 """ Tests PhyloBuddy API functions """
 import pytest
-try:
-    from buddysuite import PhyloBuddy as Pb
-    from buddysuite import AlignBuddy as Alb
-    from buddysuite import buddy_resources as br
-except ImportError:
-    import PhyloBuddy as Pb
-    import AlignBuddy as Alb
-    import buddy_resources as br
+from ... import PhyloBuddy as Pb
+from ... import AlignBuddy as Alb
+from ... import buddy_resources as br
 
 from unittest import mock
 import ete3

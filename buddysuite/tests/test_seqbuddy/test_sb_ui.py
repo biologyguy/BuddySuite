@@ -32,14 +32,8 @@ from unittest import mock
 from Bio.Alphabet import IUPAC
 import io
 
-#sys.path.insert(0, os.path.abspath("../"))
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import SeqBuddy as Sb
-    import buddy_resources as br
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION

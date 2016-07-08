@@ -10,12 +10,9 @@ import os
 from unittest import mock
 from subprocess import Popen, PIPE
 import re
-try:
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import buddy_resources as br
-except ImportError:
-    import SeqBuddy as Sb
-    import buddy_resources as br
+
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)

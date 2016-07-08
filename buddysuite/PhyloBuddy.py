@@ -27,14 +27,8 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 from __future__ import print_function
 
 # BuddySuite specific
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite.buddy_resources import TempDir, walklevel
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import buddy_resources as br
-    from buddy_resources import TempDir, walklevel, ask
-    import AlignBuddy as Alb
+from . import buddy_resources as br
+from . import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -59,7 +53,7 @@ try:
     import ete3
     from ete3.coretype.tree import TreeError
 except ImportError:
-    confirm = ask("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ",
+    confirm = br. ask("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ",
                   timeout=10)
     if confirm:
         Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
@@ -76,7 +70,7 @@ except ImportError:
 try:
     import dendropy
 except ImportError:
-    confirm = ask("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ",
+    confirm = br. ask("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ",
                   timeout=10)
     if confirm:
         from subprocess import Popen
@@ -137,7 +131,7 @@ class PhyloBuddy(object):
     def __init__(self, _input, _in_format=None, _out_format=None):
         # ####  IN AND OUT FORMATS  #### #
         # Holders for input type. Used for some error handling below
-        tmp_dir = TempDir()
+        tmp_dir = br.TempDir()
         in_from_handle = None
         raw_seq = None
         in_file = None
@@ -282,7 +276,7 @@ def _convert_to_ete(_tree, ignore_color=False):
     :param ignore_color: Specifies if figtree color metadata should be turned into ETE NodeStyle objects
     :return: An ETE Tree object
     """
-    tmp_dir = TempDir()
+    tmp_dir = br.TempDir()
     with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
         _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
                                                                   suppress_annotations=False, suppress_rooting=True)))
@@ -554,7 +548,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                                  'may be found at {1}.\n'.format(tool, _get_tree_binaries(tool)))
 
     else:
-        tmp_dir = TempDir()
+        tmp_dir = br.TempDir()
         tmp_in = "{0}/pb_input.aln".format(tmp_dir.path)
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
@@ -691,7 +685,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                 rename(phylobuddy, _hash, _id)
 
             if keep_temp:
-                _root, dirs, files = next(walklevel(keep_temp))
+                _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
                     with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                         contents = ifile.read()
@@ -920,7 +914,7 @@ def show_diff(phylobuddy):  # Doesn't work.
         else:
             node.add_feature('pb_color', '#00ff00')
 
-    tmp_dir = TempDir()
+    tmp_dir = br.TempDir()
     with open("%s/tree1.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
         ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
     with open("%s/tree2.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
@@ -981,7 +975,7 @@ def show_unique(phylobuddy):
         else:
             node.add_feature('pb_color', '#ff0000')
 
-    tmp_dir = TempDir()  # Convert back to dendropy
+    tmp_dir = br.TempDir()  # Convert back to dendropy
 
     # Unnamed nodes are still given a 'name' feature, which is breaking downstream stuff
     def delete_inner_names(input_tree):

@@ -7,12 +7,8 @@ from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from unittest import mock
 import os
 
-try:
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import buddy_resources as br
-except ImportError:
-    import SeqBuddy as Sb
-    import buddy_resources as br
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 
 TEMPDIR = br.TempDir()

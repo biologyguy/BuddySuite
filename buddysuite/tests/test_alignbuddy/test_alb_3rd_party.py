@@ -10,14 +10,9 @@ it is necessary to check for two different hashes (maybe three, if Windows also 
 import pytest
 import os
 from unittest import mock
-try:
-    from buddysuite import AlignBuddy as Alb
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import buddy_resources as br
-except ImportError:
-    import AlignBuddy as Alb
-    import SeqBuddy as Sb
-    import buddy_resources as br
+from ... import AlignBuddy as Alb
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #

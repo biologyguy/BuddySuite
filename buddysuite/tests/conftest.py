@@ -5,7 +5,7 @@ import pytest
 from hashlib import md5
 import re
 
-from __init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, br
+from .__init__ import SbResources, AlbResources, PbResources, RESOURCE_PATH, br
 
 
 # #################################  -  SeqBuddy  -  ################################## #

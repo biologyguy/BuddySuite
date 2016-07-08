@@ -9,14 +9,9 @@ from unittest import mock, TestCase
 import os
 from shutil import which
 
-try:
-    import buddysuite.buddy_resources as br
-    from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
-except ImportError:
-    import buddy_resources as br
-    from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
+from ... import buddy_resources as br
+from ...SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
+    _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
 
 
 def test_instantiate_seqbuddy_from_file(sb_resources):

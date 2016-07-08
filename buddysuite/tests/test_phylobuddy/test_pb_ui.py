@@ -30,15 +30,9 @@ from copy import deepcopy
 from unittest import mock
 import ete3
 
-sys.path.insert(0, os.path.abspath("../"))
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import PhyloBuddy as Pb
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import buddy_resources as br
-    import PhyloBuddy as Pb
-    import AlignBuddy as Alb
+from ... import buddy_resources as br
+from ... import PhyloBuddy as Pb
+from ... import AlignBuddy as Alb
 
 VERSION = Pb.VERSION
 WRITE_FILE = br.TempFile()

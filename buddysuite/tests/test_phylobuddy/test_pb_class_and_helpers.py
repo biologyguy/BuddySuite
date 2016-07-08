@@ -3,14 +3,9 @@
 """ tests basic functionality of PhyloBuddy class """
 import pytest
 
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite.PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
-    from buddysuite.buddy_resources import GuessError
-except ImportError:
-    import buddy_resources as br
-    from PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
-    from buddy_resources import GuessError
+from ... import buddy_resources as br
+from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
+from ... import buddy_resources as br
 
 
 def test_instantiate_phylobuddy_from_file(pb_resources):
@@ -57,26 +52,26 @@ def test_empty_file(pb_odd_resources):
 
 def test_guess_error(pb_odd_resources):
     # File path
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         PhyloBuddy(pb_odd_resources["unrecognizable"])
 
     with open(pb_odd_resources["unrecognizable"], 'r') as ifile:
         # Raw
-        with pytest.raises(GuessError):
+        with pytest.raises(br.GuessError):
             PhyloBuddy(ifile.read())
 
         # Handle
-        with pytest.raises(GuessError):
+        with pytest.raises(br.GuessError):
             ifile.seek(0)
             PhyloBuddy(ifile)
 
     # GuessError output
-    test_error = GuessError("This is a test")
+    test_error = br.GuessError("This is a test")
     assert str(test_error) == "This is a test"
 
     try:
         PhyloBuddy(pb_odd_resources["unrecognizable"])
-    except GuessError as e:
+    except br.GuessError as e:
         assert "Could not automatically determine the format of" in str(e.value) and \
                "\nTry explicitly setting it with the -f flag." in str(e.value)
 
@@ -150,5 +145,5 @@ def test_convert_to_ete(pb_resources):
 
 
 def test_guess_format():
-    with pytest.raises(GuessError):
+    with pytest.raises(br.GuessError):
         _guess_format(dict)
