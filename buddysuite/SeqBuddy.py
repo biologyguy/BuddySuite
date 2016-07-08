@@ -31,9 +31,12 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 from __future__ import print_function
 
 # BuddySuite specific
-from . import buddy_resources as br
-from . import AlignBuddy as Alb
-
+try:
+    from . import buddy_resources as br
+    from . import AlignBuddy as Alb
+except SystemError:
+    import buddy_resources as br
+    import AlignBuddy as Alb
 
 # Standard library
 import sys

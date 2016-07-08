@@ -28,8 +28,12 @@ and allows maintenance of rich feature annotation following alignment.
 from __future__ import print_function
 
 # BuddySuite specific
-from . import buddy_resources as br
-from . import SeqBuddy as Sb
+try:
+    from . import buddy_resources as br
+    from . import SeqBuddy as Sb
+except SystemError:
+    import buddy_resources as br
+    import SeqBuddy as Sb
 
 # Standard library
 import sys
