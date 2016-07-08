@@ -50,12 +50,12 @@ def test_instantiate_alignbuddy_from_list(alb_resources):
         AlignBuddy(alignbuddy.alignments)
 
 
-def test_instantiation_alignbuddy_errors(alb_bad_resources):
+def test_instantiation_alignbuddy_errors(alb_odd_resources):
     with pytest.raises(GuessError) as e:
-        AlignBuddy(alb_bad_resources["dna"]["single"]["fasta"])
+        AlignBuddy(alb_odd_resources["dna"]["single"]["fasta"])
     assert "Could not determine format from _input file" in str(e)
 
-    tester = open(alb_bad_resources["dna"]["single"]["fasta"], "r")
+    tester = open(alb_odd_resources["dna"]["single"]["fasta"], "r")
     with pytest.raises(GuessError) as e:
         AlignBuddy(tester.read())
     assert "Could not determine format from raw" in str(e)
@@ -66,17 +66,17 @@ def test_instantiation_alignbuddy_errors(alb_bad_resources):
     assert "Could not determine format from input file-like object" in str(e)
 
 
-def test_empty_file(alb_bad_resources):
-    with open(alb_bad_resources["blank"], "r") as ifile:
+def test_empty_file(alb_odd_resources):
+    with open(alb_odd_resources["blank"], "r") as ifile:
         with pytest.raises(GuessError) as e:
             AlignBuddy(ifile)
         assert "Empty file" in str(e)
 
 
-def test_throws_errors_on_invalid_files(alb_bad_resources):
+def test_throws_errors_on_invalid_files(alb_odd_resources):
     """ expect AlignBuddy to raise errors on invalid filesr """
     with pytest.raises(GuessError):
-        AlignBuddy(alb_bad_resources['dna']['single']['fasta'])
+        AlignBuddy(alb_odd_resources['dna']['single']['fasta'])
 
 
 # ##################### AlignBuddy methods ###################### ##
@@ -178,10 +178,10 @@ def test_write3(alb_resources, alb_helpers):  # Unloopable components
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-def test_guess_error(alb_bad_resources):
+def test_guess_error(alb_odd_resources):
     # File path
     with pytest.raises(GuessError):
-        unrecognizable = alb_bad_resources['protein']['single']['phylip']
+        unrecognizable = alb_odd_resources['protein']['single']['phylip']
         AlignBuddy(unrecognizable)
 
     with open(unrecognizable, 'r') as ifile:
@@ -215,7 +215,7 @@ def test_guess_alphabet(alb_resources):
     assert not guess_alphabet(AlignBuddy("", in_format="fasta"))
 
 
-def test_guess_format(alb_resources, alb_bad_resources):
+def test_guess_format(alb_resources, alb_odd_resources):
     assert guess_format(["dummy", "list"]) == "stockholm"
 
     for key, obj in alb_resources.get().items():
@@ -229,9 +229,9 @@ def test_guess_format(alb_resources, alb_bad_resources):
             string_io = io.StringIO(ifile.read())
         assert guess_format(string_io) == parse_format(alb_resources.get_key(key)["format"])
 
-    guess_format(alb_bad_resources['blank']) == "empty file"
-    assert not guess_format(alb_bad_resources['dna']['single']['phylipss_recs'])
-    assert not guess_format(alb_bad_resources['dna']['single']['phylipss_cols'])
+    guess_format(alb_odd_resources['blank']) == "empty file"
+    assert not guess_format(alb_odd_resources['dna']['single']['phylipss_recs'])
+    assert not guess_format(alb_odd_resources['dna']['single']['phylipss_cols'])
 
     with pytest.raises(GuessError) as e:
         guess_format({"Dummy dict": "Type not recognized by guess_format()"})

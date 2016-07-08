@@ -60,7 +60,7 @@ in_args = parser.parse_args([])
 
 
 # ###################### argparse_init() ###################### #
-def test_argparse_init(capsys, alb_resources, alb_helpers, alb_bad_resources):
+def test_argparse_init(capsys, alb_resources, alb_helpers, alb_odd_resources):
     sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "stockholm"]
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert alb_helpers.align_to_hash(alignbuddy) == "5d9a03d9e1b4bf72d991257d3a696306"
@@ -71,19 +71,19 @@ def test_argparse_init(capsys, alb_resources, alb_helpers, alb_bad_resources):
     out, err = capsys.readouterr()
     assert "Format type 'foo' is not recognized/supported" in err
 
-    sys.argv = ['AlignBuddy.py', alb_bad_resources["dna"]["single"]["fasta"], "-con"]
+    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"], "-con"]
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "GuessError: Could not determine format from _input file" in err
 
-    sys.argv = ['AlignBuddy.py', alb_bad_resources["dna"]["single"]["fasta"], "-con", "-f", "phylip"]
+    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"], "-con", "-f", "phylip"]
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "ValueError: First line should have two integers" in err
 
-    sys.argv = ['AlignBuddy.py', alb_bad_resources["dna"]["single"]["phylipss_recs"], "-con", "-f", "phylipss"]
+    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["phylipss_recs"], "-con", "-f", "phylipss"]
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
@@ -133,7 +133,7 @@ def test_bootstrap_ui(capsys, alb_resources):
 
 
 # ##################### '-cs', '--clean_seqs' ###################### ##
-def test_clean_seqs_ui(capsys, alb_resources, alb_bad_resources, alb_helpers):
+def test_clean_seqs_ui(capsys, alb_resources, alb_odd_resources, alb_helpers):
     test_in_args = deepcopy(in_args)
     test_in_args.clean_seq = [[None]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p pr"), skip_exit=True)
@@ -141,7 +141,7 @@ def test_clean_seqs_ui(capsys, alb_resources, alb_bad_resources, alb_helpers):
     assert alb_helpers.string2hash(out) == "73b5d11dd25dd100648870228ab10d3d"
 
     test_in_args.clean_seq = [['strict', 'X']]
-    Alb.command_line_ui(test_in_args, Alb.AlignBuddy(alb_bad_resources['dna']['single']['ambiguous']), skip_exit=True)
+    Alb.command_line_ui(test_in_args, Alb.AlignBuddy(alb_odd_resources['dna']['single']['ambiguous']), skip_exit=True)
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "6755ea1408eddd0e5f267349c287d989"
 
