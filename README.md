@@ -37,6 +37,14 @@ The project should now be in your Python PATH along with sym-links to the execut
     $: which seqbuddy
     >>> /usr/local/anaconda/bin/seqbuddy
 
+And to get started, simply use the 'help' flag
+
+    $: seqbuddy -h
+
+For a detailed breakdown of the tools available within each module, check out the
+ [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
+ 
+### Create shortcuts (OPTIONAL)
 We also recommend creating a set of short-form symbolic links or aliases to each program, which are very convenient if
  using the programs on a regular basis. Furthermore, all of the 
  [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
@@ -54,12 +62,12 @@ First check to make sure the short-form command doesn't already exist; for examp
     $: which sb
     >>>
 
-If there is a conflict, choose something else that seems reasonable (e.g., 'sbd' or 'sqb'). Now create a new symbolic
- link or alias (this is optional):
+If there is a conflict, choose something else that seems reasonable (e.g., 'sbd' or 'sqb'). Now either create aliases
+ or symbolic links:
 
 **Aliases**
 
-Copy the following into the -.bashrc- file in your home directory:
+Copy the following into either the `.bashrc`, `.profile`, or `.bash_profile` (system dependent) file in your home directory:
   
     alias sb="seqbuddy"
     alias alb="alignbuddy"
@@ -79,13 +87,6 @@ You should now be able to see the short form commands in your PATH, e.g.,:
     $: which sb
     >>> /usr/local/bin/sb
 
-And to get started, simply use the 'help' flag
-
-    $: sb -h
-
-For a detailed breakdown of the tools available within each module, check out the
- [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
-
 ## Dependencies
 This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
  installed on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
@@ -103,7 +104,6 @@ The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, bl
 See the [Dependencies](https://github.com/biologyguy/BuddySuite/wiki/Dependencies) page for a full list of all
  third-party packages and software that BuddySuite requires or wraps.
  
-
 ## Developers
 All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
  ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
@@ -116,7 +116,7 @@ We are striving for high unit test coverage with py.test. There are two ways to 
  should be executed before making a pull request. The first method is faster and will be used more frequently:
 
     $: cd BuddySuite/buddysuite
-    $: bash run_tests.hs
+    $: bash run_tests.sh
 
 The second method should be run just before submitting a pull request, and uses
  [Docker](https://docs.docker.com/engine/installation/) to build a clean Linux environment with all dependencies. 
@@ -139,4 +139,4 @@ There is a very short application note on bioRxiv that can be cited if you use B
 
 ## Contact
 Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
- contact me directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)
+ contact Steve Bond (lead developer) directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)
