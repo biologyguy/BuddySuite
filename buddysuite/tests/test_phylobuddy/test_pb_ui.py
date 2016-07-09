@@ -30,15 +30,9 @@ from copy import deepcopy
 from unittest import mock
 import ete3
 
-sys.path.insert(0, os.path.abspath("../"))
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import PhyloBuddy as Pb
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import buddy_resources as br
-    import PhyloBuddy as Pb
-    import AlignBuddy as Alb
+from ... import buddy_resources as br
+from ... import PhyloBuddy as Pb
+from ... import AlignBuddy as Alb
 
 VERSION = Pb.VERSION
 WRITE_FILE = br.TempFile()
@@ -99,6 +93,20 @@ def test_in_place_ui(capsys, pb_resources):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "Warning: The -i flag was passed in, but the positional" in err
+
+
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
+def test_collapse_polytomies_ui(capsys, pb_odd_resources, pb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.collapse_polytomies = [[20]]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "1b0979265205b17ca7f34abbd02f6e26"
+
+    test_in_args.collapse_polytomies = [[0.1, 'length']]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert pb_helpers.string2hash(out) == "252572f7b9566c62df24d57065412240"
 
 
 # ###################### 'ct', '--consensus_tree' ###################### #
@@ -223,7 +231,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo_to_hash(pb_resources.get_one("o n"))
+    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("o n"))
     assert "Warning: The hash_length parameter was passed in with the value 1" in err
 
     test_in_args.hash_ids = [[-1, "nodes"]]
@@ -231,7 +239,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo_to_hash(pb_resources.get_one("m n"))
+    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("m n"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
     def hash_ids(*args):

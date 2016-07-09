@@ -32,14 +32,8 @@ from unittest import mock
 from Bio.Alphabet import IUPAC
 import io
 
-#sys.path.insert(0, os.path.abspath("../"))
-try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import AlignBuddy as Alb
-except ImportError:
-    import SeqBuddy as Sb
-    import buddy_resources as br
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION
@@ -862,10 +856,10 @@ def test_order_ids_randomly_ui(capsys, sb_resources, sb_helpers):
     test_in_args.order_ids_randomly = [True]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) != sb_helpers.seqs_to_hash(sb_resources.get_one('d f'))
+    assert sb_helpers.string2hash(out) != sb_helpers.seqs2hash(sb_resources.get_one('d f'))
 
     tester = Sb.order_ids(Sb.SeqBuddy(out))
-    assert sb_helpers.seqs_to_hash(tester) == sb_helpers.seqs_to_hash(Sb.order_ids(sb_resources.get_one('d f')))
+    assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(Sb.order_ids(sb_resources.get_one('d f')))
 
 
 # ######################  '-prr', '--pull_random_recs' ###################### #

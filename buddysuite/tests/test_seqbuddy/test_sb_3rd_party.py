@@ -10,12 +10,9 @@ import os
 from unittest import mock
 from subprocess import Popen, PIPE
 import re
-try:
-    from buddysuite import SeqBuddy as Sb
-    from buddysuite import buddy_resources as br
-except ImportError:
-    import SeqBuddy as Sb
-    import buddy_resources as br
+
+from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
@@ -40,7 +37,7 @@ def test_bl2seq(sb_resources, sb_helpers):
 def test_blastn(sb_resources, sb_odd_resources, sb_helpers):
     tester = Sb.pull_recs(sb_resources.get_one("d f"), '8', True)
     tester = Sb.blast(tester, sb_odd_resources["blastn"])
-    assert sb_helpers.seqs_to_hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
+    assert sb_helpers.seqs2hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
 
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("d f")
@@ -65,8 +62,8 @@ def test_blastn(sb_resources, sb_odd_resources, sb_helpers):
 def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
     seqbuddy = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
     tester = Sb.blast(seqbuddy, sb_odd_resources["blastp"])
-    assert sb_helpers.seqs_to_hash(tester) in ["4237c79672c1cf1d4a9bdb160a53a4b9",
-                                               "118d4f412e2a362b9d16130abbf395c5"]
+    assert sb_helpers.seqs2hash(tester) in ["4237c79672c1cf1d4a9bdb160a53a4b9",
+                                            "118d4f412e2a362b9d16130abbf395c5"]
 
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("p f")
@@ -83,4 +80,3 @@ def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
             with pytest.raises(SystemError) as e:
                 Sb.blast(tester, sb_odd_resources["blastp"])
             assert 'blastp not found in system path' in str(e.value)
-

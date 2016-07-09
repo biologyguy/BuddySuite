@@ -1,0 +1,5 @@
+# Records are "error hash: [version reported, verions fixed]
+{
+    "db5b13ef3b40eb9adf64f93e74ee9f06":["1.1","1.2"],
+    "fa4c2c0bfac785e973a5e970421a2eda":["1.1","1.2"]
+}

@@ -31,8 +31,8 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from buddysuite import buddy_resources as br
-except ImportError:
+    from . import buddy_resources as br
+except SystemError:
     import buddy_resources as br
 
 # Standard library
@@ -2715,7 +2715,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.db_flags:
                 function = next_arg
                 break
-        br.send_traceback("DbBuddy", function, e)
+        br.send_traceback("DbBuddy", function, e, VERSION)
 
 if __name__ == '__main__':
     main()

@@ -29,9 +29,9 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from buddysuite import buddy_resources as br
-    from buddysuite import SeqBuddy as Sb
-except ImportError:
+    from . import buddy_resources as br
+    from . import SeqBuddy as Sb
+except SystemError:
     import buddy_resources as br
     import SeqBuddy as Sb
 
@@ -1910,7 +1910,7 @@ def main():
             if getattr(initiation[0], next_arg) and next_arg in br.alb_flags:
                 function = next_arg
                 break
-        br.send_traceback("AlignBuddy", function, _e)
+        br.send_traceback("AlignBuddy", function, _e, VERSION)
 
 if __name__ == '__main__':
     main()

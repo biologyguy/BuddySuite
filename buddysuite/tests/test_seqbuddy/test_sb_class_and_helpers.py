@@ -9,14 +9,9 @@ from unittest import mock, TestCase
 import os
 from shutil import which
 
-try:
-    import buddysuite.buddy_resources as br
-    from buddysuite.SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
-except ImportError:
-    import buddy_resources as br
-    from SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-        _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
+from ... import buddy_resources as br
+from ...SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
+    _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
 
 
 def test_instantiate_seqbuddy_from_file(sb_resources):
@@ -43,7 +38,7 @@ def test_instantiate_seqbuddy_from_seqbuddy(sb_resources, sb_helpers):
     for _path in sb_resources.get_list("", mode="paths"):
         input_buddy = SeqBuddy(_path)
         tester = SeqBuddy(input_buddy)
-        assert sb_helpers.seqs_to_hash(input_buddy) == sb_helpers.seqs_to_hash(tester)
+        assert sb_helpers.seqs2hash(input_buddy) == sb_helpers.seqs2hash(tester)
 
 
 def test_alpha_arg_dna(sb_resources):
@@ -152,7 +147,7 @@ def test_no__input():
 def test_make_copy(sb_resources, sb_helpers):
     tester = SeqBuddy(sb_resources.get_one("d f", mode="paths"))
     tester_copy = make_copy(tester)
-    assert sb_helpers.seqs_to_hash(tester) == sb_helpers.seqs_to_hash(tester_copy)
+    assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(tester_copy)
 
 
 # ######################  '_check_for_blast_bin' ###################### #
