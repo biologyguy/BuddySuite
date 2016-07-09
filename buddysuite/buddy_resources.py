@@ -39,6 +39,7 @@ import re
 from ftplib import FTP, all_errors
 from hashlib import md5
 from urllib import request
+from urllib.error import URLError, HTTPError, ContentTooShortError
 from multiprocessing import Process, cpu_count
 from time import time
 from math import floor, ceil
@@ -707,6 +708,7 @@ def error_report(trace_back, tool, function, version):
         raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/master/"
                                          "diagnostics/error_codes", timeout=2)
         error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
+        error_string = re.sub("#.*\n", "", error_string)
         error_json = json.loads(error_string)  # Convert JSON into a data table
         version_str = str(version.major) + "." + str(version.minor)
 
@@ -724,7 +726,7 @@ def error_report(trace_back, tool, function, version):
         else:  # If error is unknown
             message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker\n"
 
-    except request.exceptions.RequestException as err:  # If there is an error, just blow through
+    except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)
 
     config = config_values()
@@ -736,7 +738,7 @@ def error_report(trace_back, tool, function, version):
         print(message)
     else:
         permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to be sent to "
-                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message)
+                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=5)
     try:
         if permission:
             print("\nPreparing error report for FTP upload...")
