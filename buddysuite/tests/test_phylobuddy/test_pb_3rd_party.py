@@ -88,7 +88,7 @@ def test_phyml_pep(alb_resources, pb_helpers):
 # ######### FastTree ######### #
 fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()
 fasttree_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
-if fasttree_version not in ["2.1.8", "2.1.9"]:
+if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9"]:
     raise ValueError("Untested FastTree version (%s). Please update the tests as necessary." % fasttree_version)
 
 
@@ -98,14 +98,17 @@ def test_fasttree_inputs(alb_resources, pb_helpers):
     alignbuddy = alb_resources.get_one("o d n")
 
     tester = Pb.generate_tree(Alb.make_copy(alignbuddy), 'FastTree', '-seed 12345')
-    assert pb_helpers.phylo2hash(tester) in ['da8a67cae6f3f70668f7cf04060b7cd8', '732c5e9a978cebb1cfce6af6d64950c2']
+    assert pb_helpers.phylo2hash(tester) in ['d7f505182dd1a1744b45cc326096f70c', 'da8a67cae6f3f70668f7cf04060b7cd8',
+                                             '732c5e9a978cebb1cfce6af6d64950c2']
 
     tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', quiet=True)
-    assert pb_helpers.phylo2hash(tester) in ['da8a67cae6f3f70668f7cf04060b7cd8', '732c5e9a978cebb1cfce6af6d64950c2']
+    assert pb_helpers.phylo2hash(tester) in ['d7f505182dd1a1744b45cc326096f70c', 'da8a67cae6f3f70668f7cf04060b7cd8',
+                                             '732c5e9a978cebb1cfce6af6d64950c2']
 
     alignbuddy = alb_resources.get_one("o p n")
     tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', keep_temp="%s/new_dir" % temp_dir.path)
-    assert pb_helpers.phylo2hash(tester) in ['82d5a9d4f44fbedf29565686a7cdfcaa', '682210ef16beedee0e9f43c05edac112']
+    assert pb_helpers.phylo2hash(tester) in ['57eace9bdd2074297cbd2692c1f4cd38', '82d5a9d4f44fbedf29565686a7cdfcaa',
+                                             '682210ef16beedee0e9f43c05edac112']
 
 
 # def test_fasttree_multi_param(alb_resources, pb_helpers):
