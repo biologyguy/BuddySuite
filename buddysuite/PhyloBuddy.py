@@ -383,7 +383,19 @@ def make_copy(_phylobuddy):
     :param _phylobuddy: The PhyloBuddy object to be copied
     :return: A copy of the original PhyloBuddy object
     """
-    _copy = deepcopy(_phylobuddy)
+    try:
+        _copy = deepcopy(_phylobuddy)
+    except AttributeError as err:  # Workaround hack because of a bug in dendropy
+        if "'Edge' object has no attribute '_annotations'" in str(err):
+            for tree in _phylobuddy.trees:
+                class Annotation(object):
+                    def __init__(self):
+                        self.is_attribute = None
+                        self.is_hidden = True
+                annotation = Annotation()
+                for node in tree:
+                    node.edge._annotations = ([annotation])
+        _copy = deepcopy(_phylobuddy)
     return _copy
 
 
@@ -448,14 +460,9 @@ def consensus_tree(phylobuddy, frequency=.5):
     :return: The modified PhyloBuddy object
     """
     _trees = TreeList(phylobuddy.trees)
-    _consensus = _trees.consensus(min_freq=frequency, suppress_edge_lengths=True)
-    for node in _consensus:
-        for annotation in ['length_mean', 'length_median', 'length_sd', 'length_hpd95',
-                           'length_quant_5_95', 'length_range']:
-            for indx, _next in enumerate(node.edge.annotations):
-                if re.search("%s=" % annotation, str(_next)):
-                    del node.edge.annotations[indx]
-                    break
+    _consensus = _trees.consensus(min_freq=frequency,
+                                  add_edge_length_summaries_as_edge_attributes=False,
+                                  add_edge_length_summaries_as_edge_annotations=False)
     phylobuddy.trees = [_consensus]
     return phylobuddy
 
