@@ -58,7 +58,7 @@ try:
     from ete3.coretype.tree import TreeError
 except ImportError:
     confirm = br. ask("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ",
-                  timeout=10)
+                      timeout=10)
     if confirm:
         Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
         Popen("pip install six", shell=True).wait()
@@ -75,7 +75,7 @@ try:
     import dendropy
 except ImportError:
     confirm = br. ask("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ",
-                  timeout=10)
+                      timeout=10)
     if confirm:
         from subprocess import Popen
 
@@ -91,6 +91,31 @@ from dendropy.datamodel.treemodel import Tree, Node
 from dendropy.datamodel.treecollectionmodel import TreeList
 from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
+
+# Patch a bug in older versions of DendroPy (V4.1.0 and older)
+dendropy_ver = int(re.sub("\.", "", dendropy.__version__))
+if dendropy_ver < 411:
+    from dendropy.datamodel.basemodel import Annotable
+
+
+    def deep_copy_annotations_from(self, other, memo=None):
+        if hasattr(other, "_annotations"):
+            # if not isinstance(self, other.__class__) or not isinstance(other, self.__class__):
+            if type(self) is not type(other):
+                raise TypeError(
+                    "Cannot deep-copy annotations from different type (unable to assume object equivalence in dynamic or nested annotations)")
+            if memo is None:
+                memo = {}
+            for a1 in other._annotations:
+                a2 = copy.deepcopy(a1, memo=memo)
+                memo[id(a1)] = a2
+                if a2.is_attribute and a1._value[0] is other:
+                    a2._value = (self, a1._value[1])
+                self.annotations.add(a2)
+            if hasattr(self, "_annotations"):
+                memo[id(other._annotations)] = self._annotations
+
+    Annotable.deep_copy_annotations_from = deep_copy_annotations_from
 
 
 # ##################################################### WISH LIST #################################################### #
@@ -383,19 +408,7 @@ def make_copy(_phylobuddy):
     :param _phylobuddy: The PhyloBuddy object to be copied
     :return: A copy of the original PhyloBuddy object
     """
-    try:
-        _copy = deepcopy(_phylobuddy)
-    except AttributeError as err:  # Workaround hack because of a bug in dendropy
-        if "'Edge' object has no attribute '_annotations'" in str(err):
-            for tree in _phylobuddy.trees:
-                class Annotation(object):
-                    def __init__(self):
-                        self.is_attribute = None
-                        self.is_hidden = True
-                annotation = Annotation()
-                for node in tree:
-                    node.edge._annotations = ([annotation])
-        _copy = deepcopy(_phylobuddy)
+    _copy = deepcopy(_phylobuddy)
     return _copy
 
 
