@@ -18,5 +18,5 @@ BuddySuite uses copyrighted work and distributes these works under the terms of 
 
 **List of Contributors**
 Stephen Bond        2014 - Present          Public Domain
-Karl Keat           June 2015 - Aug 2015    Public Domain
+Karl Keat           June 2015 - present     Public Domain
 Jeremy LaBarge      2015 - Present          US Copyright Act of 1976
