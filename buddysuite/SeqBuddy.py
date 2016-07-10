@@ -3707,7 +3707,7 @@ def argparse_init():
     return in_args, seqbuddy
 
 
-def command_line_ui(in_args, seqbuddy, skip_exit=False):
+def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
     # ############################################# INTERNAL FUNCTION ################################################ #
     def _print_recs(_seqbuddy):
         if in_args.test:
@@ -3731,6 +3731,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False):
             _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
+        if pass_through:
+            raise _err
         if check_string:
             if type(check_string) == str:
                 check_string = [check_string]

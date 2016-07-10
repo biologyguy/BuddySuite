@@ -111,11 +111,9 @@ def test_back_translate_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "b6bcb4e5104cb202db0ec4c9fc2eaed2"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'))
-
-    out, err = capsys.readouterr()
-    assert err == "TypeError: The input sequence needs to be protein, not nucleotide\n"
+    with pytest.raises(TypeError)as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
+    assert "The input sequence needs to be protein, not nucleotide" in str(err)
 
 
 # ######################  '-bl2s', '--bl2seq' ###################### #
@@ -135,10 +133,9 @@ def test_bl2s_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     # noinspection PyUnresolvedReferences
     with mock.patch.dict(os.environ, {"PATH": ""}):
         with mock.patch('builtins.input', return_value="n"):
-            with pytest.raises(SystemExit):
-                Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'))
-        out, err = capsys.readouterr()
-        assert "not present in $PATH or working directory" in err
+            with pytest.raises(RuntimeError) as err:
+                Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
+            assert "not present in $PATH or working directory" in str(err)
 
 
 # ######################  '-bl', '--blast' ###################### #
@@ -154,11 +151,11 @@ def test_blast_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert out == "No significant matches found\n"
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError) as err:
         test_in_args.blast = "./foo.bar"
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "RuntimeError:" in err
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "The .nhr file of your blast database was not found. " \
+           "Ensure the -parse_seqids flag was used with makeblastdb." in str(err)
 
 
 # ######################  '-cs', '--clean_seq' ###################### #
@@ -188,11 +185,9 @@ def test_complement_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "e4a358ca57aca0bbd220dc6c04c88795"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'))
-
-    out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein." in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
+    assert "Nucleic acid sequence required, not protein." in str(err)
 
 
 # ######################  'cts', '--concat_seqs' ###################### #
@@ -223,10 +218,9 @@ def test_count_codons_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "3e76bd510de4a61efb17ffc186ef9e68"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"))
-    out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein" in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), pass_through=True)
+    assert "Nucleic acid sequence required, not protein" in str(err)
 
 
 # ######################  '-cr', '--count_residues' ###################### #
@@ -257,16 +251,14 @@ def test_degenerate_sequence_ui(capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == '72373f8356051e2c6b67642451379054'
 
     test_in_args.degenerate_sequence = [100]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'))
-    out, err = capsys.readouterr()
-    assert "Could not locate codon dictionary" in err
+    with pytest.raises(KeyError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
+    assert "Could not locate codon dictionary" in str(err)
 
     test_in_args.degenerate_sequence = [1]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'))
-    out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein" in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "Nucleic acid sequence required, not protein" in str(err)
 
 
 # ######################  '-df', '--delete_features' ###################### #
@@ -399,10 +391,9 @@ def test_find_cpg_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert err == "# No Islands identified\n\n"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'))
-    out, err = capsys.readouterr()
-    assert "DNA sequence required, not protein or RNA" in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "DNA sequence required, not protein or RNA" in str(err)
 
 
 # ######################  '-fp', '--find_pattern' ###################### #
@@ -451,10 +442,9 @@ def test_find_restriction_sites_ui(capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == "b06ef2b0a4814fc43a0688f05825486a"
     assert sb_helpers.string2hash(err) == "a240a6db9dfc1f2257faa80bc4b1445b"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'))
-    out, err = capsys.readouterr()
-    assert "Unable to identify restriction sites in protein sequences." in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "Unable to identify restriction sites in protein sequences." in str(err)
 
 
 # ######################  '-gbp', '--group_by_prefix' ###################### #
@@ -495,10 +485,9 @@ def test_group_by_regex_ui(capsys, sb_odd_resources):
     tester = Sb.SeqBuddy(sb_odd_resources['cnidaria_pep'])
     test_in_args = deepcopy(in_args)
     test_in_args.group_by_regex = [[TEMP_DIR.path]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert err == "ValueError: You must provide at least one regular expression.\n"
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "You must provide at least one regular expression." in str(err)
 
     test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
     Sb.command_line_ui(test_in_args, tester, True)
@@ -582,22 +571,19 @@ def test_insert_seqs_ui(capsys, sb_resources, sb_helpers):
     test_in_args = deepcopy(in_args)
     test_in_args.insert_seq = [["DYKDDDDK"]]
     tester = sb_resources.get_one('p f')
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "The insert_seq tool requires at least two arguments (sequence and position)" in err
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "The insert_seq tool requires at least two arguments (sequence and position)" in str(err)
 
     test_in_args.insert_seq = [[4, "DYKDDDDK"]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "The first argment must be your insert sequence, not location." in err
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "The first argment must be your insert sequence, not location." in str(err)
 
     test_in_args.insert_seq = [["DYKDDDDK", "Foo"]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "The second argment must be location, not insert sequence or regex." in err
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "The second argment must be location, not insert sequence or regex." in str(err)
 
     test_in_args.insert_seq = [["DYKDDDDK", "10", "α[23]", "α6"]]
     tester = sb_resources.get_one('p f')
@@ -701,23 +687,20 @@ def test_map_features_nucl2prot_ui(capsys, sb_resources, sb_odd_resources, sb_he
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "4f86356e79fa4beb79961ce37b5aa19a"
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError) as err:
         test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_odd_resources['duplicate']]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "There are repeat IDs in self.records" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "There are repeat IDs in self.records" in str(err)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError) as err:
         test_in_args.sequence = [sb_resources.get_one("d g", mode='paths')]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "You must provide one DNA file and one protein file" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "You must provide one DNA file and one protein file" in str(err)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError) as err:
         test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_resources.get_one("d f", mode='paths')]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "You must provide one DNA file and one protein file" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "You must provide one DNA file and one protein file" in str(err)
 
 
 # ######################  '-fp2n', '--map_features_prot2nucl' ###################### #
@@ -740,27 +723,24 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, sb_he
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "bbbfc9ebc83d3abe3bb3160a38d208e3"
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError) as err:
         temp_file = br.TempFile()
         duplicate_seqs = Sb.SeqBuddy(sb_odd_resources['duplicate'])
         Sb.back_translate(duplicate_seqs)
         duplicate_seqs.write(temp_file.path)
         test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), temp_file.path]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "There are repeat IDs in self.records" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "There are repeat IDs in self.records" in str(err)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError) as err:
         test_in_args.sequence = [sb_resources.get_one("p g", mode='paths')]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "You must provide one DNA file and one protein file" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "You must provide one DNA file and one protein file" in str(err)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError) as err:
         test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("p f", mode='paths')]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "You must provide one DNA file and one protein file" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "You must provide one DNA file and one protein file" in str(err)
 
 
 # ######################  '-mg', '--merge' ###################### #
@@ -772,11 +752,10 @@ def test_merge_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "bae5aeb130b3d5319378a122a6f61df5"
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError) as err:
         test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("d g", mode='paths')]
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "RuntimeError" in err
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "Sequence mismatch for record 'Mle-Panxα9'" in str(err)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
@@ -934,22 +913,19 @@ def test_rename_ids_ui(capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == "f12c44334b507117439928c529eb2944"
 
     test_in_args.rename_ids = [["[a-z](.)"]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "Please provide at least a query and a replacement string" in err
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "Please provide at least a query and a replacement string" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", "foo"]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "Max replacements argument must be an integer" in err
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "Max replacements argument must be an integer" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1\\2", 2]]
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'))
-    out, err = capsys.readouterr()
-    assert "There are more replacement" in err
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
+    assert "There are more replacement match values specified than query parenthesized groups" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "store"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
@@ -984,10 +960,9 @@ def test_reverse_complement_ui(capsys, sb_resources, sb_odd_resources, sb_helper
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "47941614adfcc5bd107f71abef8b3e00"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'))
-    out, err = capsys.readouterr()
-    assert "SeqBuddy object is protein. Nucleic acid sequences required." in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "SeqBuddy object is protein. Nucleic acid sequences required." in str(err)
 
     tester = Sb.SeqBuddy(sb_odd_resources['mixed'])
     tester.alpha = IUPAC.ambiguous_dna
@@ -996,10 +971,9 @@ def test_reverse_complement_ui(capsys, sb_resources, sb_odd_resources, sb_helper
     assert sb_helpers.string2hash(out) == "efbcc71f3b2820ea05bf32038012b883"
 
     tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required." in str(err)
 
 
 # ######################  '-r2d', '--reverse_transcribe' ###################### #
@@ -1010,11 +984,9 @@ def test_reverse_transcribe_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'))
-
-    out, err = capsys.readouterr()
-    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
+    assert "RNA sequence required, not IUPACAmbiguousDNA()." in str(err)
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
@@ -1038,10 +1010,9 @@ def test_screw_formats_ui(_format, next_hash, capsys, sb_resources, sb_helpers):
 def test_screw_formats_ui2(capsys, sb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "foo"
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, Sb.SeqBuddy)
-    out, err = capsys.readouterr()
-    assert "Error: unknown format" in err
+    with pytest.raises(OSError) as err:
+        Sb.command_line_ui(test_in_args, Sb.SeqBuddy, pass_through=True)
+    assert "Error: unknown format" in str(err)
 
     sb_resources.get_one('d f').write("%s/seq.fa" % TEMP_DIR.path)
     test_in_args.sequence = ["%s/seq.fa" % TEMP_DIR.path]
@@ -1075,11 +1046,9 @@ def test_select_frame_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "908744b00d9f3392a64b4b18f0db9fee"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'))
-
-    out, err = capsys.readouterr()
-    assert "Select frame requires nucleic acid, not protein" in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
+    assert "Select frame requires nucleic acid, not protein" in str(err)
 
 
 # ######################  '-ss', '--shuffle_seqs' ###################### #
@@ -1100,11 +1069,9 @@ def test_transcribe_ui(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "d2db9b02485e80323c487c1dd6f1425b"
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'))
-
-    out, err = capsys.readouterr()
-    assert err == "TypeError: DNA sequence required, not IUPACProtein().\n"
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
+    assert "DNA sequence required, not IUPACProtein()." in str(err)
 
 
 # ######################  '-tr', '--translate' ###################### #
@@ -1122,15 +1089,13 @@ def test_translate_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     tester = Sb.SeqBuddy(sb_odd_resources['mixed'])
     tester.alpha = IUPAC.ambiguous_dna
     tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert err == 'TypeError: Record Mle-Panxα12 is protein.\n'
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert 'Record Mle-Panxα12 is protein.' in str(err)
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'))
-    out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein." in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
+    assert "Nucleic acid sequence required, not protein." in str(err)
 
 
 # ######################  '-tr6', '--translate6frames' ###################### #
@@ -1153,15 +1118,13 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, sb_helpers)
     assert sb_helpers.string2hash(out) == "b54ec5c49bd88126de337e1eb3d2ad23"
 
     tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert err == "TypeError: Record 'Mle-Panxα12' is protein. Nucleic acid sequences required.\n"
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required." in str(err)
 
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'))
-    out, err = capsys.readouterr()
-    assert "TypeError: You need to supply DNA or RNA sequences to translate" in err
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
+    assert "You need to supply DNA or RNA sequences to translate" in str(err)
 
 '''
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
@@ -1180,9 +1143,8 @@ def test_transmembrane_domains_ui(capsys, sb_resources, sb_helpers):
 
     test_in_args.quiet = False
     tester = Sb.SeqBuddy(">rec\n%s" % ("M" * 9437174))
-    with pytest.raises(SystemExit):
-        Sb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "ValueError: Record 'rec' is too large to send to TOPCONS." in err
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Record 'rec' is too large to send to TOPCONS." in str(err)
 
 '''

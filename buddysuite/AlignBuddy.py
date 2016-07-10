@@ -1462,7 +1462,7 @@ def argparse_init():
     return in_args, alignbuddy
 
 
-def command_line_ui(in_args, alignbuddy, skip_exit=False):
+def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
     # ############################################# INTERNAL FUNCTIONS ############################################## #
     def _print_aligments(_alignbuddy):
         try:
@@ -1506,6 +1506,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False):
         sys.exit()
 
     def _raise_error(_err, _tool, check_string=None):
+        if pass_through:
+            raise _err
         if check_string:
             if type(check_string) == str:
                 check_string = [check_string]

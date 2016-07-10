@@ -260,10 +260,9 @@ def test_extract_regions_ui(capsys, alb_resources, alb_helpers):
     assert alb_helpers.string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
 
     test_in_args.extract_regions = [-110, 10]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"))
-    out, err = capsys.readouterr()
-    assert err == "ValueError: Please specify positive integer indices\n"
+    with pytest.raises(ValueError) as err:
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), pass_through=True)
+    assert "Please specify positive integer indices" in str(err)
 
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
@@ -281,16 +280,14 @@ def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['PATH']
-        with pytest.raises(SystemExit):
-            Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
-        out, err = capsys.readouterr()
-        assert "Unable to identify any supported alignment tools on your system." in err
+        with pytest.raises(AttributeError) as err:
+            Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
+        assert "Unable to identify any supported alignment tools on your system." in str(err)
 
     test_in_args.generate_alignment = [["foo"]]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
-    out, err = capsys.readouterr()
-    assert "foo is not a supported alignment tool" in err
+    with pytest.raises(AttributeError) as err:
+        Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
+    assert "foo is not a supported alignment tool" in str(err)
 
 
 # ######################  '-hsi', '--hash_ids' ###################### #
@@ -407,28 +404,24 @@ def test_rename_ids_ui(capsys, alb_resources, alb_helpers):
     assert alb_helpers.string2hash(out) == "888f2e3feb9e67f9bc008183082c822a"
 
     test_in_args.rename_ids = [["[a-z](.)"]]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "rename_ids requires two or three argments:" in err
+    with pytest.raises(AttributeError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "rename_ids requires two or three argments:" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", 2, "foo"]]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "rename_ids requires two or three argments:" in err
+    with pytest.raises(AttributeError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "rename_ids requires two or three argments:" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1", "foo"]]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "Max replacements argument must be an integer" in err
+    with pytest.raises(ValueError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Max replacements argument must be an integer" in str(err)
 
     test_in_args.rename_ids = [["[a-z](.)", "?\\1\\2", 2]]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "There are more replacement" in err
+    with pytest.raises(AttributeError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "There are more replacement" in str(err)
 
 
 # ##################### '-r2d', '--reverse_transcribe' ###################### ##
@@ -439,10 +432,9 @@ def test_reverse_transcribe_ui(capsys, alb_resources, alb_helpers):
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
 
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"))
-    out, err = capsys.readouterr()
-    assert err == "TypeError: RNA sequence required, not IUPACAmbiguousDNA().\n"
+    with pytest.raises(TypeError) as err:
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), pass_through=True)
+    assert "RNA sequence required, not IUPACAmbiguousDNA()." in str(err)
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
@@ -489,17 +481,16 @@ def test_screw_formats_ui3(capsys, alb_resources):
 
     test_in_args.in_place = False
     test_in_args.screw_formats = "foo"
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "TypeError: Format type 'foo' is not recognized/supported\n" in err
+    with pytest.raises(TypeError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Format type 'foo' is not recognized/supported" in str(err)
 
     test_in_args.screw_formats = "gb"
     tester = alb_resources.get_one("m p py")
     with pytest.raises(SystemExit):
         Alb.command_line_ui(test_in_args, tester)
     out, err = capsys.readouterr()
-    assert "ValueError: gb format does not support multiple alignments in one file." in err
+    assert "gb format does not support multiple alignments in one file." in err
 
 
 # ##################################  '-stf', '--split_to_files' ################################### #
@@ -540,10 +531,9 @@ def test_split_alignment_ui2(capsys, alb_resources):
 
     tester = alb_resources.get_one("o d c")
     test_in_args.quiet = False
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, tester)
-    out, err = capsys.readouterr()
-    assert "Only one alignment present, nothing written." in err
+    with pytest.raises(ValueError) as err:
+        Alb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Only one alignment present, nothing written." in str(err)
     TEMP_DIR.del_subdir("split_alignment")
 
 
@@ -556,10 +546,9 @@ def test_transcribe_ui(capsys, alb_resources, alb_helpers):
 
     assert alb_helpers.string2hash(out) == "e531dc31f24192f90aa1f4b6195185b0"
 
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"))
-    out, err = capsys.readouterr()
-    assert err == "TypeError: DNA sequence required, not IUPACAmbiguousRNA().\n"
+    with pytest.raises(TypeError) as err:
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), pass_through=True)
+    assert "DNA sequence required, not IUPACAmbiguousRNA()." in str(err)
 
 
 # ##################### '-tr', '--translate' ###################### ##
@@ -570,10 +559,9 @@ def test_translate_ui(capsys, alb_resources, alb_helpers):
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "a949edce98525924dbbc3ced03c18214"
 
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"))
-    out, err = capsys.readouterr()
-    assert "Nucleic acid sequence required, not protein." in err
+    with pytest.raises(TypeError) as err:
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
+    assert "Nucleic acid sequence required, not protein." in str(err)
 
 
 # ##################### '-trm', '--trimal' ###################### ##
@@ -595,10 +583,9 @@ def test_trimal_ui(capsys, alb_resources, alb_helpers):
     assert alb_helpers.string2hash(out) == "5df948e4b2cb6c0d0740984445655135"
 
     test_in_args.trimal = ["foo"]
-    with pytest.raises(SystemExit):
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"))
-    out, err = capsys.readouterr()
-    assert "NotImplementedError: foo not an implemented trimal method\n" == err
+    with pytest.raises(NotImplementedError) as err:
+        Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
+    assert "foo not an implemented trimal method" in str(err)
 
 
 # #################################### '-uc', '--uppercase' ################################### #

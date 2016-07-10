@@ -183,8 +183,8 @@ def test_distance_ui(capsys, pb_resources, pb_helpers):
 
     test_in_args.distance = ["foo"]
     with pytest.raises(AttributeError) as err:
-        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
-        assert "foo is an invalid comparison method." in err
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
+    assert "foo is an invalid comparison method." in str(err)
 
 """
 # ###################### 'gt', '--generate_tree' ###################### #
@@ -250,9 +250,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     test_in_args.hash_ids = [[1, "nodes"]]
     monkeypatch.setattr(Pb, "hash_ids", hash_ids)
     with pytest.raises(ValueError):
-        Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"))
-    out, err = capsys.readouterr()
-    assert not err
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), pass_through=True)
 
 
 # ###################### 'li', '--list_ids' ###################### #
@@ -404,11 +402,9 @@ def test_show_unique_ui(capsys, pb_resources, pb_helpers, pb_odd_resources):
     out, err = capsys.readouterr()
     assert pb_helpers.string2hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
 
-    with pytest.raises(SystemExit):
-        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"))
-
-    out, err = capsys.readouterr()
-    assert err == "AssertionError: PhyloBuddy object should have exactly 2 trees.\n"
+    with pytest.raises(AssertionError) as err:
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
+    assert "PhyloBuddy object should have exactly 2 trees." in str(err)
 
 
 # ###################### 'sp', '--split_polytomies' ###################### #
