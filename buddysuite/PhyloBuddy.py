@@ -268,6 +268,7 @@ class PhyloBuddy(object):
             for _tree in self.trees:
                 for _node in _tree.nodes():
                     _node.edge_length = 1.0
+        self.memory_footprint = len(str(self))
 
     def __str__(self):
         if len(self.trees) == 0:
@@ -1155,7 +1156,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("PhyloBuddy", VERSION.short(), _tool)
+        usage.increment("PhyloBuddy", VERSION.short(), _tool, phylobuddy.memory_footprint)
         usage.save()
         sys.exit()
 

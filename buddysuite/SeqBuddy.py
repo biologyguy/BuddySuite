@@ -294,6 +294,7 @@ class SeqBuddy(object):
                 rec.id = re.sub("\.copy[0-9]*$", "", rec.id)
 
         self.records = sequences
+        self.memory_footprint = sum([len(rec) for rec in sequences])
 
     def __str__(self):
         if len(self.records) == 0:
@@ -1995,6 +1996,7 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
     Finds all the open reading frames in the sequences and their reverse complements.
     :param seqbuddy: SeqBuddy object
     :param include_feature: Add a new 'orf' feature to records
+    :param include_buddy_data: Append information directly to records
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_orfs"].
     """
     seqbuddy = clean_seq(seqbuddy)
@@ -2032,12 +2034,13 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
         if include_feature:
             for feature in rec.features:
                 seqbuddy.records[indx].features.append(SeqFeature(location=FeatureLocation(
-                    start=len(rec.seq)-feature.location.start, end=len(rec.seq)-feature.location.end),
+                    start=len(rec.seq) - feature.location.start, end=len(rec.seq) - feature.location.end),
                     type='orf', qualifiers={'added_by': 'SeqBuddy'}, strand=-1))
-                indices.append((int(len(rec.seq)-feature.location.start), int(len(rec.seq)-feature.location.end)))
+                indices.append((int(len(rec.seq) - feature.location.start), int(len(rec.seq) - feature.location.end)))
         if include_buddy_data:
             seqbuddy.records[indx].buddy_data['find_orfs']['-'].append(indices)
     return seqbuddy
+
 
 def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include_buddy_data=True):
     """
@@ -2046,6 +2049,7 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
     :param patterns: regex patterns
     :param ambig: Convert any ambiguous letter codes in the search pattern into regex
     :param include_feature: Add a new 'match' feature to records
+    :param include_buddy_data: Append information directly to records
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_patterns"].
     """
     # search through sequences for regex matches. For example, to find micro-RNAs
@@ -3750,7 +3754,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("SeqBuddy", VERSION.short(), tool)
+        usage.increment("SeqBuddy", VERSION.short(), tool, seqbuddy.memory_footprint)
         usage.save()
         sys.exit()
 
@@ -4206,7 +4210,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 _stdout("[")
                 for _indx, seq_id in enumerate(seqbuddy.repeat_seqs[next_id]):
                     _stdout("%s" % seq_id)
-                    if _indx+1 != len(seqbuddy.repeat_seqs[next_id]):
+                    if _indx + 1 != len(seqbuddy.repeat_seqs[next_id]):
                         _stdout(", ")
                 _stdout("]")
 

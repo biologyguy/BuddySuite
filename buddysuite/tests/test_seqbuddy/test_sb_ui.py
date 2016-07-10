@@ -1007,7 +1007,7 @@ def test_screw_formats_ui(_format, next_hash, capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == next_hash
 
 
-def test_screw_formats_ui2(capsys, sb_resources):
+def test_screw_formats_ui2(sb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "foo"
     with pytest.raises(OSError) as err:

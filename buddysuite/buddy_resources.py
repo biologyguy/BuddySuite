@@ -588,11 +588,13 @@ class Usage(object):
     def clear_stats(self):
         self.stats = {"user_hash": self.config["user_hash"]}
 
-    def increment(self, buddy, version, tool):
+    def increment(self, buddy, version, tool, obj_size):
         self.stats.setdefault(buddy, {})
         self.stats[buddy].setdefault(version, {})
         self.stats[buddy][version].setdefault(tool, 0)
         self.stats[buddy][version][tool] += 1
+        self.stats[buddy][version].setdefault("sizes", [])
+        self.stats[buddy][version]["sizes"].append(obj_size)
         return
 
     def save(self, send_report=True):

@@ -167,6 +167,7 @@ class AlignBuddy(object):
             for rec in alignment:
                 rec.seq.alphabet = self.alpha
         self.alignments = alignments
+        self.memory_footprint = sum([len(rec) for rec in self.records()])
 
     def __str__(self):
         empty_alignments = []
@@ -1501,7 +1502,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("AlignBuddy", VERSION.short(), _tool)
+        usage.increment("AlignBuddy", VERSION.short(), _tool, alignbuddy.memory_footprint)
         usage.save()
         sys.exit()
 

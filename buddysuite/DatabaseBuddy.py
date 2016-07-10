@@ -2623,7 +2623,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("PhyloBuddy", VERSION.short(), tool)
+        usage.increment("PhyloBuddy", VERSION.short(), tool, 0)
         usage.save()
         sys.exit()
 
