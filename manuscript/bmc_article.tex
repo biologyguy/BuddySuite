@@ -97,7 +97,7 @@
 %%                                          %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\title{A sample article title}
+\title{BuddySuite: Command-line toolkits for manipulating sequences, alignments, and phylogenetic trees}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                                          %%
@@ -114,16 +114,19 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \author[
-   addressref={aff1},                   % id's of addresses, e.g. {aff1,aff2}
-   corref={aff1},                       % id of corresponding address, if any
-   noteref={n1},                        % id's of article notes, if any
-   email={jane.e.doe@cambridge.co.uk}   % email address
-]{\inits{JE}\fnm{Jane E} \snm{Doe}}
+   addressref={aff1},                    % id's of addresses, e.g. {aff1,aff2}
+   %noteref={n1},                        % id's of article notes, if any
+   %corref={aff1},                       % id of corresponding address, if any
+   %email={steve.bond@nih.gov}            % email address
+]{\inits{SR}\fnm{Stephen R} \snm{Bond}}
 \author[
-   addressref={aff1,aff2},
-   email={john.RS.Smith@cambridge.co.uk}
-]{\inits{JRS}\fnm{John RS} \snm{Smith}}
-
+   addressref={aff1},
+   %email={karl.keat@nih.gov}
+]{\inits{KE}\fnm{Karl E} \snm{Keat}}
+\author[
+   addressref={aff1},
+   email={andy@mail.nih.gov}
+]{\inits{AD}\fnm{Andreas D} \snm{Baxevanis}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                                          %%
 %% Enter the authors' addresses here        %%
@@ -134,18 +137,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \address[id=aff1]{%                           % unique id
-  \orgname{Department of Zoology, Cambridge}, % university, etc
-  \street{Waterloo Road},                     %
-  %\postcode{}                                % post or zip code
-  \city{London},                              % city
-  \cny{UK}                                    % country
-}
-\address[id=aff2]{%
-  \orgname{Marine Ecology Department, Institute of Marine Sciences Kiel},
-  \street{D\"{u}sternbrooker Weg 20},
-  \postcode{24105}
-  \city{Kiel},
-  \cny{Germany}
+  \orgname{Computational and Statistical
+   Genomics Branch, Division of Intramural    % university, etc
+    Research, National Human Genome
+     Research Institute, National
+      Institutes of Health},
+  \street{50 South Drive},                     %
+  \postcode{20892}                                % post or zip code
+  \city{Bethesda},                              % city
+  \cny{USA}                                    % country
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,10 +157,10 @@
 %%                                          %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{artnotes}
+%\begin{artnotes}
 %\note{Sample of title note}     % note to the article
-\note[id=n1]{Equal contributor} % note, connected to author
-\end{artnotes}
+%\note[id=n1]{Equal contributor} % note, connected to author
+%\end{artnotes}
 
 %\end{fmbox}% comment this for two column layout
 
@@ -178,11 +178,22 @@
 \begin{abstractbox}
 
 \begin{abstract} % abstract
-\parttitle{First part title} %if any
-Text for this section.
+\parttitle{Summary}
+BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the
+ workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Common sequence, alignment, and
+ tree file formats are automatically detected and parsed, and nearly 100 routine tasks have been combined into this
+ comprehensive suite of toolkits.
 
-\parttitle{Second part title} %if any
-Text for this section.
+\parttitle{Availability and Implementation}
+The project has been implemented in Python 3 for use on UNIX-based systems. Installation is performed using a dedicated
+ graphical installer or by cloning the development Git repository. All source code is freely available.
+
+\parttitle{Home page}
+http://research.nhgri.nih.gov/software/BuddySuite
+
+\parttitle{Supplementary}
+Documentation for each BuddySuite tool is available at http://tiny.cc/buddysuite\_wiki
+
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
