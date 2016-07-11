@@ -1569,7 +1569,7 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
-        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch")
+        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch", obj_size=0)
         self.cmdloop()
 
     # @staticmethod
@@ -1582,7 +1582,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def postcmd(self, stop, line):
         command = line.split(" ")[0]
-        self.usage.increment("DatabaseBuddy", VERSION.short(), command)
+        self.usage.increment("DatabaseBuddy", VERSION.short(), command, obj_size=0)
         return stop
 
     def dump_session(self):
