@@ -16,7 +16,7 @@
 .DS_Store
 
 # Unit test html coverage files
-buddysuite/htmlcov/*
+htmlcov
 .coverage
 .cache
 
@@ -27,7 +27,10 @@ dependencies.conf
 
 # IPython
 .ipynb_checkpoints/*
-*\.ipynb
+*.ipynb
 
-# Coverage reports
-/buddysuite/tests/htmlcov/
+# Manuscript compilation files
+bmc_article.log
+bmc_article.aux
+bmc_article.bbl
+bmc_article.blg
