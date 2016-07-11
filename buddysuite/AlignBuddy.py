@@ -1688,10 +1688,10 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
         params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
 
         try:
-            generated_msas = generate_msa(seqbuddy, args[0], params, in_args.keep_temp, in_args.quiet)
+            alignbuddy = generate_msa(seqbuddy, args[0], params, in_args.keep_temp, in_args.quiet)
             if in_args.out_format:
-                generated_msas.set_format(in_args.out_format)
-            _print_aligments(generated_msas)
+                alignbuddy.set_format(in_args.out_format)
+            _print_aligments(alignbuddy)
         except AttributeError as e:
             _raise_error(e, "generate_alignment", "is not a supported alignment tool")
         _exit("generate_alignment")

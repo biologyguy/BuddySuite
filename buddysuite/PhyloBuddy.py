@@ -1280,8 +1280,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
 
         if in_args.out_format:
             generated_trees.out_format = out_format
-
-        _print_trees(generated_trees)
+        phylobuddy = generated_trees
+        _print_trees(phylobuddy)
         _exit("generate_tree")
 
     # Hash sequence ids
