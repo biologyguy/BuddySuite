@@ -1502,7 +1502,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("AlignBuddy", VERSION.short(), _tool, alignbuddy.memory_footprint)
+        memory_footprint = 0 if type(alignbuddy) != AlignBuddy else alignbuddy.memory_footprint
+        usage.increment("AlignBuddy", VERSION.short(), _tool, memory_footprint)
         usage.save()
         sys.exit()
 

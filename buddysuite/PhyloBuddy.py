@@ -1156,7 +1156,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("PhyloBuddy", VERSION.short(), _tool, phylobuddy.memory_footprint)
+        memory_footprint = 0 if type(phylobuddy) != PhyloBuddy else phylobuddy.memory_footprint
+        usage.increment("PhyloBuddy", VERSION.short(), _tool, memory_footprint)
         usage.save()
         sys.exit()
 

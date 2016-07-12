@@ -3754,7 +3754,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("SeqBuddy", VERSION.short(), tool, seqbuddy.memory_footprint)
+        memory_footprint = 0 if type(seqbuddy) != SeqBuddy else seqbuddy.memory_footprint
+        usage.increment("SeqBuddy", VERSION.short(), tool, memory_footprint)
         usage.save()
         sys.exit()
 
