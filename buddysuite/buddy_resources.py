@@ -129,6 +129,7 @@ class DynamicPrint(object):
                 self.out_type.write("\r%s\r%s" % (" " * len(self._last_print), self._next_print),)
                 self.out_type.flush()
                 self._last_print = self._next_print
+                print("x")
                 yield
         finally:
             self.out_type.write("")
@@ -183,12 +184,13 @@ def pretty_number(num, mode='short', precision=2):  # mode in ['short', 'medium'
         magnitude += 1
         num = round(num / 1000.0, precision)
     if mode == 'short':
-        return '%s %s' % (num, ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude])
+        return ('%s %s' % (num, ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude])).strip()
     elif mode == 'medium':
-        return '%s %s' % (num, ['', 'Kilo', 'Mega', 'Giga', 'Tera', 'Peta', 'Exa', 'Zetta', 'Yotta'][magnitude])
+        return ('%s %s' % (num, ['', 'Kilo', 'Mega', 'Giga', 'Tera', 'Peta', 'Exa', 'Zetta',
+                                 'Yotta'][magnitude])).strip()
     elif mode == 'long':
-        return '%s %s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion',
-                                'Sextillion', 'Septillion'][magnitude])
+        return ('%s %s' % (num, ['', 'Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion',
+                                 'Sextillion', 'Septillion'][magnitude])).strip()
     else:
         raise ValueError("Valid 'mode' values are 'short', 'medium', and 'long'")
 
