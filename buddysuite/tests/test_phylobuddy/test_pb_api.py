@@ -10,6 +10,21 @@ from ... import buddy_resources as br
 from unittest import mock
 import ete3
 import os
+import shutil
+from copy import copy
+
+
+class MockPopen(object):
+    def __init__(self, *args, **kwargs):
+        return
+
+    @staticmethod
+    def wait():
+        return True
+
+    @staticmethod
+    def communicate(output=""):
+        return output
 
 
 # ###################### 'cpt', '--collapse_polytomies' ###################### #
@@ -107,11 +122,20 @@ def test_distance_unknown_method(pb_resources):
 
 # ######################  'gt', '--generate_trees' ###################### #
 # ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
-def test_raxml_inputs():
-    # Nucleotide
-    # Peptide
-    # Quiet
-    pass
+def test_raxml_inputs_nuc(monkeypatch, alb_resources, pb_helpers):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_raxml_inputs_nuc" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    for root, dirs, files in os.walk("%s/mock_resources/test_raxml_inputs_nuc" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    tester = alb_resources.get_one("o d n")
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+    with mock.patch('buddysuite.PhyloBuddy.Popen', MockPopen):
+        tester = Pb.generate_tree(tester, 'raxml', " r_seed 12345")
+
+    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
 
 def test_raxml_multi_param():
