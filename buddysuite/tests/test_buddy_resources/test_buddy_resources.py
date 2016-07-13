@@ -22,7 +22,7 @@ def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
 
 
-def test_parse_format():
+def test_parse_phylip_format():
     for _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
         assert br.parse_format(_format) == "phylip"
 
@@ -187,15 +187,12 @@ def test_tempdir():
     assert os.path.exists(subfile)
     test_dir.del_subfile(subfile)
 
+    save_dir = br.TempDir()
     test_dir.subfile("testfile")
-    assert test_dir.save("fakedir")
-    assert os.path.exists("fakedir")
-    assert os.path.exists("fakedir/testfile")
-    assert not test_dir.save("fakedir")
-    os.remove("fakedir/testfile")
-    os.removedirs("fakedir")
-    assert not os.path.exists("fakedir/testfile")
-    assert not os.path.exists("fakedir")
+    assert test_dir.save("%s/fakedir" % save_dir.path)
+    assert os.path.exists("%s/fakedir" % save_dir.path)
+    assert os.path.exists("%s/fakedir/testfile" % save_dir.path)
+    assert not test_dir.save("%s/fakedir" % save_dir.path)
 
 
 def test_tempfile():
@@ -253,7 +250,8 @@ def test_copydir():
 
     br.copydir('{0}/fakedir'.format(tmp_path), '{0}/fakecopy'.format(tmp_path))
 
-    assert ["fakefile", "fakesubfile", "subsubfile"] == os.listdir('{0}/fakecopy/'.format(tmp_path))
+    for x in os.listdir('{0}/fakecopy/'.format(tmp_path)):
+        assert x in ["fakefile", "fakesubfile", "subsubfile"]
 
 
 def test_ask(monkeypatch):
@@ -357,7 +355,8 @@ def test_error_report(monkeypatch):
         def __init__(self, *args, **kwargs):
             return
 
-        def storlines(self, *args, **kwargs):
+        @staticmethod
+        def storlines(*args, **kwargs):
             raise RuntimeError  # If a runtime error is raised, the file was "sent"
 
     fake_error = "ABCD"
@@ -410,8 +409,8 @@ def test_parse_format():
         br.parse_format("buddy")
 
 
-def test_phylip_sequential_out():
-    buddy = Alb.AlignBuddy("unit_test_resources/Mnemiopsis_cds.nex", in_format="nexus")
+def test_phylip_sequential_out(alb_resources, sb_resources):
+    buddy = alb_resources.get_one("o d n")
     output = br.phylip_sequential_out(buddy)
     assert string2hash(output) == '0379295eb39370bdba17c848ec9a8b73'
 
@@ -420,7 +419,7 @@ def test_phylip_sequential_out():
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy)
 
-    buddy = Alb.AlignBuddy("unit_test_resources/Mnemiopsis_cds.nex", in_format="nexus")
+    buddy = alb_resources.get_one("o d n")
     buddy = Alb.rename(buddy, "Mle", "M")
     output = br.phylip_sequential_out(buddy, relaxed=False)
     assert string2hash(output) == '830f75901a9e69a91679629613dc0a57'
@@ -430,6 +429,6 @@ def test_phylip_sequential_out():
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, relaxed=False)
 
-    buddy = Sb.SeqBuddy("unit_test_resources/Mnemiopsis_cds.fa", in_format="fasta")
+    buddy = sb_resources.get_one("d f")
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, _type="seq")
