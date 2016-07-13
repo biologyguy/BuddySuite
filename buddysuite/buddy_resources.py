@@ -1767,6 +1767,7 @@ if __name__ == '__main__':
 
     main_parser.add_argument('-v', '--version', help='Show module version #s', action='store_true')
     main_parser.add_argument('-t', '--tools', help="List all tools", action='store_true')
+    main_parser.add_argument('-c', '--count', help="Output number of tools available", action='store_true')
 
     in_args = main_parser.parse_args()
 
@@ -1794,4 +1795,10 @@ if __name__ == '__main__':
         print("\n### DatabaseBuddy")
         for key in db_flags:
             print(key)
-        sys.exit()
+
+    if in_args.count:
+        print("SeqBuddy: %s" % len(sb_flags))
+        print("AlignBuddy: %s" % len(alb_flags))
+        print("PhyloBuddy: %s" % len(pb_flags))
+        print("DatabaseBuddy: %s" % len(db_flags))
+        print("Total: %s" % sum([len(x) for x in [sb_flags, alb_flags, pb_flags, db_flags]]))
