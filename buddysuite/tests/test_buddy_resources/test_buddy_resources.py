@@ -347,20 +347,6 @@ def test_config_values(monkeypatch):
 
 
 def test_error_report(monkeypatch):
-    class FakeData:
-        def __init__(self, data):
-            self.data = data
-
-        def decode(self, *args):
-            return self.data
-
-    class FakeJson:
-        def __init__(self, data):
-            self.data = data
-
-        def read(self):
-            return FakeData(self.data)
-
     class FakeFTP:
         def __init__(self, *args, **kwargs):
             return
@@ -369,8 +355,9 @@ def test_error_report(monkeypatch):
             raise RuntimeError  # If a runtime error is raised, the file was "sent"
 
     fake_error = "ABCD"
-    error_hash = "cb08ca4a7bb5f9683c19133a84872ca7"
-    mock_json = mock.Mock(return_value=FakeJson("{\"%s\": [1.1, 1.2]}" % error_hash))
+    error_hash = b'cb08ca4a7bb5f9683c19133a84872ca7'
+    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    mock_json = mock.Mock(return_value=fake_raw_output)
     monkeypatch.setattr(urllib.request, "urlopen", mock_json)
     config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": True, "user_hash": "hashless",
                                      "data_dir": False})
@@ -382,8 +369,16 @@ def test_error_report(monkeypatch):
 
     fake_error = "WXYZ"
 
+    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    mock_json = mock.Mock(return_value=fake_raw_output)
+    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
+
     with pytest.raises(RuntimeError):  # Unknown error, diagnostics true
         br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+
+    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    mock_json = mock.Mock(return_value=fake_raw_output)
+    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
 
     def raise_ftp_errors(*args, **kwargs):
         raise ftplib.error_perm
