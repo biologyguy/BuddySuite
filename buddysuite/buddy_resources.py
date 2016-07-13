@@ -471,15 +471,25 @@ def walklevel(some_dir, level=1):
 
 
 def copydir(source, dest):
-    for root, dirs, files in os.walk(source):
-        if not os.path.isdir(dest):
-            os.makedirs(dest)
-        for each_file in files:
-            rel_path = re.sub(source, '', root)
-            rel_path = rel_path.lstrip(os.sep)
-            dest_path = os.path.join(dest, rel_path, each_file)
-            copyfile(os.path.join(root, each_file), dest_path)
+    def search(dir):
+        contents = os.listdir(dir)
+        files = []
+        dirs = []
+        for thing in contents:
+            if os.path.isdir(dir + "/" + thing):
+                dirs.append(dir + "/" + thing)
+            else:
+                files.append(dir + "/" + thing)
+        if len(dirs) != 0:
+            for dir in dirs:
+                files += search(dir)
+        return files
 
+    file_paths = search(source)
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    for path in file_paths:
+        copyfile(path, dest+"/"+path.split("/")[-1])
 
 def ask(input_prompt, default="yes", timeout=0):
     if default == "yes":
