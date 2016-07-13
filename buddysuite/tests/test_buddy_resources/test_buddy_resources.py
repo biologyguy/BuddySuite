@@ -8,12 +8,18 @@ import builtins
 import re
 import ftplib
 import urllib.request
+from hashlib import md5
 from time import sleep
 from unittest import mock
+from ... import AlignBuddy as Alb
+from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
 
 # Globals
 temp_dir = br.TempDir()
+
+def string2hash(_input):
+    return md5(_input.encode("utf-8")).hexdigest()
 
 
 def test_parse_format():
@@ -369,7 +375,7 @@ def test_error_report(monkeypatch):
 
     fake_error = "WXYZ"
 
-    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)  # Needs to be reset every time
     mock_json = mock.Mock(return_value=fake_raw_output)
     monkeypatch.setattr(urllib.request, "urlopen", mock_json)
 
@@ -382,7 +388,48 @@ def test_error_report(monkeypatch):
 
     def raise_ftp_errors(*args, **kwargs):
         raise ftplib.error_perm
+
     # Gracefully handling FTP errors
     FakeFTP.storlines = raise_ftp_errors
     monkeypatch.setattr(br, "FTP", FakeFTP)
     br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+
+# Skip flags
+
+
+def test_parse_format():
+    assert br.parse_format("CLUSTAL") == "clustal"
+    assert br.parse_format("clustal") == "clustal"
+    assert br.parse_format("phylip") == "phylip"
+    assert br.parse_format("phylip-interleaved-strict") == "phylip"
+    assert br.parse_format("phylipr") == "phylip-relaxed"
+    assert br.parse_format("phylips") == "phylipsr"
+    assert br.parse_format("phylipss") == "phylipss"
+
+    with pytest.raises(TypeError):
+        br.parse_format("buddy")
+
+
+def test_phylip_sequential_out():
+    buddy = Alb.AlignBuddy("unit_test_resources/Mnemiopsis_cds.nex", in_format="nexus")
+    output = br.phylip_sequential_out(buddy)
+    assert string2hash(output) == '0379295eb39370bdba17c848ec9a8b73'
+
+    cloned_rec = buddy.alignments[0][3]
+    buddy.alignments[0].append(cloned_rec)
+    with pytest.raises(br.PhylipError):
+        br.phylip_sequential_out(buddy)
+
+    buddy = Alb.AlignBuddy("unit_test_resources/Mnemiopsis_cds.nex", in_format="nexus")
+    buddy = Alb.rename(buddy, "Mle", "M")
+    output = br.phylip_sequential_out(buddy, relaxed=False)
+    assert string2hash(output) == '830f75901a9e69a91679629613dc0a57'
+
+    buddy = Alb.rename(buddy, "M", "Mleeeeeeeeeeeeeeeee")
+    print(buddy.alignments[0])
+    with pytest.raises(br.PhylipError):
+        br.phylip_sequential_out(buddy, relaxed=False)
+
+    buddy = Sb.SeqBuddy("unit_test_resources/Mnemiopsis_cds.fa", in_format="fasta")
+    with pytest.raises(br.PhylipError):
+        br.phylip_sequential_out(buddy, _type="seq")
