@@ -32,7 +32,7 @@ import argparse
 import datetime
 from collections import OrderedDict
 import os
-from configparser import ConfigParser, NoOptionError
+from configparser import ConfigParser
 import json
 import traceback
 import re
@@ -42,7 +42,7 @@ from urllib import request
 from urllib.error import URLError, HTTPError, ContentTooShortError
 from multiprocessing import Process, cpu_count
 from time import time
-from math import floor, ceil
+from math import floor
 from tempfile import TemporaryDirectory
 from shutil import copytree, rmtree, copyfile
 import string
@@ -500,7 +500,7 @@ def ask(input_prompt, default="yes", timeout=0):
         no_list = ["no", "n", "abort", '']
 
     def kill(*args):
-        raise TimeoutError
+        raise TimeoutError(args)
 
     try:
         signal.signal(signal.SIGALRM, kill)
@@ -758,7 +758,8 @@ def error_report(trace_back, tool, function, version):
             print("\nPreparing error report for FTP upload...")
             temp_file = TempFile()
             version_str = str(version.major) + "." + str(version.minor)
-            temp_file.write("%s\t%s::%s\t%s\nuser: %s\n" % (error_hash, tool, function, version_str, config['user_hash']))
+            temp_file.write("%s\t%s::%s\t%s\nuser: %s\n" % (error_hash, tool, function,
+                                                            version_str, config['user_hash']))
             temp_file.write(trace_back)
             print("Connecting to FTP server...")
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
@@ -983,7 +984,6 @@ def replacements(input_str, query, replace="", num=0):
 
 
 def send_traceback(tool, function, e, version):
-    config = config_values()  # Read the config file (so we can check the user hash)
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
         _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)

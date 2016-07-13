@@ -62,6 +62,7 @@ class SbResources(object):
                                     "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm",
                                     "e": "embl", "x": "seqxml"}
+        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
@@ -273,6 +274,7 @@ class AlbResources(object):
                                     "o": "single", "m": "multi",
                                     "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm"}
+        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
@@ -407,6 +409,7 @@ class PbResources(object):
 
         self.single_letter_codes = {"o": "single", "m": "multi",
                                     "k": "newick", "n": "nexus", "l": "nexml"}
+        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
