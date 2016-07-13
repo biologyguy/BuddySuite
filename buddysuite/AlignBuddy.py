@@ -1435,7 +1435,9 @@ def argparse_init():
         if not in_args.generate_alignment:
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                    sys.exit("Warning: No input detected. Process will be aborted.\n")
+                    _stderr("Warning: No input detected so AlignBuddy is aborting...\n"
+                             "For more information, try:\n%s --help\n" % sys.argv[0])
+                    sys.exit()
                 align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
                 alignbuddy += align_set.alignments
 
@@ -1677,7 +1679,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
         seq_set = None
         for seq_set in in_args.alignments:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                _raise_error(BufferError("No input detected. Process will be aborted."), "generate_alignment")
+                _stderr("Warning: No input detected so AlignBuddy is aborting...\n"
+                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                sys.exit()
 
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
             seqbuddy += seq_set.records

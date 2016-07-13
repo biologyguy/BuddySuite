@@ -3698,7 +3698,8 @@ def argparse_init():
     try:
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected. Process will be aborted.\n")
+                _stderr("Warning: No input detected so SeqBuddy is aborting...\n"
+                        "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records

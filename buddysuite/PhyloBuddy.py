@@ -1121,7 +1121,8 @@ def argparse_init():
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected. Process will be aborted.\n")
+                _stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
+                        "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             tree_set = PhyloBuddy(tree_set, in_args.in_format, in_args.out_format)
             phylobuddy += tree_set.trees
@@ -1236,7 +1237,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
 
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected. Process will be aborted.")
+                _stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
+                        "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
