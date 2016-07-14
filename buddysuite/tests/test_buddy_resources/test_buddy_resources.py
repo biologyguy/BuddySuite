@@ -312,22 +312,60 @@ def test_contributor():
     assert str(contributor) == "Bud Suite"
 
 # Skipped CustomHelpFormatter
-'''
-def test_usage(monkeypatch):
-    config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": False, "user_hash": "hashless",
-                                     "data_dir": False})
-    monkeypatch.setattr(br, "config_values", config)
-    usage = br.Usage()
-'''
 
+def test_usage(monkeypatch):
+    class FakeFTP:
+        def __init__(self, *args, **kwargs):
+            return
+
+        @staticmethod
+        def storlines(*args, **kwargs):
+            raise RuntimeError
+
+    config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": True, "user_hash": "ABCDEF",
+                                     "data_dir": temp_dir.path})
+    monkeypatch.setattr(br, "config_values", config)
+    monkeypatch.setattr(br, "FTP", FakeFTP)
+    usage = br.Usage()
+    usage.stats["last_upload"] = "2015-01-01"
+    with pytest.raises(RuntimeError):
+        usage.save(send_report=True)
+
+    usage.increment("seqbuddy", "1.3", "usage_test", "10MB")
+    usage.increment("seqbuddy", "1.3", "other", "15MB")
+    usage.increment("seqbuddy", "1.3", "usage_test", "3MB")
+    usage.increment("seqbuddy", "1.4", "usage_test", "5MB")
+
+    usage.save(send_report=False)
+
+    with open(usage.usage_file_path, "r") as usage_file:
+        contents = usage_file.read()
+        assert "\"seqbuddy\": " in contents
+        assert "\"1.4\": " in contents
+        assert "\"sizes\": [\"5MB\"]" in contents
+        assert "\"usage_test\": 1" in contents
+        assert "\"1.3\": " in contents
+        assert "\"other\": 1" in contents
+        assert "\"sizes\": [\"10MB\", \"15MB\", \"3MB\"]" in contents
+        assert "\"usage_test\": 2" in contents
+        assert "\"user_hash\": \"ABCDEF\"" in contents
+
+    def raise_ftp_errors(*args, **kwargs):
+        raise ftplib.error_perm
+
+    # Gracefully handling FTP errors
+    FakeFTP.storlines = raise_ftp_errors
+    monkeypatch.setattr(br, "FTP", FakeFTP)
+
+    usage = br.Usage()
+    usage.stats["last_upload"] = "2015-01-01"
+    usage.save(send_report=True)
 
 def test_version():
     contributors = list()
     contributors.append(br.Contributor("Bud", "Suite", "D", commits=10, github="buddysuite"))
     contributors.append(br.Contributor("Sweet", "Water", commits=5, github="sweetwater"))
     version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
-    print(version.contributors_string())
-    print(version)
     assert version.short() == "3.5"
     assert version.contributors_string() == "Bud D Suite  buddysuite\nSweet Water  sweetwater"
     version_string = re.sub("[\n| ]", "", str(version))
@@ -432,3 +470,13 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
     buddy = sb_resources.get_one("d f")
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, _type="seq")
+
+def test_phylip_sequential_read(alb_resources, alb_helpers, sb_resources):
+    records = br.phylip_sequential_read(str(alb_resources.get_one("o d psr")))
+    buddy = Alb.AlignBuddy(records, out_format="phylipsr")
+    assert alb_helpers.align2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
+    #print(str(alb_resources.get_one("o d pss")))
+
+    records = br.phylip_sequential_read(str(alb_resources.get_one("o d pss")), relaxed=False)
+    buddy = Alb.AlignBuddy(records, out_format="phylipss")
+    assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
