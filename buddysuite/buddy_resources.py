@@ -652,7 +652,7 @@ class Version(object):
             self.release_date = datetime.date.today()
         else:
             # e.g., release_date = {"year": 2015, "month": 3, "day": 21}
-            self.release_date = datetime.datetime(**release_date)
+            self.release_date = datetime.date(**release_date)
 
     def contributors_string(self):
         _contributors = sorted(self.contributors, key=lambda x: x.commits, reverse=True)

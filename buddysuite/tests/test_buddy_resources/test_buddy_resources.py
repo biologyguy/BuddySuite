@@ -325,7 +325,7 @@ def test_version():
     contributors = list()
     contributors.append(br.Contributor("Bud", "Suite", "D", commits=10, github="buddysuite"))
     contributors.append(br.Contributor("Sweet", "Water", commits=5, github="sweetwater"))
-    version = br.Version("BudddySuite", "3", "5", contributors)
+    version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
     print(version.contributors_string())
     print(version)
     assert version.short() == "3.5"
