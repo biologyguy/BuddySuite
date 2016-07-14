@@ -625,7 +625,6 @@ class Usage(object):
 
     def send_report(self):
         self.stats["date"] = str(datetime.date.today())
-        from ftplib import FTP, all_errors
         temp_file = TempFile()
         json.dump(self.stats, temp_file.get_handle())
         try:
@@ -881,7 +880,8 @@ def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
         output += "\n\n"
     return output
 
-
+# If your file is not phylip-relaxed, leaving relaxed as True WILL break your code. If your file is strict you must set
+# relaxed to False. (Strict forces 10 character taxa names, relaxed requires whitespace between name and sequence)
 def phylip_sequential_read(sequence, relaxed=True):
     sequence = "\n %s" % sequence.strip()
     sequence = re.sub("\n+", "\n", sequence)
