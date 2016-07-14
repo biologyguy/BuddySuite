@@ -252,20 +252,22 @@ Manipulation of biological sequence data is now a routine task within the life s
 
 \section*{Implementation}
 ADD: Table of tools
+
 ADD: Installation via BioConda and PyPI
-ADD: File support table
+
 ADD: Full list of wrapped software
 
 \subsection*{Command line user interface}
-BuddySuite is implemented in pure Python and includes four core command line programs: SeqBuddy, AlignBuddy, PhyloBuddy, and DatabaseBuddy. The first three accept sequence, alignment, or phylogenetic tree data as input, respectively, and flags are used to specify which tool to run. DatabaseBuddy, on the other hand, is intended to run primarily as a `live shell', allowing the user to interactively search for and download sequence data stored in public databases (e.g., NCBI, UniProt, and Ensembl). The BuddySuite modules collectively contain 95 individual tools at the time of this writing, each with extended help and usage examples on the BuddySuite wiki (http://tiny.cc/buddysuite\_wiki). File format detection is automated, and most of the formats with BioPython parsers are supported \cite{Cock:2009hj}. To keep the learning curve as shallow as possible, care has been taken to minimize the dependence of each tool on additional parameters and to infer user intent when arguments are provided.
+BuddySuite is implemented in pure Python and includes four core command line programs: SeqBuddy, AlignBuddy, PhyloBuddy, and DatabaseBuddy. The first three accept sequence, alignment, or phylogenetic tree data as input, respectively, and flags are used to specify which tool to run. DatabaseBuddy, on the other hand, is intended to run primarily as a `live shell', allowing the user to interactively search for and download sequence data stored in public databases (e.g., NCBI, UniProt, and Ensembl). The BuddySuite programs collectively contain 103 individual tools at the time of this writing, each with extended help and usage examples on the BuddySuite wiki (http://tiny.cc/buddysuite\_wiki). 
 
-BuddySuite commands can be `daisy-chained' together with the pipe character ($\vert$) to create more complex workflows as a single line in the terminal. For example, after downloading the cDNA sequence for all members of a gene family with DatabaseBuddy, the records could be renamed, annotated, and translated to amino acids with SeqBuddy, converted to a multiple sequence alignment and trimmed of poorly aligned regions with AlignBuddy, and then PhyloBuddy could be used to estimate a phylogenetic tree, split any polytomies, and root on a particular set of taxa. Furthermore, third party programs that use any of the supported file formats can be seamlessly included in these pipelines.
+BuddySuite commands can be `daisy-chained' together with the pipe character ($\vert$) to create more complex workflows as a single line in the terminal. 
 
 \subsection*{Application programing interface (API)}
 that can be accessed directly from the command line or as an application programming interface (API)
 For those interested in integrating BuddySuite functions into their own Python 3 scripts, the process is simplified by base classes in each module that handle many forms of input (including plain text, file paths or handles, and BioPython objects), then automate format detection and pre-processing. An object invoked from one of these base classes is the first parameter of all BuddySuite functions and is also the output in most cases.
 
 \subsection*{File format parsing}
+File format detection is automated, and most of the formats with BioPython parsers are supported \cite{Cock:2009hj}. 
 Another key feature of BuddySuite is robust sequence annotation management. Flat file formats such as GenBank and EMBL allow for rich annotation of sequence features, and these will be retained and/or adjusted by SeqBuddy and AlignBuddy tools as necessary. As an example, the AlignBuddy `generate\_alignment' tool can be used to invoke popular third party alignment programs such as MAFFT \cite{Katoh:2013hm} on an annotated GenBank file; after completion, the new alignment will be returned in GenBank format with all original features re-mapped to account for newly introduced gaps.
 
 \subsection*{Installation}
@@ -280,12 +282,16 @@ Looking forward, the modular nature of BuddySuite makes it particularly well sui
 \section*{Results and Discussion}
 \subsection*{Use-case examples}
 This is how you would do stuff with SeqBuddy etc.
+For example, after downloading the cDNA sequence for all members of a gene family with DatabaseBuddy, the records could be renamed, annotated, and translated to amino acids with SeqBuddy, converted to a multiple sequence alignment and trimmed of poorly aligned regions with AlignBuddy, and then PhyloBuddy could be used to estimate a phylogenetic tree, split any polytomies, and root on a particular set of taxa. Furthermore, third party programs that use any of the supported file formats can be seamlessly included in these pipelines.
 
 \subsection*{Performance}
-Here are some graphs and tables showing how long each tool takes to run on different sized files (Can probably go crazy with this! Write an automated method to get all the stats).
+SOFIA'S SECTION
+
+Here are some graphs and tables showing how long each tool takes to run on different sized files (Write an automated method to get all the stats).
 
 \subsection*{Similar bioinformatics toolkits}
 Describe the state of EMBOSS and BioPieces
+To keep the learning curve as shallow as possible, care has been taken to minimize the dependence of each tool on additional parameters and to infer user intent where possible. For example, the SeqBuddy 'find\_restriction\_sites' function is one of the most flexible in the Suite. It can accept three different types of arguments that control which enzymes are included in the search and how the output is formatted; all of these arguments are optional and they can be passed to the tool in any order. This flexibility is in contrast to the paradigm implemented in EMBOSS and BioPieces, which require extra flags to explicitly set all parameters. In cases such as this, where the argument type (e.g., integer or string) unambiguously identifies how it should be used by the tool, it is counter-productive to require that the user remember additional flags to explicitly mark each input. 
 
 
 \section*{Conclusions}
@@ -381,13 +387,52 @@ BuddySuite has been designed from the ground up to be an intuitive, extensible, 
 %%
 \section*{Tables}
 \begin{table}[h!]
-\caption{Sample table title. This is where the description of the table should go.}
-      \begin{tabular}{cccc}
+\caption{File format reading (R) and writing (W) support provided by each BuddySuite program.}
+      \begin{tabular}{llll}
+        \hline \\
+        Format									& SeqBuddy  							& AlignBuddy   					& PhyloBuddy\\ 
+        \\
         \hline
-           & B1  &B2   & B3\\ \hline
-        A1 & 0.1 & 0.2 & 0.3\\
-        A2 & ... & ..  & .\\
-        A3 & ..  & .   & .\\ \hline
+        Clustal 									& R \& W\textsuperscript{\dag} 	& R \& W								& None \\ 
+        EMBL\textsuperscript{\ddag} 		& R \& W								& R\textsuperscript{\dag}/ W		& None \\
+        FASTA 									& R \& W								& R\textsuperscript{\dag}/ W 	& None \\
+        GenBank\textsuperscript{\ddag} 	& R \& W								& R\textsuperscript{\dag}/ W  	& None \\
+        Nexus 									& R \& W\textsuperscript{\dag}	& R \& W								& R \& W \\ 
+        Newick 								& None								& None								& R \& W \\ 
+        NeXML									& None								& None								& R \& W \\
+        PHYLIP (interleaved)				& R \& W\textsuperscript{\dag} 	& R \& W								& None \\
+        PHYLIP (sequential)				& R \& W\textsuperscript{\dag} 	& R \& W								& None \\	
+        SeqXML								& R \& W							 	& None								& None \\ 
+        Stockholm								& R \& W\textsuperscript{\dag} 	& R \& W								& None \\ 
+        Swissprot\textsuperscript{\ddag}	& R only								& None								& None \\
+        \hline
+      \end{tabular}
+      \begin{tabular}{l}
+      \textsuperscript{\dag}All sequences must be the same length \\
+      \textsuperscript{\ddag}Supports rich sequence annotation \\
+      \hline
+       \end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\caption{List of optional third party software that BuddySuite programs can interact with.}
+      \begin{tabular}{lll}
+        \hline \\
+	   BuddySuite program	&3\textsuperscript{rd} party program	& Reference  \\ \\
+        \hline
+        SeqBuddy		& BLAST 			& \cite{Camacho2009} \\
+        \hline
+        AlignBuddy	& Clustal Omega 	& \cite{Sievers:2011fn} \\
+        					& ClustalW2 		& \cite{Larkin:2007hz} \\
+						& MAFFT 			& \cite{Katoh:2013hm} \\
+						& MUSCLE 			& \cite{Edgar:2004bo} \\
+						& PAGAN 			& \cite{Loytynoja:2012fy} \\
+        					& PRANK 			& \cite{Loytynoja:2005cb} \\				
+        \hline
+        PhyloBuddy	& FastTree 			& \cite{Price:2010eg} \\
+        					& RAxML 			& \cite{Stamatakis:2006de} \\
+        					& PhyML 			& \cite{Guindon:2010gf} \\
+        \hline
       \end{tabular}
 \end{table}
 
