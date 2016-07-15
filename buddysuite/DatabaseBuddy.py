@@ -590,14 +590,14 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
         format_in = format_in if type(format_in) == list else [format_in]
         for _format in format_in:
             if not re.search("\\033\[[0-9]*m", _format):
-                raise AttributeError("Malformed 'format_in' encoding.")
+                raise AttributeError('Malformed format_in attribute escape code')
         output += "".join(format_in)
 
     if format_out:
         format_out = format_out if type(format_out) == list else [format_out]
         for _format in format_out:
             if not re.search("\\033\[[0-9]*m", _format):
-                raise AttributeError("Malformed 'format_out' encoding.")
+                raise AttributeError('Malformed format_out attribute escape code')
         output += "%s%s" % (message, "".join(format_out))
     else:
         output += "%s\033[m" % message
@@ -620,33 +620,23 @@ def terminal_colors():
         _counter += 1
 
 
-def check_database(_database):
+def check_database(database=None):
+    if not database:
+        return DATABASES
+    if type(database) != list:
+        database = [database]
+    database = [x.lower() for x in database]
+    if 'all' in database:
+        return DATABASES
     _output = []
-    if type(_database) == list:
-        for _db in [x.lower() for x in _database]:
-            if _db == "all":
-                _output = DATABASES
-                break
-            elif _db in DATABASES:
-                _output.append(_db)
-            else:
-                _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
-
-        if not _output:
-            _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
-            _output = DATABASES
-
-    elif not _database:
-        _output = DATABASES
-    else:
-        _database = _database.lower()
-        if _database == "all":
-            _output = DATABASES
-        elif _database in DATABASES:
-            _output = [_database]
+    for _db in database:
+        if _db in DATABASES:
+            _output.append(_db)
         else:
-            _stderr("Warning: '%s' is not a valid database choice. Setting to default 'all'.\n")
-            _output = DATABASES
+            _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
+    if not _output:
+        _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
+        _output = DATABASES
     return _output
 
 
