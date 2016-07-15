@@ -17,6 +17,7 @@ from ... import buddy_resources as br
 
 # Globals
 temp_dir = br.TempDir()
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
 
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
@@ -472,11 +473,10 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
         br.phylip_sequential_out(buddy, _type="seq")
 
 def test_phylip_sequential_read(alb_resources, alb_helpers, sb_resources):
-    records = br.phylip_sequential_read(str(alb_resources.get_one("o d psr")))
+    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
     assert alb_helpers.align2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
-    #print(str(alb_resources.get_one("o d pss")))
 
-    records = br.phylip_sequential_read(str(alb_resources.get_one("o d pss")), relaxed=False)
+    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(), relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
