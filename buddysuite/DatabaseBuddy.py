@@ -1055,7 +1055,7 @@ class NCBIClient(object):
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if i == self.max_attempts - 1:
                     error = _e
                 sleep(1)
@@ -1102,7 +1102,10 @@ class NCBIClient(object):
                 _output[summary["Caption"]].guess_database()
         taxa = self._get_taxa(taxa)
         for accn, rec in _output.items():
-            rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+            if rec.summary["TaxId"] in taxa:
+                rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+            else:
+                rec.summary["organism"] = "Unclassified"
         _stderr("\t%s records received.\n" % len(_output))
         return _output
 
@@ -1194,7 +1197,7 @@ class NCBIClient(object):
 
                 self.fetch_summary()
 
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if _e.getcode() == 503:
                     failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
                                              "experiencing some technical issues.")
@@ -1291,7 +1294,7 @@ class NCBIClient(object):
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if i == self.max_attempts - 1:
                     error = _e
                 sleep(1)
