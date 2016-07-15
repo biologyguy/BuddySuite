@@ -519,3 +519,18 @@ def test_send_traceback(capsys, monkeypatch):
     assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
                        "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
                        " Something broke!\n\n\n\n\033[m\n"
+
+def test_shift_features(sb_resources, sb_helpers):
+    buddy = sb_resources.get_one("d g")
+    buddy.records = [buddy.records[0]]
+    features = buddy.records[0].features
+    shifted_features = br.shift_features(features, 10, len(buddy.records[0]))
+    buddy.records[0].features = shifted_features
+    assert sb_helpers.features2hash(buddy) == "2929e27c194fbb4a530023faa602d611"
+
+    buddy = sb_resources.get_one("d g")
+    buddy.records = [buddy.records[0]]
+    features = buddy.records[0].features
+    shifted_features = br.shift_features(features, -10, len(buddy.records[0]))
+    buddy.records[0].features = shifted_features
+    assert sb_helpers.features2hash(buddy) == "5918b48a9ec783b4010916ec517b66a6"
