@@ -2585,37 +2585,14 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             LiveSearch(dbbuddy, temp_file)
         except SystemExit:
             pass
-        except (KeyboardInterrupt, br.GuessError) as _e:
-            print(_e)
-        except Exception as _e:
-            import traceback
+        except (KeyboardInterrupt, br.GuessError) as err:
+            print(err)
+        except Exception as err:
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
-            tb = "%s\n" % CONFIG["user_hash"]
-            for _line in traceback.format_tb(sys.exc_info()[2]):
-                _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
-                tb += _line
-            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
-            _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
-                    "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
-                    "command.\n" % (RED, tb, save_file))
-
-            send_diagnostic = True if CONFIG["diagnostics"] else False
-            if not send_diagnostic:
-                prompt = br.ask("%sWould you like to send a crash report with the above "
-                                "traceback to the developers ([y]/n)?\033[m" % BOLD)
-                if prompt:
-                    send_diagnostic = True
-
-            else:
-                _stderr("An error report with the above traceback is being sent to the BuddySuite developers because "
-                        "you have elected to participate in the Software Improvement Program. To opt-out of this "
-                        "program, re-run the BuddySuite installer and un-check the box on the 'Diagnostics' screen.\n")
-
-            if send_diagnostic:
-                _stderr("Preparing error report for FTP upload...\nSending...\n")
-                br.error_report(tb)
-                _stderr("Success, thank you.\n")
+            br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
+            _stderr("%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
+                    "command.%s\n" % (GREEN, save_file, DEF_FONT))
 
         temp_file.close()
         sys.exit()
