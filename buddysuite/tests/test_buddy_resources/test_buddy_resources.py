@@ -314,6 +314,7 @@ def test_contributor():
 
 # Skipped CustomHelpFormatter
 
+
 def test_usage(monkeypatch):
     class FakeFTP:
         def __init__(self, *args, **kwargs):
@@ -361,6 +362,7 @@ def test_usage(monkeypatch):
     usage = br.Usage()
     usage.stats["last_upload"] = "2015-01-01"
     usage.save(send_report=True)
+
 
 def test_version():
     contributors = list()
@@ -472,11 +474,48 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, _type="seq")
 
-def test_phylip_sequential_read(alb_resources, alb_helpers, sb_resources):
+
+def test_phylip_sequential_read(alb_helpers):
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
     assert alb_helpers.align2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
 
-    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(), relaxed=False)
+    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(),
+                                        relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
+
+
+def test_replacements():
+    input_str = "ABC DEFGHIJ ABC HELLOWORLDABC"
+    assert br.replacements(input_str, "ABC", "XXX", -1) == "ABC DEFGHIJ ABC HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX", -2) == "ABC DEFGHIJ XXX HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX", -3) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX", -4) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX", 1) == "XXX DEFGHIJ ABC HELLOWORLDABC"
+    assert br.replacements(input_str, "ABC", "XXX", 2) == "XXX DEFGHIJ XXX HELLOWORLDABC"
+    assert br.replacements(input_str, "ABC", "XXX", 3) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX", 4) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
+    assert br.replacements(input_str, "ABC", "XXX") == "XXX DEFGHIJ XXX HELLOWORLDXXX"
+
+''' Replacements doesn't work for some of these
+    input_str = "GATGTCATCGTAAGGACCATGCAAGGGTACTAAGTCCTG"
+    test_pattern = "(ATG(...)+(TAA|TAG|TGA))"
+    assert br.replacements(input_str, test_pattern, "X", 1) == "GXGGACCATGCAAGGGTACTAAGTCCTG"
+    assert br.replacements(input_str, test_pattern, "X", 2) == "GXGGACCXGTCCTG"
+    assert br.replacements(input_str, test_pattern, "X", 3) == "GXGGACCXGTCCTG"
+    assert br.replacements(input_str, test_pattern, "X", -1) == "GATGTCATCGTAAGGACCXGTCCTG"
+    assert br.replacements(input_str, test_pattern, "X", -2) == "GXGGACCXGTCCTG"
+    assert br.replacements(input_str, test_pattern, "X", -3) == "GXGGACCXGTCCTG"
+'''
+
+
+def test_send_traceback(capsys, monkeypatch):
+    donothing = mock.Mock(return_value=0)
+    monkeypatch.setattr(br, "error_report", donothing)
+    br.send_traceback("test", "test", "RuntimeError\nTraceback (most recent call last)\n\t1 raise "
+                                      "RuntimeError(\"Something broke!\"\nRuntimeError: Something broke!", 1.2)
+    out, err = capsys.readouterr()
+    assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
+                       "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
+                       " Something broke!\n\n\n\n\033[m\n"
