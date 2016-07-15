@@ -26,6 +26,11 @@ TEST_SCRIPTS+='test_alb_ui.py '
 TEST_SCRIPTS+='test_alb_3rd_party.py '
 py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
 
+#### DatabaseBuddy
+cd /home/docker/BuddySuite/buddysuite/tests/test_databasebuddy
+TEST_SCRIPTS='test_db_class_and_helpers.py '
+py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
+
 #### SeqBuddy
 cd /home/docker/BuddySuite/buddysuite/tests/test_seqbuddy
 TEST_SCRIPTS='test_sb_class_and_helpers.py '

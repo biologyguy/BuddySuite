@@ -108,7 +108,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         # Empty DbBuddy object
         if not _input:
-            pass
+            return
 
         # DbBuddy objects
         elif type(_input) == list:
@@ -585,17 +585,25 @@ def _stderr(message, quiet=False):
 
 
 def _stdout(message, quiet=False, format_in=None, format_out=None):
-    if format_in and type(format_in) == list:
-        format_in = "".join(format_in)
-    if format_out and type(format_out) == list:
-        format_out = "".join(format_out)
+    output = ""
+    if format_in:
+        format_in = format_in if type(format_in) == list else [format_in]
+        for _format in format_in:
+            if not re.search("\\033\[[0-9]*m", _format):
+                raise AttributeError('Malformed format_in attribute escape code')
+        output += "".join(format_in)
+
+    if format_out:
+        format_out = format_out if type(format_out) == list else [format_out]
+        for _format in format_out:
+            if not re.search("\\033\[[0-9]*m", _format):
+                raise AttributeError('Malformed format_out attribute escape code')
+        output += "%s%s" % (message, "".join(format_out))
+    else:
+        output += "%s\033[m" % message
+
     if not quiet:
-        if format_in and re.search("\\033\[[0-9]*m", format_in):
-            sys.stdout.write(format_in)
-        if format_out and re.search("\\033\[[0-9]*m", format_out):
-            sys.stdout.write("%s%s" % (message, format_out))
-        else:
-            sys.stdout.write("%s\033[m" % message)
+        sys.stdout.write(output)
         sys.stdout.flush()
     return
 
@@ -612,33 +620,23 @@ def terminal_colors():
         _counter += 1
 
 
-def check_database(_database):
+def check_database(database=None):
+    if not database:
+        return DATABASES
+    if type(database) != list:
+        database = [database]
+    database = [x.lower() for x in database]
+    if 'all' in database:
+        return DATABASES
     _output = []
-    if type(_database) == list:
-        for _db in [x.lower() for x in _database]:
-            if _db == "all":
-                _output = DATABASES
-                break
-            elif _db in DATABASES:
-                _output.append(_db)
-            else:
-                _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
-
-        if not _output:
-            _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
-            _output = DATABASES
-
-    elif not _database:
-        _output = DATABASES
-    else:
-        _database = _database.lower()
-        if _database == "all":
-            _output = DATABASES
-        elif _database in DATABASES:
-            _output = [_database]
+    for _db in database:
+        if _db in DATABASES:
+            _output.append(_db)
         else:
-            _stderr("Warning: '%s' is not a valid database choice. Setting to default 'all'.\n")
-            _output = DATABASES
+            _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
+    if not _output:
+        _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
+        _output = DATABASES
     return _output
 
 
@@ -1047,7 +1045,7 @@ class NCBIClient(object):
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if i == self.max_attempts - 1:
                     error = _e
                 sleep(1)
@@ -1094,7 +1092,10 @@ class NCBIClient(object):
                 _output[summary["Caption"]].guess_database()
         taxa = self._get_taxa(taxa)
         for accn, rec in _output.items():
-            rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+            if rec.summary["TaxId"] in taxa:
+                rec.summary["organism"] = taxa[rec.summary["TaxId"]]
+            else:
+                rec.summary["organism"] = "Unclassified"
         _stderr("\t%s records received.\n" % len(_output))
         return _output
 
@@ -1186,7 +1187,7 @@ class NCBIClient(object):
 
                 self.fetch_summary()
 
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if _e.getcode() == 503:
                     failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
                                              "experiencing some technical issues.")
@@ -1283,7 +1284,7 @@ class NCBIClient(object):
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except [HTTPError, RuntimeError] as _e:
+            except (HTTPError, RuntimeError) as _e:
                 if i == self.max_attempts - 1:
                     error = _e
                 sleep(1)
@@ -2584,37 +2585,14 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             LiveSearch(dbbuddy, temp_file)
         except SystemExit:
             pass
-        except (KeyboardInterrupt, br.GuessError) as _e:
-            print(_e)
-        except Exception as _e:
-            import traceback
+        except (KeyboardInterrupt, br.GuessError) as err:
+            print(err)
+        except Exception as err:
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
-            tb = "%s\n" % CONFIG["user_hash"]
-            for _line in traceback.format_tb(sys.exc_info()[2]):
-                _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
-                tb += _line
-            tb = "%s: %s\n\n%s" % (type(_e).__name__, _e, tb)
-            _stderr("\033[mThe live session has crashed with the following traceback:%s\n\n%s\n\n\033[mYour work has "
-                    "been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
-                    "command.\n" % (RED, tb, save_file))
-
-            send_diagnostic = True if CONFIG["diagnostics"] else False
-            if not send_diagnostic:
-                prompt = br.ask("%sWould you like to send a crash report with the above "
-                                "traceback to the developers ([y]/n)?\033[m" % BOLD)
-                if prompt:
-                    send_diagnostic = True
-
-            else:
-                _stderr("An error report with the above traceback is being sent to the BuddySuite developers because "
-                        "you have elected to participate in the Software Improvement Program. To opt-out of this "
-                        "program, re-run the BuddySuite installer and un-check the box on the 'Diagnostics' screen.\n")
-
-            if send_diagnostic:
-                _stderr("Preparing error report for FTP upload...\nSending...\n")
-                br.error_report(tb)
-                _stderr("Success, thank you.\n")
+            br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
+            _stderr("%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
+                    "command.%s\n" % (GREEN, save_file, DEF_FONT))
 
         temp_file.close()
         sys.exit()
