@@ -602,7 +602,7 @@ def _guess_format(_input):
         _input.seek(0)
 
         possible_formats = ["stockholm", "fasta", "gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
-                            "fastq", "nexus", "embl", "seqxml", "clustal"]
+                            "fastq", "nexus", "embl", "seqxml", "clustal", "swiss"]
         for next_format in possible_formats:
             try:
                 _input.seek(0)
@@ -662,6 +662,11 @@ def _guess_format(_input):
                 continue
             except ValueError:
                 continue
+            except AssertionError as err:
+                if next_format == 'swiss':
+                    continue
+                else:
+                    raise err
             except SAXParseException:  # Thrown by seqxml parser
                 continue
             except TreeError:  # Thrown by NEXUS tree files
