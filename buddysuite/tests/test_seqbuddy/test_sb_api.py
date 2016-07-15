@@ -555,23 +555,20 @@ def test_find_orf_basic(sb_helpers):
 
 def test_find_orf_standard(sb_resources, sb_helpers):
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
-    assert sb_helpers.seqs2hash(tester) == "16e5d3242e55841eb990885881cd571e"
-    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
+    assert sb_helpers.seqs2hash(tester) == "4474e4d21c02eb171e0cce128fb6bf5e"
+    assert sb_helpers.features2hash(tester) == "f8abc7372fe7a8bbfdfce715f6bf6f0e"
     tester.out_format = "fasta"
     assert sb_helpers.seqs2hash(tester) == "25073539df4a982b7f99c72dd280bb8f"
-    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
-    tester = Sb.find_orfs(sb_resources.get_one("d g"))
-    assert sb_helpers.seqs2hash(tester) == "16e5d3242e55841eb990885881cd571e"
-    assert sb_helpers.features2hash(tester) == "57ab66ea1e7740714d3b2b9ac387475c"
+    assert sb_helpers.features2hash(tester) == "f8abc7372fe7a8bbfdfce715f6bf6f0e"
     tester = Sb.find_orfs(sb_resources.get_one("d g"), include_feature=False)
     assert sb_helpers.seqs2hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
     assert sb_helpers.features2hash(tester) == "969ab7e60bba0d958ed17f6980b19059"
     tester = Sb.find_orfs(sb_resources.get_one("r f"))
     assert sb_helpers.seqs2hash(tester) == "013ebe2bc7d83c44f58344b865e1f55b"
-    assert sb_helpers.features2hash(tester) == "4abada6bf8fca7cb95166e9a4d9cdfb7"
+    assert sb_helpers.features2hash(tester) == "a80f082f0649bb037c34d0f268fec901"
     tester.out_format = "gb"
-    assert sb_helpers.seqs2hash(tester) == "44ed0320bb7017bfface773ee5b7f318"
-    assert sb_helpers.features2hash(tester) == "4abada6bf8fca7cb95166e9a4d9cdfb7"
+    assert sb_helpers.seqs2hash(tester) == "76287ca18781224027e9ed8327a97558"
+    assert sb_helpers.features2hash(tester) == "a80f082f0649bb037c34d0f268fec901"
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     assert sb_helpers.features2hash(tester) == "aa0c0c27a9b8cde585da2c42a9280f3c"
     tester = sb_resources.get_one("p g")

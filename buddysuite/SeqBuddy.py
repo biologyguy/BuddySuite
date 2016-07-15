@@ -2006,12 +2006,13 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
     """
     seqbuddy = clean_seq(seqbuddy)
     if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-        pattern = "aug(...)+(uaa|uag|uga)"
+        pattern = "aug(...)*?(uaa|uag|uga)"
     elif seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.ambiguous_dna]:
-        pattern = "atg((...))+(taa|tag|tga)"
+        pattern = "atg(...)*?(taa|tag|tga)"
     else:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
+    seqbuddy = lowercase(seqbuddy)
     reverse = make_copy(seqbuddy)
     reverse = reverse_complement(reverse)
     seqbuddy = find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
@@ -4152,11 +4153,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
             pos_indices = rec.buddy_data['find_orfs']['+']
             neg_indices = rec.buddy_data['find_orfs']['-']
             _stderr("# {0}\n".format(rec.id), in_args.quiet)
-            if len(pos_indices) > 0:
+            if len(pos_indices) < 0:
                 _stderr("(+) ORFs: None\n", in_args.quiet)
             else:
                 _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices])), in_args.quiet)
-            if len(neg_indices) > 0:
+            if len(neg_indices) < 0:
                 _stderr("(-) ORFs: None\n", in_args.quiet)
             else:
                 _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices])), in_args.quiet)
