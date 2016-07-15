@@ -129,7 +129,6 @@ class DynamicPrint(object):
                 self.out_type.write("\r%s\r%s" % (" " * len(self._last_print), self._next_print),)
                 self.out_type.flush()
                 self._last_print = self._next_print
-                print("x")
                 yield
         finally:
             self.out_type.write("")
@@ -471,25 +470,28 @@ def walklevel(some_dir, level=1):
 
 
 def copydir(source, dest):
-    def search(dir):
-        contents = os.listdir(dir)
+    def search(_dir):
+        contents = os.listdir(_dir)
         files = []
         dirs = []
         for thing in contents:
-            if os.path.isdir(dir + "/" + thing):
-                dirs.append(dir + "/" + thing)
+            _path = "%s/%s" % (_dir, thing)
+            if os.path.isdir(_path):
+                dirs.append(_path)
             else:
-                files.append(dir + "/" + thing)
+                files.append(_path)
         if len(dirs) != 0:
-            for dir in dirs:
-                files += search(dir)
+            for _dir in dirs:
+                files += search(_dir)
         return files
 
     file_paths = search(source)
     if not os.path.exists(dest):
         os.makedirs(dest)
     for path in file_paths:
-        copyfile(path, dest+"/"+path.split("/")[-1])
+        _file = path.split("/")[-1]
+        copyfile(path, "%s/%s" % (dest, _file))
+
 
 def ask(input_prompt, default="yes", timeout=0):
     if default == "yes":
