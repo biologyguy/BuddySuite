@@ -13,8 +13,11 @@ py.test ${DIR}/tests/test_buddy_resources/ --cov ${DIR}/buddy_resources.py --cov
 echo "AlignBuddy.py"
 py.test ${DIR}/tests/test_alignbuddy/ --cov ${DIR}/AlignBuddy.py --cov-report html -n 8 -p no:cacheprovider $@
 
-echo "SeqBuddy.py"
-py.test ${DIR}/tests/test_seqbuddy/ --cov ${DIR}/SeqBuddy.py --cov-report html -n 8 -p no:cacheprovider $@
+echo "DatabaseBuddy.py"
+py.test ${DIR}/tests/test_databasebuddy/ --cov ${DIR}/DatabaseBuddy.py --cov-report html -n 8 -p no:cacheprovider $@
 
 echo "PhyloBuddy.py"
 py.test ${DIR}/tests/test_phylobuddy/ --cov ${DIR}/PhyloBuddy.py --cov-report html -n 8 -p no:cacheprovider $@
+
+echo "SeqBuddy.py"
+py.test ${DIR}/tests/test_seqbuddy/ --cov ${DIR}/SeqBuddy.py --cov-report html -n 8 -p no:cacheprovider $@
