@@ -108,7 +108,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         # Empty DbBuddy object
         if not _input:
-            pass
+            return
 
         # DbBuddy objects
         elif type(_input) == list:
@@ -585,17 +585,25 @@ def _stderr(message, quiet=False):
 
 
 def _stdout(message, quiet=False, format_in=None, format_out=None):
-    if format_in and type(format_in) == list:
-        format_in = "".join(format_in)
-    if format_out and type(format_out) == list:
-        format_out = "".join(format_out)
+    output = ""
+    if format_in:
+        format_in = format_in if type(format_in) == list else [format_in]
+        for _format in format_in:
+            if not re.search("\\033\[[0-9]*m", _format):
+                raise AttributeError("Malformed 'format_in' encoding.")
+        output += "".join(format_in)
+
+    if format_out:
+        format_out = format_out if type(format_out) == list else [format_out]
+        for _format in format_out:
+            if not re.search("\\033\[[0-9]*m", _format):
+                raise AttributeError("Malformed 'format_out' encoding.")
+        output += "%s%s" % (message, "".join(format_out))
+    else:
+        output += "%s\033[m" % message
+
     if not quiet:
-        if format_in and re.search("\\033\[[0-9]*m", format_in):
-            sys.stdout.write(format_in)
-        if format_out and re.search("\\033\[[0-9]*m", format_out):
-            sys.stdout.write("%s%s" % (message, format_out))
-        else:
-            sys.stdout.write("%s\033[m" % message)
+        sys.stdout.write(output)
         sys.stdout.flush()
     return
 
