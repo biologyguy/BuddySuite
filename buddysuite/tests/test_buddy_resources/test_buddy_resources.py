@@ -451,3 +451,29 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
     buddy = sb_resources.get_one("d f")
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, _type="seq")
+
+
+def test_replacements():
+    input_str = "This test is A string with numbers (12345) and This [CHARS] is a test"
+    assert br.replacements(input_str, "numbers", "integers") == "This test is A string with integers (12345) and " \
+                                                                "This [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some") == "some test is A string with numbers (12345) and some " \
+                                                         "[CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -1) == "This test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -2) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -3) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "(?:(?:Thi)|(?:tes))", "foo", -3) == "This foot is A string with numbers " \
+                                                                           "(12345) and foos [CHARS] is a foot"
+    assert br.replacements(input_str, r'\(([0-9]+)\)', r'\1') == "This test is A string with numbers 12345 and This " \
+                                                                 "[CHARS] is a test"
+    query = '(.+)\(([0-9]+)\)(.+)\[(CHARS)\](.+)'
+    assert br.replacements(input_str, query, r'\1\2\3\4\5') == "This test is A string with numbers 12345 and This " \
+                                                               "CHARS is a test"
+    assert br.replacements(input_str, '([Tt].{3}).*?(.{3}[Tt])', r'\1\2', -2) == "This test is A strin with numbers " \
+                                                                                 "(12345) and This a test"
+    with pytest.raises(AttributeError) as err:
+        br.replacements(input_str, '(.)(.).{3}', r'\1\2\3')
+    assert "There are more replacement match values specified than query parenthesized groups" in str(err)
