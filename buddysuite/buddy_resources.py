@@ -943,48 +943,38 @@ def phylip_sequential_read(sequence, relaxed=True):
 
 def replacements(input_str, query, replace="", num=0):
     """
-    This will allow fancy positional regular expression replacements from left-to-right, as well as normal right-to-left
-    :param input_str:
-    :param query:
-    :param replace:
-    :param num:
-    :return:
+    This will allow fancy positional regular expression replacements from right-to-left, as well as normal left-to-right
+    :param input_str: The string that replacements will be working on
+    :param query: Regular expression
+    :param replace: What to substitute the matches with
+    :param num: Number of matches to replace. 0 = All, +ve nums from left-to-right, -ve nums from right-to-left
+    :return: Modified string
     """
+    # First make sure the user isn't trying to access more replacement groups than specified with parentheses
     check_parentheses = re.findall("\([^()]*\)", query)
-    check_replacement = re.findall(r"\\[0-9]+", replace)
-    check_replacement = sorted([int(match[1:]) for match in check_replacement])
-    if check_replacement and check_replacement[-1] > len(check_parentheses):
+    check_keep_group = re.findall(r"\\[0-9]+", replace)
+    check_keep_group = sorted([int(match[1:]) for match in check_keep_group])
+    if check_keep_group and check_keep_group[-1] > len(check_parentheses):
         raise AttributeError("There are more replacement match values specified than query parenthesized groups")
 
-    if num < 0:
-        if check_replacement:
-            for indx in sorted(range(check_replacement[-1]), reverse=True):
-                indx += 1
-                replace = re.sub(r"\\%s" % indx, r"\\%s" % (indx + 1), replace)
-            right_replace = "\\%s" % (len(check_replacement) + 2)
-        else:
-            right_replace = "\\2"
-        leftmost = str(input_str)
-        new_str = str(input_str)
-        rightmost = ""
-        hash_to_split_on = "UPNFSZ7FQ6RBhfFzwt0Cku4Yr1n2VvwVUG7x97G7"
-        for _ in range(abs(num)):
-            if leftmost == "":
-                break
-            new_str = re.sub(r"(.*)%s(.*)" % query,
-                             r"\1%s%s%s" % (hash_to_split_on, replace, right_replace), leftmost, 1)
-            new_str = new_str.split(hash_to_split_on)
-            if len(new_str) == 2:
-                leftmost = new_str[0]
-                rightmost = new_str[1] + rightmost
-                new_str = leftmost + rightmost
-            else:
-                new_str = leftmost + rightmost
-                break
+    if num < 0:  # Make replacements from right-to-left
+        matches = re.finditer(query, input_str)
+        matches = list(matches)
+        matches.reverse()
+        num = abs(num) if abs(num) <= len(matches) else len(matches)
+        for match_indx in range(num):
+            groups = matches[match_indx].groups()
+            next_replace = str(replace)
+            for group_indx, group in enumerate(groups):
+                group_indx += 1
+                next_replace = re.sub(r'\\%s' % group_indx, group, next_replace)
+            start = matches[match_indx].start()
+            end = matches[match_indx].end()
+            input_str = input_str[:start] + next_replace + input_str[end:]
     else:
-        new_str = re.sub(query, replace, input_str, num)
+        input_str = re.sub(query, replace, input_str, num)
 
-    return new_str
+    return input_str
 
 
 def send_traceback(tool, function, e, version):
