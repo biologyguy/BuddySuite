@@ -3,6 +3,7 @@
 
 import pytest
 import os
+import sys
 import io
 import builtins
 import re
@@ -18,6 +19,7 @@ from ... import buddy_resources as br
 # Globals
 temp_dir = br.TempDir()
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
+
 
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
@@ -60,23 +62,40 @@ def test_runtime():
         print(repr(out))
         assert out == '\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n'
 
-""" Test works but throws a ValueError (still passes) "I/O operation on closed file."
-def test_dynamicprint():
-    temp_file_path = temp_dir.subfile("dynamicprint")
-    with open(temp_file_path, "w") as temp_file:
-        printer = br.DynamicPrint(out_type=temp_file)
-        printer.write("Hello")
-        printer.write(" World")
-        printer.new_line(number=2)
-        printer.write("I am")
-        printer.clear()
-        printer.write("buddysuite")
 
-    with open(temp_file_path, "r") as temp_file:
-        out = temp_file.read()
-        print(repr(out))
-        assert out == '\n\nHello\n     \n World\n\n\n\nI am\n    \n\n\nbuddysuite'
-"""
+def test_dynamicprint_init():
+    printer = br.DynamicPrint()
+    assert printer._last_print == ""
+    assert printer._next_print == ""
+    assert printer.out_type == sys.stdout
+    assert not printer.quiet
+
+    printer = br.DynamicPrint(out_type="stderr")
+    assert printer.out_type == sys.stderr
+
+
+def test_dynamicprint_write(capsys):
+    printer = br.DynamicPrint()
+    printer.write("Hello")
+    printer.new_line(2)
+    printer.write("foo")
+    printer.clear()
+    printer.write("bar")
+    out, err = capsys.readouterr()
+    assert out == "\r\rHello\n\n\r\rfoo\r   \r\r\rbar"
+    assert err == ""
+
+    printer = br.DynamicPrint(out_type="stderr")
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == "\r\rHello"
+
+    printer = br.DynamicPrint(quiet=True)
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
 
 
 def test_pretty_time():
@@ -487,27 +506,29 @@ def test_phylip_sequential_read(alb_helpers):
 
 
 def test_replacements():
-    input_str = "ABC DEFGHIJ ABC HELLOWORLDABC"
-    assert br.replacements(input_str, "ABC", "XXX", -1) == "ABC DEFGHIJ ABC HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX", -2) == "ABC DEFGHIJ XXX HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX", -3) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX", -4) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX", 1) == "XXX DEFGHIJ ABC HELLOWORLDABC"
-    assert br.replacements(input_str, "ABC", "XXX", 2) == "XXX DEFGHIJ XXX HELLOWORLDABC"
-    assert br.replacements(input_str, "ABC", "XXX", 3) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX", 4) == "XXX DEFGHIJ XXX HELLOWORLDXXX"
-    assert br.replacements(input_str, "ABC", "XXX") == "XXX DEFGHIJ XXX HELLOWORLDXXX"
-
-''' Replacements doesn't work for some of these
-    input_str = "GATGTCATCGTAAGGACCATGCAAGGGTACTAAGTCCTG"
-    test_pattern = "(ATG(...)+(TAA|TAG|TGA))"
-    assert br.replacements(input_str, test_pattern, "X", 1) == "GXGGACCATGCAAGGGTACTAAGTCCTG"
-    assert br.replacements(input_str, test_pattern, "X", 2) == "GXGGACCXGTCCTG"
-    assert br.replacements(input_str, test_pattern, "X", 3) == "GXGGACCXGTCCTG"
-    assert br.replacements(input_str, test_pattern, "X", -1) == "GATGTCATCGTAAGGACCXGTCCTG"
-    assert br.replacements(input_str, test_pattern, "X", -2) == "GXGGACCXGTCCTG"
-    assert br.replacements(input_str, test_pattern, "X", -3) == "GXGGACCXGTCCTG"
-'''
+    input_str = "This test is A string with numbers (12345) and This [CHARS] is a test"
+    assert br.replacements(input_str, "numbers", "integers") == "This test is A string with integers (12345) and " \
+                                                                "This [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some") == "some test is A string with numbers (12345) and some " \
+                                                         "[CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -1) == "This test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -2) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -3) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "(?:(?:Thi)|(?:tes))", "foo", -3) == "This foot is A string with numbers " \
+                                                                           "(12345) and foos [CHARS] is a foot"
+    assert br.replacements(input_str, r'\(([0-9]+)\)', r'\1') == "This test is A string with numbers 12345 and This " \
+                                                                 "[CHARS] is a test"
+    query = '(.+)\(([0-9]+)\)(.+)\[(CHARS)\](.+)'
+    assert br.replacements(input_str, query, r'\1\2\3\4\5') == "This test is A string with numbers 12345 and This " \
+                                                               "CHARS is a test"
+    assert br.replacements(input_str, '([Tt].{3}).*?(.{3}[Tt])', r'\1\2', -2) == "This test is A strin with numbers " \
+                                                                                 "(12345) and This a test"
+    with pytest.raises(AttributeError) as err:
+        br.replacements(input_str, '(.)(.).{3}', r'\1\2\3')
+    assert "There are more replacement match values specified than query parenthesized groups" in str(err)
 
 
 def test_send_traceback(capsys, monkeypatch):
@@ -519,3 +540,4 @@ def test_send_traceback(capsys, monkeypatch):
     assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
                        "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
                        " Something broke!\n\n\n\n\033[m\n"
+
