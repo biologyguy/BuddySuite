@@ -3,6 +3,7 @@
 
 import pytest
 import os
+import sys
 import io
 import builtins
 import re
@@ -17,6 +18,7 @@ from ... import buddy_resources as br
 
 # Globals
 temp_dir = br.TempDir()
+
 
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
@@ -59,23 +61,40 @@ def test_runtime():
         print(repr(out))
         assert out == '\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n'
 
-""" Test works but throws a ValueError (still passes) "I/O operation on closed file."
-def test_dynamicprint():
-    temp_file_path = temp_dir.subfile("dynamicprint")
-    with open(temp_file_path, "w") as temp_file:
-        printer = br.DynamicPrint(out_type=temp_file)
-        printer.write("Hello")
-        printer.write(" World")
-        printer.new_line(number=2)
-        printer.write("I am")
-        printer.clear()
-        printer.write("buddysuite")
 
-    with open(temp_file_path, "r") as temp_file:
-        out = temp_file.read()
-        print(repr(out))
-        assert out == '\n\nHello\n     \n World\n\n\n\nI am\n    \n\n\nbuddysuite'
-"""
+def test_dynamicprint_init():
+    printer = br.DynamicPrint()
+    assert printer._last_print == ""
+    assert printer._next_print == ""
+    assert printer.out_type == sys.stdout
+    assert not printer.quiet
+
+    printer = br.DynamicPrint(out_type="stderr")
+    assert printer.out_type == sys.stderr
+
+
+def test_dynamicprint_write(capsys):
+    printer = br.DynamicPrint()
+    printer.write("Hello")
+    printer.new_line(2)
+    printer.write("foo")
+    printer.clear()
+    printer.write("bar")
+    out, err = capsys.readouterr()
+    assert out == "\r\rHello\n\n\r\rfoo\r   \r\r\rbar"
+    assert err == ""
+
+    printer = br.DynamicPrint(out_type="stderr")
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == "\r\rHello"
+
+    printer = br.DynamicPrint(quiet=True)
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
 
 
 def test_pretty_time():
