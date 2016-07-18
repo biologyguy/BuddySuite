@@ -93,7 +93,7 @@ from dendropy.datamodel.taxonmodel import TaxonNamespace
 from dendropy.calculate import treecompare
 
 # Patch a bug in older versions of DendroPy (V4.1.0 and older)
-dendropy_ver = int(re.sub("\.", "", dendropy.__version__))
+dendropy_ver = int(re.sub("[^0-9]", "", dendropy.__version__))
 if dendropy_ver < 411:
     from dendropy.datamodel.basemodel import Annotable
 
@@ -537,7 +537,7 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
     return output
 
 
-def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
+def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
     # ToDo Check that this works for other versions of RAxML and PhyML (probably implement something similar to the
     # unit tests for BLAST in SeqBuddy)
     # ToDo: Sort out a better way of handling the many names of RAxML (e.g., raxmlHPC)
@@ -547,7 +547,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
     """
     Calls tree building tools to generate trees
     :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
-    :param tool: The tree building tool to be used (raxml/phyml/fasttree)
+    :param alias: The tree building tool to be used (raxml/phyml/fasttree)
     :param params: Additional parameters to be passed to the tree building tool
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress all output form alignment programs
@@ -560,17 +560,32 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
     if keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(keep_temp):
             raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
-                                  "choose another location to save temporary files." % (tool, keep_temp.split('/')[-1]))
+                                  "choose another location to save temporary files." % (alias, keep_temp.split('/')[-1]))
 
-    # handle the deprecated tool name 'fasttree'
-    tool = tool.lower()
+    # Figure out what tool is being used
+    tool = False
+    if alias in ['raxml', 'phyml', 'fasttree']:
+        tool = alias
+    elif "raxml" in alias.lower():
+        tool = "raxml"
+    elif "phyml" in alias.lower():
+        tool = "phyml"
+    elif "fasttree" in alias.lower():
+        tool = "fasttree"
+    else:
+        for prog in [('raxml', " -v", "This is RAxML version"),
+                     ('phyml', " --version", "This is PhyML version"),
+                     ('fasttree', "", "Usage for FastTree version")]:
+            version = Popen("%s%s" % (alias, prog[1]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+            if prog[2] in version[0].decode() or prog[2] in version[1].decode():
+                tool = prog[0]
+                break
+    if not tool:
+        raise AttributeError("{0} is not a valid alignment tool.".format(alias))
 
-    if tool not in ['raxml', 'phyml', 'fasttree']:  # Supported tools
-        raise AttributeError("{0} is not a valid alignment tool.".format(tool))
-
-    if shutil.which(tool) is None:  # Tool must be callable from command line
+    if shutil.which(alias) is None:  # Tool must be callable from command line
         raise ProcessLookupError('#### Could not find {0} in $PATH. ####\nInstallation instructions '
-                                 'may be found at {1}.\n'.format(tool, _get_tree_binaries(tool)))
+                                 'may be found at {1}.\n'.format(alias, _get_tree_binaries(tool)))
 
     else:
         tmp_dir = br.TempDir()
@@ -622,7 +637,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                     params += ' -p 12345'
                 if '-#' not in params and '-N' not in params:  # Number of trees to build
                     params += ' -# 1'
-                command = '{0} -s {1} {2} -n result -w {3}'.format(tool, tmp_in, params, tmp_dir.path)
+                command = '{0} -s {1} {2} -n result -w {3}'.format(alias, tmp_in, params, tmp_dir.path)
 
             elif tool == 'phyml':
                 params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
@@ -636,18 +651,16 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                     if '-d aa' not in params and '--datatype aa' not in params:
                         params += ' -d aa'
 
-                command = '{0} -i {1} {2}'.format(tool, tmp_in, params)
+                command = '{0} -i {1} {2}'.format(alias, tmp_in, params)
 
             elif tool == 'fasttree':
                 if '-n ' not in params and '--multiple' not in params and len(sub_alignbuddy.alignments) > 1:
                     params += ' -n {0}'.format(len(sub_alignbuddy.alignments))  # Number of alignments to be input
                 if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
                                             IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-                    command = '{0} {1} -nt {2}'.format(tool, params, tmp_in)  # FastTree must be told what alpha to use
+                    command = '{0} {1} -nt {2}'.format(alias, params, tmp_in)  # FastTree must be told what alpha to use
                 else:
-                    command = '{0} {1} {2}'.format(tool, params, tmp_in)
-            else:
-                raise AttributeError("'%s' is an unknown phylogenetics tool." % tool)  # Should be unreachable
+                    command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
             output = ''
 
@@ -667,7 +680,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                             file_found = True
                             break
                     if not file_found:
-                        raise FileNotFoundError("Error: {0} failed to generate a tree.".format(tool))
+                        raise FileNotFoundError("Error: {0} failed to generate a tree.".format(alias))
                 else:  # If tool outputs to stdout
                     if quiet:
                         output = check_output(command, shell=True, universal_newlines=True, stderr=PIPE)
@@ -675,7 +688,7 @@ def generate_tree(alignbuddy, tool, params=None, keep_temp=None, quiet=False):
                         output = check_output(command, shell=True, universal_newlines=True)
 
             except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
-                raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool))
+                raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(alias))
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))

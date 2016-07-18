@@ -812,11 +812,11 @@ def extract_regions(alignbuddy, start, end):
 
 # ToDo: clustalomega may be clustalo
 # ToDo: Completely refactor the handling of output formats
-def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
+def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
     """
     Calls sequence aligning tools to generate multiple sequence alignments
     :param seqbuddy: The SeqBuddy object containing the sequences to be aligned
-    :param tool: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
+    :param alias: The alignment tool to be used (pagan/prank/muscle/clustalw2/clustalomega/mafft)
     :param params: Additional parameters to be passed to the alignment tool
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress stderr output
@@ -826,7 +826,38 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
     if params is None:
         params = ''
 
-    tool = tool.lower()
+    # Figure out what tool is being used
+    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+ ",
+                           "url": "http://mafft.cbrc.jp/alignment/software/"},
+                 'prank': {"ver": " -help", "check": "prank v\.[0-9]+",
+                           "url": "http://wasabiapp.org/software/prank/prank_installation/"},
+                 'pagan': {"ver": " -v", "check": "This is PAGAN",
+                           "url": "http://wasabiapp.org/software/pagan/pagan_installation/"},
+                 'muscle': {"ver": " -version", "check": "Robert C. Edgar",
+                            "url": "http://www.drive5.com/muscle/downloads.htm"},
+                 'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
+                              "url": "http://www.clustal.org/clustal2/#Download"},
+                 'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
+                              "url": "http://www.clustal.org/omega/#Download"}}
+
+    def check_lower(input_str):
+        input_str = str(input_str).lower()
+        if input_str in tool_list:
+            return input_str
+        for x in tool_list:
+            if x in input_str:
+                return x
+        return False
+
+    tool = check_lower(alias)
+    if not tool:
+        for prog, args in tool_list.items():
+            version = Popen("%s%s" % (alias, args["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+            if re.search(args['check'], version[0].decode()) or re.search(args['check'], version[1].decode()):
+                tool = prog
+                break
+    if not tool:
+        raise AttributeError("{0} is not a supported alignment tool.".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
         check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
@@ -834,33 +865,10 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
             sys.exit()
         keep_temp = os.path.abspath(keep_temp)
 
-    tool_urls = {'mafft': 'http://mafft.cbrc.jp/alignment/software/',
-                 'prank': 'http://wasabiapp.org/software/prank/prank_installation/',
-                 'pagan': 'http://wasabiapp.org/software/pagan/pagan_installation/',
-                 'muscle': 'http://www.drive5.com/muscle/downloads.htm',
-                 'clustalw': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalw2': 'http://www.clustal.org/clustal2/#Download',
-                 'clustalomega': 'http://www.clustal.org/omega/#Download',
-                 'clustalo': 'http://www.clustal.org/omega/#Download'}
-
-    if tool in ["clustalomega", "clustalo"]:
-        if which('clustalomega'):
-            tool = "clustalomega"
-        else:
-            tool = "clustalo"
-
-    if tool in ['clustalw', 'clustalw2', 'clustal']:
-        for tool_check in ['clustalw', 'clustalw2', 'clustal']:
-            if which(tool_check):
-                tool = tool_check
-                break
-
-    if tool not in tool_urls:
-        raise AttributeError("{0} is not a supported alignment tool.".format(tool))
-    if which(tool) is None:
-        _stderr('#### Could not find {0} in $PATH. ####\n'.format(tool), quiet)
-        _stderr('Please go to {0} to install {1}.\n'.format(tool_urls[tool], tool))
-        sys.exit()
+    if not which(alias):
+        error_msg = '#### Could not find %s in $PATH. ####\n ' \
+                    'Please go to %s to install %s.' % (alias, tool_list[tool]["url"], tool)
+        raise SystemError(error_msg)
     else:
         valve = br.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
@@ -920,21 +928,21 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
                 params = ' '.join(params)
 
-                if tool in ['clustalomega', 'clustalo']:
-                    command = '{0} {1} -i {2} -o {3}/result -v'.format(tool, params, tmp_in, tmp_dir.path)
-                elif tool.startswith('clustal'):
-                    command = '{0} -infile={1} {2} -outfile={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
+                if tool == 'clustalo':
+                    command = '{0} {1} -i {2} -o {3}/result -v'.format(alias, params, tmp_in, tmp_dir.path)
+                elif tool == 'clustalw':
+                    command = '{0} -infile={1} {2} -outfile={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
                 elif tool == 'muscle':
-                    command = '{0} -in {1} {2}'.format(tool, tmp_in, params)
+                    command = '{0} -in {1} {2}'.format(alias, tmp_in, params)
                 elif tool == 'prank':
-                    command = '{0} -d={1} {2} -o={3}/result'.format(tool, tmp_in, params, tmp_dir.path)
+                    command = '{0} -d={1} {2} -o={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
                 elif tool == 'pagan':
-                    command = '{0} -s {1} {2} -o {3}/result'.format(tool, tmp_in, params, tmp_dir.path)
-                else:
-                    command = '{0} {1} {2}'.format(tool, params, tmp_in)
+                    command = '{0} -s {1} {2} -o {3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                elif tool == 'mafft':
+                    command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
                 try:
-                    if tool in ['prank', 'pagan', 'clustalomega', 'clustalo']:
+                    if tool in ['prank', 'pagan', 'clustalo']:
                         if quiet:
                             output = Popen(command, shell=True, universal_newlines=True,
                                            stdout=PIPE, stderr=PIPE).communicate()
@@ -970,8 +978,8 @@ def generate_msa(seqbuddy, tool, params=None, keep_temp=None, quiet=False):
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
                 if (tool == 'mafft' and '--clustalout' in params) or \
-                        (tool.startswith('clustalw2') and '-output' not in params) or \
-                        (tool in ['clustalomega', 'clustalo'] and ('clustal' in params or '--outfmt clu' in params or
+                        (tool == 'clustalw' and '-output' not in params) or \
+                        (tool == 'clustalo' and ('clustal' in params or '--outfmt clu' in params or
                          '--outfmt=clu' in params)):
                     # Clustal format extra spaces
                     contents = ''
@@ -1667,7 +1675,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
     if in_args.generate_alignment:
         args = in_args.generate_alignment[0]
         if not args:
-            for tool in ['mafft', 'pagan', 'muscle', 'clustalomega', 'prank', 'clustalw2']:
+            for tool in ['mafft', 'pagan', 'muscle', 'clustalo', 'clustalomega', 'prank', 'clustalw2', 'clustalw']:
                 if which(tool):
                     args = [tool]
                     break
@@ -1699,6 +1707,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
             _print_aligments(alignbuddy)
         except AttributeError as e:
             _raise_error(e, "generate_alignment", "is not a supported alignment tool")
+        except SystemError as e:
+            _raise_error(e, "generate_alignment", "Could not find")
         _exit("generate_alignment")
 
     # Hash ids

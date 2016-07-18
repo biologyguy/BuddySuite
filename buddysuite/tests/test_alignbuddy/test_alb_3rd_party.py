@@ -10,14 +10,16 @@ it is necessary to check for two different hashes (maybe three, if Windows also 
 import pytest
 import os
 from unittest import mock
+from shutil import which
 from ... import AlignBuddy as Alb
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
-# This is tested for PAGAN version 0.61. NOTE: Do not split these up. Only one instance of Pagan can run at a time
 
+# ##########   PAGAN   ########## #
+# This is tested for PAGAN version 0.61. NOTE: Do not split these up. Only one instance of Pagan can run at a time
 def test_pagan(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -58,6 +60,7 @@ def test_pagan(sb_resources, alb_helpers):
     Alb.generate_msa(tester, "pagan", "-f phylipi", quiet=True)
 
 
+# ##########   PRANK   ########## #
 # PRANK is not deterministic, so just test that something reasonable is returned
 def test_prank_inputs(sb_resources):
     # FASTA
@@ -87,6 +90,7 @@ def test_prank_outputs3(sb_resources):
     assert tester.out_format == 'phylipsr'
 
 
+# ##########   MUSCLE   ########## #
 def test_muscle_inputs(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -106,11 +110,14 @@ def test_muscle_multi_param(sb_resources, alb_helpers):
     tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
     assert alb_helpers.align2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
 
+# ##########   CLUSTAL   ########## #
+clustalw_bin = 'clustalw' if which('clustalw') else 'clustalw2'
+
 
 def test_clustalw_inputs(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalw')
+    tester = Alb.generate_msa(tester, clustalw_bin)
     assert alb_helpers.align2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446',
                                               'efc9b04f73c72036aa230a8d72da228b']
 
@@ -118,7 +125,7 @@ def test_clustalw_inputs(sb_resources, alb_helpers):
 def test_clustalw_outputs1(sb_resources, alb_helpers):
     # NEXUS
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalw', '-output=nexus')
+    tester = Alb.generate_msa(tester, clustalw_bin, '-output=nexus')
     assert alb_helpers.align2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e',
                                               '7ca92360f0787164664843c895dd98f2']
 
@@ -126,7 +133,7 @@ def test_clustalw_outputs1(sb_resources, alb_helpers):
 def test_clustalw_outputs2(sb_resources, alb_helpers):
     # PHYLIP
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalw', '-output=phylip')
+    tester = Alb.generate_msa(tester, clustalw_bin, '-output=phylip')
     assert alb_helpers.align2hash(tester) in ['a9490f124039c6a2a6193d27d3d01205',
                                               'd3cc272a45fbde4b759460faa8e63ebc']
 
@@ -134,65 +141,70 @@ def test_clustalw_outputs2(sb_resources, alb_helpers):
 def test_clustalw_outputs3(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalw', '-output=fasta')
+    tester = Alb.generate_msa(tester, clustalw_bin, '-output=fasta')
     assert alb_helpers.align2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446',
                                               'efc9b04f73c72036aa230a8d72da228b']
 
 
 def test_clustalw_multi_param(sb_resources, alb_helpers):
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalw', '-output=phylip -noweights')
+    tester = Alb.generate_msa(tester, clustalw_bin, '-output=phylip -noweights')
     assert alb_helpers.align2hash(tester) == 'ae9126eb8c482a82d4060d175803c478'
+
+
+# ##########   CLUSTAL Omega   ########## #
+clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
 
 
 def test_clustalomega_inputs1(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalomega')
+    tester = Alb.generate_msa(tester, clustalo_bin)
     assert alb_helpers.align2hash(tester) == 'f5afdc7c76ab822bdc95230329766aba'
 
 
 def test_clustalomega_inputs2(sb_resources, alb_helpers):
     # PHYLIP
     tester = sb_resources.get_one("d py")
-    tester = Alb.generate_msa(tester, 'clustalomega')
+    tester = Alb.generate_msa(tester, clustalo_bin)
     assert alb_helpers.align2hash(tester) == '8299780bf9485b89a2f3462ead666142'
 
 
 def test_clustalomega_inputs3(sb_resources, alb_helpers):
     # STOCKHOLM
     tester = sb_resources.get_one("d s")
-    tester = Alb.generate_msa(tester, 'clustalomega')
+    tester = Alb.generate_msa(tester, clustalo_bin)
     assert alb_helpers.align2hash(tester) == 'd6654e3db3818cc3427cb9241113fdfa'
 
 
 def test_clustalomega_outputs1(sb_resources, alb_helpers):
     # CLUSTAL
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal')
+    tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal')
     assert alb_helpers.align2hash(tester) == '970f6e4389f77a30563763937a3d32bc'
 
 
 def test_clustalomega_outputs2(sb_resources, alb_helpers):
     # PHYLIP
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=phylip')
+    tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=phylip')
     assert alb_helpers.align2hash(tester) == '692c6af848bd90966f15908903894dbd'
 
 
 def test_clustalomega_outputs3(sb_resources, alb_helpers):
     # STOCKHOLM
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=stockholm')
+    tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=stockholm')
     assert alb_helpers.align2hash(tester) == '4c24975c033abcf15911a61cb9663a97'
 
 
 def test_clustalomega_multi_param(sb_resources, alb_helpers):
     tester = sb_resources.get_one("d f")
-    tester = Alb.generate_msa(tester, 'clustalomega', '--outfmt=clustal --iter=1')
+    tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal --iter=1')
     assert alb_helpers.align2hash(tester) == '25480f7a9340ff643bb7eeb326e8f981'
 
 
+# ##########   MAFFT   ########## #
 def test_mafft_inputs(sb_resources, alb_helpers):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -233,13 +245,13 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     except ImportError:
         monkeypatch.setattr("buddy_resources.ask", ask_false)
     with pytest.raises(SystemExit):
-        Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
+        Alb.generate_msa(tester, clustalo_bin, keep_temp="%s/ga_temp_files" % temp_dir.path)
 
     try:
         monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_true)
     except ImportError:
         monkeypatch.setattr("buddy_resources.ask", ask_true)
-    Alb.generate_msa(tester, "clustalomega", keep_temp="%s/ga_temp_files" % temp_dir.path)
+    Alb.generate_msa(tester, clustalo_bin, keep_temp="%s/ga_temp_files" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/result" % temp_dir.path)
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % temp_dir.path)
 
@@ -260,13 +272,12 @@ def test_generate_alignments_edges1(capsys, sb_resources):
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['PATH']
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemError) as err:
             Alb.generate_msa(tester, "mafft")
-        out, err = capsys.readouterr()
-        assert "#### Could not find mafft in $PATH. ####\n" in err
+        assert "#### Could not find mafft in $PATH. ####" in str(err)
 
 
-args = [("prank", "-f=phylipi"), ("clustalomega", "--outfmt=foo"), ("clustalw", "-output=foo"),
+args = [("prank", "-f=phylipi"), (clustalo_bin, "--outfmt=foo"), (clustalw_bin, "-output=foo"),
         ("prank", "-f=nexus"), ("prank", "-f=foo")]
 
 

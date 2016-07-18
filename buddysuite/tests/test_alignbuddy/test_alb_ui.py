@@ -267,7 +267,7 @@ def test_extract_regions_ui(capsys, alb_resources, alb_helpers):
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
 @pytest.mark.generate_alignments
-def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
+def test_generate_alignment_ui(capsys, sb_resources, alb_helpers, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
 
@@ -277,17 +277,19 @@ def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "00579d6d858b85a6662b4c29094bf205"
 
-    # noinspection PyUnresolvedReferences
-    with mock.patch.dict('os.environ'):
-        del os.environ['PATH']
-        with pytest.raises(AttributeError) as err:
-            Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
-        assert "Unable to identify any supported alignment tools on your system." in str(err)
-
     test_in_args.generate_alignment = [["foo"]]
     with pytest.raises(AttributeError) as err:
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
     assert "foo is not a supported alignment tool" in str(err)
+
+
+def test_generate_alignment_ui_patch_path(monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.generate_alignment = [[]]
+    monkeypatch.setenv("PATH", [])
+    with pytest.raises(AttributeError) as err:
+        Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
+    assert "Unable to identify any supported alignment tools on your system." in str(err)
 
 
 # ######################  '-hsi', '--hash_ids' ###################### #
