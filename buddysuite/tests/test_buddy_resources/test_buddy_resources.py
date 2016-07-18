@@ -399,8 +399,6 @@ def test_contributor():
     assert contributor.name() == "Bud Suite"
     assert str(contributor) == "Bud Suite"
 
-# Skipped CustomHelpFormatter
-
 
 def test_customhelpformatter(capsys, sb_helpers):
     oldparser = argparse.ArgumentParser()
@@ -537,7 +535,39 @@ def test_error_report(monkeypatch):
     monkeypatch.setattr(br, "FTP", FakeFTP)
     br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
 
-# Skip flags
+
+def test_flags(capsys, sb_helpers):
+    contributors = list()
+    contributors.append(br.Contributor("Bud", "Suite", "D", commits=10, github="buddysuite"))
+    contributors.append(br.Contributor("Sweet", "Water", commits=5, github="sweetwater"))
+    version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
+
+    parser = argparse.ArgumentParser(add_help=False)
+    pos_dict = ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
+                            "into SeqBuddy this argument can be left blank.")
+    flag_dict = {"annotate": {"flag": "ano",
+                              "nargs": "*",
+                              "metavar": "args",
+                              "help": "Add a feature (annotation) to selected sequences. "
+                                      "Args: <name>, <location (start1-end1,start2-end2...)>, [strand (+|-)], "
+                                      "[qualifier (foo=bar) [qualifier]], [regex_pattern [regex_[pattern]]}"},
+                 "ave_seq_length": {"flag": "asl",
+                                    "action": "append",
+                                    "nargs": "?",
+                                    "metavar": "'clean'",
+                                    "help": "Calculate average sequence length. Specify 'clean' to remove gaps etc "
+                                            "first"}}
+    mod_dict = {"alpha": {"flag": "a",
+                          "action": "store",
+                          "help": "If you want the file read with a specific alphabet"},
+                "in_format": {"flag": "f",
+                              "action": "store",
+                              "help": "If SeqBuddy can't guess the file format, try specifying it directly"}}
+
+    br.flags(parser, _positional=pos_dict, _flags=flag_dict, _modifiers=mod_dict, version=version)
+    parser.print_help()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "08c59420d1a07f528c1d80ed860c511a"
 
 
 def test_parse_format():
