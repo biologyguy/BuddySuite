@@ -3,6 +3,7 @@
 
 import pytest
 import os
+import sys
 import io
 import builtins
 import re
@@ -18,6 +19,7 @@ from ... import buddy_resources as br
 # Globals
 temp_dir = br.TempDir()
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
+
 
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
@@ -60,23 +62,40 @@ def test_runtime():
         print(repr(out))
         assert out == '\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n'
 
-""" Test works but throws a ValueError (still passes) "I/O operation on closed file."
-def test_dynamicprint():
-    temp_file_path = temp_dir.subfile("dynamicprint")
-    with open(temp_file_path, "w") as temp_file:
-        printer = br.DynamicPrint(out_type=temp_file)
-        printer.write("Hello")
-        printer.write(" World")
-        printer.new_line(number=2)
-        printer.write("I am")
-        printer.clear()
-        printer.write("buddysuite")
 
-    with open(temp_file_path, "r") as temp_file:
-        out = temp_file.read()
-        print(repr(out))
-        assert out == '\n\nHello\n     \n World\n\n\n\nI am\n    \n\n\nbuddysuite'
-"""
+def test_dynamicprint_init():
+    printer = br.DynamicPrint()
+    assert printer._last_print == ""
+    assert printer._next_print == ""
+    assert printer.out_type == sys.stdout
+    assert not printer.quiet
+
+    printer = br.DynamicPrint(out_type="stderr")
+    assert printer.out_type == sys.stderr
+
+
+def test_dynamicprint_write(capsys):
+    printer = br.DynamicPrint()
+    printer.write("Hello")
+    printer.new_line(2)
+    printer.write("foo")
+    printer.clear()
+    printer.write("bar")
+    out, err = capsys.readouterr()
+    assert out == "\r\rHello\n\n\r\rfoo\r   \r\r\rbar"
+    assert err == ""
+
+    printer = br.DynamicPrint(out_type="stderr")
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == "\r\rHello"
+
+    printer = br.DynamicPrint(quiet=True)
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err == ""
 
 
 def test_pretty_time():
@@ -472,6 +491,7 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
     with pytest.raises(br.PhylipError):
         br.phylip_sequential_out(buddy, _type="seq")
 
+
 def test_phylip_sequential_read(alb_resources, alb_helpers, sb_resources):
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
@@ -480,3 +500,29 @@ def test_phylip_sequential_read(alb_resources, alb_helpers, sb_resources):
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(), relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
+
+
+def test_replacements():
+    input_str = "This test is A string with numbers (12345) and This [CHARS] is a test"
+    assert br.replacements(input_str, "numbers", "integers") == "This test is A string with integers (12345) and " \
+                                                                "This [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some") == "some test is A string with numbers (12345) and some " \
+                                                         "[CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -1) == "This test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -2) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "This", "some", -3) == "some test is A string with numbers (12345) and " \
+                                                             "some [CHARS] is a test"
+    assert br.replacements(input_str, "(?:(?:Thi)|(?:tes))", "foo", -3) == "This foot is A string with numbers " \
+                                                                           "(12345) and foos [CHARS] is a foot"
+    assert br.replacements(input_str, r'\(([0-9]+)\)', r'\1') == "This test is A string with numbers 12345 and This " \
+                                                                 "[CHARS] is a test"
+    query = '(.+)\(([0-9]+)\)(.+)\[(CHARS)\](.+)'
+    assert br.replacements(input_str, query, r'\1\2\3\4\5') == "This test is A string with numbers 12345 and This " \
+                                                               "CHARS is a test"
+    assert br.replacements(input_str, '([Tt].{3}).*?(.{3}[Tt])', r'\1\2', -2) == "This test is A strin with numbers " \
+                                                                                 "(12345) and This a test"
+    with pytest.raises(AttributeError) as err:
+        br.replacements(input_str, '(.)(.).{3}', r'\1\2\3')
+    assert "There are more replacement match values specified than query parenthesized groups" in str(err)

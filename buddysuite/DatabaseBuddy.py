@@ -105,6 +105,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         self.databases = check_database(_databases)
         _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
+        self.memory_footprint = 0
 
         # Empty DbBuddy object
         if not _input:
@@ -389,7 +390,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         else:
             # remove any escape characters and convert space padding to tabs if writing the file
             _output = re.sub("\\033\[[0-9]*m", "", _output)
-            #_output = re.sub("  +", "\t", _output)
             destination.write(_output)
 
 
@@ -560,6 +560,13 @@ class Record(object):
 
 class Failure(object):
     def __init__(self, query, error_message):
+        """
+        Keep track of failed attempts to get records from the databases
+        :param query: What was searched for
+        :type query: str
+        :param error_message: Either an automatically generated message or something custom that is informative
+        :type error_message: str
+        """
         self.query = query
         self.error_msg = error_message
 
@@ -774,7 +781,7 @@ class UniProtRestClient(object):
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             runtime.start()
             br.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
-                                           func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             runtime.start()
@@ -821,7 +828,7 @@ class UniProtRestClient(object):
             runtime.start()
             params = {"format": "txt"}
             br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True,
-                                           func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
             runtime.end()
             errors = self._parse_error_file()
             if errors:
@@ -1483,6 +1490,8 @@ class EnsemblRestClient(object):
                                         headers={"Content-type": "application/json", "Accept": "application/json"})
 
         for accn, results in data.items():
+            if not results:
+                continue
             size = abs(results["start"] - results["end"])
             required_keys = ['display_name', 'species', 'biotype', 'object_type',
                              'strand', 'assembly_name', 'description']
@@ -2578,13 +2587,11 @@ def argparse_init():
 
 def command_line_ui(in_args, dbbuddy, skip_exit=False):
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    def _print_recs(_dbbuddy):
-        _dbbuddy.print()
-
     # Live Shell
+    temp_file = br.TempFile(byte_mode=True)
+
     def launch_live_shell():
         # Create a temp file for crash handling
-        temp_file = br.TempFile(byte_mode=True)
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
             LiveSearch(dbbuddy, temp_file)
@@ -2598,22 +2605,25 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
             _stderr("%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
                     "command.%s\n" % (GREEN, save_file, DEF_FONT))
-
-        temp_file.close()
-        sys.exit()
+        dbbuddy.memory_footprint = int(os.path.getsize(temp_file.path))
+        _exit("live_shell")
 
     def _exit(tool, skip=skip_exit):
         if skip:
             return
         usage = br.Usage()
-        usage.increment("PhyloBuddy", VERSION.short(), tool, 0)
+        usage.increment("DatabaseBuddy", VERSION.short(), tool, dbbuddy.memory_footprint)
         usage.save()
+        temp_file.close()
         sys.exit()
 
     if in_args.live_shell:
         launch_live_shell()
 
     """
+    def _print_recs(_dbbuddy):
+        _dbbuddy.print()
+
     # Download everything
     if in_args.download_everything:
         dbbuddy.out_format = "gb" if not in_args.out_format else in_args.out_format
