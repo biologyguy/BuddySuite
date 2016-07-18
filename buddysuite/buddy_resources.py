@@ -252,8 +252,8 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
 
                     if func_args:
                         if not isinstance(func_args, list):
-                            exit("Error in run_multicore_function(): The arguments passed into the multi-thread "
-                                 "function must be provided as a list")
+                            raise AttributeError("The arguments passed into the multi-thread function must be provided "
+                                                 "as a list")
                         p = Process(target=function, args=(next_iter, func_args))
 
                     else:
