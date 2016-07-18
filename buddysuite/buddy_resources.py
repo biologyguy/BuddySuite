@@ -1089,9 +1089,6 @@ def ungap_feature_ends(feat, rec):
 
 
 def _old2new(feat, old_rec, new_rec):
-    if feat.location.start == feat.location.end == 0:
-        return feat
-
     if type(feat.location) == CompoundLocation:
         parts = []
         for part in feat.location.parts:
@@ -1105,6 +1102,8 @@ def _old2new(feat, old_rec, new_rec):
         else:
             return None
     elif type(feat.location) == FeatureLocation:
+        if feat.location.start == feat.location.end == 0:
+            return feat
         if feat.location.start > feat.location.end:
             start, end = feat.location.end, feat.location.start
         else:
@@ -1137,7 +1136,7 @@ def _old2new(feat, old_rec, new_rec):
                     break
         start -= 1
         if start == -1:
-            return None
+            return None  # I don't think this should ever be hit
         end = end if end != 0 else len(new_seq)
         feat.location = FeatureLocation(start, end, feat.location.strand)
     else:

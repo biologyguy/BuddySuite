@@ -21,6 +21,14 @@ temp_dir = br.TempDir()
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
 
 
+# Mock resources
+class MockLocation(object):
+    def __init__(self):
+        self.start = 0
+        self.end = 1
+
+
+# Tests
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
 
@@ -568,14 +576,78 @@ def test_ungap_feature_ends_compound(alb_resources):
 
 
 def test_ungap_feature_ends_error(alb_resources):
-    class MockLocation(object):
-        def __init__(self):
-            self.start = 0
-            self.end = 1
-
     rec = alb_resources.get_one("o d g").records()[0]
     feature = rec.features[1]
     feature.location = MockLocation()
     with pytest.raises(TypeError) as err:
         br.ungap_feature_ends(feature, rec)
     assert "FeatureLocation or CompoundLocation object required." in str(err)
+
+
+def test_old2new_simple(alb_resources, sb_resources):
+    # Pulling out Mle-Panxα9 from both buddy objects
+    align_rec = alb_resources.get_one("o d g").records()[0]
+    seq_rec = sb_resources.get_one("d g").records[0]
+    feature = br._old2new(seq_rec.features[1], seq_rec, align_rec)
+    assert str(feature.location) == str(align_rec.features[1].location)
+
+    feature.location._start = 45
+    feature.location._end = 35
+    feature = br._old2new(feature, seq_rec, align_rec)
+    assert str(feature.location) == str(align_rec.features[1].location)
+
+    feature.location._start = 0
+    feature.location._end = 0
+    feature_str = str(feature)
+    feature = br._old2new(feature, seq_rec, align_rec)
+    assert feature_str == str(feature)
+
+    # Pulling out Mle-Panxα1 to test case where a feature doesn't change between old and new
+    align_rec = alb_resources.get_one("o d g").records()[2]
+    seq_rec = sb_resources.get_one("d g").records[2]
+    feature = seq_rec.features[1]
+    feature.location._start = 0
+    feature.location._end = 1
+    feature_str = str(feature)
+    feature = br._old2new(feature, seq_rec, align_rec)
+    assert feature_str == str(feature)
+
+
+def test_old2new_compound(alb_resources, sb_resources):
+    align_rec = alb_resources.get_one("o d g").records()[0]
+    seq_rec = sb_resources.get_one("d g").records[0]
+    feature = br._old2new(seq_rec.features[0], seq_rec, align_rec)
+    assert str(feature.location) == str(align_rec.features[0].location)
+
+    part = feature.location.parts[0]
+    part._start, part._end = [0, 45]
+    feature.location.parts = [part]
+    feature = br._old2new(feature, seq_rec, align_rec)
+    assert str(feature.location) == str(align_rec.features[0].location.parts[0])
+
+    seq_rec = sb_resources.get_one("d g").records[0]
+    feature = seq_rec.features[0]
+    feature.location.parts = []
+    assert not br._old2new(feature, seq_rec, align_rec)
+
+
+def test_old2new_error(alb_resources, sb_resources):
+    rec = alb_resources.get_one("o d g").records()[0]
+    feature = rec.features[1]
+    feature.location = MockLocation()
+    with pytest.raises(TypeError) as err:
+        br._old2new(feature, "seq_rec", "align_rec")
+    assert "FeatureLocation or CompoundLocation object required." in str(err)
+
+
+def test_remap_gapped_features(alb_resources, sb_resources):
+    align_recs = alb_resources.get_one("o d g").records()
+    seq_recs = sb_resources.get_one("d g").records
+
+    new_recs = br.remap_gapped_features(seq_recs, align_recs)
+    align_str, new_str = "", ""
+    for align_rec, new_rec in zip(align_recs, new_recs):
+        for align_feat, new_feat in zip(align_rec.features, new_rec.features):
+            align_str += "%s\n" % align_feat
+            new_str += "%s\n" % new_feat
+    assert align_str == new_str
