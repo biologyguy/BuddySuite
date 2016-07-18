@@ -526,3 +526,56 @@ def test_replacements():
     with pytest.raises(AttributeError) as err:
         br.replacements(input_str, '(.)(.).{3}', r'\1\2\3')
     assert "There are more replacement match values specified than query parenthesized groups" in str(err)
+
+
+def test_ungap_feature_ends_simple(alb_resources):
+    rec = alb_resources.get_one("o d g").records()[0]
+    feature = rec.features[1]
+    feature.location._start = -4
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.start == 9
+
+    feature.location._start = 77
+    feature.location._end = -4
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.start == 9
+    assert feature.location.end == 77
+
+    feature.location._end = 238
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.end == 225
+
+    feature.location.strand = -1
+    feature.location._start = -4
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.start == 9
+
+    feature.location._end = 238
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.end == 225
+
+
+def test_ungap_feature_ends_compound(alb_resources):
+    rec = alb_resources.get_one("o d g").records()[0]
+    feature = rec.features[0]
+    feature.location.parts[0]._start = 0
+    feature.location.parts[1]._end = 238
+    print(feature)
+    feature = br.ungap_feature_ends(feature, rec)
+    assert feature.location.parts[0].start == 9
+    assert feature.location.parts[1].end == 225
+    print(feature)
+
+
+def test_ungap_feature_ends_error(alb_resources):
+    class MockLocation(object):
+        def __init__(self):
+            self.start = 0
+            self.end = 1
+
+    rec = alb_resources.get_one("o d g").records()[0]
+    feature = rec.features[1]
+    feature.location = MockLocation()
+    with pytest.raises(TypeError) as err:
+        br.ungap_feature_ends(feature, rec)
+    assert "FeatureLocation or CompoundLocation object required." in str(err)
