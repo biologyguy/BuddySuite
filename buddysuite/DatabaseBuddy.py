@@ -415,6 +415,7 @@ class Record(object):
 
     def guess_database(self):
         # RefSeq
+        # https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/
         if re.match("^[NX][MR]_[0-9]+", self.accession):
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
@@ -428,37 +429,41 @@ class Record(object):
             self.type = "protein"
 
         # UniProt/SwissProt
+        # http://www.uniprot.org/help/accession_numbers
         elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
             self.database = "uniprot"
             self.type = "protein"
 
-        # Ensembl stable ids (http://www.ensembl.org/info/genome/stable_ids/index.html)
-        elif re.match("^(ENS|FB)[A-Z]*[0-9]+", self.accession):
+        # Ensembl stable ids
+        # http://www.ensembl.org/info/genome/stable_ids/index.html
+        # First match is normal ensembl, the second is flybase
+        elif re.match("^ENS[A-Z]*[0-9]+", self.accession) or re.match("^FB[a-z]{2}[0-9]+", self.accession):
             self.database = "ensembl"
             self.type = "nucleotide"
 
         # GenBank
-        elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}$", self.accession):  # Nucleotide
+        elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}(\.([0-9]+))?$", self.accession):  # Nucleotide
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
-        elif re.match("^[A-Z]{3}[0-9]{5}$", self.accession):  # Protein
+        elif re.match("^[A-Z]{3}[0-9]{5}(\.([0-9]+))?$", self.accession):  # Protein
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("[0-9][A-Z0-9]{3}(_[A-Z0-9])?$", self.accession):  # PDB
+        elif re.match("[0-9][A-Z0-9]{3}(_[A-Z0-9])?(\.([0-9]+))?$", self.accession) \
+                and re.search("[A-Z]", self.accession):  # PDB
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("^[A-Z]{4}[0-9]{8,10}$", self.accession):  # Whole Genome
+        elif re.match("^[A-Z]{4}[0-9]{8,10}(\.([0-9]+))?$", self.accession):  # Whole Genome
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
-        elif re.match("^[A-Z]{5}[0-9]{7}$", self.accession):  # MGA (Mass sequence for Genome Annotation)
+        elif re.match("^[A-Z]{5}[0-9]{7}(\.([0-9]+))?$", self.accession):  # MGA (Mass sequence for Genome Annotation)
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("^[0-9]+$", self.accession):  # GI number
+        elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number
             self.database = "ncbi_nuc"
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
             self.gi = str(self.accession)
