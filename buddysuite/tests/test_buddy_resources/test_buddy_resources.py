@@ -9,6 +9,7 @@ import builtins
 import re
 import ftplib
 import urllib.request
+import argparse
 from hashlib import md5
 from time import sleep
 from unittest import mock
@@ -400,6 +401,22 @@ def test_contributor():
 
 # Skipped CustomHelpFormatter
 
+
+def test_customhelpformatter(capsys, sb_helpers):
+    oldparser = argparse.ArgumentParser()
+    oldparser.add_argument('-v', '--version', help='Show module version #s', action='store')
+    oldparser.print_help()
+    oldout, olderr = capsys.readouterr()
+
+    parser = argparse.ArgumentParser(formatter_class=br.CustomHelpFormatter, add_help=False)
+    parser.add_argument('-h', '--help', help='show this help message and exit', action='help')
+    parser.add_argument('-v', '--version', help='Show module version #s', action='store')
+    parser.print_help()
+    out, err = capsys.readouterr()
+    assert out != oldout
+    assert sb_helpers.string2hash(oldout) == "1429ec82e7bfffa2189a47404e12e6bd"
+    assert sb_helpers.string2hash(out) == "c99e5e1197b0a778a73025d1ab623c1c"
+    assert err == "" and olderr == ""
 
 def test_usage(monkeypatch):
     class FakeFTP:
