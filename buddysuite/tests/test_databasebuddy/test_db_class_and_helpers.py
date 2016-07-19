@@ -286,13 +286,62 @@ def test_record_guess_genbank_version():
         assert rec.version == ver
 
 
-def test_record_search():
+def test_record_search(sb_resources):
     summary = {"ACCN": "F6SBJ1", "DB": "uniprot", "entry_name": "F6SBJ1_HORSE", "length": "451",
                "organism-id": "9796", "organism": "Equus caballus (Horse)", "protein_names": "Caspase",
                "comments": "Caution (1); Sequence similarities (1)", "record": "summary"}
     rec = Db.Record("F6SBJ1", summary=summary)
     assert rec.search("*")
     assert not rec.search("Foo")
+
+    # Length operator True
+    assert rec.search("(length=451)")
+    assert rec.search("(length >=451)")
+    assert rec.search("(length<= 451)")
+    assert rec.search("(length > 200)")
+    assert rec.search("(length<500)")
+
+    # Length operator False
+    assert not rec.search("(length=452)")
+    assert not rec.search("(length>=452)")
+    assert not rec.search("(length<=450)")
+    assert not rec.search("(length>500)")
+    assert not rec.search("(length<200)")
+
+    # Length operator errors
+    with pytest.raises(ValueError) as err:
+        rec.search("(length!<200)")
+    assert "Invalid syntax for seaching 'length': length!<200" in str(err)
+
+    with pytest.raises(ValueError) as err:
+        rec.search("(length<>200)")
+    assert "Invalid operator: <>" in str(err)
+
+    # Other columns
+    assert rec.search("(ACCN) [A-Z0-9]{6}")
+    assert not rec.search("(ACCN) [A-Z0-9]{7}")
+    assert rec.search("(comments)(Caution|Blahh)")
+    assert not rec.search("(organism)Sheep")
+    assert rec.search("(entry_name)")
+    assert rec.search("(entry_name) ")
+    assert not rec.search("(foo_name)")
+
+    # No columns -> params
+    assert rec.search("F6SBJ1")
+    assert rec.search("uniprot")
+    assert rec.search("protein")
+
+    # No columns -> summary
+    assert rec.search("Equus")
+    assert not rec.search("equus")
+    assert rec.search("i?equus")
+    assert rec.search("?iEqUuS")
+
+    # Genbank record
+    sb_obj = sb_resources.get_one("p g")
+    rec = Db.Record("Mle-Panxα8", _record=sb_obj.records[4])
+    assert rec.search("Innexin")
+    assert not rec.search("ML07312abcd")
 
 
 def test_record_update():

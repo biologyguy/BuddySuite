@@ -483,60 +483,65 @@ class Record(object):
         return
 
     def search(self, regex):
-        regex = "." if regex == "*" else regex
-        column = re.match("\((.*)\)", regex)
+        regex = ".*" if regex == "*" else regex  # This prevents a crash
+        # Default is case-senstive, so check if the user desires otherwise
+        if regex[:2] in ["i?", "?i"]:
+            flags = re.IGNORECASE
+            regex = regex[2:]
+        else:
+            flags = 0
+
+        column = re.match("\((.*?)\)", regex)
         if column:
             column = column.group(1)
             # Special case, if user is searching sequence length
-            if re.match("length.+", column):
-                if not re.match("^length[ =<>]*[0-9]*$", column):
+            if re.match("length.+", column.strip(), flags=re.IGNORECASE):
+                if not re.match("^length[ =<>]+[0-9]+$", column, flags=re.IGNORECASE):
                     raise ValueError("Invalid syntax for seaching 'length': %s" % column)
 
-                limit = re.search("length[ =<>]*([0-9]*)", column).group(1)
-                try:
-                    limit = int(limit)
-                except ValueError:
-                    limit = re.search("length[ =<>]*(.*)", column).group(1)[:-1]
-                    raise ValueError("Unable to recast limit: %s" % limit)
+                limit = re.search("length *([ =<>]+)([0-9]+)", column, flags=re.IGNORECASE)
+                operator = limit.group(1).strip()
+                limit = int(limit.group(2))
+                length = int(self.summary["length"])
 
-                operator = re.search("length *([=<>]*) *[0-9]", column).group(1)
                 if operator not in ["=", ">", ">=", "<", "<="]:
                     raise ValueError("Invalid operator: %s" % operator)
 
-                if operator == "=" and int(self.summary["length"]) == limit:
+                if operator == "=" and length == limit:
                     return True
-                elif operator == ">" and int(self.summary["length"]) > limit:
+                elif operator == ">" and length > limit:
                     return True
-                elif operator == ">=" and int(self.summary["length"]) >= limit:
+                elif operator == ">=" and length >= limit:
                     return True
-                elif operator == "<" and int(self.summary["length"]) < limit:
+                elif operator == "<" and length < limit:
                     return True
-                elif operator == "<=" and int(self.summary["length"]) <= limit:
+                elif operator == "<=" and length <= limit:
                     return True
                 else:
                     return False
 
-            column = "?i" if column == "i?" else column  # Catch an easy syntax error. Maybe a bad idea?
-            regex = regex[len(column) + 2:] if column != "?i" else regex
-            try:
-                if re.search(str(regex), str(self.summary[column])):
-                    return True
-                else:
-                    return False
-            except KeyError:
-                if column != "?i":
-                    raise KeyError(column)
+            regex = re.search("^\(.*?\)(.*)", regex, flags=flags)
+            regex = None if not regex else regex.group(1).strip()
+
+            if column in self.summary and not regex:  # This will return everything with the given column
+                return True
+
+            if column in self.summary and re.search(regex, str(self.summary[column]), flags=flags):
+                return True
+            else:
+                return False
 
         for param in [self.accession, self.database, self.type, self.search_term]:
-            if re.search(regex, str(param)):
+            print("%s : %s" % (regex, str(param)))
+            if re.search(regex, str(param), flags=flags):
                 return True
 
         for _key, _value in self.summary.items():
-            if re.search(regex, _key) or re.search(regex, str(_value)):
+            if re.search(regex, _key, flags=flags) or re.search(regex, str(_value), flags=flags):
                 return True
 
         if self.record:
-            if re.search(regex, self.record.format("gb")):
+            if re.search(regex, self.record.format("gb"), flags=flags):
                 return True
         # If nothing hits, default to False
         return False
@@ -2355,7 +2360,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
@@ -2383,7 +2388,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_restore(self):
@@ -2395,7 +2400,7 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.\n
 ''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_save(self):
