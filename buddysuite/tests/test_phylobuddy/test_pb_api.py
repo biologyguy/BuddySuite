@@ -122,48 +122,49 @@ def test_distance_unknown_method(pb_resources):
 
 # ######################  'gt', '--generate_trees' ###################### #
 # ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
-def test_raxml_inputs_nuc(monkeypatch, alb_resources, pb_helpers):
+def test_raxml_inputs(monkeypatch, alb_resources, pb_helpers):
     tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_raxml_inputs_nuc" % alb_resources.res_path):
+    if not os.path.isdir("%s/mock_resources/test_raxml_inputs" % alb_resources.res_path):
         raise NotADirectoryError("Unable to find mock resources")
-    for root, dirs, files in os.walk("%s/mock_resources/test_raxml_inputs_nuc" % alb_resources.res_path):
+    for root, dirs, files in os.walk("%s/mock_resources/test_raxml_inputs" % alb_resources.res_path):
         for _file in files:
             shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
 
     tester = alb_resources.get_one("o d n")
     monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
     with mock.patch('buddysuite.PhyloBuddy.Popen', MockPopen):
-        tester = Pb.generate_tree(tester, 'raxml', " r_seed 12345")
+        tester = Pb.generate_tree(tester, 'raxml', " -r_seed 12345")
 
     assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
 
-def test_raxml_multi_param():
-    pass
-
-
 # PhyML version 20120412
-def test_phyml_inputs():
-    # Nucleotide
-    # Peptide
-    pass
+def test_phyml_inputs(monkeypatch, alb_resources, pb_helpers):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    for root, dirs, files in os.walk("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    tester = alb_resources.get_one("o d n")
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+    with mock.patch('buddysuite.PhyloBuddy.Popen', MockPopen):
+        tester = Pb.generate_tree(tester, 'phyml', " -r_seed 12345")
+
+    assert pb_helpers.phylo2hash(tester) == "01699cec16b5dc41036d9c9f5e4894d2"
 
 
-def test_phyml_multi_param():
-    pass
-
-
-def test_fasttree_inputs():
-    # Nucleotide
-    pass
-
-
-def test_fasttree_multi_param():
-    pass
-
-
-def test_generate_trees_edge_cases():
-    pass
+def test_fasttree_inputs(monkeypatch, alb_resources, pb_helpers):
+    if not os.path.isdir("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = alb_resources.get_one("o d n")
+    with open("%s/mock_resources/test_fasttree_inputs/fasttree_result.aln" % alb_resources.res_path) as treefile:
+        mock_check_output = mock.Mock(return_value=treefile.read())
+    monkeypatch.setattr(Pb, 'check_output', mock_check_output)
+    monkeypatch.setattr(Pb, 'Popen', MockPopen)
+    tester = Pb.generate_tree(tester, 'fasttree')
+    assert pb_helpers.phylo2hash(tester) == "f6caf053c1cd4287ac2f80381a991d8c"
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
