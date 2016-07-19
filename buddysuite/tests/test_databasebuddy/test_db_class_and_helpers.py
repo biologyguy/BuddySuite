@@ -2,9 +2,14 @@
 import pytest
 from collections import OrderedDict
 import datetime
+import random
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
+
+# A few real accession numbers to test things out with
+ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
+         "XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
 
 
 # ##################################################### GLOBALS ###################################################### #
@@ -366,7 +371,6 @@ def test_record_update():
     assert str(rec) == "Accession:\tF6SBJ1\nDatabase:\tuniprot\nRecord:\tNone\nType:\tprotein\n"
 
 
-#######
 def test_failure_class():
     failure = Db.Failure("Q9JIJ4BYE", "Blahhh")
     assert failure.query == "Q9JIJ4BYE"
@@ -376,6 +380,7 @@ def test_failure_class():
 
 
 # ##################################################### DB BUDDY ##################################################### #
+# Instantiation
 def test_instantiate_empty_dbbuddy_obj():
     dbbuddy = Db.DbBuddy()
     assert dbbuddy.search_terms == []
@@ -387,11 +392,76 @@ def test_instantiate_empty_dbbuddy_obj():
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
         assert dbbuddy.server_clients[client] == False
+    assert dbbuddy.memory_footprint == 0
 
 
 def test_instantiate_dbbuddy_from_path(sb_resources):
-    pass
+    tmp_file = br.TempFile()
+    tmp_file.write(", ".join(ACCNS))
+    dbbuddy = Db.DbBuddy(tmp_file.path)
+    assert dbbuddy.search_terms == []
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+    assert dbbuddy.trash_bin == {}
+    assert dbbuddy.out_format == "summary"
+    assert dbbuddy.failures == {}
+    assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
+    for client in ['ncbi', 'ensembl', 'uniprot']:
+        assert dbbuddy.server_clients[client] == False
+    assert dbbuddy.memory_footprint == 0
+
+    # Also test the other ways accessions can be in the file
+    tmp_file.clear()
+    split_chars = ["\t", "\n", "\r", " ", ","]
+    tmp_file.write(ACCNS[0])
+    for accn in ACCNS[1:]:
+        tmp_file.write("%s%s" % (random.choice(split_chars), accn))
+    dbbuddy = Db.DbBuddy(tmp_file.path)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+
+
+def test_instantiate_dbbuddy_from_handle():
+    tmp_file = br.TempFile()
+    tmp_file.write(", ".join(ACCNS))
+    tmp_file.open("r")
+    dbbuddy = Db.DbBuddy(tmp_file.handle)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+
+
+def test_instantiate_dbbuddy_from_plain_text():
+    accns = ", ".join(ACCNS)
+    dbbuddy = Db.DbBuddy(accns)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
 
 
 def test_instantiate_dbbuddy_from_list():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    dbbuddy = Db.DbBuddy([dbbuddy, dbbuddy])
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+
+    with pytest.raises(TypeError) as err:
+        Db.DbBuddy(["foo", "bar"])
+    assert "List of non-DbBuddy objects passed into DbBuddy as _input." in str(err)
+
+
+def test_instantiate_dbbuddy_error():
+    with pytest.raises(br.GuessError) as err:
+        Db.DbBuddy({"Foo": "bar"})
+    assert "DbBuddy could not determine the input type." in str(err)
+
+
+def test_instantiate_dbbuddy_search_terms():
+    dbbuddy = Db.DbBuddy("foobar, barfoo")
+    assert dbbuddy.search_terms == ["foobar", "barfoo"]
+
+
+# Methods
+
+# ################################################# Database Clients ################################################# #
+def test_uniprotrestclient_init():
+    #client = Db.UniProtRestClient()
     pass

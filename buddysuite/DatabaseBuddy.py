@@ -103,7 +103,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         self.out_format = _out_format.lower()
         self.failures = {}  # The key for these is a hash of the Failure, and the values are actual Failure objects
         self.databases = check_database(_databases)
-        _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.memory_footprint = 0
 
@@ -133,7 +132,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _input = _input.strip()
 
         # File paths
-        elif os.path.isfile(_input):
+        elif type(_input) == str and os.path.isfile(_input):
             with open(_input, "r", encoding="utf-8") as _ifile:
                 _input = _ifile.read().strip()
 
@@ -148,11 +147,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                 _record = Record(_accession)
                 _record.guess_database()
                 if _record.database:
-                    if _databases:
-                        _record.database = _databases
                     self.records[_accession] = _record
-                    if _record.database not in self.databases:
-                        self.databases.append(_record.database)
 
             # If accessions not identified, assume search terms
             if len(self.records) != len(accessions_check):
@@ -532,7 +527,6 @@ class Record(object):
                 return False
 
         for param in [self.accession, self.database, self.type, self.search_term]:
-            print("%s : %s" % (regex, str(param)))
             if re.search(regex, str(param), flags=flags):
                 return True
 
@@ -1800,7 +1794,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 if confirm.lower() not in ["yes", "y"]:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.records = {}
+                    self.dbbuddy.records = OrderedDict()
                     _stdout("All records removed from main list (trash bin is still intact).\n\n",
                             format_in=GREEN, format_out=self.terminal_default)
 
@@ -1845,7 +1839,7 @@ Further details about each command can be accessed by typing 'help <command>'
         amount_seq_requested = 0
         new_records_fetched = []
         for _accn, _rec in self.dbbuddy.records.items():
-            if not _rec.record:  # Not fetching sequence if the full record already exists
+            if not _rec.record and _rec:  # Not fetching sequence if the full record already exists
                 amount_seq_requested += _rec.size
                 new_records_fetched.append(_accn)
 
@@ -2050,6 +2044,9 @@ Further details about each command can be accessed by typing 'help <command>'
             elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
+                        format_in=RED, format_out=self.terminal_default)
+            elif re.search("Locus identifier .*? is too long", str(_e)):
+                _stdout("Error: Accession numbers are too long for GenBank format, try EMBL." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
             else:
                 raise ValueError(_e)
