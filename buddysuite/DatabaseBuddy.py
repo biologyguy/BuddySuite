@@ -162,7 +162,13 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
 
     def __eq__(self, other):
-        return isinstance(other, type(self)) and ((self.records, self.out_format) == (other.records, other.out_format))
+        if isinstance(other, type(self)) and self.out_format == other.out_format:
+            recs1 = "".join(["%s%s" % (key, rec) for key, rec in self.records.items()])
+            recs2 = "".join(["%s%s" % (key, rec) for key, rec in other.records.items()])
+            print(recs1)
+            if recs1 == recs2:
+                return True
+        return False
 
     def __str__(self):
         _output = "############################\n"
@@ -187,20 +193,21 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         column_errors = {"KeyError": [], "ValueError": []}
         for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
-            try:
-                if mode == "keep" and not _rec.search(regex):
-                    self.trash_bin[_id] = _rec
-                elif mode == "remove" and _rec.search(regex):
-                    self.trash_bin[_id] = _rec
-                elif mode == "restore" and _rec.search(regex):
-                    self.records[_id] = _rec
+            # try:
+            if mode == "keep" and not _rec.search(regex):
+                self.trash_bin[_id] = _rec
+            elif mode == "remove" and _rec.search(regex):
+                self.trash_bin[_id] = _rec
+            elif mode == "restore" and _rec.search(regex):
+                self.records[_id] = _rec
+            '''
             except KeyError as _e:
                 if str(_e) not in column_errors["KeyError"]:
                     column_errors["KeyError"].append(str(_e))
             except ValueError as _e:
                 if str(_e) not in column_errors["ValueError"]:
                     column_errors["ValueError"].append(str(_e))
-
+            '''
         if mode == "restore":
             for _id in self.records:
                 if _id in self.trash_bin:
@@ -221,17 +228,17 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                                 if not _rec.record and not _rec.summary]
         return _output
 
-    def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
+    def server(self, _server):
+        if _server not in ["uniprot", "ncbi", "ensembl"]:
+            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
         if self.server_clients[_server]:
             return self.server_clients[_server]
         if _server == "uniprot":
             client = UniProtRestClient(self)
         elif _server == "ncbi":
             client = NCBIClient(self)
-        elif _server == "ensembl":
+        else:  # _server must be "ensembl"
             client = EnsemblRestClient(self)
-        else:
-            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
         self.server_clients[_server] = client
         return client
 
@@ -1670,7 +1677,7 @@ Further details about each command can be accessed by typing 'help <command>'
         _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():  # NOTE: The filter errors have been commented out filter_records(). Don't know if they should be reinstated.
                 _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
                     format_out=self.terminal_default)

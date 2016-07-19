@@ -460,6 +460,136 @@ def test_instantiate_dbbuddy_search_terms():
 
 
 # Methods
+def test_dbbuddy_hash():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    db_hash = hash(dbbuddy)
+    assert hash(dbbuddy) == db_hash
+
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert hash(dbbuddy) != db_hash
+
+
+def test_dbbuddy_equivalent():
+    dbbuddy1 = Db.DbBuddy(", ".join(ACCNS))
+    dbbuddy2 = Db.DbBuddy(", ".join(ACCNS))
+    assert dbbuddy1 == dbbuddy2
+
+    dbbuddy2 = Db.DbBuddy(", ".join(ACCNS[1:]))
+    assert dbbuddy1 != dbbuddy2
+
+
+def test_dbbuddy_tostring():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    10
+Trash bin:  0
+Failures:     0
+############################
+"""
+
+
+def test_filter_records():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    with pytest.raises(ValueError) as err:
+        dbbuddy.filter_records("A0A", "foo")
+    assert "The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not foo." in str(err)
+
+    dbbuddy.filter_records("A0A", "remove")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    7
+Trash bin:  3
+Failures:     0
+############################
+"""
+
+    dbbuddy.filter_records("ENS[A-Z]{4}[0-9]+", "keep")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    3
+Trash bin:  7
+Failures:     0
+############################
+"""
+
+    dbbuddy.filter_records("[XN][PM]_", "restore")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    6
+Trash bin:  4
+Failures:     0
+############################
+"""
+
+
+def test_record_breakdown():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    for accn, rec in dbbuddy.records.items():
+        if accn in ACCNS[:3]:
+            rec.record = True
+        elif accn in ACCNS[3:6]:
+            rec.summary = True
+
+    breakdown = dbbuddy.record_breakdown()
+    assert breakdown["accession"] == ["XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
+    assert breakdown["summary"] == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
+    assert breakdown["full"] == ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
+
+
+def test_server():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert type(dbbuddy.server("uniprot")) == Db.UniProtRestClient
+    assert type(dbbuddy.server_clients["uniprot"]) == Db.UniProtRestClient
+
+    assert type(dbbuddy.server("ncbi")) == Db.NCBIClient
+    assert type(dbbuddy.server_clients["ncbi"]) == Db.NCBIClient
+
+    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient
+    assert type(dbbuddy.server_clients["ensembl"]) == Db.EnsemblRestClient
+
+    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient  # Repeat to gran previously stored client
+
+    with pytest.raises(ValueError) as err:
+        dbbuddy.server("foo")
+    assert '"uniprot", "ncbi", and "ensembl" are the only valid options, not foo' in str(err)
+
+
+def test_trash_breakdown():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    for accn, rec in dbbuddy.records.items():
+        if accn in ACCNS[:3]:
+            rec.record = True
+        elif accn in ACCNS[3:6]:
+            rec.summary = True
+    dbbuddy.filter_records("*", "remove")
+    breakdown = dbbuddy.trash_breakdown()
+    print(breakdown)
+    assert sorted(breakdown["accession"]) == ["ENSAMEG00000011912", "ENSCJAG00000008732",
+                                              "ENSMEUG00000000523", "XM_003978475"]
+    assert sorted(breakdown["summary"]) == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
+    assert sorted(breakdown["full"]) == ["ADH10263.1", "NP_001287575.1", "XP_005165403.2"]
+
 
 # ################################################# Database Clients ################################################# #
 def test_uniprotrestclient_init():
