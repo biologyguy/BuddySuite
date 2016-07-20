@@ -99,9 +99,9 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
     def __init__(self, _input=None, _databases=None, _out_format="summary"):
         self.search_terms = []
         self.records = OrderedDict()  # Record objects
-        self.trash_bin = {}  # If records are filtered out, send them here instead of deleting them
+        self.trash_bin = OrderedDict()  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
-        self.failures = {}  # The key for these is a hash of the Failure, and the values are actual Failure objects
+        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are actual Failure objects
         self.databases = check_database(_databases)
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.memory_footprint = 0
@@ -680,40 +680,39 @@ class UniProtRestClient(object):
         self.dbbuddy = _dbbuddy
         self.server = server
         self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.http_errors_file = self.temp_dir.subfile("errors.txt")
+        self.results_file = self.temp_dir.subfile("results.txt")
         self.max_url = 1000
+        self.lock = Lock()
 
-    def query_uniprot(self, _term, args):  # Multicore ready
-        http_errors_file, results_file, request_params, lock = args
-        _term = re.sub(" ", "+", _term)
+    def query_uniprot(self, search_term, request_params):  # Multicore ready
+        if type(request_params) == list:  # In case it's coming in from multicore run
+            request_params = request_params[0]
+        search_term = re.sub(" ", "+", search_term)
         request_string = ""
         for _param, _value in request_params.items():
             _value = re.sub(" ", "+", _value)
             request_string += "&{0}={1}".format(_param, _value)
 
         try:
-            request = Request("{0}?query={1}{2}".format(self.server, _term, request_string))
+            request = Request("{0}?query={1}{2}".format(self.server, search_term, request_string))
             response = urlopen(request)
-            response = response.read().decode()
+            response = response.read().decode("utf-8")
             response = re.sub("^Entry.*\n", "", response, count=1)
-            with lock:
-                with open(results_file, "a", encoding="utf-8") as ofile:
-
-                    ofile.write("# Search: %s\n%s//\n" % (_term, response))
+            with self.lock:
+                with open(self.results_file, "a", encoding="utf-8") as ofile:
+                    ofile.write("# Search: %s\n%s//\n" % (search_term, response))
             return
 
         except HTTPError as _e:
-            with lock:
-                with open(http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, _e))
+            with self.lock:
+                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
+                    ofile.write("%s\n%s\n//\n" % (search_term, _e))
 
         except URLError as _e:
-            with lock:
-                with open(http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, _e))
+            with self.lock:
+                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
+                    ofile.write("%s\n%s\n//\n" % (search_term, _e))
 
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
@@ -757,7 +756,7 @@ class UniProtRestClient(object):
         search_terms = search_terms[0] if len(search_terms) == 1 else search_terms
         if not search_terms:
             return 0
-        self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}, Lock()])
+        self.query_uniprot(search_terms, {"format": "list"})
         with open(self.results_file, "r", encoding="utf-8") as ifile:
             _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
         open(self.results_file, "w", encoding="utf-8").close()
@@ -787,11 +786,11 @@ class UniProtRestClient(object):
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             runtime.start()
             br.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
-                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                      func_args=[params])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             runtime.start()
-            self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params, Lock()])
+            self.query_uniprot(self.dbbuddy.search_terms[0], params)
         runtime.end()
         errors = self._parse_error_file()
         if errors:
@@ -834,7 +833,7 @@ class UniProtRestClient(object):
             runtime.start()
             params = {"format": "txt"}
             br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True,
-                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                      func_args=[params])
             runtime.end()
             errors = self._parse_error_file()
             if errors:

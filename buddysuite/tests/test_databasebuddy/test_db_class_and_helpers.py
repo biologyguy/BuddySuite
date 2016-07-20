@@ -387,9 +387,9 @@ def test_instantiate_empty_dbbuddy_obj():
     assert dbbuddy.search_terms == []
     assert type(dbbuddy.records) == OrderedDict
     assert not dbbuddy.records
-    assert dbbuddy.trash_bin == {}
+    assert type(dbbuddy.trash_bin) == OrderedDict
     assert dbbuddy.out_format == "summary"
-    assert dbbuddy.failures == {}
+    assert type(dbbuddy.failures) == OrderedDict
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
         assert dbbuddy.server_clients[client] == False
@@ -794,8 +794,3 @@ XP_005165403.2  ncbi_prot
 A0A087WX72      uniprot
 
 '''
-
-# ################################################# Database Clients ################################################# #
-def test_uniprotrestclient_init():
-    #client = Db.UniProtRestClient()
-    pass
