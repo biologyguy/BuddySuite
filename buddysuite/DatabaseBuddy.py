@@ -392,6 +392,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         else:
             # remove any escape characters and convert space padding to tabs if writing the file
             _output = re.sub("\\033\[[0-9]*m", "", _output)
+            _output = re.sub(" +\n", "\n", _output)
             destination.write(_output)
 
 
@@ -548,7 +549,6 @@ class Record(object):
         return False
 
     def update(self, new_rec):
-        # ToDo: automate this by looping through Record object dir()
         self.accession = new_rec.accession if new_rec.accession else self.accession
         self.gi = new_rec.gi if new_rec.gi else self.gi
         self.version = new_rec.version if new_rec.version else self.version

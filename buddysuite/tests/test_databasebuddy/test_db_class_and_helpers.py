@@ -3,6 +3,7 @@ import pytest
 from collections import OrderedDict
 import datetime
 import random
+import re
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
@@ -395,7 +396,7 @@ def test_instantiate_empty_dbbuddy_obj():
     assert dbbuddy.memory_footprint == 0
 
 
-def test_instantiate_dbbuddy_from_path(sb_resources):
+def test_instantiate_dbbuddy_from_path():
     tmp_file = br.TempFile()
     tmp_file.write(", ".join(ACCNS))
     dbbuddy = Db.DbBuddy(tmp_file.path)
@@ -590,6 +591,209 @@ def test_trash_breakdown():
     assert sorted(breakdown["summary"]) == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
     assert sorted(breakdown["full"]) == ["ADH10263.1", "NP_001287575.1", "XP_005165403.2"]
 
+
+def test_print_simple(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92msummary
+[95mADH10263.1      [96mncbi_prot  [92msummary
+[95mXP_005165403.2  [96mncbi_prot  [92msummary
+[95mA0A087WX72      [96muniprot    [92msummary
+[m'''
+
+    dbbuddy.out_format = "ids"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mNP_001287575.1
+[95mADH10263.1
+[95mXP_005165403.2
+[95mA0A087WX72
+[m'''
+
+    dbbuddy.out_format = "accessions"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    with open("output.txt", "w") as ofile:
+        ofile.write(out)
+    assert out == '''[m[40m[97m[95mNP_001287575.1
+[95mADH10263.1
+[95mXP_005165403.2
+[95mA0A087WX72
+[m'''
+
+
+def test_print_failure(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    failure = Db.Failure("foobar", "You just foo'd a bar")
+    dbbuddy.failures[failure.hash] = failure
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert err == '''# ########################## Failures ########################### #
+foobar
+You just foo'd a bar
+# ################## Accessions without Records ################## #
+NP_001287575.1	ADH10263.1	XP_005165403.2	A0A087WX72
+A0A096MTH0	A0A0A9YFB0	XM_003978475	ENSAMEG00000011912
+ENSCJAG00000008732	ENSMEUG00000000523
+# ################################################################ #
+
+'''
+
+
+def test_print_columns(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print(columns=["ACCN", "DB"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+[95mXP_005165403.2  [96mncbi_prot
+[95mA0A087WX72      [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].summary = OrderedDict([("entry_name", "F6SBJ1_HORSE"), ("length", "451"),
+                                                             ("organism-id", "9796"),
+                                                             ("organism", "Equus caballus (Horse)"),
+                                                             ("protein_names", "Caspase"),
+                                                             ("comments", "Caution (1); Sequence similarities (1)")])
+
+    dbbuddy.print(columns=["ACCN", "DB", "organism"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB         [92morganism
+[95mXP_005165403.2  [96mncbi_prot  [92mEquus caballus (Horse)
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].database = []
+    dbbuddy.print(columns=["ACCN", "DB", "organism"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].summary["comments"] = "This line is longer than 50 characters, so is truncated."
+    dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism                [91mcomments
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is t...
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.out_format = "full-summary"
+    dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism                [91mcomments
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is truncated.
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].record = True
+    dbbuddy.print(columns=["ACCN", "DB", "record"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92msummary
+[95mADH10263.1      [96mncbi_prot  [92msummary
+[95mXP_005165403.2  [96m           [92mfull
+[95mA0A087WX72      [96muniprot    [92msummary
+[m'''
+
+
+def test_print_full_recs(sb_resources, sb_helpers, capsys):
+    # Protein
+    accns = ["A0A087WX70", "A0A087WX71", "A0A087WX72", "A0A087WX73"]  # Made up for this test
+    dbbuddy = Db.DbBuddy(", ".join(accns))
+    dbbuddy.out_format = "fasta"
+
+    seqbuddy = sb_resources.get_one("p g")
+    recs = seqbuddy.records[:4]
+    for indx, accn in enumerate(accns):
+        recs[indx].id = accn
+        recs[indx].name = accn
+        dbbuddy.records[accn].record = recs[indx]
+
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert sb_helpers.string2hash(out) == "4e85ebfc85e02e7067fe40b5b68dfa7e"
+
+    # DNA
+    seqbuddy = sb_resources.get_one("d g")
+    recs = seqbuddy.records[:4]
+    for indx, accn in enumerate(accns):
+        recs[indx].id = accn
+        recs[indx].name = accn
+        dbbuddy.records[accn].record = recs[indx]
+        dbbuddy.records[accn].type = "nucleotide"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+
+    with open("output.txt", "w") as ofile:
+        ofile.write(out)
+
+    assert sb_helpers.string2hash(out) == "6d53edc1070790c02ae8e8c6e72045e6"
+
+
+def test_print_trash(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.filter_records("00", "remove")
+    dbbuddy.print(group="trash_bin")
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92msummary
+[95mXP_005165403.2  [96mncbi_prot  [92msummary
+[m'''
+
+
+def test_print_to_file():
+    tmp_file = br.TempFile()
+    tmp_file.open("w")
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print(columns=["ACCN", "DB"], destination=tmp_file.handle)
+    assert tmp_file.read() == '''ACCN            DB
+NP_001287575.1  ncbi_prot
+ADH10263.1      ncbi_prot
+XP_005165403.2  ncbi_prot
+A0A087WX72      uniprot
+
+'''
 
 # ################################################# Database Clients ################################################# #
 def test_uniprotrestclient_init():
