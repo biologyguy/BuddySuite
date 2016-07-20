@@ -3,6 +3,10 @@
 
 """ tests basic functionality of AlignBuddy class """
 import pytest
+import os
+import shutil
+import io
+from unittest import mock
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.AlignIO import MultipleSeqAlignment
@@ -13,7 +17,6 @@ from ... import buddy_resources as br
 
 
 TEMPDIR = br.TempDir()
-
 
 # ##########################################  '-al', '--alignment_lengths' ########################################### #
 def test_alignment_lengths(alb_resources):
@@ -207,28 +210,147 @@ def test_extract_range(key, next_hash, alb_resources, alb_helpers):
 # ###########################################  'ga', '--generate_alignment' ########################################## #
 # ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
 
-def test_pagan(alb_resources, alb_helpers):
-    pass
+def test_pagan(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_pagan" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_pagan/result.fas" % alb_resources.res_path) as alnfile:
+        mock_communicate = mock.Mock(return_value=alnfile.read())
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_pagan" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    mock_popen = mock.Mock()
+    mock_popen.communicate = mock_communicate
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    monkeypatch.setattr(Alb, 'Popen', mock_popen)
+    tester = Alb.generate_msa(tester, 'pagan')
+    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
 
 
-def test_prank():
-    pass
+def test_prank(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_prank" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_prank/result.best.fas" % alb_resources.res_path) as alnfile:
+        mock_communicate = mock.Mock(return_value=alnfile.read())
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_prank" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    mock_popen = mock.Mock()
+    mock_popen.communicate = mock_communicate
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    monkeypatch.setattr(Alb, 'Popen', mock_popen)
+    tester = Alb.generate_msa(tester, 'prank')
+    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f"
 
 
-def test_muscle():
-    pass
+def test_muscle(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_muscle" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_muscle/result" % alb_resources.res_path, 'r') as alnfile:
+        mock_data = [alnfile.read().encode('utf-8')]
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_muscle" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    class MockPopen:
+        def __init__(*args, **kwargs):
+            pass
+
+        def communicate(self):
+            return mock_data
+
+    monkeypatch.setattr(Alb, 'Popen', MockPopen)
+    tester = Alb.generate_msa(tester, 'muscle')
+    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f"
 
 
-def test_clustalw2():
-    pass
+def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_clustalw2" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_clustalw2/result" % alb_resources.res_path, 'r') as alnfile:
+        mock_data = [alnfile.read().encode('utf-8')]
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_clustalw2" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    class MockPopen:
+        def __init__(*args, **kwargs):
+            pass
+
+        def communicate(self):
+            return mock_data
+
+    clustalw_bin = 'clustalw' if shutil.which('clustalw') else 'clustalw2'
+
+    monkeypatch.setattr(Alb, 'Popen', MockPopen)
+    tester = Alb.generate_msa(tester, clustalw_bin)
+    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
 
 
-def test_clustalomega():
-    pass
+def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_clustalo" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_clustalo/result" % alb_resources.res_path) as alnfile:
+        mock_communicate = mock.Mock(return_value=alnfile.read())
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_clustalo" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    mock_popen = mock.Mock()
+    mock_popen.communicate = mock_communicate
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    monkeypatch.setattr(Alb, 'Popen', mock_popen)
+    tester = Alb.generate_msa(tester, 'clustalo')
+    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
 
-def test_mafft():
-    pass
+def test_mafft(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    if not os.path.isdir("%s/mock_resources/test_mafft" % alb_resources.res_path):
+        raise NotADirectoryError("Unable to find mock resources")
+    tester = sb_resources.get_one("d f")
+    with open("%s/mock_resources/test_mafft/result" % alb_resources.res_path, 'r') as alnfile:
+        mock_data = [alnfile.read().encode('utf-8')]
+
+    for root, dirs, files in os.walk("%s/mock_resources/test_mafft" % alb_resources.res_path):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+
+    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+
+    class MockPopen:
+        def __init__(*args, **kwargs):
+            pass
+
+        def communicate(self):
+            return mock_data
+
+    monkeypatch.setattr(Alb, 'Popen', MockPopen)
+    tester = Alb.generate_msa(tester, 'mafft')
+    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904"
 
 
 def test_generate_alignment_keep_temp(monkeypatch):
