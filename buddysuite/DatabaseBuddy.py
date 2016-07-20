@@ -368,6 +368,14 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         # Full records
         else:
+            # Make sure IDs are not too long for GenBank format
+            if self.out_format in ["gb", "genbank"]:
+                for _accession, _rec in group.items():
+                    if len(_accession) > 16:
+                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        self.out_format = "embl"
+                        break
+
             nuc_recs = [_rec.record for _accession, _rec in group.items() if
                         _rec.type == "nucleotide" and _rec.record]
             prot_recs = [_rec.record for _accession, _rec in group.items() if

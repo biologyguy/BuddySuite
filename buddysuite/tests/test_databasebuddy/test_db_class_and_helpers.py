@@ -763,11 +763,19 @@ def test_print_full_recs(sb_resources, sb_helpers, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-
-    with open("output.txt", "w") as ofile:
-        ofile.write(out)
-
     assert sb_helpers.string2hash(out) == "6d53edc1070790c02ae8e8c6e72045e6"
+
+    # Long accn work around for genbank
+    dbbuddy.records["ENSGALG00000001366"] = dbbuddy.records["A0A087WX70"]
+    dbbuddy.records["ENSGALG00000001366"].record.id = "ENSGALG00000001366"
+    dbbuddy.records["ENSGALG00000001366"].record.name = "ENSGALG00000001366"
+    dbbuddy.out_format = "genbank"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+
+    assert sb_helpers.string2hash(out) == "8f77b7da51dcc74242558d96ceafcd91"
+    assert err == "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n"
 
 
 def test_print_trash(capsys):
