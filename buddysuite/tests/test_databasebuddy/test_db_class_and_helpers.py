@@ -558,7 +558,7 @@ def test_record_breakdown():
     assert breakdown["full"] == ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
 
 
-def test_server():
+def test_server(monkeypatch):
     dbbuddy = Db.DbBuddy(", ".join(ACCNS))
     assert type(dbbuddy.server("uniprot")) == Db.UniProtRestClient
     assert type(dbbuddy.server_clients["uniprot"]) == Db.UniProtRestClient
@@ -566,10 +566,15 @@ def test_server():
     assert type(dbbuddy.server("ncbi")) == Db.NCBIClient
     assert type(dbbuddy.server_clients["ncbi"]) == Db.NCBIClient
 
+    def patch_ensembl_rest_action(*args, **kwargs):
+        return {'species': [{'display_name': 'Saccharomyces cerevisiae'}, {'display_name': 'C.savignyi'},
+                            {'display_name': 'Microbat'}]}
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_rest_action)  # No internet needed
     assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient
     assert type(dbbuddy.server_clients["ensembl"]) == Db.EnsemblRestClient
 
-    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient  # Repeat to gran previously stored client
+    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient  # Repeat to grab previously stored client
 
     with pytest.raises(ValueError) as err:
         dbbuddy.server("foo")

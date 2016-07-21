@@ -732,7 +732,7 @@ class UniProtRestClient(object):
             _output = ""
             http_errors_file = http_errors_file.split("//")
             for error in http_errors_file:
-                error = error.split("\n")
+                error = error.strip().split("\n")
                 error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
                 error = Failure(*error)
                 if error.hash not in self.dbbuddy.failures:
@@ -745,6 +745,7 @@ class UniProtRestClient(object):
 
     def count_hits(self):
         # Limit URLs to 2,083 characters
+        _count = 0
         search_terms = []
         for _term in self.dbbuddy.search_terms:
             if len(_term) > self.max_url:
@@ -761,13 +762,13 @@ class UniProtRestClient(object):
             else:
                 search_terms.append(_term)
 
-        search_terms = search_terms[0] if len(search_terms) == 1 else search_terms
-        if not search_terms:
-            return 0
-        self.query_uniprot(search_terms, {"format": "list"})
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
-        open(self.results_file, "w", encoding="utf-8").close()
+        for search_term in search_terms:
+            self.query_uniprot(search_term, {"format": "list"})
+            with open(self.results_file, "r", encoding="utf-8") as ifile:
+                content = re.sub("(#.*?\n|[\n /]+$)", "", ifile.read())
+                content = content.split("\n")
+                _count += len(content) if content[0] != '' else 0
+            open(self.results_file, "w", encoding="utf-8").close()
 
         errors = self._parse_error_file()
         if errors:
@@ -790,14 +791,13 @@ class UniProtRestClient(object):
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
         runtime = br.RunTime(prefix="\t")
+        runtime.start()
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
-            runtime.start()
             br.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
                                       func_args=[params])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
-            runtime.start()
             self.query_uniprot(self.dbbuddy.search_terms[0], params)
         runtime.end()
         errors = self._parse_error_file()
@@ -806,11 +806,12 @@ class UniProtRestClient(object):
                     "search_proteins():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
         with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().strip("//\n").split("//")
+            content = re.sub("(#.*?\n|[\n /]+$)", "", ifile.read().strip())
+            results = content.split("//")
 
         for result in results:
             result = result.strip().split("\n")
-            for hit in result[1:]:
+            for hit in result:
                 hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
                     raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
@@ -824,57 +825,55 @@ class UniProtRestClient(object):
         _stderr("\n")
 
     def fetch_proteins(self):
-        open(self.results_file, "w", encoding="utf-8").close()
+        open(self.results_file, "w").close()
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
-                    _rec.database == "uniprot" and _rec.database == "uniprot" and not _rec.record]
+                    _rec.database == "uniprot" and not _rec.record]
 
-        if len(_records) > 0:
-            _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
-            accessions = [_records[0].accession]
-            for _rec in _records[1:]:
-                if len(accessions[-1]) + len(_rec.accession) + 1 > self.max_url:
-                    accessions.append(_rec.accession)
-                else:
-                    accessions[-1] += ",%s" % _rec.accession
+        if not _records:
+            return
 
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            params = {"format": "txt"}
-            br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True,
-                                      func_args=[params])
-            runtime.end()
-            errors = self._parse_error_file()
-            if errors:
-                _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                        "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+        _stderr("Requesting %s full records from UniProt...\n" % len(_records))
+        accessions = [""]
+        for _rec in _records:
+            if len(_rec.accession) + 1 > self.max_url:
+                raise ValueError("The provided accession is too long to send to UniProt, which is weird because UniProt"
+                                 " accessions are pretty short... The problematic string is:\n%s" % _rec.accession)
+            if len(accessions[-1]) + len(_rec.accession) + 1 > self.max_url:
+                accessions[-1] = accessions[-1].strip(",")
+                accessions.append("%s," % _rec.accession)
+            else:
+                accessions[-1] += "%s," % _rec.accession
+        accessions[-1] = accessions[-1].strip(",")
+        runtime = br.RunTime(prefix="\t")
+        runtime.start()
+        params = {"format": "txt"}
+        if len(accessions) > 1:
+            br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True, func_args=[params])
+        else:
+            self.query_uniprot(accessions[0], params)
 
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                data = ifile.read().strip().split("//\n//")
+        runtime.end()
+        errors = self._parse_error_file()
+        if errors:
+            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                    "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
-            if data[0] == "":
+        with open(self.results_file, "r") as ifile:
+            data = ifile.read().strip()
+            data = re.sub("# Search.*?\n", "", data)
+            data = re.sub("//(\n//)+", "//\n", data)
+            data = re.sub("^//\n*", "", data)
+            if data in ["", "//\n"]:
                 _stderr("No sequences returned\n\n")
                 return
 
-            clean_recs = []
-            for _rec in data:
-                if _rec:
-                    # Strip the first line from multi-core searches
-                    clean_recs.append(re.sub("# Search.*\n", "", _rec.strip()))
+        with open(self.results_file, "w") as ifile:
+            ifile.write(data)
 
-            with open(self.results_file, "w", encoding="utf-8") as ifile:
-                ifile.write("//\n".join(clean_recs))
-                ifile.write("\n//")
-
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                _records = SeqIO.parse(ifile, "swiss")
-                for _rec in _records:
-                    if _rec.id not in self.dbbuddy.records:
-                        # ToDo: fix failures
-                        print(_rec.id)
-                        self.dbbuddy.failures.setdefault("# Uniprot fetch: Ids not"
-                                                         " in dbbuddy.records", []).append(_rec.id)
-                    else:
-                        self.dbbuddy.records[_rec.id].record = _rec
+        _records = SeqIO.parse(self.results_file, "swiss")
+        for _rec in _records:
+            self.dbbuddy.records[_rec.id].record = _rec
+        return
 
 
 class NCBIClient(object):
@@ -1400,7 +1399,6 @@ class EnsemblRestClient(object):
                 data = SeqIO.parse(response, "seqxml")
             else:
                 raise ValueError(request.headers)
-
             return data
 
         except HTTPError as _e:
