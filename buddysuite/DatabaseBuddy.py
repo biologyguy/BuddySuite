@@ -51,7 +51,7 @@ from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
 import warnings
 import readline
-import pickle
+import dill
 
 # Third party
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -682,15 +682,52 @@ def check_type(_type):
 
 
 # ################################################# Database Clients ################################################# #
-class UniProtRestClient(object):
-    # http://www.uniprot.org/help/uniprotkb_column_names
-    def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
+class GenericClient(object):
+    def __init__(self, _dbbuddy, max_url=1000):
         self.dbbuddy = _dbbuddy
-        self.server = server
         self.http_errors_file = br.TempFile()
         self.results_file = br.TempFile()
-        self.max_url = 1000
+        self.max_url = max_url
         self.lock = Lock()
+
+    def _parse_error_file(self):
+        http_errors_file = self.http_errors_file.read().strip("//\n")
+        if http_errors_file != "":
+            _output = ""
+            http_errors_file = http_errors_file.split("//")
+            for error in http_errors_file:
+                error = error.strip().split("\n")
+                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
+                error = Failure(*error)
+                if error.hash not in self.dbbuddy.failures:
+                    self.dbbuddy.failures[error.hash] = error
+                    _output += "%s\n" % error
+            self.http_errors_file.clear()
+            return _output  # Errors found
+        else:
+            return False  # No errors to report
+
+    def group_terms_for_url(self, terms):
+        groups = [""]
+        for term in terms:
+            term = str(term)
+            if len(term) + 1 > self.max_url:
+                raise ValueError("The provided accession or search term is too long (>%s).\n"
+                                 "The problematic string is:\n%s" % (self.max_url, term))
+            if len(groups[-1]) + len(term) + 1 > self.max_url:
+                groups[-1] = groups[-1].strip(",")
+                groups.append("%s," % term)
+            else:
+                groups[-1] += "%s," % term
+        groups[-1] = groups[-1].strip(",")
+        return groups
+
+
+class UniProtRestClient(GenericClient):
+    # http://www.uniprot.org/help/uniprotkb_column_names
+    def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
+        GenericClient.__init__(self, _dbbuddy)
+        self.server = server
 
     def query_uniprot(self, search_term, request_params):  # Multicore ready
         if type(request_params) == list:  # In case it's coming in from multicore run
@@ -720,23 +757,6 @@ class UniProtRestClient(object):
 
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
-
-    def _parse_error_file(self):
-        http_errors_file = self.http_errors_file.read().strip("//\n")
-        if http_errors_file != "":
-            _output = ""
-            http_errors_file = http_errors_file.split("//")
-            for error in http_errors_file:
-                error = error.strip().split("\n")
-                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
-                error = Failure(*error)
-                if error.hash not in self.dbbuddy.failures:
-                    self.dbbuddy.failures[error.hash] = error
-                    _output += "%s\n" % error
-            self.http_errors_file.clear()
-            return _output  # Errors found
-        else:
-            return False  # No errors to report
 
     def count_hits(self):
         # Limit URLs to 2,083 characters
@@ -826,17 +846,7 @@ class UniProtRestClient(object):
             return
 
         _stderr("Requesting %s full records from UniProt...\n" % len(_records))
-        accessions = [""]
-        for _rec in _records:
-            if len(_rec.accession) + 1 > self.max_url:
-                raise ValueError("The provided accession is too long to send to UniProt, which is weird because UniProt"
-                                 " accessions are pretty short... The problematic string is:\n%s" % _rec.accession)
-            if len(accessions[-1]) + len(_rec.accession) + 1 > self.max_url:
-                accessions[-1] = accessions[-1].strip(",")
-                accessions.append("%s," % _rec.accession)
-            else:
-                accessions[-1] += "%s," % _rec.accession
-        accessions[-1] = accessions[-1].strip(",")
+        accessions = self.group_terms_for_url([_rec.accession for _rec in _records])
         runtime = br.RunTime(prefix="\t")
         runtime.start()
         params = {"format": "txt"}
@@ -861,60 +871,21 @@ class UniProtRestClient(object):
 
         self.results_file.write(data, "w")
 
-        _records = SeqIO.parse(self.results_file, "swiss")
+        _records = SeqIO.parse(self.results_file.get_handle("r"), "swiss")
         for _rec in _records:
             self.dbbuddy.records[_rec.id].record = _rec
         return
 
 
-class NCBIClient(object):
+class NCBIClient(GenericClient):
     def __init__(self, _dbbuddy):
+        GenericClient.__init__(self, _dbbuddy)
         self.Entrez = Entrez
         self.Entrez.email = CONFIG["email"]
         self.Entrez.tool = "buddysuite"
-        self.dbbuddy = _dbbuddy
-        self.http_errors_file = br.TempFile()
-        self.results_file = br.TempFile()
-        self.max_url = 1000
         self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
-        self.lock = Lock()
 
-    def _clear_files(self):
-        self.http_errors_file.clear()
-        self.results_file.clear()
-        return
-
-    def _parse_error_file(self):
-        http_errors_file = self.http_errors_file.read().strip("//\n")
-        if http_errors_file != "":
-            _output = ""
-            http_errors_file = http_errors_file.split("//")
-            for error in http_errors_file:
-                error = error.split("\n")
-                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
-                error = Failure(*error)
-                if error.hash not in self.dbbuddy.failures:
-                    self.dbbuddy.failures[error.hash] = error
-                    _output += "%s\n" % error
-            self.http_errors_file.clear()
-            return _output  # Errors found
-        else:
-            return False  # No errors to report
-
-    def _split_for_url(self, accessions):
-        _groups = [""]
-        for accn in accessions:
-            accn = str(accn)
-            if _groups[-1] == "":
-                _groups[-1] = accn
-            elif len(_groups[-1] + accn) + 1 <= self.max_url:
-                _groups[-1] += ",%s" % accn
-            else:
-                _groups.append(accn)
-        return _groups
-
-    def _mc_taxa(self, _taxa_ids, args):
-        lock = args[0]
+    def _mc_taxa(self, _taxa_ids):
         error = False
         handle = False
         timer = br.time()
@@ -949,7 +920,7 @@ class NCBIClient(object):
                     error = _e
                 sleep(1)
 
-        with lock:
+        with self.lock:
             if error:
                 self.http_errors_file.write("%s\n%s//\n" % (_taxa_ids, error))
             else:
@@ -957,9 +928,9 @@ class NCBIClient(object):
         return
 
     def _get_taxa(self, _taxa_ids):
-        self._clear_files()
-        _taxa_ids = self._split_for_url(_taxa_ids)
-        br.run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
+        self.results_file.clear()
+        _taxa_ids = self.group_terms_for_url(_taxa_ids)
+        br.run_multicore_function(_taxa_ids, self._mc_taxa, max_processes=3, quiet=True)
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x]
 
@@ -969,8 +940,7 @@ class NCBIClient(object):
                 _output[summary["TaxId"]] = summary["ScientificName"]
         return _output
 
-    def _mc_accn2gi(self, accns, args):
-        lock = args[0]
+    def _mc_accn2gi(self, accns):
         error = False
         handle = False
         timer = br.time()
@@ -992,7 +962,7 @@ class NCBIClient(object):
                     error = _e
                 sleep(1)
 
-        with lock:
+        with self.lock:
             if error:
                 self.http_errors_file.write("%s\n%s//\n" % (accns, error))
             else:
@@ -1000,12 +970,12 @@ class NCBIClient(object):
         return
 
     def _get_gis(self, accns):  # These accns should include version numbers
-        self._clear_files()
-        accns = self._split_for_url(accns)
+        self.results_file.clear()
+        accns = self.group_terms_for_url(accns)
         runtime = br.RunTime(prefix="\t")
         _stderr("Converting NCBI accessions to gi numbers...\n")
         runtime.start()
-        br.run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
+        br.run_multicore_function(accns, self._mc_accn2gi, max_processes=3, quiet=True)
         runtime.end()
         results = self.results_file.read().split("\n### END ###\n")
         results = [x.split("\n") for x in results]
@@ -1013,8 +983,7 @@ class NCBIClient(object):
         _stderr("\tDone\n")
         return results
 
-    def _mc_summaries(self, gi_nums, args):
-        lock = args[0]
+    def _mc_summaries(self, gi_nums):
         error = False
         handle = False
         timer = br.time()
@@ -1057,7 +1026,7 @@ class NCBIClient(object):
                     error = _e
                 sleep(1)
 
-        with lock:
+        with self.lock:
             if error:
                 self.http_errors_file.write("%s\n%s//\n" % (gi_nums, error))
             else:
@@ -1065,12 +1034,12 @@ class NCBIClient(object):
         return
 
     def _fetch_summaries(self, gi_nums):
-        self._clear_files()
-        gi_nums = self._split_for_url(gi_nums)
+        self.results_file.clear()
+        gi_nums = self.group_terms_for_url(gi_nums)
         runtime = br.RunTime(prefix="\t")
         _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
+        br.run_multicore_function(gi_nums, self._mc_summaries, max_processes=3, quiet=True)
         runtime.end()
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
@@ -1105,7 +1074,7 @@ class NCBIClient(object):
 
     def fetch_summary(self):
         # EUtils esummary will only take gi numbers
-        self._clear_files()
+        self.results_file.clear()
         accns = [rec.ncbi_accn() for accn, rec in self.dbbuddy.records.items() if
                  rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
 
@@ -1301,8 +1270,8 @@ class NCBIClient(object):
         return
 
     def _get_seq(self, gi_nums, database):
-        self._clear_files()
-        gi_nums = self._split_for_url(gi_nums)
+        self.results_file.clear()
+        gi_nums = self.group_terms_for_url(gi_nums)
         runtime = br.RunTime(prefix="\t")
         _stderr("Fetching full sequence records from NCBI...\n")
         runtime.start()
@@ -1591,10 +1560,9 @@ Further details about each command can be accessed by typing 'help <command>'
         # Need to remove Lock()s to pickle
         for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
             client.lock = False
-        import pickle
         self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
-        pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
+        dill.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
         self.crash_file.close()
         self.undo = True
         for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
@@ -1874,7 +1842,7 @@ Further details about each command can be accessed by typing 'help <command>'
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
-                self.dbbuddy = pickle.load(ifile)
+                self.dbbuddy = dill.load(ifile)
             self.dump_session()
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:

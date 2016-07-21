@@ -623,8 +623,6 @@ def test_print_simple(capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    with open("output.txt", "w") as ofile:
-        ofile.write(out)
     assert out == '''[m[40m[97m[95mNP_001287575.1
 [95mADH10263.1
 [95mXP_005165403.2

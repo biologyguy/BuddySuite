@@ -758,8 +758,8 @@ def error_report(trace_back, tool, function, version):
                    "program at any time by re-running the BuddySuite installer.\n"
         print(message)
     else:
-        permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to be sent to "
-                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=5)
+        permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to send to the "
+                         "BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=15)
     try:
         if permission:
             print("\nPreparing error report for FTP upload...")

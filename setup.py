@@ -148,11 +148,13 @@ PACKAGES = [
 DEPENDENCIES = [
     'biopython',
     'ete3',
+    'pyqt',
     'six',
     'dendropy',
     'pytest',
     'scipy',
-    'numpy'
+    'numpy',
+    'dill'
 ]
 
 DATA_FILES = [

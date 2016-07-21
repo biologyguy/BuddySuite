@@ -69,6 +69,42 @@ def mock_urlopen_raise_keyboardinterrupt(*args):
 
 
 # ################################################# Database Clients ################################################# #
+# Generic
+def test_client_init():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[3:6]))
+    client = Db.GenericClient(dbbuddy)
+    assert hash(dbbuddy) == hash(client.dbbuddy)
+    assert type(client.http_errors_file) == br.TempFile
+    assert type(client.results_file) == br.TempFile
+    assert client.max_url == 1000
+    with client.lock:
+        assert True
+
+
+def test_client_parse_error_file():
+    dbbuddy = Db.DbBuddy()
+    client = Db.GenericClient(dbbuddy)
+
+    assert not client._parse_error_file()
+    assert not dbbuddy.failures
+    client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz"))
+    client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
+
+    assert client._parse_error_file() == '''Casp9
+HTTP Error Fake HTTPError from Mock: Foo
+
+Inx1
+<urlopen error Fake URLError from Mock>
+
+'''
+    assert len(dbbuddy.failures) == 2
+
+    # Repeat to make sure that the same error is not added again
+    client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
+    assert not client._parse_error_file()
+    assert len(dbbuddy.failures) == 2
+
+
 # UniProt
 def test_uniprotrestclient_init():
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[3:6]))
@@ -112,34 +148,6 @@ A0A0H5SBJ0
 
     params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
     client.query_uniprot("ABXEF9", params)
-
-
-def test_uniprotrestclient_parse_error_file():
-    dbbuddy = Db.DbBuddy()
-    client = Db.UniProtRestClient(dbbuddy)
-
-    assert not client._parse_error_file()
-    assert not dbbuddy.failures
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
-        client.query_uniprot("inx15", [{"format": "list"}])
-
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
-        client.query_uniprot("inx15", [{"format": "list"}])
-
-    assert client._parse_error_file() == '''inx15
-HTTP Error Fake HTTPError from Mock: Foo
-
-inx15
-<urlopen error Fake URLError from Mock>
-
-'''
-    assert len(dbbuddy.failures) == 2
-
-    # Repeat to make sure that the same error is not added again
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
-        client.query_uniprot("inx15", [{"format": "list"}])
-    assert not client._parse_error_file()
-    assert len(dbbuddy.failures) == 2
 
 
 def test_uniprotrestclient_count_hits(capsys):
@@ -283,4 +291,21 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
     with pytest.raises(ValueError) as err:
         client.dbbuddy.records["a" * 1001] = Db.Record("a" * 1001, _database="uniprot")
         client.fetch_proteins()
-    assert "The provided accession is too long to send to UniProt" in str(err)
+    assert "The provided accession or search term is too long (>1000)." in str(err)
+
+
+# NCBI
+def test_ncbiclient_init():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:3]))
+    client = Db.NCBIClient(dbbuddy)
+    assert client.Entrez.email == br.config_values()['email']
+    assert client.Entrez.tool == "buddysuite"
+    assert hash(dbbuddy) == hash(client.dbbuddy)
+    assert type(client.http_errors_file) == br.TempFile
+    assert type(client.results_file) == br.TempFile
+    assert client.max_url == 1000
+    assert client.max_attempts == 5
+
+
+def test_ncbiclient_split_for_url():
+    pass

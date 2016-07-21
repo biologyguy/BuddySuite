@@ -38,6 +38,7 @@ RUN /home/docker/miniconda/bin/conda config --add channels bioconda
 RUN /home/docker/miniconda/bin/conda update -q conda
 RUN /home/docker/miniconda/bin/conda info -a
 RUN /home/docker/miniconda/bin/conda install \
+    dill \
     scipy \
     numpy \
     biopython \
