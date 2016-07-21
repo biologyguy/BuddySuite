@@ -687,9 +687,8 @@ class UniProtRestClient(object):
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
         self.dbbuddy = _dbbuddy
         self.server = server
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = self.temp_dir.subfile("errors.txt")
-        self.results_file = self.temp_dir.subfile("results.txt")
+        self.http_errors_file = br.TempFile()
+        self.results_file = br.TempFile()
         self.max_url = 1000
         self.lock = Lock()
 
@@ -708,26 +707,22 @@ class UniProtRestClient(object):
             response = response.read().decode("utf-8")
             response = re.sub("^Entry.*\n", "", response, count=1)
             with self.lock:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("# Search: %s\n%s//\n" % (search_term, response))
+                self.results_file.write("# Search: %s\n%s//\n" % (search_term, response))
             return
 
         except HTTPError as _e:
             with self.lock:
-                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s\n//\n" % (search_term, _e))
+                self.http_errors_file.write("%s\n%s\n//\n" % (search_term, _e))
 
         except URLError as _e:
             with self.lock:
-                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s\n//\n" % (search_term, _e))
+                self.http_errors_file.write("%s\n%s\n//\n" % (search_term, _e))
 
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
 
     def _parse_error_file(self):
-        with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-            http_errors_file = ifile.read().strip("//\n")
+        http_errors_file = self.http_errors_file.read().strip("//\n")
         if http_errors_file != "":
             _output = ""
             http_errors_file = http_errors_file.split("//")
@@ -738,7 +733,7 @@ class UniProtRestClient(object):
                 if error.hash not in self.dbbuddy.failures:
                     self.dbbuddy.failures[error.hash] = error
                     _output += "%s\n" % error
-            open(self.http_errors_file, "w", encoding="utf-8").close()
+            self.http_errors_file.clear()
             return _output  # Errors found
         else:
             return False  # No errors to report
@@ -764,11 +759,10 @@ class UniProtRestClient(object):
 
         for search_term in search_terms:
             self.query_uniprot(search_term, {"format": "list"})
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                content = re.sub("(#.*?\n|[\n /]+$)", "", ifile.read())
-                content = content.split("\n")
-                _count += len(content) if content[0] != '' else 0
-            open(self.results_file, "w", encoding="utf-8").close()
+            content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read())
+            content = content.split("\n")
+            _count += len(content) if content[0] != '' else 0
+            self.results_file.clear()
 
         errors = self._parse_error_file()
         if errors:
@@ -778,7 +772,7 @@ class UniProtRestClient(object):
 
     def search_proteins(self):
         # start by determining how many results we would get from all searches.
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.results_file.clear()
         _count = self.count_hits()
 
         if _count == 0:
@@ -805,9 +799,8 @@ class UniProtRestClient(object):
             _stderr("{0}{1}The following errors were encountered while querying UniProt with "
                     "search_proteins():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            content = re.sub("(#.*?\n|[\n /]+$)", "", ifile.read().strip())
-            results = content.split("//")
+        content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read().strip())
+        results = content.split("//")
 
         for result in results:
             result = result.strip().split("\n")
@@ -825,7 +818,7 @@ class UniProtRestClient(object):
         _stderr("\n")
 
     def fetch_proteins(self):
-        open(self.results_file, "w").close()
+        self.results_file.clear()
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
                     _rec.database == "uniprot" and not _rec.record]
 
@@ -858,17 +851,15 @@ class UniProtRestClient(object):
             _stderr("{0}{1}The following errors were encountered while querying UniProt with "
                     "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
-        with open(self.results_file, "r") as ifile:
-            data = ifile.read().strip()
-            data = re.sub("# Search.*?\n", "", data)
-            data = re.sub("//(\n//)+", "//\n", data)
-            data = re.sub("^//\n*", "", data)
-            if data in ["", "//\n"]:
-                _stderr("No sequences returned\n\n")
-                return
+        data = self.results_file.read().strip()
+        data = re.sub("# Search.*?\n", "", data)
+        data = re.sub("//(\n//)+", "//\n", data)
+        data = re.sub("^//\n*", "", data)
+        if data in ["", "//\n"]:
+            _stderr("No sequences returned\n\n")
+            return
 
-        with open(self.results_file, "w") as ifile:
-            ifile.write(data)
+        self.results_file.write(data, "w")
 
         _records = SeqIO.parse(self.results_file, "swiss")
         for _rec in _records:
@@ -878,25 +869,23 @@ class UniProtRestClient(object):
 
 class NCBIClient(object):
     def __init__(self, _dbbuddy):
-        Entrez.email = CONFIG["email"]
-        Entrez.tool = "buddysuite"
+        self.Entrez = Entrez
+        self.Entrez.email = CONFIG["email"]
+        self.Entrez.tool = "buddysuite"
         self.dbbuddy = _dbbuddy
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.http_errors_file = br.TempFile()
+        self.results_file = br.TempFile()
         self.max_url = 1000
         self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
+        self.lock = Lock()
 
     def _clear_files(self):
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.http_errors_file.clear()
+        self.results_file.clear()
         return
 
     def _parse_error_file(self):
-        with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-            http_errors_file = ifile.read().strip("//\n")
+        http_errors_file = self.http_errors_file.read().strip("//\n")
         if http_errors_file != "":
             _output = ""
             http_errors_file = http_errors_file.split("//")
@@ -907,7 +896,7 @@ class NCBIClient(object):
                 if error.hash not in self.dbbuddy.failures:
                     self.dbbuddy.failures[error.hash] = error
                     _output += "%s\n" % error
-            open(self.http_errors_file, "w", encoding="utf-8").close()
+            self.http_errors_file.clear()
             return _output  # Errors found
         else:
             return False  # No errors to report
@@ -929,7 +918,7 @@ class NCBIClient(object):
         error = False
         handle = False
         timer = br.time()
-        for i in range(self.max_attempts):
+        for indx in range(self.max_attempts):
             try:
                 handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
                 '''
@@ -956,26 +945,23 @@ class NCBIClient(object):
                     sleep(1 - timer)
                 break
             except HTTPError as _e:
-                if i == self.max_attempts - 1:
+                if indx == self.max_attempts - 1:
                     error = _e
                 sleep(1)
 
         with lock:
             if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (_taxa_ids, error))
+                self.http_errors_file.write("%s\n%s//\n" % (_taxa_ids, error))
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
+                self.results_file.write("%s### END ###\n" % handle.read())
         return
 
     def _get_taxa(self, _taxa_ids):
         self._clear_files()
         _taxa_ids = self._split_for_url(_taxa_ids)
         br.run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().split("\n### END ###\n")
-            results = [x for x in results if x]
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x]
 
         _output = {}
         for result in results:
@@ -1008,11 +994,9 @@ class NCBIClient(object):
 
         with lock:
             if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (accns, error))
+                self.http_errors_file.write("%s\n%s//\n" % (accns, error))
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
+                self.results_file.write("%s### END ###\n" % handle.read())
         return
 
     def _get_gis(self, accns):  # These accns should include version numbers
@@ -1023,10 +1007,9 @@ class NCBIClient(object):
         runtime.start()
         br.run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
         runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().split("\n### END ###\n")
-            results = [x.split("\n") for x in results]
-            results = [x for sublist in results for x in sublist if x]
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x.split("\n") for x in results]
+        results = [x for sublist in results for x in sublist if x]
         _stderr("\tDone\n")
         return results
 
@@ -1076,11 +1059,9 @@ class NCBIClient(object):
 
         with lock:
             if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (gi_nums, error))
+                self.http_errors_file.write("%s\n%s//\n" % (gi_nums, error))
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
+                self.results_file.write("%s### END ###\n" % handle.read())
         return
 
     def _fetch_summaries(self, gi_nums):
@@ -1091,9 +1072,8 @@ class NCBIClient(object):
         runtime.start()
         br.run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
         runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as _ifile:
-            results = _ifile.read().split("\n### END ###\n")
-            results = [x for x in results if x != ""]
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x != ""]
 
         _output = {}
         taxa = []
@@ -1150,7 +1130,7 @@ class NCBIClient(object):
                 else:
                     self.dbbuddy.records[accn] = rec
 
-            open(self.results_file, "w", encoding="utf-8").close()
+            self.results_file.clear()
 
         gi_nums = [accn for accn, rec in self.dbbuddy.records.items() if rec.type == "gi_num" and not rec.summary]
 
@@ -1315,11 +1295,9 @@ class NCBIClient(object):
 
         with lock:
             if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (accns, error))
+                self.http_errors_file.write("%s\n%s//\n" % (accns, error))
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write(handle.read())
+                self.results_file.write(handle.read())
         return
 
     def _get_seq(self, gi_nums, database):
@@ -1330,8 +1308,7 @@ class NCBIClient(object):
         runtime.start()
         br.run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
         runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
+        results = SeqIO.to_dict(SeqIO.parse(self.results_file.get_handle("r"), "gb"))
         _stderr("\tDone\n")
         return results
 
@@ -1361,15 +1338,18 @@ class NCBIClient(object):
 class EnsemblRestClient(object):
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
         self.dbbuddy = _dbbuddy
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.http_errors_file = br.TempFile()
+        self.results_file = br.TempFile()
         self.server = server
         self.species = self.perform_rest_action("info/species", headers={"Content-type": "application/json",
                                                                          "Accept": "application/json"})["species"]
         self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+        self.lock = Lock()
+
+    def _clear_files(self):
+        self.http_errors_file.clear()
+        self.results_file.clear()
+        return
 
     def perform_rest_action(self, endpoint, **kwargs):
         """
@@ -1438,12 +1418,10 @@ class EnsemblRestClient(object):
         data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
                                         headers={"Content-type": "application/json", "Accept": "application/json"})
         with lock:
-            with open(self.results_file, "a", encoding="utf-8") as ofile:
-                ofile.write("%s\n### END ###\n" % data)
+            self.results_file.write("%s\n### END ###\n" % data)
             if self.dbbuddy.failures:
-                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
-                    for _hash, failure in self.dbbuddy.failures.items():
-                        ofile.write("%s\n" % failure)
+                for _hash, failure in self.dbbuddy.failures.items():
+                    self.http_errors_file.write("%s\n" % failure)
 
     def _parse_summary(self, summary):
         accn = summary['id']
@@ -1469,8 +1447,7 @@ class EnsemblRestClient(object):
         return rec
 
     def search_ensembl(self):
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        open(self.results_file, "w", encoding="utf-8").close()
+        self._clear_files()
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             _stderr("Searching Ensembl for %s...\n" % search_term)
@@ -1478,8 +1455,7 @@ class EnsemblRestClient(object):
             runtime.start()
             br.run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
             runtime.end()
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                results = ifile.read().split("\n### END ###")
+            results = self.results_file.read().split("\n### END ###")
 
             counter = 0
             for rec in results:
@@ -1612,12 +1588,17 @@ Further details about each command can be accessed by typing 'help <command>'
         return stop
 
     def dump_session(self):
+        # Need to remove Lock()s to pickle
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
+            client.lock = False
         import pickle
         self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
         pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
         self.crash_file.close()
         self.undo = True
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
+            client.lock = Lock()
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)

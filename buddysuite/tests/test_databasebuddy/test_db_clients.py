@@ -69,14 +69,14 @@ def mock_urlopen_raise_keyboardinterrupt(*args):
 
 
 # ################################################# Database Clients ################################################# #
+# UniProt
 def test_uniprotrestclient_init():
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[3:6]))
     client = Db.UniProtRestClient(dbbuddy)
     assert hash(dbbuddy) == hash(client.dbbuddy)
     assert client.server == 'http://www.uniprot.org/uniprot'
-    assert type(client.temp_dir) == br.TempDir
-    assert client.http_errors_file == "%s/errors.txt" % client.temp_dir.path
-    assert client.results_file == "%s/results.txt" % client.temp_dir.path
+    assert type(client.http_errors_file) == br.TempFile
+    assert type(client.results_file) == br.TempFile
     assert client.max_url == 1000
 
 
@@ -86,8 +86,7 @@ def test_uniprotrestclient_query_uniprot(capsys):
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_handle_uniprot_ids):
         client.query_uniprot("inx15", {"format": "list"})
 
-    with open(client.results_file, "r") as ifile:
-        assert ifile.read() == '''# Search: inx15
+    assert client.results_file.read() == '''# Search: inx15
 A8XEF9
 O61786
 A0A0H5SBJ0
@@ -100,13 +99,11 @@ A0A0H5SBJ0
     # Errors
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
         client.query_uniprot("inx15", [{"format": "list"}])
-    with open(client.http_errors_file, "r") as ifile:
-        assert ifile.read() == "inx15\nHTTP Error Fake HTTPError from Mock: Foo\n//\n"
+    assert client.http_errors_file.read() == "inx15\nHTTP Error Fake HTTPError from Mock: Foo\n//\n"
 
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
         client.query_uniprot("inx15", [{"format": "list"}])
-    with open(client.http_errors_file, "r") as ifile:
-        assert "<urlopen error Fake URLError from Mock>" in ifile.read()
+    assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_keyboardinterrupt):
         client.query_uniprot("inx15", [{"format": "list"}])
@@ -168,8 +165,7 @@ def test_uniprotrestclient_count_hits(capsys):
 
 def test_uniprotrestclient_search_proteins(monkeypatch, capsys):
     def patch_query_uniprot_multi(*args, **kwargs):
-        with open(client1.results_file, "w") as ofile:
-            ofile.write('''# Search: inx15
+        client1.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence similarities (1); Subcellular location (1)
@@ -181,17 +177,16 @@ A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexi
 A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
 A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
-//''')
+//''', "w")
         return
 
     def patch_query_uniprot_single(*args, **kwargs):
-        with open(client2.results_file, "w") as ofile:
-            ofile.write('''# Search: inx15
+        client2.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin
 E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin
-//''')
+//''', "w")
         return
 
     monkeypatch.setattr(Db.UniProtRestClient, "count_hits", lambda _: 0)
@@ -212,8 +207,7 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_single)
     dbbuddy = Db.DbBuddy("inx15")
     client2 = Db.UniProtRestClient(dbbuddy)
-    with open(client2.http_errors_file, "a", encoding="utf-8") as ofile:
-        ofile.write("inx15\n%s\n//\n" % URLError("Fake URLError from Mock"))
+    client2.http_errors_file.write("inx15\n%s\n//\n" % URLError("Fake URLError from Mock"))
     client2.search_proteins()
     out, err = capsys.readouterr()
     assert "Querying UniProt with the search term 'inx15'...\n" in err
@@ -223,8 +217,7 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
 
 def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, sb_helpers):
     def patch_query_uniprot_search(*args, **kwargs):
-        with open(client.results_file, "w") as _ofile:
-            _ofile.write('''# Search: inx15
+        client.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence similarities (1); Subcellular location (1)
@@ -236,20 +229,18 @@ A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexi
 A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
 A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
-//''')
+//''', "w")
         return
 
     def patch_query_uniprot_fetch(*args, **kwargs):
-        with open(client.results_file, "w") as _ofile:
-            with open("%s/mock_resources/test_databasebuddy_clients/uniprot_fetch.txt" % sb_resources.res_path, "r") \
-                    as ifile:
-                _ofile.write(ifile.read())
+        with open("%s/mock_resources/test_databasebuddy_clients/uniprot_fetch.txt" % sb_resources.res_path, "r") \
+                as ifile:
+            client.results_file.write(ifile.read(), "w")
         return
 
     def patch_query_uniprot_fetch_nothing(*args, **kwargs):
-        with open(client.results_file, "w") as _ofile:
-            _ofile.write("# Search: A8XEF9,O61786,A0A0H5SBJ0,E3MGD6,O61787,A0A0V1AZ11,A8XEF8,A0A0B2VB60,A0A0V0W5E2\n"
-                         "//\n//")
+        client.results_file.write("# Search: A8XEF9,O61786,A0A0H5SBJ0,E3MGD6,O61787,A0A0V1AZ11,A8XEF8,A0A0B2VB60,"
+                                  "A0A0V0W5E2\n//\n//", "w")
         return
 
     dbbuddy = Db.DbBuddy("inx15,inx16")
@@ -279,8 +270,7 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
 
     # Some edge cases
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_fetch_nothing)
-    with open(client.http_errors_file, "a", encoding="utf-8") as ofile:
-        ofile.write("inx15\n%s\n//\n" % URLError("Fake URLError from Mock"))
+    client.http_errors_file.write("inx15\n%s\n//\n" % URLError("Fake URLError from Mock"))
 
     client.dbbuddy.records = OrderedDict([("a" * 999, Db.Record("a" * 999, _database="uniprot"))])
     client.fetch_proteins()
