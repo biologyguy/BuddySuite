@@ -421,6 +421,7 @@ class TempFile(object):
         return content
 
     def clear(self):
+        self.close()
         self.write("", mode="w")
         return
 
