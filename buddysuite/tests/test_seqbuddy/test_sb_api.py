@@ -1049,6 +1049,15 @@ def test_pull_recs(key, next_hash, sb_resources, sb_helpers):
     tester = Sb.pull_recs(sb_resources.get_one(key), 'α2')
     assert sb_helpers.seqs2hash(tester) == next_hash
 
+# ######################  '-pr', '--pull_records_with_feature' ###################### #
+hashes = [('p g', '83d15851d489e89761c8faa31e5263f2'), ('d g', '36757409966ede91ab19deb56045d584')]
+
+
+@pytest.mark.parametrize("key, next_hash", hashes)
+def test_pull_records_with_feature(key, next_hash, sb_resources, sb_helpers):
+    tester = Sb.pull_recs_with_feature(sb_resources.get_one(key), 'splice_acceptor')
+    assert sb_helpers.seqs2hash(tester) == next_hash
+
 
 # #####################  '-prg', '--purge' ###################### ##
 def test_purge(sb_resources, sb_helpers):

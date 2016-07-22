@@ -894,6 +894,27 @@ def test_pull_records_ui(capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
 
 
+# ######################  '-prf', '--pull_records_with_feature' ###################### #
+def test_pull_records_with_feature_ui(capsys, sb_resources, sb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pull_records_with_feature = ["splice_acceptor"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "36757409966ede91ab19deb56045d584"
+
+    test_in_args.pull_records_with_feature = ["CDS", "splice_acceptor"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "0907009d491183f6d70531c0186c96d7"
+
+    temp_file = br.TempFile()
+    temp_file.write("CDS\nsplice_acceptor")
+    test_in_args.pull_records_with_feature = [temp_file.path]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "0907009d491183f6d70531c0186c96d7"
+
+
 # ######################  '-prg', '--purge' ###################### #
 def test_purge_ui(capsys, sb_resources, sb_helpers):
     test_in_args = deepcopy(in_args)

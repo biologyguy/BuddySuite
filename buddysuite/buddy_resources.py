@@ -758,7 +758,8 @@ def error_report(trace_back, tool, function, version):
         print(message)
     else:
         permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to be sent to "
-                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=5)
+                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=9)
+        print()
     try:
         if permission:
             print("\nPreparing error report for FTP upload...")
@@ -1426,6 +1427,11 @@ sb_flags = {"annotate": {"flag": "ano",
                                  "metavar": "<amount (int)>",
                                  "help": "Get the ends of all sequences in a file (use negative numbers to get rear)"},
             "pull_records": {"flag": "pr",
+                             "action": "store",
+                             "nargs": "+",
+                             "metavar": "<regex>",
+                             "help": "Get all the records with ids containing a given string"},
+            "pull_records_with_feature": {"flag": "prf",
                              "action": "store",
                              "nargs": "+",
                              "metavar": "<regex>",

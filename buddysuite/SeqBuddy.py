@@ -3065,6 +3065,30 @@ def pull_recs(seqbuddy, regex, description=False):
     return seqbuddy
 
 
+def pull_recs_with_feature(seqbuddy, regex):
+    """
+    Retrieves sequences with names/IDs matching a search pattern
+    :param seqbuddy: SeqBuddy object
+    :param regex: List of regex expressions or single regex
+    :type regex: str list
+    :return: The modified SeqBuddy object
+    """
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
+    matched_records = []
+    for rec in seqbuddy.records:
+        for feat in rec.features:
+            if re.search(regex, feat.type) or re.search(regex, feat.id):
+                matched_records.append(rec)
+                break
+    seqbuddy.records = matched_records
+    return seqbuddy
+
+
 def purge(seqbuddy, threshold):
     """
     Deletes highly similar sequences
@@ -4690,6 +4714,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
         _print_recs(pull_recs(seqbuddy, search_terms, description))
         _exit("pull_records")
+
+    # Pull records with feature
+    if in_args.pull_records_with_feature:
+        search_terms = []
+        for arg in in_args.pull_records_with_feature:
+            if os.path.isfile(arg):
+                with open(arg, "r", encoding="utf-8") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
+        _print_recs(pull_recs_with_feature(seqbuddy, search_terms))
+        _exit("pull_records_with_feature")
 
     # Purge
     if in_args.purge:
