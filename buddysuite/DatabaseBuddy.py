@@ -885,32 +885,37 @@ class NCBIClient(GenericClient):
         self.Entrez.tool = "buddysuite"
         self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
 
-    def _mc_taxa(self, _taxa_ids):
+    def _mc_query(self, query, args):
+        """
+        Make a request to Entrez for some data
+        :param query: Appropriately sized/formatted request string
+        :param args: tool = "esummary_taxa", "efetch_gi", "esummary_seq", or "efetch_seq"
+        :return:
+        """
+        tool = args[0]
         error = False
         handle = False
         timer = br.time()
         for indx in range(self.max_attempts):
             try:
-                handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
-                '''
-                Example output: esummary.fcgi?db=taxonomy&id=649
-                    <eSummaryResult>
-                        <DocSum>
-                            <Id>649</Id>
-                            <Item Name="Status" Type="String">active</Item>
-                            <Item Name="Rank" Type="String">species</Item>
-                            <Item Name="Division" Type="String">g-proteobacteria</Item>
-                            <Item Name="ScientificName" Type="String">Aeromonas eucrenophila</Item>
-                            <Item Name="CommonName" Type="String"/>
-                            <Item Name="TaxId" Type="Integer">649</Item>
-                            <Item Name="AkaTaxId" Type="Integer">0</Item>
-                            <Item Name="Genus" Type="String">Aeromonas</Item>
-                            <Item Name="Species" Type="String">eucrenophila</Item>
-                            <Item Name="Subsp" Type="String"/>
-                            <Item Name="ModificationDate" Type="Date">2014/12/30 00:00</Item>
-                        </DocSum>
-                    </eSummaryResult>
-                '''
+                if tool == "esummary_taxa":
+                    # Example query of taxa ids: "649,734,1009,2302"
+                    handle = Entrez.esummary(db="taxonomy", id=query, retmax=10000)
+                elif tool == "efetch_gi":
+                    # Example query of accn nums: "XP_010103297.1,XP_010103298.1,XP_010103299.1"
+                    handle = Entrez.efetch(db="nucleotide", id=query, rettype="gi", retmax=10000)
+                elif tool == "esummary_seq":
+                    # Example query of GI nums: "703125407,703125412,703125420"
+                    handle = Entrez.esummary(db="nucleotide", id=query, retmax=10000)
+                elif tool == "efetch_seq":
+                    # Example query of GI nums: "703125407,703125412,703125420"
+                    # Note that the database passed in doesn't matter. GIs will pull dna or prot as needed.
+                    handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
+                else:
+                    raise ValueError("_mc_query() 'tool' argument must be in 'esummary_taxa', "
+                                     "'efetch_gi', 'esummary_seq', or 'efetch_seq'")
+
+                # This is a throttle so the NCBI server isn't spammed too rapidly
                 timer = br.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
@@ -922,115 +927,9 @@ class NCBIClient(GenericClient):
 
         with self.lock:
             if error:
-                self.http_errors_file.write("%s\n%s//\n" % (_taxa_ids, error))
+                self.http_errors_file.write("%s\n%s//\n" % (query, error))
             else:
-                self.results_file.write("%s### END ###\n" % handle.read())
-        return
-
-    def _get_taxa(self, _taxa_ids):
-        self.results_file.clear()
-        _taxa_ids = self.group_terms_for_url(_taxa_ids)
-        br.run_multicore_function(_taxa_ids, self._mc_taxa, max_processes=3, quiet=True)
-        results = self.results_file.read().split("\n### END ###\n")
-        results = [x for x in results if x]
-
-        _output = {}
-        for result in results:
-            for summary in Entrez.parse(StringIO(result)):
-                _output[summary["TaxId"]] = summary["ScientificName"]
-        return _output
-
-    def _mc_accn2gi(self, accns):
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
-                '''
-                Example output: efetch.fcgi?db=nucleotide&id=XP_010103297.1,XP_010103298.1,XP_010103299.1&rettype=gi
-                    703125407
-                    703125412
-                    703125416
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except HTTPError as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with self.lock:
-            if error:
-                self.http_errors_file.write("%s\n%s//\n" % (accns, error))
-            else:
-                self.results_file.write("%s### END ###\n" % handle.read())
-        return
-
-    def _get_gis(self, accns):  # These accns should include version numbers
-        self.results_file.clear()
-        accns = self.group_terms_for_url(accns)
-        runtime = br.RunTime(prefix="\t")
-        _stderr("Converting NCBI accessions to gi numbers...\n")
-        runtime.start()
-        br.run_multicore_function(accns, self._mc_accn2gi, max_processes=3, quiet=True)
-        runtime.end()
-        results = self.results_file.read().split("\n### END ###\n")
-        results = [x.split("\n") for x in results]
-        results = [x for sublist in results for x in sublist if x]
-        _stderr("\tDone\n")
-        return results
-
-    def _mc_summaries(self, gi_nums):
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
-                handle = Entrez.esummary(db="nucleotide", id=gi_nums, retmax=10000)
-                '''
-                Example output: esummary.fcgi?db=nucleotide&id=728840875
-                    <eSummaryResult>
-                        <DocSum>
-                            <Id>728840875</Id>
-                            <Item Name="Caption" Type="String">KHG20318</Item>
-                            <Item Name="Title" Type="String">
-                                Proline-rich receptor-like protein kinase PERK1 [Gossypium arboreum]
-                            </Item>
-                            <Item Name="Extra" Type="String">
-                                gi|728840875|gb|KHG20318.1||gnl|WGS:JRRC|F383_09126[728840875]
-                            </Item>
-                            <Item Name="Gi" Type="Integer">728840875</Item>
-                            <Item Name="CreateDate" Type="String">2014/12/04</Item>
-                            <Item Name="UpdateDate" Type="String">2014/12/04</Item>
-                            <Item Name="Flags" Type="Integer">0</Item>
-                            <Item Name="TaxId" Type="Integer">29729</Item>
-                            <Item Name="Length" Type="Integer">649</Item>
-                            <Item Name="Status" Type="String">live</Item>
-                            <Item Name="ReplacedBy" Type="String"/>
-                            <Item Name="Comment" Type="String">
-                                <![CDATA[ ]]>
-                            </Item>
-                        </DocSum>
-                    </eSummaryResult>
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except (HTTPError, RuntimeError) as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with self.lock:
-            if error:
-                self.http_errors_file.write("%s\n%s//\n" % (gi_nums, error))
-            else:
-                self.results_file.write("%s### END ###\n" % handle.read())
+                self.results_file.write("%s\n### END ###\n" % handle.read().strip())
         return
 
     def _fetch_summaries(self, gi_nums):
@@ -1039,7 +938,7 @@ class NCBIClient(GenericClient):
         runtime = br.RunTime(prefix="\t")
         _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_summaries, max_processes=3, quiet=True)
+        br.run_multicore_function(gi_nums, self._mc_query, func_args=["esummary_seq"], max_processes=3, quiet=True)
         runtime.end()
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
@@ -1063,7 +962,18 @@ class NCBIClient(GenericClient):
                 _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]),
                                                      summary=_rec, _size=_rec["length"])
                 _output[summary["Caption"]].guess_database()
-        taxa = self._get_taxa(taxa)
+
+        self.results_file.clear()
+        _taxa_ids = self.group_terms_for_url(taxa)
+        br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"], max_processes=3, quiet=True)
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x]
+
+        taxa = {}
+        for result in results:
+            for summary in Entrez.parse(StringIO(result)):
+                taxa[summary["TaxId"]] = summary["ScientificName"]
+
         for accn, rec in _output.items():
             if rec.summary["TaxId"] in taxa:
                 rec.summary["organism"] = taxa[rec.summary["TaxId"]]
@@ -1072,6 +982,43 @@ class NCBIClient(GenericClient):
         _stderr("\t%s records received.\n" % len(_output))
         return _output
 
+    def search_ncbi(self, database):
+        """
+        Query NCBI with search terms
+        :param database: "nucleotide" or "protein"
+        :return:
+        """
+        for _term in self.dbbuddy.search_terms:
+            try:
+                count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
+                handle = Entrez.esearch(db=database, term=_term, retmax=count)
+                '''
+                Example output: esearch.fcgi?db=nucleotide&term=perk1&retmax=5
+                at tests/unit_test_resources/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml
+                '''
+                result = Entrez.read(handle)
+                for _id in result["IdList"]:
+                    if _id not in self.dbbuddy.records:
+                        self.dbbuddy.records[_id] = Record(_id)
+                        self.dbbuddy.records[_id].guess_database()
+
+                self.fetch_summary()
+
+            except (HTTPError, RuntimeError) as _e:
+                if _e.getcode() == 503:
+                    failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
+                                             "experiencing some technical issues.")
+                    if failure.hash not in self.dbbuddy.failures:
+                        self.dbbuddy.failures[failure.hash] = failure
+                else:
+                    failure = Failure(_term, str(_e))
+                    if failure.hash not in self.dbbuddy.failures:
+                        self.dbbuddy.failures[failure.hash] = failure
+
+            except KeyboardInterrupt:
+                _stderr("\n\tNCBI query interrupted by user\n")
+        return
+
     def fetch_summary(self):
         # EUtils esummary will only take gi numbers
         self.results_file.clear()
@@ -1079,7 +1026,18 @@ class NCBIClient(GenericClient):
                  rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
 
         if accns:
-            gi_nums = self._get_gis(accns)
+            self.results_file.clear()
+            accns = self.group_terms_for_url(accns)
+            runtime = br.RunTime(prefix="\t")
+            _stderr("Converting NCBI accessions to gi numbers...\n")
+            runtime.start()
+            br.run_multicore_function(accns, self._mc_query, func_args=["efetch_gi"], max_processes=3, quiet=True)
+            runtime.end()
+            gi_nums = self.results_file.read().split("\n### END ###\n")
+            gi_nums = [x.split("\n") for x in gi_nums]
+            gi_nums = [x for sublist in gi_nums for x in sublist if x]
+            _stderr("\tDone\n")
+
             summaries = self._fetch_summaries(gi_nums)
             for accn in accns:
                 if re.search("\.[0-9]+$", accn):  # Add record the version number if present
@@ -1120,205 +1078,49 @@ class NCBIClient(GenericClient):
                     del self.dbbuddy.records[rec.gi]
                 else:
                     self.dbbuddy.records[accn] = rec
-
-    def search_ncbi(self, database):  # database in ["nucleotide", "protein"]
-        for _term in self.dbbuddy.search_terms:
-            try:
-                count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
-                handle = Entrez.esearch(db=database, term=_term, retmax=count)
-                '''
-                Example output: esearch.fcgi?db=nucleotide&term=perk1&retmax=5
-                <eSearchResult>
-                    <Count>456</Count>
-                    <RetMax>5</RetMax>
-                    <RetStart>0</RetStart>
-                    <IdList>
-                        <Id>909549231</Id>
-                        <Id>909549227</Id>
-                        <Id>909549224</Id>
-                        <Id>909546647</Id>
-                        <Id>306819620</Id>
-                    </IdList>
-                    <TranslationSet/>
-                    <TranslationStack>
-                        <TermSet>
-                            <Term>perk1[All Fields]</Term>
-                            <Field>All Fields</Field>
-                            <Count>456</Count>
-                            <Explode>N</Explode>
-                        </TermSet>
-                        <OP>GROUP</OP>
-                    </TranslationStack>
-                    <QueryTranslation>perk1[All Fields]</QueryTranslation>
-                </eSearchResult>
-                '''
-                result = Entrez.read(handle)
-                for _id in result["IdList"]:
-                    if _id not in self.dbbuddy.records:
-                        self.dbbuddy.records[_id] = Record(_id)
-                        self.dbbuddy.records[_id].guess_database()
-
-                self.fetch_summary()
-
-            except (HTTPError, RuntimeError) as _e:
-                if _e.getcode() == 503:
-                    failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
-                                             "experiencing some technical issues.")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-                else:
-                    failure = Failure(_term, str(_e))
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-
-            except KeyboardInterrupt:
-                _stderr("\n\tNCBI query interrupted by user\n")
-
-    def _mc_seq(self, accns, args):
-        database, lock = args
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
-                '''
-                Example output: efetch.fcgi?db=protein&id=920714169&rettype=gb&retmode=text
-                LOCUS       KOM54257                 441 aa            linear   PLN 21-AUG-2015
-                DEFINITION  hypothetical protein LR48_Vigan10g014900 [Vigna angularis].
-                ACCESSION   KOM54257
-                VERSION     KOM54257.1  GI:920714169
-                DBLINK      BioProject: PRJNA261643
-                            BioSample: SAMN03074979
-                DBSOURCE    accession CM003380.1
-                KEYWORDS    .
-                SOURCE      Vigna angularis (adzuki bean)
-                  ORGANISM  Vigna angularis
-                            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
-                            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
-                            Pentapetalae; rosids; fabids; Fabales; Fabaceae; Papilionoideae;
-                            Phaseoleae; Vigna.
-                REFERENCE   1  (residues 1 to 441)
-                  AUTHORS   Wan,P.
-                  TITLE     The draft genome sequence of high starch accumulation legume
-                            species adzuki bean (Vigna angularis)
-                  JOURNAL   Unpublished
-                REFERENCE   2  (residues 1 to 441)
-                  AUTHORS   Wan,P.
-                  TITLE     Direct Submission
-                  JOURNAL   Submitted (27-FEB-2015) College of Plant Science and Technology,
-                            Beijing University of Agriculture, Huilongguan Beinonglu 7
-                            Changping District, Beijing 102206, China
-                COMMENT     Method: conceptual translation.
-                FEATURES             Location/Qualifiers
-                     source          1..441
-                                     /organism="Vigna angularis"
-                                     /cultivar="Jingnong 6"
-                                     /db_xref="taxon:3914"
-                                     /chromosome="10"
-                                     /tissue_type="seedling"
-                                     /country="China: Beijing"
-                     Protein         1..441
-                                     /product="hypothetical protein"
-                     CDS             1..441
-                                     /locus_tag="LR48_Vigan10g014900"
-                                     /coded_by="complement(join(CM003380.1:1168320..1168634,
-                                     CM003380.1:1168784..1168945,CM003380.1:1169144..1169291,
-                                     CM003380.1:1169589..1169665,CM003380.1:1169837..1169907,
-                                     CM003380.1:1169999..1170085,CM003380.1:1170242..1170707))"
-                                     /note="GO_function: GO:0004672 - protein kinase activity
-                                     [Evidence IEA];
-                                     GO_function: GO:0004674 - protein serine/threonine kinase
-                                     activity [Evidence IEA];
-                                     GO_function: GO:0004713 - protein tyrosine kinase activity
-                                     [Evidence IEA];
-                                     GO_function: GO:0005524 - ATP binding [Evidence IEA];
-                                     GO_process: GO:0006468 - protein phosphorylation [Evidence
-                                     IEA]"
-                                     /db_xref="InterPro:IPR000719"
-                                     /db_xref="InterPro:IPR001245"
-                                     /db_xref="InterPro:IPR002290"
-                                     /db_xref="InterPro:IPR008271"
-                                     /db_xref="InterPro:IPR017441"
-                                     /db_xref="InterPro:IPR020635"
-                                     /db_xref="UniProtKB/Swiss-Prot:PERK1"
-                ORIGIN
-                        1 mppkpspppa payaaqpppp pppfiissgg sgsnysggep lpppspgisl gfskstftye
-                       61 elaratdgfs danllgqggf gyvhrgilpn gkevavkqlk agsgqgeref qaeveiisrv
-                      121 hhkhlvslvg ycitgsqrll vyefvpnntm efhlhgrgrp tmdwptrlri algsakglay
-                      181 lhedchpkii hrdiksanil ldfkfeakva dfglakfssd vnthvstrvm gtfgylapey
-                      241 assgkltdks dvfsygvmll elitgrrpvd ktqtfmedsl vdwarplltr aleeddfdsi
-                      301 idprlqndyd pnemarmvac aaactrhsak rrprmsqvvr alegdvslad lnegikpghs
-                      361 tmysshessd ydtvqyredm kkfrkmalgt qeygasseys aatseyglnp sgssseaqsr
-                      421 qttrememrk mknsqgfsgs s
-                //
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except (HTTPError, RuntimeError) as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with lock:
-            if error:
-                self.http_errors_file.write("%s\n%s//\n" % (accns, error))
-            else:
-                self.results_file.write(handle.read())
         return
-
-    def _get_seq(self, gi_nums, database):
-        self.results_file.clear()
-        gi_nums = self.group_terms_for_url(gi_nums)
-        runtime = br.RunTime(prefix="\t")
-        _stderr("Fetching full sequence records from NCBI...\n")
-        runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
-        runtime.end()
-        results = SeqIO.to_dict(SeqIO.parse(self.results_file.get_handle("r"), "gb"))
-        _stderr("\tDone\n")
-        return results
 
     def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
-        if len(gi_nums) > 0:
-            try:
-                records = self._get_seq(gi_nums, database)
-                for accn, rec in records.items():
-                    # Catch accn/version
-                    with_version = re.search("^(.*?)\.([0-9]+)$", accn)
-                    if with_version:
-                        accn, ver = with_version.group(1), with_version.group(2)
+        if not gi_nums:
+            return
+        try:
+            self.results_file.clear()
+            gi_nums = self.group_terms_for_url(gi_nums)
+            runtime = br.RunTime(prefix="\t")
+            _stderr("Fetching full sequence records from NCBI...\n")
+            runtime.start()
+            br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+            runtime.end()
+            records = SeqIO.to_dict(SeqIO.parse(self.results_file.get_handle("r"), "gb"))
+            _stderr("\tDone\n")
+
+            for accn, rec in records.items():
+                # Catch accn/version
+                version = re.search("^(.*?)\.([0-9]+)$", accn)
+                if version:
+                    accn, ver = version.group(1), version.group(2)
+                    self.dbbuddy.records[accn].record = rec
+                    self.dbbuddy.records[accn].version = ver
+                else:
+                    try:
                         self.dbbuddy.records[accn].record = rec
-                        self.dbbuddy.records[accn].version = ver
-                    else:
-                        try:
-                            self.dbbuddy.records[accn].record = rec
-                        except KeyError:
-                            self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records",
-                                                             []).append(rec.id)
-            except KeyboardInterrupt:
-                _stderr("\n\tNCBI query interrupted by user\n")
+                    except KeyError:
+                        self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records",
+                                                         []).append(rec.id)
+        except KeyboardInterrupt:
+            _stderr("\n\tNCBI query interrupted by user\n")
+        return
 
 
-class EnsemblRestClient(object):
+class EnsemblRestClient(GenericClient):
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
-        self.dbbuddy = _dbbuddy
-        self.http_errors_file = br.TempFile()
-        self.results_file = br.TempFile()
+        GenericClient.__init__(self, _dbbuddy)
         self.server = server
         self.species = self.perform_rest_action("info/species", headers={"Content-type": "application/json",
                                                                          "Accept": "application/json"})["species"]
         self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
-        self.lock = Lock()
-
-    def _clear_files(self):
-        self.http_errors_file.clear()
-        self.results_file.clear()
-        return
 
     def perform_rest_action(self, endpoint, **kwargs):
         """
@@ -1416,7 +1218,7 @@ class EnsemblRestClient(object):
         return rec
 
     def search_ensembl(self):
-        self._clear_files()
+        self.results_file.clear()
         species = [_name for _name, _info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             _stderr("Searching Ensembl for %s...\n" % search_term)

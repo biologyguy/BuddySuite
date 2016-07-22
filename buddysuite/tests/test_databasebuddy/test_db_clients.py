@@ -12,7 +12,7 @@ ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096
 
 
 # Mock functions and classes
-def mock_urlopen_handle_uniprot_ids(*args):
+def mock_urlopen_handle_uniprot_ids(*args, **kwargs):
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''A8XEF9
 O61786
@@ -21,7 +21,7 @@ A0A0H5SBJ0
     return tmp_file.get_handle("r")
 
 
-def mock_urlopen_uniprot_count_hits(*args):
+def mock_urlopen_uniprot_count_hits(*args, **kwargs):
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''# Search: (inx15)+OR+(inx16)
 O61787
@@ -38,7 +38,7 @@ E3MGD5
     return tmp_file.get_handle("r")
 
 
-def mock_urlopen_uniprot_summary(*args):
+def mock_urlopen_uniprot_summary(*args, **kwargs):
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
@@ -56,15 +56,15 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
     return tmp_file.get_handle("r")
 
 
-def mock_urlopen_raise_httperror(*args):
+def mock_urlopen_raise_httperror(*args, **kwargs):
     raise HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz")
 
 
-def mock_urlopen_raise_urlerror(*args):
+def mock_urlopen_raise_urlerror(*args, **kwargs):
     raise URLError("Fake URLError from Mock")
 
 
-def mock_urlopen_raise_keyboardinterrupt(*args):
+def mock_urlopen_raise_keyboardinterrupt(*args, **kwargs):
     raise KeyboardInterrupt()
 
 
@@ -103,6 +103,18 @@ Inx1
     client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
     assert not client._parse_error_file()
     assert len(dbbuddy.failures) == 2
+
+
+def test_client_split_for_url():
+    dbbuddy = Db.DbBuddy()
+    client = Db.GenericClient(dbbuddy, max_url=40)
+    assert client.group_terms_for_url(ACCNS) == ['NP_001287575.1,ADH10263.1', 'XP_005165403.2,A0A087WX72,A0A096MTH0',
+                                                 'A0A0A9YFB0,XM_003978475', 'ENSAMEG00000011912,ENSCJAG00000008732',
+                                                 'ENSMEUG00000000523']
+    client = Db.GenericClient(dbbuddy, max_url=10)
+    with pytest.raises(ValueError) as err:
+        client.group_terms_for_url(ACCNS)
+    assert "The provided accession or search term is too long (>10)." in str(err)
 
 
 # UniProt
@@ -307,5 +319,44 @@ def test_ncbiclient_init():
     assert client.max_attempts == 5
 
 
-def test_ncbiclient_split_for_url():
-    pass
+def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
+    def patch_entrez_esummary_taxa(*args, **kwargs):
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
+        return open(test_file, "r")
+
+    def patch_entrez_efetch_gis(*args, **kwargs):
+        tmp_file = br.TempFile()
+        tmp_file.write("703125407\n703125412\n703125420\n")
+        return tmp_file.get_handle("r")
+
+    def patch_entrez_esummary_seq(*args, **kwargs):
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % sb_resources.res_path
+        return open(test_file, "r")
+
+    def patch_entrez_efetch_seq(*args, **kwargs):
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
+        return open(test_file, "r")
+
+    monkeypatch.setattr(Db, "sleep", lambda _: True)  # No need to wait around for stuff...
+    dbbuddy = Db.DbBuddy()
+    client = Db.NCBIClient(dbbuddy)
+
+    monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_taxa)
+    client._mc_query("649,734,1009,2302", ["esummary_taxa"])
+    assert sb_helpers.string2hash(client.results_file.read()) == "5dde41e868263696da9b39c305a81378"
+    client.results_file.clear()
+
+    monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_gis)
+    client._mc_query("XP_010103297.1,XP_010103298.1,XP_010103299.1", ["efetch_gi"])
+    assert client.results_file.read() == "703125407\n703125412\n703125420\n### END ###\n"
+    client.results_file.clear()
+
+    monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_seq)
+    client._mc_query("703125407,703125412,703125420", ["esummary_seq"])
+    assert sb_helpers.string2hash(client.results_file.read()) == "f1b72c017794c2fc1c96bf909cd1c74a"
+    client.results_file.clear()
+
+    monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_seq)
+    client._mc_query("703125407,703125412,703125420", ["efetch_seq"])
+    assert sb_helpers.string2hash(client.results_file.read()) == "38424a96d43275fe7cadc5960874d4da"
+
