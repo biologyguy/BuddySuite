@@ -168,16 +168,6 @@ def test_record_instantiation():
     assert rec.size == 5746
 
 
-def test_record_ncbi_accn():
-    accns = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
-    for accn in accns:
-        rec = Db.Record(accn)
-        assert not rec.version
-        assert rec.ncbi_accn() == accn
-        rec.guess_database()
-        assert rec.ncbi_accn() == accn
-
-
 def test_record_guess_refseq():
     ref_seq_nuc = ["NM_123456789", "NR_123456789", "XM_123456789", "XR_123456789"]
     for accn in ref_seq_nuc:
@@ -278,18 +268,6 @@ def test_record_guess_genbank_gi():
         assert rec.database == "ncbi_nuc"
         assert rec.type == "gi_num"
         assert rec.gi == accn
-
-
-def test_record_guess_genbank_version():
-    accns = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
-    for accn in accns:
-        rec = Db.Record(accn)
-        rec.guess_database()
-        assert rec.database == "ncbi_prot"
-        assert rec.type == "protein"
-        accn, ver = accn.split(".")
-        assert rec.accession == accn
-        assert rec.version == ver
 
 
 def test_record_search(sb_resources):

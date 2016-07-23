@@ -147,7 +147,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                 _record = Record(_accession)
                 _record.guess_database()
                 if _record.database:
-                    self.records[_accession] = _record
+                    self.records[_record.accession] = _record
 
             # If accessions not identified, assume search terms
             if len(self.records) != len(accessions_check):
@@ -418,12 +418,6 @@ class Record(object):
         self.type = check_type(_type)
         self.search_term = _search_term  # In case the record was the result of a particular search
 
-    def ncbi_accn(self):
-        if not self.version:
-            return self.accession
-        else:
-            return "%s.%s" % (self.accession, self.version)
-
     def guess_database(self):
         # RefSeq
         # https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/
@@ -441,7 +435,7 @@ class Record(object):
 
         # UniProt/SwissProt
         # http://www.uniprot.org/help/accession_numbers
-        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
+        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$", self.accession):
             self.database = "uniprot"
             self.type = "protein"
 
@@ -474,22 +468,19 @@ class Record(object):
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number
+        elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number (Being deprecated!)
             self.database = "ncbi_nuc"
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
             self.gi = str(self.accession)
 
-        if self.database in ["ncbi_nuc", "ncbi_prot"]:
-            # Catch accn/version
-            with_version = re.search("^(.*?)\.([0-9]+)$", self.accession)
-            if with_version:
-                accn, ver = with_version.group(1), with_version.group(2)
-                self.accession = accn
-                self.version = ver
-
         # ToDo: This is for testing, needs to be removed for production
-        # else:
-        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)
+        else:
+            raise TypeError("Unable to guess database for accession '%s'" % self.accession)
+
+        # Catch accn.version
+        version = re.search("^(.*?)\.([0-9]+)$", self.accession)
+        if version:
+            self.version = version.group(2)
 
         return
 
@@ -513,8 +504,10 @@ class Record(object):
                 limit = re.search("length *([ =<>]+)([0-9]+)", column, flags=re.IGNORECASE)
                 operator = limit.group(1).strip()
                 limit = int(limit.group(2))
-                length = int(self.summary["length"])
+                if "length" not in self.summary:
+                    return False
 
+                length = int(self.summary["length"])
                 if operator not in ["=", ">", ">=", "<", "<="]:
                     raise ValueError("Invalid operator: %s" % operator)
 
@@ -1022,7 +1015,7 @@ class NCBIClient(GenericClient):
     def fetch_summary(self):
         # EUtils esummary will only take gi numbers
         self.results_file.clear()
-        accns = [rec.ncbi_accn() for accn, rec in self.dbbuddy.records.items() if
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if
                  rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
 
         if accns:
@@ -1602,7 +1595,7 @@ Further details about each command can be accessed by typing 'help <command>'
         amount_seq_requested = 0
         new_records_fetched = []
         for _accn, _rec in self.dbbuddy.records.items():
-            if not _rec.record and _rec:  # Not fetching sequence if the full record already exists
+            if not _rec.record and _rec.size:  # Not fetching sequence if the full record already exists
                 amount_seq_requested += _rec.size
                 new_records_fetched.append(_accn)
 
@@ -2368,8 +2361,8 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
-            _stderr("%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
-                    "command.%s\n" % (GREEN, save_file, DEF_FONT))
+            _stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
+                    "the 'load' command.%s\n" % (GREEN, save_file, DEF_FONT))
         dbbuddy.memory_footprint = int(os.path.getsize(temp_file.path))
         _exit("live_shell")
 
