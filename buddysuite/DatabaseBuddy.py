@@ -474,8 +474,8 @@ class Record(object):
             self.gi = str(self.accession)
 
         # ToDo: This is for testing, needs to be removed for production
-        else:
-            raise TypeError("Unable to guess database for accession '%s'" % self.accession)
+        #else:
+        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)
 
         # Catch accn.version
         version = re.search("^(.*?)\.([0-9]+)$", self.accession)
@@ -878,14 +878,14 @@ class NCBIClient(GenericClient):
         self.Entrez.tool = "buddysuite"
         self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
 
-    def _mc_query(self, query, args):
+    def _mc_query(self, query, func_args):
         """
         Make a request to Entrez for some data
         :param query: Appropriately sized/formatted request string
-        :param args: tool = "esummary_taxa", "efetch_gi", "esummary_seq", or "efetch_seq"
+        :param func_args: tool = "esummary_taxa", "efetch_gi", "esummary_seq", or "efetch_seq"
         :return:
         """
-        tool = args[0]
+        tool = func_args[0]
         error = False
         handle = False
         timer = br.time()
@@ -931,11 +931,13 @@ class NCBIClient(GenericClient):
         runtime = br.RunTime(prefix="\t")
         _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_query, func_args=["esummary_seq"], max_processes=3, quiet=True)
+        if len(gi_nums) > 1:
+            br.run_multicore_function(gi_nums, self._mc_query, func_args=["esummary_seq"], max_processes=3, quiet=True)
+        else:
+            self._mc_query(gi_nums[0], func_args=["esummary_seq"])
         runtime.end()
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
-
         _output = {}
         taxa = []
         for result in results:
@@ -958,14 +960,18 @@ class NCBIClient(GenericClient):
 
         self.results_file.clear()
         _taxa_ids = self.group_terms_for_url(taxa)
-        br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"], max_processes=3, quiet=True)
+        if len(_taxa_ids) > 1:
+            br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"], max_processes=3, quiet=True)
+        else:
+            self._mc_query(_taxa_ids[0], func_args=["esummary_taxa"])
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x]
 
         taxa = {}
         for result in results:
             for summary in Entrez.parse(StringIO(result)):
-                taxa[summary["TaxId"]] = summary["ScientificName"]
+                taxa[summary["TaxId"]] = "Unclassified" if "ScientificName" not in summary \
+                    else summary["ScientificName"]
 
         for accn, rec in _output.items():
             if rec.summary["TaxId"] in taxa:

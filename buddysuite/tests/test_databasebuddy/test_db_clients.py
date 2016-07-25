@@ -2,9 +2,21 @@ import pytest
 from unittest import mock
 from urllib.error import HTTPError, URLError
 from collections import OrderedDict
+import sys
+import tempfile
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
+
+
+def patched_close(self):  # This suppresses an 'ignored' exception
+    if not self.close_called:
+        self.close_called = True
+        if type(self.file) == str:
+            pass
+        else:
+            self.file.close()
+tempfile._TemporaryFileCloser.close = patched_close
 
 # A few real accession numbers to test things out with
 ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
@@ -13,6 +25,7 @@ ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096
 
 # Mock functions and classes
 def mock_urlopen_handle_uniprot_ids(*args, **kwargs):
+    print("mock_urlopen_handle_uniprot_ids\nargs: %s\nkwargs: %s" % (args, kwargs))
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''A8XEF9
 O61786
@@ -22,6 +35,7 @@ A0A0H5SBJ0
 
 
 def mock_urlopen_uniprot_count_hits(*args, **kwargs):
+    print("mock_urlopen_uniprot_count_hits\nargs: %s\nkwargs: %s" % (args, kwargs))
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''# Search: (inx15)+OR+(inx16)
 O61787
@@ -39,6 +53,7 @@ E3MGD5
 
 
 def mock_urlopen_uniprot_summary(*args, **kwargs):
+    print("mock_urlopen_uniprot_summary\nargs: %s\nkwargs: %s" % (args, kwargs))
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
@@ -57,14 +72,17 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
 
 
 def mock_urlopen_raise_httperror(*args, **kwargs):
+    print("mock_urlopen_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz")
 
 
 def mock_urlopen_raise_urlerror(*args, **kwargs):
+    print("mock_urlopen_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise URLError("Fake URLError from Mock")
 
 
 def mock_urlopen_raise_keyboardinterrupt(*args, **kwargs):
+    print("mock_urlopen_raise_keyboardinterrupt\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise KeyboardInterrupt()
 
 
@@ -185,6 +203,7 @@ def test_uniprotrestclient_count_hits(capsys):
 
 def test_uniprotrestclient_search_proteins(monkeypatch, capsys):
     def patch_query_uniprot_multi(*args, **kwargs):
+        print("patch_query_uniprot_multi\nargs: %s\nkwargs: %s" % (args, kwargs))
         client1.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
@@ -201,6 +220,7 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
         return
 
     def patch_query_uniprot_single(*args, **kwargs):
+        print("patch_query_uniprot_single\nargs: %s\nkwargs: %s" % (args, kwargs))
         client2.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
@@ -237,6 +257,7 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
 
 def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, sb_helpers):
     def patch_query_uniprot_search(*args, **kwargs):
+        print("patch_query_uniprot_search\nargs: %s\nkwargs: %s" % (args, kwargs))
         client.results_file.write('''# Search: inx15
 A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
 O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
@@ -253,12 +274,14 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
         return
 
     def patch_query_uniprot_fetch(*args, **kwargs):
+        print("patch_query_uniprot_fetch\nargs: %s\nkwargs: %s" % (args, kwargs))
         with open("%s/mock_resources/test_databasebuddy_clients/uniprot_fetch.txt" % sb_resources.res_path, "r") \
                 as ifile:
             client.results_file.write(ifile.read(), "w")
         return
 
     def patch_query_uniprot_fetch_nothing(*args, **kwargs):
+        print("patch_query_uniprot_fetch_nothing\nargs: %s\nkwargs: %s" % (args, kwargs))
         client.results_file.write("# Search: A8XEF9,O61786,A0A0H5SBJ0,E3MGD6,O61787,A0A0V1AZ11,A8XEF8,A0A0B2VB60,"
                                   "A0A0V0W5E2\n//\n//", "w")
         return
@@ -321,19 +344,23 @@ def test_ncbiclient_init():
 
 def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
     def patch_entrez_esummary_taxa(*args, **kwargs):
+        print("patch_entrez_esummary_taxa\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
         return open(test_file, "r")
 
     def patch_entrez_efetch_gis(*args, **kwargs):
+        print("patch_entrez_efetch_gis\nargs: %s\nkwargs: %s" % (args, kwargs))
         tmp_file = br.TempFile()
-        tmp_file.write("703125407\n703125412\n703125420\n")
+        tmp_file.write("703125407\n703125412\n67586143\n")
         return tmp_file.get_handle("r")
 
     def patch_entrez_esummary_seq(*args, **kwargs):
+        print("patch_entrez_esummary_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % sb_resources.res_path
         return open(test_file, "r")
 
     def patch_entrez_efetch_seq(*args, **kwargs):
+        print("patch_entrez_efetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
         return open(test_file, "r")
 
@@ -343,20 +370,65 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_taxa)
     client._mc_query("649,734,1009,2302", ["esummary_taxa"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "5dde41e868263696da9b39c305a81378"
+    assert sb_helpers.string2hash(client.results_file.read()) == "acfb85bbdf7c2f8ea7e925c5bfcaaf06"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_gis)
     client._mc_query("XP_010103297.1,XP_010103298.1,XP_010103299.1", ["efetch_gi"])
-    assert client.results_file.read() == "703125407\n703125412\n703125420\n### END ###\n"
+    assert client.results_file.read() == "703125407\n703125412\n67586143\n### END ###\n"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_seq)
-    client._mc_query("703125407,703125412,703125420", ["esummary_seq"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "f1b72c017794c2fc1c96bf909cd1c74a"
+    client._mc_query("703125407,703125412,67586143", ["esummary_seq"])
+    print(client.results_file.read())
+    assert sb_helpers.string2hash(client.results_file.read()) == "e6ba80b5fe2f35002ac2227ca7791c17"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_seq)
-    client._mc_query("703125407,703125412,703125420", ["efetch_seq"])
+    client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
     assert sb_helpers.string2hash(client.results_file.read()) == "38424a96d43275fe7cadc5960874d4da"
+
+    monkeypatch.undo()
+    monkeypatch.setattr(Db, "sleep", lambda _: True)
+    with pytest.raises(ValueError) as err:
+        client._mc_query("703125407", ["foo"])
+    assert "'tool' argument must be in 'esummary_taxa', 'efetch_gi', 'esummary_seq', or 'efetch_seq'" in str(err)
+
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_urlopen_raise_httperror)
+    client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
+    assert "703125407,703125412,67586143\nHTTP Error Fake HTTPError from Mock: Foo//" in client.http_errors_file.read()
+
+
+def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
+    from tempfile import _TemporaryFileCloser
+
+    def patch_entrez_fetch_summaries(*args, **kwargs):
+        print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
+        if kwargs["func_args"] == ["esummary_seq"]:
+            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % sb_resources.res_path
+            with open(test_file, "r") as ifile:
+                client.results_file.write(ifile.read().strip())
+                client.results_file.write('\n### END ###\n')
+        elif kwargs["func_args"] == ["esummary_taxa"]:
+            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
+            with open(test_file, "r") as ifile:
+                client.results_file.write(ifile.read().strip())
+                client.results_file.write('\n### END ###\n')
+        return
+
+    monkeypatch.setattr(br, "run_multicore_function", patch_entrez_fetch_summaries)
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_summaries)
+    dbbuddy = Db.DbBuddy()
+    client = Db.NCBIClient(dbbuddy)
+    summaries = client._fetch_summaries(["703125407", "703125412", "67586143"])
+    for accn in ["XP_010103297", "XP_010103298", "AAY72386"]:
+        assert accn in summaries
+    assert summaries["AAY72386"].summary["organism"] == "Unclassified"
+
+    # Multi core
+    summaries = client._fetch_summaries(["703125407", "703125412", "67586143"] * 40)
+    for accn in ["XP_010103297", "XP_010103298", "AAY72386"]:
+        assert accn in summaries
+    assert summaries["AAY72386"].summary["organism"] == "Unclassified"
+
 
