@@ -1444,7 +1444,7 @@ def argparse_init():
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                     _stderr("Warning: No input detected so AlignBuddy is aborting...\n"
-                             "For more information, try:\n%s --help\n" % sys.argv[0])
+                            "For more information, try:\n%s --help\n" % sys.argv[0])
                     sys.exit()
                 align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
                 alignbuddy += align_set.alignments
@@ -1914,6 +1914,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
 
 
 def main():
+    br.preparse_flags()
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, alignbuddy]

@@ -3067,7 +3067,7 @@ def pull_recs(seqbuddy, regex, description=False):
 
 def pull_recs_with_feature(seqbuddy, regex):
     """
-    Retrieves sequences with names/IDs matching a search pattern
+    Retrieves sequences with feature names/IDs matching a search pattern
     :param seqbuddy: SeqBuddy object
     :param regex: List of regex expressions or single regex
     :type regex: str list
@@ -4897,6 +4897,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
 
 def main():
+    br.preparse_flags()
     initiation = []
     try:
         initiation = argparse_init()  # initiation = [in_agrs, seqbuddy]

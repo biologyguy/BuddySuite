@@ -2694,6 +2694,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
 
 
 def main():
+    br.preparse_flags()
     initiation = []
     try:
         initiation = argparse_init()

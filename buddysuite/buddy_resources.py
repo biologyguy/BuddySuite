@@ -778,6 +778,21 @@ def error_report(trace_back, tool, function, version):
     return
 
 
+def preparse_flags():
+    func_lists = [sb_flags, alb_flags, pb_flags, db_flags, sb_modifiers, pb_modifiers, alb_modifiers, db_modifiers]
+    for indx, arg in enumerate(sys.argv):
+        if indx > 0 and re.match('^-', arg):
+            change = True
+            for func_list in func_lists:
+                for func in func_list:
+                    if arg == "-" + func_list[func]["flag"]:
+                        change = False
+            if arg in ["-v", "-t", "-c"]:
+                change = False
+            if change:
+                sys.argv[indx] = " " + sys.argv[indx]
+
+
 def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     """
     :param parser: argparse.ArgumentParser object
@@ -888,9 +903,11 @@ def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
         output += "\n\n"
     return output
 
-# If your file is not phylip-relaxed, leaving relaxed as True WILL break your code. If your file is strict you must set
-# relaxed to False. (Strict forces 10 character taxa names, relaxed requires whitespace between name and sequence)
+
 def phylip_sequential_read(sequence, relaxed=True):
+    # If your file is not phylip-relaxed, leaving relaxed as True WILL break your code.
+    # If your file is strict you must set relaxed to False.
+    # (Strict forces 10 character taxa names, relaxed requires whitespace between name and sequence)
     sequence = "\n %s" % sequence.strip()
     sequence = re.sub("\n+", "\n", sequence)
     alignments = re.split("\n *([0-9]+) ([0-9]+)\n", sequence)[1:]
@@ -1432,10 +1449,10 @@ sb_flags = {"annotate": {"flag": "ano",
                              "metavar": "<regex>",
                              "help": "Get all the records with ids containing a given string"},
             "pull_records_with_feature": {"flag": "prf",
-                             "action": "store",
-                             "nargs": "+",
-                             "metavar": "<regex>",
-                             "help": "Get all the records with ids containing a given string"},
+                                          "action": "store",
+                                          "nargs": "+",
+                                          "metavar": "<regex>",
+                                          "help": "Get all the records with ids containing a given string"},
             "purge": {"flag": "prg",
                       "action": "store",
                       "metavar": "<Max BLAST score (int)>",
@@ -1777,6 +1794,7 @@ db_modifiers = {"database": {"flag": "d",
 
 
 if __name__ == '__main__':
+
     main_parser = argparse.ArgumentParser(prog='buddy_resources')
 
     main_parser.add_argument('-v', '--version', help='Show module version #s', action='store_true')
