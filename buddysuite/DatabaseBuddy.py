@@ -991,10 +991,6 @@ class NCBIClient(GenericClient):
             try:
                 count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
                 handle = Entrez.esearch(db=database, term=_term, retmax=count)
-                '''
-                Example output: esearch.fcgi?db=nucleotide&term=perk1&retmax=5
-                at tests/unit_test_resources/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml
-                '''
                 result = Entrez.read(handle)
                 for _id in result["IdList"]:
                     if _id not in self.dbbuddy.records:

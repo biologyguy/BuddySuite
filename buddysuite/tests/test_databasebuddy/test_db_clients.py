@@ -73,7 +73,12 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
 
 def mock_urlopen_raise_httperror(*args, **kwargs):
     print("mock_urlopen_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
-    raise HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz")
+    raise HTTPError(url="http://fake.come", code=101, msg="Fake HTTPError from Mock", hdrs="Foo", fp="Bar")
+
+
+def mock_urlopen_raise_503_httperror(*args, **kwargs):
+    print("mock_urlopen_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise HTTPError(url="http://fake.come", code=503, msg="Service unavailable", hdrs="Foo", fp="Bar")
 
 
 def mock_urlopen_raise_urlerror(*args, **kwargs):
@@ -165,7 +170,7 @@ A0A0H5SBJ0
     # Errors
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
         client.query_uniprot("inx15", [{"format": "list"}])
-    assert client.http_errors_file.read() == "inx15\nHTTP Error Fake HTTPError from Mock: Foo\n//\n"
+    assert client.http_errors_file.read() == "inx15\nHTTP Error 101: Fake HTTPError from Mock\n//\n"
 
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
         client.query_uniprot("inx15", [{"format": "list"}])
@@ -396,12 +401,10 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "efetch", mock_urlopen_raise_httperror)
     client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
-    assert "703125407,703125412,67586143\nHTTP Error Fake HTTPError from Mock: Foo//" in client.http_errors_file.read()
+    assert "703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock//" in client.http_errors_file.read()
 
 
 def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
-    from tempfile import _TemporaryFileCloser
-
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:
@@ -431,4 +434,45 @@ def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
         assert accn in summaries
     assert summaries["AAY72386"].summary["organism"] == "Unclassified"
 
+
+def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
+    def patch_entrez_esearch(*args, **kwargs):
+        print("patch_entrez_esearch\nargs: %s\nkwargs: %s" % (args, kwargs))
+        if "rettype" in kwargs:
+            test_file = br.TempFile()
+            test_file.write("""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
+<eSearchResult>
+    <Count>5</Count>
+</eSearchResult>
+""")
+            handle = test_file.get_handle(mode="r")
+        else:
+            handle = open("%s/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml" % sb_resources.res_path,
+                          "r")
+        return handle
+
+    monkeypatch.setattr(Db.Entrez, "esearch", patch_entrez_esearch)
+    monkeypatch.setattr(Db.NCBIClient, "fetch_summary", lambda _: True)
+    monkeypatch.setattr(Db, "sleep", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.search_terms = ["casp9"]
+    client = Db.NCBIClient(dbbuddy)
+
+    client.search_ncbi("protein")
+    for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
+        assert accn in dbbuddy.records
+
+    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_httperror)
+    client.search_ncbi("protein")
+    assert "4c92f44c0914cd76f49a49eddf17f52a" in dbbuddy.failures
+
+    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_503_httperror)
+    client.search_ncbi("protein")
+    assert "0f19c58158fc26c84c37aa27b6b39f3d" in dbbuddy.failures
+
+    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_keyboardinterrupt)
+    client.search_ncbi("protein")
+    out, err = capsys.readouterr()
+    assert "NCBI query interrupted by user" in err
 
