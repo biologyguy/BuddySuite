@@ -785,9 +785,9 @@ def preparse_flags():
             change = True
             for func_list in func_lists:
                 for func in func_list:
-                    if arg == "-" + func_list[func]["flag"]:
+                    if arg == "-" + func_list[func]["flag"] or arg == "--" + func:
                         change = False
-            if arg in ["-v", "-t", "-c"]:
+            if arg in ["-v", "-t", "-c", "-h", "--version", "--test", "--help"]:
                 change = False
             if change:
                 sys.argv[indx] = " " + sys.argv[indx]
