@@ -404,6 +404,40 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
     assert "703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock//" in client.http_errors_file.read()
 
 
+def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
+    def patch_entrez_esearch(*args, **kwargs):
+        print("patch_entrez_esearch\nargs: %s\nkwargs: %s" % (args, kwargs))
+        if "rettype" in kwargs:
+            test_file = br.TempFile()
+            test_file.write("""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
+<eSearchResult>
+    <Count>5</Count>
+</eSearchResult>
+""")
+            handle = test_file.get_handle(mode="r")
+        else:
+            handle = open("%s/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml" % sb_resources.res_path,
+                          "r")
+        return handle
+
+    monkeypatch.setattr(Db.Entrez, "esearch", patch_entrez_esearch)
+    monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda _: True)
+    monkeypatch.setattr(Db, "sleep", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.search_terms = ["casp9"]
+    client = Db.NCBIClient(dbbuddy)
+
+    client.search_ncbi("protein")
+    for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
+        assert accn in dbbuddy.records
+
+    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_keyboardinterrupt)
+    client.search_ncbi("protein")
+    out, err = capsys.readouterr()
+    assert "NCBI query interrupted by user" in err
+
+'''
 def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
@@ -435,44 +469,43 @@ def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
     assert summaries["AAY72386"].summary["organism"] == "Unclassified"
 
 
-def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
-    def patch_entrez_esearch(*args, **kwargs):
-        print("patch_entrez_esearch\nargs: %s\nkwargs: %s" % (args, kwargs))
-        if "rettype" in kwargs:
-            test_file = br.TempFile()
-            test_file.write("""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
-<eSearchResult>
-    <Count>5</Count>
-</eSearchResult>
+def test_ncbiclient_fetch_summary(sb_resources, monkeypatch, capsys):
+    def patch_entrez_fetch_gi(*args, **kwargs):
+        print("patch_entrez_fetch_gi\nargs: %s\nkwargs: %s" % (args, kwargs))
+        client.results_file.write("""703125407
+703125412
+67586143
+### END ###
 """)
-            handle = test_file.get_handle(mode="r")
-        else:
-            handle = open("%s/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml" % sb_resources.res_path,
-                          "r")
-        return handle
+        return
 
-    monkeypatch.setattr(Db.Entrez, "esearch", patch_entrez_esearch)
-    monkeypatch.setattr(Db.NCBIClient, "fetch_summary", lambda _: True)
-    monkeypatch.setattr(Db, "sleep", lambda _: True)
-    dbbuddy = Db.DbBuddy()
-    dbbuddy.search_terms = ["casp9"]
+    def patch_entrez_fetch_summaries(*args, **kwargs):
+        print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
+        output = {'XP_010103297.1': Db.Record('XP_010103297.1', "703125407", _type="gi_num"),
+                  'XP_010103298': Db.Record('XP_010103298', "703125412", _type="gi_num"),
+                  'AAY72386.1': Db.Record('AAY72386.1', "67586143", _type="gi_num")}
+        return output
+
+    def patch_entrez_fetch_summaries(*args, **kwargs):
+        print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
+        output = {'703125407': Db.Record("703125407"),
+                  '703125412': Db.Record("703125412"),
+                  '67586143': Db.Record("67586143")}
+        return output
+
+    monkeypatch.setattr(br, "run_multicore_function", patch_entrez_fetch_gi)
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_gi)
+    monkeypatch.setattr(Db.NCBIClient, "_fetch_summaries", patch_entrez_fetch_summaries)
+    #dbbuddy = Db.DbBuddy("XP_010103297.1,XP_010103298.1,AAY72386.1")
+    dbbuddy = Db.DbBuddy("703125407,703125412,67586143")
     client = Db.NCBIClient(dbbuddy)
+    client.fetch_summaries()
 
-    client.search_ncbi("protein")
-    for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
-        assert accn in dbbuddy.records
+    #assert dbbuddy.records['AAY72386.1'].gi == "67586143"
+    #assert not dbbuddy.records['XP_010103298.1'].gi == "703125412"
+    assert "Unable to fetch summary from NCBI" in str(dbbuddy.failures['1d7cf5b0359a18fc261e4dd0d5539451'])
 
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_httperror)
-    client.search_ncbi("protein")
-    assert "4c92f44c0914cd76f49a49eddf17f52a" in dbbuddy.failures
-
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_503_httperror)
-    client.search_ncbi("protein")
-    assert "0f19c58158fc26c84c37aa27b6b39f3d" in dbbuddy.failures
-
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_keyboardinterrupt)
-    client.search_ncbi("protein")
-    out, err = capsys.readouterr()
-    assert "NCBI query interrupted by user" in err
-
+    for accn, rec in dbbuddy.records.items():
+        rec.summary = None
+    client.fetch_summaries()
+'''

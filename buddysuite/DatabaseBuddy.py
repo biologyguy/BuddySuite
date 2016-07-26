@@ -306,7 +306,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     lines.append([_accession])
 
                 elif self.out_format in ["summary", "full-summary"]:
-                    headings = ["ACCN", "DB"]
+                    headings = ["ACCN", "DB", "Type"]
                     headings += [heading for heading, _value in _rec.summary.items()]
                     headings += ["record"]
 
@@ -337,6 +337,15 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                             current_group[-1].append(_rec.database)
                             if len(_rec.database) > column_widths[attrib_counter]:
                                 column_widths[attrib_counter] = len(_rec.database)
+                        else:
+                            current_group[-1].append("")
+                        attrib_counter += 1
+
+                    if "Type" in headings:
+                        if _rec.type:
+                            current_group[-1].append(_rec.type[:4])
+                            if 4 > column_widths[attrib_counter]:
+                                column_widths[attrib_counter] = 4
                         else:
                             current_group[-1].append("")
                         attrib_counter += 1
@@ -409,7 +418,7 @@ class Record(object):
     def __init__(self, _accession, gi=None, _version=None, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
-        self.gi = gi  # This is for NCBI records
+        self.gi = int(gi) if gi else gi  # This is for NCBI records
         self.version = _version
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
@@ -471,7 +480,8 @@ class Record(object):
         elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number (Being deprecated!)
             self.database = "ncbi_nuc"
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
-            self.gi = str(self.accession)
+            self.accession = str(self.accession).lstrip("0")
+            self.gi = int(self.accession)
 
         # ToDo: This is for testing, needs to be removed for production
         #else:
@@ -524,8 +534,17 @@ class Record(object):
                 else:
                     return False
 
+            # Strip off column syntax
             regex = re.search("^\(.*?\)(.*)", regex, flags=flags)
             regex = None if not regex else regex.group(1).strip()
+
+            if column.lower() == "accn":
+                if re.search(regex, str(self.accession), flags=flags):
+                    return True
+
+            if column.lower() == "type":
+                if re.search(regex, str(self.type), flags=flags):
+                    return True
 
             if column in self.summary and not regex:  # This will return everything with the given column
                 return True
@@ -551,7 +570,7 @@ class Record(object):
 
     def update(self, new_rec):
         self.accession = new_rec.accession if new_rec.accession else self.accession
-        self.gi = new_rec.gi if new_rec.gi else self.gi
+        self.gi = int(new_rec.gi) if new_rec.gi else self.gi
         self.version = new_rec.version if new_rec.version else self.version
         self.record = new_rec.record if new_rec.record else self.record
         self.summary = new_rec.summary if new_rec.summary else self.summary
@@ -886,6 +905,9 @@ class NCBIClient(GenericClient):
         :return:
         """
         tool = func_args[0]
+        _type = None if len(func_args) == 1 else func_args[1]
+        if _type and _type not in ["nucleotide", "protein"]:
+            raise ValueError
         error = False
         handle = False
         timer = br.time()
@@ -904,6 +926,9 @@ class NCBIClient(GenericClient):
                     # Example query of GI nums: "703125407,703125412,703125420"
                     # Note that the database passed in doesn't matter. GIs will pull dna or prot as needed.
                     handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
+                elif tool == "esearch":
+                    count = Entrez.read(Entrez.esearch(db=_type, term=query, rettype="count"))["Count"]
+                    handle = Entrez.esearch(db=_type, term=query, retmax=count)
                 else:
                     raise ValueError("_mc_query() 'tool' argument must be in 'esummary_taxa', "
                                      "'efetch_gi', 'esummary_seq', or 'efetch_seq'")
@@ -925,43 +950,123 @@ class NCBIClient(GenericClient):
                 self.results_file.write("%s\n### END ###\n" % handle.read().strip())
         return
 
-    def _fetch_summaries(self, gi_nums):
+    def search_ncbi(self, _type):
+        """
+        Query NCBI with search terms (not accns or GI nums)
+        :param _type: "nucleotide" or "protein"
+        :return:
+        """
         self.results_file.clear()
-        gi_nums = self.group_terms_for_url(gi_nums)
+        try:
+            if len(self.dbbuddy.search_terms) > 1:
+                br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
+                                          max_processes=3, quiet=True)
+            else:
+                self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
+        except KeyboardInterrupt:
+            _stderr("\n\tNCBI query interrupted by user\n")
+            return
+
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x != ""]
+        gi_nums = []
+        for result in results:
+            result = Entrez.read(StringIO(result))
+            gi_nums += result["IdList"]
+        for accn, rec in self.dbbuddy.records.items():
+            if rec.gi and rec.gi in gi_nums:
+                del gi_nums[gi_nums.index(rec.gi)]
+        database = 'ncbi_nuc' if _type == 'nucleotide' else 'ncbi_prot'
+        for gi in gi_nums:
+            self.dbbuddy.records[gi] = Record(gi, gi=int(gi), _database=database, _type="gi_num")
+        return
+
+    def fetch_summaries(self, database):
+        """
+        Fetch metadata for all records
+        :param database: in "ncbi_prot" and "ncbi_nuc"
+        :return:
+        """
+        # EUtils esummary will only take gi numbers
+        # Start by grabbing GI numbers for any records with accns but no GI
+        _type = "protein" if database == "ncbi_prot" else "nucleotide"
+        self.results_file.clear()
+        accns = [accn for accn, rec in self.dbbuddy.records.items()
+                 if rec.database == database and not rec.gi]
+        if accns:
+            accn_searches = self.group_terms_for_url(accns)
+            if len(accn_searches) > 1:
+                br.run_multicore_function(accn_searches, self._mc_query, func_args=["efetch_gi"], max_processes=3, quiet=True)
+            else:
+                self._mc_query(accn_searches[0], func_args=["efetch_gi"])
+
+        gi_nums = self.results_file.read().split("\n### END ###\n")
+        gi_nums = [x.split("\n") for x in gi_nums]
+        gi_nums = [x for sublist in gi_nums for x in sublist if x]
+
+        # Append any records that were not grabbed in the previous step
+        gi_nums += [rec.gi for accn, rec in self.dbbuddy.records.items()
+                    if rec.database == database
+                    and rec.gi and rec.gi not in gi_nums]
+
+        # That's it if no GIs present
+        if not gi_nums:
+            return
+
+        # Download all of the summaries
+        self.results_file.clear()
+        gi_groups = self.group_terms_for_url(gi_nums)
+        _stderr("Retrieving %s %s record summaries from NCBI...\n" % (len(gi_nums), _type))
         runtime = br.RunTime(prefix="\t")
-        _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        if len(gi_nums) > 1:
-            br.run_multicore_function(gi_nums, self._mc_query, func_args=["esummary_seq"], max_processes=3, quiet=True)
+        if len(gi_groups) > 1:
+            br.run_multicore_function(gi_groups, self._mc_query, func_args=["esummary_seq"],
+                                      max_processes=3, quiet=True)
         else:
-            self._mc_query(gi_nums[0], func_args=["esummary_seq"])
+            self._mc_query(gi_groups[0], func_args=["esummary_seq"])
         runtime.end()
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
-        _output = {}
+
+        # Sift through all the results and grab summary information
+        gi_nums = {}
         taxa = []
         for result in results:
             for summary in Entrez.parse(StringIO(result)):
-                _rec = OrderedDict()
-                _rec["gi_num"] = str(summary["Gi"])
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else \
+                status = summary["Status"] if summary["ReplacedBy"] == '' else \
                     "%s->%s" % (summary["Status"], summary["ReplacedBy"])
-                _rec["TaxId"] = summary["TaxId"]
+
+                keys = ["gi_num",
+                        "TaxId",
+                        "organism",
+                        "length",
+                        "comments",
+                        "status"]
+                values = [str(summary["Gi"]),
+                          summary["TaxId"],
+                          "",
+                          summary["Length"],
+                          summary["Title"],
+                          status]
+                rec_summary = {key: value for key, value in zip(keys, values)}
+
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
-                _rec["organism"] = ""
-                _rec["length"] = summary["Length"]
-                _rec["comments"] = summary["Title"]
 
-                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]),
-                                                     summary=_rec, _size=_rec["length"])
-                _output[summary["Caption"]].guess_database()
+                accn = summary["Caption"]
+                version = re.search("%s\.([0-9])+" % accn, summary["Extra"])
+                if version:
+                    accn = "%s.%s" % (accn, version.group(1))
+                gi_nums[summary["Gi"]] = Record(accn, gi=int(summary["Gi"]), summary=rec_summary, _type=_type,
+                                                _size=rec_summary["length"], _database=database)
 
+        # Get taxa names for all of the records retrieved
         self.results_file.clear()
         _taxa_ids = self.group_terms_for_url(taxa)
         if len(_taxa_ids) > 1:
-            br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"], max_processes=3, quiet=True)
+            br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"],
+                                      max_processes=3, quiet=True)
         else:
             self._mc_query(_taxa_ids[0], func_args=["esummary_taxa"])
         results = self.results_file.read().split("\n### END ###\n")
@@ -973,109 +1078,27 @@ class NCBIClient(GenericClient):
                 taxa[summary["TaxId"]] = "Unclassified" if "ScientificName" not in summary \
                     else summary["ScientificName"]
 
-        for accn, rec in _output.items():
+        # Apply the taxa names that were downloaded
+        for gi, rec in gi_nums.items():
             if rec.summary["TaxId"] in taxa:
                 rec.summary["organism"] = taxa[rec.summary["TaxId"]]
             else:
                 rec.summary["organism"] = "Unclassified"
-        _stderr("\t%s records received.\n" % len(_output))
-        return _output
+        _stderr("\t%s records received.\n" % len(gi_nums))
 
-    def search_ncbi(self, database):
-        """
-        Query NCBI with search terms
-        :param database: "nucleotide" or "protein"
-        :return:
-        """
-        for _term in self.dbbuddy.search_terms:
-            try:
-                count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
-                handle = Entrez.esearch(db=database, term=_term, retmax=count)
-                result = Entrez.read(handle)
-                for _id in result["IdList"]:
-                    if _id not in self.dbbuddy.records:
-                        self.dbbuddy.records[_id] = Record(_id)
-                        self.dbbuddy.records[_id].guess_database()
-
-                self.fetch_summary()
-
-            except (HTTPError, RuntimeError) as _e:
-                if _e.getcode() == 503:
-                    failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
-                                             "experiencing some technical issues.")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-                else:
-                    failure = Failure(_term, str(_e))
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-
-            except KeyboardInterrupt:
-                _stderr("\n\tNCBI query interrupted by user\n")
+        # Update the dbbuddy object with all the new info
+        for gi, rec in gi_nums.items():
+            if int(gi) in self.dbbuddy.records:  # GI only records
+                del self.dbbuddy.records[int(gi)]
+            if rec.accession.split(".")[0] in self.dbbuddy.records:  # Un-versioned accns
+                del self.dbbuddy.records[rec.accession.split(".")[0]]
+            if rec.accession in self.dbbuddy.records:
+                self.dbbuddy.records[rec.accession].update(rec)
+            else:
+                self.dbbuddy.records[rec.accession] = rec
         return
 
-    def fetch_summary(self):
-        # EUtils esummary will only take gi numbers
-        self.results_file.clear()
-        accns = [accn for accn, rec in self.dbbuddy.records.items() if
-                 rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
-
-        if accns:
-            self.results_file.clear()
-            accns = self.group_terms_for_url(accns)
-            runtime = br.RunTime(prefix="\t")
-            _stderr("Converting NCBI accessions to gi numbers...\n")
-            runtime.start()
-            br.run_multicore_function(accns, self._mc_query, func_args=["efetch_gi"], max_processes=3, quiet=True)
-            runtime.end()
-            gi_nums = self.results_file.read().split("\n### END ###\n")
-            gi_nums = [x.split("\n") for x in gi_nums]
-            gi_nums = [x for sublist in gi_nums for x in sublist if x]
-            _stderr("\tDone\n")
-
-            summaries = self._fetch_summaries(gi_nums)
-            for accn in accns:
-                if re.search("\.[0-9]+$", accn):  # Add record the version number if present
-                    wrong_accn = re.search("^(.*?)\.", accn).group(1)
-                    summaries[wrong_accn].accession = accn
-                    summaries[accn] = summaries[wrong_accn]
-                    del summaries[wrong_accn]
-
-                if accn not in summaries:
-                    failure = Failure("ACCN: %s" % accn, "Unable to fetch summary from NCBI")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-
-            for accn, rec in summaries.items():
-                if accn in self.dbbuddy.records:
-                    self.dbbuddy.records[accn].update(rec)
-                else:
-                    self.dbbuddy.records[accn] = rec
-
-            self.results_file.clear()
-
-        gi_nums = [accn for accn, rec in self.dbbuddy.records.items() if rec.type == "gi_num" and not rec.summary]
-
-        if gi_nums:
-            summaries = self._fetch_summaries(gi_nums)
-            summary_gis = [_rec.gi for accn, _rec in summaries.items()]
-            for gi_num in gi_nums:
-                if gi_num not in summary_gis:
-                    failure = Failure("gi: %s" % gi_num, "gi_nums: Unable to fetch summary from NCBI")
-                    self.dbbuddy.failures[failure.hash] = failure
-
-            for accn, rec in summaries.items():
-                if accn in self.dbbuddy.records:
-                    self.dbbuddy.records[accn].update(rec)
-                elif rec.gi in self.dbbuddy.records:
-                    self.dbbuddy.records[rec.gi].update(rec)
-                    self.dbbuddy.records[accn] = self.dbbuddy.records[rec.gi]
-                    del self.dbbuddy.records[rec.gi]
-                else:
-                    self.dbbuddy.records[accn] = rec
-        return
-
-    def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
+    def fetch_sequences(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
         if not gi_nums:
@@ -1090,22 +1113,14 @@ class NCBIClient(GenericClient):
             runtime.end()
             records = SeqIO.to_dict(SeqIO.parse(self.results_file.get_handle("r"), "gb"))
             _stderr("\tDone\n")
-
             for accn, rec in records.items():
-                # Catch accn/version
-                version = re.search("^(.*?)\.([0-9]+)$", accn)
+                self.dbbuddy.records[accn].record = rec
+                version = re.search("^.*?\.([0-9]+)$", accn)
                 if version:
-                    accn, ver = version.group(1), version.group(2)
-                    self.dbbuddy.records[accn].record = rec
-                    self.dbbuddy.records[accn].version = ver
-                else:
-                    try:
-                        self.dbbuddy.records[accn].record = rec
-                    except KeyError:
-                        self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records",
-                                                         []).append(rec.id)
+                    self.dbbuddy.records[accn].version = version.group(1)
         except KeyboardInterrupt:
             _stderr("\n\tNCBI query interrupted by user\n")
+
         return
 
 
@@ -1237,7 +1252,7 @@ class EnsemblRestClient(GenericClient):
                     self.dbbuddy.records[rec.accession] = rec
             _stderr("Returned %s results\n\n" % counter)
 
-    def fetch_summary(self):
+    def fetch_summaries(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         data = self.perform_rest_action("lookup/id", data={"ids": accns},
                                         headers={"Content-type": "application/json", "Accept": "application/json"})
@@ -1381,7 +1396,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _rec = []
             for _accn, _rec in self.dbbuddy.records.items():
                 break
-            headings = ["ACCN", "DB"] + [heading for heading, _value in _rec.summary.items()]
+            headings = ["ACCN", "DB", "Type"] + [heading for heading, _value in _rec.summary.items()]
         return headings
 
     def filter(self, line, mode="keep"):
@@ -1730,11 +1745,10 @@ Further details about each command can be accessed by typing 'help <command>'
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = self.dbbuddy.databases
 
-        if len(temp_buddy.records):
-            retrieve_sequences(temp_buddy)
+        #if len(temp_buddy.records):
+        #    retrieve_sequences(temp_buddy)
 
-        if len(temp_buddy.search_terms):
-            retrieve_summary(temp_buddy)
+        retrieve_summary(temp_buddy)
 
         for _term in temp_buddy.search_terms:
             if _term not in self.dbbuddy.search_terms:
@@ -1787,9 +1801,8 @@ Further details about each command can be accessed by typing 'help <command>'
         columns = None if not columns else columns
 
         if num_records > 100:
-            confirm = input("%sShow all %s records (y/[n])?%s " %
-                            (RED, num_records, self.terminal_default))
-            if confirm.lower() not in ["yes", "y"]:
+            confirm = br.ask("%sShow all %s records (y/[n])?%s " % (RED, num_records, self.terminal_default), False)
+            if not confirm:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
@@ -1817,6 +1830,8 @@ Further details about each command can be accessed by typing 'help <command>'
             subgroups = {}
             if heading == "ACCN":
                 return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
+            if heading == "Type":
+                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].type, reverse=_rev))
 
             int_headings = 0
             for accn, _rec in records.items():
@@ -2259,18 +2274,17 @@ def retrieve_summary(_dbbuddy):
     if "ncbi_nuc" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
         refseq.search_ncbi("nucleotide")
-        refseq.fetch_summary()
+        refseq.fetch_summaries("ncbi_nuc")
 
     if "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
         refseq.search_ncbi("protein")
-        refseq.fetch_summary()
+        refseq.fetch_summaries("ncbi_prot")
 
     if "ensembl" in _dbbuddy.databases or check_all:
         ensembl = _dbbuddy.server("ensembl")
         ensembl.search_ensembl()
-        ensembl.fetch_summary()
-        # ensembl.fetch_summary()
+        ensembl.fetch_summaries()
 
     return _dbbuddy
 
@@ -2283,11 +2297,11 @@ def retrieve_sequences(_dbbuddy):
 
     if "ncbi_nuc" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequence("nucleotide")
+        refseq.fetch_sequences("nucleotide")
 
     if "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequence("protein")
+        refseq.fetch_sequences("protein")
 
     if "ensembl" in _dbbuddy.databases or check_all:
         ensembl = _dbbuddy.server("ensembl")

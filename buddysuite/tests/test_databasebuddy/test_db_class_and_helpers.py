@@ -261,13 +261,14 @@ def test_record_guess_genbank_mga():
 
 
 def test_record_guess_genbank_gi():
-    randomly_generated_from_regex = ["13545654", "1445", "9876513546531", "154351", "135464316", "4684315", "021240"]
+    randomly_generated_from_regex = ["13545654", "1445", "9876513546531", "154351", "135464316", "4684315", "21240"]
     for accn in randomly_generated_from_regex:
         rec = Db.Record(accn)
         rec.guess_database()
         assert rec.database == "ncbi_nuc"
         assert rec.type == "gi_num"
-        assert rec.gi == accn
+        assert str(rec.gi) == accn
+        assert rec.accession == accn
 
 
 def test_record_search(sb_resources):
@@ -568,7 +569,6 @@ def test_trash_breakdown():
             rec.summary = True
     dbbuddy.filter_records("*", "remove")
     breakdown = dbbuddy.trash_breakdown()
-    print(breakdown)
     assert sorted(breakdown["accession"]) == ["ENSAMEG00000011912", "ENSCJAG00000008732",
                                               "ENSMEUG00000000523", "XM_003978475"]
     assert sorted(breakdown["summary"]) == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
@@ -580,11 +580,11 @@ def test_print_simple(capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92msummary
-[95mADH10263.1      [96mncbi_prot  [92msummary
-[95mXP_005165403.2  [96mncbi_prot  [92msummary
-[95mA0A087WX72      [96muniprot    [92msummary
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
+[95mADH10263.1      [96mncbi_prot  [92mprot  [91msummary
+[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
+[95mA0A087WX72      [96muniprot    [92mprot  [91msummary
 [m'''
 
     dbbuddy.out_format = "ids"
@@ -765,9 +765,9 @@ def test_print_trash(capsys):
     dbbuddy.print(group="trash_bin")
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92msummary
-[95mXP_005165403.2  [96mncbi_prot  [92msummary
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
+[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
 [m'''
 
 
