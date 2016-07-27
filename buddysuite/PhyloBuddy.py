@@ -617,7 +617,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             sub_alignbuddy = Alb.AlignBuddy([alignment])
             Alb.hash_ids(sub_alignbuddy, 8, r_seed=r_seed)
             sub_alignbuddy = Alb.clean_seq(sub_alignbuddy)
-            sub_alignbuddy.set_format('phylipss') if tool == "phyml" else sub_alignbuddy.set_format('phylips')
+            sub_alignbuddy.set_format('phylipss') if tool == "phyml" else sub_alignbuddy.set_format('phylipi')
 
             sub_alignbuddy.write("{0}/pb_input.aln".format(tmp_dir.path))  # Most tree builders require an input file
 
