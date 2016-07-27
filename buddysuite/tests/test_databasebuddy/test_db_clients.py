@@ -4,6 +4,7 @@ from urllib.error import HTTPError, URLError
 from collections import OrderedDict
 import sys
 import tempfile
+import re
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
@@ -385,13 +386,12 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_seq)
     client._mc_query("703125407,703125412,67586143", ["esummary_seq"])
-    print(client.results_file.read())
     assert sb_helpers.string2hash(client.results_file.read()) == "e6ba80b5fe2f35002ac2227ca7791c17"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_seq)
     client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "38424a96d43275fe7cadc5960874d4da"
+    assert sb_helpers.string2hash(client.results_file.read()) == "0154d7bd9d47ca6abac00f25428b9e7e"
 
     monkeypatch.undo()
     monkeypatch.setattr(Db, "sleep", lambda _: True)
@@ -424,7 +424,7 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     monkeypatch.setattr(Db.Entrez, "esearch", patch_entrez_esearch)
     monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda _: True)
     monkeypatch.setattr(Db, "sleep", lambda _: True)
-    dbbuddy = Db.DbBuddy()
+    dbbuddy = Db.DbBuddy("909549231")
     dbbuddy.search_terms = ["casp9"]
     client = Db.NCBIClient(dbbuddy)
 
@@ -437,8 +437,9 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     out, err = capsys.readouterr()
     assert "NCBI query interrupted by user" in err
 
-'''
+
 def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
+    # ToDo: add a multicore test
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:
@@ -451,61 +452,58 @@ def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
             with open(test_file, "r") as ifile:
                 client.results_file.write(ifile.read().strip())
                 client.results_file.write('\n### END ###\n')
-        return
-
-    monkeypatch.setattr(br, "run_multicore_function", patch_entrez_fetch_summaries)
-    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_summaries)
-    dbbuddy = Db.DbBuddy()
-    client = Db.NCBIClient(dbbuddy)
-    summaries = client._fetch_summaries(["703125407", "703125412", "67586143"])
-    for accn in ["XP_010103297", "XP_010103298", "AAY72386"]:
-        assert accn in summaries
-    assert summaries["AAY72386"].summary["organism"] == "Unclassified"
-
-    # Multi core
-    summaries = client._fetch_summaries(["703125407", "703125412", "67586143"] * 40)
-    for accn in ["XP_010103297", "XP_010103298", "AAY72386"]:
-        assert accn in summaries
-    assert summaries["AAY72386"].summary["organism"] == "Unclassified"
-
-
-def test_ncbiclient_fetch_summary(sb_resources, monkeypatch, capsys):
-    def patch_entrez_fetch_gi(*args, **kwargs):
-        print("patch_entrez_fetch_gi\nargs: %s\nkwargs: %s" % (args, kwargs))
-        client.results_file.write("""703125407
+        elif kwargs["func_args"] == ["efetch_gi"]:
+            client.results_file.write("""703125407
 703125412
 67586143
 ### END ###
 """)
         return
 
-    def patch_entrez_fetch_summaries(*args, **kwargs):
-        print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
-        output = {'XP_010103297.1': Db.Record('XP_010103297.1', "703125407", _type="gi_num"),
-                  'XP_010103298': Db.Record('XP_010103298', "703125412", _type="gi_num"),
-                  'AAY72386.1': Db.Record('AAY72386.1', "67586143", _type="gi_num")}
-        return output
-
-    def patch_entrez_fetch_summaries(*args, **kwargs):
-        print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
-        output = {'703125407': Db.Record("703125407"),
-                  '703125412': Db.Record("703125412"),
-                  '67586143': Db.Record("67586143")}
-        return output
-
-    monkeypatch.setattr(br, "run_multicore_function", patch_entrez_fetch_gi)
-    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_gi)
-    monkeypatch.setattr(Db.NCBIClient, "_fetch_summaries", patch_entrez_fetch_summaries)
-    #dbbuddy = Db.DbBuddy("XP_010103297.1,XP_010103298.1,AAY72386.1")
-    dbbuddy = Db.DbBuddy("703125407,703125412,67586143")
+    # No records to fetch
+    dbbuddy = Db.DbBuddy()
     client = Db.NCBIClient(dbbuddy)
-    client.fetch_summaries()
+    client.fetch_summaries("ncbi_prot")
+    assert not client.dbbuddy.records
 
-    #assert dbbuddy.records['AAY72386.1'].gi == "67586143"
-    #assert not dbbuddy.records['XP_010103298.1'].gi == "703125412"
-    assert "Unable to fetch summary from NCBI" in str(dbbuddy.failures['1d7cf5b0359a18fc261e4dd0d5539451'])
-
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_summaries)
+    dbbuddy = Db.DbBuddy("XP_010103297,XP_010103298.1,67586143,257467473")
+    client = Db.NCBIClient(dbbuddy)
+    client.fetch_summaries("ncbi_prot")
     for accn, rec in dbbuddy.records.items():
-        rec.summary = None
-    client.fetch_summaries()
-'''
+        assert rec.gi in [703125407, 703125412, 67586143, 257467473]
+    assert dbbuddy.records["AAY72386.1"].summary["organism"] == "Unclassified"
+    assert sb_helpers.string2hash(str(dbbuddy)) == "0cf7c9ccf058cf3b50d2aab7ecb1f953"
+
+
+def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsys):
+    def patch_entrez_fetch_seq(*args, **kwargs):
+        print("patch_entrez_fetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
+        with open(test_file, "r") as ifile:
+            client.results_file.write(ifile.read())
+
+    # Empty DbBuddy
+    dbbuddy = Db.DbBuddy()
+    client = Db.NCBIClient(dbbuddy)
+    client.fetch_sequences("ncbi_prot")
+    assert sb_helpers.string2hash(str(dbbuddy)) == "016d020dd926f64ac1431f15c5683678"
+
+    # With records
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_seq)
+    dbbuddy = Db.DbBuddy("XP_010103297.1,XP_010103298.1,XM_010104998.1")
+    client = Db.NCBIClient(dbbuddy)
+    client.fetch_sequences("ncbi_prot")
+    dbbuddy.out_format = "gb"
+    assert sb_helpers.string2hash(str(dbbuddy)) == "9bd8017da009696c1b6ebe5d4e3c0a89"
+    capsys.readouterr()  # Clean up the buffer
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(".*?sec.*?\n", "", out)
+    assert sb_helpers.string2hash(out) == "f1614694fd87ffd85ad0b9fa951d4b1d"
+
+    # Error
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_urlopen_raise_keyboardinterrupt)
+    client.fetch_sequences("ncbi_prot")
+    out, err = capsys.readouterr()
+    assert "\n\tNCBI query interrupted by user\n" in err

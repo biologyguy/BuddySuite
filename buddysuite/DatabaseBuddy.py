@@ -389,20 +389,15 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                         _rec.type == "nucleotide" and _rec.record]
             prot_recs = [_rec.record for _accession, _rec in group.items() if
                          _rec.type == "protein" and _rec.record]
-            tmp_dir = br.TemporaryDirectory()
+            tmp_file = br.TempFile()
             if len(nuc_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w", encoding="utf-8") as _ofile:
-                    SeqIO.write(nuc_recs[:_num], _ofile, self.out_format)
+                SeqIO.write(nuc_recs[:_num], tmp_file.get_handle("w"), self.out_format)
+                _output += "%s\n" % tmp_file.read()
+                tmp_file.clear()
 
-                with open("%s/seqs.tmp" % tmp_dir.name, "r", encoding="utf-8") as ifile:
-                    _output += "%s\n" % ifile.read()
-
-            if len(prot_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w", encoding="utf-8") as _ofile:
-                    SeqIO.write(prot_recs[:_num], _ofile, self.out_format)
-
-                with open("%s/seqs.tmp" % tmp_dir.name, "r", encoding="utf-8") as ifile:
-                    _output += "%s\n" % ifile.read()
+            if len(prot_recs) > 0 and _num - len(nuc_recs) > 0:
+                SeqIO.write(prot_recs[:_num - len(nuc_recs)], tmp_file.get_handle("w"), self.out_format)
+                _output += "%s\n" % tmp_file.read()
 
         if not destination:
             _stdout("{0}\n".format(_output.rstrip()))
@@ -482,10 +477,6 @@ class Record(object):
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
             self.accession = str(self.accession).lstrip("0")
             self.gi = int(self.accession)
-
-        # ToDo: This is for testing, needs to be removed for production
-        #else:
-        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)
 
         # Catch accn.version
         version = re.search("^(.*?)\.([0-9]+)$", self.accession)
@@ -835,9 +826,9 @@ class UniProtRestClient(GenericClient):
         results = content.split("//")
 
         for result in results:
-            result = result.strip().split("\n")
+            result = result.strip().split(b"\n")
             for hit in result:
-                hit = hit.split("\t")
+                hit = hit.split(b"\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
                     raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", "")])
@@ -942,10 +933,18 @@ class NCBIClient(GenericClient):
                 if indx == self.max_attempts - 1:
                     error = _e
                 sleep(1)
+            except URLError as err:
+                if "Errno 8" in str(err):
+                    _stderr("\n\tURL open error: Are you connected to the internet?\n")
+                    return
+                else:
+                    raise err
 
         with self.lock:
             if error:
                 self.http_errors_file.write("%s\n%s//\n" % (query, error))
+            elif tool == "efetch_seq":
+                self.results_file.write("%s\n" % handle.read().strip())
             else:
                 self.results_file.write("%s\n### END ###\n" % handle.read().strip())
         return
@@ -956,6 +955,8 @@ class NCBIClient(GenericClient):
         :param _type: "nucleotide" or "protein"
         :return:
         """
+        if not self.dbbuddy.search_terms:
+            return
         self.results_file.clear()
         try:
             if len(self.dbbuddy.search_terms) > 1:
@@ -966,6 +967,12 @@ class NCBIClient(GenericClient):
         except KeyboardInterrupt:
             _stderr("\n\tNCBI query interrupted by user\n")
             return
+        except URLError as err:
+            if "Errno 8" in str(err):
+                _stderr("\n\tURL open error: Are you connected to the internet?\n")
+                return
+            else:
+                raise err
 
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
@@ -974,8 +981,8 @@ class NCBIClient(GenericClient):
             result = Entrez.read(StringIO(result))
             gi_nums += result["IdList"]
         for accn, rec in self.dbbuddy.records.items():
-            if rec.gi and rec.gi in gi_nums:
-                del gi_nums[gi_nums.index(rec.gi)]
+            if str(rec.gi) in gi_nums:
+                del gi_nums[gi_nums.index(str(rec.gi))]
         database = 'ncbi_nuc' if _type == 'nucleotide' else 'ncbi_prot'
         for gi in gi_nums:
             self.dbbuddy.records[gi] = Record(gi, gi=int(gi), _database=database, _type="gi_num")
@@ -996,7 +1003,8 @@ class NCBIClient(GenericClient):
         if accns:
             accn_searches = self.group_terms_for_url(accns)
             if len(accn_searches) > 1:
-                br.run_multicore_function(accn_searches, self._mc_query, func_args=["efetch_gi"], max_processes=3, quiet=True)
+                br.run_multicore_function(accn_searches, self._mc_query,
+                                          func_args=["efetch_gi"], max_processes=3, quiet=True)
             else:
                 self._mc_query(accn_searches[0], func_args=["efetch_gi"])
 
@@ -1088,8 +1096,8 @@ class NCBIClient(GenericClient):
 
         # Update the dbbuddy object with all the new info
         for gi, rec in gi_nums.items():
-            if int(gi) in self.dbbuddy.records:  # GI only records
-                del self.dbbuddy.records[int(gi)]
+            if str(gi) in self.dbbuddy.records:  # GI only records
+                del self.dbbuddy.records[str(gi)]
             if rec.accession.split(".")[0] in self.dbbuddy.records:  # Un-versioned accns
                 del self.dbbuddy.records[rec.accession.split(".")[0]]
             if rec.accession in self.dbbuddy.records:
@@ -1109,9 +1117,17 @@ class NCBIClient(GenericClient):
             runtime = br.RunTime(prefix="\t")
             _stderr("Fetching full sequence records from NCBI...\n")
             runtime.start()
-            br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+            if len(gi_nums) > 1:
+                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+            else:
+                self._mc_query(gi_nums[0], func_args=["efetch_seq"])
             runtime.end()
-            records = SeqIO.to_dict(SeqIO.parse(self.results_file.get_handle("r"), "gb"))
+            with open("bad_fetch.gb", "w") as ofile:
+                ofile.write(self.results_file.read())
+            records = {}
+            for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
+                if rec.id not in records:
+                    records[rec.id] = rec
             _stderr("\tDone\n")
             for accn, rec in records.items():
                 self.dbbuddy.records[accn].record = rec
@@ -1744,10 +1760,6 @@ Further details about each command can be accessed by typing 'help <command>'
 
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = self.dbbuddy.databases
-
-        #if len(temp_buddy.records):
-        #    retrieve_sequences(temp_buddy)
-
         retrieve_summary(temp_buddy)
 
         for _term in temp_buddy.search_terms:
