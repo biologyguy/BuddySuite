@@ -834,7 +834,7 @@ def prune_taxa(phylobuddy, *patterns):
     :param patterns: One or more regex patterns.
     :return: The same PhyloBuddy object after pruning.
     """
-    for tree in phylobuddy.trees:
+    for indx, tree in enumerate(phylobuddy.trees):
         taxa_to_prune = []
         namespace = TaxonNamespace()
         for node in tree:  # Populate the namespace for easy iteration
@@ -844,8 +844,11 @@ def prune_taxa(phylobuddy, *patterns):
             for pattern in patterns:
                 if re.search(pattern, taxon):  # Sets aside the names of the taxa to be pruned
                     taxa_to_prune.append(taxon)
-        for taxon in taxa_to_prune:  # Removes the nodes from the tree
-            tree.prune_taxa_with_labels(StringIO(taxon))
+        try:
+            for taxon in taxa_to_prune:  # Removes the nodes from the tree
+                tree.prune_taxa_with_labels(StringIO(taxon))
+        except AttributeError:
+            del phylobuddy.trees[indx]
 
 
 def rename(phylobuddy, query, replace):
