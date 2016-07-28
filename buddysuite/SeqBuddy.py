@@ -763,21 +763,27 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
             for _tup in location:
                 locations.append(FeatureLocation(start=_tup[0] - 1, end=_tup[1]))
         elif isinstance(location[0], str):
-            for substr in location:
-                substr = re.sub('[ ()]', '', substr)
-                substr = re.sub('-|\.\.', ',', substr)
-                locations.append(FeatureLocation(start=int(re.split(',', substr)[0]) - 1,
-                                                 end=int(re.split(',', substr)[1])))
+            try:
+                for substr in location:
+                    substr = re.sub('[ ()]', '', substr)
+                    substr = re.sub('-|\.\.', ',', substr)
+                    locations.append(FeatureLocation(start=int(re.split(',', substr)[0]) - 1,
+                                                     end=int(re.split(',', substr)[1])))
+            except ValueError:
+                raise AttributeError("The provided location string is invalid")
         location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
             if len(locations) > 1 else locations[0]
     elif isinstance(location, str):
-        location = re.sub('[ ()]', '', location)
-        location = re.split(',', location)
-        locations = []
-        for substr in location:
-            locations.append(FeatureLocation(start=int(substr.split('-')[0]) - 1, end=int(substr.split('-')[1])))
-        location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
-            if len(locations) > 1 else locations[0]
+        try:
+            location = re.sub('[ ()]', '', location)
+            location = re.split(',', location)
+            locations = []
+            for substr in location:
+                locations.append(FeatureLocation(start=int(substr.split('-')[0]) - 1, end=int(substr.split('-')[1])))
+            location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
+                if len(locations) > 1 else locations[0]
+        except ValueError:
+                raise AttributeError("The provided location string is invalid")
     elif isinstance(location, FeatureLocation) or isinstance(location, CompoundLocation):
         pass
     else:
@@ -3840,11 +3846,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 feature_attrs["qualifiers"] = None
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
-
-        seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
-        _print_recs(seqbuddy)
+        try:
+            seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
+            if in_args.out_format:
+                seqbuddy.out_format = in_args.out_format
+            _print_recs(seqbuddy)
+        except AttributeError as e:
+            _raise_error(e, "annotate")
         _exit("annotate")
 
     # Average length of sequences
