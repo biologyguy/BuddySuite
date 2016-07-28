@@ -880,7 +880,9 @@ def root(phylobuddy, *root_nodes):
                         if re.search(regex, next_id):
                             all_nodes.append(next_id)
             mrca = None
-            if len(all_nodes) == 1:
+            if len(all_nodes) == 0:
+                return _tree
+            elif len(all_nodes) == 1:
                 leaf_node = _tree.find_node_with_taxon_label(all_nodes[0])
                 if leaf_node:
                     mrca = leaf_node._parent_node
