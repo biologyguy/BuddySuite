@@ -502,6 +502,8 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
     :param method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
     :return: A dictionary of dictonaries containing the distances between tree pairs. dict[tree1][tree2]
     """
+    if not len(phylobuddy.trees) > 1:
+        raise ValueError("Distance requires at least two trees.")
     method = method.lower()
     if method in ['wrf', 'weighted_robinson_foulds']:
         method = 'wrf'
@@ -1232,6 +1234,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
 
     # Distance
     if in_args.distance:
+        if not len(phylobuddy.trees) > 1:
+            _raise_error(ValueError("Distance requires at least two trees."), "distance")
         if in_args.distance[0]:
             output = distance(phylobuddy, in_args.distance[0])
         else:
