@@ -521,6 +521,8 @@ def bootstrap(alignbuddy, num_bootstraps=1):
                 new_alignment += alignment[:, position:position + 1]
             new_alignments.append(new_alignment)
     alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
+    if alignbuddy.out_format == "nexus":
+        alignbuddy.out_format = "phylip-relaxed"
     return alignbuddy
 
 
