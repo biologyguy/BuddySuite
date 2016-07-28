@@ -422,7 +422,8 @@ class TempFile(object):
 
     def clear(self):
         self.close()
-        self.write("", mode="w")
+        content = "" if self.bm == "" else b""
+        self.write(content, mode="w")
         return
 
     def save(self, location):
