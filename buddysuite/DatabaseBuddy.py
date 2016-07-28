@@ -554,7 +554,7 @@ class Record(object):
                 return True
 
         if self.record:
-            if re.search(regex, self.record.format("gb"), flags=flags):
+            if re.search(regex, self.record.format("embl"), flags=flags):
                 return True
         # If nothing hits, default to False
         return False
@@ -693,7 +693,7 @@ class GenericClient(object):
         self.max_url = max_url
         self.lock = Lock()
 
-    def _parse_error_file(self):
+    def parse_error_file(self):
         http_errors_file = self.http_errors_file.read().strip("//\n")
         if http_errors_file != "":
             _output = ""
@@ -709,6 +709,11 @@ class GenericClient(object):
             return _output  # Errors found
         else:
             return False  # No errors to report
+
+    def write_error(self, msg, err):
+        with self.lock:
+            self.http_errors_file.write("%s\n%s\n//\n" % (msg, err))
+        return
 
     def group_terms_for_url(self, terms):
         groups = [""]
@@ -750,14 +755,14 @@ class UniProtRestClient(GenericClient):
                 self.results_file.write("# Search: %s\n%s//\n" % (search_term, response))
             return
 
-        except HTTPError as _e:
-            with self.lock:
-                self.http_errors_file.write("%s\n%s\n//\n" % (search_term, _e))
+        except HTTPError as err:
+            self.write_error("Uniprot search failed for '%s'" % search_term, err)
 
-        except URLError as _e:
-            with self.lock:
-                self.http_errors_file.write("%s\n%s\n//\n" % (search_term, _e))
-
+        except URLError as err:
+            if "Errno 8" in str(err):
+                self.write_error("Uniprot request failed, are you connected to the internet?", err)
+            else:
+                self.write_error("Uniprot request failed", err)
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
 
@@ -787,10 +792,7 @@ class UniProtRestClient(GenericClient):
             _count += len(content) if content[0] != '' else 0
             self.results_file.clear()
 
-        errors = self._parse_error_file()
-        if errors:
-            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                    "count_hits():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+        self.parse_error_file()
         return _count
 
     def search_proteins(self):
@@ -817,18 +819,15 @@ class UniProtRestClient(GenericClient):
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             self.query_uniprot(self.dbbuddy.search_terms[0], params)
         runtime.end()
-        errors = self._parse_error_file()
-        if errors:
-            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                    "search_proteins():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+        self.parse_error_file()
 
         content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read().strip())
         results = content.split("//")
-
+        _stderr("\t%s records received.\n" % len(results))
         for result in results:
-            result = result.strip().split(b"\n")
+            result = result.strip().split("\n")
             for hit in result:
-                hit = hit.split(b"\t")
+                hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
                     raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", "")])
@@ -838,7 +837,6 @@ class UniProtRestClient(GenericClient):
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw, _size=int(hit[2]))
-        _stderr("\n")
 
     def fetch_proteins(self):
         self.results_file.clear()
@@ -859,7 +857,7 @@ class UniProtRestClient(GenericClient):
             self.query_uniprot(accessions[0], params)
 
         runtime.end()
-        errors = self._parse_error_file()
+        errors = self.parse_error_file()
         if errors:
             _stderr("{0}{1}The following errors were encountered while querying UniProt with "
                     "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
@@ -887,6 +885,7 @@ class NCBIClient(GenericClient):
         self.Entrez.email = CONFIG["email"]
         self.Entrez.tool = "buddysuite"
         self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
+        self.tries = 0
 
     def _mc_query(self, query, func_args):
         """
@@ -899,7 +898,6 @@ class NCBIClient(GenericClient):
         _type = None if len(func_args) == 1 else func_args[1]
         if _type and _type not in ["nucleotide", "protein"]:
             raise ValueError
-        error = False
         handle = False
         timer = br.time()
         for indx in range(self.max_attempts):
@@ -929,24 +927,25 @@ class NCBIClient(GenericClient):
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as _e:
-                if indx == self.max_attempts - 1:
-                    error = _e
+            except HTTPError as err:
+                if err.getcode() != 503 or indx >= self.max_attempts - 1:
+                    self.write_error("NCBI request failed: %s" % query, err)
+                    break
                 sleep(1)
             except URLError as err:
                 if "Errno 8" in str(err):
-                    _stderr("\n\tURL open error: Are you connected to the internet?\n")
-                    return
+                    self.write_error("NCBI request failed, are you connected to the internet?", err)
                 else:
-                    raise err
-
-        with self.lock:
-            if error:
-                self.http_errors_file.write("%s\n%s//\n" % (query, error))
-            elif tool == "efetch_seq":
-                self.results_file.write("%s\n" % handle.read().strip())
+                    self.write_error("NCBI request failed", err)
+                break
+        if handle:
+            if tool == "efetch_seq":
+                result = "%s\n" % handle.read().strip()
             else:
-                self.results_file.write("%s\n### END ###\n" % handle.read().strip())
+                result = "%s\n### END ###\n" % handle.read().strip()
+
+            with self.lock:
+                self.results_file.write(result)
         return
 
     def search_ncbi(self, _type):
@@ -967,12 +966,7 @@ class NCBIClient(GenericClient):
         except KeyboardInterrupt:
             _stderr("\n\tNCBI query interrupted by user\n")
             return
-        except URLError as err:
-            if "Errno 8" in str(err):
-                _stderr("\n\tURL open error: Are you connected to the internet?\n")
-                return
-            else:
-                raise err
+        self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x != ""]
@@ -980,6 +974,9 @@ class NCBIClient(GenericClient):
         for result in results:
             result = Entrez.read(StringIO(result))
             gi_nums += result["IdList"]
+        if not gi_nums:
+            _stderr("NCBI returned no %s results\n\n" % _type)
+            return
         for accn, rec in self.dbbuddy.records.items():
             if str(rec.gi) in gi_nums:
                 del gi_nums[gi_nums.index(str(rec.gi))]
@@ -1040,7 +1037,20 @@ class NCBIClient(GenericClient):
         gi_nums = {}
         taxa = []
         for result in results:
-            for summary in Entrez.parse(StringIO(result)):
+            try:  # This will catch and retry when the server fails on us
+                summaries = [x for x in Entrez.parse(StringIO(result))]
+                self.tries = 0
+            except RuntimeError:
+                if self.tries >= self.max_attempts:
+                    self.tries = 0
+                    break
+                else:
+                    _stderr("Problem talking to NCBI, retrying...\n")
+                    self.tries += 1
+                    self.fetch_summaries(database)
+                break
+
+            for summary in summaries:
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
                 status = summary["Status"] if summary["ReplacedBy"] == '' else \
                     "%s->%s" % (summary["Status"], summary["ReplacedBy"])
@@ -1077,6 +1087,8 @@ class NCBIClient(GenericClient):
                                       max_processes=3, quiet=True)
         else:
             self._mc_query(_taxa_ids[0], func_args=["esummary_taxa"])
+        self.parse_error_file()
+
         results = self.results_file.read().split("\n### END ###\n")
         results = [x for x in results if x]
 
@@ -1121,6 +1133,8 @@ class NCBIClient(GenericClient):
                 br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
             else:
                 self._mc_query(gi_nums[0], func_args=["efetch_seq"])
+            self.parse_error_file()
+
             runtime.end()
             with open("bad_fetch.gb", "w") as ofile:
                 ofile.write(self.results_file.read())
@@ -1145,12 +1159,25 @@ class EnsemblRestClient(GenericClient):
         GenericClient.__init__(self, _dbbuddy)
         self.server = server
         self.species = self.perform_rest_action("info/species", headers={"Content-type": "application/json",
-                                                                         "Accept": "application/json"})["species"]
-        self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+                                                                         "Accept": "application/json"})
+        self.parse_error_file()
+        if self.species:
+            self.species = self.species["species"]
+            self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+        else:
+            self.species = {}
+
+    def _mc_search(self, species, args):
+        identifier = args[0]
+        self.dbbuddy.failures = {}
+        data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
+                                        headers={"Content-type": "application/json", "Accept": "application/json"})
+        with self.lock:
+            self.results_file.write("%s\n### END ###\n" % data)
 
     def perform_rest_action(self, endpoint, **kwargs):
         """
-        :param endpoint:
+        :param endpoint: Ensembl specific REST commands
         :param kwargs: requires 'headers' {'Content-type': [text/x-seqxml+xml, application/json],
                                            "Accept": "application/json"} and can also take 'data'
         :return:
@@ -1178,80 +1205,32 @@ class EnsemblRestClient(GenericClient):
                 raise ValueError(request.headers)
             return data
 
-        except HTTPError as _e:
+        except HTTPError as err:
             # check if we are being rate limited by the server
-            if _e.getcode() == 429:
-                if 'Retry-After' in _e.headers:
-                    retry = _e.headers['Retry-After']
+            err_code = err.getcode()
+            if err_code == 429:
+                if 'Retry-After' in err.headers:
+                    retry = err.headers['Retry-After']
                     sleep(float(retry) + 1)
                     self.perform_rest_action(endpoint, **kwargs_backup)
+            elif err_code == 400:
+                pass
             else:
-                failure = Failure("%s" % self.server + endpoint, "Ensemble request failed. %s" % _e)
-                self.dbbuddy.failures[failure.hash] = failure
+                self.write_error("Ensembl request failed: %s" % endpoint, err)
 
-    def fetch_nucleotide(self):
-        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        if len(accns) > 0:
-            _stderr("Fetching sequence from Ensembl...\n")
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            data = self.perform_rest_action("sequence/id", data={"ids": accns},
-                                            headers={"Content-type": "text/x-seqxml+xml"})
-            runtime.end()
-            for rec in data:
-                summary = self.dbbuddy.records[rec.id].summary
-                rec.description = summary['comments']
-                rec.accession = rec.id
-                rec.name = rec.id
-                species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
-                species = "%s%s" % (species.group(1).upper(), species.group(2))
-                new_id = "%s-%s" % (species, summary['name'])
-                self.dbbuddy.records[rec.id].record = rec
-                self.dbbuddy.records[rec.id].record.id = new_id
-
-    def _mc_search(self, species, args):
-        identifier, lock = args
-        self.dbbuddy.failures = {}
-        data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
-                                        headers={"Content-type": "application/json", "Accept": "application/json"})
-        with lock:
-            self.results_file.write("%s\n### END ###\n" % data)
-            if self.dbbuddy.failures:
-                for _hash, failure in self.dbbuddy.failures.items():
-                    self.http_errors_file.write("%s\n" % failure)
-
-    def _parse_summary(self, summary):
-        accn = summary['id']
-        size = abs(summary["start"] - summary["end"])
-        _version = summary['version']
-
-        required_keys = ['display_name', 'species', 'biotype', 'object_type',
-                         'strand', 'assembly_name', 'description', 'version']
-
-        for key in required_keys:
-            if key not in summary:
-                summary[key] = ''
-
-        summary = OrderedDict([('name', summary['display_name']), ('length', size),
-                               ('organism', summary['species']),
-                               ('organism-id', self.species[summary['species']]['taxon_id']),
-                               ('biotype', summary['biotype']), ('object_type', summary['object_type']),
-                               ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
-                               ('comments', summary['description'])])
-
-        rec = Record(accn, summary=summary, _version=_version,
-                     _size=size, _database="ensembl", _type="nucleotide")
-        return rec
+        except URLError as err:
+            if "Errno 8" in str(err):
+                self.write_error("Ensembl request failed, are you connected to the internet?", err)
+            else:
+                self.write_error("Ensembl request failed", err)
 
     def search_ensembl(self):
         self.results_file.clear()
-        species = [_name for _name, _info in self.species.items()]
+        species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             _stderr("Searching Ensembl for %s...\n" % search_term)
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            br.run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
-            runtime.end()
+            br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
+            self.parse_error_file()
             results = self.results_file.read().split("\n### END ###")
 
             counter = 0
@@ -1261,17 +1240,49 @@ class EnsemblRestClient(GenericClient):
                     continue
                 counter += 1
                 rec = re.sub("'", '"', rec)
-                rec = self._parse_summary(json.loads(rec))
+                summary = json.loads(rec)
+                accn = summary['id']
+                size = abs(summary["start"] - summary["end"])
+                _version = None if 'version' not in summary else summary['version']
+
+                required_keys = ['display_name', 'species', 'biotype', 'object_type',
+                                 'strand', 'assembly_name', 'description', 'version']
+
+                for key in required_keys:
+                    if key not in summary:
+                        summary[key] = ''
+
+                summary = OrderedDict([('name', summary['display_name']), ('length', size),
+                                       ('organism', summary['species']),
+                                       ('organism-id', self.species[summary['species']]['taxon_id']),
+                                       ('biotype', summary['biotype']), ('object_type', summary['object_type']),
+                                       ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
+                                       ('comments', summary['description'])])
+
+                rec = Record(accn, summary=summary, _version=_version,
+                             _size=size, _database="ensembl", _type="nucleotide")
+
                 if rec.accession in self.dbbuddy.records:
                     self.dbbuddy.records[rec.accession].update(rec)
                 else:
                     self.dbbuddy.records[rec.accession] = rec
-            _stderr("Returned %s results\n\n" % counter)
+
+            if counter > 0:
+                _stderr("\t%s records received\n" % counter)
+            else:
+                _stderr("Ensembl returned no results\n")
 
     def fetch_summaries(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        data = self.perform_rest_action("lookup/id", data={"ids": accns},
-                                        headers={"Content-type": "application/json", "Accept": "application/json"})
+        data = {}
+        for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
+            data.update(self.perform_rest_action("lookup/id",
+                                                 data={"ids": group},
+                                                 headers={"Content-type": "application/json",
+                                                          "Accept": "application/json"}))
+        self.parse_error_file()
+        if not data:
+            return
 
         for accn, results in data.items():
             if not results:
@@ -1288,10 +1299,34 @@ class EnsemblRestClient(GenericClient):
                                    ('object_type', results['object_type']), ('strand', results['strand']),
                                    ('assembly_name', results['assembly_name']), ('comments', results['description'])])
 
-            rec = Record(accn, summary=summary, _version=results['version'],
+            version = None if "version" not in results else results["version"]
+            rec = Record(accn, summary=summary, _version=version,
                          _size=size, _database="ensembl", _type="nucleotide")
             self.dbbuddy.records[accn].update(rec)
         return
+
+    def fetch_nucleotide(self):
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
+        if len(accns) > 0:
+            _stderr("Fetching sequence from Ensembl...\n")
+            runtime = br.RunTime(prefix="\t")
+            runtime.start()
+            for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
+                data = self.perform_rest_action("sequence/id",
+                                                data={"ids": group},
+                                                headers={"Content-type": "text/x-seqxml+xml"})
+                for rec in data:
+                    summary = self.dbbuddy.records[rec.id].summary
+                    rec.description = summary['comments']
+                    rec.accession = rec.id
+                    rec.name = rec.id
+                    species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+                    species = "%s%s" % (species.group(1).upper(), species.group(2))
+                    new_id = "%s-%s" % (species, summary['name'])
+                    self.dbbuddy.records[rec.id].record = rec
+                    self.dbbuddy.records[rec.id].record.id = new_id
+            self.parse_error_file()
+            runtime.end()
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -1771,6 +1806,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.records[_accn] = _rec
 
         for _hash, failure in temp_buddy.failures.items():
+            _stdout("%s\n" % failure, format_in=RED, format_out=self.terminal_default)
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
         self.dump_session()

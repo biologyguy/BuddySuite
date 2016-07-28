@@ -5,7 +5,7 @@ from collections import OrderedDict
 import sys
 import tempfile
 import re
-
+import json
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
 
@@ -109,12 +109,12 @@ def test_client_parse_error_file():
     dbbuddy = Db.DbBuddy()
     client = Db.GenericClient(dbbuddy)
 
-    assert not client._parse_error_file()
+    assert not client.parse_error_file()
     assert not dbbuddy.failures
     client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz"))
     client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
 
-    assert client._parse_error_file() == '''Casp9
+    assert client.parse_error_file() == '''Casp9
 HTTP Error Fake HTTPError from Mock: Foo
 
 Inx1
@@ -125,7 +125,7 @@ Inx1
 
     # Repeat to make sure that the same error is not added again
     client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
-    assert not client._parse_error_file()
+    assert not client.parse_error_file()
     assert len(dbbuddy.failures) == 2
 
 
@@ -171,7 +171,8 @@ A0A0H5SBJ0
     # Errors
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
         client.query_uniprot("inx15", [{"format": "list"}])
-    assert client.http_errors_file.read() == "inx15\nHTTP Error 101: Fake HTTPError from Mock\n//\n"
+    assert client.http_errors_file.read() == "Uniprot search failed for 'inx15'\nHTTP Error 101: " \
+                                             "Fake HTTPError from Mock\n//\n"
 
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
         client.query_uniprot("inx15", [{"format": "list"}])
@@ -198,8 +199,7 @@ def test_uniprotrestclient_count_hits(capsys):
 
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
         assert client.count_hits() == 0
-        out, err = capsys.readouterr()
-        assert "The following errors were encountered while querying UniProt with count_hits():" in err
+        assert "d3b8e6bb4b9094117b7555b01dc85f64" in client.dbbuddy.failures
 
     with pytest.raises(ValueError) as err:
         client.dbbuddy.search_terms[0] = "a" * 1001
@@ -253,11 +253,9 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_single)
     dbbuddy = Db.DbBuddy("inx15")
     client2 = Db.UniProtRestClient(dbbuddy)
-    client2.http_errors_file.write("inx15\n%s\n//\n" % URLError("Fake URLError from Mock"))
     client2.search_proteins()
     out, err = capsys.readouterr()
     assert "Querying UniProt with the search term 'inx15'...\n" in err
-    assert "The following errors were encountered while querying UniProt with search_proteins():" in err
     assert len(dbbuddy.records) == 4
 
 
@@ -401,7 +399,8 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "efetch", mock_urlopen_raise_httperror)
     client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
-    assert "703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock//" in client.http_errors_file.read()
+    assert "NCBI request failed: 703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock\n//" \
+           in client.http_errors_file.read()
 
 
 def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
@@ -507,3 +506,94 @@ def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsy
     client.fetch_sequences("ncbi_prot")
     out, err = capsys.readouterr()
     assert "\n\tNCBI query interrupted by user\n" in err
+
+
+# ENSEMBL
+def test_ensembl_init(monkeypatch, sb_resources):
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        if "info/species" in args:
+            with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+                return json.load(ifile)
+
+    def patch_ensembl_perform_rest_action_empty(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        return {}
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    client = Db.EnsemblRestClient(dbbuddy)
+    assert hash(dbbuddy) == hash(client.dbbuddy)
+    assert type(client.http_errors_file) == br.TempFile
+    assert type(client.results_file) == br.TempFile
+    assert client.max_url == 1000
+    assert 'vicugnapacos' in client.species['Alpaca']['aliases']
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action_empty)
+    client = Db.EnsemblRestClient(dbbuddy)
+    assert client.species == {}
+
+
+def test_ensembl_mc_search(monkeypatch, sb_resources):
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        if "info/species" in args:
+            with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+                return json.load(ifile)
+        elif "lookup/symbol/Mouse/Panx1" in args:
+            return json.loads('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
+                              '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
+                              '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
+                              ' "GRCm38", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
+                              '"source": "ensembl_havana", "object_type": "Gene"}')
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    client = Db.EnsemblRestClient(dbbuddy)
+    client._mc_search('Mouse', ['Panx1'])
+    assert "'description': 'pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]'" in client.results_file.read()
+
+    monkeypatch.undo()
+    monkeypatch.setattr(Db, "Request", mock_urlopen_raise_httperror)
+    client._mc_search('Mouse', ['Panx1'])
+    assert "HTTP Error 101: Fake HTTPError from Mock" in client.http_errors_file.read()
+
+
+def test_ensembl_perform_rest_action(monkeypatch, sb_resources):
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        if "info/species" in args:
+            with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+                return json.load(ifile)
+        elif "lookup/symbol/Mouse/Panx1" in args:
+            return json.loads('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
+                              '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
+                              '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
+                              ' "GRCm38", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
+                              '"source": "ensembl_havana", "object_type": "Gene"}')
+
+    def patch_ensembl_urlopen(*args, **kwargs):
+        print("patch_ensembl_urlopen\nargs: %s\nkwargs: %s" % (args, kwargs))
+        output = br.TempFile(byte_mode=True)
+        output.write('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
+                     '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
+                     '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
+                     ' "Foo", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
+                     '"source": "ensembl_havana", "object_type": "Gene"}'.encode())
+        return output.get_handle("r")
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    client = Db.EnsemblRestClient(dbbuddy)
+    monkeypatch.undo()
+    monkeypatch.setattr(Db, "urlopen", patch_ensembl_urlopen)
+    data = client.perform_rest_action("lookup/symbol/Mouse/Panx1",
+                                      headers={"Content-type": "application/json", "Accept": "application/json"})
+    assert data['assembly_name'] == 'Foo'
+
+    #data = client.perform_rest_action("lookup/id", data={"ids": ["ENSMUSG00000031934,ENSPTRG00000014529"}
+    #                                  headers={"Content-type": "application/json", "Accept": "application/json"})
+
