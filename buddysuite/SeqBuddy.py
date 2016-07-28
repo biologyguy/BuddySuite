@@ -4180,23 +4180,26 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
     # Find orfs
     if in_args.find_orfs:
-        find_orfs(seqbuddy)
-        for rec in seqbuddy.records:
-            pos_indices = rec.buddy_data['find_orfs']['+']
-            neg_indices = rec.buddy_data['find_orfs']['-']
-            _stderr("# {0}\n".format(rec.id), in_args.quiet)
-            if len(pos_indices) <= 0:
-                _stderr("(+) ORFs: None\n", in_args.quiet)
-            else:
-                _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices if len(x) > 0])),
-                        in_args.quiet)
-            if len(neg_indices) <= 0:
-                _stderr("(-) ORFs: None\n", in_args.quiet)
-            else:
-                _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices if len(x) > 0])),
-                        in_args.quiet)
-        _stderr("\n", in_args.quiet)
-        _print_recs(seqbuddy)
+        try:
+            find_orfs(seqbuddy)
+            for rec in seqbuddy.records:
+                pos_indices = rec.buddy_data['find_orfs']['+']
+                neg_indices = rec.buddy_data['find_orfs']['-']
+                _stderr("# {0}\n".format(rec.id), in_args.quiet)
+                if len(pos_indices) <= 0:
+                    _stderr("(+) ORFs: None\n", in_args.quiet)
+                else:
+                    _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices if len(x) > 0])),
+                            in_args.quiet)
+                if len(neg_indices) <= 0:
+                    _stderr("(-) ORFs: None\n", in_args.quiet)
+                else:
+                    _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices if len(x) > 0])),
+                            in_args.quiet)
+            _stderr("\n", in_args.quiet)
+            _print_recs(seqbuddy)
+        except TypeError as e:
+            _raise_error(e, "find_orfs")
         _exit("find_orfs")
 
     # Find pattern
