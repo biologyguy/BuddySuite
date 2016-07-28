@@ -87,6 +87,11 @@ def mock_urlopen_raise_urlerror(*args, **kwargs):
     raise URLError("Fake URLError from Mock")
 
 
+def mock_urlopen_raise_urlerror_8(*args, **kwargs):
+    print("mock_urlopen_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise URLError("Fake URLError from Mock: Errno 8")
+
+
 def mock_urlopen_raise_keyboardinterrupt(*args, **kwargs):
     print("mock_urlopen_raise_keyboardinterrupt\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise KeyboardInterrupt()
@@ -187,7 +192,7 @@ A0A0H5SBJ0
     client.query_uniprot("ABXEF9", params)
 
 
-def test_uniprotrestclient_count_hits(capsys):
+def test_uniprotrestclient_count_hits():
     dbbuddy = Db.DbBuddy("inx15,inx16")
     client = Db.UniProtRestClient(dbbuddy)
     with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_uniprot_count_hits):
@@ -561,39 +566,121 @@ def test_ensembl_mc_search(monkeypatch, sb_resources):
     assert "HTTP Error 101: Fake HTTPError from Mock" in client.http_errors_file.read()
 
 
-def test_ensembl_perform_rest_action(monkeypatch, sb_resources):
+def test_ensembl_perform_rest_action(monkeypatch, sb_resources, sb_helpers):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
-        if "info/species" in args:
-            with open("%s/ensembl_species.json" % test_files, "r") as ifile:
-                return json.load(ifile)
-        elif "lookup/symbol/Mouse/Panx1" in args:
-            return json.loads('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
-                              '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
-                              '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
-                              ' "GRCm38", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
-                              '"source": "ensembl_havana", "object_type": "Gene"}')
+        with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+            return json.load(ifile)
 
     def patch_ensembl_urlopen(*args, **kwargs):
         print("patch_ensembl_urlopen\nargs: %s\nkwargs: %s" % (args, kwargs))
-        output = br.TempFile(byte_mode=True)
-        output.write('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
-                     '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
-                     '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
-                     ' "Foo", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
-                     '"source": "ensembl_havana", "object_type": "Gene"}'.encode())
-        return output.get_handle("r")
+        outfile.clear()
+        if "lookup/symbol/Mouse/Panx1" in args[0].full_url:
+            outfile.write('{"id": "ENSMUSG00000031934", "end": 15045478, "seq_region_name": "9", "description": '
+                          '"pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]", "logic_name": "ensembl_havana_gene", '
+                          '"species": "Mouse", "strand": -1, "start": 15005161, "db_type": "core", "assembly_name":'
+                          ' "Foo", "biotype": "protein_coding", "version": 13, "display_name": "Panx1", '
+                          '"source": "ensembl_havana", "object_type": "Gene"}'.encode())
+        elif "lookup/id" in args[0].full_url:
+            outfile.write('{"ENSPTRG00000014529":{"source":"ensembl","object_type":"Gene","logic_name":"ensembl",'
+                          '"version":5,"species":"pan_troglodytes",'
+                          '"description":"pannexin 2 [Source:VGNC Symbol;Acc:VGNC:5291]",'
+                          '"display_name":"PANX_tuba!","assembly_name":"CHIMP2.1.4","biotype":"protein_coding",'
+                          '"end":49082954,"seq_region_name":"22","db_type":"core","strand":1,'
+                          '"id":"ENSPTRG00000014529","start":49073399}}'.encode())
+        elif "sequence/id" in args[0].full_url:
+            test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+            with open("%s/ensembl_sequence.seqxml" % test_files, "r") as ifile:
+                outfile.write(ifile.read().encode())
+        elif "error400" in args[0].full_url:
+            raise HTTPError(url="http://fake.come", code=400, msg="Bad request", hdrs="Foo", fp="Bar")
+        elif "error429" in args[0].full_url:
+            raise HTTPError(url="http://fake.come", code=429, msg="Server busy", hdrs={'Retry-After': 0}, fp="Bar")
+        return outfile.get_handle("r")
 
+    outfile = br.TempFile(byte_mode=True)
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
     client = Db.EnsemblRestClient(dbbuddy)
-    monkeypatch.undo()
+    monkeypatch.undo()  # Need to release perform_rest_action
     monkeypatch.setattr(Db, "urlopen", patch_ensembl_urlopen)
+    # Search for gene identifiers and return summaries
     data = client.perform_rest_action("lookup/symbol/Mouse/Panx1",
                                       headers={"Content-type": "application/json", "Accept": "application/json"})
     assert data['assembly_name'] == 'Foo'
 
-    #data = client.perform_rest_action("lookup/id", data={"ids": ["ENSMUSG00000031934,ENSPTRG00000014529"}
-    #                                  headers={"Content-type": "application/json", "Accept": "application/json"})
+    # Get summary from accn numbers
+    data = client.perform_rest_action("lookup/id", data={"ids": ["ENSPTRG00000014529"]},
+                                      headers={"Content-type": "application/json", "Accept": "application/json"})
+    assert data["ENSPTRG00000014529"]["display_name"] == "PANX_tuba!"
+
+    # Fetch sequence from accn numbers
+    data = client.perform_rest_action("sequence/id", data={"ids": ["ENSPTRG00000014529"]},
+                                      headers={"Content-type": "text/x-seqxml+xml"})
+    assert sb_helpers.string2hash(next(data).format("embl")) == "f4bb7d1ec812824b51f14d152e156f8f"
+
+    # Unrecognized endpoint header
+    with pytest.raises(ValueError) as err:
+        client.perform_rest_action("unknown/endpoint", headers={"Content-type": "Foo/Bar"})
+    assert "Unknown request headers '{'Content-type': 'Foo/Bar'}'" in str(err)
+
+    # 400 error (with retry)
+    client.perform_rest_action("error400")
+    client.parse_error_file()
+    assert not client.dbbuddy.failures
+
+    # 429 error (with retry)
+    client.perform_rest_action("error429")
+    client.parse_error_file()
+    assert "39eaff4d057aa3d9d098be5cb50d2ce2" in client.dbbuddy.failures
+
+    # URLError
+    monkeypatch.setattr(Db, "urlopen", mock_urlopen_raise_urlerror)
+    client.perform_rest_action("URLError")
+    client.parse_error_file()
+    assert 'eb498f0bcba3bfe69e4df6ee5bfbf6fb' in client.dbbuddy.failures
+
+    # URLError 8 (no internet)
+    monkeypatch.setattr(Db, "urlopen", mock_urlopen_raise_urlerror_8)
+    client.perform_rest_action("URLError")
+    client.parse_error_file()
+    assert '57ad6fc317cf0d12ccb78d64d43682dc' in client.dbbuddy.failures
+
+
+def test_search_ensembl(monkeypatch, capsys, sb_resources, sb_helpers):
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+            return json.load(ifile)
+
+    def patch_search_ensembl_empty(*args, **kwargs):
+        print("patch_search_ensembl_empty\nargs: %s\nkwargs: %s" % (args, kwargs))
+        return
+
+    def patch_search_ensembl_results(*args, **kwargs):
+        print("patch_search_ensembl_empty\nargs: %s\nkwargs: %s" % (args, kwargs))
+        with open("%s/ensembl_search_results.txt" % test_files, "r") as ifile:
+            client.results_file.write(ifile.read())
+        return
+
+    test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
+
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    client = Db.EnsemblRestClient(dbbuddy)
+    client.dbbuddy.search_terms = ["Panx3"]
+    client.dbbuddy.records["ENSLAFG00000006034"] = Db.Record("ENSLAFG00000006034")
+    client.search_ensembl()
+    out, err = capsys.readouterr()
+    assert err == "Searching Ensembl for Panx3...\nEnsembl returned no results\n"
+    assert not client.dbbuddy.records["ENSLAFG00000006034"].record
+
+    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
+    client.search_ensembl()
+    assert sb_helpers.string2hash(str(client.dbbuddy)) == "95dc1ecce077bef84cdf2d85ce154eef"
+    assert len(client.dbbuddy.records) == 44
+    assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
+
 
