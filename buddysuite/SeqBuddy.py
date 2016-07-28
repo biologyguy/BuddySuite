@@ -2931,7 +2931,8 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
 
     def run_prosite(_rec, args):
         out_file_path = args[0]
-        email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
+        email = "buddysuite@nih.gov" if not user_deets["email"] or not re.search(r".+@.+\..+", user_deets["email"]) \
+            else user_deets["email"]
         params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
                   'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
         # Submit the job
