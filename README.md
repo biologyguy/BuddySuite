@@ -8,6 +8,8 @@
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
+# We are currently approaching a new release, v1.2! To try out the new and improved BuddySuite, make sure to check out the 'develop' branch, not the master branch.
+
 ## Description
 The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
  manipulations.
