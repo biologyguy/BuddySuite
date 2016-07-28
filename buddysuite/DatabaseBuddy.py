@@ -824,7 +824,7 @@ class UniProtRestClient(GenericClient):
         content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read().strip())
         results = content.split("//")
         _stderr("\t%s records received.\n" % len(results))
-        for result in results:
+        for result in [str(x) for x in results]:
             result = result.strip().split("\n")
             for hit in result:
                 hit = hit.split("\t")
@@ -1050,7 +1050,7 @@ class NCBIClient(GenericClient):
                     self.fetch_summaries(database)
                 break
 
-            for summary in summaries:
+            for summary in [dict(x) for x in summaries]:
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
                 status = summary["Status"] if summary["ReplacedBy"] == '' else \
                     "%s->%s" % (summary["Status"], summary["ReplacedBy"])
@@ -1136,8 +1136,6 @@ class NCBIClient(GenericClient):
             self.parse_error_file()
 
             runtime.end()
-            with open("bad_fetch.gb", "w") as ofile:
-                ofile.write(self.results_file.read())
             records = {}
             for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
                 if rec.id not in records:
@@ -1166,6 +1164,7 @@ class EnsemblRestClient(GenericClient):
             self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
         else:
             self.species = {}
+        self.max_attempts = 5
 
     def _mc_search(self, species, args):
         identifier = args[0]
@@ -1195,21 +1194,26 @@ class EnsemblRestClient(GenericClient):
 
             request = Request(self.server + endpoint, **kwargs)
             response = urlopen(request)
-
+            self.max_attempts = 5  # Reset max_attempts, which may have been reduced if there were some 429 errors
             if request.get_header("Content-type") == "application/json":
                 content = response.read().decode()
                 data = json.loads(content)
             elif request.get_header("Content-type") == "text/x-seqxml+xml":
                 data = SeqIO.parse(response, "seqxml")
             else:
-                raise ValueError(request.headers)
+                raise ValueError("Unknown request headers '%s'" % request.headers)
             return data
 
         except HTTPError as err:
             # check if we are being rate limited by the server
             err_code = err.getcode()
             if err_code == 429:
-                if 'Retry-After' in err.headers:
+                if self.max_attempts == 0:
+                    self.max_attempts = 5
+                    self.write_error("Server Busy", err)
+                    pass
+                elif 'Retry-After' in err.headers:
+                    self.max_attempts -= 1
                     retry = err.headers['Retry-After']
                     sleep(float(retry) + 1)
                     self.perform_rest_action(endpoint, **kwargs_backup)
@@ -1232,7 +1236,6 @@ class EnsemblRestClient(GenericClient):
             br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
             self.parse_error_file()
             results = self.results_file.read().split("\n### END ###")
-
             counter = 0
             for rec in results:
                 rec = rec.strip()
