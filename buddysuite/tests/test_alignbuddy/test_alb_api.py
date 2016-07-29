@@ -40,8 +40,8 @@ def test_bootstrap(alb_resources, alb_helpers):
 
     # Also get a really short alignment, and make sure all the expected columns are showing up
     tester = Alb.extract_regions(alb_resources.get_one("o d n"), 13, 15)
-    _hashes = ["19157b79a55467e22e503d7da0f48862", "dd16e900e9c885224b65a97cb382df3b",
-               "9c2f83134a03dec93ca51ce22960779d", "02d6ada0beaf429e73a5f1b29ac00fff"]
+    _hashes = ["903af255a993b60c3370ba8226d9d3da", "f7a0381727e1b803a902125f57e2f3fc",
+               "a679eab7acf2c631f8f76a08ee424b3e", "e8e80045999234d2ea10ce926a123720"]
     for _ in range(20):
         assert alb_helpers.align2hash(Alb.bootstrap(tester)) in _hashes
 
