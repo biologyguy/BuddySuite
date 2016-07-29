@@ -1613,15 +1613,23 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
 
     # Delete records
     if in_args.delete_records:
-        args = in_args.delete_records[0]
-        columns = 1
-        for indx, arg in enumerate(args):
-            try:
-                columns = int(arg)
-                del args[indx]
-                break
-            except ValueError:
-                pass
+        try:  # Check to see if the last argument is an integer, which will set number of columns
+            if len(in_args.delete_records) == 1:
+                columns = 1
+            else:
+                columns = int(in_args.delete_records[-1])
+                del in_args.delete_records[-1]
+        except ValueError:
+            columns = 1
+
+        args = []
+        for arg in in_args.delete_records:
+            if os.path.isfile(arg):
+                with open(arg, "r", encoding="utf-8") as ifile:
+                    for line in ifile:
+                        args.append(line.strip())
+            else:
+                args.append(arg)
 
         pulled = pull_records(make_copy(alignbuddy), args)
         alignbuddy = delete_records(alignbuddy, args)

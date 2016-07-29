@@ -216,18 +216,18 @@ def test_consensus_ui(capsys, alb_resources, alb_helpers):
 # ##################### '-dr', '--delete_records' ###################### ##
 def test_delete_records_ui(capsys, alb_resources, alb_helpers):
     test_in_args = deepcopy(in_args)
-    test_in_args.delete_records = [["α[1-5]", "β[A-M]"]]
+    test_in_args.delete_records = ["α[1-5]", "β[A-M]"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "de5beddbc7f0a7f8e3dc2d5fd43b7b29"
     assert alb_helpers.string2hash(err) == "31bb4310333851964015e21562f602c2"
 
-    test_in_args.delete_records = [["α[1-5]", "β[A-M]", 4]]
+    test_in_args.delete_records = ["α[1-5]", "β[A-M]", 4]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(err) == "ce6c9b29c95ba853eb444de5c71aeca9"
 
-    test_in_args.delete_records = [["foo"]]
+    test_in_args.delete_records = ["foo"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "No sequence identifiers match 'foo'\n" in err
