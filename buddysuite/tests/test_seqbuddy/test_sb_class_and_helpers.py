@@ -112,7 +112,7 @@ def test_print_hashmap(sb_resources, sb_helpers):
                    "uD7zXF2uEp", "btvnHXOJbc", "GiHvUV1n55", "dJm5uViNsC", "to4ctKvNG7", "VN579cevl3"]
     orig_ids = [rec_id for _hash, rec_id in tester.hash_map.items()]
     tester.hash_map = OrderedDict(zip(test_hashes, orig_ids))
-    assert sb_helpers.string2hash(tester.print_hashmap()) == "cdb9fdf429108404be7b93d2ea201d6f"
+    assert sb_helpers.string2hash(tester.print_hashmap()) == "ab38a224d002a5b227265b8211c9f7bc"
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #

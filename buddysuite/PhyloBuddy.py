@@ -1346,7 +1346,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
             if len(phylobuddy.hash_map) > 1:
                 hash_table += "# Tree %s\n" % (indx + 1)
             for _hash, orig_id in tree_map.items():
-                hash_table += "%s,%s\n" % (_hash, orig_id)
+                hash_table += "%s\t%s\n" % (_hash, orig_id)
             hash_table += "\n"
         hash_table = "%s\n######################\n\n" % hash_table.strip()
         _stderr(hash_table, in_args.quiet)

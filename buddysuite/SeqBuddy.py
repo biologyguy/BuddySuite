@@ -374,7 +374,7 @@ class SeqBuddy(object):
         output = ""
         if self.hash_map:
             for _hash, orig_id in self.hash_map.items():
-                output += "%s,%s\n" % (_hash, orig_id)
+                output += "%s\t%s\n" % (_hash, orig_id)
         return output
 
     def reverse_hashmap(self):

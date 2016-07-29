@@ -1744,7 +1744,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
 
         hash_table = "# Hash table\n"
         for _hash, orig_id in alignbuddy.hash_map.items():
-            hash_table += "%s,%s\n" % (_hash, orig_id)
+            hash_table += "%s\t%s\n" % (_hash, orig_id)
         hash_table += "\n"
 
         _stderr(hash_table, in_args.quiet)
