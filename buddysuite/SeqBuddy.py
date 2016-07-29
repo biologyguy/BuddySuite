@@ -1891,22 +1891,24 @@ def extract_regions(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
-        new_seq = ""
+        new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
             for indx, residue in enumerate(str(rec.seq)):
                 if indx in new_rec_positions:
                     remapper.extend(True)
-                    new_seq += residue
+                    new_seq.append(residue)
                 else:
                     remapper.extend(False)
+            new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
             for indx in new_rec_positions:
-                new_seq += seq[indx]
+                new_seq.append(seq[indx])
+            new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
 
