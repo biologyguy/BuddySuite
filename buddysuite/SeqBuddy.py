@@ -4363,7 +4363,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 if os.path.isdir(arg):
                     out_dir = os.path.abspath(arg)
                 else:
-                    split_patterns.append(arg)
+                    if arg == '':
+                        split_patterns.append('-')
+                    else:
+                        split_patterns.append(arg)
 
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
 
