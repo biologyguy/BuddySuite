@@ -2746,9 +2746,13 @@ def molecular_weight(seqbuddy):
             else:
                 rec.mass_ss += 159.0  # molecular weight of a 5' triphosphate in ssRNA
         for indx, value in enumerate(str(rec.seq).upper()):
-            rec.mass_ss += aa_dict[value]
-            if dna:
-                rec.mass_ds += aa_dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
+            try:
+                rec.mass_ss += aa_dict[value]
+                if dna:
+                    rec.mass_ds += aa_dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
+            except KeyError:
+                raise KeyError("Invalid residue '{0}' in record {1}. '{0}' is not valid a valid character in "
+                               "{2}.".format(value, rec.id, str(seqbuddy.alpha)))
         output['masses_ss'].append(round(rec.mass_ss, 3))
 
         qualifiers = {}
@@ -4641,19 +4645,22 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
     # Molecular Weight
     if in_args.molecular_weight:
-        molecular_weight(seqbuddy)
-        mws = seqbuddy.molecular_weights
-        if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            _stderr("ID\tssDNA\tdsDNA\n")
-        elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            _stderr("ID\tssRNA\n")
-        else:
-            _stderr("ID\tProtein\n")
-        for indx, value in enumerate(mws['ids']):
-            if len(mws['masses_ds']) != 0:
-                print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
+        try:
+            molecular_weight(seqbuddy)
+            mws = seqbuddy.molecular_weights
+            if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+                _stderr("ID\tssDNA\tdsDNA\n")
+            elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+                _stderr("ID\tssRNA\n")
             else:
-                print("{0}\t{1}".format(value, mws['masses_ss'][indx]))
+                _stderr("ID\tProtein\n")
+            for indx, value in enumerate(mws['ids']):
+                if len(mws['masses_ds']) != 0:
+                    print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
+                else:
+                    print("{0}\t{1}".format(value, mws['masses_ss'][indx]))
+        except KeyError as e:
+            _raise_error(e, "molecular_weight")
         _exit("molecular_weight")
 
     # Number of sequences
