@@ -152,7 +152,8 @@ DEPENDENCIES = [
     'dendropy',
     'pytest',
     'scipy',
-    'numpy'
+    'numpy',
+    'suds-py3'
 ]
 
 DATA_FILES = [
