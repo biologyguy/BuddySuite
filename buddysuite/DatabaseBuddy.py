@@ -1348,7 +1348,7 @@ class EnsemblRestClient(GenericClient):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-class LiveSearch(cmd.Cmd):
+class LiveShell(cmd.Cmd):
     def __init__(self, _dbbuddy, crash_file):
         """
         :param _dbbuddy: pre-instantiated DbBuddy object
@@ -1421,7 +1421,6 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
-        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch", obj_size=0)
         self.cmdloop()
 
     # @staticmethod
@@ -1434,7 +1433,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def postcmd(self, stop, line):
         command = line.split(" ")[0]
-        self.usage.increment("DatabaseBuddy", VERSION.short(), command, obj_size=0)
+        self.usage.increment("LiveShell", VERSION.short(), command)
         return stop
 
     def dump_session(self):
@@ -2434,7 +2433,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         # Create a temp file for crash handling
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
-            LiveSearch(dbbuddy, temp_file)
+            LiveShell(dbbuddy, temp_file)
         except SystemExit:
             pass
         except (KeyboardInterrupt, br.GuessError) as err:
@@ -2446,7 +2445,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             _stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
                     "the 'load' command.%s\n" % (GREEN, save_file, DEF_FONT))
         dbbuddy.memory_footprint = int(os.path.getsize(temp_file.path))
-        _exit("live_shell")
+        _exit("LiveShell")
 
     def _exit(tool, skip=skip_exit):
         if skip:
@@ -2529,7 +2528,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         _stdout(output)
         sys.exit()
 
-    # Default to LiveSearch
+    # Default to LiveShell
     launch_live_shell()
 
 
