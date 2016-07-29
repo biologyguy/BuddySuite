@@ -374,7 +374,7 @@ class SeqBuddy(object):
         output = ""
         if self.hash_map:
             for _hash, orig_id in self.hash_map.items():
-                output += "%s,%s\n" % (_hash, orig_id)
+                output += "%s\t%s\n" % (_hash, orig_id)
         return output
 
     def reverse_hashmap(self):
@@ -763,21 +763,27 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
             for _tup in location:
                 locations.append(FeatureLocation(start=_tup[0] - 1, end=_tup[1]))
         elif isinstance(location[0], str):
-            for substr in location:
-                substr = re.sub('[ ()]', '', substr)
-                substr = re.sub('-|\.\.', ',', substr)
-                locations.append(FeatureLocation(start=int(re.split(',', substr)[0]) - 1,
-                                                 end=int(re.split(',', substr)[1])))
+            try:
+                for substr in location:
+                    substr = re.sub('[ ()]', '', substr)
+                    substr = re.sub('-|\.\.', ',', substr)
+                    locations.append(FeatureLocation(start=int(re.split(',', substr)[0]) - 1,
+                                                     end=int(re.split(',', substr)[1])))
+            except ValueError:
+                raise AttributeError("The provided location string is invalid")
         location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
             if len(locations) > 1 else locations[0]
     elif isinstance(location, str):
-        location = re.sub('[ ()]', '', location)
-        location = re.split(',', location)
-        locations = []
-        for substr in location:
-            locations.append(FeatureLocation(start=int(substr.split('-')[0]) - 1, end=int(substr.split('-')[1])))
-        location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
-            if len(locations) > 1 else locations[0]
+        try:
+            location = re.sub('[ ()]', '', location)
+            location = re.split(',', location)
+            locations = []
+            for substr in location:
+                locations.append(FeatureLocation(start=int(substr.split('-')[0]) - 1, end=int(substr.split('-')[1])))
+            location = CompoundLocation(sorted(locations, key=lambda x: x.start), operator='order') \
+                if len(locations) > 1 else locations[0]
+        except ValueError:
+                raise AttributeError("The provided location string is invalid")
     elif isinstance(location, FeatureLocation) or isinstance(location, CompoundLocation):
         pass
     else:
@@ -1885,22 +1891,24 @@ def extract_regions(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
-        new_seq = ""
+        new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
             for indx, residue in enumerate(str(rec.seq)):
                 if indx in new_rec_positions:
                     remapper.extend(True)
-                    new_seq += residue
+                    new_seq.append(residue)
                 else:
                     remapper.extend(False)
+            new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
             for indx in new_rec_positions:
-                new_seq += seq[indx]
+                new_seq.append(seq[indx])
+            new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
 
@@ -2740,9 +2748,13 @@ def molecular_weight(seqbuddy):
             else:
                 rec.mass_ss += 159.0  # molecular weight of a 5' triphosphate in ssRNA
         for indx, value in enumerate(str(rec.seq).upper()):
-            rec.mass_ss += aa_dict[value]
-            if dna:
-                rec.mass_ds += aa_dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
+            try:
+                rec.mass_ss += aa_dict[value]
+                if dna:
+                    rec.mass_ds += aa_dict[value] + deoxynucleotide_weights[deoxynucleotide_compliments[value]]
+            except KeyError:
+                raise KeyError("Invalid residue '{0}' in record {1}. '{0}' is not valid a valid character in "
+                               "{2}.".format(value, rec.id, str(seqbuddy.alpha)))
         output['masses_ss'].append(round(rec.mass_ss, 3))
 
         qualifiers = {}
@@ -2925,7 +2937,8 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
 
     def run_prosite(_rec, args):
         out_file_path = args[0]
-        email = "buddysuite@nih.gov" if not user_deets["email"] else user_deets["email"]
+        email = "buddysuite@nih.gov" if not user_deets["email"] or not re.search(r".+@.+\..+", user_deets["email"]) \
+            else user_deets["email"]
         params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
                   'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
         # Submit the job
@@ -3840,11 +3853,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 feature_attrs["qualifiers"] = None
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
-
-        seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
-        if in_args.out_format:
-            seqbuddy.out_format = in_args.out_format
-        _print_recs(seqbuddy)
+        try:
+            seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
+            if in_args.out_format:
+                seqbuddy.out_format = in_args.out_format
+            _print_recs(seqbuddy)
+        except AttributeError as e:
+            _raise_error(e, "annotate")
         _exit("annotate")
 
     # Average length of sequences
@@ -4115,10 +4130,24 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
     # degenerate_sequence
     if in_args.degenerate_sequence:
         # if no argument provided will use table 1 first reading frame as default(set above)
-        degen_args = 1 if not in_args.degenerate_sequence[0] else in_args.degenerate_sequence[0]
+        degen_args = -1 if not in_args.degenerate_sequence[0] else in_args.degenerate_sequence[0]
         try:
             degenerate_sequence(seqbuddy, degen_args)
         except KeyError as e:
+            _stderr("Valid dictionaries:\n"
+                    "Arg\tDictionary\n"
+                    "1\tStandard Genetic Code\n"
+                    "2\tVertebrate Mitochondrial Code\n"
+                    "3\tYeast Mitochondrial Code\n"
+                    "4\tMold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code\n"
+                    "5\tInvertebrate Mitochondrial Code\n"
+                    "6\tCiliate / Dasycladacean / Hexamita Nuclear Code\n"
+                    "7\tEchinoderm and Flatworm Mitochondrial Code\n"
+                    "8\tEuplotid Nuclear Code\n"
+                    "9\tBacterial / Archaeal / Plant Plastid Code\n"
+                    "10\tAlternative Yeast Nuclear Code\n"
+                    "11\tAscidian Mitochondrial Code\n"
+                    "12\tAlternative Flatworm Mitochondrial Code\n\n", in_args.quiet)
             _raise_error(e, "degenerate_sequence", "Could not locate codon dictionary")
         except TypeError as e:
             _raise_error(e, "degenerate_sequence", "Nucleic acid sequence required, not protein")
@@ -4172,23 +4201,26 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
     # Find orfs
     if in_args.find_orfs:
-        find_orfs(seqbuddy)
-        for rec in seqbuddy.records:
-            pos_indices = rec.buddy_data['find_orfs']['+']
-            neg_indices = rec.buddy_data['find_orfs']['-']
-            _stderr("# {0}\n".format(rec.id), in_args.quiet)
-            if len(pos_indices) <= 0:
-                _stderr("(+) ORFs: None\n", in_args.quiet)
-            else:
-                _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices if len(x) > 0])),
-                        in_args.quiet)
-            if len(neg_indices) <= 0:
-                _stderr("(-) ORFs: None\n", in_args.quiet)
-            else:
-                _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices if len(x) > 0])),
-                        in_args.quiet)
-        _stderr("\n", in_args.quiet)
-        _print_recs(seqbuddy)
+        try:
+            find_orfs(seqbuddy)
+            for rec in seqbuddy.records:
+                pos_indices = rec.buddy_data['find_orfs']['+']
+                neg_indices = rec.buddy_data['find_orfs']['-']
+                _stderr("# {0}\n".format(rec.id), in_args.quiet)
+                if len(pos_indices) <= 0:
+                    _stderr("(+) ORFs: None\n", in_args.quiet)
+                else:
+                    _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices if len(x) > 0])),
+                            in_args.quiet)
+                if len(neg_indices) <= 0:
+                    _stderr("(-) ORFs: None\n", in_args.quiet)
+                else:
+                    _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices if len(x) > 0])),
+                            in_args.quiet)
+            _stderr("\n", in_args.quiet)
+            _print_recs(seqbuddy)
+        except TypeError as e:
+            _raise_error(e, "find_orfs")
         _exit("find_orfs")
 
     # Find pattern
@@ -4615,19 +4647,22 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
 
     # Molecular Weight
     if in_args.molecular_weight:
-        molecular_weight(seqbuddy)
-        mws = seqbuddy.molecular_weights
-        if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-            _stderr("ID\tssDNA\tdsDNA\n")
-        elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-            _stderr("ID\tssRNA\n")
-        else:
-            _stderr("ID\tProtein\n")
-        for indx, value in enumerate(mws['ids']):
-            if len(mws['masses_ds']) != 0:
-                print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
+        try:
+            molecular_weight(seqbuddy)
+            mws = seqbuddy.molecular_weights
+            if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
+                _stderr("ID\tssDNA\tdsDNA\n")
+            elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
+                _stderr("ID\tssRNA\n")
             else:
-                print("{0}\t{1}".format(value, mws['masses_ss'][indx]))
+                _stderr("ID\tProtein\n")
+            for indx, value in enumerate(mws['ids']):
+                if len(mws['masses_ds']) != 0:
+                    print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
+                else:
+                    print("{0}\t{1}".format(value, mws['masses_ss'][indx]))
+        except KeyError as e:
+            _raise_error(e, "molecular_weight")
         _exit("molecular_weight")
 
     # Number of sequences

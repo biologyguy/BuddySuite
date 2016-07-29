@@ -521,6 +521,8 @@ def bootstrap(alignbuddy, num_bootstraps=1):
                 new_alignment += alignment[:, position:position + 1]
             new_alignments.append(new_alignment)
     alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
+    if alignbuddy.out_format == "nexus":
+        alignbuddy.out_format = "phylip-relaxed"
     return alignbuddy
 
 
@@ -1611,15 +1613,23 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
 
     # Delete records
     if in_args.delete_records:
-        args = in_args.delete_records[0]
-        columns = 1
-        for indx, arg in enumerate(args):
-            try:
-                columns = int(arg)
-                del args[indx]
-                break
-            except ValueError:
-                pass
+        try:  # Check to see if the last argument is an integer, which will set number of columns
+            if len(in_args.delete_records) == 1:
+                columns = 1
+            else:
+                columns = int(in_args.delete_records[-1])
+                del in_args.delete_records[-1]
+        except ValueError:
+            columns = 1
+
+        args = []
+        for arg in in_args.delete_records:
+            if os.path.isfile(arg):
+                with open(arg, "r", encoding="utf-8") as ifile:
+                    for line in ifile:
+                        args.append(line.strip())
+            else:
+                args.append(arg)
 
         pulled = pull_records(make_copy(alignbuddy), args)
         alignbuddy = delete_records(alignbuddy, args)
@@ -1734,7 +1744,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):
 
         hash_table = "# Hash table\n"
         for _hash, orig_id in alignbuddy.hash_map.items():
-            hash_table += "%s,%s\n" % (_hash, orig_id)
+            hash_table += "%s\t%s\n" % (_hash, orig_id)
         hash_table += "\n"
 
         _stderr(hash_table, in_args.quiet)

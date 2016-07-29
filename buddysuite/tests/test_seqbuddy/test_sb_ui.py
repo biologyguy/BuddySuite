@@ -243,7 +243,7 @@ def test_degenerate_sequence_ui(capsys, sb_resources, sb_helpers):
     test_in_args.degenerate_sequence = [False]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == '0638bc6546eebd9d50f771367d6d7855'
+    assert sb_helpers.string2hash(out) == 'b831e901d8b6b1ba52bad797bad92d14'
 
     test_in_args.degenerate_sequence = [2, 7]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)

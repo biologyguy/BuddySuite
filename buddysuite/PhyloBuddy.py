@@ -502,6 +502,8 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
     :param method: The tree comparison method ([un]weighted_robinson_foulds/euclidean_distance)
     :return: A dictionary of dictonaries containing the distances between tree pairs. dict[tree1][tree2]
     """
+    if not len(phylobuddy.trees) > 1:
+        raise ValueError("Distance requires at least two trees.")
     method = method.lower()
     if method in ['wrf', 'weighted_robinson_foulds']:
         method = 'wrf'
@@ -832,7 +834,7 @@ def prune_taxa(phylobuddy, *patterns):
     :param patterns: One or more regex patterns.
     :return: The same PhyloBuddy object after pruning.
     """
-    for tree in phylobuddy.trees:
+    for indx, tree in enumerate(phylobuddy.trees):
         taxa_to_prune = []
         namespace = TaxonNamespace()
         for node in tree:  # Populate the namespace for easy iteration
@@ -842,8 +844,11 @@ def prune_taxa(phylobuddy, *patterns):
             for pattern in patterns:
                 if re.search(pattern, taxon):  # Sets aside the names of the taxa to be pruned
                     taxa_to_prune.append(taxon)
-        for taxon in taxa_to_prune:  # Removes the nodes from the tree
-            tree.prune_taxa_with_labels(StringIO(taxon))
+        try:
+            for taxon in taxa_to_prune:  # Removes the nodes from the tree
+                tree.prune_taxa_with_labels(StringIO(taxon))
+        except AttributeError:
+            del phylobuddy.trees[indx]
 
 
 def rename(phylobuddy, query, replace):
@@ -880,7 +885,9 @@ def root(phylobuddy, *root_nodes):
                         if re.search(regex, next_id):
                             all_nodes.append(next_id)
             mrca = None
-            if len(all_nodes) == 1:
+            if len(all_nodes) == 0:
+                return _tree
+            elif len(all_nodes) == 1:
                 leaf_node = _tree.find_node_with_taxon_label(all_nodes[0])
                 if leaf_node:
                     mrca = leaf_node._parent_node
@@ -1230,6 +1237,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
 
     # Distance
     if in_args.distance:
+        if not len(phylobuddy.trees) > 1:
+            _raise_error(ValueError("Distance requires at least two trees."), "distance")
         if in_args.distance[0]:
             output = distance(phylobuddy, in_args.distance[0])
         else:
@@ -1337,7 +1346,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
             if len(phylobuddy.hash_map) > 1:
                 hash_table += "# Tree %s\n" % (indx + 1)
             for _hash, orig_id in tree_map.items():
-                hash_table += "%s,%s\n" % (_hash, orig_id)
+                hash_table += "%s\t%s\n" % (_hash, orig_id)
             hash_table += "\n"
         hash_table = "%s\n######################\n\n" % hash_table.strip()
         _stderr(hash_table, in_args.quiet)
