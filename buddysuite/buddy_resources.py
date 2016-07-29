@@ -421,7 +421,9 @@ class TempFile(object):
         return content
 
     def clear(self):
-        self.write("", mode="w")
+        self.close()
+        content = "" if self.bm == "" else b""
+        self.write(content, mode="w")
         return
 
     def save(self, location):
@@ -607,13 +609,14 @@ class Usage(object):
     def clear_stats(self):
         self.stats = {"user_hash": self.config["user_hash"]}
 
-    def increment(self, buddy, version, tool, obj_size):
+    def increment(self, buddy, version, tool, obj_size=None):
         self.stats.setdefault(buddy, {})
         self.stats[buddy].setdefault(version, {})
         self.stats[buddy][version].setdefault(tool, 0)
         self.stats[buddy][version][tool] += 1
-        self.stats[buddy][version].setdefault("sizes", [])
-        self.stats[buddy][version]["sizes"].append(obj_size)
+        if obj_size:
+            self.stats[buddy][version].setdefault("sizes", [])
+            self.stats[buddy][version]["sizes"].append(obj_size)
         return
 
     def save(self, send_report=True):
@@ -757,9 +760,8 @@ def error_report(trace_back, tool, function, version):
                    "program at any time by re-running the BuddySuite installer.\n"
         print(message)
     else:
-        permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to be sent to "
-                         "the BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=9)
-        print()
+        permission = ask("%s\nAn error report with the above traceback has been prepared and is ready to send to the "
+                         "BuddySuite developers.\nWould you like to upload the report? [y]/n " % message, timeout=15)
     try:
         if permission:
             print("\nPreparing error report for FTP upload...")

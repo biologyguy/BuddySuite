@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE eSummaryResult PUBLIC "-//NLM//DTD esummary v1 20041029//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20041029/esummary-v1.dtd">
+<eSummaryResult>
+<DocSum>
+	<Id>981085</Id>
+	<Item Name="Status" Type="String">active</Item>
+	<Item Name="Rank" Type="String">species</Item>
+	<Item Name="Division" Type="String">eudicots</Item>
+	<Item Name="ScientificName" Type="String">Morus notabilis</Item>
+	<Item Name="CommonName" Type="String"></Item>
+	<Item Name="TaxId" Type="Integer">981085</Item>
+	<Item Name="AkaTaxId" Type="Integer">0</Item>
+	<Item Name="Genus" Type="String">Morus</Item>
+	<Item Name="Species" Type="String">notabilis</Item>
+	<Item Name="Subsp" Type="String"></Item>
+	<Item Name="ModificationDate" Type="Date">2015/09/16 00:00</Item>
+</DocSum>
+
+</eSummaryResult>

@@ -51,7 +51,7 @@ from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
 import warnings
 import readline
-import pickle
+import dill
 
 # Third party
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -75,7 +75,7 @@ SEARCH_SYNOS = ["st", "search", "search-terms", "search_terms", "terms"]
 DATABASES = ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
 RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
+           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
 VERSION = br.Version("DatabaseBuddy", 1, 0, br.contributors)
@@ -99,11 +99,10 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
     def __init__(self, _input=None, _databases=None, _out_format="summary"):
         self.search_terms = []
         self.records = OrderedDict()  # Record objects
-        self.trash_bin = {}  # If records are filtered out, send them here instead of deleting them
+        self.trash_bin = OrderedDict()  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
-        self.failures = {}  # The key for these is a hash of the Failure, and the values are actual Failure objects
+        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are actual Failure objects
         self.databases = check_database(_databases)
-        _databases = self.databases[0] if len(self.databases) == 1 else None  # This is to check if a specific db is set
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.memory_footprint = 0
 
@@ -133,7 +132,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _input = _input.strip()
 
         # File paths
-        elif os.path.isfile(_input):
+        elif type(_input) == str and os.path.isfile(_input):
             with open(_input, "r", encoding="utf-8") as _ifile:
                 _input = _ifile.read().strip()
 
@@ -148,11 +147,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                 _record = Record(_accession)
                 _record.guess_database()
                 if _record.database:
-                    if _databases:
-                        _record.database = _databases
-                    self.records[_accession] = _record
-                    if _record.database not in self.databases:
-                        self.databases.append(_record.database)
+                    self.records[_record.accession] = _record
 
             # If accessions not identified, assume search terms
             if len(self.records) != len(accessions_check):
@@ -167,7 +162,13 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
 
     def __eq__(self, other):
-        return isinstance(other, type(self)) and ((self.records, self.out_format) == (other.records, other.out_format))
+        if isinstance(other, type(self)) and self.out_format == other.out_format:
+            recs1 = "".join(["%s%s" % (key, rec) for key, rec in self.records.items()])
+            recs2 = "".join(["%s%s" % (key, rec) for key, rec in other.records.items()])
+            print(recs1)
+            if recs1 == recs2:
+                return True
+        return False
 
     def __str__(self):
         _output = "############################\n"
@@ -192,20 +193,21 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         column_errors = {"KeyError": [], "ValueError": []}
         for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
-            try:
-                if mode == "keep" and not _rec.search(regex):
-                    self.trash_bin[_id] = _rec
-                elif mode == "remove" and _rec.search(regex):
-                    self.trash_bin[_id] = _rec
-                elif mode == "restore" and _rec.search(regex):
-                    self.records[_id] = _rec
+            # try:
+            if mode == "keep" and not _rec.search(regex):
+                self.trash_bin[_id] = _rec
+            elif mode == "remove" and _rec.search(regex):
+                self.trash_bin[_id] = _rec
+            elif mode == "restore" and _rec.search(regex):
+                self.records[_id] = _rec
+            '''
             except KeyError as _e:
                 if str(_e) not in column_errors["KeyError"]:
                     column_errors["KeyError"].append(str(_e))
             except ValueError as _e:
                 if str(_e) not in column_errors["ValueError"]:
                     column_errors["ValueError"].append(str(_e))
-
+            '''
         if mode == "restore":
             for _id in self.records:
                 if _id in self.trash_bin:
@@ -226,17 +228,17 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                                 if not _rec.record and not _rec.summary]
         return _output
 
-    def server(self, _server):  # _server in ["uniprot", "ncbi", "ensembl"]
+    def server(self, _server):
+        if _server not in ["uniprot", "ncbi", "ensembl"]:
+            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
         if self.server_clients[_server]:
             return self.server_clients[_server]
         if _server == "uniprot":
             client = UniProtRestClient(self)
         elif _server == "ncbi":
             client = NCBIClient(self)
-        elif _server == "ensembl":
+        else:  # _server must be "ensembl"
             client = EnsemblRestClient(self)
-        else:
-            raise ValueError('"uniprot", "ncbi", and "ensembl" are the only valid options, not %s' % _server)
         self.server_clients[_server] = client
         return client
 
@@ -304,7 +306,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     lines.append([_accession])
 
                 elif self.out_format in ["summary", "full-summary"]:
-                    headings = ["ACCN", "DB"]
+                    headings = ["ACCN", "DB", "Type"]
                     headings += [heading for heading, _value in _rec.summary.items()]
                     headings += ["record"]
 
@@ -339,6 +341,15 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                             current_group[-1].append("")
                         attrib_counter += 1
 
+                    if "Type" in headings:
+                        if _rec.type:
+                            current_group[-1].append(_rec.type[:4])
+                            if 4 > column_widths[attrib_counter]:
+                                column_widths[attrib_counter] = 4
+                        else:
+                            current_group[-1].append("")
+                        attrib_counter += 1
+
                     for attrib, _value in _rec.summary.items():
                         if attrib in headings:
                             if len(str(_value)) > 50 and self.out_format != "full-summary":
@@ -366,30 +377,34 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
         # Full records
         else:
+            # Make sure IDs are not too long for GenBank format
+            if self.out_format in ["gb", "genbank"]:
+                for _accession, _rec in group.items():
+                    if len(_accession) > 16:
+                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        self.out_format = "embl"
+                        break
+
             nuc_recs = [_rec.record for _accession, _rec in group.items() if
                         _rec.type == "nucleotide" and _rec.record]
             prot_recs = [_rec.record for _accession, _rec in group.items() if
                          _rec.type == "protein" and _rec.record]
-            tmp_dir = br.TemporaryDirectory()
+            tmp_file = br.TempFile()
             if len(nuc_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w", encoding="utf-8") as _ofile:
-                    SeqIO.write(nuc_recs[:_num], _ofile, self.out_format)
+                SeqIO.write(nuc_recs[:_num], tmp_file.get_handle("w"), self.out_format)
+                _output += "%s\n" % tmp_file.read()
+                tmp_file.clear()
 
-                with open("%s/seqs.tmp" % tmp_dir.name, "r", encoding="utf-8") as ifile:
-                    _output += "%s\n" % ifile.read()
-
-            if len(prot_recs) > 0:
-                with open("%s/seqs.tmp" % tmp_dir.name, "w", encoding="utf-8") as _ofile:
-                    SeqIO.write(prot_recs[:_num], _ofile, self.out_format)
-
-                with open("%s/seqs.tmp" % tmp_dir.name, "r", encoding="utf-8") as ifile:
-                    _output += "%s\n" % ifile.read()
+            if len(prot_recs) > 0 and _num - len(nuc_recs) > 0:
+                SeqIO.write(prot_recs[:_num - len(nuc_recs)], tmp_file.get_handle("w"), self.out_format)
+                _output += "%s\n" % tmp_file.read()
 
         if not destination:
             _stdout("{0}\n".format(_output.rstrip()))
         else:
             # remove any escape characters and convert space padding to tabs if writing the file
             _output = re.sub("\\033\[[0-9]*m", "", _output)
+            _output = re.sub(" +\n", "\n", _output)
             destination.write(_output)
 
 
@@ -398,7 +413,7 @@ class Record(object):
     def __init__(self, _accession, gi=None, _version=None, _record=None, summary=None, _size=None,
                  _database=None, _type=None, _search_term=None):
         self.accession = _accession
-        self.gi = gi  # This is for NCBI records
+        self.gi = int(gi) if gi else gi  # This is for NCBI records
         self.version = _version
         self.record = _record  # SeqIO record
         self.summary = summary if summary else OrderedDict()  # Dictionary of attributes
@@ -406,12 +421,6 @@ class Record(object):
         self.database = _database
         self.type = check_type(_type)
         self.search_term = _search_term  # In case the record was the result of a particular search
-
-    def ncbi_accn(self):
-        if not self.version:
-            return self.accession
-        else:
-            return "%s.%s" % (self.accession, self.version)
 
     def guess_database(self):
         # RefSeq
@@ -430,7 +439,7 @@ class Record(object):
 
         # UniProt/SwissProt
         # http://www.uniprot.org/help/accession_numbers
-        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}", self.accession):
+        elif re.match("^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$", self.accession):
             self.database = "uniprot"
             self.type = "protein"
 
@@ -463,88 +472,100 @@ class Record(object):
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number
+        elif re.match("^[0-9]+(\.([0-9]+))?$", self.accession):  # GI number (Being deprecated!)
             self.database = "ncbi_nuc"
             self.type = "gi_num"  # Need to check genbank accession number to figure out what this is
-            self.gi = str(self.accession)
+            self.accession = str(self.accession).lstrip("0")
+            self.gi = int(self.accession)
 
-        if self.database in ["ncbi_nuc", "ncbi_prot"]:
-            # Catch accn/version
-            with_version = re.search("^(.*?)\.([0-9]+)$", self.accession)
-            if with_version:
-                accn, ver = with_version.group(1), with_version.group(2)
-                self.accession = accn
-                self.version = ver
-
-        # ToDo: This is for testing, needs to be removed for production
-        # else:
-        #    raise TypeError("Unable to guess database for accession '%s'" % self.accession)
+        # Catch accn.version
+        version = re.search("^(.*?)\.([0-9]+)$", self.accession)
+        if version:
+            self.version = version.group(2)
 
         return
 
     def search(self, regex):
-        regex = "." if regex == "*" else regex
-        column = re.match("\((.*)\)", regex)
+        regex = ".*" if regex == "*" else regex  # This prevents a crash
+        # Default is case-senstive, so check if the user desires otherwise
+        if regex[:2] in ["i?", "?i"]:
+            flags = re.IGNORECASE
+            regex = regex[2:]
+        else:
+            flags = 0
+
+        column = re.match("\((.*?)\)", regex)
         if column:
             column = column.group(1)
             # Special case, if user is searching sequence length
-            if re.match("length.+", column):
-                if not re.match("^length[ =<>]*[0-9]*$", column):
+            if re.match("length.+", column.strip(), flags=re.IGNORECASE):
+                if not re.match("^length[ =<>]+[0-9]+$", column, flags=re.IGNORECASE):
                     raise ValueError("Invalid syntax for seaching 'length': %s" % column)
 
-                limit = re.search("length[ =<>]*([0-9]*)", column).group(1)
-                try:
-                    limit = int(limit)
-                except ValueError:
-                    limit = re.search("length[ =<>]*(.*)", column).group(1)[:-1]
-                    raise ValueError("Unable to recast limit: %s" % limit)
+                limit = re.search("length *([ =<>]+)([0-9]+)", column, flags=re.IGNORECASE)
+                operator = limit.group(1).strip()
+                limit = int(limit.group(2))
+                if "length" not in self.summary:
+                    return False
 
-                operator = re.search("length *([=<>]*) *[0-9]", column).group(1)
+                length = int(self.summary["length"])
                 if operator not in ["=", ">", ">=", "<", "<="]:
                     raise ValueError("Invalid operator: %s" % operator)
 
-                if operator == "=" and int(self.summary["length"]) == limit:
+                if operator == "=" and length == limit:
                     return True
-                elif operator == ">" and int(self.summary["length"]) > limit:
+                elif operator == ">" and length > limit:
                     return True
-                elif operator == ">=" and int(self.summary["length"]) >= limit:
+                elif operator == ">=" and length >= limit:
                     return True
-                elif operator == "<" and int(self.summary["length"]) < limit:
+                elif operator == "<" and length < limit:
                     return True
-                elif operator == "<=" and int(self.summary["length"]) <= limit:
+                elif operator == "<=" and length <= limit:
                     return True
                 else:
                     return False
 
-            column = "?i" if column == "i?" else column  # Catch an easy syntax error. Maybe a bad idea?
-            regex = regex[len(column) + 2:] if column != "?i" else regex
-            try:
-                if re.search(str(regex), str(self.summary[column])):
+            # Strip off column syntax
+            regex = re.search("^\(.*?\)(.*)", regex, flags=flags)
+            regex = None if not regex else regex.group(1).strip()
+
+            if column.lower() == "accn":
+                if re.search(regex, str(self.accession), flags=flags):
                     return True
-                else:
-                    return False
-            except KeyError:
-                if column != "?i":
-                    raise KeyError(column)
+
+            if column.lower() == "type":
+                if re.search(regex, str(self.type), flags=flags):
+                    return True
+
+            if column.lower() == "db":
+                if re.search(regex, str(self.database), flags=flags):
+                    return True
+
+            if column in self.summary and not regex:  # This will return everything with the given column
+                return True
+
+            if column in self.summary and re.search(regex, str(self.summary[column]), flags=flags):
+                return True
+            else:
+                return False
 
         for param in [self.accession, self.database, self.type, self.search_term]:
-            if re.search(regex, str(param)):
+            if re.search(regex, str(param), flags=flags):
                 return True
 
         for _key, _value in self.summary.items():
-            if re.search(regex, _key) or re.search(regex, str(_value)):
+            if re.search(regex, _key, flags=flags) or re.search(regex, str(_value), flags=flags):
                 return True
 
         if self.record:
-            if re.search(regex, self.record.format("gb")):
+            if re.search(regex, self.record.format("embl"), flags=flags):
                 return True
         # If nothing hits, default to False
         return False
 
     def update(self, new_rec):
-        # ToDo: automate this by looping through Record object dir()
         self.accession = new_rec.accession if new_rec.accession else self.accession
-        self.gi = new_rec.gi if new_rec.gi else self.gi
+        self.gi = int(new_rec.gi) if new_rec.gi else self.gi
         self.version = new_rec.version if new_rec.version else self.version
         self.record = new_rec.record if new_rec.record else self.record
         self.summary = new_rec.summary if new_rec.summary else self.summary
@@ -668,70 +689,90 @@ def check_type(_type):
 
 
 # ################################################# Database Clients ################################################# #
-class UniProtRestClient(object):
+class GenericClient(object):
+    def __init__(self, _dbbuddy, max_url=1000):
+        self.dbbuddy = _dbbuddy
+        self.http_errors_file = br.TempFile()
+        self.results_file = br.TempFile()
+        self.max_url = max_url
+        self.lock = Lock()
+
+    def parse_error_file(self):
+        http_errors_file = self.http_errors_file.read().strip("//\n")
+        if http_errors_file != "":
+            _output = ""
+            http_errors_file = http_errors_file.split("//")
+            for error in http_errors_file:
+                error = error.strip().split("\n")
+                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
+                error = Failure(*error)
+                if error.hash not in self.dbbuddy.failures:
+                    self.dbbuddy.failures[error.hash] = error
+                    _output += "%s\n" % error
+            self.http_errors_file.clear()
+            return _output  # Errors found
+        else:
+            return False  # No errors to report
+
+    def write_error(self, msg, err):
+        with self.lock:
+            self.http_errors_file.write("%s\n%s\n//\n" % (msg, err))
+        return
+
+    def group_terms_for_url(self, terms):
+        groups = [""]
+        for term in terms:
+            term = str(term)
+            if len(term) + 1 > self.max_url:
+                raise ValueError("The provided accession or search term is too long (>%s).\n"
+                                 "The problematic string is:\n%s" % (self.max_url, term))
+            if len(groups[-1]) + len(term) + 1 > self.max_url:
+                groups[-1] = groups[-1].strip(",")
+                groups.append("%s," % term)
+            else:
+                groups[-1] += "%s," % term
+        groups[-1] = groups[-1].strip(",")
+        return groups
+
+
+class UniProtRestClient(GenericClient):
     # http://www.uniprot.org/help/uniprotkb_column_names
     def __init__(self, _dbbuddy, server='http://www.uniprot.org/uniprot'):
-        self.dbbuddy = _dbbuddy
+        GenericClient.__init__(self, _dbbuddy)
         self.server = server
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
-        self.max_url = 1000
 
-    def query_uniprot(self, _term, args):  # Multicore ready
-        http_errors_file, results_file, request_params, lock = args
-        _term = re.sub(" ", "+", _term)
+    def query_uniprot(self, search_term, request_params):  # Multicore ready
+        if type(request_params) == list:  # In case it's coming in from multicore run
+            request_params = request_params[0]
+        search_term = re.sub(" ", "+", search_term)
         request_string = ""
         for _param, _value in request_params.items():
             _value = re.sub(" ", "+", _value)
             request_string += "&{0}={1}".format(_param, _value)
 
         try:
-            request = Request("{0}?query={1}{2}".format(self.server, _term, request_string))
+            request = Request("{0}?query={1}{2}".format(self.server, search_term, request_string))
             response = urlopen(request)
-            response = response.read().decode()
+            response = response.read().decode("utf-8")
             response = re.sub("^Entry.*\n", "", response, count=1)
-            with lock:
-                with open(results_file, "a", encoding="utf-8") as ofile:
-
-                    ofile.write("# Search: %s\n%s//\n" % (_term, response))
+            with self.lock:
+                self.results_file.write("# Search: %s\n%s//\n" % (search_term, response))
             return
 
-        except HTTPError as _e:
-            with lock:
-                with open(http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, _e))
+        except HTTPError as err:
+            self.write_error("Uniprot search failed for '%s'" % search_term, err)
 
-        except URLError as _e:
-            with lock:
-                with open(http_errors_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s\n%s//\n" % (_term, _e))
-
+        except URLError as err:
+            if "Errno 8" in str(err):
+                self.write_error("Uniprot request failed, are you connected to the internet?", err)
+            else:
+                self.write_error("Uniprot request failed", err)
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
 
-    def _parse_error_file(self):
-        with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-            http_errors_file = ifile.read().strip("//\n")
-        if http_errors_file != "":
-            _output = ""
-            http_errors_file = http_errors_file.split("//")
-            for error in http_errors_file:
-                error = error.split("\n")
-                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
-                error = Failure(*error)
-                if error.hash not in self.dbbuddy.failures:
-                    self.dbbuddy.failures[error.hash] = error
-                    _output += "%s\n" % error
-            open(self.http_errors_file, "w", encoding="utf-8").close()
-            return _output  # Errors found
-        else:
-            return False  # No errors to report
-
     def count_hits(self):
         # Limit URLs to 2,083 characters
+        _count = 0
         search_terms = []
         for _term in self.dbbuddy.search_terms:
             if len(_term) > self.max_url:
@@ -748,23 +789,19 @@ class UniProtRestClient(object):
             else:
                 search_terms.append(_term)
 
-        search_terms = search_terms[0] if len(search_terms) == 1 else search_terms
-        if not search_terms:
-            return 0
-        self.query_uniprot(search_terms, [self.http_errors_file, self.results_file, {"format": "list"}, Lock()])
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            _count = len(ifile.read().strip().split("\n")[1:-1])  # The range clips off the search term and trailing //
-        open(self.results_file, "w", encoding="utf-8").close()
+        for search_term in search_terms:
+            self.query_uniprot(search_term, {"format": "list"})
+            content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read())
+            content = content.split("\n")
+            _count += len(content) if content[0] != '' else 0
+            self.results_file.clear()
 
-        errors = self._parse_error_file()
-        if errors:
-            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                    "count_hits():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+        self.parse_error_file()
         return _count
 
     def search_proteins(self):
         # start by determining how many results we would get from all searches.
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.results_file.clear()
         _count = self.count_hits()
 
         if _count == 0:
@@ -777,27 +814,24 @@ class UniProtRestClient(object):
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
         runtime = br.RunTime(prefix="\t")
+        runtime.start()
         if len(self.dbbuddy.search_terms) > 1:
             _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
-            runtime.start()
             br.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
-                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
+                                      func_args=[params])
         else:
             _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
-            runtime.start()
-            self.query_uniprot(self.dbbuddy.search_terms[0], [self.http_errors_file, self.results_file, params, Lock()])
+            self.query_uniprot(self.dbbuddy.search_terms[0], params)
         runtime.end()
-        errors = self._parse_error_file()
-        if errors:
-            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                    "search_proteins():{2}\n\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+        self.parse_error_file()
 
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().strip("//\n").split("//")
-
-        for result in results:
+        content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read().strip())
+        results = content.split("//")
+        result_count = 0
+        for result in [str(x) for x in results]:
             result = result.strip().split("\n")
-            for hit in result[1:]:
+            for hit in result:
+                result_count += 1
                 hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
                     raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
@@ -808,560 +842,348 @@ class UniProtRestClient(object):
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw, _size=int(hit[2]))
-        _stderr("\n")
+        _stderr("\t%s records received.\n" % result_count)
 
     def fetch_proteins(self):
-        open(self.results_file, "w", encoding="utf-8").close()
+        self.results_file.clear()
         _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
-                    _rec.database == "uniprot" and _rec.database == "uniprot" and not _rec.record]
+                    _rec.database == "uniprot" and not _rec.record]
 
-        if len(_records) > 0:
-            _stderr("Retrieving %s full records from UniProt...\n" % len(_records))
-            accessions = [_records[0].accession]
-            for _rec in _records[1:]:
-                if len(accessions[-1]) + len(_rec.accession) + 1 > self.max_url:
-                    accessions.append(_rec.accession)
-                else:
-                    accessions[-1] += ",%s" % _rec.accession
+        if not _records:
+            return
 
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            params = {"format": "txt"}
-            br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True,
-                                      func_args=[self.http_errors_file, self.results_file, params, Lock()])
-            runtime.end()
-            errors = self._parse_error_file()
-            if errors:
-                _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                        "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
-
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                data = ifile.read().strip().split("//\n//")
-
-            if data[0] == "":
-                _stderr("No sequences returned\n\n")
-                return
-
-            clean_recs = []
-            for _rec in data:
-                if _rec:
-                    # Strip the first line from multi-core searches
-                    clean_recs.append(re.sub("# Search.*\n", "", _rec.strip()))
-
-            with open(self.results_file, "w", encoding="utf-8") as ifile:
-                ifile.write("//\n".join(clean_recs))
-                ifile.write("\n//")
-
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                _records = SeqIO.parse(ifile, "swiss")
-                for _rec in _records:
-                    if _rec.id not in self.dbbuddy.records:
-                        # ToDo: fix failures
-                        print(_rec.id)
-                        self.dbbuddy.failures.setdefault("# Uniprot fetch: Ids not"
-                                                         " in dbbuddy.records", []).append(_rec.id)
-                    else:
-                        self.dbbuddy.records[_rec.id].record = _rec
-
-
-class NCBIClient(object):
-    def __init__(self, _dbbuddy):
-        Entrez.email = CONFIG["email"]
-        Entrez.tool = "buddysuite"
-        self.dbbuddy = _dbbuddy
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
-        self.max_url = 1000
-        self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
-
-    def _clear_files(self):
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        open(self.results_file, "w", encoding="utf-8").close()
-        return
-
-    def _parse_error_file(self):
-        with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-            http_errors_file = ifile.read().strip("//\n")
-        if http_errors_file != "":
-            _output = ""
-            http_errors_file = http_errors_file.split("//")
-            for error in http_errors_file:
-                error = error.split("\n")
-                error = (error[0], "\n".join(error[1:])) if len(error) > 2 else (error[0], error[1])
-                error = Failure(*error)
-                if error.hash not in self.dbbuddy.failures:
-                    self.dbbuddy.failures[error.hash] = error
-                    _output += "%s\n" % error
-            open(self.http_errors_file, "w", encoding="utf-8").close()
-            return _output  # Errors found
+        _stderr("Requesting %s full records from UniProt...\n" % len(_records))
+        accessions = self.group_terms_for_url([_rec.accession for _rec in _records])
+        runtime = br.RunTime(prefix="\t")
+        runtime.start()
+        params = {"format": "txt"}
+        if len(accessions) > 1:
+            br.run_multicore_function(accessions, self.query_uniprot, max_processes=10, quiet=True, func_args=[params])
         else:
-            return False  # No errors to report
+            self.query_uniprot(accessions[0], params)
 
-    def _split_for_url(self, accessions):
-        _groups = [""]
-        for accn in accessions:
-            accn = str(accn)
-            if _groups[-1] == "":
-                _groups[-1] = accn
-            elif len(_groups[-1] + accn) + 1 <= self.max_url:
-                _groups[-1] += ",%s" % accn
-            else:
-                _groups.append(accn)
-        return _groups
+        runtime.end()
+        errors = self.parse_error_file()
+        if errors:
+            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                    "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
-    def _mc_taxa(self, _taxa_ids, args):
-        lock = args[0]
-        error = False
+        data = self.results_file.read().strip()
+        data = re.sub("# Search.*?\n", "", data)
+        data = re.sub("//(\n//)+", "//\n", data)
+        data = re.sub("^//\n*", "", data)
+        data = re.sub("//\n\n+", "//\n", data)
+        if data in ["", "//\n"]:
+            _stderr("No sequences returned\n\n")
+            return
+
+        self.results_file.write(data, "w")
+
+        _records = SeqIO.parse(self.results_file.get_handle("r"), "swiss")
+        for _rec in _records:
+            self.dbbuddy.records[_rec.id].record = _rec
+        return
+
+
+class NCBIClient(GenericClient):
+    def __init__(self, _dbbuddy):
+        GenericClient.__init__(self, _dbbuddy)
+        self.Entrez = Entrez
+        self.Entrez.email = CONFIG["email"]
+        self.Entrez.tool = "buddysuite"
+        self.max_attempts = 5  # NCBI throws a lot of 503 errors, so keep trying until we get through...
+        self.tries = 0
+
+    def _mc_query(self, query, func_args):
+        """
+        Make a request to Entrez for some data
+        :param query: Appropriately sized/formatted request string
+        :param func_args: tool = "esummary_taxa", "efetch_gi", "esummary_seq", or "efetch_seq"
+        :return:
+        """
+        tool = func_args[0]
+        _type = None if len(func_args) == 1 else func_args[1]
+        if _type and _type not in ["nucleotide", "protein"]:
+            raise ValueError
         handle = False
         timer = br.time()
-        for i in range(self.max_attempts):
+        for indx in range(self.max_attempts):
             try:
-                handle = Entrez.esummary(db="taxonomy", id=_taxa_ids, retmax=10000)
-                '''
-                Example output: esummary.fcgi?db=taxonomy&id=649
-                    <eSummaryResult>
-                        <DocSum>
-                            <Id>649</Id>
-                            <Item Name="Status" Type="String">active</Item>
-                            <Item Name="Rank" Type="String">species</Item>
-                            <Item Name="Division" Type="String">g-proteobacteria</Item>
-                            <Item Name="ScientificName" Type="String">Aeromonas eucrenophila</Item>
-                            <Item Name="CommonName" Type="String"/>
-                            <Item Name="TaxId" Type="Integer">649</Item>
-                            <Item Name="AkaTaxId" Type="Integer">0</Item>
-                            <Item Name="Genus" Type="String">Aeromonas</Item>
-                            <Item Name="Species" Type="String">eucrenophila</Item>
-                            <Item Name="Subsp" Type="String"/>
-                            <Item Name="ModificationDate" Type="Date">2014/12/30 00:00</Item>
-                        </DocSum>
-                    </eSummaryResult>
-                '''
+                if tool == "esummary_taxa":
+                    # Example query of taxa ids: "649,734,1009,2302"
+                    handle = Entrez.esummary(db="taxonomy", id=query, retmax=10000)
+                elif tool == "efetch_gi":
+                    # Example query of accn nums: "XP_010103297.1,XP_010103298.1,XP_010103299.1"
+                    handle = Entrez.efetch(db="nucleotide", id=query, rettype="gi", retmax=10000)
+                elif tool == "esummary_seq":
+                    # Example query of GI nums: "703125407,703125412,703125420"
+                    handle = Entrez.esummary(db="nucleotide", id=query, retmax=10000)
+                elif tool == "efetch_seq":
+                    # Example query of GI nums: "703125407,703125412,703125420"
+                    # Note that the database passed in doesn't matter. GIs will pull dna or prot as needed.
+                    handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
+                elif tool == "esearch":
+                    count = Entrez.read(Entrez.esearch(db=_type, term=query, rettype="count"))["Count"]
+                    handle = Entrez.esearch(db=_type, term=query, retmax=count)
+                else:
+                    raise ValueError("_mc_query() 'tool' argument must be in 'esummary_taxa', "
+                                     "'efetch_gi', 'esummary_seq', or 'efetch_seq'")
+
+                # This is a throttle so the NCBI server isn't spammed too rapidly
                 timer = br.time() - timer
                 if timer < 1:
                     sleep(1 - timer)
                 break
-            except HTTPError as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
+            except HTTPError as err:
+                if err.getcode() != 503 or indx >= self.max_attempts - 1:
+                    self.write_error("NCBI request failed: %s" % query, err)
+                    break
                 sleep(1)
-
-        with lock:
-            if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (_taxa_ids, error))
+            except URLError as err:
+                if "Errno 8" in str(err):
+                    self.write_error("NCBI request failed, are you connected to the internet?", err)
+                else:
+                    self.write_error("NCBI request failed", err)
+                break
+        if handle:
+            if tool == "efetch_seq":
+                result = "%s\n" % handle.read().strip()
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
+                result = "%s\n### END ###\n" % handle.read().strip()
+
+            with self.lock:
+                self.results_file.write(result)
         return
 
-    def _get_taxa(self, _taxa_ids):
-        self._clear_files()
-        _taxa_ids = self._split_for_url(_taxa_ids)
-        br.run_multicore_function(_taxa_ids, self._mc_taxa, [Lock()], max_processes=3, quiet=True)
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().split("\n### END ###\n")
-            results = [x for x in results if x]
+    def search_ncbi(self, _type):
+        """
+        Query NCBI with search terms (not accns or GI nums)
+        :param _type: "nucleotide" or "protein"
+        :return:
+        """
+        if not self.dbbuddy.search_terms:
+            return
+        self.results_file.clear()
+        try:
+            if len(self.dbbuddy.search_terms) > 1:
+                br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
+                                          max_processes=3, quiet=True)
+            else:
+                self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
+        except KeyboardInterrupt:
+            _stderr("\n\tNCBI query interrupted by user\n")
+            return
+        self.parse_error_file()
 
-        _output = {}
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x != ""]
+        gi_nums = []
         for result in results:
-            for summary in Entrez.parse(StringIO(result)):
-                _output[summary["TaxId"]] = summary["ScientificName"]
-        return _output
-
-    def _mc_accn2gi(self, accns, args):
-        lock = args[0]
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                handle = Entrez.efetch(db="nucleotide", id=accns, rettype="gi", retmax=10000)
-                '''
-                Example output: efetch.fcgi?db=nucleotide&id=XP_010103297.1,XP_010103298.1,XP_010103299.1&rettype=gi
-                    703125407
-                    703125412
-                    703125416
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except HTTPError as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with lock:
-            if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (accns, error))
-            else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
+            result = Entrez.read(StringIO(result))
+            gi_nums += result["IdList"]
+        if not gi_nums:
+            _stderr("NCBI returned no %s results\n\n" % _type)
+            return
+        for accn, rec in self.dbbuddy.records.items():
+            if str(rec.gi) in gi_nums:
+                del gi_nums[gi_nums.index(str(rec.gi))]
+        database = 'ncbi_nuc' if _type == 'nucleotide' else 'ncbi_prot'
+        for gi in gi_nums:
+            self.dbbuddy.records[gi] = Record(gi, gi=int(gi), _database=database, _type="gi_num")
         return
 
-    def _get_gis(self, accns):  # These accns should include version numbers
-        self._clear_files()
-        accns = self._split_for_url(accns)
-        runtime = br.RunTime(prefix="\t")
-        _stderr("Converting NCBI accessions to gi numbers...\n")
-        runtime.start()
-        br.run_multicore_function(accns, self._mc_accn2gi, [Lock()], max_processes=3, quiet=True)
-        runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = ifile.read().split("\n### END ###\n")
-            results = [x.split("\n") for x in results]
-            results = [x for sublist in results for x in sublist if x]
-        _stderr("\tDone\n")
-        return results
-
-    def _mc_summaries(self, gi_nums, args):
-        lock = args[0]
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                # db needs to be set to something, but if using gi nums it doesn't matter if protein or nucleotide.
-                handle = Entrez.esummary(db="nucleotide", id=gi_nums, retmax=10000)
-                '''
-                Example output: esummary.fcgi?db=nucleotide&id=728840875
-                    <eSummaryResult>
-                        <DocSum>
-                            <Id>728840875</Id>
-                            <Item Name="Caption" Type="String">KHG20318</Item>
-                            <Item Name="Title" Type="String">
-                                Proline-rich receptor-like protein kinase PERK1 [Gossypium arboreum]
-                            </Item>
-                            <Item Name="Extra" Type="String">
-                                gi|728840875|gb|KHG20318.1||gnl|WGS:JRRC|F383_09126[728840875]
-                            </Item>
-                            <Item Name="Gi" Type="Integer">728840875</Item>
-                            <Item Name="CreateDate" Type="String">2014/12/04</Item>
-                            <Item Name="UpdateDate" Type="String">2014/12/04</Item>
-                            <Item Name="Flags" Type="Integer">0</Item>
-                            <Item Name="TaxId" Type="Integer">29729</Item>
-                            <Item Name="Length" Type="Integer">649</Item>
-                            <Item Name="Status" Type="String">live</Item>
-                            <Item Name="ReplacedBy" Type="String"/>
-                            <Item Name="Comment" Type="String">
-                                <![CDATA[ ]]>
-                            </Item>
-                        </DocSum>
-                    </eSummaryResult>
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except (HTTPError, RuntimeError) as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with lock:
-            if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (gi_nums, error))
+    def fetch_summaries(self, database):
+        """
+        Fetch metadata for all records
+        :param database: in "ncbi_prot" and "ncbi_nuc"
+        :return:
+        """
+        # EUtils esummary will only take gi numbers
+        # Start by grabbing GI numbers for any records with accns but no GI
+        _type = "protein" if database == "ncbi_prot" else "nucleotide"
+        self.results_file.clear()
+        accns = [accn for accn, rec in self.dbbuddy.records.items()
+                 if rec.database == database and not rec.gi]
+        if accns:
+            accn_searches = self.group_terms_for_url(accns)
+            if len(accn_searches) > 1:
+                br.run_multicore_function(accn_searches, self._mc_query,
+                                          func_args=["efetch_gi"], max_processes=3, quiet=True)
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write("%s### END ###\n" % handle.read())
-        return
+                self._mc_query(accn_searches[0], func_args=["efetch_gi"])
 
-    def _fetch_summaries(self, gi_nums):
-        self._clear_files()
-        gi_nums = self._split_for_url(gi_nums)
+        gi_nums = self.results_file.read().split("\n### END ###\n")
+        gi_nums = [x.split("\n") for x in gi_nums]
+        gi_nums = [x for sublist in gi_nums for x in sublist if x]
+
+        # Append any records that were not grabbed in the previous step
+        gi_nums += [rec.gi for accn, rec in self.dbbuddy.records.items()
+                    if rec.database == database
+                    and rec.gi and rec.gi not in gi_nums]
+
+        # That's it if no GIs present
+        if not gi_nums:
+            return
+
+        # Download all of the summaries
+        self.results_file.clear()
+        gi_groups = self.group_terms_for_url(gi_nums)
+        _stderr("Retrieving %s %s record summaries from NCBI...\n" % (len(gi_nums), _type))
         runtime = br.RunTime(prefix="\t")
-        _stderr("Retrieving record summaries from NCBI...\n")
         runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_summaries, [Lock()], max_processes=3, quiet=True)
+        if len(gi_groups) > 1:
+            br.run_multicore_function(gi_groups, self._mc_query, func_args=["esummary_seq"],
+                                      max_processes=3, quiet=True)
+        else:
+            self._mc_query(gi_groups[0], func_args=["esummary_seq"])
         runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as _ifile:
-            results = _ifile.read().split("\n### END ###\n")
-            results = [x for x in results if x != ""]
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x != ""]
 
-        _output = {}
+        # Sift through all the results and grab summary information
+        gi_nums = {}
         taxa = []
         for result in results:
-            for summary in Entrez.parse(StringIO(result)):
-                _rec = OrderedDict()
-                _rec["gi_num"] = str(summary["Gi"])
+            try:  # This will catch and retry when the server fails on us
+                summaries = [x for x in Entrez.parse(StringIO(result))]
+                self.tries = 0
+            except RuntimeError:
+                if self.tries >= self.max_attempts:
+                    self.tries = 0
+                    break
+                else:
+                    _stderr("Problem talking to NCBI, retrying...\n")
+                    self.tries += 1
+                    self.fetch_summaries(database)
+                break
+
+            for summary in [dict(x) for x in summaries]:
                 # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                _rec["status"] = summary["Status"] if summary["ReplacedBy"] == '' else \
+                status = summary["Status"] if summary["ReplacedBy"] == '' else \
                     "%s->%s" % (summary["Status"], summary["ReplacedBy"])
-                _rec["TaxId"] = summary["TaxId"]
+
+                keys = ["gi_num",
+                        "TaxId",
+                        "organism",
+                        "length",
+                        "comments",
+                        "status"]
+                values = [str(summary["Gi"]),
+                          summary["TaxId"],
+                          "",
+                          summary["Length"],
+                          summary["Title"],
+                          status]
+                rec_summary = {key: value for key, value in zip(keys, values)}
+
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
-                _rec["organism"] = ""
-                _rec["length"] = summary["Length"]
-                _rec["comments"] = summary["Title"]
 
-                _output[summary["Caption"]] = Record(summary["Caption"], gi=str(summary["Gi"]),
-                                                     summary=_rec, _size=_rec["length"])
-                _output[summary["Caption"]].guess_database()
-        taxa = self._get_taxa(taxa)
-        for accn, rec in _output.items():
+                accn = summary["Caption"]
+                version = re.search("%s\.([0-9])+" % accn, summary["Extra"])
+                if version:
+                    accn = "%s.%s" % (accn, version.group(1))
+                gi_nums[summary["Gi"]] = Record(accn, gi=int(summary["Gi"]), summary=rec_summary, _type=_type,
+                                                _size=rec_summary["length"], _database=database)
+
+        # Get taxa names for all of the records retrieved
+        self.results_file.clear()
+        _taxa_ids = self.group_terms_for_url(taxa)
+        if len(_taxa_ids) > 1:
+            br.run_multicore_function(_taxa_ids, self._mc_query, func_args=["esummary_taxa"],
+                                      max_processes=3, quiet=True)
+        else:
+            self._mc_query(_taxa_ids[0], func_args=["esummary_taxa"])
+        self.parse_error_file()
+
+        results = self.results_file.read().split("\n### END ###\n")
+        results = [x for x in results if x]
+
+        taxa = {}
+        for result in results:
+            for summary in Entrez.parse(StringIO(result)):
+                taxa[summary["TaxId"]] = "Unclassified" if "ScientificName" not in summary \
+                    else summary["ScientificName"]
+
+        # Apply the taxa names that were downloaded
+        for gi, rec in gi_nums.items():
             if rec.summary["TaxId"] in taxa:
                 rec.summary["organism"] = taxa[rec.summary["TaxId"]]
             else:
                 rec.summary["organism"] = "Unclassified"
-        _stderr("\t%s records received.\n" % len(_output))
-        return _output
+        _stderr("\t%s records received.\n" % len(gi_nums))
 
-    def fetch_summary(self):
-        # EUtils esummary will only take gi numbers
-        self._clear_files()
-        accns = [rec.ncbi_accn() for accn, rec in self.dbbuddy.records.items() if
-                 rec.database in ["ncbi_nuc", "ncbi_prot"] and not rec.gi]
-
-        if accns:
-            gi_nums = self._get_gis(accns)
-            summaries = self._fetch_summaries(gi_nums)
-            for accn in accns:
-                if re.search("\.[0-9]+$", accn):  # Add record the version number if present
-                    wrong_accn = re.search("^(.*?)\.", accn).group(1)
-                    summaries[wrong_accn].accession = accn
-                    summaries[accn] = summaries[wrong_accn]
-                    del summaries[wrong_accn]
-
-                if accn not in summaries:
-                    failure = Failure("ACCN: %s" % accn, "Unable to fetch summary from NCBI")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-
-            for accn, rec in summaries.items():
-                if accn in self.dbbuddy.records:
-                    self.dbbuddy.records[accn].update(rec)
-                else:
-                    self.dbbuddy.records[accn] = rec
-
-            open(self.results_file, "w", encoding="utf-8").close()
-
-        gi_nums = [accn for accn, rec in self.dbbuddy.records.items() if rec.type == "gi_num" and not rec.summary]
-
-        if gi_nums:
-            summaries = self._fetch_summaries(gi_nums)
-            summary_gis = [_rec.gi for accn, _rec in summaries.items()]
-            for gi_num in gi_nums:
-                if gi_num not in summary_gis:
-                    failure = Failure("gi: %s" % gi_num, "gi_nums: Unable to fetch summary from NCBI")
-                    self.dbbuddy.failures[failure.hash] = failure
-
-            for accn, rec in summaries.items():
-                if accn in self.dbbuddy.records:
-                    self.dbbuddy.records[accn].update(rec)
-                elif rec.gi in self.dbbuddy.records:
-                    self.dbbuddy.records[rec.gi].update(rec)
-                    self.dbbuddy.records[accn] = self.dbbuddy.records[rec.gi]
-                    del self.dbbuddy.records[rec.gi]
-                else:
-                    self.dbbuddy.records[accn] = rec
-
-    def search_ncbi(self, database):  # database in ["nucleotide", "protein"]
-        for _term in self.dbbuddy.search_terms:
-            try:
-                count = Entrez.read(Entrez.esearch(db=database, term=_term, rettype="count"))["Count"]
-                handle = Entrez.esearch(db=database, term=_term, retmax=count)
-                '''
-                Example output: esearch.fcgi?db=nucleotide&term=perk1&retmax=5
-                <eSearchResult>
-                    <Count>456</Count>
-                    <RetMax>5</RetMax>
-                    <RetStart>0</RetStart>
-                    <IdList>
-                        <Id>909549231</Id>
-                        <Id>909549227</Id>
-                        <Id>909549224</Id>
-                        <Id>909546647</Id>
-                        <Id>306819620</Id>
-                    </IdList>
-                    <TranslationSet/>
-                    <TranslationStack>
-                        <TermSet>
-                            <Term>perk1[All Fields]</Term>
-                            <Field>All Fields</Field>
-                            <Count>456</Count>
-                            <Explode>N</Explode>
-                        </TermSet>
-                        <OP>GROUP</OP>
-                    </TranslationStack>
-                    <QueryTranslation>perk1[All Fields]</QueryTranslation>
-                </eSearchResult>
-                '''
-                result = Entrez.read(handle)
-                for _id in result["IdList"]:
-                    if _id not in self.dbbuddy.records:
-                        self.dbbuddy.records[_id] = Record(_id)
-                        self.dbbuddy.records[_id].guess_database()
-
-                self.fetch_summary()
-
-            except (HTTPError, RuntimeError) as _e:
-                if _e.getcode() == 503:
-                    failure = Failure(_term, "503 'Service unavailable': NCBI is either blocking you or they are "
-                                             "experiencing some technical issues.")
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-                else:
-                    failure = Failure(_term, str(_e))
-                    if failure.hash not in self.dbbuddy.failures:
-                        self.dbbuddy.failures[failure.hash] = failure
-
-            except KeyboardInterrupt:
-                _stderr("\n\tNCBI query interrupted by user\n")
-
-    def _mc_seq(self, accns, args):
-        database, lock = args
-        error = False
-        handle = False
-        timer = br.time()
-        for i in range(self.max_attempts):
-            try:
-                handle = Entrez.efetch(db=database, id=accns, rettype="gb", retmode="text", retmax=10000)
-                '''
-                Example output: efetch.fcgi?db=protein&id=920714169&rettype=gb&retmode=text
-                LOCUS       KOM54257                 441 aa            linear   PLN 21-AUG-2015
-                DEFINITION  hypothetical protein LR48_Vigan10g014900 [Vigna angularis].
-                ACCESSION   KOM54257
-                VERSION     KOM54257.1  GI:920714169
-                DBLINK      BioProject: PRJNA261643
-                            BioSample: SAMN03074979
-                DBSOURCE    accession CM003380.1
-                KEYWORDS    .
-                SOURCE      Vigna angularis (adzuki bean)
-                  ORGANISM  Vigna angularis
-                            Eukaryota; Viridiplantae; Streptophyta; Embryophyta; Tracheophyta;
-                            Spermatophyta; Magnoliophyta; eudicotyledons; Gunneridae;
-                            Pentapetalae; rosids; fabids; Fabales; Fabaceae; Papilionoideae;
-                            Phaseoleae; Vigna.
-                REFERENCE   1  (residues 1 to 441)
-                  AUTHORS   Wan,P.
-                  TITLE     The draft genome sequence of high starch accumulation legume
-                            species adzuki bean (Vigna angularis)
-                  JOURNAL   Unpublished
-                REFERENCE   2  (residues 1 to 441)
-                  AUTHORS   Wan,P.
-                  TITLE     Direct Submission
-                  JOURNAL   Submitted (27-FEB-2015) College of Plant Science and Technology,
-                            Beijing University of Agriculture, Huilongguan Beinonglu 7
-                            Changping District, Beijing 102206, China
-                COMMENT     Method: conceptual translation.
-                FEATURES             Location/Qualifiers
-                     source          1..441
-                                     /organism="Vigna angularis"
-                                     /cultivar="Jingnong 6"
-                                     /db_xref="taxon:3914"
-                                     /chromosome="10"
-                                     /tissue_type="seedling"
-                                     /country="China: Beijing"
-                     Protein         1..441
-                                     /product="hypothetical protein"
-                     CDS             1..441
-                                     /locus_tag="LR48_Vigan10g014900"
-                                     /coded_by="complement(join(CM003380.1:1168320..1168634,
-                                     CM003380.1:1168784..1168945,CM003380.1:1169144..1169291,
-                                     CM003380.1:1169589..1169665,CM003380.1:1169837..1169907,
-                                     CM003380.1:1169999..1170085,CM003380.1:1170242..1170707))"
-                                     /note="GO_function: GO:0004672 - protein kinase activity
-                                     [Evidence IEA];
-                                     GO_function: GO:0004674 - protein serine/threonine kinase
-                                     activity [Evidence IEA];
-                                     GO_function: GO:0004713 - protein tyrosine kinase activity
-                                     [Evidence IEA];
-                                     GO_function: GO:0005524 - ATP binding [Evidence IEA];
-                                     GO_process: GO:0006468 - protein phosphorylation [Evidence
-                                     IEA]"
-                                     /db_xref="InterPro:IPR000719"
-                                     /db_xref="InterPro:IPR001245"
-                                     /db_xref="InterPro:IPR002290"
-                                     /db_xref="InterPro:IPR008271"
-                                     /db_xref="InterPro:IPR017441"
-                                     /db_xref="InterPro:IPR020635"
-                                     /db_xref="UniProtKB/Swiss-Prot:PERK1"
-                ORIGIN
-                        1 mppkpspppa payaaqpppp pppfiissgg sgsnysggep lpppspgisl gfskstftye
-                       61 elaratdgfs danllgqggf gyvhrgilpn gkevavkqlk agsgqgeref qaeveiisrv
-                      121 hhkhlvslvg ycitgsqrll vyefvpnntm efhlhgrgrp tmdwptrlri algsakglay
-                      181 lhedchpkii hrdiksanil ldfkfeakva dfglakfssd vnthvstrvm gtfgylapey
-                      241 assgkltdks dvfsygvmll elitgrrpvd ktqtfmedsl vdwarplltr aleeddfdsi
-                      301 idprlqndyd pnemarmvac aaactrhsak rrprmsqvvr alegdvslad lnegikpghs
-                      361 tmysshessd ydtvqyredm kkfrkmalgt qeygasseys aatseyglnp sgssseaqsr
-                      421 qttrememrk mknsqgfsgs s
-                //
-                '''
-                timer = br.time() - timer
-                if timer < 1:
-                    sleep(1 - timer)
-                break
-            except (HTTPError, RuntimeError) as _e:
-                if i == self.max_attempts - 1:
-                    error = _e
-                sleep(1)
-
-        with lock:
-            if error:
-                with open(self.http_errors_file, "r", encoding="utf-8") as ifile:
-                    ifile.write("%s\n%s//\n" % (accns, error))
+        # Update the dbbuddy object with all the new info
+        for gi, rec in gi_nums.items():
+            if str(gi) in self.dbbuddy.records:  # GI only records
+                del self.dbbuddy.records[str(gi)]
+            if rec.accession.split(".")[0] in self.dbbuddy.records:  # Un-versioned accns
+                del self.dbbuddy.records[rec.accession.split(".")[0]]
+            if rec.accession in self.dbbuddy.records:
+                self.dbbuddy.records[rec.accession].update(rec)
             else:
-                with open(self.results_file, "a", encoding="utf-8") as ofile:
-                    ofile.write(handle.read())
+                self.dbbuddy.records[rec.accession] = rec
         return
 
-    def _get_seq(self, gi_nums, database):
-        self._clear_files()
-        gi_nums = self._split_for_url(gi_nums)
-        runtime = br.RunTime(prefix="\t")
-        _stderr("Fetching full sequence records from NCBI...\n")
-        runtime.start()
-        br.run_multicore_function(gi_nums, self._mc_seq, [database, Lock()], max_processes=3, quiet=True)
-        runtime.end()
-        with open(self.results_file, "r", encoding="utf-8") as ifile:
-            results = SeqIO.to_dict(SeqIO.parse(ifile, "gb"))
-        _stderr("\tDone\n")
-        return results
-
-    def fetch_sequence(self, database):  # database in ["nucleotide", "protein"]
+    def fetch_sequences(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
-        if len(gi_nums) > 0:
-            try:
-                records = self._get_seq(gi_nums, database)
-                for accn, rec in records.items():
-                    # Catch accn/version
-                    with_version = re.search("^(.*?)\.([0-9]+)$", accn)
-                    if with_version:
-                        accn, ver = with_version.group(1), with_version.group(2)
-                        self.dbbuddy.records[accn].record = rec
-                        self.dbbuddy.records[accn].version = ver
-                    else:
-                        try:
-                            self.dbbuddy.records[accn].record = rec
-                        except KeyError:
-                            self.dbbuddy.failures.setdefault("# NCBI fetch: Ids not in dbbuddy.records",
-                                                             []).append(rec.id)
-            except KeyboardInterrupt:
-                _stderr("\n\tNCBI query interrupted by user\n")
+        if not gi_nums:
+            return
+        try:
+            self.results_file.clear()
+            gi_nums = self.group_terms_for_url(gi_nums)
+            runtime = br.RunTime(prefix="\t")
+            _stderr("Fetching full %s sequence records from NCBI...\n" % database)
+            runtime.start()
+            if len(gi_nums) > 1:
+                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+            else:
+                self._mc_query(gi_nums[0], func_args=["efetch_seq"])
+            self.parse_error_file()
+
+            runtime.end()
+            records = {}
+            for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
+                if rec.id not in records:
+                    records[rec.id] = rec
+            _stderr("\tDone\n")
+            for accn, rec in records.items():
+                self.dbbuddy.records[accn].record = rec
+                version = re.search("^.*?\.([0-9]+)$", accn)
+                if version:
+                    self.dbbuddy.records[accn].version = version.group(1)
+        except KeyboardInterrupt:
+            _stderr("\n\tNCBI query interrupted by user\n")
+
+        return
 
 
-class EnsemblRestClient(object):
+class EnsemblRestClient(GenericClient):
     def __init__(self, _dbbuddy, server='http://rest.ensembl.org/'):
-        self.dbbuddy = _dbbuddy
-        self.temp_dir = br.TempDir()
-        self.http_errors_file = "%s/errors.txt" % self.temp_dir.path
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        self.results_file = "%s/results.txt" % self.temp_dir.path
-        open(self.results_file, "w", encoding="utf-8").close()
+        GenericClient.__init__(self, _dbbuddy)
         self.server = server
         self.species = self.perform_rest_action("info/species", headers={"Content-type": "application/json",
-                                                                         "Accept": "application/json"})["species"]
-        self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+                                                                         "Accept": "application/json"})
+        self.parse_error_file()
+        if self.species:
+            self.species = self.species["species"]
+            self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+        else:
+            self.species = {}
+        self.max_attempts = 5
+
+    def _mc_search(self, species, args):
+        identifier = args[0]
+        self.dbbuddy.failures = {}
+        data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
+                                        headers={"Content-type": "application/json", "Accept": "application/json"})
+        with self.lock:
+            self.results_file.write("%s\n### END ###\n" % data)
 
     def perform_rest_action(self, endpoint, **kwargs):
         """
-        :param endpoint:
+        :param endpoint: Ensembl specific REST commands
         :param kwargs: requires 'headers' {'Content-type': [text/x-seqxml+xml, application/json],
                                            "Accept": "application/json"} and can also take 'data'
         :return:
@@ -1379,97 +1201,48 @@ class EnsemblRestClient(object):
 
             request = Request(self.server + endpoint, **kwargs)
             response = urlopen(request)
-
+            self.max_attempts = 5  # Reset max_attempts, which may have been reduced if there were some 429 errors
             if request.get_header("Content-type") == "application/json":
                 content = response.read().decode()
                 data = json.loads(content)
             elif request.get_header("Content-type") == "text/x-seqxml+xml":
                 data = SeqIO.parse(response, "seqxml")
             else:
-                raise ValueError(request.headers)
-
+                raise ValueError("Unknown request headers '%s'" % request.headers)
             return data
 
-        except HTTPError as _e:
+        except HTTPError as err:
             # check if we are being rate limited by the server
-            if _e.getcode() == 429:
-                if 'Retry-After' in _e.headers:
-                    retry = _e.headers['Retry-After']
+            err_code = err.getcode()
+            if err_code == 429:
+                if self.max_attempts == 0:
+                    self.max_attempts = 5
+                    self.write_error("Server Busy", err)
+                    pass
+                elif 'Retry-After' in err.headers:
+                    self.max_attempts -= 1
+                    retry = err.headers['Retry-After']
                     sleep(float(retry) + 1)
                     self.perform_rest_action(endpoint, **kwargs_backup)
+            elif err_code == 400:
+                pass
             else:
-                failure = Failure("%s" % self.server + endpoint, "Ensemble request failed. %s" % _e)
-                self.dbbuddy.failures[failure.hash] = failure
+                self.write_error("Ensembl request failed: %s" % endpoint, err)
 
-    def fetch_nucleotide(self):
-        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        if len(accns) > 0:
-            _stderr("Fetching sequence from Ensembl...\n")
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            data = self.perform_rest_action("sequence/id", data={"ids": accns},
-                                            headers={"Content-type": "text/x-seqxml+xml"})
-            runtime.end()
-            for rec in data:
-                summary = self.dbbuddy.records[rec.id].summary
-                rec.description = summary['comments']
-                rec.accession = rec.id
-                rec.name = rec.id
-                species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
-                species = "%s%s" % (species.group(1).upper(), species.group(2))
-                new_id = "%s-%s" % (species, summary['name'])
-                self.dbbuddy.records[rec.id].record = rec
-                self.dbbuddy.records[rec.id].record.id = new_id
-
-    def _mc_search(self, species, args):
-        identifier, lock = args
-        self.dbbuddy.failures = {}
-        data = self.perform_rest_action("lookup/symbol/%s/%s" % (species, identifier),
-                                        headers={"Content-type": "application/json", "Accept": "application/json"})
-        with lock:
-            with open(self.results_file, "a", encoding="utf-8") as ofile:
-                ofile.write("%s\n### END ###\n" % data)
-            if self.dbbuddy.failures:
-                with open(self.http_errors_file, "a", encoding="utf-8") as ofile:
-                    for _hash, failure in self.dbbuddy.failures.items():
-                        ofile.write("%s\n" % failure)
-
-    def _parse_summary(self, summary):
-        accn = summary['id']
-        size = abs(summary["start"] - summary["end"])
-        _version = summary['version']
-
-        required_keys = ['display_name', 'species', 'biotype', 'object_type',
-                         'strand', 'assembly_name', 'description', 'version']
-
-        for key in required_keys:
-            if key not in summary:
-                summary[key] = ''
-
-        summary = OrderedDict([('name', summary['display_name']), ('length', size),
-                               ('organism', summary['species']),
-                               ('organism-id', self.species[summary['species']]['taxon_id']),
-                               ('biotype', summary['biotype']), ('object_type', summary['object_type']),
-                               ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
-                               ('comments', summary['description'])])
-
-        rec = Record(accn, summary=summary, _version=_version,
-                     _size=size, _database="ensembl", _type="nucleotide")
-        return rec
+        except URLError as err:
+            if "Errno 8" in str(err):
+                self.write_error("Ensembl request failed, are you connected to the internet?", err)
+            else:
+                self.write_error("Ensembl request failed", err)
 
     def search_ensembl(self):
-        open(self.http_errors_file, "w", encoding="utf-8").close()
-        open(self.results_file, "w", encoding="utf-8").close()
-        species = [_name for _name, _info in self.species.items()]
+        self.results_file.clear()
+        species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             _stderr("Searching Ensembl for %s...\n" % search_term)
-            runtime = br.RunTime(prefix="\t")
-            runtime.start()
-            br.run_multicore_function(species, self._mc_search, [search_term, Lock()], quiet=True)
-            runtime.end()
-            with open(self.results_file, "r", encoding="utf-8") as ifile:
-                results = ifile.read().split("\n### END ###")
-
+            br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
+            self.parse_error_file()
+            results = self.results_file.read().split("\n### END ###")
             counter = 0
             for rec in results:
                 rec = rec.strip()
@@ -1477,17 +1250,50 @@ class EnsemblRestClient(object):
                     continue
                 counter += 1
                 rec = re.sub("'", '"', rec)
-                rec = self._parse_summary(json.loads(rec))
+                summary = json.loads(rec)
+                accn = summary['id']
+                size = abs(summary["start"] - summary["end"])
+                _version = None if 'version' not in summary else summary['version']
+
+                required_keys = ['display_name', 'species', 'biotype', 'object_type',
+                                 'strand', 'assembly_name', 'description', 'version']
+
+                for key in required_keys:
+                    if key not in summary:
+                        summary[key] = ''
+
+                summary = OrderedDict([('name', summary['display_name']), ('length', size),
+                                       ('organism', summary['species']),
+                                       ('organism-id', self.species[summary['species']]['taxon_id']),
+                                       ('biotype', summary['biotype']), ('object_type', summary['object_type']),
+                                       ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
+                                       ('comments', summary['description'])])
+
+                rec = Record(accn, summary=summary, _version=_version,
+                             _size=size, _database="ensembl", _type="nucleotide")
+
                 if rec.accession in self.dbbuddy.records:
                     self.dbbuddy.records[rec.accession].update(rec)
                 else:
                     self.dbbuddy.records[rec.accession] = rec
-            _stderr("Returned %s results\n\n" % counter)
 
-    def fetch_summary(self):
+            if counter > 0:
+                _stderr("\t%s records received\n" % counter)
+            else:
+                _stderr("Ensembl returned no results\n")
+
+    def fetch_summaries(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
-        data = self.perform_rest_action("lookup/id", data={"ids": accns},
-                                        headers={"Content-type": "application/json", "Accept": "application/json"})
+        data = {}
+        for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
+            query = self.perform_rest_action("lookup/id",
+                                             data={"ids": group},
+                                             headers={"Content-type": "application/json",
+                                                      "Accept": "application/json"})
+            data.update(query)
+        self.parse_error_file()
+        if not data:
+            return
 
         for accn, results in data.items():
             if not results:
@@ -1498,20 +1304,51 @@ class EnsemblRestClient(object):
             for key in required_keys:
                 if key not in results:
                     results[key] = ''
-
             summary = OrderedDict([('name', results['display_name']), ('length', size),
                                    ('organism', results['species']), ('biotype', results['biotype']),
                                    ('object_type', results['object_type']), ('strand', results['strand']),
                                    ('assembly_name', results['assembly_name']), ('comments', results['description'])])
 
-            rec = Record(accn, summary=summary, _version=results['version'],
+            version = None if "version" not in results else results["version"]
+            rec = Record(accn, summary=summary, _version=version,
                          _size=size, _database="ensembl", _type="nucleotide")
             self.dbbuddy.records[accn].update(rec)
         return
 
+    def fetch_nucleotide(self):
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
+        if len(accns) > 0:
+            _stderr("Fetching sequence from Ensembl...\n")
+            runtime = br.RunTime(prefix="\t")
+            runtime.start()
+            for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
+                data = self.perform_rest_action("sequence/id",
+                                                data={"ids": group},
+                                                headers={"Content-type": "text/x-seqxml+xml"})
+
+                def_summary = OrderedDict([(x, None) for x in ['comments', 'organism', 'name']])
+                for rec in data:
+                    if rec.id not in self.dbbuddy.records:
+                        self.dbbuddy.records[rec.id] = Record(rec.id, summary=def_summary)
+
+                    summary = self.dbbuddy.records[rec.id].summary
+                    rec.description = summary['comments']
+                    rec.accession = rec.id
+                    rec.name = rec.id
+                    if summary['organism']:
+                        species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+                        species = "%s%s" % (species.group(1).upper(), species.group(2))
+                    else:
+                        species = "Unknown"
+                    new_id = "%s-%s" % (species, summary['name'])
+                    self.dbbuddy.records[rec.id].record = rec
+                    self.dbbuddy.records[rec.id].record.id = new_id
+            self.parse_error_file()
+            runtime.end()
+
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-class LiveSearch(cmd.Cmd):
+class LiveShell(cmd.Cmd):
     def __init__(self, _dbbuddy, crash_file):
         """
         :param _dbbuddy: pre-instantiated DbBuddy object
@@ -1584,7 +1421,6 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
-        self.usage.increment("DatabaseBuddy", VERSION.short(), "LiveSearch", obj_size=0)
         self.cmdloop()
 
     # @staticmethod
@@ -1597,16 +1433,20 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def postcmd(self, stop, line):
         command = line.split(" ")[0]
-        self.usage.increment("DatabaseBuddy", VERSION.short(), command, obj_size=0)
+        self.usage.increment("LiveShell", VERSION.short(), command)
         return stop
 
     def dump_session(self):
-        import pickle
+        # Need to remove Lock()s to pickle
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
+            client.lock = False
         self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
-        pickle.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
+        dill.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
         self.crash_file.close()
         self.undo = True
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
+            client.lock = Lock()
 
     def default(self, line):
         _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
@@ -1624,7 +1464,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _rec = []
             for _accn, _rec in self.dbbuddy.records.items():
                 break
-            headings = ["ACCN", "DB"] + [heading for heading, _value in _rec.summary.items()]
+            headings = ["ACCN", "DB", "Type"] + [heading for heading, _value in _rec.summary.items()]
         return headings
 
     def filter(self, line, mode="keep"):
@@ -1671,7 +1511,7 @@ Further details about each command can be accessed by typing 'help <command>'
         _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():  # NOTE: The filter errors have been commented out filter_records(). Don't know if they should be reinstated.
                 _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
                     format_out=self.terminal_default)
@@ -1795,7 +1635,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 if confirm.lower() not in ["yes", "y"]:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.records = {}
+                    self.dbbuddy.records = OrderedDict()
                     _stdout("All records removed from main list (trash bin is still intact).\n\n",
                             format_in=GREEN, format_out=self.terminal_default)
 
@@ -1840,7 +1680,7 @@ Further details about each command can be accessed by typing 'help <command>'
         amount_seq_requested = 0
         new_records_fetched = []
         for _accn, _rec in self.dbbuddy.records.items():
-            if not _rec.record:  # Not fetching sequence if the full record already exists
+            if not _rec.record and _rec.size:  # Not fetching sequence if the full record already exists
                 amount_seq_requested += _rec.size
                 new_records_fetched.append(_accn)
 
@@ -1882,7 +1722,7 @@ Further details about each command can be accessed by typing 'help <command>'
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
-                self.dbbuddy = pickle.load(ifile)
+                self.dbbuddy = dill.load(ifile)
             self.dump_session()
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:
@@ -1972,12 +1812,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = self.dbbuddy.databases
-
-        if len(temp_buddy.records):
-            retrieve_sequences(temp_buddy)
-
-        if len(temp_buddy.search_terms):
-            retrieve_summary(temp_buddy)
+        retrieve_summary(temp_buddy)
 
         for _term in temp_buddy.search_terms:
             if _term not in self.dbbuddy.search_terms:
@@ -1988,6 +1823,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.records[_accn] = _rec
 
         for _hash, failure in temp_buddy.failures.items():
+            _stdout("%s\n" % failure, format_in=RED, format_out=self.terminal_default)
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
         self.dump_session()
@@ -2030,21 +1866,23 @@ Further details about each command can be accessed by typing 'help <command>'
         columns = None if not columns else columns
 
         if num_records > 100:
-            confirm = input("%sShow all %s records (y/[n])?%s " %
-                            (RED, num_records, self.terminal_default))
-            if confirm.lower() not in ["yes", "y"]:
+            confirm = br.ask("%sShow all %s records (y/[n])?%s " % (RED, num_records, self.terminal_default), False)
+            if not confirm:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
         try:
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
         except ValueError as _e:
-            if re.search("Sequences must all be the same length", str(_e)):
-                _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
+            if "Sequences must all be the same length" in str(_e):
+                _stdout("Error: '%s' format does not support sequences of different length." %
                         self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
-            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
+            elif "No suitable quality scores found in letter_annotations of SeqRecord" in str(_e):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
+                        format_in=RED, format_out=self.terminal_default)
+            elif re.search("Locus identifier .*? is too long", str(_e)):
+                _stdout("Error: Accession numbers are too long for GenBank format, try EMBL." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
             else:
                 raise ValueError(_e)
@@ -2057,6 +1895,8 @@ Further details about each command can be accessed by typing 'help <command>'
             subgroups = {}
             if heading == "ACCN":
                 return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
+            if heading == "Type":
+                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].type, reverse=_rev))
 
             int_headings = 0
             for accn, _rec in records.items():
@@ -2355,7 +2195,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'. \n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.. \n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_quit(self):
@@ -2383,7 +2223,7 @@ Further refine your results with search terms:
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.\n
 ''', format_in=GREEN, format_out=self.terminal_default)
 
     def help_restore(self):
@@ -2395,7 +2235,7 @@ Return a subset of filtered records back into the main list (use '%srestore *%s'
     - To filter by sequence length, the following operators are recognized: =, >, >=, <, and <=
       Use these operators inside the column prefix. E.g., '(length>300)'
     - Regular expressions are understood (https://docs.python.org/3/library/re.html).
-    - Searches are case sensitive. To make them insensitive, prefix the filter with '(?i)'. E.g., '(?i)HuMaN'.\n
+    - To make searches case-insensitive, prefix the filter with 'i?'. E.g., 'i?(organism)HuMaN' or i?hUmAn.\n
 ''' % (YELLOW, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_save(self):
@@ -2499,18 +2339,17 @@ def retrieve_summary(_dbbuddy):
     if "ncbi_nuc" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
         refseq.search_ncbi("nucleotide")
-        refseq.fetch_summary()
+        refseq.fetch_summaries("ncbi_nuc")
 
     if "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
         refseq.search_ncbi("protein")
-        refseq.fetch_summary()
+        refseq.fetch_summaries("ncbi_prot")
 
     if "ensembl" in _dbbuddy.databases or check_all:
         ensembl = _dbbuddy.server("ensembl")
         ensembl.search_ensembl()
-        ensembl.fetch_summary()
-        # ensembl.fetch_summary()
+        ensembl.fetch_summaries()
 
     return _dbbuddy
 
@@ -2523,11 +2362,11 @@ def retrieve_sequences(_dbbuddy):
 
     if "ncbi_nuc" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequence("nucleotide")
+        refseq.fetch_sequences("nucleotide")
 
     if "ncbi_prot" in _dbbuddy.databases or check_all:
         refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequence("protein")
+        refseq.fetch_sequences("protein")
 
     if "ensembl" in _dbbuddy.databases or check_all:
         ensembl = _dbbuddy.server("ensembl")
@@ -2594,7 +2433,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         # Create a temp file for crash handling
         temp_file.open()
         try:  # Catch all exceptions and try to send error report to server
-            LiveSearch(dbbuddy, temp_file)
+            LiveShell(dbbuddy, temp_file)
         except SystemExit:
             pass
         except (KeyboardInterrupt, br.GuessError) as err:
@@ -2603,10 +2442,10 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             save_file = "./DbSessionDump_%s" % temp_file.name
             temp_file.save(save_file)
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
-            _stderr("%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using the 'load' "
-                    "command.%s\n" % (GREEN, save_file, DEF_FONT))
+            _stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
+                    "the 'load' command.%s\n" % (GREEN, save_file, DEF_FONT))
         dbbuddy.memory_footprint = int(os.path.getsize(temp_file.path))
-        _exit("live_shell")
+        _exit("LiveShell")
 
     def _exit(tool, skip=skip_exit):
         if skip:
@@ -2689,7 +2528,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         _stdout(output)
         sys.exit()
 
-    # Default to LiveSearch
+    # Default to LiveShell
     launch_live_shell()
 
 

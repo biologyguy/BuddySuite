@@ -2,9 +2,15 @@
 import pytest
 from collections import OrderedDict
 import datetime
+import random
+import re
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
+
+# A few real accession numbers to test things out with
+ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
+         "XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
 
 
 # ##################################################### GLOBALS ###################################################### #
@@ -16,7 +22,7 @@ def test_globals():
     assert Db.RETRIEVAL_TYPES == ["protein", "nucleotide", "gi_num"]
     assert Db.FORMATS == ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq",
                           "fastq-sanger", "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd",
-                          "phylip", "seqxml", "sff", "stockholm", "tab", "qual"]
+                          "phylip", "seqxml", "stockholm", "tab", "qual"]
     assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'user_hash']
     assert type(Db.VERSION) == br.Version
     assert str(Db.VERSION) == """DatabaseBuddy 1.0 (%s)
@@ -162,16 +168,6 @@ def test_record_instantiation():
     assert rec.size == 5746
 
 
-def test_record_ncbi_accn():
-    accns = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
-    for accn in accns:
-        rec = Db.Record(accn)
-        assert not rec.version
-        assert rec.ncbi_accn() == accn
-        rec.guess_database()
-        assert rec.ncbi_accn() == accn
-
-
 def test_record_guess_refseq():
     ref_seq_nuc = ["NM_123456789", "NR_123456789", "XM_123456789", "XR_123456789"]
     for accn in ref_seq_nuc:
@@ -265,34 +261,72 @@ def test_record_guess_genbank_mga():
 
 
 def test_record_guess_genbank_gi():
-    randomly_generated_from_regex = ["13545654", "1445", "9876513546531", "154351", "135464316", "4684315", "021240"]
+    randomly_generated_from_regex = ["13545654", "1445", "9876513546531", "154351", "135464316", "4684315", "21240"]
     for accn in randomly_generated_from_regex:
         rec = Db.Record(accn)
         rec.guess_database()
         assert rec.database == "ncbi_nuc"
         assert rec.type == "gi_num"
-        assert rec.gi == accn
-
-
-def test_record_guess_genbank_version():
-    accns = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
-    for accn in accns:
-        rec = Db.Record(accn)
-        rec.guess_database()
-        assert rec.database == "ncbi_prot"
-        assert rec.type == "protein"
-        accn, ver = accn.split(".")
+        assert str(rec.gi) == accn
         assert rec.accession == accn
-        assert rec.version == ver
 
 
-def test_record_search():
+def test_record_search(sb_resources):
     summary = {"ACCN": "F6SBJ1", "DB": "uniprot", "entry_name": "F6SBJ1_HORSE", "length": "451",
                "organism-id": "9796", "organism": "Equus caballus (Horse)", "protein_names": "Caspase",
                "comments": "Caution (1); Sequence similarities (1)", "record": "summary"}
     rec = Db.Record("F6SBJ1", summary=summary)
     assert rec.search("*")
     assert not rec.search("Foo")
+
+    # Length operator True
+    assert rec.search("(length=451)")
+    assert rec.search("(length >=451)")
+    assert rec.search("(length<= 451)")
+    assert rec.search("(length > 200)")
+    assert rec.search("(length<500)")
+
+    # Length operator False
+    assert not rec.search("(length=452)")
+    assert not rec.search("(length>=452)")
+    assert not rec.search("(length<=450)")
+    assert not rec.search("(length>500)")
+    assert not rec.search("(length<200)")
+
+    # Length operator errors
+    with pytest.raises(ValueError) as err:
+        rec.search("(length!<200)")
+    assert "Invalid syntax for seaching 'length': length!<200" in str(err)
+
+    with pytest.raises(ValueError) as err:
+        rec.search("(length<>200)")
+    assert "Invalid operator: <>" in str(err)
+
+    # Other columns
+    assert rec.search("(ACCN) [A-Z0-9]{6}")
+    assert not rec.search("(ACCN) [A-Z0-9]{7}")
+    assert rec.search("(comments)(Caution|Blahh)")
+    assert not rec.search("(organism)Sheep")
+    assert rec.search("(entry_name)")
+    assert rec.search("(entry_name) ")
+    assert not rec.search("(foo_name)")
+
+    # No columns -> params
+    assert rec.search("F6SBJ1")
+    assert rec.search("uniprot")
+    assert rec.search("protein")
+
+    # No columns -> summary
+    assert rec.search("Equus")
+    assert not rec.search("equus")
+    assert rec.search("i?equus")
+    assert rec.search("?iEqUuS")
+
+    # Genbank record
+    sb_obj = sb_resources.get_one("p g")
+    rec = Db.Record("Mle-Panxα8", _record=sb_obj.records[4])
+    assert rec.search("Innexin")
+    assert not rec.search("ML07312abcd")
 
 
 def test_record_update():
@@ -317,7 +351,6 @@ def test_record_update():
     assert str(rec) == "Accession:\tF6SBJ1\nDatabase:\tuniprot\nRecord:\tNone\nType:\tprotein\n"
 
 
-#######
 def test_failure_class():
     failure = Db.Failure("Q9JIJ4BYE", "Blahhh")
     assert failure.query == "Q9JIJ4BYE"
@@ -327,22 +360,426 @@ def test_failure_class():
 
 
 # ##################################################### DB BUDDY ##################################################### #
+# Instantiation
 def test_instantiate_empty_dbbuddy_obj():
     dbbuddy = Db.DbBuddy()
     assert dbbuddy.search_terms == []
     assert type(dbbuddy.records) == OrderedDict
     assert not dbbuddy.records
+    assert type(dbbuddy.trash_bin) == OrderedDict
+    assert dbbuddy.out_format == "summary"
+    assert type(dbbuddy.failures) == OrderedDict
+    assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
+    for client in ['ncbi', 'ensembl', 'uniprot']:
+        assert dbbuddy.server_clients[client] == False
+    assert dbbuddy.memory_footprint == 0
+
+
+def test_instantiate_dbbuddy_from_path():
+    tmp_file = br.TempFile()
+    tmp_file.write(", ".join(ACCNS))
+    dbbuddy = Db.DbBuddy(tmp_file.path)
+    assert dbbuddy.search_terms == []
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
     assert dbbuddy.trash_bin == {}
     assert dbbuddy.out_format == "summary"
     assert dbbuddy.failures == {}
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
         assert dbbuddy.server_clients[client] == False
+    assert dbbuddy.memory_footprint == 0
+
+    # Also test the other ways accessions can be in the file
+    tmp_file.clear()
+    split_chars = ["\t", "\n", "\r", " ", ","]
+    tmp_file.write(ACCNS[0])
+    for accn in ACCNS[1:]:
+        tmp_file.write("%s%s" % (random.choice(split_chars), accn))
+    dbbuddy = Db.DbBuddy(tmp_file.path)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
 
 
-def test_instantiate_dbbuddy_from_path(sb_resources):
-    pass
+def test_instantiate_dbbuddy_from_handle():
+    tmp_file = br.TempFile()
+    tmp_file.write(", ".join(ACCNS))
+    tmp_file.open("r")
+    dbbuddy = Db.DbBuddy(tmp_file.handle)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+
+
+def test_instantiate_dbbuddy_from_plain_text():
+    accns = ", ".join(ACCNS)
+    dbbuddy = Db.DbBuddy(accns)
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
 
 
 def test_instantiate_dbbuddy_from_list():
-    pass
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    dbbuddy = Db.DbBuddy([dbbuddy, dbbuddy])
+    for accn in ACCNS:
+        assert accn in dbbuddy.records
+
+    with pytest.raises(TypeError) as err:
+        Db.DbBuddy(["foo", "bar"])
+    assert "List of non-DbBuddy objects passed into DbBuddy as _input." in str(err)
+
+
+def test_instantiate_dbbuddy_error():
+    with pytest.raises(br.GuessError) as err:
+        Db.DbBuddy({"Foo": "bar"})
+    assert "DbBuddy could not determine the input type." in str(err)
+
+
+def test_instantiate_dbbuddy_search_terms():
+    dbbuddy = Db.DbBuddy("foobar, barfoo")
+    assert dbbuddy.search_terms == ["foobar", "barfoo"]
+
+
+# Methods
+def test_dbbuddy_hash():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    db_hash = hash(dbbuddy)
+    assert hash(dbbuddy) == db_hash
+
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert hash(dbbuddy) != db_hash
+
+
+def test_dbbuddy_equivalent():
+    dbbuddy1 = Db.DbBuddy(", ".join(ACCNS))
+    dbbuddy2 = Db.DbBuddy(", ".join(ACCNS))
+    assert dbbuddy1 == dbbuddy2
+
+    dbbuddy2 = Db.DbBuddy(", ".join(ACCNS[1:]))
+    assert dbbuddy1 != dbbuddy2
+
+
+def test_dbbuddy_tostring():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    10
+Trash bin:  0
+Failures:     0
+############################
+"""
+
+
+def test_filter_records():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    with pytest.raises(ValueError) as err:
+        dbbuddy.filter_records("A0A", "foo")
+    assert "The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not foo." in str(err)
+
+    dbbuddy.filter_records("A0A", "remove")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    7
+Trash bin:  3
+Failures:     0
+############################
+"""
+
+    dbbuddy.filter_records("ENS[A-Z]{4}[0-9]+", "keep")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    3
+Trash bin:  7
+Failures:     0
+############################
+"""
+
+    dbbuddy.filter_records("[XN][PM]_", "restore")
+    assert str(dbbuddy) == """############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    6
+Trash bin:  4
+Failures:     0
+############################
+"""
+
+
+def test_record_breakdown():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    for accn, rec in dbbuddy.records.items():
+        if accn in ACCNS[:3]:
+            rec.record = True
+        elif accn in ACCNS[3:6]:
+            rec.summary = True
+
+    breakdown = dbbuddy.record_breakdown()
+    assert breakdown["accession"] == ["XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
+    assert breakdown["summary"] == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
+    assert breakdown["full"] == ["NP_001287575.1", "ADH10263.1", "XP_005165403.2"]
+
+
+def test_server(monkeypatch):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    assert type(dbbuddy.server("uniprot")) == Db.UniProtRestClient
+    assert type(dbbuddy.server_clients["uniprot"]) == Db.UniProtRestClient
+
+    assert type(dbbuddy.server("ncbi")) == Db.NCBIClient
+    assert type(dbbuddy.server_clients["ncbi"]) == Db.NCBIClient
+
+    def patch_ensembl_rest_action(*args, **kwargs):
+        return {'species': [{'display_name': 'Saccharomyces cerevisiae'}, {'display_name': 'C.savignyi'},
+                            {'display_name': 'Microbat'}]}
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_rest_action)  # No internet needed
+    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient
+    assert type(dbbuddy.server_clients["ensembl"]) == Db.EnsemblRestClient
+
+    assert type(dbbuddy.server("ensembl")) == Db.EnsemblRestClient  # Repeat to grab previously stored client
+
+    with pytest.raises(ValueError) as err:
+        dbbuddy.server("foo")
+    assert '"uniprot", "ncbi", and "ensembl" are the only valid options, not foo' in str(err)
+
+
+def test_trash_breakdown():
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    for accn, rec in dbbuddy.records.items():
+        if accn in ACCNS[:3]:
+            rec.record = True
+        elif accn in ACCNS[3:6]:
+            rec.summary = True
+    dbbuddy.filter_records("*", "remove")
+    breakdown = dbbuddy.trash_breakdown()
+    assert sorted(breakdown["accession"]) == ["ENSAMEG00000011912", "ENSCJAG00000008732",
+                                              "ENSMEUG00000000523", "XM_003978475"]
+    assert sorted(breakdown["summary"]) == ["A0A087WX72", "A0A096MTH0", "A0A0A9YFB0"]
+    assert sorted(breakdown["full"]) == ["ADH10263.1", "NP_001287575.1", "XP_005165403.2"]
+
+
+def test_print_simple(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
+[95mADH10263.1      [96mncbi_prot  [92mprot  [91msummary
+[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
+[95mA0A087WX72      [96muniprot    [92mprot  [91msummary
+[m'''
+
+    dbbuddy.out_format = "ids"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mNP_001287575.1
+[95mADH10263.1
+[95mXP_005165403.2
+[95mA0A087WX72
+[m'''
+
+    dbbuddy.out_format = "accessions"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mNP_001287575.1
+[95mADH10263.1
+[95mXP_005165403.2
+[95mA0A087WX72
+[m'''
+
+
+def test_print_failure(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS))
+    failure = Db.Failure("foobar", "You just foo'd a bar")
+    dbbuddy.failures[failure.hash] = failure
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert err == '''# ########################## Failures ########################### #
+foobar
+You just foo'd a bar
+# ################## Accessions without Records ################## #
+NP_001287575.1	ADH10263.1	XP_005165403.2	A0A087WX72
+A0A096MTH0	A0A0A9YFB0	XM_003978475	ENSAMEG00000011912
+ENSCJAG00000008732	ENSMEUG00000000523
+# ################################################################ #
+
+'''
+
+
+def test_print_columns(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print(columns=["ACCN", "DB"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+[95mXP_005165403.2  [96mncbi_prot
+[95mA0A087WX72      [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].summary = OrderedDict([("entry_name", "F6SBJ1_HORSE"), ("length", "451"),
+                                                             ("organism-id", "9796"),
+                                                             ("organism", "Equus caballus (Horse)"),
+                                                             ("protein_names", "Caspase"),
+                                                             ("comments", "Caution (1); Sequence similarities (1)")])
+
+    dbbuddy.print(columns=["ACCN", "DB", "organism"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB         [92morganism
+[95mXP_005165403.2  [96mncbi_prot  [92mEquus caballus (Horse)
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].database = []
+    dbbuddy.print(columns=["ACCN", "DB", "organism"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].summary["comments"] = "This line is longer than 50 characters, so is truncated."
+    dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism                [91mcomments
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is t...
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.out_format = "full-summary"
+    dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB
+[95mNP_001287575.1  [96mncbi_prot
+[95mADH10263.1      [96mncbi_prot
+
+[95mACCN            [96mDB  [92morganism                [91mcomments
+[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is truncated.
+
+[95mACCN        [96mDB
+[95mA0A087WX72  [96muniprot
+[m'''
+
+    dbbuddy.records["XP_005165403.2"].record = True
+    dbbuddy.print(columns=["ACCN", "DB", "record"])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92msummary
+[95mADH10263.1      [96mncbi_prot  [92msummary
+[95mXP_005165403.2  [96m           [92mfull
+[95mA0A087WX72      [96muniprot    [92msummary
+[m'''
+
+
+def test_print_full_recs(sb_resources, sb_helpers, capsys):
+    # Protein
+    accns = ["A0A087WX70", "A0A087WX71", "A0A087WX72", "A0A087WX73"]  # Made up for this test
+    dbbuddy = Db.DbBuddy(", ".join(accns))
+    dbbuddy.out_format = "fasta"
+
+    seqbuddy = sb_resources.get_one("p g")
+    recs = seqbuddy.records[:4]
+    for indx, accn in enumerate(accns):
+        recs[indx].id = accn
+        recs[indx].name = accn
+        dbbuddy.records[accn].record = recs[indx]
+
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert sb_helpers.string2hash(out) == "4e85ebfc85e02e7067fe40b5b68dfa7e"
+
+    # DNA
+    seqbuddy = sb_resources.get_one("d g")
+    recs = seqbuddy.records[:4]
+    for indx, accn in enumerate(accns):
+        recs[indx].id = accn
+        recs[indx].name = accn
+        dbbuddy.records[accn].record = recs[indx]
+        dbbuddy.records[accn].type = "nucleotide"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert sb_helpers.string2hash(out) == "6d53edc1070790c02ae8e8c6e72045e6"
+
+    # Long accn work around for genbank
+    dbbuddy.records["ENSGALG00000001366"] = dbbuddy.records["A0A087WX70"]
+    dbbuddy.records["ENSGALG00000001366"].record.id = "ENSGALG00000001366"
+    dbbuddy.records["ENSGALG00000001366"].record.name = "ENSGALG00000001366"
+    dbbuddy.out_format = "genbank"
+    dbbuddy.print()
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+
+    assert sb_helpers.string2hash(out) == "8f77b7da51dcc74242558d96ceafcd91"
+    assert err == "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n"
+
+
+def test_print_trash(capsys):
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.filter_records("00", "remove")
+    dbbuddy.print(group="trash_bin")
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
+[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
+[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
+[m'''
+
+
+def test_print_to_file():
+    tmp_file = br.TempFile()
+    tmp_file.open("w")
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[:4]))
+    dbbuddy.print(columns=["ACCN", "DB"], destination=tmp_file.handle)
+    assert tmp_file.read() == '''ACCN            DB
+NP_001287575.1  ncbi_prot
+ADH10263.1      ncbi_prot
+XP_005165403.2  ncbi_prot
+A0A087WX72      uniprot
+
+'''

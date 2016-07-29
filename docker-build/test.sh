@@ -29,6 +29,7 @@ py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
 #### DatabaseBuddy
 cd /home/docker/BuddySuite/buddysuite/tests/test_databasebuddy
 TEST_SCRIPTS='test_db_class_and_helpers.py '
+TEST_SCRIPTS+='test_db_clients.py '
 py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider
 
 #### SeqBuddy
