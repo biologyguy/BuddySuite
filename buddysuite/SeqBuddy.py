@@ -4124,10 +4124,24 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
     # degenerate_sequence
     if in_args.degenerate_sequence:
         # if no argument provided will use table 1 first reading frame as default(set above)
-        degen_args = 1 if not in_args.degenerate_sequence[0] else in_args.degenerate_sequence[0]
+        degen_args = -1 if not in_args.degenerate_sequence[0] else in_args.degenerate_sequence[0]
         try:
             degenerate_sequence(seqbuddy, degen_args)
         except KeyError as e:
+            _stderr("Valid dictionaries:\n"
+                    "Arg\tDictionary\n"
+                    "1\tStandard Genetic Code\n"
+                    "2\tVertebrate Mitochondrial Code\n"
+                    "3\tYeast Mitochondrial Code\n"
+                    "4\tMold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code\n"
+                    "5\tInvertebrate Mitochondrial Code\n"
+                    "6\tCiliate / Dasycladacean / Hexamita Nuclear Code\n"
+                    "7\tEchinoderm and Flatworm Mitochondrial Code\n"
+                    "8\tEuplotid Nuclear Code\n"
+                    "9\tBacterial / Archaeal / Plant Plastid Code\n"
+                    "10\tAlternative Yeast Nuclear Code\n"
+                    "11\tAscidian Mitochondrial Code\n"
+                    "12\tAlternative Flatworm Mitochondrial Code\n\n", in_args.quiet)
             _raise_error(e, "degenerate_sequence", "Could not locate codon dictionary")
         except TypeError as e:
             _raise_error(e, "degenerate_sequence", "Nucleic acid sequence required, not protein")
