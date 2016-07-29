@@ -75,7 +75,7 @@ SEARCH_SYNOS = ["st", "search", "search-terms", "search_terms", "terms"]
 DATABASES = ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
 RETRIEVAL_TYPES = ["protein", "nucleotide", "gi_num"]
 FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml", "sff",
+           "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
 VERSION = br.Version("DatabaseBuddy", 1, 0, br.contributors)
@@ -537,6 +537,10 @@ class Record(object):
                 if re.search(regex, str(self.type), flags=flags):
                     return True
 
+            if column.lower() == "db":
+                if re.search(regex, str(self.database), flags=flags):
+                    return True
+
             if column in self.summary and not regex:  # This will return everything with the given column
                 return True
 
@@ -823,10 +827,11 @@ class UniProtRestClient(GenericClient):
 
         content = re.sub("(#.*?\n|[\n /]+$)", "", self.results_file.read().strip())
         results = content.split("//")
-        _stderr("\t%s records received.\n" % len(results))
+        result_count = 0
         for result in [str(x) for x in results]:
             result = result.strip().split("\n")
             for hit in result:
+                result_count += 1
                 hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
                     raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
@@ -837,6 +842,7 @@ class UniProtRestClient(GenericClient):
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw, _size=int(hit[2]))
+        _stderr("\t%s records received.\n" % result_count)
 
     def fetch_proteins(self):
         self.results_file.clear()
@@ -866,6 +872,7 @@ class UniProtRestClient(GenericClient):
         data = re.sub("# Search.*?\n", "", data)
         data = re.sub("//(\n//)+", "//\n", data)
         data = re.sub("^//\n*", "", data)
+        data = re.sub("//\n\n+", "//\n", data)
         if data in ["", "//\n"]:
             _stderr("No sequences returned\n\n")
             return
@@ -1127,7 +1134,7 @@ class NCBIClient(GenericClient):
             self.results_file.clear()
             gi_nums = self.group_terms_for_url(gi_nums)
             runtime = br.RunTime(prefix="\t")
-            _stderr("Fetching full sequence records from NCBI...\n")
+            _stderr("Fetching full %s sequence records from NCBI...\n" % database)
             runtime.start()
             if len(gi_nums) > 1:
                 br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
@@ -1279,10 +1286,11 @@ class EnsemblRestClient(GenericClient):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         data = {}
         for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
-            data.update(self.perform_rest_action("lookup/id",
-                                                 data={"ids": group},
-                                                 headers={"Content-type": "application/json",
-                                                          "Accept": "application/json"}))
+            query = self.perform_rest_action("lookup/id",
+                                             data={"ids": group},
+                                             headers={"Content-type": "application/json",
+                                                      "Accept": "application/json"})
+            data.update(query)
         self.parse_error_file()
         if not data:
             return
@@ -1296,7 +1304,6 @@ class EnsemblRestClient(GenericClient):
             for key in required_keys:
                 if key not in results:
                     results[key] = ''
-
             summary = OrderedDict([('name', results['display_name']), ('length', size),
                                    ('organism', results['species']), ('biotype', results['biotype']),
                                    ('object_type', results['object_type']), ('strand', results['strand']),
@@ -1318,13 +1325,21 @@ class EnsemblRestClient(GenericClient):
                 data = self.perform_rest_action("sequence/id",
                                                 data={"ids": group},
                                                 headers={"Content-type": "text/x-seqxml+xml"})
+
+                def_summary = OrderedDict([(x, None) for x in ['comments', 'organism', 'name']])
                 for rec in data:
+                    if rec.id not in self.dbbuddy.records:
+                        self.dbbuddy.records[rec.id] = Record(rec.id, summary=def_summary)
+
                     summary = self.dbbuddy.records[rec.id].summary
                     rec.description = summary['comments']
                     rec.accession = rec.id
                     rec.name = rec.id
-                    species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
-                    species = "%s%s" % (species.group(1).upper(), species.group(2))
+                    if summary['organism']:
+                        species = re.search("([a-z])[a-z]*_([a-z]{1,3})", summary['organism'])
+                        species = "%s%s" % (species.group(1).upper(), species.group(2))
+                    else:
+                        species = "Unknown"
                     new_id = "%s-%s" % (species, summary['name'])
                     self.dbbuddy.records[rec.id].record = rec
                     self.dbbuddy.records[rec.id].record.id = new_id
@@ -1860,10 +1875,10 @@ Further details about each command can be accessed by typing 'help <command>'
         try:
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
         except ValueError as _e:
-            if re.search("Sequences must all be the same length", str(_e)):
-                _stdout("Error: BioPython will not output sequences of different length in '%s' format." %
+            if "Sequences must all be the same length" in str(_e):
+                _stdout("Error: '%s' format does not support sequences of different length." %
                         self.dbbuddy.out_format, format_in=RED, format_out=self.terminal_default)
-            elif re.search("No suitable quality scores found in letter_annotations of SeqRecord", str(_e)):
+            elif "No suitable quality scores found in letter_annotations of SeqRecord" in str(_e):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)

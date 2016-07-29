@@ -684,3 +684,71 @@ def test_search_ensembl(monkeypatch, capsys, sb_resources, sb_helpers):
     assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
 
 
+def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
+    def patch_species_fetch(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+            return json.load(ifile)
+
+    def patch_ensembl_perform_rest_action_no_return(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        return {}
+
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        return {'ENSCJAG00000008732': {'start': 49787361, 'logic_name': 'ensembl', 'display_name': 'Foo',
+                                       'seq_region_name': '7', 'version': 2, 'biotype': 'protein_coding',
+                                       'object_type': 'Gene', 'source': 'ensembl', 'end': 49814140,
+                                       'assembly_name': 'C_jacchus3.2.1', 'db_type': 'core',
+                                       'description': 'caspase 9 [Source:HGNC Symbol;Acc:HGNC:1511]',
+                                       'strand': -1, 'id': 'ENSCJAG00000008732'},
+                'ENSAMEG00000011912': {}}
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_species_fetch)
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    client = Db.EnsemblRestClient(dbbuddy)
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action_no_return)
+    client.fetch_summaries()
+    capsys.readouterr()
+    client.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out + err) == "8e1a0cda099ec052a26cd6e02a863443"
+
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    client.fetch_summaries()
+    capsys.readouterr()
+    client.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out + err) == "282c625cbb95d6e7fa1a46dcd86299d0"
+    assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
+
+
+def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers):
+    def patch_ensembl_perform_rest_action(*args, **kwargs):
+        print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
+        if "info/species" in args:
+            with open("%s/ensembl_species.json" % test_files, "r") as ifile:
+                return json.load(ifile)
+        elif "sequence/id" in args:
+            with open("%s/ensembl_sequence.seqxml" % test_files, "r") as ifile:
+                tmp_file = br.TempFile(byte_mode=True)
+                tmp_file.write(ifile.read().encode())
+                return Db.SeqIO.parse(tmp_file.get_handle("r"), "seqxml")
+
+    test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+    monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
+    dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
+    dbbuddy.records['ENSAMEG00000011912'] = Db.Record('ENSAMEG00000011912')
+    summary = OrderedDict([('organism', 'macropus_eugenii'), ('comments', 'Blahh blahh blahh'), ('name', 'Foo1')])
+    dbbuddy.records['ENSCJAG00000008732'].summary = summary
+
+    client = Db.EnsemblRestClient(dbbuddy)
+    client.fetch_nucleotide()
+
+    capsys.readouterr()
+    client.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out + err) == "4b38cb4ce35d4503603a44e49c7e34b4"
+

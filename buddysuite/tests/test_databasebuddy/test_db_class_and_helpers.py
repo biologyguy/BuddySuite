@@ -22,7 +22,7 @@ def test_globals():
     assert Db.RETRIEVAL_TYPES == ["protein", "nucleotide", "gi_num"]
     assert Db.FORMATS == ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq",
                           "fastq-sanger", "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd",
-                          "phylip", "seqxml", "sff", "stockholm", "tab", "qual"]
+                          "phylip", "seqxml", "stockholm", "tab", "qual"]
     assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'user_hash']
     assert type(Db.VERSION) == br.Version
     assert str(Db.VERSION) == """DatabaseBuddy 1.0 (%s)
