@@ -1393,17 +1393,15 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if CONFIG["data_dir"]:
             self.history_path = "%s/cmd_history" % CONFIG["data_dir"]
-
         else:
-            self.history_path = "/%s/cmd_history" % self.tmpdir.path
-
+            self.history_path = "%s/cmd_history" % self.tmpdir.path
         try:
             if not os.path.isfile(self.history_path):
                 open(self.history_path, "w", encoding="utf-8").close()
             else:
                 open(self.history_path, "r").close()
         except PermissionError:
-            self.history_path = "/%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s/cmd_history" % self.tmpdir.path
             open(self.history_path, "w", encoding="utf-8").close()
 
         readline.read_history_file(self.history_path)
