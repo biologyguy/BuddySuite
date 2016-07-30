@@ -1529,14 +1529,6 @@ Further details about each command can be accessed by typing 'help <command>'
                     format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
 
-        if _errors["KeyError"]:
-            _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
-                    "%s%s\n" % (RED, ", ".join(_errors["KeyError"]), DEF_FONT))
-
-        if _errors["ValueError"]:
-            _stderr("%s\nThe following errors occurred:\n"
-                    "%s%s\n" % (RED, ", ".join(_errors["ValueError"]), DEF_FONT))
-
         output_message = "\n%s records remain.\n\n" % len(self.dbbuddy.records) if mode != "restore" \
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
 

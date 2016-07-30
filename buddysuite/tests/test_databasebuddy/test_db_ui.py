@@ -111,6 +111,11 @@ def test_liveshell_default(monkeypatch, capsys):
     out, err = capsys.readouterr()
     assert '*** Unknown syntax: Dunno...\n\n' in out
 
+    with pytest.raises(SystemExit):
+        liveshell.default("exit")
+    out, err = capsys.readouterr()
+    assert "Goodbye" in out
+
 
 def test_liveshell_append_slash_if_dir():
     tmp_dir = br.TempDir()
@@ -129,28 +134,90 @@ def test_liveshell_get_headings(monkeypatch):
     assert liveshell.get_headings() == ['ACCN', 'DB', 'Type', 'record', 'organism']
 
 
-def test_liveshell_filter(monkeypatch, sb_resources, capsys):
+def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
     liveshell.do_load(load_file)
-    liveshell.filter("(organism) Mouse")
+
+    # 'keep' (default)
     capsys.readouterr()
-    dbbuddy.print()
+    liveshell.filter("(organism) Mouse")
+    liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        ofile.write(out)
+    assert sb_helpers.string2hash(out) == "f4ee93430a0d474c75f3ecbf0a67c2ac"
+
+    # 'restore'
+    liveshell.filter("Phaethon", mode='restore')
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "90245630ece0198d208cd1f89248ef06"
+
+    # 'remove'
+    liveshell.filter("Fragment", mode='remove')
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "7de5496b941e3fa48018238a8729b162"
+
+    # Wrong mode
+    with pytest.raises(ValueError) as err:
+        liveshell.filter("Fragment", mode='Foo')
+    assert "The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not Foo." in str(err)
+
+    # No search string given at all
+    monkeypatch.setattr("builtins.input", lambda _: False)
+    liveshell.filter(None)
+    out, err = capsys.readouterr()
+    assert "Error: you must specify a search string.\n" in out
+
+    # No search string given at first
+    monkeypatch.setattr("builtins.input", lambda _: "Casein")
+    liveshell.filter(None, mode="remove")
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "4ab080610de6c2d44bd72d3519197dab"
+
+    monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
+    liveshell.filter(None, mode="restore")
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "41d50e2f8b1b0beccd8bc21712e9c986"
+
+    # Multiple terms
+    liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "0285e4eb25a37199dda47774e79525fe"
+
+    liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
+    liveshell.dbbuddy.print()
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "611b36bb7f11689e5bf19e8c1bfdfdbc"
+
+    # Wonkey quotes given as input
+    error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
+                "multiple filters. Please pick one or the other.\n\n"
+    liveshell.filter("'Foo' \"Bar\"", mode='remove')
+    out, err = capsys.readouterr()
+    assert error_msg in out
+
+    liveshell.filter('"Foo" \'Bar\'', mode='remove')
+    out, err = capsys.readouterr()
+    assert error_msg in out
 
 
-def test_liveshell_do_load(monkeypatch, sb_resources):
+def test_liveshell_do_load(monkeypatch, sb_resources, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    capsys.readouterr()
     liveshell.do_load(load_file)
+    out, err = capsys.readouterr()
+    assert "Session loaded from file." in out
     headings = liveshell.get_headings()
     for heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
                     'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
