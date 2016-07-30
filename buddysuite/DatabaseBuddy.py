@@ -52,6 +52,7 @@ from io import TextIOWrapper, StringIO
 import warnings
 import readline
 import dill
+import glob
 
 # Third party
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -101,7 +102,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         self.records = OrderedDict()  # Record objects
         self.trash_bin = OrderedDict()  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
-        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are actual Failure objects
+        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are Failure objects
         self.databases = check_database(_databases)
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.memory_footprint = 0
@@ -117,8 +118,8 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     raise TypeError("List of non-DbBuddy objects passed into DbBuddy as _input. %s" % _dbbuddy)
 
                 self.search_terms += _dbbuddy.search_terms
-                # ToDo: update() will overwrite any common records between the two dicts,
-                # should check whether values are already set first
+                # Should probably check whether values are already set first, because update() will overwrite any common
+                # records between the two dicts
                 self.records.update(_dbbuddy.records)
             _input = None
 
@@ -415,6 +416,7 @@ class Record(object):
         self.search_term = _search_term  # In case the record was the result of a particular search
 
     def guess_database(self):
+        import re  # This is to allow the objects to be loaded again later
         # RefSeq
         # https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/
         if re.match("^[NX][MR]_[0-9]+", self.accession):
@@ -478,6 +480,7 @@ class Record(object):
         return
 
     def search(self, regex):
+        import re  # This is to allow the objects to be loaded again later
         regex = ".*" if regex == "*" else regex  # This prevents a crash
         # Default is case-senstive, so check if the user desires otherwise
         if regex[:2] in ["i?", "?i"]:
@@ -1456,7 +1459,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else:
                 return p
 
-    def get_headings(self):  # ToDo: This does not get all possible headings. Fix that...
+    def get_headings(self):
         headings = ["ACCN", "DB", "Type", "record"]
         if len(self.dbbuddy.records) > 0:
             for _accn, _rec in self.dbbuddy.records.items():
@@ -2059,9 +2062,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_load(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
@@ -2090,9 +2090,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_save(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
@@ -2117,9 +2114,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_write(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
