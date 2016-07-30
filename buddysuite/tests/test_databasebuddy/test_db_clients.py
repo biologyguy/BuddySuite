@@ -721,7 +721,7 @@ def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "282c625cbb95d6e7fa1a46dcd86299d0"
+    assert sb_helpers.string2hash(out + err) == "9b458be5940bb0b33471e1c6e296c398"
     assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
 
 
@@ -750,5 +750,4 @@ def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers)
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "4b38cb4ce35d4503603a44e49c7e34b4"
-
+    assert sb_helpers.string2hash(out + err) == "e9193cc9491d9a7a1e6bac4760280924"

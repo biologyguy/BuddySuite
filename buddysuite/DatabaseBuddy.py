@@ -300,8 +300,13 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
                 elif self.out_format in ["summary", "full-summary"]:
                     headings = ["ACCN", "DB", "Type"]
-                    headings += [heading for heading, _value in _rec.summary.items()]
-                    headings += ["record"]
+                    if "length" in _rec.summary:
+                        headings.append("length")
+                    headings += [heading for heading, _value in _rec.summary.items()
+                                 if heading not in ["comments", "length"]]
+                    if "comments" in _rec.summary:
+                        headings.append("comments")
+                    headings.append("record")
 
                     if columns:
                         headings = [heading for heading in headings if heading in columns]
@@ -343,8 +348,11 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                             current_group[-1].append("")
                         attrib_counter += 1
 
-                    for attrib, _value in _rec.summary.items():
-                        if attrib in headings:
+                    for heading in headings:
+                        if heading in ["ACCN", "DB", "Type"]:
+                            continue
+                        if heading in _rec.summary:
+                            _value = _rec.summary[heading]
                             if len(str(_value)) > 50 and self.out_format != "full-summary":
                                 current_group[-1].append("%s..." % _value[:47])
                                 column_widths[attrib_counter] = 50
@@ -1074,7 +1082,7 @@ class NCBIClient(GenericClient):
                           summary["Length"],
                           summary["Title"],
                           status]
-                rec_summary = {key: value for key, value in zip(keys, values)}
+                rec_summary = OrderedDict([(key, value) for key, value in zip(keys, values)])
 
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
@@ -1894,17 +1902,16 @@ Further details about each command can be accessed by typing 'help <command>'
         def sub_sort(records, headings, _rev=False):
             heading = headings[0]
             subgroups = {}
-            if heading == "ACCN":
+            if heading.lower() == "accn":
                 return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
-            if heading == "Type":
+            if heading.lower() == "type":
                 return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].type, reverse=_rev))
+            if heading.lower() == "db":
+                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].database, reverse=_rev))
 
             int_headings = 0
             for accn, _rec in records.items():
-                if heading == "DB":
-                    subgroups.setdefault(_rec.database, {})
-                    subgroups[_rec.database][accn] = _rec
-                elif heading == "record":
+                if heading == "record":
                     if _rec.record:
                         _value = "full"
                     else:
