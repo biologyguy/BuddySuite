@@ -439,7 +439,7 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_keyboardinterrupt)
     client.search_ncbi("protein")
     out, err = capsys.readouterr()
-    assert "NCBI query interrupted by user" in err
+    assert 'NCBI returned no protein results' in err
 
 
 def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):

@@ -200,14 +200,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                 self.trash_bin[_id] = _rec
             elif mode == "restore" and _rec.search(regex):
                 self.records[_id] = _rec
-            '''
-            except KeyError as _e:
-                if str(_e) not in column_errors["KeyError"]:
-                    column_errors["KeyError"].append(str(_e))
-            except ValueError as _e:
-                if str(_e) not in column_errors["ValueError"]:
-                    column_errors["ValueError"].append(str(_e))
-            '''
         if mode == "restore":
             for _id in self.records:
                 if _id in self.trash_bin:
@@ -757,7 +749,6 @@ class UniProtRestClient(GenericClient):
             response = re.sub("^Entry.*\n", "", response, count=1)
             with self.lock:
                 self.results_file.write("# Search: %s\n%s//\n" % (search_term, response))
-            return
 
         except HTTPError as err:
             self.write_error("Uniprot search failed for '%s'" % search_term, err)
@@ -769,6 +760,7 @@ class UniProtRestClient(GenericClient):
                 self.write_error("Uniprot request failed", err)
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
+        return
 
     def count_hits(self):
         # Limit URLs to 2,083 characters
@@ -905,9 +897,11 @@ class NCBIClient(GenericClient):
         _type = None if len(func_args) == 1 else func_args[1]
         if _type and _type not in ["nucleotide", "protein"]:
             raise ValueError
-        handle = False
+        handle = None
         timer = br.time()
-        for indx in range(self.max_attempts):
+        counter = int(self.max_attempts)
+        while counter > 0:
+            counter -= 1
             try:
                 if tool == "esummary_taxa":
                     # Example query of taxa ids: "649,734,1009,2302"
@@ -935,7 +929,12 @@ class NCBIClient(GenericClient):
                     sleep(1 - timer)
                 break
             except HTTPError as err:
-                if err.getcode() != 503 or indx >= self.max_attempts - 1:
+                if err.getcode() != 503 or counter == 0:
+                    self.write_error("NCBI request failed: %s" % query, err)
+                    break
+                sleep(1)
+            except ConnectionResetError as err:
+                if "[Errno 54] Connection reset by peer" not in str(err) or counter == 0:
                     self.write_error("NCBI request failed: %s" % query, err)
                     break
                 sleep(1)
@@ -945,6 +944,8 @@ class NCBIClient(GenericClient):
                 else:
                     self.write_error("NCBI request failed", err)
                 break
+            except KeyboardInterrupt:
+                return
         if handle:
             if tool == "efetch_seq":
                 result = "%s\n" % handle.read().strip()
@@ -964,15 +965,12 @@ class NCBIClient(GenericClient):
         if not self.dbbuddy.search_terms:
             return
         self.results_file.clear()
-        try:
-            if len(self.dbbuddy.search_terms) > 1:
-                br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
-                                          max_processes=3, quiet=True)
-            else:
-                self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
-        except KeyboardInterrupt:
-            _stderr("\n\tNCBI query interrupted by user\n")
-            return
+        if len(self.dbbuddy.search_terms) > 1:
+            br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
+                                      max_processes=3, quiet=True)
+        else:
+            self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
+
         self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
@@ -1018,8 +1016,7 @@ class NCBIClient(GenericClient):
 
         # Append any records that were not grabbed in the previous step
         gi_nums += [rec.gi for accn, rec in self.dbbuddy.records.items()
-                    if rec.database == database
-                    and rec.gi and rec.gi not in gi_nums]
+                    if rec.database == database and rec.gi and rec.gi not in gi_nums]
 
         # That's it if no GIs present
         if not gi_nums:
@@ -1137,7 +1134,8 @@ class NCBIClient(GenericClient):
             _stderr("Fetching full %s sequence records from NCBI...\n" % database)
             runtime.start()
             if len(gi_nums) > 1:
-                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"],
+                                          max_processes=3, quiet=True)
             else:
                 self._mc_query(gi_nums[0], func_args=["efetch_seq"])
             self.parse_error_file()
@@ -1234,6 +1232,10 @@ class EnsemblRestClient(GenericClient):
                 self.write_error("Ensembl request failed, are you connected to the internet?", err)
             else:
                 self.write_error("Ensembl request failed", err)
+
+        except KeyboardInterrupt:
+            pass
+        return
 
     def search_ensembl(self):
         self.results_file.clear()
@@ -1357,10 +1359,8 @@ class LiveShell(cmd.Cmd):
         self.tmpdir = br.TempDir()
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
-        hash_heading = ""
         colors = terminal_colors()
-        for _ in range(23):
-            hash_heading += "%s#" % next(colors)
+        hash_heading = "%s#" % "#".join([next(colors) for _ in range(23)])
         _stdout('''{1}
 
 {0} {1}{3}{2}Welcome to the DatabaseBuddy live shell{1} {0}{1}
@@ -1457,12 +1457,12 @@ Further details about each command can be accessed by typing 'help <command>'
                 return p
 
     def get_headings(self):  # ToDo: This does not get all possible headings. Fix that...
-        headings = []
+        headings = ["ACCN", "DB", "Type", "record"]
         if len(self.dbbuddy.records) > 0:
-            _rec = []
             for _accn, _rec in self.dbbuddy.records.items():
-                break
-            headings = ["ACCN", "DB", "Type"] + [heading for heading, _value in _rec.summary.items()]
+                for heading, _value in _rec.summary.items():
+                    if heading not in headings:
+                        headings.append(heading)
         return headings
 
     def filter(self, line, mode="keep"):
@@ -1509,7 +1509,7 @@ Further details about each command can be accessed by typing 'help <command>'
         _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():  # NOTE: The filter errors have been commented out filter_records(). Don't know if they should be reinstated.
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
                 _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
                     format_out=self.terminal_default)
