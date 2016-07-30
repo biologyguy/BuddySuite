@@ -1458,7 +1458,10 @@ Further details about each command can be accessed by typing 'help <command>'
             client.lock = Lock()
 
     def default(self, line):
-        _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
+        if line == "exit":
+            self.do_quit()
+        else:
+            _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     @staticmethod
     def _append_slash_if_dir(p):  # Used for expanding file patsh
@@ -1758,9 +1761,6 @@ Further details about each command can be accessed by typing 'help <command>'
         self.filter(line, mode="keep")
 
     def do_quit(self, line=None):
-        if line != "":
-            _stdout("Note: 'quit' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
             confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
             if confirm.lower() in ["yes", "y"]:
