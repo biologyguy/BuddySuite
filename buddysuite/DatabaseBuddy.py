@@ -1734,7 +1734,14 @@ Further details about each command can be accessed by typing 'help <command>'
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
-                self.dbbuddy = dill.load(ifile)
+                dbbuddy = dill.load(ifile)
+                self.dbbuddy.search_terms = dbbuddy.search_terms
+                self.dbbuddy.records = dbbuddy.records
+                self.dbbuddy.trash_bin = dbbuddy.trash_bin
+                self.dbbuddy.out_format = dbbuddy.out_format
+                self.dbbuddy.failures = dbbuddy.failures
+                self.dbbuddy.databases = dbbuddy.databases
+                self.dbbuddy.memory_footprint = dbbuddy.memory_footprint
             self.dump_session()
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:
