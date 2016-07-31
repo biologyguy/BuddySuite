@@ -1414,6 +1414,7 @@ Further details about each command can be accessed by typing 'help <command>'
             open(self.history_path, "w", encoding="utf-8").close()
 
         readline.read_history_file(self.history_path)
+        readline.set_history_length(1000)
 
         # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
         # occurs, and back to False if undo is used.
@@ -1435,7 +1436,13 @@ Further details about each command can be accessed by typing 'help <command>'
     #    open("a file that doesn't exist")
 
     def precmd(self, line):
-        readline.write_history_file(self.history_path)
+        # ToDo: Long commands are added to history, they are not output correctly in the terminal. For some reason they
+        # are not cleared completely when you move to the next history index, leaving a truncated path at the prompt.
+        # Need to track this bug down and squash it, just not sure how (i.e., don't want the 'and len(line) < 40' part)
+        if line not in ["y", "n", "yes", "no"] and len(line) < 50:
+            readline.write_history_file(self.history_path)
+        else:
+            readline.read_history_file(self.history_path)
         return line
 
     def postcmd(self, stop, line):
