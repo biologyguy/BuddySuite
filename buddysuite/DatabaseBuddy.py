@@ -1556,16 +1556,22 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_database(self, line):
         if not line:
             line = input("%sSpecify database:%s " % (RED, self.terminal_default))
-
+        line = re.sub("['\"]", "", line.strip())
+        line = re.sub("\t+", " ", line)
+        line = re.sub(", *", " ", line)
+        line = line.lower()
         line = line.split(" ")
         new_database_list = []
+        not_a_database = []
         for l in line:
             if l not in DATABASES and l != "all":
-                _stdout("Error: %s is not a valid database choice.\n"
-                        "Please select from %s\n" % (l, ["all"] + DATABASES), format_in=RED,
-                        format_out=self.terminal_default)
+                not_a_database.append(l)
             else:
                 new_database_list.append(l)
+        if not_a_database:
+            _stdout("Invalid database choice(s): %s.\n"
+                    "Please select from %s\n" % (", ".join(not_a_database), ["all"] + DATABASES), format_in=RED,
+                    format_out=self.terminal_default)
         if new_database_list:
             if "all" in new_database_list:
                 self.dbbuddy.databases = DATABASES

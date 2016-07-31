@@ -228,3 +228,60 @@ def test_liveshell_do_load(monkeypatch, sb_resources, capsys):
         assert heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
                            'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
                            'object_type', 'strand', 'assembly_name', 'name']
+
+
+def test_liveshell_do_bash(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    capsys.readouterr()
+    tmp_file = br.TempFile()
+    liveshell.do_bash("echo 'hello from bash' > %s" % tmp_file.path)
+    assert tmp_file.read() == "hello from bash\n"
+
+    monkeypatch.setattr("builtins.input", lambda _: "echo 'Line from input' > %s" % tmp_file.path)
+    liveshell.do_bash(None)
+    assert tmp_file.read() == "Line from input\n"
+
+    liveshell.do_bash("cd /this/path/doesnt/exist")
+    out, err = capsys.readouterr()
+    assert "-sh: cd: /this/path/doesnt/exist: No such file or directory\n" in out
+
+    tmp_dir = br.TempDir()
+    tmp_dir.subfile("foo.txt")
+    cwd = os.getcwd()
+    liveshell.do_bash("cd %s" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert tmp_dir.path in out
+    assert os.path.isfile("foo.txt")
+    os.chdir(cwd)
+
+
+def test_liveshell_do_database(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    liveshell.do_database("'NcBi_nuc',\t  \"ENSEMBl,uniprot")
+    assert dbbuddy.databases == ['ncbi_nuc', 'ensembl', 'uniprot']
+
+    liveshell.do_database("ensembl,all")
+    assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
+
+    capsys.readouterr()
+    liveshell.do_database("Foo ensembl")
+    out, err = capsys.readouterr()
+    assert "Invalid database choice(s): foo." in out
+    assert dbbuddy.databases == ['ensembl']
+
+    liveshell.do_database("Foo")
+    out, err = capsys.readouterr()
+    assert "Database search list not changed." in out
+    assert dbbuddy.databases == ['ensembl']
+
+    monkeypatch.setattr("builtins.input", lambda _: "'ncbi_nuc', 'ensembl'")
+    liveshell.do_database(None)
+    assert dbbuddy.databases == ['ncbi_nuc', 'ensembl']
