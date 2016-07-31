@@ -1585,37 +1585,39 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
     def do_delete(self, line="all"):
-        if not self.dbbuddy.trash_bin and not self.dbbuddy.records and not self.dbbuddy.search_terms:
+        if not self.dbbuddy.trash_bin and not self.dbbuddy.records \
+                and not self.dbbuddy.search_terms and not self.dbbuddy.failures:
             _stdout("The live session is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
         line = line.lower()
-        if line not in ["", "a", "all", "failures", "f"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
+        if line not in TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS \
+                and not "all".startswith(line) and not "failures".startswith(line):
             _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin, "
                     "failures, search\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
-        if line in ["failures", "f"]:
+        if "failures".startswith(line) and line != "":
             if not self.dbbuddy.failures:
                 _stdout("Failures list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to clear all %s failures (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.failures), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to clear all %s failures (y/[n])?%s " %
+                                 (RED, len(self.dbbuddy.failures), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.failures = {}
+                    self.dbbuddy.failures = OrderedDict()
                     _stdout("List of failures removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
                 _stdout("Search terms list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s search terms (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.search_terms), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to delete all %s search terms (y/[n])?%s " %
+                                 (RED, len(self.dbbuddy.search_terms), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.search_terms = []
@@ -1623,24 +1625,24 @@ Further details about each command can be accessed by typing 'help <command>'
 
         elif line in TRASH_SYNOS:
             if not self.dbbuddy.trash_bin:
-                _stdout("Trash bin is already empty.\n", format_in=RED, format_out=self.terminal_default)
+                _stdout("Trash bin is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.trash_bin), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
+                                (RED, len(self.dbbuddy.trash_bin), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.trash_bin = {}
+                    self.dbbuddy.trash_bin = OrderedDict()
                     _stdout("Trash bin emptied.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in RECORD_SYNOS:
             if not self.dbbuddy.records:
                 _stdout("Records list is already empty.\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s records from your main "
-                                "filtered list (y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default))
-                if confirm.lower() not in ["yes", "y"]:
+                confirm = br.ask("%sAre you sure you want to delete all %s records from your main filtered list "
+                                 "(y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default), default="no")
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.records = OrderedDict()
@@ -1648,16 +1650,16 @@ Further details about each command can be accessed by typing 'help <command>'
                             format_in=GREEN, format_out=self.terminal_default)
 
         else:
-            confirm = input("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
-                            (RED, self.terminal_default))
+            confirm = br.ask("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
+                            (RED, self.terminal_default), default="no")
 
-            if confirm.lower() not in ["yes", "y"]:
+            if not confirm:
                 _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
             else:
-                self.dbbuddy.trash_bin = {}
+                self.dbbuddy.trash_bin = OrderedDict()
                 self.dbbuddy.records = OrderedDict()
                 self.dbbuddy.search_terms = []
-                self.dbbuddy.failures = {}
+                self.dbbuddy.failures = OrderedDict()
                 _stdout("Live session cleared of all data.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         self.dump_session()

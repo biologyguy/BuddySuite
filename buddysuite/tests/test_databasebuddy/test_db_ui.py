@@ -285,3 +285,119 @@ def test_liveshell_do_database(monkeypatch, capsys):
     monkeypatch.setattr("builtins.input", lambda _: "'ncbi_nuc', 'ensembl'")
     liveshell.do_database(None)
     assert dbbuddy.databases == ['ncbi_nuc', 'ensembl']
+
+
+def test_liveshell_do_delete(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    capsys.readouterr()
+
+    liveshell.do_delete(None)
+    out, err = capsys.readouterr()
+    assert "The live session is already empty.\n\n" in out
+
+    dbbuddy.records["Foo"] = "Bar"
+    liveshell.do_delete("Foo")
+    out, err = capsys.readouterr()
+    assert "Sorry, I don't understand what you want to delete." in out
+
+    # Delete failures
+    liveshell.do_delete("fail")
+    out, err = capsys.readouterr()
+    assert "Failures list is already empty.\n\n" in out
+
+    dbbuddy.failures["Foo"] = "Bar"
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_delete("fail")
+    out, err = capsys.readouterr()
+    assert "Aborted...\n" in out
+    assert len(dbbuddy.failures) == 1
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_delete("fail")
+    out, err = capsys.readouterr()
+    assert "List of failures removed.\n\n" in out
+    assert not dbbuddy.failures
+
+    # Delete searches
+    liveshell.do_delete("search")
+    out, err = capsys.readouterr()
+    assert "Search terms list is already empty.\n\n" in out
+
+    dbbuddy.search_terms.append("Bar")
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_delete("terms")
+    out, err = capsys.readouterr()
+    assert "Aborted...\n" in out
+    assert len(dbbuddy.search_terms) == 1
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_delete("st")
+    out, err = capsys.readouterr()
+    assert "Search terms removed.\n\n" in out
+    assert not dbbuddy.search_terms
+
+    # Delete trash bin
+    liveshell.do_delete("trash")
+    out, err = capsys.readouterr()
+    assert "Trash bin is already empty.\n" in out
+
+    dbbuddy.trash_bin["Foo"] = "Bar"
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_delete("trashbin")
+    out, err = capsys.readouterr()
+    assert "Aborted...\n" in out
+    assert len(dbbuddy.trash_bin) == 1
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_delete("tb")
+    out, err = capsys.readouterr()
+    assert "Trash bin emptied.\n\n" in out
+    assert not dbbuddy.trash_bin
+
+    # Delete records
+    del dbbuddy.records["Foo"]
+    dbbuddy.failures["Foo"] = "Bar"
+    liveshell.do_delete("records")
+    out, err = capsys.readouterr()
+    assert "Records list is already empty.\n" in out
+
+    dbbuddy.records["Foo"] = "Bar"
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_delete("main")
+    out, err = capsys.readouterr()
+    assert "Aborted...\n" in out
+    assert len(dbbuddy.records) == 1
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_delete("recs")
+    out, err = capsys.readouterr()
+    assert "All records removed from main list (trash bin is still intact).\n\n" in out
+    assert not dbbuddy.records
+
+    # Delete everything
+    dbbuddy.search_terms.append("Bar")
+    dbbuddy.trash_bin["Foo"] = "Bar"
+    dbbuddy.records["Foo"] = "Bar"
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_delete("")
+    out, err = capsys.readouterr()
+    assert "Aborted...\n" in out
+    assert len(dbbuddy.failures) == 1
+    assert len(dbbuddy.search_terms) == 1
+    assert len(dbbuddy.trash_bin) == 1
+    assert len(dbbuddy.records) == 1
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_delete("all")
+    out, err = capsys.readouterr()
+    assert "Live session cleared of all data.\n\n" in out
+    assert not dbbuddy.failures
+    assert not dbbuddy.search_terms
+    assert not dbbuddy.trash_bin
+    assert not dbbuddy.records
+
