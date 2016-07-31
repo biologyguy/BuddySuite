@@ -342,8 +342,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     if "Type" in headings:
                         if _rec.type:
                             current_group[-1].append(_rec.type[:4])
-                            if 4 > column_widths[attrib_counter]:
-                                column_widths[attrib_counter] = 4
                         else:
                             current_group[-1].append("")
                         attrib_counter += 1
@@ -907,7 +905,7 @@ class NCBIClient(GenericClient):
         tool = func_args[0]
         _type = None if len(func_args) == 1 else func_args[1]
         if _type and _type not in ["nucleotide", "protein"]:
-            raise ValueError
+            raise ValueError("Unknown type '%s', choose between 'nucleotide' and 'protein" % _type)
         handle = None
         timer = br.time()
         counter = int(self.max_attempts)
@@ -925,7 +923,7 @@ class NCBIClient(GenericClient):
                     handle = Entrez.esummary(db="nucleotide", id=query, retmax=10000)
                 elif tool == "efetch_seq":
                     # Example query of GI nums: "703125407,703125412,703125420"
-                    # Note that the database passed in doesn't matter. GIs will pull dna or prot as needed.
+                    # Note that the database passed in doesn't matter. GIs will pull dna or prot regardless.
                     handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
                 elif tool == "esearch":
                     count = Entrez.read(Entrez.esearch(db=_type, term=query, rettype="count"))["Count"]

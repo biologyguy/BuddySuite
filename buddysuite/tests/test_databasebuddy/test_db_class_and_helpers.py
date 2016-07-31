@@ -275,7 +275,7 @@ def test_record_search(sb_resources):
     summary = {"ACCN": "F6SBJ1", "DB": "uniprot", "entry_name": "F6SBJ1_HORSE", "length": "451",
                "organism-id": "9796", "organism": "Equus caballus (Horse)", "protein_names": "Caspase",
                "comments": "Caution (1); Sequence similarities (1)", "record": "summary"}
-    rec = Db.Record("F6SBJ1", summary=summary)
+    rec = Db.Record("F6SBJ1", summary=summary, _type="protein")
     assert rec.search("*")
     assert not rec.search("Foo")
 
@@ -301,10 +301,17 @@ def test_record_search(sb_resources):
     with pytest.raises(ValueError) as err:
         rec.search("(length<>200)")
     assert "Invalid operator: <>" in str(err)
+    del rec.summary['length']
+    assert not rec.search("(length>200)")
 
     # Other columns
     assert rec.search("(ACCN) [A-Z0-9]{6}")
     assert not rec.search("(ACCN) [A-Z0-9]{7}")
+    print(rec.type)
+    assert rec.search("(Type) prot")
+    assert not rec.search("(Type) nucl")
+    assert rec.search("(DB) uniprot")
+    assert not rec.search("(DB) ncbi")
     assert rec.search("(comments)(Caution|Blahh)")
     assert not rec.search("(organism)Sheep")
     assert rec.search("(entry_name)")
