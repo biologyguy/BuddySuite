@@ -1590,7 +1590,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("The live session is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
-        line = line.lower()
+        line = "" if not line else line.lower()
         if line not in TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS \
                 and not "all".startswith(line) and not "failures".startswith(line):
             _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin, "
@@ -1628,7 +1628,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 _stdout("Trash bin is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
                 confirm = br.ask("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.trash_bin), self.terminal_default), default="no")
+                                 (RED, len(self.dbbuddy.trash_bin), self.terminal_default), default="no")
 
                 if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
@@ -1651,7 +1651,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         else:
             confirm = br.ask("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
-                            (RED, self.terminal_default), default="no")
+                             (RED, self.terminal_default), default="no")
 
             if not confirm:
                 _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
@@ -1666,8 +1666,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_failures(self, line=None):
         if line != "":
-            _stdout("Note: 'failures' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
+            pass  # Failures doesn't take arguments
         if not self.dbbuddy.failures:
             _stdout("No failures to report\n\n", format_in=GREEN, format_out=self.terminal_default)
         else:
@@ -1678,7 +1677,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_fetch(self, line=None):
         if line != "":
-            _stdout("Note: 'fetch' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+            pass  # Fetch doesn't take arguments
 
         accn_only = self.dbbuddy.record_breakdown()["accession"]
         if accn_only:
@@ -1695,10 +1694,10 @@ Further details about each command can be accessed by typing 'help <command>'
                 new_records_fetched.append(_accn)
 
         if amount_seq_requested > 5000000:
-            confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
-                            "Continue (y/[n])?{3}".format(GREEN, br.pretty_number(amount_seq_requested),
-                                                          YELLOW, self.terminal_default))
-            if confirm.lower() not in ["yes", "y"]:
+            confirm = br.ask("{0}You are requesting {2}{1}{0} residues of sequence data. "
+                             "Continue (y/[n])?{3}".format(GREEN, br.pretty_number(amount_seq_requested),
+                                                           YELLOW, self.terminal_default), default="no")
+            if not confirm:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
 
@@ -1740,25 +1739,15 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.failures = dbbuddy.failures
                 self.dbbuddy.databases = dbbuddy.databases
                 self.dbbuddy.memory_footprint = dbbuddy.memory_footprint
-            self.dump_session()
+
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:
-                    client.temp_dir = br.TempDir()
-                    client.http_errors_file = "%s/errors.txt" % client.temp_dir.path
-                    open(client.http_errors_file, "w", encoding="utf-8").close()
-                    client.results_file = "%s/results.txt" % client.temp_dir.path
-                    open(client.results_file, "w", encoding="utf-8").close()
+                    client.http_errors_file = br.TempFile()
+                    client.results_file = br.TempFile()
 
             _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
-
-        except IOError as _e:
-            _stderr("%s\n" % _e)
-            _prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
-            if _prompt == 'abort':
-                _stderr("Aborted...\n")
-            else:
-                self.do_load(_prompt)
-        except EOFError:
+            self.dump_session()
+        except (EOFError, IOError):
             _stdout("Error: Unable to read the provided file. Are you sure it's a saved DbBuddy live session?\n\n",
                     format_in=RED, format_out=self.terminal_default)
 
@@ -1766,6 +1755,8 @@ Further details about each command can be accessed by typing 'help <command>'
         self.filter(line, mode="keep")
 
     def do_quit(self, line=None):
+        if line != "":
+            pass  # Quit doesn't take arguments
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
             confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
             if confirm.lower() in ["yes", "y"]:

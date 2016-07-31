@@ -208,28 +208,6 @@ def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     assert error_msg in out
 
 
-def test_liveshell_do_load(monkeypatch, sb_resources, capsys):
-    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
-    dbbuddy = Db.DbBuddy()
-    crash_file = br.TempFile(byte_mode=True)
-    liveshell = Db.LiveShell(dbbuddy, crash_file)
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
-    capsys.readouterr()
-    liveshell.do_load(load_file)
-    out, err = capsys.readouterr()
-    assert "Session loaded from file." in out
-    headings = liveshell.get_headings()
-    for heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
-                    'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
-                    'object_type', 'strand', 'assembly_name', 'name']:
-        assert heading in headings
-
-    for heading in headings:
-        assert heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
-                           'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
-                           'object_type', 'strand', 'assembly_name', 'name']
-
-
 def test_liveshell_do_bash(monkeypatch, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
@@ -401,3 +379,121 @@ def test_liveshell_do_delete(monkeypatch, capsys):
     assert not dbbuddy.trash_bin
     assert not dbbuddy.records
 
+
+def test_liveshell_do_failures(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    liveshell.do_failures("Blahh")
+    out, err = capsys.readouterr()
+    assert "No failures to report\n\n" in out
+
+    dbbuddy.failures["Foo"] = Db.Failure("Bar", "Fake failure")
+    liveshell.do_failures()
+    out, err = capsys.readouterr()
+    assert "The following failures have occured\n" in out
+    assert "Bar\nFake failure" in out
+
+
+def test_liveshell_do_fetch(monkeypatch, capsys):
+    def mock_big_record_no_dl(_dbbuddy):
+        _dbbuddy.records["NP_001287575.1"] = Db.Record("NP_001287575.1", _size=5000001)
+
+    def mock_big_record_fetch(_dbbuddy):
+        _dbbuddy.records["NP_001287575.1"].record = True
+
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    monkeypatch.setattr(Db, "retrieve_summary", lambda _: True)
+
+    dbbuddy = Db.DbBuddy("NP_001287575.1")
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    monkeypatch.setattr(Db, "retrieve_summary", mock_big_record_no_dl)
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+
+    liveshell.do_fetch("Foo")
+    assert dbbuddy.records["NP_001287575.1"].size == 5000001
+    out, err = capsys.readouterr()
+    assert "Aborted...\n\n" in out
+
+    monkeypatch.setattr(Db, "retrieve_sequences", mock_big_record_fetch)
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+    liveshell.do_fetch(None)
+    out, err = capsys.readouterr()
+    print(out)
+    assert "Retrieved 5.0 M residues of sequence data\n\n" in out
+
+
+def test_liveshell_do_format(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    monkeypatch.setattr("builtins.input", lambda _: "Foo")
+    liveshell.do_format(None)
+    out, err = capsys.readouterr()
+    assert "'Foo'" in out
+    assert "is not a valid format" in out
+    assert dbbuddy.out_format == "summary"
+
+    for fmt in Db.FORMATS:
+        liveshell.do_format(fmt)
+        out, err = capsys.readouterr()
+        assert "Output format changed to" in out
+        assert fmt in out
+        assert dbbuddy.out_format == fmt
+
+
+def test_liveshell_do_load(monkeypatch, capsys, sb_resources):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    dbbuddy.server_clients["uniprot"] = Db.UniProtRestClient(dbbuddy)
+    dbbuddy.server_clients["uniprot"].http_errors_file.write("Hello!")
+
+    db_session = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    monkeypatch.setattr("builtins.input", lambda _: db_session)
+    liveshell.do_load(None)
+    out, err = capsys.readouterr()
+    assert "Session loaded from file.\n\n" in out
+
+    assert dbbuddy.server_clients["uniprot"].http_errors_file.read() == ""
+    headings = liveshell.get_headings()
+    for heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
+                    'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
+                    'object_type', 'strand', 'assembly_name', 'name']:
+        assert heading in headings
+
+    for heading in headings:
+        assert heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
+                           'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
+                           'object_type', 'strand', 'assembly_name', 'name']
+
+    monkeypatch.setattr("builtins.input", lambda _: "/no/file/here")
+    liveshell.do_load(None)
+    out, err = capsys.readouterr()
+    assert "Error: Unable to read the provided file. Are you sure it's a saved DbBuddy live session?\n\n" in out
+
+
+def test_liveshell_do_keep(monkeypatch, capsys):
+    def mock_filter(_, line, mode):
+        print("'%s' filter mocked! %s" % (mode, line))
+        return
+
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    monkeypatch.setattr(Db.LiveShell, "filter", mock_filter)
+    liveshell.do_keep(None)
+    out, err = capsys.readouterr()
+    assert "'keep' filter mocked! None" in out
