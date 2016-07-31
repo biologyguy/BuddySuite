@@ -19,6 +19,11 @@ class MockUsage():
         self.args = args
         return "".join(self.args)
 
+
+def mock_filter(_, line, mode):
+    print("'%s' filter mocked! %s" % (mode, line))
+    return
+
 # A few real accession numbers to test things out with
 ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
          "XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
@@ -485,10 +490,6 @@ def test_liveshell_do_load(monkeypatch, capsys, sb_resources):
 
 
 def test_liveshell_do_keep(monkeypatch, capsys):
-    def mock_filter(_, line, mode):
-        print("'%s' filter mocked! %s" % (mode, line))
-        return
-
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
@@ -497,3 +498,139 @@ def test_liveshell_do_keep(monkeypatch, capsys):
     liveshell.do_keep(None)
     out, err = capsys.readouterr()
     assert "'keep' filter mocked! None" in out
+
+
+def test_liveshell_do_quit(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    dbbuddy.records["Foo"] = "Bar"
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_quit(None)
+    out, err = capsys.readouterr()
+    assert "Aborted...\n\n" in out
+
+    with pytest.raises(SystemExit):
+        monkeypatch.setattr(br, "ask", lambda _, **kwargs: True)
+        liveshell.do_quit(None)
+    out, err = capsys.readouterr()
+    assert "Goodbye" in out
+
+
+def test_liveshell_do_trash(monkeypatch, capsys):
+    def mock_show(_, line, mode):
+        print("%s show mocked! %s" % (mode, line))
+        return
+
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    monkeypatch.setattr(Db.LiveShell, "do_show", mock_show)
+    liveshell.do_trash(None)
+    out, err = capsys.readouterr()
+    assert "trash_bin show mocked! None" in out
+
+
+def test_liveshell_do_remove(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    monkeypatch.setattr(Db.LiveShell, "filter", mock_filter)
+    liveshell.do_remove(None)
+    out, err = capsys.readouterr()
+    assert "'remove' filter mocked! None" in out
+
+
+def test_liveshell_do_restore(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    monkeypatch.setattr(Db.LiveShell, "filter", mock_filter)
+    liveshell.do_restore(None)
+    out, err = capsys.readouterr()
+    assert "'restore' filter mocked! None" in out
+
+
+def test_liveshell_do_save(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    dbbuddy.records["foo"] = "bar"
+
+    # Standard, no problems
+    tmp_dir = br.TempDir()
+    monkeypatch.setattr("builtins.input", lambda _: "%s/save_dir/save_file1" % tmp_dir.path)
+    liveshell.do_save(None)
+    out, err = capsys.readouterr()
+    assert "Live session saved\n\n" in out
+    assert os.path.isfile("%s/save_dir/save_file1.db" % tmp_dir.path)
+    with open("%s/save_dir/save_file1.db" % tmp_dir.path, "rb") as ifile:
+        assert len(ifile.read()) == 290
+
+    # File exists, abort
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    liveshell.do_save("%s/save_dir/save_file1" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Abort...\n\n" in out
+
+    # Permission errors
+    class OpenPermissionError():
+        def __init__(self, *args):
+            pass
+
+        @staticmethod
+        def close():
+            raise PermissionError
+
+    monkeypatch.setattr("builtins.open", OpenPermissionError)
+    liveshell.do_save("%s/save_dir/save_file2" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Error: You do not have write privileges to create a file in the specified directory.\n\n" in out
+    assert not os.path.isfile("%s/save_dir/save_file2.db" % tmp_dir.path)
+
+    def makedirs_permissionerror(*args, **kwargs):
+        print("makedirs_permissionerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise PermissionError
+
+    monkeypatch.setattr(os, "makedirs", makedirs_permissionerror)
+    liveshell.do_save("%s/save_dir/deeper_dir/save_file2" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Error: You do not have write privileges to create a directory in the specified path.\n\n" in out
+    assert not os.path.isfile("%s/save_dir/deeper_dir/save_file2.db" % tmp_dir.path)
+
+
+def test_liveshell_do_search(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    dbbuddy.search_terms += ["Foo", "Bar"]
+
+    monkeypatch.setattr("builtins.input", lambda _: "Panx1, Panx2")
+    monkeypatch.setattr(Db, "retrieve_summary", lambda _: True)
+
+    liveshell.do_search(None)
+    assert dbbuddy.search_terms == ["Foo", "Bar", "Panx1", "Panx2"]
+    assert not dbbuddy.records
+    assert not dbbuddy.failures
+
+    mock_buddy = Db.DbBuddy("Cx43, Cx32")
+    mock_buddy.records["NewRec1"] = True
+    mock_buddy.failures["NewFailure1"] = True
+
+    monkeypatch.setattr(Db, "DbBuddy", lambda _: mock_buddy)
+    liveshell.do_search("Blahh")
+
+    assert dbbuddy.search_terms == ["Foo", "Bar", "Panx1", "Panx2", "Cx43", "Cx32"]
+    assert "NewRec1" in dbbuddy.records
+    assert "NewFailure1" in dbbuddy.failures
+
+

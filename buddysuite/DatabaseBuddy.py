@@ -1765,10 +1765,8 @@ Further details about each command can be accessed by typing 'help <command>'
         if line != "":
             pass  # Quit doesn't take arguments
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
-            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
-            if confirm.lower() in ["yes", "y"]:
-                pass
-            else:
+            confirm = br.ask("You have unsaved records, are you sure you want to quit (y/[n])?", default="no")
+            if not confirm:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
         self.usage.save()
@@ -1788,13 +1786,14 @@ Further details about each command can be accessed by typing 'help <command>'
         if not line:
             line = input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default))
 
-        # Ensure the specified directory exists
+        # Create directory if necessary
         line = os.path.abspath(line)
         _dir = "/%s" % "/".join(line.split("/")[:-1])
-        if not os.path.isdir(_dir):
-            _stdout("Error: The specified directory does not exist. Please create it before continuing "
-                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
-                    format_out=self.terminal_default)
+        try:
+            os.makedirs(_dir, exist_ok=True)
+        except PermissionError:
+            _stdout("Error: You do not have write privileges to create a directory in the specified path.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
             return
 
         # Set the .db extension
@@ -1803,14 +1802,14 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Warn if file exists
         if os.path.isfile(line):
-            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
-            if confirm.lower() in ["n", "no"]:
+            confirm = br.ask("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if not confirm:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
         try:
             open(line, "wb").close()
         except PermissionError:
-            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+            _stdout("Error: You do not have write privileges to create a file in the specified directory.\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
@@ -1820,15 +1819,15 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_search(self, line):
         if not line:
-            line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
+            line = input("%sSpecify search string(s):%s " % (RED, self.terminal_default))
 
+        # Do this on a temp dbbuddy obj so searches are not repeated
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = self.dbbuddy.databases
         retrieve_summary(temp_buddy)
-
         for _term in temp_buddy.search_terms:
             if _term not in self.dbbuddy.search_terms:
-                self.dbbuddy.search_terms.append(line)
+                self.dbbuddy.search_terms.append(_term)
 
         for _accn, _rec in temp_buddy.records.items():
             if _accn not in self.dbbuddy.records:
