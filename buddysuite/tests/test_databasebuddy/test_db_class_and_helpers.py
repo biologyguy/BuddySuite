@@ -105,7 +105,7 @@ def test_stdout(capsys):
 
 def test_terminal_colors():
     term_colors = Db.terminal_colors()
-    for color in [Db.MAGENTA, Db.CYAN, Db.GREEN, Db.RED, Db.YELLOW, Db.GREY, Db.MAGENTA, Db.CYAN]:
+    for color in [Db.CYAN, Db.GREEN, Db.RED, Db.YELLOW, Db.GREY, Db.MAGENTA, Db.CYAN, Db.GREEN]:
         assert next(term_colors) == color
 
 
@@ -587,31 +587,31 @@ def test_print_simple(capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
-[95mADH10263.1      [96mncbi_prot  [92mprot  [91msummary
-[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
-[95mA0A087WX72      [96muniprot    [92mprot  [91msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
 [m'''
 
     dbbuddy.out_format = "ids"
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mNP_001287575.1
-[95mADH10263.1
-[95mXP_005165403.2
-[95mA0A087WX72
+    assert out == '''[m[40m[97m[96mNP_001287575.1
+[96mADH10263.1
+[96mXP_005165403.2
+[96mA0A087WX72
 [m'''
 
     dbbuddy.out_format = "accessions"
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mNP_001287575.1
-[95mADH10263.1
-[95mXP_005165403.2
-[95mA0A087WX72
+    assert out == '''[m[40m[97m[96mNP_001287575.1
+[96mADH10263.1
+[96mXP_005165403.2
+[96mA0A087WX72
 [m'''
 
 
@@ -638,11 +638,11 @@ def test_print_columns(capsys):
     dbbuddy.print(columns=["ACCN", "DB"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
-[95mXP_005165403.2  [96mncbi_prot
-[95mA0A087WX72      [96muniprot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
+[96mXP_005165403.2  [92mncbi_prot
+[96mA0A087WX72      [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].summary = OrderedDict([("entry_name", "F6SBJ1_HORSE"), ("length", "451"),
@@ -654,71 +654,71 @@ def test_print_columns(capsys):
     dbbuddy.print(columns=["ACCN", "DB", "organism"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB         [92morganism
-[95mXP_005165403.2  [96mncbi_prot  [92mEquus caballus (Horse)
+[96mACCN            [92mDB         [91morganism
+[96mXP_005165403.2  [92mncbi_prot  [91mEquus caballus (Horse)
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].database = []
     dbbuddy.print(columns=["ACCN", "DB", "organism"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)
+[96mACCN            [92mDB  [91morganism
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].summary["comments"] = "This line is longer than 50 characters, so is truncated."
     dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism                [91mcomments
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is t...
+[96mACCN            [92mDB  [91morganism                [93mcomments
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)  [93mThis line is longer than 50 characters, so is t...
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.out_format = "full-summary"
     dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism                [91mcomments
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is truncated.
+[96mACCN            [92mDB  [91morganism                [93mcomments
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)  [93mThis line is longer than 50 characters, so is truncated.
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].record = True
     dbbuddy.print(columns=["ACCN", "DB", "record"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92msummary
-[95mADH10263.1      [96mncbi_prot  [92msummary
-[95mXP_005165403.2  [96m           [92mfull
-[95mA0A087WX72      [96muniprot    [92msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91msummary
+[96mADH10263.1      [92mncbi_prot  [91msummary
+[96mXP_005165403.2  [92m           [91mfull
+[96mA0A087WX72      [92muniprot    [91msummary
 [m'''
 
 
@@ -772,9 +772,9 @@ def test_print_trash(capsys):
     dbbuddy.print(group="trash_bin")
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
-[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
 [m'''
 
 

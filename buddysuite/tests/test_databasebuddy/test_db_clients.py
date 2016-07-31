@@ -309,12 +309,14 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
                                   "A0A0V0W5E2\n//\n//", "w")
         return
 
+    monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", lambda _: True)
     dbbuddy = Db.DbBuddy("inx15,inx16")
     client = Db.UniProtRestClient(dbbuddy)
     client.fetch_proteins()
 
     out, err = capsys.readouterr()
-    assert err == out == ""
+    assert client.results_file.read() == ""
+    assert "full records from UniProt..." not in err
 
     # Test a single call to query_uniprot
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_search)
@@ -755,14 +757,14 @@ def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "8e1a0cda099ec052a26cd6e02a863443"
+    assert sb_helpers.string2hash(out + err) == "8f251aee7d5efe536191b752e43f0d1a"
 
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     client.fetch_summaries()
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "9b458be5940bb0b33471e1c6e296c398"
+    assert sb_helpers.string2hash(out + err) == "303bfe789a37c2a2263146e505d2147a"
     assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
 
 
@@ -791,4 +793,4 @@ def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers)
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "e9193cc9491d9a7a1e6bac4760280924"
+    assert sb_helpers.string2hash(out + err) == "bc7610d5373db0b0fd9835410a182f10"

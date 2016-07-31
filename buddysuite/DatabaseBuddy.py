@@ -643,7 +643,7 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
 
 
 def terminal_colors():
-    colors = [MAGENTA, CYAN, GREEN, RED, YELLOW, GREY]
+    colors = [CYAN, GREEN, RED, YELLOW, GREY, MAGENTA]
     _counter = 0
     while True:
         try:
@@ -1378,7 +1378,7 @@ class LiveShell(cmd.Cmd):
                   To end the session, use the 'quit' command.{1}
 
 '''.format(hash_heading, self.terminal_default, BOLD, UNDERLINE))
-        self.prompt = '{0}{1}DbBuddy>{0} '.format(self.terminal_default, BOLD)
+        self.prompt = '{0}{1}DbBuddy{2}{1}>{2} '.format(MAGENTA, BOLD, self.terminal_default)
 
         self.doc_leader = '''\
 

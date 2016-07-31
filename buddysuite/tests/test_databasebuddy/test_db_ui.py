@@ -32,8 +32,8 @@ def test_liveshell_init(monkeypatch, capsys, sb_helpers):
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     assert type(liveshell.tmpdir) == br.TempDir
     assert liveshell.terminal_default == "\033[m\033[40m\033[97m"
-    assert liveshell.prompt == '\033[m\033[40m\033[97m\033[1mDbBuddy>\033[m\033[40m\033[97m '
-    assert sb_helpers.string2hash(liveshell.doc_leader) == "225570084f034d82e9205b377c75d8d8"
+    assert liveshell.prompt == '[95m[1mDbBuddy[m[40m[97m[1m>[m[40m[97m '
+    assert sb_helpers.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
     assert hash(liveshell.dbbuddy) == hash(dbbuddy)
     assert liveshell.crash_file == crash_file
     assert liveshell.history_path.split("/")[-1] == "cmd_history"
@@ -147,19 +147,19 @@ def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     liveshell.filter("(organism) Mouse")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "f4ee93430a0d474c75f3ecbf0a67c2ac"
+    assert sb_helpers.string2hash(out) == "9774790626857cd05298b4e9c5e09836"
 
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "90245630ece0198d208cd1f89248ef06"
+    assert sb_helpers.string2hash(out) == "836e1b6810b2e349634face7b19d4999"
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "7de5496b941e3fa48018238a8729b162"
+    assert sb_helpers.string2hash(out) == "746d5e86ff1d3b23707977e0e41fd210"
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
@@ -177,24 +177,24 @@ def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "4ab080610de6c2d44bd72d3519197dab"
+    assert sb_helpers.string2hash(out) == "fdcfcc6d32d726cba592e5c9d0bfdf44"
 
     monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
     liveshell.filter(None, mode="restore")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "41d50e2f8b1b0beccd8bc21712e9c986"
+    assert sb_helpers.string2hash(out) == "a3249f5616e3ec863d911638e7f82ed8"
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "0285e4eb25a37199dda47774e79525fe"
+    assert sb_helpers.string2hash(out) == "ef0ef9f16687530cadea9a465ff92634"
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "611b36bb7f11689e5bf19e8c1bfdfdbc"
+    assert sb_helpers.string2hash(out) == "4aa2b9aaf54bbcb874e17621da1a43c5"
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
