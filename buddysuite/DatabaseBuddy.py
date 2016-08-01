@@ -830,10 +830,10 @@ class UniProtRestClient(GenericClient):
                 result_count += 1
                 hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("TaxId", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", "")])
                 else:
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("TaxId", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", hit[6])])
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
@@ -1270,7 +1270,7 @@ class EnsemblRestClient(GenericClient):
 
                 summary = OrderedDict([('name', summary['display_name']), ('length', size),
                                        ('organism', summary['species']),
-                                       ('organism-id', self.species[summary['species']]['taxon_id']),
+                                       ('TaxId', self.species[summary['species']]['taxon_id']),
                                        ('biotype', summary['biotype']), ('object_type', summary['object_type']),
                                        ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
                                        ('comments', summary['description'])])
