@@ -246,6 +246,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
     def print(self, _num=0, quiet=False, columns=None, destination=None, group="records"):
         """
+        ToDo: Allow slices of records to be returned (e.g., [5:-9])
         :param _num: Limit the number of rows (records) returned, otherwise everything is output
         :param quiet: suppress stderr
         :param columns: Variable, list of column names to include in summary output
@@ -254,8 +255,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         :return: Nothing.
         """
         group = self.trash_bin if group == "trash_bin" else self.records
-
-        _num = _num if _num > 0 else len(group)
+        _num = len(group) if abs(_num) >= len(group) or not _num else _num
 
         # First deal with anything that broke or wasn't downloaded
         errors_etc = ""
@@ -280,6 +280,9 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _stderr(errors_etc, quiet)
 
         _output = ""
+        # If negative number requests, return from back of list
+        records = list(group.items())[:_num] if _num > 0 else list(group.items())[len(group) + _num:]
+
         # Summary outputs
         if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
             def pad_columns(line_group, col_widths, all_lines):
@@ -294,7 +297,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             current_group = []
             saved_headings = []
             column_widths = []
-            for _accession, _rec in list(group.items())[:_num]:
+            for _accession, _rec in records:
                 if self.out_format in ["ids", "accessions"]:
                     lines.append([_accession])
 
@@ -384,19 +387,11 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                         self.out_format = "embl"
                         break
 
-            nuc_recs = [_rec.record for _accession, _rec in group.items() if
-                        _rec.type == "nucleotide" and _rec.record]
-            prot_recs = [_rec.record for _accession, _rec in group.items() if
-                         _rec.type == "protein" and _rec.record]
+            records = [_rec.record for _accession, _rec in records if _rec.record]
             tmp_file = br.TempFile()
-            if len(nuc_recs) > 0:
-                SeqIO.write(nuc_recs[:_num], tmp_file.get_handle("w"), self.out_format)
-                _output += "%s\n" % tmp_file.read()
-                tmp_file.clear()
-
-            if len(prot_recs) > 0 and _num - len(nuc_recs) > 0:
-                SeqIO.write(prot_recs[:_num - len(nuc_recs)], tmp_file.get_handle("w"), self.out_format)
-                _output += "%s\n" % tmp_file.read()
+            SeqIO.write(records, tmp_file.get_handle("w"), self.out_format)
+            _output += "%s\n" % tmp_file.read()
+            tmp_file.clear()
 
         if not destination:
             _stdout("{0}\n".format(_output.rstrip()))
@@ -1840,12 +1835,12 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
     def do_show(self, line=None, group="records"):
-        if line:
-            line = line.split(" ")
+        line = [] if not line else line.split(" ")
 
+        # Note that trashbin is only shown with the command 'trash' from the UI
         breakdown = self.dbbuddy.trash_breakdown() if group == "trash_bin" else self.dbbuddy.record_breakdown()
-
         num_records = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
+
         if not num_records:
             _stdout("Nothing in '%s' to show.\n\n" % re.sub("_", " ", group), format_in=RED,
                     format_out=self.terminal_default)
@@ -1868,21 +1863,23 @@ Further details about each command can be accessed by typing 'help <command>'
             num_records = len(breakdown["full"])
 
         columns = []
+        force_num_records = 0
         for _next in line:
             try:
-                num_records = int(_next)
+                force_num_records = int(_next)
             except ValueError:
                 columns.append(_next)
 
         columns = None if not columns else columns
 
-        if num_records > 100:
+        if num_records > 100 and not force_num_records:
             confirm = br.ask("%sShow all %s records (y/[n])?%s " % (RED, num_records, self.terminal_default), False)
             if not confirm:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
         try:
+            num_records = num_records if not force_num_records else force_num_records
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
         except ValueError as _e:
             if "Sequences must all be the same length" in str(_e):
@@ -1891,9 +1888,6 @@ Further details about each command can be accessed by typing 'help <command>'
             elif "No suitable quality scores found in letter_annotations of SeqRecord" in str(_e):
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
-                        format_in=RED, format_out=self.terminal_default)
-            elif re.search("Locus identifier .*? is too long", str(_e)):
-                _stdout("Error: Accession numbers are too long for GenBank format, try EMBL." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
             else:
                 raise ValueError(_e)
@@ -2256,7 +2250,8 @@ are supplied then full sequence records will be downloaded.\n
         _stdout('''\
 Output the records held in the Live Session (output format currently set to '{0}{1}{2}')
 Optionally include an integer value and/or column name(s) to limit
-the number of records and amount of information per record displayed.\n
+the number of records and amount of information per record displayed.
+Use a negative integer to return records from the bottom of the list.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_sort(self):

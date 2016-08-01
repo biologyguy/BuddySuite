@@ -147,10 +147,6 @@ def test_check_type_default(capsys):
 
 # ################################################# SUPPORT CLASSES ################################################## #
 def test_record_instantiation():
-    with pytest.raises(TypeError) as err:
-        Db.Record()
-    assert "missing 1 required positional argument: '_accession'" in str(err)
-
     rec = Db.Record("Foo")
     assert rec.accession == "Foo"
     assert not rec.gi
@@ -378,7 +374,7 @@ def test_instantiate_empty_dbbuddy_obj():
     assert type(dbbuddy.failures) == OrderedDict
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
-        assert dbbuddy.server_clients[client] == False
+        assert dbbuddy.server_clients[client] is False
     assert dbbuddy.memory_footprint == 0
 
 
@@ -394,7 +390,7 @@ def test_instantiate_dbbuddy_from_path():
     assert dbbuddy.failures == {}
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
-        assert dbbuddy.server_clients[client] == False
+        assert dbbuddy.server_clients[client] is False
     assert dbbuddy.memory_footprint == 0
 
     # Also test the other ways accessions can be in the file
@@ -553,6 +549,7 @@ def test_server(monkeypatch):
     assert type(dbbuddy.server_clients["ncbi"]) == Db.NCBIClient
 
     def patch_ensembl_rest_action(*args, **kwargs):
+        print("patch_ensembl_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         return {'species': [{'display_name': 'Saccharomyces cerevisiae'}, {'display_name': 'C.savignyi'},
                             {'display_name': 'Microbat'}]}
 
@@ -590,6 +587,14 @@ def test_print_simple(capsys):
     assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
 [96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
 [96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(-2)
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
 [96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
 [96mA0A087WX72      [92muniprot    [91mprot  [93msummary
 [m'''

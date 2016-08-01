@@ -634,3 +634,78 @@ def test_liveshell_do_search(monkeypatch):
     assert "NewFailure1" in dbbuddy.failures
 
 
+def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    liveshell.do_load(load_file)
+    capsys.readouterr()
+
+    # Warning message if nothing to show
+    liveshell.do_show(None, "trash_bin")
+    out, err = capsys.readouterr()
+    assert "Nothing in 'trash bin' to show.\n\n" in out
+
+    # Specify columns and number of records
+    liveshell.do_show("ACCN organism 3")
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "43f5edc18717e2f7df08818d2ed32b78"
+
+    # Large group, say 'no' to display
+    monkeypatch.setattr(br, "ask", lambda *_, **kwargs: False)
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert "Include an integer value with 'show' to return a specific number of records.\n\n" in out
+
+    # Large group, show it anyway
+    monkeypatch.setattr(br, "ask", lambda *_, **kwargs: True)
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "edc78c2e17543392933c87d833d8a2ea"
+
+    # Try sequence format on LiveShell with only summary data
+    dbbuddy.out_format = "fasta"
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert "Warning: only summary data available; there is nothing to display in fasta format." in out
+
+    # Only some records have full sequence data (patch print to true)
+    dbbuddy.records["P00520"].record = True
+    dbbuddy.records["Q5R454"].record = True
+    monkeypatch.setattr(Db.DbBuddy, "print", lambda *_, **kwargs: True)
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert "Warning: 1405 records are only summary data, so will not be displayed in fasta format. " \
+           "Use 'fetch' to retrieve all sequence data." in err
+
+    # Raise errors
+    def mock_length_error(*args, **kwargs):
+        print("mock_length_error\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise ValueError("Sequences must all be the same length")
+    dbbuddy.out_format = 'nexus'
+    monkeypatch.setattr(Db.DbBuddy, "print", mock_length_error)
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert "Error: 'nexus' format does not support sequences of different length." in out
+
+    def mock_qual_score_error(*args, **kwargs):
+        print("mock_qual_score_error\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise ValueError("No suitable quality scores found in letter_annotations of SeqRecord")
+    dbbuddy.out_format = 'fastq'
+    monkeypatch.setattr(Db.DbBuddy, "print", mock_qual_score_error)
+    liveshell.do_show(None)
+    out, err = capsys.readouterr()
+    assert "Error: BioPython requires quality scores to output in 'fastq' format, and this data is not " \
+           "currently available to DatabaseBuddy." in out
+
+    def mock_valueerror(*args, **kwargs):
+        print("mock_valueerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise ValueError("Unknown ValueError")
+    monkeypatch.setattr(Db.DbBuddy, "print", mock_valueerror)
+    with pytest.raises(ValueError) as err:
+        liveshell.do_show(None)
+    assert "Unknown ValueError" in str(err)
