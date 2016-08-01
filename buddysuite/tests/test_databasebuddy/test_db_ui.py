@@ -581,7 +581,7 @@ def test_liveshell_do_save(monkeypatch, capsys):
     assert "Abort...\n\n" in out
 
     # Permission errors
-    class OpenPermissionError():
+    class OpenPermissionError(object):
         def __init__(self, *args):
             pass
 
@@ -709,3 +709,76 @@ def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
     with pytest.raises(ValueError) as err:
         liveshell.do_show(None)
     assert "Unknown ValueError" in str(err)
+
+
+def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, sb_helpers):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    liveshell.do_load(load_file)
+    capsys.readouterr()
+
+    # Default sort on accession
+    start_accns = [x for x in dbbuddy.records]
+    liveshell.do_sort(None)
+    accns = [x for x in dbbuddy.records]
+    assert start_accns != accns
+    assert sorted(start_accns) == accns
+
+    # Default sort reversed
+    liveshell.do_sort("rev")
+    assert [x for x in dbbuddy.records] == sorted(start_accns, reverse=True)
+    liveshell.do_sort(None)
+    assert [x for x in dbbuddy.records] != sorted(start_accns, reverse=True)
+    liveshell.do_sort("reverse")
+    assert [x for x in dbbuddy.records] == sorted(start_accns, reverse=True)
+
+    # Sort on column
+    _type = [rec.type for accn, rec in dbbuddy.records.items()]
+    liveshell.do_sort("Type")
+    after_sort = [rec.type for accn, rec in dbbuddy.records.items()]
+    assert after_sort != _type
+    assert after_sort == sorted(_type)
+
+    database = [rec.database for accn, rec in dbbuddy.records.items()]
+    liveshell.do_sort("DB")
+    after_sort = [rec.database for accn, rec in dbbuddy.records.items()]
+    assert after_sort != database
+    assert after_sort == sorted(database)
+
+    organism = [rec.summary['organism'] for accn, rec in dbbuddy.records.items()]
+    liveshell.do_sort("organism")
+    after_sort = [rec.summary['organism'] for accn, rec in dbbuddy.records.items()]
+    assert after_sort != organism
+    assert after_sort == sorted(organism)
+
+    length = [rec.summary['length'] for accn, rec in dbbuddy.records.items()]
+    liveshell.do_sort("length")
+    after_sort = [rec.summary['length'] for accn, rec in dbbuddy.records.items()]
+    assert after_sort != length
+    assert after_sort == sorted(length)
+
+    protein_names = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items() if 'protein_names' in rec.summary]
+    liveshell.do_sort("protein_names")
+    after_sort = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items() if 'protein_names' in rec.summary]
+    assert after_sort != protein_names
+    assert after_sort == sorted(protein_names)
+
+    gi_num = [rec.summary['gi_num'] for accn, rec in dbbuddy.records.items() if 'gi_num' in rec.summary]
+    liveshell.do_sort("gi_num")
+    after_sort = [rec.summary['gi_num'] for accn, rec in dbbuddy.records.items() if 'gi_num' in rec.summary]
+    assert after_sort != gi_num
+    assert after_sort == sorted(gi_num)
+
+    # Sort on multi-column
+    dbbuddy.records["A0A0N8ESW5"].record = True
+    dbbuddy.records["XP_011997944.1"].record = True
+    liveshell.do_sort("record organism gi_num")
+    capsys.readouterr()
+    liveshell.do_show("10")
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "c05f7a103d2b50d767407817f43a1828"

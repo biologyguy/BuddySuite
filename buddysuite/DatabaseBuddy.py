@@ -1895,19 +1895,20 @@ Further details about each command can be accessed by typing 'help <command>'
         _stderr("%s\n" % self.terminal_default)
 
     def do_sort(self, line=None):
-        def sub_sort(records, headings, _rev=False):
-            heading = headings[0]
+        def sub_sort(records, _sort_columns, _rev=False):
+            heading = _sort_columns[0]
             subgroups = {}
-            if heading.lower() == "accn":
-                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
-            if heading.lower() == "type":
-                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].type, reverse=_rev))
-            if heading.lower() == "db":
-                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].database, reverse=_rev))
-
-            int_headings = 0
             for accn, _rec in records.items():
-                if heading == "record":
+                if heading.lower() == "accn":
+                    subgroups.setdefault(_rec.accession, {})
+                    subgroups[_rec.accession][accn] = _rec
+                elif heading.lower() == "type":
+                    subgroups.setdefault(_rec.type, {})
+                    subgroups[_rec.type][accn] = _rec
+                elif heading.lower() == "db":
+                    subgroups.setdefault(_rec.database, {})
+                    subgroups[_rec.database][accn] = _rec
+                elif heading == "record":
                     if _rec.record:
                         _value = "full"
                     else:
@@ -1921,28 +1922,26 @@ Further details about each command can be accessed by typing 'help <command>'
                     else:
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
-                        if isinstance(_rec.summary[heading], int):
-                            if _rec.summary[heading] > int_headings:
-                                int_headings = _rec.summary[heading]
 
-            if int_headings and "zzzzz" in subgroups:
-                subgroups[int_headings + 1] = subgroups["zzzzz"]
-                del subgroups["zzzzz"]
+                try:  # If the column is numbers sort numerically, otherwise alphabetically
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
+                except ValueError:
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
 
-            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=rev))
             final_order = OrderedDict()
             for subgroup, _recs in subgroups.items():
                 if len(_recs) == 1:
                     _recs = [_rec for accn, _rec in _recs.items()]
                     final_order[_recs[0].accession] = _recs[0]
                 else:
-                    if len(headings) > 1:
-                        _recs = sub_sort(_recs, headings[1:], rev)
+                    if len(_sort_columns) > 1:
+                        _recs = sub_sort(_recs, _sort_columns[1:], _rev)
 
                     for x, y in _recs.items():
                         final_order[x] = y
             return final_order
 
+        line = "ACCN" if not line else line
         sort_columns = line.split(" ")
         lower_cols = [col.lower() for col in sort_columns]
         rev = True if "rev" in lower_cols or "reverse" in lower_cols else False
