@@ -24,6 +24,15 @@ def mock_filter(_, line, mode):
     print("'%s' filter mocked! %s" % (mode, line))
     return
 
+
+class OpenPermissionError(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @staticmethod
+    def close():
+        raise PermissionError
+
 # A few real accession numbers to test things out with
 ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
          "XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
@@ -580,15 +589,7 @@ def test_liveshell_do_save(monkeypatch, capsys):
     out, err = capsys.readouterr()
     assert "Abort...\n\n" in out
 
-    # Permission errors
-    class OpenPermissionError(object):
-        def __init__(self, *args):
-            pass
-
-        @staticmethod
-        def close():
-            raise PermissionError
-
+    # PermissionError
     monkeypatch.setattr("builtins.open", OpenPermissionError)
     liveshell.do_save("%s/save_dir/save_file2" % tmp_dir.path)
     out, err = capsys.readouterr()
@@ -782,3 +783,92 @@ def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, sb_helpers):
     liveshell.do_show("10")
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "c05f7a103d2b50d767407817f43a1828"
+
+
+def test_liveshell_do_status(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    capsys.readouterr()
+
+    liveshell.do_status(None)
+    out, err = capsys.readouterr()
+    assert '''\
+############################
+### DatabaseBuddy object ###
+Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
+Out format:   summary
+Searches:     None
+Full Recs:    0
+Summary Recs: 0
+ACCN only:    0
+Trash bin:  0
+Failures:     0
+############################
+''' in out
+
+
+def test_liveshell_do_write(monkeypatch, capsys, sb_resources):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    liveshell.do_load(load_file)
+    capsys.readouterr()
+    tmp_dir = br.TempDir()
+
+    # write a summary
+    monkeypatch.setattr("builtins.input", lambda _: "%s/save1" % tmp_dir.path)
+    liveshell.do_write(None)
+    assert os.path.isfile("%s/save1" % tmp_dir.path)
+    with open("%s/save1" % tmp_dir.path, "r") as ifile:
+        assert len(ifile.read()) == 249980
+    out, err = capsys.readouterr()
+    assert re.search("1407 summary records.*written to.*save1", out)
+
+    # write ids/accns
+    dbbuddy.out_format = "ids"
+    monkeypatch.setattr(br, "ask", lambda _: True)
+    dbbuddy.records['O14727'].record = Db.Record('O14727', _record=True)
+    liveshell.do_write("%s/save2" % tmp_dir.path)
+    assert os.path.isfile("%s/save2" % tmp_dir.path)
+    with open("%s/save2" % tmp_dir.path, "r") as ifile:
+        assert len(ifile.read()) == 18661
+    out, err = capsys.readouterr()
+    assert re.search("1407 accessions.*written to.*save2", out)
+
+    # Abort summary
+    monkeypatch.setattr(br, "ask", lambda _: False)
+    liveshell.do_write("%s/save3" % tmp_dir.path)
+    assert not os.path.isfile("%s/save3" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Abort..." in out
+
+    # Permission error
+    dbbuddy.out_format = "fasta"
+    monkeypatch.setattr("builtins.open", OpenPermissionError)
+    liveshell.do_write("%s/save4" % tmp_dir.path)
+    assert not os.path.isfile("%s/save4" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Error: You do not have write privileges in the specified directory.\n\n" in out
+
+    # File exists
+    monkeypatch.setattr(br, "ask", lambda _: False)
+    liveshell.do_write("%s/save2" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "Abort..." in out
+    assert "written" not in out
+
+    # Not a directory
+    liveshell.do_write("%s/ghostdir/save5" % tmp_dir.path)
+    out, err = capsys.readouterr()
+    assert "The specified directory does not exist. Please create it before continuing" in out
+    assert "written" not in out
+
+
+

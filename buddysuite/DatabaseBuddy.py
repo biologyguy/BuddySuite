@@ -1666,9 +1666,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         self.dump_session()
 
-    def do_failures(self, line=None):
-        if line != "":
-            pass  # Failures doesn't take arguments
+    def do_failures(self, *_):
         if not self.dbbuddy.failures:
             _stdout("No failures to report\n\n", format_in=GREEN, format_out=self.terminal_default)
         else:
@@ -1677,10 +1675,7 @@ Further details about each command can be accessed by typing 'help <command>'
             for _hash, _values in self.dbbuddy.failures.items():
                 _stdout("%s\n\n" % _values, format_out=self.terminal_default)
 
-    def do_fetch(self, line=None):
-        if line != "":
-            pass  # Fetch doesn't take arguments
-
+    def do_fetch(self, *_):
         accn_only = self.dbbuddy.record_breakdown()["accession"]
         if accn_only:
             search_terms = list(self.dbbuddy.search_terms)
@@ -1756,9 +1751,7 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
 
-    def do_quit(self, line=None):
-        if line != "":
-            pass  # Quit doesn't take arguments
+    def do_quit(self, *_):
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
             confirm = br.ask("You have unsaved records, are you sure you want to quit (y/[n])?", default="no")
             if not confirm:
@@ -1958,9 +1951,7 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns, rev)
         self.dump_session()
 
-    def do_status(self, line=None):
-        if line != "":
-            _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
+    def do_status(self, *_):
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
 
     def do_write(self, line=None):
@@ -1971,33 +1962,30 @@ Further details about each command can be accessed by typing 'help <command>'
         line = os.path.abspath(line)
         _dir = "/%s" % "/".join(line.split("/")[:-1])
         if not os.path.isdir(_dir):
-            _stdout("Error: The specified directory does not exist. Please create it before continuing "
-                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
+            _stdout("The specified directory does not exist. Please create it before continuing "
+                    "(you can use the 'bash' command from within the DbBuddy Live Session).\n\n", format_in=RED,
                     format_out=self.terminal_default)
             return
 
         # Warn if file exists
         if os.path.isfile(line):
-            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
-            if confirm.lower() in ["n", "no"]:
+            confirm = br.ask("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if not confirm:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
 
-        try:
-            ofile = open(line, "w", encoding="utf-8")
-        except PermissionError:
-            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
-                    format_in=RED, format_out=self.terminal_default)
-            return
-
-        self.dbbuddy.print(quiet=True, destination=ofile)
         breakdown = self.dbbuddy.record_breakdown()
-        if self.dbbuddy.out_format in ["ids", "accessions"]:
-            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
-                    format_out=self.terminal_default)
-        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
-            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
-                    format_out=self.terminal_default)
+        if self.dbbuddy.out_format in ["ids", "accessions", "summary", "full-summary"]:
+            if breakdown["full"]:
+                confirm = br.ask("%sYou are about to write to a summary format "
+                                 "which does not include sequence. Continue [y]/n?%s" % (RED, self.terminal_default))
+                if not confirm:
+                    _stdout("Abort...\n", format_in=RED, format_out=self.terminal_default)
+                    return
+            count = len(breakdown["full"] + breakdown["summary"])
+            msg = "accession" if self.dbbuddy.out_format in ["ids", "accessions"] else "summary record"
+            msg += "s" if count > 1 else ""
+            msg = "%s %s" % (count, msg)
         else:
             non_full = len(breakdown["summary"] + breakdown["accession"])
             if non_full > 0:
@@ -2005,17 +1993,22 @@ Further details about each command can be accessed by typing 'help <command>'
 NOTE: There are %s summary records in the Live Session, and only full records can be written
   in '%s' format. Use the 'fetch' command to retrieve full records.
 ''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
-            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
-                    format_out=self.terminal_default)
-        _stdout("written to %s.\n\n" % line, format_in=GREEN,
+            msg = "%s %s record" % (len(breakdown["full"]), self.dbbuddy.out_format)
+            msg += "s" if len(breakdown["full"]) > 1 else ""
+
+        _stdout("%s written to %s.\n\n" % (msg, line), format_in=GREEN,
                 format_out=self.terminal_default)
         self.hash = hash(self.dbbuddy)
-        ofile.close()
-        _stdout("Records written to file\n\n", format_in=GREEN, format_out=self.terminal_default)
+        try:
+            ofile = open(line, "w", encoding="utf-8")
+            self.dbbuddy.print(quiet=True, destination=ofile)
+            ofile.close()
+        except PermissionError:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+        return
 
-    def do_undo(self, line=None):
-        if line != "":
-            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+    def do_undo(self, *_):
         if not self.undo:
             _stdout("There is currently no undo history (only a single undo is possible).\n\n",
                     format_in=RED, format_out=self.terminal_default)
