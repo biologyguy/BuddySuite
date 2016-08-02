@@ -1578,7 +1578,7 @@ Further details about each command can be accessed by typing 'help <command>'
             if "all" in new_database_list:
                 self.dbbuddy.databases = DATABASES
             else:
-                self.dbbuddy.databases = new_database_list
+                self.dbbuddy.databases = list(set(new_database_list))
 
             _stdout("Database search list updated to %s\n\n" % self.dbbuddy.databases, format_in=GREEN,
                     format_out=self.terminal_default)
@@ -2035,10 +2035,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
     @staticmethod
     def complete_database(*args):
         text = args[0]
-        startidx = args[2]
-        endidx = args[3]
-        if startidx and endidx:
-            pass
         return [db for db in DATABASES if db.startswith(text)]
 
     @staticmethod

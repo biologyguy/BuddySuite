@@ -258,10 +258,10 @@ def test_liveshell_do_database(monkeypatch, capsys):
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
     liveshell.do_database("'NcBi_nuc',\t  \"ENSEMBl,uniprot")
-    assert dbbuddy.databases == ['ncbi_nuc', 'ensembl', 'uniprot']
+    assert sorted(dbbuddy.databases) == ['ensembl', 'ncbi_nuc', 'uniprot']
 
     liveshell.do_database("ensembl,all")
-    assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
+    assert sorted(dbbuddy.databases) == ["ensembl", "ncbi_nuc", "ncbi_prot", "uniprot"]
 
     capsys.readouterr()
     liveshell.do_database("Foo ensembl")
@@ -276,7 +276,7 @@ def test_liveshell_do_database(monkeypatch, capsys):
 
     monkeypatch.setattr("builtins.input", lambda _: "'ncbi_nuc', 'ensembl'")
     liveshell.do_database(None)
-    assert dbbuddy.databases == ['ncbi_nuc', 'ensembl']
+    assert sorted(dbbuddy.databases) == ['ensembl', 'ncbi_nuc']
 
 
 def test_liveshell_do_delete(monkeypatch, capsys):
@@ -871,4 +871,86 @@ def test_liveshell_do_write(monkeypatch, capsys, sb_resources):
     assert "written" not in out
 
 
+def test_liveshell_do_undo(monkeypatch, capsys, sb_resources):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
 
+    liveshell.do_undo(None)
+    out, err = capsys.readouterr()
+    assert "There is currently no undo history (only a single undo is possible).\n\n" in out
+
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    liveshell.do_load(load_file)
+
+    assert not dbbuddy.trash_bin
+    liveshell.do_remove("P00520")
+    assert dbbuddy.trash_bin
+    liveshell.do_undo(None)
+    assert not dbbuddy.trash_bin
+    out, err = capsys.readouterr()
+    assert "Most recent state reloaded\n\n" in out
+
+    liveshell.do_undo(None)
+    out, err = capsys.readouterr()
+    assert "There is currently no undo history (only a single undo is possible).\n\n" in out
+
+
+def test_liveshell_complete_bash(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    programs = liveshell.complete_bash("wh")
+    for program in ['wheel ', 'whereis ', 'whoami ', 'which ', 'who ']:
+        assert program in programs
+
+
+def test_liveshell_complete_database(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    assert sorted(liveshell.complete_database("")) == ['ensembl', 'ncbi_nuc', 'ncbi_prot', 'uniprot']
+
+
+def test_liveshell_complete_delete(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    assert liveshell.complete_delete("") == ["all", "failures", "search", "trash", "records"]
+
+
+def test_liveshell_complete_format(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    assert liveshell.complete_format("f") == ['full-summary', 'fasta', 'fastq', 'fastq-sanger',
+                                              'fastq-solexa', 'fastq-illumina']
+
+
+def test_liveshell_complete_keep(monkeypatch, sb_resources):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    liveshell.do_load(load_file)
+    assert liveshell.complete_keep("d") == ['(DB) ']
+    assert liveshell.complete_keep("len") == ['(length) ']
+    assert liveshell.complete_keep('ac') == ['(ACCN) ']
+
+
+def test_liveshell_complete_load(monkeypatch):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    tmpdir = br.TempDir()
+    tmpdir.subfile("file.txt")
+    os.chdir(tmpdir.path)
+    assert not liveshell.complete_load("fi ", "fi", 3, 3) == ['file.txt']
+    assert liveshell.complete_load("fi ", "fi ", 3, 3) == ['file.txt']
