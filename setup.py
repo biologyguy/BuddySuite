@@ -153,7 +153,7 @@ DEPENDENCIES = [
     'pytest',
     'scipy',
     'numpy',
-    'dill'
+    'dill',
     'suds-py3'
 ]
 
