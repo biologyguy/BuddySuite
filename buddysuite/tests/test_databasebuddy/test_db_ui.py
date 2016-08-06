@@ -2,6 +2,7 @@ import pytest
 from unittest import mock
 import os
 import re
+import sys
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
@@ -932,25 +933,151 @@ def test_liveshell_complete_format(monkeypatch):
                                               'fastq-solexa', 'fastq-illumina']
 
 
-def test_liveshell_complete_keep(monkeypatch, sb_resources):
+def test_liveshell_complete_keep_remove_resort_trash_show_sort(monkeypatch, sb_resources):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
     liveshell.do_load(load_file)
+
+    # Keep
     assert liveshell.complete_keep("d") == ['(DB) ']
     assert liveshell.complete_keep("len") == ['(length) ']
     assert liveshell.complete_keep('ac') == ['(ACCN) ']
 
+    # Remove
+    assert liveshell.complete_remove("d") == ['(DB) ']
+    assert liveshell.complete_remove("len") == ['(length) ']
+    assert liveshell.complete_remove('ac') == ['(ACCN) ']
 
-def test_liveshell_complete_load(monkeypatch):
+    # Restor
+    liveshell.do_remove("Human")
+    assert liveshell.complete_restore("d") == ['(DB) ']
+    assert liveshell.complete_restore("len") == ['(length) ']
+    assert liveshell.complete_restore('ac') == ['(ACCN) ']
+
+    # Trash
+    assert liveshell.complete_trash("d") == ['DB ']
+    assert liveshell.complete_trash("len") == ['length ']
+    assert liveshell.complete_trash('ac') == ['ACCN ']
+
+    # Show
+    assert liveshell.complete_show("d") == ['DB ']
+    assert liveshell.complete_show("len") == ['length ']
+    assert liveshell.complete_show('ac') == ['ACCN ']
+
+    # sort
+    assert liveshell.complete_sort("d") == ['DB ']
+    assert liveshell.complete_sort("len") == ['length ']
+    assert liveshell.complete_sort('ac') == ['ACCN ']
+    assert liveshell.complete_sort('re') == ['record ', 'reverse ']
+
+
+def test_liveshell_complete_load_save_write(monkeypatch):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     tmpdir = br.TempDir()
-    tmpdir.subfile("file.txt")
     os.chdir(tmpdir.path)
-    assert not liveshell.complete_load("fi ", "fi", 3, 3) == ['file.txt']
-    assert liveshell.complete_load("fi ", "fi ", 3, 3) == ['file.txt']
+    tmpdir.subfile("file.txt")
+    tmpdir.subdir("extra_dir")
+
+    # Load
+    assert liveshell.complete_load("load fi ", "load fi ", 5, 7) == ['file.txt']
+    assert liveshell.complete_load("load ", "load ", 5, 5) == ['extra_dir/', 'file.txt']
+    assert not liveshell.complete_load("load ", "load ", 4, 5)
+
+    # Save
+    assert liveshell.complete_save("save fi ", "save fi ", 5, 7) == ['file.txt']
+    assert liveshell.complete_save("save ", "save ", 5, 5) == ['extra_dir/', 'file.txt']
+    assert not liveshell.complete_save("save ", "save ", 4, 5)
+
+    # Save
+    assert liveshell.complete_write("write fi ", "write fi ", 6, 8) == ['file.txt']
+    assert liveshell.complete_write("write ", "write ", 6, 6) == ['extra_dir/', 'file.txt']
+    assert not liveshell.complete_write("write ", "write ", 4, 5)
+
+
+def test_helps(monkeypatch, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+
+    liveshell.help_bash()
+    out, err = capsys.readouterr()
+    assert "Run bash commands" in out
+
+    liveshell.help_database()
+    out, err = capsys.readouterr()
+    assert "Reset the database" in out
+
+    liveshell.help_delete()
+    out, err = capsys.readouterr()
+    assert "Remove records completely" in out
+
+    liveshell.help_failures()
+    out, err = capsys.readouterr()
+    assert "Print the status of" in out
+
+    liveshell.help_fetch()
+    out, err = capsys.readouterr()
+    assert "Retrieve full records for" in out
+
+    liveshell.help_format()
+    out, err = capsys.readouterr()
+    assert "Set the output format" in out
+
+    liveshell.help_keep()
+    out, err = capsys.readouterr()
+    assert "Further refine your results" in out
+
+    liveshell.help_quit()
+    out, err = capsys.readouterr()
+    assert "End the live session" in out
+
+    liveshell.help_load()
+    out, err = capsys.readouterr()
+    assert "Recover the contents of a " in out
+
+    liveshell.help_trash()
+    out, err = capsys.readouterr()
+    assert "Output the records held in" in out
+
+    liveshell.help_remove()
+    out, err = capsys.readouterr()
+    assert "Further refine your results" in out
+
+    liveshell.help_restore()
+    out, err = capsys.readouterr()
+    assert "Return a subset of filtered" in out
+
+    liveshell.help_save()
+    out, err = capsys.readouterr()
+    assert "Save your live session in DB" in out
+
+    liveshell.help_search()
+    out, err = capsys.readouterr()
+    assert "Search databases (currently set to" in out
+
+    liveshell.help_show()
+    out, err = capsys.readouterr()
+    assert "Output the records held in" in out
+
+    liveshell.help_sort()
+    out, err = capsys.readouterr()
+    assert "Alter the order that records" in out
+
+    liveshell.help_status()
+    out, err = capsys.readouterr()
+    assert "Display the current state of your Live" in out
+
+    liveshell.help_undo()
+    out, err = capsys.readouterr()
+    assert "Revert the most recent change to your live session." in out
+
+    liveshell.help_write()
+    out, err = capsys.readouterr()
+    assert "Send records to a file" in out

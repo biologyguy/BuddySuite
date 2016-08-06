@@ -684,6 +684,51 @@ def check_type(_type):
     return _type
 
 
+def retrieve_summary(_dbbuddy):
+    check_all = False if _dbbuddy.databases else True
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = _dbbuddy.server("uniprot")
+        uniprot.search_proteins()
+
+    if "ncbi_nuc" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.search_ncbi("nucleotide")
+        refseq.fetch_summaries("ncbi_nuc")
+
+    if "ncbi_prot" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.search_ncbi("protein")
+        refseq.fetch_summaries("ncbi_prot")
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.search_ensembl()
+        ensembl.fetch_summaries()
+
+    return _dbbuddy
+
+
+def retrieve_sequences(_dbbuddy):
+    check_all = False if _dbbuddy.databases else True
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = _dbbuddy.server("uniprot")
+        uniprot.fetch_proteins()
+
+    if "ncbi_nuc" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.fetch_sequences("nucleotide")
+
+    if "ncbi_prot" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.fetch_sequences("protein")
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.fetch_nucleotide()
+
+    return _dbbuddy
+
+
 # ################################################# Database Clients ################################################# #
 class GenericClient(object):
     def __init__(self, _dbbuddy, max_url=1000):
@@ -2314,51 +2359,6 @@ def retrieve_accessions(_dbbuddy):
 """
 
 
-def retrieve_summary(_dbbuddy):
-    check_all = False if _dbbuddy.databases else True
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = _dbbuddy.server("uniprot")
-        uniprot.search_proteins()
-
-    if "ncbi_nuc" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.search_ncbi("nucleotide")
-        refseq.fetch_summaries("ncbi_nuc")
-
-    if "ncbi_prot" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.search_ncbi("protein")
-        refseq.fetch_summaries("ncbi_prot")
-
-    if "ensembl" in _dbbuddy.databases or check_all:
-        ensembl = _dbbuddy.server("ensembl")
-        ensembl.search_ensembl()
-        ensembl.fetch_summaries()
-
-    return _dbbuddy
-
-
-def retrieve_sequences(_dbbuddy):
-    check_all = False if _dbbuddy.databases else True
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = _dbbuddy.server("uniprot")
-        uniprot.fetch_proteins()
-
-    if "ncbi_nuc" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequences("nucleotide")
-
-    if "ncbi_prot" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequences("protein")
-
-    if "ensembl" in _dbbuddy.databases or check_all:
-        ensembl = _dbbuddy.server("ensembl")
-        ensembl.fetch_nucleotide()
-
-    return _dbbuddy
-
-
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     import argparse
@@ -2402,7 +2402,7 @@ def argparse_init():
             dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
 
     except br.GuessError:
-        sys.exit("Error: SeqBuddy could not understand your input. "
+        sys.exit("Error: DatabaseBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
     return in_args, dbbuddy

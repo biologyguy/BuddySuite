@@ -795,3 +795,78 @@ XP_005165403.2  ncbi_prot
 A0A087WX72      uniprot
 
 '''
+
+
+def test_retrieve_summary(monkeypatch, capsys):
+    def print_ncbi(_, database):
+        print(database)
+        return
+
+    def print_unitpro(_):
+        print("uniprot")
+        return
+
+    def print_ensembl(_):
+        print("ensembl")
+        return
+
+    monkeypatch.setattr(Db.UniProtRestClient, "search_proteins", print_unitpro)
+    monkeypatch.setattr(Db.NCBIClient, "search_ncbi", print_ncbi)
+    monkeypatch.setattr(Db.EnsemblRestClient, "search_ensembl", print_ensembl)
+
+    monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda *_: True)
+    monkeypatch.setattr(Db.EnsemblRestClient, "fetch_summaries", lambda _: True)
+
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.databases = ["ensembl"]
+    dbbuddy_hash = hash(dbbuddy)
+    returned_db = Db.retrieve_summary(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "ensembl" in out
+    assert "ncbi" not in out
+    assert dbbuddy_hash == hash(dbbuddy)
+    assert dbbuddy_hash == hash(returned_db)
+
+    dbbuddy.databases = []
+    Db.retrieve_summary(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "uniprot" in out
+    assert "nucleotide" in out
+    assert "protein" in out
+    assert "ensembl" in out
+
+
+def test_retrieve_sequences(monkeypatch, capsys):
+    def print_ncbi(_, database):
+        print(database)
+        return
+
+    def print_unitpro(_):
+        print("uniprot")
+        return
+
+    def print_ensembl(_):
+        print("ensembl")
+        return
+
+    monkeypatch.setattr(Db.UniProtRestClient, "fetch_proteins", print_unitpro)
+    monkeypatch.setattr(Db.NCBIClient, "fetch_sequences", print_ncbi)
+    monkeypatch.setattr(Db.EnsemblRestClient, "fetch_nucleotide", print_ensembl)
+
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.databases = ["ensembl"]
+    dbbuddy_hash = hash(dbbuddy)
+    returned_db = Db.retrieve_sequences(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "ensembl" in out
+    assert "ncbi" not in out
+    assert dbbuddy_hash == hash(dbbuddy)
+    assert dbbuddy_hash == hash(returned_db)
+
+    dbbuddy.databases = []
+    Db.retrieve_sequences(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "uniprot" in out
+    assert "nucleotide" in out
+    assert "protein" in out
+    assert "ensembl" in out
