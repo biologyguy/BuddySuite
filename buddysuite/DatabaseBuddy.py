@@ -52,6 +52,7 @@ from io import TextIOWrapper, StringIO
 import warnings
 import readline
 import dill
+import glob
 
 # Third party
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
@@ -101,7 +102,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         self.records = OrderedDict()  # Record objects
         self.trash_bin = OrderedDict()  # If records are filtered out, send them here instead of deleting them
         self.out_format = _out_format.lower()
-        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are actual Failure objects
+        self.failures = OrderedDict()  # The key for these is a hash of the Failure, and the values are Failure objects
         self.databases = check_database(_databases)
         self.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.memory_footprint = 0
@@ -117,8 +118,8 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     raise TypeError("List of non-DbBuddy objects passed into DbBuddy as _input. %s" % _dbbuddy)
 
                 self.search_terms += _dbbuddy.search_terms
-                # ToDo: update() will overwrite any common records between the two dicts,
-                # should check whether values are already set first
+                # Should probably check whether values are already set first, because update() will overwrite any common
+                # records between the two dicts
                 self.records.update(_dbbuddy.records)
             _input = None
 
@@ -200,14 +201,6 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                 self.trash_bin[_id] = _rec
             elif mode == "restore" and _rec.search(regex):
                 self.records[_id] = _rec
-            '''
-            except KeyError as _e:
-                if str(_e) not in column_errors["KeyError"]:
-                    column_errors["KeyError"].append(str(_e))
-            except ValueError as _e:
-                if str(_e) not in column_errors["ValueError"]:
-                    column_errors["ValueError"].append(str(_e))
-            '''
         if mode == "restore":
             for _id in self.records:
                 if _id in self.trash_bin:
@@ -253,6 +246,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
     def print(self, _num=0, quiet=False, columns=None, destination=None, group="records"):
         """
+        ToDo: Allow slices of records to be returned (e.g., [5:-9])
         :param _num: Limit the number of rows (records) returned, otherwise everything is output
         :param quiet: suppress stderr
         :param columns: Variable, list of column names to include in summary output
@@ -261,8 +255,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         :return: Nothing.
         """
         group = self.trash_bin if group == "trash_bin" else self.records
-
-        _num = _num if _num > 0 else len(group)
+        _num = len(group) if abs(_num) >= len(group) or not _num else _num
 
         # First deal with anything that broke or wasn't downloaded
         errors_etc = ""
@@ -287,6 +280,9 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _stderr(errors_etc, quiet)
 
         _output = ""
+        # If negative number requests, return from back of list
+        records = list(group.items())[:_num] if _num > 0 else list(group.items())[len(group) + _num:]
+
         # Summary outputs
         if self.out_format in ["summary", "full-summary", "ids", "accessions"]:
             def pad_columns(line_group, col_widths, all_lines):
@@ -301,14 +297,19 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             current_group = []
             saved_headings = []
             column_widths = []
-            for _accession, _rec in list(group.items())[:_num]:
+            for _accession, _rec in records:
                 if self.out_format in ["ids", "accessions"]:
                     lines.append([_accession])
 
                 elif self.out_format in ["summary", "full-summary"]:
                     headings = ["ACCN", "DB", "Type"]
-                    headings += [heading for heading, _value in _rec.summary.items()]
-                    headings += ["record"]
+                    if "length" in _rec.summary:
+                        headings.append("length")
+                    headings += [heading for heading, _value in _rec.summary.items()
+                                 if heading not in ["comments", "length"]]
+                    if "comments" in _rec.summary:
+                        headings.append("comments")
+                    headings.append("record")
 
                     if columns:
                         headings = [heading for heading in headings if heading in columns]
@@ -344,14 +345,15 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     if "Type" in headings:
                         if _rec.type:
                             current_group[-1].append(_rec.type[:4])
-                            if 4 > column_widths[attrib_counter]:
-                                column_widths[attrib_counter] = 4
                         else:
                             current_group[-1].append("")
                         attrib_counter += 1
 
-                    for attrib, _value in _rec.summary.items():
-                        if attrib in headings:
+                    for heading in headings:
+                        if heading in ["ACCN", "DB", "Type"]:
+                            continue
+                        if heading in _rec.summary:
+                            _value = _rec.summary[heading]
                             if len(str(_value)) > 50 and self.out_format != "full-summary":
                                 current_group[-1].append("%s..." % _value[:47])
                                 column_widths[attrib_counter] = 50
@@ -385,19 +387,11 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                         self.out_format = "embl"
                         break
 
-            nuc_recs = [_rec.record for _accession, _rec in group.items() if
-                        _rec.type == "nucleotide" and _rec.record]
-            prot_recs = [_rec.record for _accession, _rec in group.items() if
-                         _rec.type == "protein" and _rec.record]
+            records = [_rec.record for _accession, _rec in records if _rec.record]
             tmp_file = br.TempFile()
-            if len(nuc_recs) > 0:
-                SeqIO.write(nuc_recs[:_num], tmp_file.get_handle("w"), self.out_format)
-                _output += "%s\n" % tmp_file.read()
-                tmp_file.clear()
-
-            if len(prot_recs) > 0 and _num - len(nuc_recs) > 0:
-                SeqIO.write(prot_recs[:_num - len(nuc_recs)], tmp_file.get_handle("w"), self.out_format)
-                _output += "%s\n" % tmp_file.read()
+            SeqIO.write(records, tmp_file.get_handle("w"), self.out_format)
+            _output += "%s\n" % tmp_file.read()
+            tmp_file.clear()
 
         if not destination:
             _stdout("{0}\n".format(_output.rstrip()))
@@ -423,6 +417,7 @@ class Record(object):
         self.search_term = _search_term  # In case the record was the result of a particular search
 
     def guess_database(self):
+        import re  # This is to allow the objects to be loaded again later
         # RefSeq
         # https://www.ncbi.nlm.nih.gov/books/NBK21091/table/ch18.T.refseq_accession_numbers_and_mole/
         if re.match("^[NX][MR]_[0-9]+", self.accession):
@@ -486,6 +481,7 @@ class Record(object):
         return
 
     def search(self, regex):
+        import re  # This is to allow the objects to be loaded again later
         regex = ".*" if regex == "*" else regex  # This prevents a crash
         # Default is case-senstive, so check if the user desires otherwise
         if regex[:2] in ["i?", "?i"]:
@@ -642,7 +638,7 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
 
 
 def terminal_colors():
-    colors = [MAGENTA, CYAN, GREEN, RED, YELLOW, GREY]
+    colors = [CYAN, GREEN, RED, YELLOW, GREY, MAGENTA]
     _counter = 0
     while True:
         try:
@@ -686,6 +682,51 @@ def check_type(_type):
         _stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
         _type = "protein"
     return _type
+
+
+def retrieve_summary(_dbbuddy):
+    check_all = False if _dbbuddy.databases else True
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = _dbbuddy.server("uniprot")
+        uniprot.search_proteins()
+
+    if "ncbi_nuc" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.search_ncbi("nucleotide")
+        refseq.fetch_summaries("ncbi_nuc")
+
+    if "ncbi_prot" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.search_ncbi("protein")
+        refseq.fetch_summaries("ncbi_prot")
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.search_ensembl()
+        ensembl.fetch_summaries()
+
+    return _dbbuddy
+
+
+def retrieve_sequences(_dbbuddy):
+    check_all = False if _dbbuddy.databases else True
+    if "uniprot" in _dbbuddy.databases or check_all:
+        uniprot = _dbbuddy.server("uniprot")
+        uniprot.fetch_proteins()
+
+    if "ncbi_nuc" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.fetch_sequences("nucleotide")
+
+    if "ncbi_prot" in _dbbuddy.databases or check_all:
+        refseq = _dbbuddy.server("ncbi")
+        refseq.fetch_sequences("protein")
+
+    if "ensembl" in _dbbuddy.databases or check_all:
+        ensembl = _dbbuddy.server("ensembl")
+        ensembl.fetch_nucleotide()
+
+    return _dbbuddy
 
 
 # ################################################# Database Clients ################################################# #
@@ -757,7 +798,6 @@ class UniProtRestClient(GenericClient):
             response = re.sub("^Entry.*\n", "", response, count=1)
             with self.lock:
                 self.results_file.write("# Search: %s\n%s//\n" % (search_term, response))
-            return
 
         except HTTPError as err:
             self.write_error("Uniprot search failed for '%s'" % search_term, err)
@@ -769,6 +809,7 @@ class UniProtRestClient(GenericClient):
                 self.write_error("Uniprot request failed", err)
         except KeyboardInterrupt:
             _stderr("\n\tUniProt query interrupted by user\n")
+        return
 
     def count_hits(self):
         # Limit URLs to 2,083 characters
@@ -834,10 +875,10 @@ class UniProtRestClient(GenericClient):
                 result_count += 1
                 hit = hit.split("\t")
                 if len(hit) == 6:  # In case 'comments' isn't returned
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("TaxId", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", "")])
                 else:
-                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("organism-id", hit[3]),
+                    raw = OrderedDict([("entry_name", hit[1]), ("length", int(hit[2])), ("TaxId", hit[3]),
                                        ("organism", hit[4]), ("protein_names", hit[5]), ("comments", hit[6])])
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
@@ -904,10 +945,12 @@ class NCBIClient(GenericClient):
         tool = func_args[0]
         _type = None if len(func_args) == 1 else func_args[1]
         if _type and _type not in ["nucleotide", "protein"]:
-            raise ValueError
-        handle = False
+            raise ValueError("Unknown type '%s', choose between 'nucleotide' and 'protein" % _type)
+        handle = None
         timer = br.time()
-        for indx in range(self.max_attempts):
+        counter = int(self.max_attempts)
+        while counter > 0:
+            counter -= 1
             try:
                 if tool == "esummary_taxa":
                     # Example query of taxa ids: "649,734,1009,2302"
@@ -920,7 +963,7 @@ class NCBIClient(GenericClient):
                     handle = Entrez.esummary(db="nucleotide", id=query, retmax=10000)
                 elif tool == "efetch_seq":
                     # Example query of GI nums: "703125407,703125412,703125420"
-                    # Note that the database passed in doesn't matter. GIs will pull dna or prot as needed.
+                    # Note that the database passed in doesn't matter. GIs will pull dna or prot regardless.
                     handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
                 elif tool == "esearch":
                     count = Entrez.read(Entrez.esearch(db=_type, term=query, rettype="count"))["Count"]
@@ -935,7 +978,12 @@ class NCBIClient(GenericClient):
                     sleep(1 - timer)
                 break
             except HTTPError as err:
-                if err.getcode() != 503 or indx >= self.max_attempts - 1:
+                if err.getcode() != 503 or counter == 0:
+                    self.write_error("NCBI request failed: %s" % query, err)
+                    break
+                sleep(1)
+            except ConnectionResetError as err:
+                if "[Errno 54] Connection reset by peer" not in str(err) or counter == 0:
                     self.write_error("NCBI request failed: %s" % query, err)
                     break
                 sleep(1)
@@ -945,6 +993,8 @@ class NCBIClient(GenericClient):
                 else:
                     self.write_error("NCBI request failed", err)
                 break
+            except KeyboardInterrupt:
+                return
         if handle:
             if tool == "efetch_seq":
                 result = "%s\n" % handle.read().strip()
@@ -964,15 +1014,12 @@ class NCBIClient(GenericClient):
         if not self.dbbuddy.search_terms:
             return
         self.results_file.clear()
-        try:
-            if len(self.dbbuddy.search_terms) > 1:
-                br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
-                                          max_processes=3, quiet=True)
-            else:
-                self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
-        except KeyboardInterrupt:
-            _stderr("\n\tNCBI query interrupted by user\n")
-            return
+        if len(self.dbbuddy.search_terms) > 1:
+            br.run_multicore_function(self.dbbuddy.search_terms, self._mc_query, func_args=["esearch", _type],
+                                      max_processes=3, quiet=True)
+        else:
+            self._mc_query(self.dbbuddy.search_terms[0], func_args=["esearch", _type])
+
         self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
@@ -1018,8 +1065,7 @@ class NCBIClient(GenericClient):
 
         # Append any records that were not grabbed in the previous step
         gi_nums += [rec.gi for accn, rec in self.dbbuddy.records.items()
-                    if rec.database == database
-                    and rec.gi and rec.gi not in gi_nums]
+                    if rec.database == database and rec.gi and rec.gi not in gi_nums]
 
         # That's it if no GIs present
         if not gi_nums:
@@ -1074,7 +1120,7 @@ class NCBIClient(GenericClient):
                           summary["Length"],
                           summary["Title"],
                           status]
-                rec_summary = {key: value for key, value in zip(keys, values)}
+                rec_summary = OrderedDict([(key, value) for key, value in zip(keys, values)])
 
                 if summary["TaxId"] not in taxa:
                     taxa.append(summary["TaxId"])
@@ -1137,7 +1183,8 @@ class NCBIClient(GenericClient):
             _stderr("Fetching full %s sequence records from NCBI...\n" % database)
             runtime.start()
             if len(gi_nums) > 1:
-                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"], max_processes=3, quiet=True)
+                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"],
+                                          max_processes=3, quiet=True)
             else:
                 self._mc_query(gi_nums[0], func_args=["efetch_seq"])
             self.parse_error_file()
@@ -1235,6 +1282,10 @@ class EnsemblRestClient(GenericClient):
             else:
                 self.write_error("Ensembl request failed", err)
 
+        except KeyboardInterrupt:
+            pass
+        return
+
     def search_ensembl(self):
         self.results_file.clear()
         species = [name for name, info in self.species.items()]
@@ -1264,7 +1315,7 @@ class EnsemblRestClient(GenericClient):
 
                 summary = OrderedDict([('name', summary['display_name']), ('length', size),
                                        ('organism', summary['species']),
-                                       ('organism-id', self.species[summary['species']]['taxon_id']),
+                                       ('TaxId', self.species[summary['species']]['taxon_id']),
                                        ('biotype', summary['biotype']), ('object_type', summary['object_type']),
                                        ('strand', summary['strand']), ('assembly_name', summary['assembly_name']),
                                        ('comments', summary['description'])])
@@ -1357,10 +1408,8 @@ class LiveShell(cmd.Cmd):
         self.tmpdir = br.TempDir()
         self.terminal_default = "\033[m\033[40m%s" % WHITE
         cmd.Cmd.__init__(self)
-        hash_heading = ""
         colors = terminal_colors()
-        for _ in range(23):
-            hash_heading += "%s#" % next(colors)
+        hash_heading = "%s#" % "#".join([next(colors) for _ in range(23)])
         _stdout('''{1}
 
 {0} {1}{3}{2}Welcome to the DatabaseBuddy live shell{1} {0}{1}
@@ -1369,7 +1418,7 @@ class LiveShell(cmd.Cmd):
                   To end the session, use the 'quit' command.{1}
 
 '''.format(hash_heading, self.terminal_default, BOLD, UNDERLINE))
-        self.prompt = '{0}{1}DbBuddy>{0} '.format(self.terminal_default, BOLD)
+        self.prompt = '{0}{1}DbBuddy{2}{1}>{2} '.format(MAGENTA, BOLD, self.terminal_default)
 
         self.doc_leader = '''\
 
@@ -1393,20 +1442,19 @@ Further details about each command can be accessed by typing 'help <command>'
 
         if CONFIG["data_dir"]:
             self.history_path = "%s/cmd_history" % CONFIG["data_dir"]
-
         else:
-            self.history_path = "/%s/cmd_history" % self.tmpdir.path
-
+            self.history_path = "%s/cmd_history" % self.tmpdir.path
         try:
             if not os.path.isfile(self.history_path):
                 open(self.history_path, "w", encoding="utf-8").close()
             else:
                 open(self.history_path, "r").close()
         except PermissionError:
-            self.history_path = "/%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s/cmd_history" % self.tmpdir.path
             open(self.history_path, "w", encoding="utf-8").close()
 
         readline.read_history_file(self.history_path)
+        readline.set_history_length(1000)
 
         # As implemented, one UnDo is possible (reload the most recent dump). Set self.undo to true every time a dump
         # occurs, and back to False if undo is used.
@@ -1428,7 +1476,13 @@ Further details about each command can be accessed by typing 'help <command>'
     #    open("a file that doesn't exist")
 
     def precmd(self, line):
-        readline.write_history_file(self.history_path)
+        # ToDo: Long commands are added to history, they are not output correctly in the terminal. For some reason they
+        # are not cleared completely when you move to the next history index, leaving a truncated path at the prompt.
+        # Need to track this bug down and squash it, just not sure how (i.e., don't want the 'and len(line) < 40' part)
+        if line not in ["y", "n", "yes", "no"] and len(line) < 50:
+            readline.write_history_file(self.history_path)
+        else:
+            readline.read_history_file(self.history_path)
         return line
 
     def postcmd(self, stop, line):
@@ -1449,7 +1503,10 @@ Further details about each command can be accessed by typing 'help <command>'
             client.lock = Lock()
 
     def default(self, line):
-        _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
+        if line == "exit":
+            self.do_quit()
+        else:
+            _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     @staticmethod
     def _append_slash_if_dir(p):  # Used for expanding file patsh
@@ -1458,13 +1515,13 @@ Further details about each command can be accessed by typing 'help <command>'
             else:
                 return p
 
-    def get_headings(self):  # ToDo: This does not get all possible headings. Fix that...
-        headings = []
+    def get_headings(self):
+        headings = ["ACCN", "DB", "Type", "record"]
         if len(self.dbbuddy.records) > 0:
-            _rec = []
             for _accn, _rec in self.dbbuddy.records.items():
-                break
-            headings = ["ACCN", "DB", "Type"] + [heading for heading, _value in _rec.summary.items()]
+                for heading, _value in _rec.summary.items():
+                    if heading not in headings:
+                        headings.append(heading)
         return headings
 
     def filter(self, line, mode="keep"):
@@ -1511,19 +1568,11 @@ Further details about each command can be accessed by typing 'help <command>'
         _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
         for _filter in line:
-            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():  # NOTE: The filter errors have been commented out filter_records(). Don't know if they should be reinstated.
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
                 _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
                     format_out=self.terminal_default)
             current_count = len(self.dbbuddy.records)
-
-        if _errors["KeyError"]:
-            _stderr("%s\nThe following column headings were not present in all records (ignored):\n"
-                    "%s%s\n" % (RED, ", ".join(_errors["KeyError"]), DEF_FONT))
-
-        if _errors["ValueError"]:
-            _stderr("%s\nThe following errors occurred:\n"
-                    "%s%s\n" % (RED, ", ".join(_errors["ValueError"]), DEF_FONT))
 
         output_message = "\n%s records remain.\n\n" % len(self.dbbuddy.records) if mode != "restore" \
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
@@ -1554,21 +1603,27 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_database(self, line):
         if not line:
             line = input("%sSpecify database:%s " % (RED, self.terminal_default))
-
+        line = re.sub("['\"]", "", line.strip())
+        line = re.sub("\t+", " ", line)
+        line = re.sub(", *", " ", line)
+        line = line.lower()
         line = line.split(" ")
         new_database_list = []
+        not_a_database = []
         for l in line:
             if l not in DATABASES and l != "all":
-                _stdout("Error: %s is not a valid database choice.\n"
-                        "Please select from %s\n" % (l, ["all"] + DATABASES), format_in=RED,
-                        format_out=self.terminal_default)
+                not_a_database.append(l)
             else:
                 new_database_list.append(l)
+        if not_a_database:
+            _stdout("Invalid database choice(s): %s.\n"
+                    "Please select from %s\n" % (", ".join(not_a_database), ["all"] + DATABASES), format_in=RED,
+                    format_out=self.terminal_default)
         if new_database_list:
             if "all" in new_database_list:
                 self.dbbuddy.databases = DATABASES
             else:
-                self.dbbuddy.databases = new_database_list
+                self.dbbuddy.databases = list(set(new_database_list))
 
             _stdout("Database search list updated to %s\n\n" % self.dbbuddy.databases, format_in=GREEN,
                     format_out=self.terminal_default)
@@ -1577,37 +1632,39 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
     def do_delete(self, line="all"):
-        if not self.dbbuddy.trash_bin and not self.dbbuddy.records and not self.dbbuddy.search_terms:
+        if not self.dbbuddy.trash_bin and not self.dbbuddy.records \
+                and not self.dbbuddy.search_terms and not self.dbbuddy.failures:
             _stdout("The live session is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
-        line = line.lower()
-        if line not in ["", "a", "all", "failures", "f"] + TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS:
+        line = "" if not line else line.lower()
+        if line not in TRASH_SYNOS + RECORD_SYNOS + SEARCH_SYNOS \
+                and not "all".startswith(line) and not "failures".startswith(line):
             _stdout("Sorry, I don't understand what you want to delete.\n Select from: all, main, trash-bin, "
                     "failures, search\n\n", format_in=RED, format_out=self.terminal_default)
             return
 
-        if line in ["failures", "f"]:
+        if "failures".startswith(line) and line != "":
             if not self.dbbuddy.failures:
                 _stdout("Failures list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to clear all %s failures (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.failures), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to clear all %s failures (y/[n])?%s " %
+                                 (RED, len(self.dbbuddy.failures), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.failures = {}
+                    self.dbbuddy.failures = OrderedDict()
                     _stdout("List of failures removed.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in SEARCH_SYNOS:
             if not self.dbbuddy.search_terms:
                 _stdout("Search terms list is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s search terms (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.search_terms), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to delete all %s search terms (y/[n])?%s " %
+                                 (RED, len(self.dbbuddy.search_terms), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.search_terms = []
@@ -1615,24 +1672,24 @@ Further details about each command can be accessed by typing 'help <command>'
 
         elif line in TRASH_SYNOS:
             if not self.dbbuddy.trash_bin:
-                _stdout("Trash bin is already empty.\n", format_in=RED, format_out=self.terminal_default)
+                _stdout("Trash bin is already empty.\n\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
-                                (RED, len(self.dbbuddy.trash_bin), self.terminal_default))
+                confirm = br.ask("%sAre you sure you want to delete all %s records from your trash bin (y/[n])?%s " %
+                                 (RED, len(self.dbbuddy.trash_bin), self.terminal_default), default="no")
 
-                if confirm.lower() not in ["yes", "y"]:
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
-                    self.dbbuddy.trash_bin = {}
+                    self.dbbuddy.trash_bin = OrderedDict()
                     _stdout("Trash bin emptied.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         elif line in RECORD_SYNOS:
             if not self.dbbuddy.records:
                 _stdout("Records list is already empty.\n", format_in=RED, format_out=self.terminal_default)
             else:
-                confirm = input("%sAre you sure you want to delete all %s records from your main "
-                                "filtered list (y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default))
-                if confirm.lower() not in ["yes", "y"]:
+                confirm = br.ask("%sAre you sure you want to delete all %s records from your main filtered list "
+                                 "(y/[n])?%s " % (RED, len(self.dbbuddy.records), self.terminal_default), default="no")
+                if not confirm:
                     _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
                 else:
                     self.dbbuddy.records = OrderedDict()
@@ -1640,24 +1697,21 @@ Further details about each command can be accessed by typing 'help <command>'
                             format_in=GREEN, format_out=self.terminal_default)
 
         else:
-            confirm = input("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
-                            (RED, self.terminal_default))
+            confirm = br.ask("%sAre you sure you want to completely reset your live session (y/[n])?%s " %
+                             (RED, self.terminal_default), default="no")
 
-            if confirm.lower() not in ["yes", "y"]:
+            if not confirm:
                 _stdout("Aborted...\n", format_in=RED, format_out=self.terminal_default)
             else:
-                self.dbbuddy.trash_bin = {}
+                self.dbbuddy.trash_bin = OrderedDict()
                 self.dbbuddy.records = OrderedDict()
                 self.dbbuddy.search_terms = []
-                self.dbbuddy.failures = {}
+                self.dbbuddy.failures = OrderedDict()
                 _stdout("Live session cleared of all data.\n\n", format_in=GREEN, format_out=self.terminal_default)
 
         self.dump_session()
 
-    def do_failures(self, line=None):
-        if line != "":
-            _stdout("Note: 'failures' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
+    def do_failures(self, *_):
         if not self.dbbuddy.failures:
             _stdout("No failures to report\n\n", format_in=GREEN, format_out=self.terminal_default)
         else:
@@ -1666,10 +1720,7 @@ Further details about each command can be accessed by typing 'help <command>'
             for _hash, _values in self.dbbuddy.failures.items():
                 _stdout("%s\n\n" % _values, format_out=self.terminal_default)
 
-    def do_fetch(self, line=None):
-        if line != "":
-            _stdout("Note: 'fetch' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
+    def do_fetch(self, *_):
         accn_only = self.dbbuddy.record_breakdown()["accession"]
         if accn_only:
             search_terms = list(self.dbbuddy.search_terms)
@@ -1685,10 +1736,10 @@ Further details about each command can be accessed by typing 'help <command>'
                 new_records_fetched.append(_accn)
 
         if amount_seq_requested > 5000000:
-            confirm = input("{0}You are requesting {2}{1}{0} residues of sequence data. "
-                            "Continue (y/[n])?{3}".format(GREEN, br.pretty_number(amount_seq_requested),
-                                                          YELLOW, self.terminal_default))
-            if confirm.lower() not in ["yes", "y"]:
+            confirm = br.ask("{0}You are requesting {2}{1}{0} residues of sequence data. "
+                             "Continue (y/[n])?{3}".format(GREEN, br.pretty_number(amount_seq_requested),
+                                                           YELLOW, self.terminal_default), default="no")
+            if not confirm:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
 
@@ -1722,41 +1773,33 @@ Further details about each command can be accessed by typing 'help <command>'
             line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
-                self.dbbuddy = dill.load(ifile)
-            self.dump_session()
+                dbbuddy = dill.load(ifile)
+                self.dbbuddy.search_terms = dbbuddy.search_terms
+                self.dbbuddy.records = dbbuddy.records
+                self.dbbuddy.trash_bin = dbbuddy.trash_bin
+                self.dbbuddy.out_format = dbbuddy.out_format
+                self.dbbuddy.failures = dbbuddy.failures
+                self.dbbuddy.databases = dbbuddy.databases
+                self.dbbuddy.memory_footprint = dbbuddy.memory_footprint
+
             for _db, client in self.dbbuddy.server_clients.items():
                 if client:
-                    client.temp_dir = br.TempDir()
-                    client.http_errors_file = "%s/errors.txt" % client.temp_dir.path
-                    open(client.http_errors_file, "w", encoding="utf-8").close()
-                    client.results_file = "%s/results.txt" % client.temp_dir.path
-                    open(client.results_file, "w", encoding="utf-8").close()
+                    client.http_errors_file = br.TempFile()
+                    client.results_file = br.TempFile()
 
             _stdout("Session loaded from file.\n\n", format_in=GREEN, format_out=self.terminal_default, quiet=quiet)
-
-        except IOError as _e:
-            _stderr("%s\n" % _e)
-            _prompt = input("Specify a path to read your session from, or 'abort' to cancel. ")
-            if _prompt == 'abort':
-                _stderr("Aborted...\n")
-            else:
-                self.do_load(_prompt)
-        except EOFError:
+            self.dump_session()
+        except (EOFError, IOError):
             _stdout("Error: Unable to read the provided file. Are you sure it's a saved DbBuddy live session?\n\n",
                     format_in=RED, format_out=self.terminal_default)
 
     def do_keep(self, line=None):
         self.filter(line, mode="keep")
 
-    def do_quit(self, line=None):
-        if line != "":
-            _stdout("Note: 'quit' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
-
+    def do_quit(self, *_):
         if (self.dbbuddy.records or self.dbbuddy.trash_bin) and self.hash != hash(self.dbbuddy):
-            confirm = input("You have unsaved records, are you sure you want to quit (y/[n])?")
-            if confirm.lower() in ["yes", "y"]:
-                pass
-            else:
+            confirm = br.ask("You have unsaved records, are you sure you want to quit (y/[n])?", default="no")
+            if not confirm:
                 _stdout("Aborted...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
         self.usage.save()
@@ -1776,13 +1819,14 @@ Further details about each command can be accessed by typing 'help <command>'
         if not line:
             line = input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default))
 
-        # Ensure the specified directory exists
+        # Create directory if necessary
         line = os.path.abspath(line)
         _dir = "/%s" % "/".join(line.split("/")[:-1])
-        if not os.path.isdir(_dir):
-            _stdout("Error: The specified directory does not exist. Please create it before continuing "
-                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
-                    format_out=self.terminal_default)
+        try:
+            os.makedirs(_dir, exist_ok=True)
+        except PermissionError:
+            _stdout("Error: You do not have write privileges to create a directory in the specified path.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
             return
 
         # Set the .db extension
@@ -1791,14 +1835,14 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Warn if file exists
         if os.path.isfile(line):
-            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
-            if confirm.lower() in ["n", "no"]:
+            confirm = br.ask("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if not confirm:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
         try:
             open(line, "wb").close()
         except PermissionError:
-            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+            _stdout("Error: You do not have write privileges to create a file in the specified directory.\n\n",
                     format_in=RED, format_out=self.terminal_default)
             return
 
@@ -1808,15 +1852,15 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_search(self, line):
         if not line:
-            line = input("%sSpecify search string:%s " % (RED, self.terminal_default))
+            line = input("%sSpecify search string(s):%s " % (RED, self.terminal_default))
 
+        # Do this on a temp dbbuddy obj so searches are not repeated
         temp_buddy = DbBuddy(line)
         temp_buddy.databases = self.dbbuddy.databases
         retrieve_summary(temp_buddy)
-
         for _term in temp_buddy.search_terms:
             if _term not in self.dbbuddy.search_terms:
-                self.dbbuddy.search_terms.append(line)
+                self.dbbuddy.search_terms.append(_term)
 
         for _accn, _rec in temp_buddy.records.items():
             if _accn not in self.dbbuddy.records:
@@ -1829,12 +1873,12 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
     def do_show(self, line=None, group="records"):
-        if line:
-            line = line.split(" ")
+        line = [] if not line else line.split(" ")
 
+        # Note that trashbin is only shown with the command 'trash' from the UI
         breakdown = self.dbbuddy.trash_breakdown() if group == "trash_bin" else self.dbbuddy.record_breakdown()
-
         num_records = len(self.dbbuddy.trash_bin) if group == "trash_bin" else len(self.dbbuddy.records)
+
         if not num_records:
             _stdout("Nothing in '%s' to show.\n\n" % re.sub("_", " ", group), format_in=RED,
                     format_out=self.terminal_default)
@@ -1857,21 +1901,23 @@ Further details about each command can be accessed by typing 'help <command>'
             num_records = len(breakdown["full"])
 
         columns = []
+        force_num_records = 0
         for _next in line:
             try:
-                num_records = int(_next)
+                force_num_records = int(_next)
             except ValueError:
                 columns.append(_next)
 
         columns = None if not columns else columns
 
-        if num_records > 100:
+        if num_records > 100 and not force_num_records:
             confirm = br.ask("%sShow all %s records (y/[n])?%s " % (RED, num_records, self.terminal_default), False)
             if not confirm:
                 _stdout("Include an integer value with 'show' to return a specific number of records.\n\n",
                         format_out=self.terminal_default)
                 return
         try:
+            num_records = num_records if not force_num_records else force_num_records
             self.dbbuddy.print(_num=num_records, columns=columns, group=group)
         except ValueError as _e:
             if "Sequences must all be the same length" in str(_e):
@@ -1881,26 +1927,23 @@ Further details about each command can be accessed by typing 'help <command>'
                 _stdout("Error: BioPython requires quality scores to output in '%s' format, and this data is not "
                         "currently available to DatabaseBuddy." % self.dbbuddy.out_format,
                         format_in=RED, format_out=self.terminal_default)
-            elif re.search("Locus identifier .*? is too long", str(_e)):
-                _stdout("Error: Accession numbers are too long for GenBank format, try EMBL." % self.dbbuddy.out_format,
-                        format_in=RED, format_out=self.terminal_default)
             else:
                 raise ValueError(_e)
 
         _stderr("%s\n" % self.terminal_default)
 
     def do_sort(self, line=None):
-        def sub_sort(records, headings, _rev=False):
-            heading = headings[0]
+        def sub_sort(records, _sort_columns, _rev=False):
+            heading = _sort_columns[0]
             subgroups = {}
-            if heading == "ACCN":
-                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].accession, reverse=_rev))
-            if heading == "Type":
-                return OrderedDict(sorted(records.items(), key=lambda _x: _x[1].type, reverse=_rev))
-
-            int_headings = 0
             for accn, _rec in records.items():
-                if heading == "DB":
+                if heading.lower() == "accn":
+                    subgroups.setdefault(_rec.accession, {})
+                    subgroups[_rec.accession][accn] = _rec
+                elif heading.lower() == "type":
+                    subgroups.setdefault(_rec.type, {})
+                    subgroups[_rec.type][accn] = _rec
+                elif heading.lower() == "db":
                     subgroups.setdefault(_rec.database, {})
                     subgroups[_rec.database][accn] = _rec
                 elif heading == "record":
@@ -1917,28 +1960,26 @@ Further details about each command can be accessed by typing 'help <command>'
                     else:
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
-                        if isinstance(_rec.summary[heading], int):
-                            if _rec.summary[heading] > int_headings:
-                                int_headings = _rec.summary[heading]
 
-            if int_headings and "zzzzz" in subgroups:
-                subgroups[int_headings + 1] = subgroups["zzzzz"]
-                del subgroups["zzzzz"]
+                try:  # If the column is numbers sort numerically, otherwise alphabetically
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
+                except ValueError:
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
 
-            subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=rev))
             final_order = OrderedDict()
             for subgroup, _recs in subgroups.items():
                 if len(_recs) == 1:
                     _recs = [_rec for accn, _rec in _recs.items()]
                     final_order[_recs[0].accession] = _recs[0]
                 else:
-                    if len(headings) > 1:
-                        _recs = sub_sort(_recs, headings[1:], rev)
+                    if len(_sort_columns) > 1:
+                        _recs = sub_sort(_recs, _sort_columns[1:], _rev)
 
                     for x, y in _recs.items():
                         final_order[x] = y
             return final_order
 
+        line = "ACCN" if not line else line
         sort_columns = line.split(" ")
         lower_cols = [col.lower() for col in sort_columns]
         rev = True if "rev" in lower_cols or "reverse" in lower_cols else False
@@ -1955,9 +1996,7 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dbbuddy.records = sub_sort(self.dbbuddy.records, sort_columns, rev)
         self.dump_session()
 
-    def do_status(self, line=None):
-        if line != "":
-            _stdout("Note: 'status' does not take any arguments\n\n", format_in=RED, format_out=self.terminal_default)
+    def do_status(self, *_):
         _stdout("%s\n" % str(self.dbbuddy), format_out=self.terminal_default)
 
     def do_write(self, line=None):
@@ -1968,33 +2007,30 @@ Further details about each command can be accessed by typing 'help <command>'
         line = os.path.abspath(line)
         _dir = "/%s" % "/".join(line.split("/")[:-1])
         if not os.path.isdir(_dir):
-            _stdout("Error: The specified directory does not exist. Please create it before continuing "
-                    "(you can use the 'bash' command from within the DbBuddy Live Session.\n\n", format_in=RED,
+            _stdout("The specified directory does not exist. Please create it before continuing "
+                    "(you can use the 'bash' command from within the DbBuddy Live Session).\n\n", format_in=RED,
                     format_out=self.terminal_default)
             return
 
         # Warn if file exists
         if os.path.isfile(line):
-            confirm = input("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
-            if confirm.lower() in ["n", "no"]:
+            confirm = br.ask("%sFile already exists, overwrite [y]/n?%s " % (RED, self.terminal_default))
+            if not confirm:
                 _stdout("Abort...\n\n", format_in=RED, format_out=self.terminal_default)
                 return
 
-        try:
-            ofile = open(line, "w", encoding="utf-8")
-        except PermissionError:
-            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
-                    format_in=RED, format_out=self.terminal_default)
-            return
-
-        self.dbbuddy.print(quiet=True, destination=ofile)
         breakdown = self.dbbuddy.record_breakdown()
-        if self.dbbuddy.out_format in ["ids", "accessions"]:
-            _stdout("%s accessions " % len(breakdown["accession"]), format_in=GREEN,
-                    format_out=self.terminal_default)
-        elif self.dbbuddy.out_format in ["summary", "full-summary"]:
-            _stdout("%s summary records " % (len(breakdown["full"] + breakdown["summary"])), format_in=GREEN,
-                    format_out=self.terminal_default)
+        if self.dbbuddy.out_format in ["ids", "accessions", "summary", "full-summary"]:
+            if breakdown["full"]:
+                confirm = br.ask("%sYou are about to write to a summary format "
+                                 "which does not include sequence. Continue [y]/n?%s" % (RED, self.terminal_default))
+                if not confirm:
+                    _stdout("Abort...\n", format_in=RED, format_out=self.terminal_default)
+                    return
+            count = len(breakdown["full"] + breakdown["summary"])
+            msg = "accession" if self.dbbuddy.out_format in ["ids", "accessions"] else "summary record"
+            msg += "s" if count > 1 else ""
+            msg = "%s %s" % (count, msg)
         else:
             non_full = len(breakdown["summary"] + breakdown["accession"])
             if non_full > 0:
@@ -2002,17 +2038,22 @@ Further details about each command can be accessed by typing 'help <command>'
 NOTE: There are %s summary records in the Live Session, and only full records can be written
   in '%s' format. Use the 'fetch' command to retrieve full records.
 ''' % (non_full, self.dbbuddy.out_format), format_in=RED, format_out=self.terminal_default)
-            _stdout("%s %s records  " % (len(breakdown["full"]), self.dbbuddy.out_format), format_in=GREEN,
-                    format_out=self.terminal_default)
-        _stdout("written to %s.\n\n" % line, format_in=GREEN,
+            msg = "%s %s record" % (len(breakdown["full"]), self.dbbuddy.out_format)
+            msg += "s" if len(breakdown["full"]) > 1 else ""
+
+        _stdout("%s written to %s.\n\n" % (msg, line), format_in=GREEN,
                 format_out=self.terminal_default)
         self.hash = hash(self.dbbuddy)
-        ofile.close()
-        _stdout("Records written to file\n\n", format_in=GREEN, format_out=self.terminal_default)
+        try:
+            ofile = open(line, "w", encoding="utf-8")
+            self.dbbuddy.print(quiet=True, destination=ofile)
+            ofile.close()
+        except PermissionError:
+            _stdout("Error: You do not have write privileges in the specified directory.\n\n",
+                    format_in=RED, format_out=self.terminal_default)
+        return
 
-    def do_undo(self, line=None):
-        if line != "":
-            _stdout("Note: 'status' does not take any arguments\n", format_in=RED, format_out=self.terminal_default)
+    def do_undo(self, *_):
         if not self.undo:
             _stdout("There is currently no undo history (only a single undo is possible).\n\n",
                     format_in=RED, format_out=self.terminal_default)
@@ -2039,10 +2080,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
     @staticmethod
     def complete_database(*args):
         text = args[0]
-        startidx = args[2]
-        endidx = args[3]
-        if startidx and endidx:
-            pass
         return [db for db in DATABASES if db.startswith(text)]
 
     @staticmethod
@@ -2061,9 +2098,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_load(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
@@ -2092,9 +2126,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_save(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
@@ -2119,9 +2150,6 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
 
     def complete_write(self, *args):
         line, startidx, endidx = args[1:]
-        # ToDo: pulled code from stack overflow, modify or credit.
-        import glob
-
         before_arg = line.rfind(" ", 0, startidx)
         if before_arg == -1:
             return  # arg not found
@@ -2255,7 +2283,8 @@ are supplied then full sequence records will be downloaded.\n
         _stdout('''\
 Output the records held in the Live Session (output format currently set to '{0}{1}{2}')
 Optionally include an integer value and/or column name(s) to limit
-the number of records and amount of information per record displayed.\n
+the number of records and amount of information per record displayed.
+Use a negative integer to return records from the bottom of the list.\n
 '''.format(YELLOW, self.dbbuddy.out_format, GREEN), format_in=GREEN, format_out=self.terminal_default)
 
     def help_sort(self):
@@ -2330,51 +2359,6 @@ def retrieve_accessions(_dbbuddy):
 """
 
 
-def retrieve_summary(_dbbuddy):
-    check_all = False if _dbbuddy.databases else True
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = _dbbuddy.server("uniprot")
-        uniprot.search_proteins()
-
-    if "ncbi_nuc" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.search_ncbi("nucleotide")
-        refseq.fetch_summaries("ncbi_nuc")
-
-    if "ncbi_prot" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.search_ncbi("protein")
-        refseq.fetch_summaries("ncbi_prot")
-
-    if "ensembl" in _dbbuddy.databases or check_all:
-        ensembl = _dbbuddy.server("ensembl")
-        ensembl.search_ensembl()
-        ensembl.fetch_summaries()
-
-    return _dbbuddy
-
-
-def retrieve_sequences(_dbbuddy):
-    check_all = False if _dbbuddy.databases else True
-    if "uniprot" in _dbbuddy.databases or check_all:
-        uniprot = _dbbuddy.server("uniprot")
-        uniprot.fetch_proteins()
-
-    if "ncbi_nuc" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequences("nucleotide")
-
-    if "ncbi_prot" in _dbbuddy.databases or check_all:
-        refseq = _dbbuddy.server("ncbi")
-        refseq.fetch_sequences("protein")
-
-    if "ensembl" in _dbbuddy.databases or check_all:
-        ensembl = _dbbuddy.server("ensembl")
-        ensembl.fetch_nucleotide()
-
-    return _dbbuddy
-
-
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     import argparse
@@ -2418,7 +2402,7 @@ def argparse_init():
             dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
 
     except br.GuessError:
-        sys.exit("Error: SeqBuddy could not understand your input. "
+        sys.exit("Error: DatabaseBuddy could not understand your input. "
                  "Check the file path or try specifying an input type with -f")
 
     return in_args, dbbuddy

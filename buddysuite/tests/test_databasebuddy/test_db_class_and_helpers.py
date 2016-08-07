@@ -105,7 +105,7 @@ def test_stdout(capsys):
 
 def test_terminal_colors():
     term_colors = Db.terminal_colors()
-    for color in [Db.MAGENTA, Db.CYAN, Db.GREEN, Db.RED, Db.YELLOW, Db.GREY, Db.MAGENTA, Db.CYAN]:
+    for color in [Db.CYAN, Db.GREEN, Db.RED, Db.YELLOW, Db.GREY, Db.MAGENTA, Db.CYAN, Db.GREEN]:
         assert next(term_colors) == color
 
 
@@ -147,10 +147,6 @@ def test_check_type_default(capsys):
 
 # ################################################# SUPPORT CLASSES ################################################## #
 def test_record_instantiation():
-    with pytest.raises(TypeError) as err:
-        Db.Record()
-    assert "missing 1 required positional argument: '_accession'" in str(err)
-
     rec = Db.Record("Foo")
     assert rec.accession == "Foo"
     assert not rec.gi
@@ -275,7 +271,7 @@ def test_record_search(sb_resources):
     summary = {"ACCN": "F6SBJ1", "DB": "uniprot", "entry_name": "F6SBJ1_HORSE", "length": "451",
                "organism-id": "9796", "organism": "Equus caballus (Horse)", "protein_names": "Caspase",
                "comments": "Caution (1); Sequence similarities (1)", "record": "summary"}
-    rec = Db.Record("F6SBJ1", summary=summary)
+    rec = Db.Record("F6SBJ1", summary=summary, _type="protein")
     assert rec.search("*")
     assert not rec.search("Foo")
 
@@ -301,10 +297,17 @@ def test_record_search(sb_resources):
     with pytest.raises(ValueError) as err:
         rec.search("(length<>200)")
     assert "Invalid operator: <>" in str(err)
+    del rec.summary['length']
+    assert not rec.search("(length>200)")
 
     # Other columns
     assert rec.search("(ACCN) [A-Z0-9]{6}")
     assert not rec.search("(ACCN) [A-Z0-9]{7}")
+    print(rec.type)
+    assert rec.search("(Type) prot")
+    assert not rec.search("(Type) nucl")
+    assert rec.search("(DB) uniprot")
+    assert not rec.search("(DB) ncbi")
     assert rec.search("(comments)(Caution|Blahh)")
     assert not rec.search("(organism)Sheep")
     assert rec.search("(entry_name)")
@@ -371,7 +374,7 @@ def test_instantiate_empty_dbbuddy_obj():
     assert type(dbbuddy.failures) == OrderedDict
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
-        assert dbbuddy.server_clients[client] == False
+        assert dbbuddy.server_clients[client] is False
     assert dbbuddy.memory_footprint == 0
 
 
@@ -387,7 +390,7 @@ def test_instantiate_dbbuddy_from_path():
     assert dbbuddy.failures == {}
     assert dbbuddy.databases == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
     for client in ['ncbi', 'ensembl', 'uniprot']:
-        assert dbbuddy.server_clients[client] == False
+        assert dbbuddy.server_clients[client] is False
     assert dbbuddy.memory_footprint == 0
 
     # Also test the other ways accessions can be in the file
@@ -546,6 +549,7 @@ def test_server(monkeypatch):
     assert type(dbbuddy.server_clients["ncbi"]) == Db.NCBIClient
 
     def patch_ensembl_rest_action(*args, **kwargs):
+        print("patch_ensembl_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         return {'species': [{'display_name': 'Saccharomyces cerevisiae'}, {'display_name': 'C.savignyi'},
                             {'display_name': 'Microbat'}]}
 
@@ -580,31 +584,39 @@ def test_print_simple(capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
-[95mADH10263.1      [96mncbi_prot  [92mprot  [91msummary
-[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
-[95mA0A087WX72      [96muniprot    [92mprot  [91msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(-2)
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
 [m'''
 
     dbbuddy.out_format = "ids"
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mNP_001287575.1
-[95mADH10263.1
-[95mXP_005165403.2
-[95mA0A087WX72
+    assert out == '''[m[40m[97m[96mNP_001287575.1
+[96mADH10263.1
+[96mXP_005165403.2
+[96mA0A087WX72
 [m'''
 
     dbbuddy.out_format = "accessions"
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mNP_001287575.1
-[95mADH10263.1
-[95mXP_005165403.2
-[95mA0A087WX72
+    assert out == '''[m[40m[97m[96mNP_001287575.1
+[96mADH10263.1
+[96mXP_005165403.2
+[96mA0A087WX72
 [m'''
 
 
@@ -631,11 +643,11 @@ def test_print_columns(capsys):
     dbbuddy.print(columns=["ACCN", "DB"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
-[95mXP_005165403.2  [96mncbi_prot
-[95mA0A087WX72      [96muniprot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
+[96mXP_005165403.2  [92mncbi_prot
+[96mA0A087WX72      [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].summary = OrderedDict([("entry_name", "F6SBJ1_HORSE"), ("length", "451"),
@@ -647,71 +659,71 @@ def test_print_columns(capsys):
     dbbuddy.print(columns=["ACCN", "DB", "organism"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB         [92morganism
-[95mXP_005165403.2  [96mncbi_prot  [92mEquus caballus (Horse)
+[96mACCN            [92mDB         [91morganism
+[96mXP_005165403.2  [92mncbi_prot  [91mEquus caballus (Horse)
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].database = []
     dbbuddy.print(columns=["ACCN", "DB", "organism"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)
+[96mACCN            [92mDB  [91morganism
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].summary["comments"] = "This line is longer than 50 characters, so is truncated."
     dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism                [91mcomments
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is t...
+[96mACCN            [92mDB  [91morganism                [93mcomments
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)  [93mThis line is longer than 50 characters, so is t...
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.out_format = "full-summary"
     dbbuddy.print(columns=["ACCN", "DB", "organism", "comments"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB
-[95mNP_001287575.1  [96mncbi_prot
-[95mADH10263.1      [96mncbi_prot
+    assert out == '''[m[40m[97m[96mACCN            [92mDB
+[96mNP_001287575.1  [92mncbi_prot
+[96mADH10263.1      [92mncbi_prot
 
-[95mACCN            [96mDB  [92morganism                [91mcomments
-[95mXP_005165403.2  [96m    [92mEquus caballus (Horse)  [91mThis line is longer than 50 characters, so is truncated.
+[96mACCN            [92mDB  [91morganism                [93mcomments
+[96mXP_005165403.2  [92m    [91mEquus caballus (Horse)  [93mThis line is longer than 50 characters, so is truncated.
 
-[95mACCN        [96mDB
-[95mA0A087WX72  [96muniprot
+[96mACCN        [92mDB
+[96mA0A087WX72  [92muniprot
 [m'''
 
     dbbuddy.records["XP_005165403.2"].record = True
     dbbuddy.print(columns=["ACCN", "DB", "record"])
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92msummary
-[95mADH10263.1      [96mncbi_prot  [92msummary
-[95mXP_005165403.2  [96m           [92mfull
-[95mA0A087WX72      [96muniprot    [92msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91msummary
+[96mADH10263.1      [92mncbi_prot  [91msummary
+[96mXP_005165403.2  [92m           [91mfull
+[96mA0A087WX72      [92muniprot    [91msummary
 [m'''
 
 
@@ -765,9 +777,9 @@ def test_print_trash(capsys):
     dbbuddy.print(group="trash_bin")
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert out == '''[m[40m[97m[95mACCN            [96mDB         [92mType  [91mrecord
-[95mNP_001287575.1  [96mncbi_prot  [92mprot  [91msummary
-[95mXP_005165403.2  [96mncbi_prot  [92mprot  [91msummary
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
 [m'''
 
 
@@ -783,3 +795,78 @@ XP_005165403.2  ncbi_prot
 A0A087WX72      uniprot
 
 '''
+
+
+def test_retrieve_summary(monkeypatch, capsys):
+    def print_ncbi(_, database):
+        print(database)
+        return
+
+    def print_unitpro(_):
+        print("uniprot")
+        return
+
+    def print_ensembl(_):
+        print("ensembl")
+        return
+
+    monkeypatch.setattr(Db.UniProtRestClient, "search_proteins", print_unitpro)
+    monkeypatch.setattr(Db.NCBIClient, "search_ncbi", print_ncbi)
+    monkeypatch.setattr(Db.EnsemblRestClient, "search_ensembl", print_ensembl)
+
+    monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda *_: True)
+    monkeypatch.setattr(Db.EnsemblRestClient, "fetch_summaries", lambda _: True)
+
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.databases = ["ensembl"]
+    dbbuddy_hash = hash(dbbuddy)
+    returned_db = Db.retrieve_summary(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "ensembl" in out
+    assert "ncbi" not in out
+    assert dbbuddy_hash == hash(dbbuddy)
+    assert dbbuddy_hash == hash(returned_db)
+
+    dbbuddy.databases = []
+    Db.retrieve_summary(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "uniprot" in out
+    assert "nucleotide" in out
+    assert "protein" in out
+    assert "ensembl" in out
+
+
+def test_retrieve_sequences(monkeypatch, capsys):
+    def print_ncbi(_, database):
+        print(database)
+        return
+
+    def print_unitpro(_):
+        print("uniprot")
+        return
+
+    def print_ensembl(_):
+        print("ensembl")
+        return
+
+    monkeypatch.setattr(Db.UniProtRestClient, "fetch_proteins", print_unitpro)
+    monkeypatch.setattr(Db.NCBIClient, "fetch_sequences", print_ncbi)
+    monkeypatch.setattr(Db.EnsemblRestClient, "fetch_nucleotide", print_ensembl)
+
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.databases = ["ensembl"]
+    dbbuddy_hash = hash(dbbuddy)
+    returned_db = Db.retrieve_sequences(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "ensembl" in out
+    assert "ncbi" not in out
+    assert dbbuddy_hash == hash(dbbuddy)
+    assert dbbuddy_hash == hash(returned_db)
+
+    dbbuddy.databases = []
+    Db.retrieve_sequences(dbbuddy)
+    out, err = capsys.readouterr()
+    assert "uniprot" in out
+    assert "nucleotide" in out
+    assert "protein" in out
+    assert "ensembl" in out
