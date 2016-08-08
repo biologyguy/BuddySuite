@@ -72,28 +72,38 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
     return tmp_file.get_handle("r")
 
 
-def mock_urlopen_raise_httperror(*args, **kwargs):
-    print("mock_urlopen_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
+def mock_raise_httperror(*args, **kwargs):
+    print("mock_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise HTTPError(url="http://fake.come", code=101, msg="Fake HTTPError from Mock", hdrs="Foo", fp="Bar")
 
 
-def mock_urlopen_raise_503_httperror(*args, **kwargs):
-    print("mock_urlopen_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
+def mock_raise_503_httperror(*args, **kwargs):
+    print("mock_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise HTTPError(url="http://fake.come", code=503, msg="Service unavailable", hdrs="Foo", fp="Bar")
 
 
-def mock_urlopen_raise_urlerror(*args, **kwargs):
-    print("mock_urlopen_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+def mock_raise_urlerror(*args, **kwargs):
+    print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise URLError("Fake URLError from Mock")
 
 
-def mock_urlopen_raise_urlerror_8(*args, **kwargs):
-    print("mock_urlopen_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+def mock_raise_urlerror_8(*args, **kwargs):
+    print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise URLError("Fake URLError from Mock: Errno 8")
 
 
-def mock_urlopen_raise_keyboardinterrupt(*args, **kwargs):
-    print("mock_urlopen_raise_keyboardinterrupt\nargs: %s\nkwargs: %s" % (args, kwargs))
+def mock_raise_connectionreseterror(*args, **kwargs):
+    print("mock_raise_connectionreseterror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise ConnectionResetError("Fake ConnectionResetError from Mock: [Errno 54] Connection reset by peer")
+
+
+def mock_raise_runtimeerror(*args, **kwargs):
+    print("mock_raise_connectionreseterror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise RuntimeError("Fake RuntimeError from Mock")
+
+
+def mock_raise_keyboardinterrupt(*args, **kwargs):
+    print("mock_raise_keyboardinterrupt\nargs: %s\nkwargs: %s" % (args, kwargs))
     raise KeyboardInterrupt()
 
 
@@ -174,16 +184,20 @@ A0A0H5SBJ0
         client.query_uniprot("inx15", [{"format": "list"}])
 
     # Errors
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
+    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_httperror):
         client.query_uniprot("inx15", [{"format": "list"}])
     assert client.http_errors_file.read() == "Uniprot search failed for 'inx15'\nHTTP Error 101: " \
                                              "Fake HTTPError from Mock\n//\n"
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_urlerror):
+    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_urlerror_8):
+        client.query_uniprot("inx15", [{"format": "list"}])
+    assert "Uniprot request failed, are you connected to the internet?" in client.http_errors_file.read()
+
+    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_urlerror):
         client.query_uniprot("inx15", [{"format": "list"}])
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_keyboardinterrupt):
+    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_keyboardinterrupt):
         client.query_uniprot("inx15", [{"format": "list"}])
     out, err = capsys.readouterr()
     assert "\n\tUniProt query interrupted by user\n" in err
@@ -202,7 +216,7 @@ def test_uniprotrestclient_count_hits():
             client.dbbuddy.search_terms.append("a" * 110)
         assert client.count_hits() == 20
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_raise_httperror):
+    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_httperror):
         assert client.count_hits() == 0
         assert "d3b8e6bb4b9094117b7555b01dc85f64" in client.dbbuddy.failures
 
@@ -295,12 +309,14 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
                                   "A0A0V0W5E2\n//\n//", "w")
         return
 
+    monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", lambda _: True)
     dbbuddy = Db.DbBuddy("inx15,inx16")
     client = Db.UniProtRestClient(dbbuddy)
     client.fetch_proteins()
 
     out, err = capsys.readouterr()
-    assert err == out == ""
+    assert client.results_file.read() == ""
+    assert "full records from UniProt..." not in err
 
     # Test a single call to query_uniprot
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_search)
@@ -318,7 +334,8 @@ A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Fu
     client.fetch_proteins()
     out, err = capsys.readouterr()
     assert "Requesting 10 full records from UniProt..." in err
-    assert sb_helpers.string2hash(str(client.dbbuddy.records["A8XEF9"].record.seq)) == "04f13629336cf6cdd5859c8913b742a5"
+    seq = str(client.dbbuddy.records["A8XEF9"].record.seq)
+    assert sb_helpers.string2hash(seq) == "04f13629336cf6cdd5859c8913b742a5"
 
     # Some edge cases
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_fetch_nothing)
@@ -402,10 +419,34 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
         client._mc_query("703125407", ["foo"])
     assert "'tool' argument must be in 'esummary_taxa', 'efetch_gi', 'esummary_seq', or 'efetch_seq'" in str(err)
 
-    monkeypatch.setattr(Db.Entrez, "efetch", mock_urlopen_raise_httperror)
+    with pytest.raises(ValueError) as err:
+        client._mc_query("703125407", ["foo", "Bar"])
+    assert "Unknown type 'Bar', choose between 'nucleotide' and 'protein" in str(err)
+
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_httperror)
     client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
     assert "NCBI request failed: 703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock\n//" \
            in client.http_errors_file.read()
+
+    assert "Service unavailable" not in client.http_errors_file.read()
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_503_httperror)
+    client._mc_query("703125407", ["efetch_seq"])
+    assert "Service unavailable" in client.http_errors_file.read()
+
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_connectionreseterror)
+    client._mc_query("703125407", ["efetch_seq"])
+    assert "NCBI request failed: 703125407\nFake ConnectionResetError from Mock: [Errno 54] Connection reset by peer"\
+           in client.http_errors_file.read()
+
+    assert "are you connected to the internet?" not in client.http_errors_file.read()
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_urlerror_8)
+    client._mc_query("703125407", ["efetch_seq"])
+    assert "are you connected to the internet?" in client.http_errors_file.read()
+
+    assert "<urlopen error Fake URLError from Mock>" not in client.http_errors_file.read()
+    monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_urlerror)
+    client._mc_query("703125407", ["efetch_seq"])
+    assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
 
 def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
@@ -429,21 +470,23 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda _: True)
     monkeypatch.setattr(Db, "sleep", lambda _: True)
     dbbuddy = Db.DbBuddy("909549231")
-    dbbuddy.search_terms = ["casp9"]
     client = Db.NCBIClient(dbbuddy)
+    dbbuddy.search_terms = []
+    client.search_ncbi("protein")
+    assert len(dbbuddy.records) == 1
 
+    dbbuddy.search_terms = ["casp9"]
     client.search_ncbi("protein")
     for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
         assert accn in dbbuddy.records
 
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_urlopen_raise_keyboardinterrupt)
+    monkeypatch.setattr(Db.Entrez, "esearch", mock_raise_keyboardinterrupt)
     client.search_ncbi("protein")
     out, err = capsys.readouterr()
-    assert "NCBI query interrupted by user" in err
+    assert 'NCBI returned no protein results' in err
 
 
-def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
-    # ToDo: add a multicore test
+def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch, capsys):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:
@@ -504,10 +547,10 @@ def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsy
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert sb_helpers.string2hash(out) == "f1614694fd87ffd85ad0b9fa951d4b1d"
+    assert sb_helpers.string2hash(out) == "b431f4f8a05f5a0c14de2d0826859bca"
 
     # Error
-    monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_urlopen_raise_keyboardinterrupt)
+    monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
     client.fetch_sequences("ncbi_prot")
     out, err = capsys.readouterr()
     assert "\n\tNCBI query interrupted by user\n" in err
@@ -561,7 +604,7 @@ def test_ensembl_mc_search(monkeypatch, sb_resources):
     assert "'description': 'pannexin 1 [Source:MGI Symbol;Acc:MGI:1860055]'" in client.results_file.read()
 
     monkeypatch.undo()
-    monkeypatch.setattr(Db, "Request", mock_urlopen_raise_httperror)
+    monkeypatch.setattr(Db, "Request", mock_raise_httperror)
     client._mc_search('Mouse', ['Panx1'])
     assert "HTTP Error 101: Fake HTTPError from Mock" in client.http_errors_file.read()
 
@@ -636,13 +679,13 @@ def test_ensembl_perform_rest_action(monkeypatch, sb_resources, sb_helpers):
     assert "39eaff4d057aa3d9d098be5cb50d2ce2" in client.dbbuddy.failures
 
     # URLError
-    monkeypatch.setattr(Db, "urlopen", mock_urlopen_raise_urlerror)
+    monkeypatch.setattr(Db, "urlopen", mock_raise_urlerror)
     client.perform_rest_action("URLError")
     client.parse_error_file()
     assert 'eb498f0bcba3bfe69e4df6ee5bfbf6fb' in client.dbbuddy.failures
 
     # URLError 8 (no internet)
-    monkeypatch.setattr(Db, "urlopen", mock_urlopen_raise_urlerror_8)
+    monkeypatch.setattr(Db, "urlopen", mock_raise_urlerror_8)
     client.perform_rest_action("URLError")
     client.parse_error_file()
     assert '57ad6fc317cf0d12ccb78d64d43682dc' in client.dbbuddy.failures
@@ -714,14 +757,14 @@ def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "8e1a0cda099ec052a26cd6e02a863443"
+    assert sb_helpers.string2hash(out + err) == "8f251aee7d5efe536191b752e43f0d1a"
 
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     client.fetch_summaries()
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "282c625cbb95d6e7fa1a46dcd86299d0"
+    assert sb_helpers.string2hash(out + err) == "303bfe789a37c2a2263146e505d2147a"
     assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
 
 
@@ -750,5 +793,4 @@ def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers)
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "4b38cb4ce35d4503603a44e49c7e34b4"
-
+    assert sb_helpers.string2hash(out + err) == "bc7610d5373db0b0fd9835410a182f10"

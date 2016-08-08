@@ -540,12 +540,7 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
 
 
 def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
-    # ToDo Check that this works for other versions of RAxML and PhyML (probably implement something similar to the
-    # unit tests for BLAST in SeqBuddy)
-    # ToDo: Sort out a better way of handling the many names of RAxML (e.g., raxmlHPC)
     # ToDo: Break the function up for each program being wrapped. There's WAY too much going on here...
-    # ToDo: Figure out why multitree raxml is failing to un-hash
-    # ToDo: Handle temp files for multitree runs
     """
     Calls tree building tools to generate trees
     :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
@@ -1252,9 +1247,19 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
 
     # Generate Tree
     if in_args.generate_tree:
-        in_args.generate_tree = in_args.generate_tree[0]
+        args = in_args.generate_tree[0]
+        if not args:
+            for tool in ['raxml', 'phyml', 'fasttree']:
+                if shutil.which(tool):
+                    args = [tool]
+                    break
+        if not args:
+            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference on your system."),
+                         "generate_alignment")
+
         alignbuddy = []
         align_set = None
+
         out_format = None if not in_args.out_format else str(in_args.out_format)
         in_args.out_format = None if not in_args.out_format else "phylipsr"
 
@@ -1270,39 +1275,15 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
         else:
             alignbuddy = Alb.AlignBuddy(alignbuddy, in_args.in_format, in_args.out_format)
 
-        # Glean the argument order being passed in
-        phylo_program = None
+        params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
 
-        for tool in PHYLO_INFERENCE_TOOLS:
-            breakout = False
-            while True:
-                if breakout:
-                    break
-                breakout = True
-                for arg in in_args.generate_tree:
-                    if tool == arg.lower():
-                        phylo_program = tool
-                        del in_args.generate_tree[in_args.generate_tree.index(arg)]
-                        breakout = False
-                        break
-
-        if not phylo_program:
-            for tool in PHYLO_INFERENCE_TOOLS:
-                if shutil.which(tool):
-                    phylo_program = tool
-                    break
-
-        if not phylo_program:
-            _raise_error(AttributeError("A valid phylogenetic inference program was not detected."), "generate_tree")
-
-        params = None if not in_args.generate_tree else in_args.generate_tree[0]
         generated_trees = None
         try:
-            generated_trees = generate_tree(alignbuddy, phylo_program, params, in_args.keep_temp, quiet=in_args.quiet)
+            generated_trees = generate_tree(alignbuddy, args[0], params, in_args.keep_temp, quiet=in_args.quiet)
         except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as e:
             _raise_error(e, "generate_tree")
         except FileNotFoundError as e:
-            _raise_error(e, "generate_tree", "Error: {0} failed to generate a tree.".format(phylo_program))
+            _raise_error(e, "generate_tree", "Error: {0} failed to generate a tree.".format(args[0]))
 
         if in_args.out_format:
             generated_trees.out_format = out_format
