@@ -7,9 +7,11 @@ source:
   url: https://pypi.python.org/packages/source/i/buddysuite/buddysuite-1.2.tar.gz
   md5:
 
+
 build:
   number: 0
   skip: False
+  preserve_egg_dir: True
 
 requirements:
   build:
@@ -25,5 +27,5 @@ test:
 about:
   home: https://github.com/biologyguy/buddysuite
   license: GPLv3
+  license_file: ../LICENSE.txt
   summary: 'A python toolkit for working with biological data.'
-  preserve_egg_dir: True
