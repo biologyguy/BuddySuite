@@ -1,0 +1,29 @@
+package:
+  name: buddysuite
+  version: "1.2"
+
+source:
+  fn: buddysuite-1.2.tar.gz
+  url: https://pypi.python.org/packages/source/i/buddysuite/buddysuite-1.2.tar.gz
+  md5:
+
+build:
+  number: 0
+  skip: False
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+
+test:
+  imports:
+    - buddysuite
+
+about:
+  home: https://github.com/biologyguy/buddysuite
+  license: GPLv3
+  summary: 'A python toolkit for working with biological data.'
+  preserve_egg_dir: True
