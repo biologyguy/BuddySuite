@@ -29,6 +29,7 @@ import os
 import buddysuite.buddy_resources as br
 from datetime import date
 from hashlib import md5
+from subprocess import run
 import re
 
 if __name__ == '__main__':
@@ -40,6 +41,7 @@ if __name__ == '__main__':
     parser.add_argument("report_folder", help="", action="store")
     parser.add_argument("-e", "--errors", help="", action="store_true")
     parser.add_argument("-u", "--usage", help="Specify location of usage file", action="store")
+    parser.add_argument("-c", "--coverage", help="", action="store")
 
     in_args = parser.parse_args()
 
@@ -112,4 +114,11 @@ if __name__ == '__main__':
             except OSError as e:
                 sys.stderr("Failed to send usage report:\n%s\n" % e)
 
+        sys.exit()
+
+    if in_args.coverage:
+        if os.path.exists(".coverage"):
+            run("coveralls", shell=True)
+        else:
+            raise FileNotFoundError("No coverage file found.")
         sys.exit()

@@ -21,7 +21,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     phyml \
     clustalo \
-    clustalw;
+    clustalw \
+    ftp;
 
 # set up a docker user and allow it to sudo
 RUN useradd -m docker && \
