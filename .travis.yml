@@ -9,7 +9,6 @@ install:
 #  - docker build -t docker-build:latest docker-build
   - sudo apt-get update -qq
   - sudo apt-get install -qq tar python3 python3-pyqt4 bzip2 build-essential phyml clustalo clustalw
-  - pip install python-coveralls
   - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
   - bash ~/miniconda.sh -b -p /home/travis/miniconda
   - /home/travis/miniconda/bin/conda config --set always_yes yes --set changeps1 no
@@ -20,6 +19,7 @@ install:
   - /home/travis/miniconda/bin/conda install dill scipy numpy biopython six pyqt fasttree raxml mafft prank muscle blast
   - /home/travis/miniconda/bin/pip install --upgrade
   - /home/travis/miniconda/bin/pip install py pytest pytest-xdist pytest-cov pytest-colordots ete3 dendropy
+  - /home/travis/miniconda/bin/pip install python-coveralls
   - wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/travis/pagan.tgz
   - tar -xzf /home/travis/pagan.tgz -C /home/travis
   - ln -s /home/travis/pagan/bin/pagan /home/travis/miniconda/bin/pagan
@@ -29,7 +29,7 @@ install:
 # and now run the image
 script:
 #  - docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
-  - source test.sh
+  - source biologyguy/BuddySuite/test.sh
 after_success:
 #  - docker cp $(docker ps -aq):/home/docker/.coverage ./
   - coveralls
