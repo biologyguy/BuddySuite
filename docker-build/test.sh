@@ -54,13 +54,4 @@ TEST_SCRIPTS+='test_pb_ui.py '
 TEST_SCRIPTS+='test_pb_3rd_party.py '
 py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider --cov --cov-append --cov-report=
 
-HOST=rf-cloning.org
-USER=buddysuite
-PASS=seqbuddy
-ftp -n -v $HOST << EOT
-ascii
-user $USER $PASS
-prompt
-mput .coverage
-bye
-EOT
+mv .coverage /home/docker/

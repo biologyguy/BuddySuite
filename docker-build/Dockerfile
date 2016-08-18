@@ -21,8 +21,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     phyml \
     clustalo \
-    clustalw \
-    ftp;
+    clustalw;
 
 # set up a docker user and allow it to sudo
 RUN useradd -m docker && \
@@ -65,7 +64,8 @@ RUN /home/docker/miniconda/bin/pip install \
     pytest-cov \
     pytest-colordots \
     ete3 \
-    dendropy;
+    dendropy \
+    python-coveralls;
 
 
 # Get a few funny programs not covered by any package managers

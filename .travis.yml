@@ -9,3 +9,6 @@ install:
 # and now run the image
 script:
   - docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
+after_success:
+  - docker cp $(docker ps -aq):/home/docker/.coverage ./
+  - coveralls
