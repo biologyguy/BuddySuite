@@ -26,8 +26,8 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/buddy_resources.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy/
-cp /home/travis/build/biologyguy/BuddySuite/buddysuite/AlignBuddy.py ./
 
 #### AlignBuddy
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy
@@ -40,8 +40,8 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/AlignBuddy.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy/
-cp /home/travis/build/biologyguy/BuddySuite/buddysuite/DatabaseBuddy.py ./
 
 #### DatabaseBuddy
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy
@@ -53,8 +53,8 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/DatabaseBuddy.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqbuddy/
-cp /home/travis/build/biologyguy/BuddySuite/buddysuite/SeqBuddy.py ./
 
 #### SeqBuddy
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqbuddy
@@ -67,8 +67,8 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/SeqBuddy.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phylobuddy/
-cp /home/travis/build/biologyguy/BuddySuite/buddysuite/PhyloBuddy.py ./
 
 #### PhyloBuddy
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phylobuddy
@@ -81,5 +81,9 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/PhyloBuddy.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/
 cd /home/travis/build/biologyguy/BuddySuite
+coveralls
+
+exit $FAILURE
