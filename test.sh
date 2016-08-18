@@ -11,7 +11,7 @@ find . -name "__pycache__" -type d | xargs rm -r || echo "No pycache detected"
 # Disable py.test cacheprovider because it requires r/w access to the test directory
 #### Pre-tests
 TEST_SCRIPTS='test_fixtures.py '
-py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider --cov --cov-report= --cov-config ../../.coveragerc
+py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider --cov --cov-report= --cov-config ../.coveragerc
 if [ $? -ne 0 ]
 then
     FAILURE=1
