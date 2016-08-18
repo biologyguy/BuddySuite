@@ -63,7 +63,7 @@ def test_raxml_multiple_searches(alb_resources, pb_helpers):
 # ######### PhyML ######### #
 phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
 phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
-if phyml_version not in ["20120412", "20160207", "3.2.20160701"]:
+if phyml_version not in ["20120412", "20160207", "3.2.20160701", "20111216"]:
     raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 

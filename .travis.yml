@@ -23,4 +23,7 @@ install:
   - sudo ln -s /home/travis/miniconda/bin/FastTree /usr/bin/fasttree
 script:
   - source test.sh
+on_success:
+  - coveralls
+on_failure:
   - coveralls
