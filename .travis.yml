@@ -29,7 +29,7 @@ install:
 # and now run the image
 script:
 #  - docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
-  - source biologyguy/BuddySuite/test.sh
+  - source /home/travis/biologyguy/BuddySuite/test.sh
 after_success:
 #  - docker cp $(docker ps -aq):/home/docker/.coverage ./
   - coveralls
