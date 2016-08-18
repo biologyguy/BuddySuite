@@ -199,7 +199,7 @@ def test_clustalomega_outputs3(sb_resources, alb_helpers):
     # STOCKHOLM
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=stockholm')
-    assert alb_helpers.align2hash(tester) in ['4c24975c033abcf15911a61cb9663a97', '75ec68313368dac249b40fe63b26777e']
+    assert alb_helpers.align2hash(tester) in ['4c24975c033abcf15911a61cb9663a97', 'c115d474a16c23ca4219fa3d2fc9f154']
 
 
 def test_clustalomega_multi_param(sb_resources, alb_helpers):
