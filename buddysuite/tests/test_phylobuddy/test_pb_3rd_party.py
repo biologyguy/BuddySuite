@@ -73,7 +73,8 @@ def test_phyml_dna(alb_resources, pb_helpers):
     tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
     assert pb_helpers.phylo2hash(tester) in ['b61e75e4706d35e92f2208d438f52771',
                                              'b0bdb3f5bf1fb2e44bef3c16f80c38f2',
-                                             'b9d3f11e332c3589110322e939aa41cc'], print(tester)
+                                             'b9d3f11e332c3589110322e939aa41cc',
+                                             '754c38fab99c01c68a68c0a59248d242'], print(tester)
 
 
 def test_phyml_pep(alb_resources, pb_helpers):
@@ -82,7 +83,8 @@ def test_phyml_pep(alb_resources, pb_helpers):
     tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
     assert pb_helpers.phylo2hash(tester) in ['7caa5c641fa83085c2980efca875112a',
                                              '2bf0a204b2de7bc5132aa7073ecfb011',
-                                             '981d16e8f02989a8642095016c88af90'], print(tester)
+                                             '981d16e8f02989a8642095016c88af90',
+                                             'd8ee3631002b6603d08272c2b44fd21c'], print(tester)
 
 
 # ######### FastTree ######### #

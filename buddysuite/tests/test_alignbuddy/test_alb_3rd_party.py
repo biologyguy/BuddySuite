@@ -156,7 +156,7 @@ def test_clustalw_multi_param(sb_resources, alb_helpers):
 # ##########   CLUSTAL Omega   ########## #
 clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
 clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True, stdout=PIPE).communicate()[0].decode()
-if clustalo_version not in ["1.2.2"]:
+if clustalo_version not in ["1.2.2", "1.0.3"]:
     raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
 
 def test_clustalomega_inputs1(sb_resources, alb_helpers):
