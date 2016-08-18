@@ -83,5 +83,3 @@ then
 fi
 mv .coverage /home/travis/build/biologyguy/BuddySuite/
 cd /home/travis/build/biologyguy/BuddySuite
-
-exit $FAILURE

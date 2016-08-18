@@ -24,3 +24,4 @@ install:
 script:
   - source test.sh
   - coveralls
+  - exit $FAILURE
