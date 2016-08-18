@@ -1,10 +1,14 @@
 sudo: required
+language: python
+python:
+  - "3.5"
 services:
   - docker
 
 # install all of the required software into a docker image
 install:
   - docker build -t docker-build:latest docker-build
+  - pip install python-coveralls
 
 # and now run the image
 script:

@@ -64,8 +64,7 @@ RUN /home/docker/miniconda/bin/pip install \
     pytest-cov \
     pytest-colordots \
     ete3 \
-    dendropy \
-    python-coveralls;
+    dendropy;
 
 
 # Get a few funny programs not covered by any package managers
