@@ -2110,7 +2110,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         for path in glob.glob(pattern):
             path = self._append_slash_if_dir(path)
             completions.append(path.replace(fixed, "", 1))
-        return completions
+        return sorted(completions)
 
     def complete_trash(self, *args):
         text = args[0]
@@ -2138,7 +2138,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         for path in glob.glob(pattern):
             path = self._append_slash_if_dir(path)
             completions.append(path.replace(fixed, "", 1))
-        return completions
+        return sorted(completions)
 
     def complete_show(self, *args):
         text = args[0]
@@ -2162,7 +2162,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         for path in glob.glob(pattern):
             path = self._append_slash_if_dir(path)
             completions.append(path.replace(fixed, "", 1))
-        return completions
+        return sorted(completions)
 
     def help_bash(self):
         _stdout('''\
