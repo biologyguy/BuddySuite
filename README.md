@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=develop)](https://travis-ci.org/biologyguy/BuddySuite)
+[![Coverage Status](https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=develop)](https://coveralls.io/github/biologyguy/BuddySuite?branch=develop)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
