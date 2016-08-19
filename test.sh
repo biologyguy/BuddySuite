@@ -86,4 +86,4 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/
 cd /home/travis/build/biologyguy/BuddySuite
 coveralls
 
-exit $FAILURE
+exit ${FAILURE}

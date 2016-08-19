@@ -21,7 +21,7 @@ The BuddySuite modules are designed to be 'one-stop-shop' command line tools for
  existing mostly as a 'live shell' for downloading sequences from GenBank, ENSEMBL, and UniProt.
 
 Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
- and Mac OS X, however, so it is unclear how well the suite will work within Windows.
+ and Mac OS X, however, so it is unclear how well the suite will work within Windows. 
  
 If you're new to the command line, or simply want to get a better feel for how BuddySuite works, check out the [Beginners Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide).
 
@@ -113,30 +113,15 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
  and instructions.
 
 ## Unit tests
-We are striving for high unit test coverage with py.test. There are two ways to run the unit tests, each of which
- should be executed before making a pull request. The first method is faster and will be used more frequently:
+We are striving for high unit test coverage with py.test. To run the tests:
 
     $: cd BuddySuite/buddysuite
     $: bash run_tests.sh
-
-The second method should be run just before submitting a pull request, and uses
- [Docker](https://docs.docker.com/engine/installation/) to build a clean Linux environment with all dependencies. 
- The tests are then run in a container that mimics the environment used by Travis-CI to monitor the state of the BuddySuite
- repository:
-    
-    $: cd BuddySuite
-    $: docker build -t docker-build:latest docker-build
-    $: docker run -v $PWD:/home/docker/BuddySuite docker-build:latest
- 
- Or just run the provided shell script:
- 
-    $: ./run_docker.sh
 
 ## Citation
 There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
-
 
 ## Contact
 Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
