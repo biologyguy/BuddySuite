@@ -1,5 +1,4 @@
 [run]
-omit = tests/*
-       tests/*/*
-       home/travis/miniconda/bin/conda
-       
+omit = /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*
+       /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*/*
+       /home/travis/miniconda/bin/conda
