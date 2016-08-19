@@ -1,4 +1,5 @@
 [run]
 omit = /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*
        /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*/*
+       /home/travis/build/biologyguy/BuddySuite/buddysuite/__init__.py
        /home/travis/miniconda/bin/conda
