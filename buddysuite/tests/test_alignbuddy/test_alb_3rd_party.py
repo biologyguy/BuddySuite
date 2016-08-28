@@ -157,8 +157,9 @@ def test_clustalw_multi_param(sb_resources, alb_helpers):
 clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
 clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True,
                          stdout=PIPE).communicate()[0].decode().strip()
-if clustalo_version not in ["1.2.2", "1.0.3"]:
+if clustalo_version not in ["1.2.2", "1.2.0", "1.0.3"]:
     raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
+
 
 def test_clustalomega_inputs1(sb_resources, alb_helpers):
     # FASTA
@@ -266,7 +267,7 @@ def test_generate_alignments_genbank(sb_resources, alb_helpers):
     assert alb_helpers.align2hash(tester) == "f894ff6060ec5c2904f48ba0c5cdc8fd"
 
 
-def test_generate_alignments_edges1(capsys, sb_resources):
+def test_generate_alignments_edges1(sb_resources):
     tester = sb_resources.get_one("d f")
 
     with pytest.raises(AttributeError) as e:
