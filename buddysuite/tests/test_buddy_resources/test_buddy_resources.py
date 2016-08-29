@@ -64,11 +64,11 @@ def test_runtime():
     with open(temp_file_path, "w") as temp_file:
         timer = br.RunTime('x ', ' y', temp_file)
         timer.start()
-        sleep(2)
+        sleep(3)
         timer.end()
     with open(temp_file_path, "r") as temp_file:
         out = temp_file.read()
-        assert re.search('\n\nx [0-9]+ sec y\n         \nx [0-9]+ sec y\n         \nx [0-9]+ sec y\n',
+        assert re.search('\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n',
                          out, re.MULTILINE)
 
 

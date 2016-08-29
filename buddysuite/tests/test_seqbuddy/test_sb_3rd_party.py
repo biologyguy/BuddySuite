@@ -28,6 +28,7 @@ def test_bl2seq(sb_resources, sb_helpers):
                                                    '8280eb4010208db891020a96ad783edb']
 
     result = Sb.bl2seq(sb_resources.get_one("p f"))
+    # ToDo: there is an issue with blast 2.3 or higher with inconsistent output here. Need to fix it...
     assert sb_helpers.string2hash(str(result)) in ['248d4c53d7947c4c8dfd7c415bfbfbf2',
                                                    '33b393de45d0d628a217bf9107ec9719',
                                                    'ca7105bf6646c1ab3f07efeea57a69df']

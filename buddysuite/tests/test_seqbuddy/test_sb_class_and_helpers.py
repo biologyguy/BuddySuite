@@ -208,7 +208,7 @@ def test_check_blast_bin_download(monkeypatch, capsys):
 def test_feature_rc(sb_resources, sb_helpers):
     tester = sb_resources.get_one("d g")
     seq1 = tester.records[0]
-    hashed = ["dc71a33b64a766da8653c19f22fc4caa", "9ab8296fb3443198674d90abe3311ba6",
+    hashed = ["51eb205f066387e146fb7a3ce5b122c1", "9ab8296fb3443198674d90abe3311ba6",
               "10018d1b15c7f76a6333ac3bf96d2d07", "273463b9eace12d2eeadbf272692d73e",
               "c452d66d13120cd6eb5f041b7c37dd27", "1811b0695dba1fc3fe431a6ee00ef359"]
     for feature in zip(seq1.features, hashed):

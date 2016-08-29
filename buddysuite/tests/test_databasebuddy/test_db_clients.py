@@ -547,7 +547,7 @@ def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsy
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert sb_helpers.string2hash(out) == "b431f4f8a05f5a0c14de2d0826859bca"
+    assert sb_helpers.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
 
     # Error
     monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
