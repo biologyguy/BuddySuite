@@ -46,7 +46,9 @@ import string
 import zipfile
 import shutil
 import time
-from urllib import request, error
+import urllib.parse
+import urllib.request
+import urllib.error
 from copy import deepcopy
 from random import sample, randint, random, Random
 from math import floor, ceil, log
@@ -72,6 +74,7 @@ from Bio import AlignIO
 
 
 # ##################################################### WISH LIST #################################################### #
+'''
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
     :param matrix:
@@ -142,7 +145,7 @@ def incremental_rename(query, replace):
     """
     x = (query, replace)
     return x
-
+'''
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
 # - Add support for selecting individual sequences to modify (as a global ability for any tool)
 # - Add FASTQ support... More generally, support letter annotation mods
@@ -1821,7 +1824,7 @@ def extract_regions(seqbuddy, positions):
                         - Ranges: "40:75,89:100,432:-45"
                         - mth of nth: "1/5,3/5"
     """
-    positions = re.sub("\s", "", positions).split(",")
+    positions = re.sub("\s|[,/-]$|^[,/]", "", positions).split(",")
 
     def process_single(num, max_len):
         if num == 0:
@@ -1914,7 +1917,7 @@ def extract_regions(seqbuddy, positions):
 
         new_records.append(new_seq)
 
-    seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format)
+    seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format, alpha=seqbuddy.alpha)
     return seqbuddy
 
 
@@ -2896,9 +2899,6 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
     :param quiet: Suppress all stderr
     :return:
     """
-    import urllib.parse
-    import urllib.request
-    import urllib.error
     from multiprocessing import Lock
     import platform
 
@@ -3381,7 +3381,6 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         from suds.client import Client
     except ImportError:
         raise ImportError("Please install the 'suds' package to run transmembrane_domains:\n\n$ pip install suds-py3")
-    import zipfile
     import urllib.request
 
     def dl_progress(count, block_size, total_size):

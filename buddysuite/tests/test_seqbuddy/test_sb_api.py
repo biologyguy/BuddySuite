@@ -530,12 +530,87 @@ hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '25ad9670e8a6bac7
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_extract_regions(key, next_hash, sb_resources, sb_helpers):
+def test_extract_regions_multiformat(key, next_hash, sb_resources, sb_helpers):
     tester = Sb.extract_regions(sb_resources.get_one(key), "50:300")
     assert sb_helpers.seqs2hash(tester) == next_hash
 
     tester = Sb.extract_regions(sb_resources.get_one(key), "300:50")
     assert sb_helpers.seqs2hash(tester) == next_hash
+
+
+def test_extract_regions_singlets(sb_resources, sb_helpers):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "0")
+    assert sb_helpers.seqs2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1")
+    assert sb_helpers.seqs2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10000000")
+    assert sb_helpers.seqs2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), ",1/")
+    assert sb_helpers.seqs2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1000000")
+    assert sb_helpers.seqs2hash(tester) == "998b272614ceb172ea57137b66d2669d"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "2,5,9,-5")
+    assert sb_helpers.seqs2hash(tester) == "8540d5c2f6d7ef050886f1192da1396f"
+
+
+def test_extract_regions_ranges(sb_resources, sb_helpers):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "0:10")
+    assert sb_helpers.seqs2hash(tester) == "083702438b2577c414eba3c812443249"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10")
+    assert sb_helpers.seqs2hash(tester) == "083702438b2577c414eba3c812443249"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "10:1")
+    assert sb_helpers.seqs2hash(tester) == "083702438b2577c414eba3c812443249"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), ":10")
+    assert sb_helpers.seqs2hash(tester) == "083702438b2577c414eba3c812443249"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10:")
+    assert sb_helpers.seqs2hash(tester) == "e3f2b1995d47a08429767c559f41691c"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "40:75,89:100,432:-45")
+    assert sb_helpers.seqs2hash(tester) == "6059e115128c8f211f7e41c2745b5d34"
+
+
+def test_extract_regions_mth_of_nth(sb_resources, sb_helpers):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/50")
+    assert sb_helpers.seqs2hash(tester) == "869e2e07dfeae4e174aa9bb4c135ff25"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-1/50")
+    assert sb_helpers.seqs2hash(tester) == "0a893feff83f6dc2f1f105c01e162409"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/-50")
+    assert sb_helpers.seqs2hash(tester) == "4e1f1c8c6caacac7e65dbf152807baa1"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/1")
+    assert sb_helpers.seqs2hash(tester) == "87e7701ff6ab2da7b6cd46e5cc48e0a3"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/25")
+    assert sb_helpers.seqs2hash(tester) == "20239fbef24e40b903a75f941b43b9c8"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:5/50")
+    assert sb_helpers.seqs2hash(tester) == "cdb538506a2db396b8d67d2864f8109f"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-5:/50")
+    assert sb_helpers.seqs2hash(tester) == "368dac090406e6e0fcf6d025f5c0e069"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), ":5/50")
+    assert sb_helpers.seqs2hash(tester) == "cdb538506a2db396b8d67d2864f8109f"
+
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10,1/50,-1")
+    assert sb_helpers.seqs2hash(tester) == "9204dd879fa59cf35a253fb0ff82758c"
+
+
+def test_extract_regions_edges(sb_resources):
+    with pytest.raises(ValueError) as err:
+        Sb.extract_regions(sb_resources.get_one("p g"), "foo")
+    assert "Unable to decode the positions string 'foo'" in str(err)
 
 
 # #####################  '-fcpg', '--find_CpG' ###################### ##
