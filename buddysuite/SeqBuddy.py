@@ -53,6 +53,7 @@ from copy import deepcopy
 from random import sample, randint, random, Random
 from math import floor, ceil, log
 from subprocess import Popen, PIPE
+from multiprocessing import Lock
 from shutil import which
 from hashlib import md5
 from io import StringIO, TextIOWrapper
@@ -2891,7 +2892,7 @@ def order_ids_randomly(seqbuddy):
     return seqbuddy
 
 
-def prosite_scan(seqbuddy, common_match=True, quiet=False):
+class PrositeScan(object):
     """
     Search for PROSITE scan motifs in sequences (via REST service)
     :param seqbuddy: Input seqbuddy object
@@ -2899,29 +2900,32 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
     :param quiet: Suppress all stderr
     :return:
     """
-    from multiprocessing import Lock
-    import platform
+    def __init__(self, seqbuddy, common_match=True, quiet=False):
+        import platform
 
-    base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
-    check_interval = 10
-    urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
-    client_revision = '$Revision: ???? $'
-    client_version = '1.0'
-    if len(client_revision) > 11:
-        client_version = client_revision[11:-2]
-    # Prepend client specific agent string.
-    user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
-        client_version, os.path.basename(__file__),
-        platform.python_version(), platform.system(),
-        urllib_agent
-    )
-    http_headers = {'User-Agent': user_agent}
-    user_deets = br.config_values()
+        self.seqbuddy = seqbuddy
+        self.common_match = common_match
+        self.quiet = quiet
+        self.base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
+        self.check_interval = 10
+        urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
+        client_revision = '$Revision: ???? $'
+        client_version = '1.0'
+        if len(client_revision) > 11:
+            client_version = client_revision[11:-2]
+        # Prepend client specific agent string.
+        user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
+            client_version, os.path.basename(__file__),
+            platform.python_version(), platform.system(),
+            urllib_agent
+        )
+        self.http_headers = {'User-Agent': user_agent}
+        self.user_deets = br.config_values()
 
-    def rest_request(url, request_data=None):
+    def _rest_request(self, url, request_data=None):
         try:
             # Set the User-agent.
-            req = urllib.request.Request(url, None, http_headers)
+            req = urllib.request.Request(url, None, self.http_headers)
             if request_data:
                 # Make the submission (HTTP POST).
                 req_h = urllib.request.urlopen(req, request_data)
@@ -2935,30 +2939,33 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
             raise ConnectionError(e.file.read().decode())
         return result
 
-    def run_prosite(_rec, args):
-        out_file_path = args[0]
-        email = "buddysuite@nih.gov" if not user_deets["email"] or not re.search(r".+@.+\..+", user_deets["email"]) \
-            else user_deets["email"]
-        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': common_match,
+    def _run_prosite(self, _rec, args):
+        out_file_path, lock = args
+        if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
+            email = "buddysuite@nih.gov"
+        else:
+            email = self.user_deets["email"]
+
+        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': self.common_match,
                   'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
         # Submit the job
         request_data = urllib.parse.urlencode(params)
         request_data = request_data.encode("utf-8")
-        job_id = rest_request('%s/run/' % base_url, request_data)
+        job_id = self._rest_request('%s/run/' % self.base_url, request_data)
         # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
         result = 'PENDING'
         while result == 'RUNNING' or result == 'PENDING':
-            result = rest_request('%s/status/%s' % (base_url, job_id))
+            result = self._rest_request('%s/status/%s' % (self.base_url, job_id))
             if result == 'RUNNING' or result == 'PENDING':
-                time.sleep(check_interval)
+                time.sleep(self.check_interval)
 
-        result = rest_request('%s/result/%s/out' % (base_url, job_id))
+        result = self._rest_request('%s/result/%s/out' % (self.base_url, job_id))
         feature_list = []
         for feature in result.split(">")[1:]:
             feat_type = re.match('EMBOSS_001 : (.*)', feature)
             feat_type = feat_type.groups(0)[0].split(" ")[1]
             feat_type = feat_type[:15]  # Need to limit the feature length, because gb format breaks otherwise
-            spans = re.findall('([0-9]+ \- [0-9]+)', feature)
+            spans = re.findall('([0-9]+ - [0-9]+)', feature)
             for span in spans:
                 span = span.split(" ")
                 feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
@@ -2973,44 +2980,46 @@ def prosite_scan(seqbuddy, common_match=True, quiet=False):
                 out_file.write("%s\n" % str(temp_seq))
         return
 
-    lock = Lock()
+    def run(self):
+        self._rest_request(self.base_url)  # Confirm internet connection prior to multi-core loop
 
-    temp_file = br.TempFile()
-    hash_ids(seqbuddy)
-    clean_seq(seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
-    seqbuddy_copy = make_copy(seqbuddy)
-    clean_seq(seqbuddy)  # Clean again to strip * characters (added back in later) @TODO clean seq after translating
-    if seqbuddy.alpha != IUPAC.protein:
-        translate_cds(seqbuddy)
+        temp_file = br.TempFile()
+        hash_ids(self.seqbuddy)
+        clean_seq(self.seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
+        seqbuddy_copy = make_copy(self.seqbuddy)
+        clean_seq(self.seqbuddy)  # Clean again to strip *'s (added back in later) @TODO clean seq after translating
+        if self.seqbuddy.alpha != IUPAC.protein:
+            translate_cds(self.seqbuddy)
 
-    br.run_multicore_function(seqbuddy.records, run_prosite, [temp_file.path], out_type=sys.stderr, quiet=quiet)
-    seqbuddy = SeqBuddy(temp_file.path)
+        br.run_multicore_function(self.seqbuddy.records, self._run_prosite,
+                                  [temp_file.path, Lock()], out_type=sys.stderr, quiet=self.quiet)
+        self.seqbuddy = SeqBuddy(temp_file.path)
 
-    new_records = []
+        new_records = []
 
-    for rec in seqbuddy_copy.records:
-        for indx, rec2 in enumerate(seqbuddy.records):
-            if rec.id == rec2.id:
-                new_records.append(rec2)
-                del seqbuddy.records[indx]
-                break
+        for rec in seqbuddy_copy.records:
+            for indx, rec2 in enumerate(self.seqbuddy.records):
+                if rec.id == rec2.id:
+                    new_records.append(rec2)
+                    del self.seqbuddy.records[indx]
+                    break
 
-    seqbuddy.records = new_records
+        self.seqbuddy.records = new_records
 
-    find_pattern(seqbuddy_copy, "\*", include_feature=False)
-    for indx, rec in enumerate(seqbuddy_copy.records):
-        for match in rec.buddy_data['find_patterns']["\*"]:
-            rec_2 = seqbuddy.records[indx]
-            new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
-            rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+        find_pattern(seqbuddy_copy, "\*", include_feature=False)
+        for indx, rec in enumerate(seqbuddy_copy.records):
+            for match in rec.buddy_data['find_patterns']["\*"]:
+                rec_2 = self.seqbuddy.records[indx]
+                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+                rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
 
-    if seqbuddy_copy.alpha != IUPAC.protein:
-        seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
-    else:
-        seqbuddy = merge(seqbuddy_copy, seqbuddy)
-    seqbuddy.hash_map = seqbuddy_copy.hash_map
-    seqbuddy.reverse_hashmap()
-    return seqbuddy
+        if seqbuddy_copy.alpha != IUPAC.protein:
+            self.seqbuddy = map_features_prot2nucl(self.seqbuddy, seqbuddy_copy)
+        else:
+            self.seqbuddy = merge(seqbuddy_copy, self.seqbuddy)
+        self.seqbuddy.hash_map = seqbuddy_copy.hash_map
+        self.seqbuddy.reverse_hashmap()
+        return self.seqbuddy
 
 
 def pull_random_recs(seqbuddy, count=1):
@@ -4709,13 +4718,15 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
     # Prosite Scan
     if in_args.prosite_scan:
         try:
-            if in_args.prosite_scan[0] and in_args.prosite_scan[0].lower() == "strict":
-                seqbuddy = prosite_scan(seqbuddy, common_match=False)
+            common_match = False if in_args.prosite_scan[0] and in_args.prosite_scan[0].lower() == "strict" else True
+            ps_scan = PrositeScan(seqbuddy, common_match=common_match)
+            seqbuddy = ps_scan.run()
+        except urllib.error.URLError as err:
+            if "Errno 8" in str(err):
+                print("Unable to contact EBI, are you connected to the internet?")
+                _raise_error(err, "prosite_scan")
             else:
-                seqbuddy = prosite_scan(seqbuddy)
-        except ConnectionError as e:
-            _raise_error(e, "prosite_scan", "HTTP")
-
+                raise err
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
         _print_recs(seqbuddy)
