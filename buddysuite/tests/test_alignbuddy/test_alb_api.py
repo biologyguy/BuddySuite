@@ -307,6 +307,7 @@ def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
 
 
 def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    clustalo_bin = 'clustalo' if shutil.which('clustalo') else 'clustalomega'
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_clustalo" % alb_resources.res_path):
         raise NotADirectoryError("Unable to find mock resources")
@@ -323,7 +324,7 @@ def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
     monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
 
     monkeypatch.setattr(Alb, 'Popen', mock_popen)
-    tester = Alb.generate_msa(tester, 'clustalo')
+    tester = Alb.generate_msa(tester, clustalo_bin)
     assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
 

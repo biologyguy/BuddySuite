@@ -68,8 +68,8 @@ def test_runtime():
         timer.end()
     with open(temp_file_path, "r") as temp_file:
         out = temp_file.read()
-        print(repr(out))
-        assert out == '\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n'
+        assert re.search('\n\nx [0-9]+ sec y\n         \nx [0-9]+ sec y\n         \nx [0-9]+ sec y\n',
+                         out, re.MULTILINE)
 
 
 def test_dynamicprint_init():
