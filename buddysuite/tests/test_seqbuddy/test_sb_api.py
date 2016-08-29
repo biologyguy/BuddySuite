@@ -6,6 +6,8 @@ import pytest
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from unittest import mock
 import os
+import MyFuncs
+import urllib
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -1085,6 +1087,110 @@ def test_order_ids_randomly2(sb_resources, sb_helpers):
 
     tester = Sb.SeqBuddy(tester.records * 3)
     assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(Sb.order_ids_randomly(tester))
+
+
+# #####################  '-psc', '--prosite_scan' ###################### ##
+def test_prosite_scan_init(sb_resources):
+    seqbuddy = sb_resources.get_one("d f")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    assert hash(ps_scan.seqbuddy) == hash(seqbuddy)
+    assert ps_scan.common_match
+    assert not ps_scan.quiet
+    assert ps_scan.base_url == 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
+    assert ps_scan.check_interval == 10
+    assert ps_scan.http_headers == {'User-Agent':
+                                    'EBI-Sample-Client/???? (SeqBuddy.py; Python 3.5.2; Darwin) Python-urllib/3.5'}
+    for key in ['data_dir', 'diagnostics', 'email', 'user_hash']:
+        assert key in ps_scan.user_deets
+
+
+def test_prosite_scan_rest_request(sb_resources, monkeypatch):
+    def mock_urlopen(req, request_data=None):
+        tmp_file = MyFuncs.TempFile(byte_mode=True)
+        file_text = "Hello world\n%s\n%s" % (req.full_url, request_data)
+        tmp_file.write(file_text.encode())
+        return tmp_file.get_handle("r")
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    seqbuddy = sb_resources.get_one("d f")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    assert ps_scan._rest_request("http://www.foo.bar", {"test1": 1}) == "Hello world\nhttp://www.foo.bar\n{'test1': 1}"
+    assert ps_scan._rest_request("http://www.foo.bar") == "Hello world\nhttp://www.foo.bar\nNone"
+
+
+def test_prosite_scan_mc_run_prosite(sb_resources, sb_helpers, monkeypatch):
+    def status():
+        for next_status in ["RUNNING", "PENDING", "FINISHED"]:
+            yield next_status
+    status_obj = status()
+
+    def mock_urlopen(req, request_data=None):
+        tmp_file = MyFuncs.TempFile(byte_mode=True)
+        if "run" in req.full_url:
+            file_text = "job_1"
+        elif "status" in req.full_url:
+            file_text = next(status_obj)
+        elif "result" in req.full_url:
+            file_text = """\
+>EMBOSS_001 : PS00001 ASN_GLYCOSYLATION N-glycosylation site.
+    329 - 332  NNTA
+>EMBOSS_001 : PS00004 CAMP_PHOSPHO_SITE cAMP- and cGMP-dependent protein kinase phosphorylation site.
+    111 - 114  RRgS
+    137 - 140  KKmT
+>EMBOSS_001 : PS00005 PKC_PHOSPHO_SITE Protein kinase C phosphorylation site.
+        4 - 6  SeK
+      56 - 58  TvR
+>EMBOSS_001 : PS00006 CK2_PHOSPHO_SITE Casein kinase II phosphorylation site.
+    197 - 200  SigD
+    241 - 244  SgiE
+>EMBOSS_001 : PS00008 MYRISTYL N-myristoylation site.
+      62 - 67  GSviSC
+      74 - 79  GStfAE
+>EMBOSS_001 : PS51013 PANNEXIN Pannexin family profile.
+     28 - 353  WGITIDDGWDQLNRSFMFGLLVVMGTTVTVRQYTGSVISCDGFKKFGS---TFAEDYCWT L=0
+ QGQYTVLEGYDQP-------NQNIPCPVPRPPSRRGSTLNTMSQTQGFLHNPV--ESDQE
+ LKKMTDKAA------TWLFYKFDLYMSEQSLLASLTNKHG-------LGLSVVFVKILYA
+ AVSFGCFLLTADMFSiGDFKTYGSEWINKLKLeDNLATEEKDKLFPKMVACEV-KRWGAS
+ GIEEEQGMCVLAPNVINQYLFLILWFCLVFVMFCNIVSIFASLIKLLFTYG-----SYRR
+ LLSTAFLRDDSAIKHMYFNVGSSGRLILHVLANNTAPRVFEDILLTLAPKLIQRKLR
+"""
+        else:
+            raise RuntimeError("This shouldn't ever happen")
+
+        tmp_file.write(file_text.encode())
+        return tmp_file.get_handle("r")
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    out_file = MyFuncs.TempFile()
+    seqbuddy = sb_resources.get_one("d f")
+    Sb.pull_recs(seqbuddy, "Mle-Panxα10B")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
+    assert sb_helpers.string2hash(out_file.read()) == "7ced43edaee481ac149d6ece152c4621"
+
+
+def test_prosite_scan_run(sb_resources, sb_helpers, monkeypatch):
+    def mock_mc_run_prosite(self, _rec, args):
+        out_file_path, lock = args
+        temp_seq = Sb.SeqBuddy([_rec], out_format="gb")
+        Sb.annotate(temp_seq, "Foo", "1-100")
+        with lock:
+            with open(out_file_path, "a") as out_file:
+                out_file.write("%s\n" % str(temp_seq))
+
+    monkeypatch.setattr(Sb.PrositeScan, "_mc_run_prosite", mock_mc_run_prosite)
+    seqbuddy = sb_resources.get_one("d g")
+    Sb.delete_features(seqbuddy, "splice")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    seqbuddy = ps_scan.run()
+    assert sb_helpers.seqs2hash(seqbuddy) == "bc477b683784a24524b72422e04ff949"
+
+    seqbuddy = sb_resources.get_one("p g")
+    Sb.delete_features(seqbuddy, "splice")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    seqbuddy = ps_scan.run()
+    seqbuddy.write("temp.del")
+    assert sb_helpers.seqs2hash(seqbuddy) == "e8cd292ada589ddde4747bd9f9ebfb17"
 
 
 # #####################  '-prr', '--pull_random_recs' ###################### ##

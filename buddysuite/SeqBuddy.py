@@ -2923,23 +2923,19 @@ class PrositeScan(object):
         self.user_deets = br.config_values()
 
     def _rest_request(self, url, request_data=None):
-        try:
-            # Set the User-agent.
-            req = urllib.request.Request(url, None, self.http_headers)
-            if request_data:
-                # Make the submission (HTTP POST).
-                req_h = urllib.request.urlopen(req, request_data)
-            else:
-                # Make the request (HTTP GET).
-                req_h = urllib.request.urlopen(req)
-            result = req_h.read().decode("utf-8")
-            req_h.close()
-        # Errors are indicated by HTTP status codes.
-        except urllib.error.HTTPError as e:
-            raise ConnectionError(e.file.read().decode())
+        # Set the User-agent.
+        req = urllib.request.Request(url, None, self.http_headers)
+        if request_data:
+            # Make the submission (HTTP POST).
+            req_h = urllib.request.urlopen(req, request_data)
+        else:
+            # Make the request (HTTP GET).
+            req_h = urllib.request.urlopen(req)
+        result = req_h.read().decode("utf-8")
+        req_h.close()
         return result
 
-    def _run_prosite(self, _rec, args):
+    def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
         if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
             email = "buddysuite@nih.gov"
@@ -2991,12 +2987,10 @@ class PrositeScan(object):
         if self.seqbuddy.alpha != IUPAC.protein:
             translate_cds(self.seqbuddy)
 
-        br.run_multicore_function(self.seqbuddy.records, self._run_prosite,
+        br.run_multicore_function(self.seqbuddy.records, self._mc_run_prosite,
                                   [temp_file.path, Lock()], out_type=sys.stderr, quiet=self.quiet)
         self.seqbuddy = SeqBuddy(temp_file.path)
-
         new_records = []
-
         for rec in seqbuddy_copy.records:
             for indx, rec2 in enumerate(self.seqbuddy.records):
                 if rec.id == rec2.id:
@@ -3019,6 +3013,7 @@ class PrositeScan(object):
             self.seqbuddy = merge(seqbuddy_copy, self.seqbuddy)
         self.seqbuddy.hash_map = seqbuddy_copy.hash_map
         self.seqbuddy.reverse_hashmap()
+        self.seqbuddy = order_ids(self.seqbuddy)
         return self.seqbuddy
 
 
@@ -4719,7 +4714,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
     if in_args.prosite_scan:
         try:
             common_match = False if in_args.prosite_scan[0] and in_args.prosite_scan[0].lower() == "strict" else True
-            ps_scan = PrositeScan(seqbuddy, common_match=common_match)
+            ps_scan = PrositeScan(seqbuddy, common_match=common_match, quiet=in_args.quiet)
             seqbuddy = ps_scan.run()
         except urllib.error.URLError as err:
             if "Errno 8" in str(err):

@@ -81,3 +81,11 @@ def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
             with pytest.raises(SystemError) as e:
                 Sb.blast(tester, sb_odd_resources["blastp"])
             assert 'blastp not found in system path' in str(e.value)
+
+
+# #####################  '-psc', '--prosite_scan' ###################### ##
+def test_prosite_scan(sb_resources, sb_helpers):
+    seqbuddy = sb_resources.get_one("d f")
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    ps_scan.run()
+    assert sb_helpers.seqs2hash(ps_scan.seqbuddy) == "e9090efdd362d527a115049dfced42cd"
