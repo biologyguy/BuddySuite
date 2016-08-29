@@ -1124,13 +1124,12 @@ def test_prosite_scan_mc_run_prosite(sb_resources, sb_helpers, monkeypatch):
             yield next_status
     status_obj = status()
 
-    def mock_urlopen(req, request_data=None):
-        tmp_file = MyFuncs.TempFile(byte_mode=True)
-        if "run" in req.full_url:
+    def mock_rest_request(self, url, *args):
+        if "run" in url:
             file_text = "job_1"
-        elif "status" in req.full_url:
+        elif "status" in url:
             file_text = next(status_obj)
-        elif "result" in req.full_url:
+        elif "result" in url:
             file_text = """\
 >EMBOSS_001 : PS00001 ASN_GLYCOSYLATION N-glycosylation site.
     329 - 332  NNTA
@@ -1157,10 +1156,10 @@ def test_prosite_scan_mc_run_prosite(sb_resources, sb_helpers, monkeypatch):
         else:
             raise RuntimeError("This shouldn't ever happen")
 
-        tmp_file.write(file_text.encode())
-        return tmp_file.get_handle("r")
+        return file_text
 
-    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+    monkeypatch.setattr(Sb.PrositeScan, "_rest_request", mock_rest_request)
+    monkeypatch.setattr(Sb.time, "sleep", lambda _: True)
     out_file = MyFuncs.TempFile()
     seqbuddy = sb_resources.get_one("d f")
     Sb.pull_recs(seqbuddy, "Mle-Panxα10B")
