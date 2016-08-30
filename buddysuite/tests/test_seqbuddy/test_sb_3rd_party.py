@@ -10,6 +10,7 @@ from unittest import mock
 from subprocess import Popen, PIPE
 import re
 from ... import SeqBuddy as Sb
+from ... import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
@@ -86,3 +87,25 @@ def test_prosite_scan(sb_resources, sb_helpers):
     ps_scan = Sb.PrositeScan(seqbuddy)
     ps_scan.run()
     assert sb_helpers.seqs2hash(ps_scan.seqbuddy) == "e9090efdd362d527a115049dfced42cd"
+
+
+# ######################  '-tmd', '--transmembrane_domains' ###################### #
+def test_transmembrane_domains_pep(sb_resources, sb_helpers):
+    tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True)
+    tester.out_format = "gb"
+    assert sb_helpers.seqs2hash(tester) == "3d62e2548b9181574d51907d2205b36c"
+
+
+def test_transmembrane_domains_cds(sb_resources, sb_helpers):
+    tmp_dir = br.TempDir()
+    tmp_dir.subdir("topcons")
+    tester = sb_resources.get_one("d f")
+    Sb.pull_recs(tester, "Panxα[234]")
+    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % tmp_dir.path)
+    tester.out_format = "gb"
+    assert sb_helpers.seqs2hash(tester) == "479eb1c8728c959b813c97962cac545a"
+    _root, dirs, files = next(br.walklevel("%s/topcons" % tmp_dir.path))
+    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (tmp_dir.path, dirs[0])))
+    assert files

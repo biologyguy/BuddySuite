@@ -4,9 +4,14 @@
 """ tests basic functionality of AlignBuddy class """
 import pytest
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
+from Bio.Seq import Seq
 from unittest import mock
 import os
 import urllib.request
+import suds.client
+import shutil
+import time
+from collections import OrderedDict
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -1459,27 +1464,135 @@ def test_translate_edges_and_exceptions(capsys, sb_resources, sb_helpers):
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(err) == "9e2a0b4b03f54c209d3a9111792762df"
 
-"""
-# THIS NEEDS TO BE MOCKED OUT!
+
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
-@pytest.mark.internet
-def test_transmembrane_domains_pep(sb_resources, sb_helpers):
-    tester = sb_resources.get_one("p f")
-    Sb.pull_recs(tester, "Panxα[234]")
-    tester = Sb.transmembrane_domains(tester, quiet=True)
-    tester.out_format = "gb"
-    assert sb_helpers.seqs2hash(tester) == "7285d3c6d60ccb656e39d6f134d1df8b"
+def test_transmembrane_domains_pep(sb_resources, sb_helpers, monkeypatch, capsys):
+    def mock_runtimeerror(*args, **kwargs):
+        raise RuntimeError("%s %s" % (args, kwargs))
 
+    def mock_contenttooshorterror(*args, **kwargs):
+        raise urllib.error.ContentTooShortError("%s %s" % (args, kwargs), "content")
 
-@pytest.mark.internet
-def test_transmembrane_domains_cds(sb_resources, sb_helpers):
-    TEMPDIR.subdir("topcons")
-    tester = sb_resources.get_one("d f")
-    Sb.pull_recs(tester, "Panxα[234]")
-    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % TEMP_DIR.path)
-    tester.out_format = "gb"
-    assert seqs2hash(tester) == "e5c9bd89810a39090fc3326e51e1ac6a"
-    _root, dirs, files = next(br.walklevel("%s/topcons" % TEMP_DIR.path))
-    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (TEMP_DIR.path, dirs[0])))
-    assert files
-"""
+    def mock_httperror(*args, **kwargs):
+        raise urllib.error.HTTPError(url="http://fake.come", code=503, msg=args, hdrs=kwargs, fp="Bar")
+
+    class MockSudsClient(object):
+        def __init__(self):
+            self.service = MockServiceSelector()
+
+    class MockServiceSelector(object):
+        def __init__(self):
+            self.job_id_generator = self.job_id_gen()
+            self.current_job_id = next(self.job_id_generator)
+            self.result_url = "www.something.com"
+            self.numseq_str = "doesn't matter"
+            self.errinfo = "Did I fail?"
+            self.warninfo = "Also doesn't matter"
+            self.job_check = self.status()
+            self.job_statuses = ["Queued", "Running", "Finished"]
+
+        def status(self):
+            while True:
+                for next_status in self.job_statuses:
+                    yield next_status
+
+        @staticmethod
+        def job_id_gen():
+            for job_id in ["rst_MFhyxO", "rst_lE27A5"]:
+                yield job_id
+
+        def submitjob(self, *args):
+            return [[self.current_job_id, self.result_url, self.numseq_str, self.errinfo, self.warninfo]]
+
+        def checkjob(self, jobid):
+            #raise ValueError
+            return [[next(self.job_check), self.result_url, self.errinfo]]
+
+    def mock_urlretrieve(result_url, filename, reporthook):
+        job_id = filename.split("/")[-1].split(".")[0]
+        if os.path.isfile("%s/%s.hashmap" % (work_dir.path, job_id)):
+            os.remove("%s/%s.hashmap" % (work_dir.path, job_id))
+        shutil.copy("%s/topcons/%s.zip" % (sb_resources.res_path, job_id), "%s/" % work_dir.path)
+        reporthook(2, 10, 100)
+        return
+
+    def mock_hash_ids(seqbuddy):
+        hashmap = OrderedDict()
+        with open("%s/topcons/%s.hashmap" % (sb_resources.res_path, suds_client.service.current_job_id), "r") as ifile:
+            for line in ifile:
+                if line:
+                    line = line.strip().split("\t")
+                    hashmap[line[0]] = line[1]
+        seqbuddy.hash_map = hashmap
+        for rec, hash_id in zip(seqbuddy.records, list(hashmap.items())):
+            rec.id = hash_id[0]
+            rec.name = hash_id[0]
+        return seqbuddy
+
+    work_dir = br.TempDir()
+    keep_dir = br.TempDir()
+    suds_client = MockSudsClient()
+
+    monkeypatch.setattr(time, "sleep", lambda _: True)
+    monkeypatch.setattr(suds.client, "Client", lambda *_, **__: suds_client)
+    monkeypatch.setattr(urllib.request, "urlretrieve", mock_urlretrieve)
+    monkeypatch.setattr(br, "TempDir", lambda: work_dir)
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+
+    tester = sb_resources.get_one("d g")
+    Sb.pull_recs(tester, "α[56]")
+    Sb.delete_features(tester, "splice|TMD")
+    tester = Sb.transmembrane_domains(tester)
+    assert sb_helpers.seqs2hash(tester) == "443462d4a7d7ed3121378fca55491d5c"
+
+    suds_client.service.current_job_id = next(suds_client.service.job_id_generator)
+    tester = sb_resources.get_one("p g")
+    Sb.pull_recs(tester, "α[56]")
+    Sb.delete_features(tester, "splice|TMD")
+    tester = Sb.transmembrane_domains(tester)
+    assert sb_helpers.seqs2hash(tester) == "eb31602e292e5a056b956f13dbb0d590"
+
+    tester = sb_resources.get_one("p g")
+    Sb.pull_recs(tester, "α[56]")
+    Sb.delete_features(tester, "splice|TMD")
+    tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    assert sb_helpers.seqs2hash(tester) == "eb31602e292e5a056b956f13dbb0d590"
+
+    tester = sb_resources.get_one("p g")
+    Sb.pull_recs(tester, "α[56]")
+    Sb.delete_features(tester, "splice|TMD")
+    tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"], keep_temp=keep_dir.path)
+    _root, dirs, files = next(br.walklevel(keep_dir.path))
+    assert dirs == ['rst_lE27A5', 'rst_MFhyxO', 'topcons']
+    assert files == ['seqs.tmp', work_dir.path.split("/")[-1]]
+
+    with pytest.raises(FileNotFoundError) as err:
+        Sb.transmembrane_domains(tester, job_ids=["rst_BLAHHH!!"])
+    assert "SeqBuddy does not have the necessary hash-map to process job id 'rst_BLAHHH!!'." in str(err)
+
+    suds_client.service.job_statuses = ["Failed"]
+    with pytest.raises(ConnectionError) as err:
+        Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    assert "Job failed..." in str(err)
+
+    suds_client.service.job_statuses = ["None"]
+    with pytest.raises(ConnectionError) as err:
+        Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    assert "The job seems to have been lost by the server." in str(err)
+
+    suds_client.service.job_statuses = ["Finished"]
+    monkeypatch.setattr(urllib.request, "urlretrieve", mock_runtimeerror)
+    Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    out, err = capsys.readouterr()
+    assert "Error: Failed to download TOPCONS job rst_lE27A5 after 5 attempts." in err
+
+    monkeypatch.setattr(urllib.request, "urlretrieve", mock_contenttooshorterror)
+    Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    out, err = capsys.readouterr()
+    assert "Error: Failed to download TOPCONS job rst_lE27A5 after 5 attempts." in err
+
+    monkeypatch.setattr(urllib.request, "urlretrieve", mock_httperror)
+    Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
+    out, err = capsys.readouterr()
+    assert "Error: Failed to download TOPCONS job rst_lE27A5 after 5 attempts." in err
+

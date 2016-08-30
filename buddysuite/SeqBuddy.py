@@ -3441,10 +3441,10 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                                 " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains" % jobid
                 raise FileNotFoundError(error_message)
 
-            with open("%s/%s.hashmap" % (job_dir, jobid), "r", encoding="utf-8") as ifile:
+            with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
                 jobs.append({"type": "previous", "hash_map": OrderedDict(), "records": []})
                 for line in ifile:
-                    line = line.strip().split(",")
+                    line = line.strip().split("\t")
                     for indx, rec in enumerate(seqbuddy.records):
                         if rec.id == line[1]:
                             hash_map[line[0]] = line[1]
@@ -3456,7 +3456,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                             del seqbuddy.records[indx]
                             break
 
-    if len(seqbuddy):
+    if len(seqbuddy):  # len() is in case job ids are passed in, but not all sequences are covered
         hash_ids(seqbuddy)
         for _hash, rec_id in seqbuddy.hash_map.items():
             hash_map[_hash] = rec_id
@@ -3673,6 +3673,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     printer.write("************** Complete **************")
     printer.new_line(2)
+    seqbuddy = order_ids(seqbuddy)
     return seqbuddy
 
 
