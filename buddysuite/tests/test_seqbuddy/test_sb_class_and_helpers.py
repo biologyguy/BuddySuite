@@ -2,10 +2,9 @@
 # coding=utf-8
 """ tests basic functionality of SeqBuddy class """
 import pytest
-from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 from collections import OrderedDict
-from unittest import mock, TestCase
+from unittest import mock
 import os
 from shutil import which
 

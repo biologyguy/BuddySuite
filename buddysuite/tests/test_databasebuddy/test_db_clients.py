@@ -2,7 +2,6 @@ import pytest
 from unittest import mock
 from urllib.error import HTTPError, URLError
 from collections import OrderedDict
-import sys
 import tempfile
 import re
 import json
@@ -57,17 +56,26 @@ def mock_urlopen_uniprot_summary(*args, **kwargs):
     print("mock_urlopen_uniprot_summary\nargs: %s\nkwargs: %s" % (args, kwargs))
     tmp_file = br.TempFile(byte_mode=True)
     tmp_file.write('''# Search: inx15
-A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence similarities (1); Subcellular location (1)
-E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
+A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); Sequence \
+similarities (1); Subcellular location (2)
 //
 # Search: inx16
-O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); Sequence similarities (1); Subcellular location (2)
-A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
+O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); \
+Sequence similarities (1); Subcellular location (2)
+A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); \
+Sequence similarities (1); Subcellular location (1)
+A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence \
+similarities (1); Subcellular location (1)
 //'''.encode("utf-8"))
     return tmp_file.get_handle("r")
 
@@ -230,25 +238,36 @@ def test_uniprotrestclient_search_proteins(monkeypatch, capsys):
     def patch_query_uniprot_multi(*args, **kwargs):
         print("patch_query_uniprot_multi\nargs: %s\nkwargs: %s" % (args, kwargs))
         client1.results_file.write('''# Search: inx15
-A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence similarities (1); Subcellular location (1)
-E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
+A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); Sequence \
+similarities (1); Subcellular location (2)
 //
 # Search: inx16
-O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); Sequence similarities (1); Subcellular location (2)
-A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
+O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); \
+Sequence similarities (1); Subcellular location (2)
+A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); \
+Sequence similarities (1); Subcellular location (1)
+A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence \
+similarities (1); Subcellular location (1)
 //''', "w")
         return
 
     def patch_query_uniprot_single(*args, **kwargs):
         print("patch_query_uniprot_single\nargs: %s\nkwargs: %s" % (args, kwargs))
         client2.results_file.write('''# Search: inx15
-A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
+A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
 A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin
 E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin
 //''', "w")
@@ -282,17 +301,26 @@ def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, sb_
     def patch_query_uniprot_search(*args, **kwargs):
         print("patch_query_uniprot_search\nargs: %s\nkwargs: %s" % (args, kwargs))
         client.results_file.write('''# Search: inx15
-A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence similarities (1); Subcellular location (1)
-E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
+A8XEF9	A8XEF9_CAEBR	381	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+O61786	O61786_CAEEL	382	6239	Caenorhabditis elegans	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0H5SBJ0	A0A0H5SBJ0_BRUMA	129	6279	Brugia malayi (Filarial nematode worm)	Innexin	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	Innexin	Function (1); \
+Sequence similarities (1); Subcellular location (2)
 //
 # Search: inx16
-O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); Sequence similarities (1); Subcellular location (2)
-A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); Subcellular location (2)
-A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
-A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence similarities (1); Subcellular location (1)
+O61787	INX16_CAEEL	372	6239	Caenorhabditis elegans	Innexin-16 (Protein opu-16)	Function (1); Sequence \
+similarities (1); Subcellular location (1)
+A0A0V1AZ11	A0A0V1AZ11_TRISP	406	6334	Trichinella spiralis (Trichina worm)	Innexin	Caution (1); Function (1); \
+Sequence similarities (1); Subcellular location (2)
+A8XEF8	A8XEF8_CAEBR	374	6238	Caenorhabditis briggsae	Innexin	Function (1); Sequence similarities (1); \
+Subcellular location (2)
+A0A0B2VB60	A0A0B2VB60_TOXCA	366	6265	Toxocara canis (Canine roundworm)	Innexin	Caution (2); Function (1); \
+Sequence similarities (1); Subcellular location (1)
+A0A0V0W5E2	A0A0V0W5E2_9BILA	410	92179	Trichinella sp. T6	Innexin	Caution (2); Function (1); Sequence \
+similarities (1); Subcellular location (1)
 //''', "w")
         return
 
@@ -455,7 +483,8 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
         if "rettype" in kwargs:
             test_file = br.TempFile()
             test_file.write("""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
+<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" \
+"http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
 <eSearchResult>
     <Count>5</Count>
 </eSearchResult>
@@ -486,7 +515,7 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     assert 'NCBI returned no protein results' in err
 
 
-def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch, capsys):
+def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:

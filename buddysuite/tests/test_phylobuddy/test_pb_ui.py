@@ -32,7 +32,6 @@ import ete3
 
 from ... import buddy_resources as br
 from ... import PhyloBuddy as Pb
-from ... import AlignBuddy as Alb
 
 VERSION = Pb.VERSION
 WRITE_FILE = br.TempFile()

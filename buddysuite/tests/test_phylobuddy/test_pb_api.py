@@ -4,14 +4,12 @@
 """ Tests PhyloBuddy API functions """
 import pytest
 from ... import PhyloBuddy as Pb
-from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
 
 from unittest import mock
 import ete3
 import os
 import shutil
-from copy import copy
 
 
 class MockPopen(object):

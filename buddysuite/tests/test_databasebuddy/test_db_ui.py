@@ -1,23 +1,24 @@
 import pytest
-from unittest import mock
 import os
 import re
-import sys
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
 
 
 def mock_cmdloop(*args):
+    print(args)
     return True
 
 
-class MockUsage():
-    def __init__(self, *args):
+class MockUsage(object):
+    def __init__(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
 
     def increment(self, *args, **kwargs):
         self.args = args
+        self.kwargs = kwargs
         return "".join(self.args)
 
 
@@ -764,9 +765,11 @@ def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, sb_helpers):
     assert after_sort != length
     assert after_sort == sorted(length)
 
-    protein_names = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items() if 'protein_names' in rec.summary]
+    protein_names = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items()
+                     if 'protein_names' in rec.summary]
     liveshell.do_sort("protein_names")
-    after_sort = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items() if 'protein_names' in rec.summary]
+    after_sort = [rec.summary['protein_names'] for accn, rec in dbbuddy.records.items()
+                  if 'protein_names' in rec.summary]
     assert after_sort != protein_names
     assert after_sort == sorted(protein_names)
 

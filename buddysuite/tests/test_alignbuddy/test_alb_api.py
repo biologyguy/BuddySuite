@@ -5,7 +5,6 @@
 import pytest
 import os
 import shutil
-import io
 from unittest import mock
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -15,8 +14,8 @@ from ... import AlignBuddy as Alb
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
 
-
 TEMPDIR = br.TempDir()
+
 
 # ##########################################  '-al', '--alignment_lengths' ########################################### #
 def test_alignment_lengths(alb_resources):
@@ -270,7 +269,8 @@ def test_muscle(sb_resources, alb_resources, alb_helpers, monkeypatch):
         def __init__(*args, **kwargs):
             pass
 
-        def communicate(self):
+        @staticmethod
+        def communicate():
             return mock_data
 
     monkeypatch.setattr(Alb, 'Popen', MockPopen)
@@ -296,7 +296,8 @@ def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
         def __init__(*args, **kwargs):
             pass
 
-        def communicate(self):
+        @staticmethod
+        def communicate():
             return mock_data
 
     clustalw_bin = 'clustalw' if shutil.which('clustalw') else 'clustalw2'
@@ -346,7 +347,8 @@ def test_mafft(sb_resources, alb_resources, alb_helpers, monkeypatch):
         def __init__(*args, **kwargs):
             pass
 
-        def communicate(self):
+        @staticmethod
+        def communicate():
             return mock_data
 
     monkeypatch.setattr(Alb, 'Popen', MockPopen)

@@ -6,8 +6,7 @@ import pytest
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from unittest import mock
 import os
-import MyFuncs
-import urllib
+import urllib.request
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -764,24 +763,25 @@ def test_hash_seq_ids_errors(sb_resources):
 
 # ##################### '-is', 'insert_seq' ###################### ##
 def test_insert_seqs_start(sb_resources, sb_helpers):
+    insert = 'AACAGGTCGAGCA'
     tester = sb_resources.get_one("d f")
-    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA')) == 'f65fee08b892af5ef93caa1bf3cb3980'
+    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, insert)) == 'f65fee08b892af5ef93caa1bf3cb3980'
 
     tester = sb_resources.get_one("d f")
-    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -9000)) == 'f65fee08b892af5ef93caa1bf3cb3980'
+    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, insert, -9000)) == 'f65fee08b892af5ef93caa1bf3cb3980'
 
     tester = sb_resources.get_one("d f")
-    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -1)) == '792397e2e32e95b56ddc15b8b2310ec0'
+    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, insert, -1)) == '792397e2e32e95b56ddc15b8b2310ec0'
 
     tester = sb_resources.get_one("d f")
-    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 9000)) == '792397e2e32e95b56ddc15b8b2310ec0'
+    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, insert, 9000)) == '792397e2e32e95b56ddc15b8b2310ec0'
 
     tester = sb_resources.get_one("d f")
-    Sb.insert_sequence(tester, 'AACAGGTCGAGCA', 100, ["α[23]", "α5"])
+    Sb.insert_sequence(tester, insert, 100, ["α[23]", "α5"])
     assert sb_helpers.seqs2hash(tester) == 'edcd7934eb026ac3ea4b603ac85ca79f'
 
     tester = sb_resources.get_one("d f")
-    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, 'AACAGGTCGAGCA', -25)) == '29cab1e72ba95572c3aec469270071e9'
+    assert sb_helpers.seqs2hash(Sb.insert_sequence(tester, insert, -25)) == '29cab1e72ba95572c3aec469270071e9'
 
 
 # ######################  '-ip', '--isoelectric_point' ###################### #
@@ -1098,15 +1098,15 @@ def test_prosite_scan_init(sb_resources):
     assert not ps_scan.quiet
     assert ps_scan.base_url == 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
     assert ps_scan.check_interval == 10
-    assert ps_scan.http_headers == {'User-Agent':
-                                    'EBI-Sample-Client/???? (SeqBuddy.py; Python 3.5.2; Darwin) Python-urllib/3.5'}
+    assert len(ps_scan.http_headers) == 1
+    assert 'User-Agent' in ps_scan.http_headers
     for key in ['data_dir', 'diagnostics', 'email', 'user_hash']:
         assert key in ps_scan.user_deets
 
 
 def test_prosite_scan_rest_request(sb_resources, monkeypatch):
     def mock_urlopen(req, request_data=None):
-        tmp_file = MyFuncs.TempFile(byte_mode=True)
+        tmp_file = br.TempFile(byte_mode=True)
         file_text = "Hello world\n%s\n%s" % (req.full_url, request_data)
         tmp_file.write(file_text.encode())
         return tmp_file.get_handle("r")
@@ -1154,13 +1154,13 @@ def test_prosite_scan_mc_run_prosite(sb_resources, sb_helpers, monkeypatch):
  LLSTAFLRDDSAIKHMYFNVGSSGRLILHVLANNTAPRVFEDILLTLAPKLIQRKLR
 """
         else:
-            raise RuntimeError("This shouldn't ever happen")
+            raise RuntimeError("This shouldn't ever happen", self, args)
 
         return file_text
 
     monkeypatch.setattr(Sb.PrositeScan, "_rest_request", mock_rest_request)
     monkeypatch.setattr(Sb.time, "sleep", lambda _: True)
-    out_file = MyFuncs.TempFile()
+    out_file = br.TempFile()
     seqbuddy = sb_resources.get_one("d f")
     Sb.pull_recs(seqbuddy, "Mle-Panxα10B")
     ps_scan = Sb.PrositeScan(seqbuddy)
@@ -1170,6 +1170,7 @@ def test_prosite_scan_mc_run_prosite(sb_resources, sb_helpers, monkeypatch):
 
 def test_prosite_scan_run(sb_resources, sb_helpers, monkeypatch):
     def mock_mc_run_prosite(self, _rec, args):
+        print(self)
         out_file_path, lock = args
         temp_seq = Sb.SeqBuddy([_rec], out_format="gb")
         Sb.annotate(temp_seq, "Foo", "1-100")
@@ -1307,7 +1308,7 @@ def test_reverse_complement(key, next_hash, sb_resources, sb_helpers):
     assert sb_helpers.seqs2hash(tester) == next_hash
 
 
-def test_reverse_complement_pep_exception(sb_resources):  # Asserts that a TypeError will be thrown if user inputs protein
+def test_reverse_complement_pep_exception(sb_resources):  # Asserts a TypeError will be thrown if user inputs protein
     tester = sb_resources.get_one('p f')
     with pytest.raises(TypeError) as e:
         Sb.reverse_complement(tester)

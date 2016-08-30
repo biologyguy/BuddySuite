@@ -3,8 +3,7 @@
 """ tests basic functionality of PhyloBuddy class """
 import pytest
 
-from ... import buddy_resources as br
-from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, make_copy, _convert_to_ete, _guess_format
+from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, _convert_to_ete, _guess_format
 from ... import buddy_resources as br
 
 

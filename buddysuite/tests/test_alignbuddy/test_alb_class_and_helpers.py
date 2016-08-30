@@ -8,7 +8,7 @@ from Bio.Alphabet import IUPAC
 
 from ... import buddy_resources as br
 from ...AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
-from ...buddy_resources import GuessError, parse_format, PhylipError
+from ...buddy_resources import GuessError, parse_format
 
 
 def test_instantiate_alignbuddy_from_file(alb_resources):

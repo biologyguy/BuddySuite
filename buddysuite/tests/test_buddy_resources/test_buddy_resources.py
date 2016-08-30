@@ -14,7 +14,6 @@ from hashlib import md5
 from time import sleep
 from unittest import mock
 from ... import AlignBuddy as Alb
-from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
 
 # Globals
@@ -353,6 +352,7 @@ def test_copydir():
 def test_ask(monkeypatch):
 
     def wait(*args, **kwargs):
+        print(args, kwargs)
         sleep(2)
         return 'yes'
 
@@ -424,6 +424,7 @@ def test_customhelpformatter(capsys, sb_helpers):
     assert sb_helpers.string2hash(out) == "c99e5e1197b0a778a73025d1ab623c1c"
     assert err == "" and olderr == ""
 
+
 def test_usage(monkeypatch):
     class FakeFTP:
         def __init__(self, *args, **kwargs):
@@ -462,6 +463,7 @@ def test_usage(monkeypatch):
         assert "\"user_hash\": \"ABCDEF\"" in contents
 
     def raise_ftp_errors(*args, **kwargs):
+        print(args, kwargs)
         raise ftplib.error_perm
 
     # Gracefully handling FTP errors
@@ -536,6 +538,7 @@ def test_error_report(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", mock_json)
 
     def raise_ftp_errors(*args, **kwargs):
+        print(args, kwargs)
         raise ftplib.error_perm
 
     # Gracefully handling FTP errors
@@ -782,7 +785,7 @@ def test_old2new_compound(alb_resources, sb_resources):
     assert not br._old2new(feature, seq_rec, align_rec)
 
 
-def test_old2new_error(alb_resources, sb_resources):
+def test_old2new_error(alb_resources):
     rec = alb_resources.get_one("o d g").records()[0]
     feature = rec.features[1]
     feature.location = MockLocation()

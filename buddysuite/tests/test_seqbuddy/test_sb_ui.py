@@ -25,7 +25,6 @@ Description: Collection of PyTest unit tests for the AlignBuddy.py program
 
 import pytest
 import os
-import sys
 import argparse
 from copy import deepcopy
 from unittest import mock

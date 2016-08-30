@@ -1208,28 +1208,28 @@ def blast(subject, query, **kwargs):
         # Clean up any parameters that the user may be including that will break SeqBuddy
         black_list = ["db", "query", "subject", "out", "outfmt"]
         for no_no in black_list:
-            if re.search("\-%s" % no_no, kwargs["blast_args"]):
+            if re.search("-%s" % no_no, kwargs["blast_args"]):
                 _stderr("Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" % no_no,
                         quiet=kwargs["quiet"])
-                kwargs["blast_args"] = re.sub("\-%s .*\-" % no_no, "-", kwargs["blast_args"])
-                kwargs["blast_args"] = re.sub("\-%s .*$" % no_no, "", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-%s .*-" % no_no, "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-%s .*$" % no_no, "", kwargs["blast_args"])
 
-        num_threads_search = re.search("\-num_threads ([0-9]+)", kwargs["blast_args"])
+        num_threads_search = re.search("-num_threads ([0-9]+)", kwargs["blast_args"])
         if num_threads_search:
             try:
                 num_threads = int(num_threads_search.group(1))
-                kwargs["blast_args"] = re.sub("\-num_threads .*\-", "-", kwargs["blast_args"])
-                kwargs["blast_args"] = re.sub("\-num_threads .*$", "", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-num_threads .*-", "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-num_threads .*$", "", kwargs["blast_args"])
 
             except ValueError:
                 raise ValueError("-num_threads expects an integer.")
 
-        evalue_search = re.search("\-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
+        evalue_search = re.search("-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
         if evalue_search:
             try:
                 evalue = float(evalue_search.group(1))
-                kwargs["blast_args"] = re.sub("\-evalue .*\-", "-", kwargs["blast_args"])
-                kwargs["blast_args"] = re.sub("\-evalue .*$", "", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-evalue .*-", "-", kwargs["blast_args"])
+                kwargs["blast_args"] = re.sub("-evalue .*$", "", kwargs["blast_args"])
 
             except ValueError:
                 raise ValueError("-evalue expects a number.")
@@ -1241,7 +1241,7 @@ def blast(subject, query, **kwargs):
                     (blast_bin, query, tmp_dir.path, tmp_dir.path, num_threads, evalue, kwargs["blast_args"])
 
     _stderr("Running...\n%s\n############################################################\n\n" %
-            re.sub("\-db.*\-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
+            re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
     blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     blast_output = blast_output[1].decode("utf-8")
 
@@ -2124,7 +2124,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
                 indices.append(match.start())
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                                   type='match', qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
+                                                   type='match', qualifiers={'regex': pattern_backup,
+                                                                             'added_by': 'SeqBuddy'}))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -3385,7 +3386,6 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         from suds.client import Client
     except ImportError:
         raise ImportError("Please install the 'suds' package to run transmembrane_domains:\n\n$ pip install suds-py3")
-    import urllib.request
 
     def dl_progress(count, block_size, total_size):
         percent = count * block_size * 100 / total_size
@@ -3476,7 +3476,8 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     printer.clear()
                     raise ValueError("Record '%s' is too large to send to TOPCONS. Max record size is 9Mb" %
                                      seqbuddy.hash_map[rec.id])
-                jobs.append({"type": "new", "hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}), "records": [rec]})
+                jobs.append({"type": "new", "hash_map": OrderedDict({rec.id: seqbuddy.hash_map[rec.id]}),
+                             "records": [rec]})
                 rec_string = ""
 
         for job in jobs:
@@ -3696,8 +3697,8 @@ def argparse_init():
         if len(sys.argv) > sb_flag_indx + 1:
             extra_args = None
             for indx, param in enumerate(sys.argv[sb_flag_indx + 1:]):
-                if param in ["-a", "--alpha", "-f", "--in_format", "-i", "--in_place", "-k", "--keep_temp", "-o", "--out_format",
-                             "-q", "--quiet", "-t", "--test"]:
+                if param in ["-a", "--alpha", "-f", "--in_format", "-i", "--in_place", "-k", "--keep_temp", "-o",
+                             "--out_format", "-q", "--quiet", "-t", "--test"]:
                     extra_args = sb_flag_indx + 1 + indx
                     break
 

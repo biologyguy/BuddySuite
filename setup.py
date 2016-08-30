@@ -13,8 +13,10 @@ from tempfile import TemporaryDirectory
 
 
 class CleanCommand(Command):
-    """Custom clean command to tidy up the project root.
-    http://stackoverflow.com/questions/3779915/why-does-python-setup-py-sdist-create-unwanted-project-egg-info-in-project-r"""
+    """
+    Custom clean command to tidy up the project root.
+    http://bit.ly/2bw7xXb
+    """
     user_options = []
 
     def initialize_options(self):
@@ -62,9 +64,9 @@ class UninstallCommand(Command):
 
 
 def install():
-    valid_email_blurb = "\nProviding a valid email address is recommended if accessing public databases with BuddySuite." \
-                        "\nThe maintainers of those resources may attempt to contact you before blocking your IP if you " \
-                        "are not adhering to their usage limitations.\n"
+    valid_email_blurb = "\nProviding a valid email address is recommended if accessing public databases with " \
+                        "BuddySuite.\nThe maintainers of those resources may attempt to contact you before blocking " \
+                        "your IP if you are not adhering to their usage limitations.\n"
 
     sip_blurb = "Would you like to join our Software Improvement Program?\nAnonymized usage statistics " \
                 "and crash reports will be automatically transmitted to the BuddySuite developers ([y]/n): "

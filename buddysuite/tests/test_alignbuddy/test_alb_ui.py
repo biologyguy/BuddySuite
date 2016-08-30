@@ -28,7 +28,6 @@ import os
 import sys
 import argparse
 from copy import deepcopy
-from unittest import mock
 
 from ... import AlignBuddy as Alb
 from ... import SeqBuddy as Sb
@@ -267,7 +266,7 @@ def test_extract_regions_ui(capsys, alb_resources, alb_helpers):
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
 @pytest.mark.generate_alignments
-def test_generate_alignment_ui(capsys, sb_resources, alb_helpers, monkeypatch):
+def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
 
