@@ -30,6 +30,7 @@ from copy import deepcopy
 from unittest import mock
 from Bio.Alphabet import IUPAC
 import io
+import urllib.error
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -838,6 +839,42 @@ def test_order_ids_randomly_ui(capsys, sb_resources, sb_helpers):
 
     tester = Sb.order_ids(Sb.SeqBuddy(out))
     assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(Sb.order_ids(sb_resources.get_one('d f')))
+
+
+# ######################  '-psc', '--prosite_scan' ###################### #
+def test_prosite_scan_ui(capsys, sb_resources, sb_helpers, monkeypatch):
+    def mock_raise_urlerror(*args, **kwargs):
+        print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise urllib.error.URLError("Fake URLError from Mock")
+
+    def mock_raise_urlerror_8(*args, **kwargs):
+        print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+        raise urllib.error.URLError("Fake URLError from Mock: Errno 8")
+
+    monkeypatch.setattr(Sb.PrositeScan, "run", lambda _: sb_resources.get_one("p g"))
+    test_in_args = deepcopy(in_args)
+    test_in_args.prosite_scan = ['']
+    seqbuddy = sb_resources.get_one('d f')
+
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+
+    test_in_args.out_format = "fasta"
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "c10d136c93f41db280933d5b3468f187"
+
+    monkeypatch.setattr(Sb.PrositeScan, "run", mock_raise_urlerror_8)
+    with pytest.raises(urllib.error.URLError):
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    out, err = capsys.readouterr()
+    assert "Unable to contact EBI, are you connected to the internet?" in out
+
+    monkeypatch.setattr(Sb.PrositeScan, "run", mock_raise_urlerror)
+    with pytest.raises(urllib.error.URLError) as err:
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    assert "Fake URLError from Mock" in str(err)
 
 
 # ######################  '-prr', '--pull_random_recs' ###################### #

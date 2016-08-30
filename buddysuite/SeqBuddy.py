@@ -4725,6 +4725,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 raise err
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
+        else:
+            seqbuddy.out_format = in_args.out_format
         _print_recs(seqbuddy)
         _exit("prosite")
 
