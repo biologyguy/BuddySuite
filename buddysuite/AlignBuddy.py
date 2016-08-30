@@ -83,7 +83,7 @@ class AlignBuddy(object):
         in_handle = None
         raw_seq = None
         in_file = None
-        self.hash_map = []  # This variable is only filled if the hash_ids() fuction is called.
+        self.hash_map = OrderedDict()  # This variable is only filled if the hash_ids() fuction is called.
 
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":

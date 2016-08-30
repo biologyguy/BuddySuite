@@ -103,11 +103,12 @@ if dendropy_ver < 411:
             # if not isinstance(self, other.__class__) or not isinstance(other, self.__class__):
             if type(self) is not type(other):
                 raise TypeError(
-                    "Cannot deep-copy annotations from different type (unable to assume object equivalence in dynamic or nested annotations)")
+                    "Cannot deep-copy annotations from different type (unable to assume "
+                    "object equivalence in dynamic or nested annotations)")
             if memo is None:
                 memo = {}
             for a1 in other._annotations:
-                a2 = copy.deepcopy(a1, memo=memo)
+                a2 = deepcopy(a1, memo=memo)
                 memo[id(a1)] = a2
                 if a2.is_attribute and a1._value[0] is other:
                     a2._value = (self, a1._value[1])
@@ -690,7 +691,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
-                if re.search('\-b ([0-9]+)', params):
+                if re.search('-b ([0-9]+)', params):
                     with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
