@@ -39,6 +39,24 @@ TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION
 
 
+def mock_raise_urlerror(*args, **kwargs):
+    print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise urllib.error.URLError("Fake URLError from Mock")
+
+
+def mock_raise_urlerror_8(*args, **kwargs):
+    print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
+    raise urllib.error.URLError("Fake URLError from Mock: Errno 8")
+
+
+def mock_raisekeyerror(*args, **kwargs):
+    raise KeyError("Fake KeyError: %s, %s" % (args, kwargs))
+
+
+def mock_raisetypeerror(*args, **kwargs):
+    raise TypeError("Fake TypeError: %s, %s" % (args, kwargs))
+
+
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
@@ -396,6 +414,26 @@ def test_find_cpg_ui(capsys, sb_resources, sb_helpers):
     assert "DNA sequence required, not protein or RNA" in str(err)
 
 
+# ######################  '-orf', '--find_orfs' ###################### #
+def test_find_orfs_ui(capsys, sb_resources, sb_helpers, monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_orfs = True
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash("%s\n%s" % (err, out)) == "1f29f572c06d4f9c69930053a6113a8d"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_regions(tester, "30:50")
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash("%s\n%s" % (err, out)) == "786422d2a37b56222f97363d11e750ac"
+
+    monkeypatch.setattr(Sb, "find_orfs", mock_raisetypeerror)
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert "TypeError" in err
+
+
 # ######################  '-fp', '--find_pattern' ###################### #
 def test_find_pattern_ui(capsys, sb_resources, sb_helpers):
     test_in_args = deepcopy(in_args)
@@ -431,6 +469,12 @@ def test_find_repeats_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "b34b99828596a5a46c6ab244c6ccc6f6"
+
+    Sb.rename(tester, "Seq14", "Seq13")
+    test_in_args.find_repeats = [1]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "59ab0d1e5c44977cc167b8d3af8c74f5", print(out)
 
 
 # ######################  '-frs', '--find_restriction_sites' ###################### #
@@ -476,6 +520,19 @@ def test_group_by_prefix_ui(capsys, sb_odd_resources):
     test_in_args.group_by_prefix = [[TEMP_DIR.path, "l", 3]]
     Sb.command_line_ui(test_in_args, tester, True)
     for prefix in ["Unknown", "Ae", "C"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, ""]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Ate", "Hvu", "Che", "Ael", "Cla", "Hec", "Pph", "Nbi", "Ccr"]:
+        assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
+        os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
+
+    Sb.pull_recs(tester, "[BG]")
+    test_in_args.group_by_prefix = [[TEMP_DIR.path, "foo", "bar"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    for prefix in ["Ael-P", "Ate-P", "Nbi-P"]:
         assert os.path.isfile("%s/%s.nex" % (TEMP_DIR.path, prefix))
         os.unlink("%s/%s.nex" % (TEMP_DIR.path, prefix))
 
@@ -527,7 +584,7 @@ def test_guess_alpha_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
 
 
 # ######################  '-gf', '--guess_format' ###################### #
-def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
+def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, sb_helpers, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_format = True
     test_in_args.sequence = sorted(sb_resources.get_list("d f g n py pr psr pss x s c e", mode='paths'))
@@ -541,6 +598,18 @@ def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
     assert out == "PIPE\t-->\tembl\n"
+
+    text_io = io.open(sb_odd_resources["gibberish"], "r")
+    test_in_args.sequence = [text_io]
+    Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
+    out, err = capsys.readouterr()
+    assert out == "PIPE\t-->\tUnknown\n"
+
+    monkeypatch.setattr(Sb, "_guess_format", mock_raisekeyerror)
+    test_in_args.sequence = [sb_resources.get_one("p g", mode='paths')]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "9fcc608d3800fed92030801b5bfd156e", print(out)
 
 
 # ######################  '-hsi', '--hash_seq_ids' ###################### #
@@ -627,6 +696,15 @@ def test_list_features_ui(capsys, sb_resources, sb_helpers):
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "4e37613d1916aa7653d3fec37fc9e368"
+
+    tester = sb_resources.get_one('d g')
+    feat = tester.records[0].features[0]
+    feat.id = "FOO"
+    feat.qualifiers = {"bar": "none"}
+    tester.records[0].features[0] = feat
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "b757c1334a87139828b6785ff3537a4e"
 
 
 # ######################  '-lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
@@ -759,7 +837,7 @@ def test_merge_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
-def test_molecular_weight_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
+def test_molecular_weight_ui(capsys, sb_resources, sb_odd_resources, sb_helpers, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.molecular_weight = True
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
@@ -776,6 +854,11 @@ def test_molecular_weight_ui(capsys, sb_resources, sb_odd_resources, sb_helpers)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "55ff25f26504c5360557c2dfeb041036"
     assert err == "ID\tssRNA\n"
+
+    monkeypatch.setattr(Sb, "molecular_weight", mock_raisekeyerror)
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+    out, err = capsys.readouterr()
+    assert "KeyError" in err
 
 
 # ######################  '-ns', '--num_seqs' ###################### #
@@ -843,14 +926,6 @@ def test_order_ids_randomly_ui(capsys, sb_resources, sb_helpers):
 
 # ######################  '-psc', '--prosite_scan' ###################### #
 def test_prosite_scan_ui(capsys, sb_resources, sb_helpers, monkeypatch):
-    def mock_raise_urlerror(*args, **kwargs):
-        print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
-        raise urllib.error.URLError("Fake URLError from Mock")
-
-    def mock_raise_urlerror_8(*args, **kwargs):
-        print("mock_raise_urlerror\nargs: %s\nkwargs: %s" % (args, kwargs))
-        raise urllib.error.URLError("Fake URLError from Mock: Errno 8")
-
     monkeypatch.setattr(Sb.PrositeScan, "run", lambda _: sb_resources.get_one("p g"))
     test_in_args = deepcopy(in_args)
     test_in_args.prosite_scan = ['']
@@ -921,6 +996,11 @@ def test_pull_records_ui(capsys, sb_resources, sb_helpers):
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+    test_in_args.pull_records = ["full", "ML25993a"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "cd0c1b1406559c1bc2eea1acd1928c3d"
 
     temp_file = br.TempFile()
     temp_file.write("α1\nα2")
@@ -1078,6 +1158,10 @@ def test_screw_formats_ui2(sb_resources):
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     assert os.path.isfile("%s/seq.gb" % TEMP_DIR.path)
 
+    sb_resources.get_one('d f').write("%s/seq" % TEMP_DIR.path)
+    test_in_args.sequence = ["%s/seq" % TEMP_DIR.path]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    assert os.path.isfile("%s/seq.gb" % TEMP_DIR.path)
 
 # ######################  '-sfr', '--select_frame' ###################### #
 def test_select_frame_ui(capsys, sb_resources, sb_helpers):
@@ -1163,6 +1247,12 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, sb_helpers)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "95cf24202007399e6ccd6e6f33ae012e"
 
+    test_in_args.out_format = "embl"
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "fddbd57599efc6e6f6b49e3911fa1101"
+
+    test_in_args.out_format = False
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(sb_odd_resources["ambiguous_rna"]), True)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "6d3fcad0ea417014bc825cedd354fd26"

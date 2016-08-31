@@ -627,34 +627,34 @@ def test_find_cpg(sb_resources, sb_helpers):
 
 
 # #####################  '-orf', '--find_orf' ###################### ##
-def test_find_orf_basic(sb_helpers):
+def test_find_orf(sb_resources, sb_helpers):
     tester = Sb.SeqBuddy("ATGAAATTTCCCGGGTAG", in_format='raw', out_format='gb')
     tester = Sb.find_orfs(tester)
-    assert sb_helpers.seqs2hash(tester) == "100c4f29e758b33b8803f46dba1a75ef"
-    assert sb_helpers.features2hash(tester) == "e47d6ea2a9572729024b55258411a579"
+    assert sb_helpers.seqs2hash(tester) == "a9b8d1e17474184534f018d022c31c2a"
 
-
-def test_find_orf_standard(sb_resources, sb_helpers):
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
-    assert sb_helpers.seqs2hash(tester) == "4474e4d21c02eb171e0cce128fb6bf5e"
-    assert sb_helpers.features2hash(tester) == "f8abc7372fe7a8bbfdfce715f6bf6f0e"
+    assert sb_helpers.seqs2hash(tester) == "7aee4906f59842b13ba086fbb32e524d"
+
     tester.out_format = "fasta"
-    assert sb_helpers.seqs2hash(tester) == "25073539df4a982b7f99c72dd280bb8f"
-    assert sb_helpers.features2hash(tester) == "f8abc7372fe7a8bbfdfce715f6bf6f0e"
+    assert sb_helpers.seqs2hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
+
     tester = Sb.find_orfs(sb_resources.get_one("d g"), include_feature=False)
     assert sb_helpers.seqs2hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
-    assert sb_helpers.features2hash(tester) == "969ab7e60bba0d958ed17f6980b19059"
+
     tester = Sb.find_orfs(sb_resources.get_one("r f"))
-    assert sb_helpers.seqs2hash(tester) == "013ebe2bc7d83c44f58344b865e1f55b"
-    assert sb_helpers.features2hash(tester) == "a80f082f0649bb037c34d0f268fec901"
+    assert sb_helpers.seqs2hash(tester) == "d2db9b02485e80323c487c1dd6f1425b"
+
     tester.out_format = "gb"
-    assert sb_helpers.seqs2hash(tester) == "76287ca18781224027e9ed8327a97558"
-    assert sb_helpers.features2hash(tester) == "a80f082f0649bb037c34d0f268fec901"
+    assert sb_helpers.seqs2hash(tester) == "2998cb6379a50ddb74deee05075430c0"
+
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
-    assert sb_helpers.features2hash(tester) == "aa0c0c27a9b8cde585da2c42a9280f3c"
+    tester.out_format = "gb"
+    assert sb_helpers.seqs2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
+
     tester = sb_resources.get_one("p g")
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as err:
         Sb.find_orfs(tester)
+    assert "Nucleic acid sequence required, not protein." in str(err)
 
 
 # #####################  '-fp', '--find_pattern' ###################### ##

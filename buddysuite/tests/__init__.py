@@ -182,16 +182,6 @@ class SbHelpers(object):
     def string2hash(_input):
         return md5(_input.encode("utf-8")).hexdigest()
 
-    def features2hash(self, _seqbuddy, mode='hash'):
-        feature_list = [f.id + ": " + str(f.features) for f in _seqbuddy.records]
-        feature_string = "\n".join(feature_list)
-
-        if mode != 'hash':
-            return feature_string
-
-        _hash = self.string2hash(feature_string)
-        return _hash
-
 
 # #################################  -  AlignBuddy  -  ################################ #
 class AlbResources(object):

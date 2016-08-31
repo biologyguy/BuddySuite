@@ -194,7 +194,7 @@ class SeqBuddy(object):
         # Raw sequences
         if in_format == "raw":
             in_format = "fasta"
-            out_format = "fasta"
+            out_format = "fasta" if not out_format else out_format
             if type(sb_input) == str:
                 sb_input = [SeqRecord(Seq(sb_input), id="raw_input", description="")]
             else:
@@ -2016,47 +2016,41 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
     :param include_buddy_data: Append information directly to records
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_orfs"].
     """
-    seqbuddy = clean_seq(seqbuddy)
-    if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-        pattern = "aug(...)*?(uaa|uag|uga)"
-    elif seqbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.ambiguous_dna]:
-        pattern = "atg(...)*?(taa|tag|tga)"
-    else:
+    if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    seqbuddy = lowercase(seqbuddy)
-    reverse = make_copy(seqbuddy)
-    reverse = reverse_complement(reverse)
-    seqbuddy = find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
-    reverse = find_pattern(reverse, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+    pattern = "a[tu]g(?:...)*?(?:[tu]aa|[tu]ag|[tu]ga)"
+
+    clean_seq(seqbuddy)
+    lowercase(seqbuddy)
+
+    find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+    lowercase(seqbuddy)
+
+    reverse_complement(seqbuddy)
+    find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+    lowercase(seqbuddy)
+
+    reverse_complement(seqbuddy)
 
     for rec in seqbuddy.records:
-        indices = []
-        _add_buddy_data(rec, 'find_orfs')
-        for feature in rec.features:
+        buddy_data = {'+': [], '-': []}
+        feature_indicies = []
+        for indx, feature in enumerate(rec.features):
             if 'regex' in feature.qualifiers.keys() and feature.qualifiers['regex'] == pattern:
                 if include_feature:
                     feature.type = "orf"
-                    feature.strand = +1
+                    strand = "+" if feature.strand == +1 else "-"
                     feature.qualifiers.pop("regex")
-                    indices.append((int(feature.location.start), int(feature.location.end)))
+                    buddy_data[strand].append((int(feature.location.start), int(feature.location.end)))
                 else:
-                    rec.features.remove(feature)
-        if include_buddy_data:
-            if not rec.buddy_data['find_orfs']:
-                rec.buddy_data['find_orfs'] = {'+': [], '-': []}
-            rec.buddy_data['find_orfs']['+'].append(indices)
+                    feature_indicies.append(indx)
+        for indx in sorted(feature_indicies, reverse=True):
+            del rec.features[indx]
 
-    for indx, rec in enumerate(reverse.records):
-        indices = []
-        if include_feature:
-            for feature in rec.features:
-                seqbuddy.records[indx].features.append(SeqFeature(location=FeatureLocation(
-                    start=len(rec.seq) - feature.location.start, end=len(rec.seq) - feature.location.end),
-                    type='orf', qualifiers={'added_by': 'SeqBuddy'}, strand=-1))
-                indices.append((int(len(rec.seq) - feature.location.start), int(len(rec.seq) - feature.location.end)))
         if include_buddy_data:
-            seqbuddy.records[indx].buddy_data['find_orfs']['-'].append(indices)
+            _add_buddy_data(rec, 'find_orfs')
+            rec.buddy_data['find_orfs'] = buddy_data
     return seqbuddy
 
 
@@ -2124,8 +2118,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
                 indices.append(match.start())
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
-                                                   type='match', qualifiers={'regex': pattern_backup,
-                                                                             'added_by': 'SeqBuddy'}))
+                                                   type='match', strand=+1,
+                                                   qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -4215,13 +4209,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                 if len(pos_indices) <= 0:
                     _stderr("(+) ORFs: None\n", in_args.quiet)
                 else:
-                    _stderr("(+) ORFs: {0}\n".format(", ".join([str(x[0]) for x in pos_indices if len(x) > 0])),
-                            in_args.quiet)
+                    orfs = ", ".join(["%s:%s" % (x[0], x[1]) for x in pos_indices if len(x) > 0])
+                    _stderr("(+) ORFs: %s\n" % orfs, in_args.quiet)
                 if len(neg_indices) <= 0:
                     _stderr("(-) ORFs: None\n", in_args.quiet)
                 else:
-                    _stderr("(-) ORFs: {0}\n".format(", ".join([str(x[0]) for x in neg_indices if len(x) > 0])),
-                            in_args.quiet)
+                    orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
+                    _stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
             _stderr("\n", in_args.quiet)
             _print_recs(seqbuddy)
         except TypeError as e:
