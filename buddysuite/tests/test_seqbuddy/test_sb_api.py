@@ -1563,7 +1563,7 @@ def test_transmembrane_domains_pep(sb_resources, sb_helpers, monkeypatch, capsys
     Sb.delete_features(tester, "splice|TMD")
     tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"], keep_temp=keep_dir.path)
     _root, dirs, files = next(br.walklevel(keep_dir.path))
-    assert sorted(dirs) == ['rst_lE27A5', 'rst_MFhyxO', 'topcons']
+    assert sorted(dirs) == ['rst_MFhyxO', 'rst_lE27A5', 'topcons']
     assert sorted(files) == sorted(['seqs.tmp', work_dir.path.split("/")[-1]])
 
     with pytest.raises(FileNotFoundError) as err:

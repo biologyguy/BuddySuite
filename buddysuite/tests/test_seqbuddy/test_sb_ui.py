@@ -1183,25 +1183,66 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, sb_helpers)
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
     assert "You need to supply DNA or RNA sequences to translate" in str(err)
 
-'''
+
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
-@pytest.mark.internet
-@pytest.mark.slow
-@pytest.mark.foo1
-def test_transmembrane_domains_ui(capsys, sb_resources, sb_helpers):
+def test_transmembrane_domains_ui(capsys, sb_resources, sb_helpers, monkeypatch):
+    def mock_importerror(*args, **kwargs):
+        raise ImportError("Please install the 'suds' package: %s, %s" % (args, kwargs))
+
+    def mock_valueerror(*args, **kwargs):
+        raise ValueError("is too large to send to TOPCONS. Max record size is 9Mb: %s, %s" % (args, kwargs))
+
+    def mock_connectionerror(*args, **kwargs):
+        raise ConnectionError("Failed to submit TOPCONS job.: %s, %s" % (args, kwargs))
+
+    def mock_filenotfounderror(*args, **kwargs):
+        raise FileNotFoundError("SeqBuddy does not have the necessary hash-map: %s, %s" % (args, kwargs))
+
+    monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("p g"))
     test_in_args = deepcopy(in_args)
-    test_in_args.transmembrane_domains = [True]
-    test_in_args.quiet = True
-    tester = sb_resources.get_one("p f")
-    Sb.pull_recs(tester, "Panxα[234]")
-    Sb.command_line_ui(test_in_args, tester, True)
+    test_in_args.transmembrane_domains = [None]
+    seqbuddy = sb_resources.get_one('d f')
+
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "7285d3c6d60ccb656e39d6f134d1df8b"
+    assert sb_helpers.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
 
-    test_in_args.quiet = False
-    tester = Sb.SeqBuddy(">rec\n%s" % ("M" * 9437174))
+    test_in_args.transmembrane_domains = ["Some random job id"]
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+
+    monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("p f"))
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "854566b485af0f277294bbfb15f7dd0a"
+
+    monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("d e"))
+    Sb.command_line_ui(test_in_args, seqbuddy, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "e0507aee006a0fb5f1bb99cdb47f3381"
+
+    test_in_args.transmembrane_domains = [None]
+    monkeypatch.setattr(Sb, "transmembrane_domains", mock_importerror)
+    seqbuddy = sb_resources.get_one('d f')
+    with pytest.raises(ImportError) as err:
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    assert "Please install the 'suds' package" in str(err)
+
+    monkeypatch.setattr(Sb, "transmembrane_domains", mock_valueerror)
+    seqbuddy = sb_resources.get_one('d f')
     with pytest.raises(ValueError) as err:
-        Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "Record 'rec' is too large to send to TOPCONS." in str(err)
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    assert "is too large to send to TOPCONS. Max record" in str(err)
 
-'''
+    monkeypatch.setattr(Sb, "transmembrane_domains", mock_connectionerror)
+    seqbuddy = sb_resources.get_one('d f')
+    with pytest.raises(ConnectionError) as err:
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    assert "Failed to submit TOPCONS job" in str(err)
+
+    monkeypatch.setattr(Sb, "transmembrane_domains", mock_filenotfounderror)
+    seqbuddy = sb_resources.get_one('d f')
+    with pytest.raises(FileNotFoundError) as err:
+        Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
+    assert "SeqBuddy does not have the necessary hash-map" in str(err)
