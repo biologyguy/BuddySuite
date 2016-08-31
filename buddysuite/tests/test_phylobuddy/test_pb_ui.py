@@ -29,6 +29,7 @@ import argparse
 from copy import deepcopy
 from unittest import mock
 import ete3
+import shutil
 
 from ... import buddy_resources as br
 from ... import PhyloBuddy as Pb
@@ -56,6 +57,14 @@ br.flags(parser, ("trees", "Supply file path(s) or raw tree string, If piping tr
 
 # This is to allow py.test to work with its own flags
 in_args = parser.parse_args([])
+
+
+def mock_fileexistserror(*args, **kwargs):
+    raise FileExistsError(args, kwargs)
+
+
+def mock_filenotfounderror(*args, **kwargs):
+    raise FileNotFoundError(args, kwargs)
 
 
 # ###################### argparse_init() ###################### #
@@ -185,41 +194,32 @@ def test_distance_ui(capsys, pb_resources, pb_helpers):
         Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
     assert "foo is an invalid comparison method." in str(err)
 
-"""
+
 # ###################### 'gt', '--generate_tree' ###################### #
-@pytest.mark.generate_trees
-def test_generate_tree_ui1(capsys):
+def test_generate_tree_ui1(capsys, pb_resources, alb_resources, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
-    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
+    test_in_args.trees = [alb_resources.get_one("o d n")]
 
-    test_in_args.generate_tree = [["fasttree", "-seed 12345"]]
+    monkeypatch.setattr(Pb, "generate_tree", lambda *_, **__: pb_resources.get_one("o n"))
+
+    test_in_args.generate_tree = [None]
     Pb.command_line_ui(test_in_args, [], skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "d7f505182dd1a1744b45cc326096f70c"
+    assert out == str(pb_resources.get_one("o k"))
 
+    monkeypatch.setattr(Pb, "generate_tree", mock_fileexistserror)
+    with pytest.raises(FileExistsError):
+        Pb.command_line_ui(test_in_args, [], pass_through=True)
 
-@pytest.mark.generate_trees
-def test_generate_tree_ui2():
-    test_in_args = deepcopy(in_args)
-    test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
-    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
+    monkeypatch.setattr(Pb, "generate_tree", mock_filenotfounderror)
+    with pytest.raises(FileNotFoundError):
+        Pb.command_line_ui(test_in_args, [], pass_through=True)
 
-    test_in_args.generate_tree = [["fasttree", "-s 12345"]]  # Command doesn't exist in fasttree
-    with pytest.raises(SystemExit):
-        Pb.command_line_ui(test_in_args, [])
-
-
-@pytest.mark.generate_trees
-def test_generate_tree_ui3():
-    test_in_args = deepcopy(in_args)
-    test_in_args.in_format, test_in_args.out_format = "nexus", "newick"
-    test_in_args.trees = [resource("Mnemiopsis_cds.nex")]
-
-    test_in_args.generate_tree = [["foo"]]
-    with pytest.raises(SystemExit):
-        Pb.command_line_ui(test_in_args, [])
-"""
+    monkeypatch.setattr(shutil, "which", lambda _: False)
+    with pytest.raises(AttributeError) as err:
+        Pb.command_line_ui(test_in_args, [], pass_through=True)
+    assert "Unable to identify any supported phylogenetic inference on your system." in str(err)
 
 
 # ###################### 'hi', '--hash_ids' ###################### #

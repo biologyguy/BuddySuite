@@ -120,6 +120,7 @@ if dendropy_ver < 411:
 
 
 # ##################################################### WISH LIST #################################################### #
+"""
 def delete_metadata(_trees):
     return _trees
 
@@ -135,7 +136,7 @@ def descending_order(phylobuddy):
 
 def ascending_order(phylobuddy):
     return phylobuddy
-
+"""
 
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
@@ -906,7 +907,7 @@ def root(phylobuddy, *root_nodes):
 
     return phylobuddy
 
-
+"""
 def show_diff(phylobuddy):  # Doesn't work.
     sys.exit('show_diff() is not implemented yet.')
     # if len(_phylobuddy.trees) != 2:
@@ -972,6 +973,7 @@ def show_diff(phylobuddy):  # Doesn't work.
     phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
 
     return phylobuddy
+"""
 
 
 def show_unique(phylobuddy):
