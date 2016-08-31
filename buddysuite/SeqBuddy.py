@@ -3702,7 +3702,7 @@ def argparse_init():
                 pass
 
             elif len(sys.argv) > sb_flag_indx + 2 or extra_args:
-                # There must be optional arguments being passed into the alignment tool
+                # There must be optional arguments being passed into the blast tool
                 sys.argv[sb_flag_indx + 2] = " %s" % sys.argv[sb_flag_indx + 2].rstrip()
 
     import argparse
@@ -3731,7 +3731,7 @@ def argparse_init():
     seq_set = ""
 
     if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
-        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
+        _stderr("Error: Output type '%s' is not recognized/supported\n" % in_args.out_format)
         sys.exit()
 
     if in_args.guess_alphabet or in_args.guess_format:

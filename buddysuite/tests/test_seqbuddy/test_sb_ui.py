@@ -31,6 +31,7 @@ from unittest import mock
 from Bio.Alphabet import IUPAC
 import io
 import urllib.error
+import sys
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -77,6 +78,52 @@ br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping se
 
 # This is to allow py.test to work with its own flags
 in_args = parser.parse_args([])
+
+
+# ###################### argparse_init() ###################### #
+def test_argparse_init(capsys, sb_resources, sb_helpers, sb_odd_resources):
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "fasta"]
+    temp_in_args, seqbuddy = Sb.argparse_init()
+    assert sb_helpers.seqs2hash(seqbuddy) == "25073539df4a982b7f99c72dd280bb8f"
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "foo"]
+    with pytest.raises(SystemExit):
+        Sb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "Output type 'foo' is not recognized/supported" in err
+
+    sys.argv = ['SeqBuddy.py', sb_odd_resources["gibberish"], "-cmp"]
+    with pytest.raises(SystemExit):
+        Sb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "GuessError: Could not determine format from sb_input file" in err
+
+    sys.argv = ['SeqBuddy.py', sb_odd_resources["gibberish"], "-cmp", "-f", "phylip"]
+    with pytest.raises(ValueError) as err:
+        Sb.argparse_init()
+    assert "ValueError: First line should have two integers" in str(err)
+
+    sys.argv = ['SeqBuddy.py', sb_odd_resources["phylipss_cols"], "-cmp", "-f", "phylipss"]
+    with pytest.raises(br.PhylipError) as err:
+        Sb.argparse_init()
+    assert "PhylipError: Malformed Phylip --> Less sequence found than expected" in str(err)
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("p py", "paths"), "-cmp", "-f", "foo"]
+    with pytest.raises(ValueError) as err:
+        Sb.argparse_init()
+    assert "Unknown format 'foo'" in str(err)
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path"]
+    temp_in_args, seqbuddy = Sb.argparse_init()
+    assert temp_in_args.blast == [['blastdb/path']]
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path", "-evalue 1", "--quiet"]
+    temp_in_args, seqbuddy = Sb.argparse_init()
+    assert temp_in_args.blast == [['blastdb/path', ' -evalue 1']]
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "-gf"]
+    temp_in_args, seqbuddy = Sb.argparse_init()
+    assert temp_in_args.guess_format
 
 
 # ##################### '-ano', '--annotate' ###################### ##
