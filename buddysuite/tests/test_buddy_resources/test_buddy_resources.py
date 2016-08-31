@@ -673,14 +673,14 @@ def test_shift_features(sb_resources, sb_helpers):
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, 10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.features2hash(buddy) == "2929e27c194fbb4a530023faa602d611"
+    assert sb_helpers.seqs2hash(buddy) == "e494bf6dc9c6c73c509e66ffc3db57a9"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, -10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.features2hash(buddy) == "5918b48a9ec783b4010916ec517b66a6"
+    assert sb_helpers.seqs2hash(buddy) == "c2b852ded3b2829f4aaa7f98f0a9f7f3"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
