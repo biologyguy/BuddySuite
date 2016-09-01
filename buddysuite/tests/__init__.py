@@ -90,24 +90,24 @@ class SbResources(object):
 
     def get_key(self, code):
         code = code.split()
-        if len(code) != 3:
-            raise AttributeError("Only explicit three-component codes are accepted")
+        if len(code) != 2:
+            raise AttributeError("Only explicit two-component codes are accepted")
         for letter in code:
             if letter not in self.single_letter_codes:
                 raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
-
         output = {}
-        for component in ["molecule", "format"]:
-            for indx, letter in enumerate(code):
-                if letter in self.code_dict[component]:
-                    if component in output:
-                        raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
-                                             "component of the key" % component)
-                    output[component] = self.single_letter_codes[letter]
-                    del code[indx]
-                    break
+        for letter in code:
+            if letter in self.code_dict["molecule"]:
+                output["molecule"] = self.code_dict["molecule"][letter] \
+                    if "molecule" not in output else AttributeError
+            if letter in self.code_dict["format"]:
+                output["format"] = self.code_dict["format"][letter] \
+                    if "format" not in output else AttributeError
+        rev_output_check = {str(val): key for key, val in output.items()}
+        if str(AttributeError) in rev_output_check:
+            raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
+                                 "component of the key" % rev_output_check[str(AttributeError)])
 
-        # return [output["molecule"], output["format"]]
         return output
 
     def get(self, code="", mode="objs"):

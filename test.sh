@@ -16,6 +16,8 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/conftest.py ./
+cp /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/__init__.py ./
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddy_resources/
 
 #### Buddy Resources
