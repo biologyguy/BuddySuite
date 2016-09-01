@@ -1795,8 +1795,7 @@ db_modifiers = {"database": {"flag": "d",
                 }
 
 
-if __name__ == '__main__':
-
+def main():
     main_parser = argparse.ArgumentParser(prog='buddy_resources')
 
     main_parser.add_argument('-v', '--version', help='Show module version #s', action='store_true')
@@ -1806,28 +1805,24 @@ if __name__ == '__main__':
     in_args = main_parser.parse_args()
 
     if in_args.version:
-        import SeqBuddy
-        import AlignBuddy
-        import PhyloBuddy
-        import DatabaseBuddy
+        from buddysuite import SeqBuddy, AlignBuddy, PhyloBuddy, DatabaseBuddy
         print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
         print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
         print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
         print("DatabaseBuddy: %s" % DatabaseBuddy.VERSION.short())
-        sys.exit(datetime.datetime.strptime(str(datetime.date.today()), '%Y-%m-%d'))
 
     if in_args.tools:
         print("### SeqBuddy")
-        for key in sb_flags:
+        for key in sorted([key for key in sb_flags]):
             print(key)
         print("\n### AlignBuddy")
-        for key in alb_flags:
+        for key in sorted([key for key in alb_flags]):
             print(key)
         print("\n### PhyloBuddy")
-        for key in pb_flags:
+        for key in sorted([key for key in pb_flags]):
             print(key)
         print("\n### DatabaseBuddy")
-        for key in db_flags:
+        for key in sorted([key for key in db_flags]):
             print(key)
 
     if in_args.count:
@@ -1836,3 +1831,7 @@ if __name__ == '__main__':
         print("PhyloBuddy: %s" % len(pb_flags))
         print("DatabaseBuddy: %s" % len(db_flags))
         print("Total: %s" % sum([len(x) for x in [sb_flags, alb_flags, pb_flags, db_flags]]))
+
+
+if __name__ == '__main__':
+    main()
