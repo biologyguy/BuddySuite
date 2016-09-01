@@ -594,6 +594,13 @@ def test_parse_format():
         br.parse_format("buddy")
 
 
+def test_preparse_flags():
+    sys.argv = ['buddy_resources.py', "-v", "-foo", "blahh", "-c", "-ns", "57684", "--blast", "--bar"]
+    br.preparse_flags()
+    print(sys.argv)
+    assert sys.argv == ['buddy_resources.py', '-v', ' -foo', 'blahh', '-c', '-ns', "57684", '--blast', " --bar"]
+
+
 def test_phylip_sequential_out(alb_resources, sb_resources):
     buddy = alb_resources.get_one("o d n")
     output = br.phylip_sequential_out(buddy)
