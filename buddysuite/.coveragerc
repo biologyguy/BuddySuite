@@ -3,3 +3,11 @@ omit = /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*
        /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/*/*
        /home/travis/build/biologyguy/BuddySuite/buddysuite/__init__.py
        /home/travis/miniconda/bin/conda
+
+include = /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/__init__.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/conftest.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/buddy_resources.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/SeqBuddy.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/AlignBuddy.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/PhyloBuddy.py
+          /home/travis/build/biologyguy/BuddySuite/buddysuite/DatabaseBuddy.py
