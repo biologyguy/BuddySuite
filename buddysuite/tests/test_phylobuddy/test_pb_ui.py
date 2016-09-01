@@ -67,6 +67,18 @@ def mock_filenotfounderror(*args, **kwargs):
     raise FileNotFoundError(args, kwargs)
 
 
+def mock_keyboardinterrupt(*args, **kwargs):
+    raise KeyboardInterrupt(args, kwargs)
+
+
+def mock_guesserror(*args, **kwargs):
+    raise br.GuessError("%s, %s" % (args, kwargs))
+
+
+def mock_systemexit(*args, **kwargs):
+    sys.exit("%s, %s" % (args, kwargs))
+
+
 # ###################### argparse_init() ###################### #
 def test_argparse_init(capsys, pb_odd_resources, pb_helpers):
     sys.argv = ['PhyloBuddy.py', pb_odd_resources["compare"]]
@@ -325,7 +337,7 @@ def test_root_ui_midpoint(capsys, pb_resources, pb_helpers):
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "8a7fdd9421e0752c9cd58a1e073186c7"
+    assert pb_helpers.string2hash(out) in ["8a7fdd9421e0752c9cd58a1e073186c7", "25ea14c2e89530a0fb48163c0ef2a102"]
 
 
 def test_root_ui_leaf(capsys, pb_resources, pb_helpers):
@@ -429,3 +441,23 @@ def test_unroot_ui(capsys, pb_odd_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["figtree"]), skip_exit=True)
     out, err = capsys.readouterr()
     assert pb_helpers.string2hash(out) == "10e9024301b3178cdaed0b57ba33f615"
+
+
+# ###################### main() ###################### #
+def test_main(monkeypatch, capsys, pb_resources):
+    monkeypatch.setattr(sys, "argv", ["PhyloBuddy", pb_resources.get_one("o k", mode="paths"), "-li"])
+    monkeypatch.setattr(Pb, "command_line_ui", lambda *_: True)
+    assert Pb.main()
+
+    monkeypatch.setattr(Pb, "command_line_ui", mock_keyboardinterrupt)
+    assert not Pb.main()
+
+    monkeypatch.setattr(Pb, "command_line_ui", mock_guesserror)
+    assert not Pb.main()
+
+    monkeypatch.setattr(Pb, "command_line_ui", mock_systemexit)
+    assert not Pb.main()
+
+    monkeypatch.setattr(Pb, "command_line_ui", mock_fileexistserror)
+    monkeypatch.setattr(br, "send_traceback", lambda *_: True)
+    assert not Pb.main()

@@ -1194,7 +1194,6 @@ def test_prosite_scan_run(sb_resources, sb_helpers, monkeypatch):
     Sb.delete_features(seqbuddy, "splice")
     ps_scan = Sb.PrositeScan(seqbuddy)
     seqbuddy = ps_scan.run()
-    seqbuddy.write("temp.del")
     assert sb_helpers.seqs2hash(seqbuddy) == "e8cd292ada589ddde4747bd9f9ebfb17"
 
 

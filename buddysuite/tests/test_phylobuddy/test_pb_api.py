@@ -10,6 +10,7 @@ from unittest import mock
 import ete3
 import os
 import shutil
+import re
 
 
 class MockPopen(object):
@@ -243,16 +244,20 @@ def test_rename_nodes(pb_odd_resources, pb_helpers):
 
 
 # ###################### 'rt', '--root' ###################### #
-hashes = [('m k', '8a7fdd9421e0752c9cd58a1e073186c7'), ('m n', 'c16b19aaa11678595f6ed4e7c6b77955'),
-          ('m l', '773e71730ccf270ea3a7cd37a7c0990d'), ('o k', 'eacf232776eea70b5de156328e10ecc7'),
-          ('o n', '53caffda3fed5b9004b79effc6d29c36'), ('o l', '3137d568fe07d88620c08480a15006d3')]
+# Note that there's a weird behaviour with dendropy here. If running pytest with -n, it returns slightly different trees
+hashes = [('m k', ['8a7fdd9421e0752c9cd58a1e073186c7', '25ea14c2e89530a0fb48163c0ef2a102']),
+          ('m n', ['c16b19aaa11678595f6ed4e7c6b77955', 'e3711259d579cbf0511a5ded66dfd437']),
+          ('m l', ['773e71730ccf270ea3a7cd37a7c0990d', '8135cec021240619c27d61288885d8e1']),
+          ('o k', ['eacf232776eea70b5de156328e10ecc7', '05a83105f54340839dca64a62a22026e']),
+          ('o n', ['53caffda3fed5b9004b79effc6d29c36', 'f0e26202274a191c9939835b25c1fae4']),
+          ('o l', ['3137d568fe07d88620c08480a15006d3', 'e97c246dc7ebf4d80363f836beff4a81'])]
 
 
-@pytest.mark.parametrize("key, next_hash", hashes)
-def test_root_middle(key, next_hash, pb_resources, pb_helpers):
+@pytest.mark.parametrize("key, next_hashes", hashes)
+def test_root_middle(key, next_hashes, pb_resources, pb_helpers):
     tester = pb_resources.get_one(key)
     tester = Pb.root(tester)
-    assert pb_helpers.phylo2hash(tester) == next_hash
+    assert pb_helpers.phylo2hash(tester) in next_hashes
 
 hashes = [('m k', 'f32bdc34bfe127bb0453a80cf7b01302'), ('m n', 'a7003478d75ad76ef61fcdc643ccdab8'),
           ('m l', 'c490e3a937b6ee2073c74119984a896e'), ('o k', 'eacf232776eea70b5de156328e10ecc7'),
@@ -271,10 +276,22 @@ hashes = [('m k', 'edcc2400de6b0a4fb05c0a5159215ecd'), ('m n', '09e4c41d22f43b84
 
 
 @pytest.mark.parametrize("key, next_hash", hashes)
-def test_root_mrca(key, next_hash, pb_resources, pb_helpers):
+def test_root_mrca1(key, next_hash, pb_resources, pb_helpers):
     tester = pb_resources.get_one(key)
     tester = Pb.root(tester, "ovi47[ab]", "penIT11b")
     assert pb_helpers.phylo2hash(tester) == next_hash
+
+
+def test_root_mrca2(pb_resources, pb_helpers):
+    tester = pb_resources.get_one("o k")
+    starting_hash = pb_helpers.string2hash(re.sub("\[&U\]", "[&R]", str(tester)))
+    tester = Pb.root(tester, "NoMatchHere!")
+    assert pb_helpers.phylo2hash(tester) == starting_hash
+
+    # Step through a few nodes to find MRCA
+    tester = pb_resources.get_one("m k")
+    tester = Pb.root(tester, "ovi47[ab]", "penIT12b")
+    assert pb_helpers.phylo2hash(tester) == "292f739318987701aedac62115be38c8"
 
 
 # ######################  'su', '--show_unique' ###################### #
