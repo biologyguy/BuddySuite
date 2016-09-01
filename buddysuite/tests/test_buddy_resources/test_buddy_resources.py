@@ -409,19 +409,19 @@ def test_contributor():
 
 
 def test_customhelpformatter(capsys, sb_helpers):
-    oldparser = argparse.ArgumentParser()
+    oldparser = argparse.ArgumentParser(prog="SeqBuddy.py")
     oldparser.add_argument('-v', '--version', help='Show module version #s', action='store')
     oldparser.print_help()
     oldout, olderr = capsys.readouterr()
 
-    parser = argparse.ArgumentParser(formatter_class=br.CustomHelpFormatter, add_help=False)
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", formatter_class=br.CustomHelpFormatter, add_help=False)
     parser.add_argument('-h', '--help', help='show this help message and exit', action='help')
     parser.add_argument('-v', '--version', help='Show module version #s', action='store')
     parser.print_help()
     out, err = capsys.readouterr()
     assert out != oldout
-    assert sb_helpers.string2hash(oldout) == "1429ec82e7bfffa2189a47404e12e6bd"
-    assert sb_helpers.string2hash(out) == "c99e5e1197b0a778a73025d1ab623c1c"
+    assert sb_helpers.string2hash(oldout) == "5964e3c404d744898171d953c4c6c5f0"
+    assert sb_helpers.string2hash(out) == "790871bff8c3811c3f7bce6f9e19bb05"
     assert err == "" and olderr == ""
 
 
@@ -553,7 +553,7 @@ def test_flags(capsys, sb_helpers):
     contributors.append(br.Contributor("Sweet", "Water", commits=5, github="sweetwater"))
     version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
 
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(prog="SeqBuddy.py", add_help=False)
     pos_dict = ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
                             "into SeqBuddy this argument can be left blank.")
     flag_dict = {"annotate": {"flag": "ano",
@@ -578,7 +578,7 @@ def test_flags(capsys, sb_helpers):
     br.flags(parser, _positional=pos_dict, _flags=flag_dict, _modifiers=mod_dict, version=version)
     parser.print_help()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "08c59420d1a07f528c1d80ed860c511a"
+    assert sb_helpers.string2hash(out) == "9ea2d4ac842b1712687034ea0abf497b"
 
 
 def test_parse_format():
