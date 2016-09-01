@@ -17,7 +17,7 @@ from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
 
 # Globals
-temp_dir = br.TempDir()
+TEMP_DIR = br.TempDir()
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
 
 
@@ -59,7 +59,7 @@ def test_timer():
 
 
 def test_runtime():
-    temp_file_path = temp_dir.subfile("runtime")
+    temp_file_path = TEMP_DIR.subfile("runtime")
     with open(temp_file_path, "w") as temp_file:
         timer = br.RunTime('x ', ' y', temp_file)
         timer.start()
@@ -178,68 +178,66 @@ def test_usable_cpu_count(monkeypatch):
 def test_run_multicore_function(monkeypatch, sb_helpers):
     temp_file = br.TempFile()
     temp_path = temp_file.path
-    faketime = mock.Mock(return_value=1)
-    monkeypatch.setattr(br, "time", faketime)
+    monkeypatch.setattr(br, "time", lambda: 1)
 
     monkeypatch.setattr(br, "cpu_count", mock.Mock(return_value=4))
     monkeypatch.setattr(br, "usable_cpu_count", mock.Mock(return_value=4))
 
     testfunc = mock.Mock()
     testfunc.configure_mock(**{"__name__": "testfunc"})
-    nums = range(1, 21)
+
+    nums = range(1, 5)
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=0, quiet=False, out_type=output)
+        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+                                  max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "5caff0f554558b6a5b972f25be4e3568"
+        assert sb_helpers.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=4, quiet=False, out_type=output)
+        br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
+                                  max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "5caff0f554558b6a5b972f25be4e3568"
+        assert sb_helpers.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=4, quiet=False, out_type=output)
+        br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
+                                  max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "5caff0f554558b6a5b972f25be4e3568"
+        assert sb_helpers.string2hash(output) == "cf5afec941a4b854ed78f01d2753009d"
 
+    with pytest.raises(AttributeError) as err:
+        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False, out_type=sys.stdout)
+    assert "The arguments passed into the multi-thread function must be provided" in str(err)
+
+    class MockTime(object):
+        def __init__(self):
+            self.timer = 0
+
+        def time(self):
+            self.timer += 1 if self.timer < 3 else 0
+            return self.timer
+
+    timer = MockTime()
+    monkeypatch.setattr(br, "time", timer.time)
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=4, quiet=True, out_type=output)
+        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+                                  max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert output == ""
+        assert sb_helpers.string2hash(output) == "08f48aaa5d64ac48ea15a4aa63d75141"
 
+    timer = MockTime()
+    monkeypatch.setattr(br, "time", timer.time)
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=400, quiet=False, out_type=output)
+        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+                                  max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "5caff0f554558b6a5b972f25be4e3568"
-
-    with pytest.raises(AttributeError):
-        br.run_multicore_function(nums, testfunc, func_args="Test", max_processes=4, quiet=False, out_type=sys.stdout)
-
-    input_args = ["test_string", 4]
-    with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, input_args, max_processes=4, quiet=False, out_type=output)
-    with open(temp_path, "r") as out:
-        output = out.read()
-        assert sb_helpers.string2hash(output) == "5caff0f554558b6a5b972f25be4e3568"
-
-    with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=2, quiet=False, out_type=output)
-    with open(temp_path, "r") as out:
-        output = out.read()
-        assert sb_helpers.string2hash(output) == "3f2495fdec6684e0a602579806fc421d"
-
-    nums = [0, 1, 2]
-    with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, testfunc, func_args=False, max_processes=4, quiet=False, out_type=output)
-    with open(temp_path, "r") as out:
-        output = out.read()
-        assert sb_helpers.string2hash(output) == "b9cc1f9ac03116b3f1727ad2c5ea5a05"
+        assert sb_helpers.string2hash(output) == "41cc02db5a989591601308d0657544a8"
 
 
 def test_tempdir():
@@ -310,9 +308,9 @@ def test_tempfile():
     test_file.clear()
     assert test_file.read() == ""
     test_file.write("hello world")
-    test_file.save("{0}/temp".format(temp_dir.path))
-    assert os.path.exists("{0}/temp".format(temp_dir.path))
-    assert open("{0}/temp".format(temp_dir.path), 'r').read() == "hello world"
+    test_file.save("{0}/temp".format(TEMP_DIR.path))
+    assert os.path.exists("{0}/temp".format(TEMP_DIR.path))
+    assert open("{0}/temp".format(TEMP_DIR.path), 'r').read() == "hello world"
 
 
 def test_safetyvalve():
@@ -334,7 +332,7 @@ def test_safetyvalve():
 
 
 def test_copydir():
-    tmp_path = temp_dir.path
+    tmp_path = TEMP_DIR.path
     os.makedirs('{0}/fakedir'.format(tmp_path))
     os.makedirs('{0}/fakedir/fakesub'.format(tmp_path))
     os.makedirs('{0}/fakedir/fakesub/empty'.format(tmp_path))
@@ -435,7 +433,7 @@ def test_usage(monkeypatch):
             raise RuntimeError
 
     config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": True, "user_hash": "ABCDEF",
-                                     "data_dir": temp_dir.path})
+                                     "data_dir": TEMP_DIR.path})
     monkeypatch.setattr(br, "config_values", config)
     monkeypatch.setattr(br, "FTP", FakeFTP)
     usage = br.Usage()
@@ -672,6 +670,14 @@ def test_send_traceback(capsys, monkeypatch):
     assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
                        "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
                        " Something broke!\n\n\n\n\033[m\n"
+    try:
+        raise TypeError
+    except TypeError as err:
+        br.send_traceback("test2", "test2", err, 1.3)
+        out, err = capsys.readouterr()
+        assert "test2::test2 has crashed with the following traceback:" in out
+        assert 'File "test_buddy_resources.py", line' in out
+        assert "raise TypeError" in out
 
 
 def test_shift_features(sb_resources, sb_helpers):
@@ -688,6 +694,20 @@ def test_shift_features(sb_resources, sb_helpers):
     shifted_features = br.shift_features(features, -10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
     assert sb_helpers.seqs2hash(buddy) == "c2b852ded3b2829f4aaa7f98f0a9f7f3"
+
+    buddy = sb_resources.get_one("d g")
+    buddy.records = [buddy.records[0]]
+    features = buddy.records[0].features
+    shifted_features = br.shift_features(features, 1160, len(buddy.records[0]))
+    buddy.records[0].features = shifted_features
+    assert sb_helpers.seqs2hash(buddy) == "35e0b3b0079ee41591f5f28ac27f039d"
+
+    buddy = sb_resources.get_one("d g")
+    buddy.records = [buddy.records[0]]
+    features = buddy.records[0].features
+    shifted_features = br.shift_features(features, 1400, len(buddy.records[0]))
+    buddy.records[0].features = shifted_features
+    assert sb_helpers.seqs2hash(buddy) == "750a1dd925dd9cef7e3ec0760fd9de9b"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
