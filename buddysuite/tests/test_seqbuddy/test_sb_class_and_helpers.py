@@ -144,7 +144,7 @@ def test_print_hashmap(sb_resources, sb_helpers):
     assert sb_helpers.string2hash(tester.print_hashmap()) == "ab38a224d002a5b227265b8211c9f7bc"
 
 
-def test_reverse_hashmap(sb_resources, sb_helpers):
+def test_reverse_hashmap(sb_resources):
     tester = sb_resources.get_one("d f")
     tester_str = str(tester)
     hash_ids(tester)
@@ -154,40 +154,7 @@ def test_reverse_hashmap(sb_resources, sb_helpers):
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-# ######################  'GuessError' ###################### #
-def test_guesserror_raw_seq():
-    with pytest.raises(br.GuessError):
-        SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
-    try:
-        SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
-    except br.GuessError as e:
-        assert "File not found, or could not determine format from raw input" in str(e)
-
-
-def test_guesserror_infile(sb_odd_resources):
-    with pytest.raises(br.GuessError):
-        SeqBuddy(sb_odd_resources["gibberish"])
-
-
-def test_guesserror_in_handle(sb_odd_resources):
-    with pytest.raises(br.GuessError):
-        with open(sb_odd_resources["gibberish"], "r") as ifile:
-            SeqBuddy(ifile)
-
-
-def test_no__input():
-    with pytest.raises(TypeError):
-        # noinspection PyArgumentList
-        SeqBuddy()
-
-
-# ######################  'make_copy' ###################### #
-def test_make_copy(sb_resources, sb_helpers):
-    tester = SeqBuddy(sb_resources.get_one("d f", mode="paths"))
-    tester_copy = make_copy(tester)
-    assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(tester_copy)
-
-
+# ToDo: Missing tests for --> _add_buddy_data, FeatureReMapper
 # ######################  '_check_for_blast_bin' ###################### #
 def test_check_blast_bin_success():
     for _bin in ["blastn", "blastp", "blastdbcmd", "makeblastdb"]:
@@ -275,7 +242,6 @@ def test_guess_alphabet(sb_resources):
 
 
 # ######################  'guess_format' ###################### #
-@pytest.mark.foo
 def test_guess_format(sb_resources, sb_odd_resources):
     assert _guess_format(["foo", "bar"]) == "gb"
     assert _guess_format(sb_resources.get_one("d f")) == "fasta"
@@ -298,6 +264,40 @@ def test_guess_format(sb_resources, sb_odd_resources):
 ''')
 
     assert not _guess_format(temp_file.path)
+
+
+# ######################  'GuessError' ###################### #
+def test_guesserror_raw_seq():
+    with pytest.raises(br.GuessError):
+        SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
+    try:
+        SeqBuddy("JSKHGLHGLSDKFLSDYUIGJVSBDVHJSDKGIUSUEWUIOIFUBCVVVBVNNJS{QF(*&#@$(*@#@*(*(%")
+    except br.GuessError as e:
+        assert "File not found, or could not determine format from raw input" in str(e)
+
+
+def test_guesserror_infile(sb_odd_resources):
+    with pytest.raises(br.GuessError):
+        SeqBuddy(sb_odd_resources["gibberish"])
+
+
+def test_guesserror_in_handle(sb_odd_resources):
+    with pytest.raises(br.GuessError):
+        with open(sb_odd_resources["gibberish"], "r") as ifile:
+            SeqBuddy(ifile)
+
+
+def test_no__input():
+    with pytest.raises(TypeError):
+        # noinspection PyArgumentList
+        SeqBuddy()
+
+
+# ######################  'make_copy' ###################### #
+def test_make_copy(sb_resources, sb_helpers):
+    tester = SeqBuddy(sb_resources.get_one("d f", mode="paths"))
+    tester_copy = make_copy(tester)
+    assert sb_helpers.seqs2hash(tester) == sb_helpers.seqs2hash(tester_copy)
 
 
 # ######################  '_stdout and _stderr' ###################### #
