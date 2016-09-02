@@ -22,43 +22,43 @@ TEMPDIR = br.TempDir()
 
 # ##################### '-ano', '--annotate' ###################### ##
 def test_annotate_pattern(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), pattern='α4')
     assert sb_helpers.seqs2hash(tester) == '4f9b3f82ce3c8d6c953f60a5a0e9574e'
 
 
 def test_annotate_no_pattern(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100))
     assert sb_helpers.seqs2hash(tester) == '83a975003d5bb5987c6f2cbaeaa75cf7'
 
 
 def test_annotate_compoundlocation(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', [(1, 100), (200, 250)])
     assert sb_helpers.seqs2hash(tester) == 'd22c44cf1a53624b58a86b0fb98c33a6'
 
 
 def test_annotate_list_str(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', ['1-100', '(200-250)'])
     assert sb_helpers.seqs2hash(tester) == 'd22c44cf1a53624b58a86b0fb98c33a6'
 
 
 def test_annotate_str(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', '1-100, (200-250)')
     assert sb_helpers.seqs2hash(tester) == 'd22c44cf1a53624b58a86b0fb98c33a6'
 
 
 def test_annotate_fl_obj(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=0, end=100))
     assert sb_helpers.seqs2hash(tester) == '83a975003d5bb5987c6f2cbaeaa75cf7'
 
 
 def test_annotate_cl_obj(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', CompoundLocation([FeatureLocation(start=0, end=100),
                                                                    FeatureLocation(start=199, end=250)],
                                                                   operator='order'))
@@ -67,72 +67,84 @@ def test_annotate_cl_obj(sb_resources, sb_helpers):
 
 def test_annotate_typerror(sb_resources):
     with pytest.raises(TypeError):
-        tester = Sb.make_copy(sb_resources.get_one("d g"))
+        tester = sb_resources.get_one("d g")
         Sb.annotate(tester, 'misc_feature', 5)
 
 
+def test_annotate_location_invalid(sb_resources):
+    with pytest.raises(AttributeError) as err:
+        tester = sb_resources.get_one("d g")
+        Sb.annotate(tester, 'misc_feature', ["foo", 100])
+    assert "The provided location string is invalid" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        tester = sb_resources.get_one("d g")
+        Sb.annotate(tester, 'misc_feature', "foo-100")
+    assert "The provided location string is invalid" in str(err)
+
+
 def test_annotate_pos_strand(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='+')
     assert sb_helpers.seqs2hash(tester) == '83a975003d5bb5987c6f2cbaeaa75cf7'
 
 
 def test_annotate_neg_strand(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand='-')
     assert sb_helpers.seqs2hash(tester) == '08524707f09d7eb273775f791d92964c'
 
 
 def test_annotate_no_strand(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), strand=0)
     assert sb_helpers.seqs2hash(tester) == '83a975003d5bb5987c6f2cbaeaa75cf7'
 
 
 def test_annotate_qualifier_dict(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers={'foo': 'bar', 'hello': 'world'})
     assert sb_helpers.seqs2hash(tester) == '34e9dfb9cfe62f0a4657c977eda45688'
 
 
 def test_annotate_qualifier_list(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers=['foo=bar', 'hello=world'])
     assert sb_helpers.seqs2hash(tester) == '34e9dfb9cfe62f0a4657c977eda45688'
 
 
 def test_annotate_qualifier_error(sb_resources):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     with pytest.raises(TypeError):
         Sb.annotate(tester, 'misc_feature', (1, 100), qualifiers=tuple)
 
 
 def test_annotate_out_of_range(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', [(-10, 100), (200, 10000)])
     assert sb_helpers.seqs2hash(tester) == 'a8f90863b2bbeaa519e8230a187532ca'
 
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', [(1, 10000)])
     assert sb_helpers.seqs2hash(tester) == 'f5c90e3458fbca9b9565dac7877cc248'
 
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', [(1, 10000), (20000, 30000)])
     assert sb_helpers.seqs2hash(tester) == 'f5c90e3458fbca9b9565dac7877cc248'
 
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     tester = Sb.annotate(tester, 'misc_feature', FeatureLocation(start=-10, end=100))
     assert sb_helpers.seqs2hash(tester) == '83a975003d5bb5987c6f2cbaeaa75cf7'
 
 
 def test_annotate_protein(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("p g"))
+    tester = sb_resources.get_one("p g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100))
     assert sb_helpers.seqs2hash(tester) == '93a248cacdaa1a58697c16827fe8709d'
 
 
 def test_annotate_unrec_strand(capsys, sb_resources):
-    tester = Sb.make_copy(sb_resources.get_one("d g"))
+    tester = sb_resources.get_one("d g")
     Sb.annotate(tester, 'misc_feature', (1, 100), strand='foo')
     out, err = capsys.readouterr()
     assert err == "Warning: strand input not recognized. Value set to None."
@@ -171,11 +183,11 @@ def test_back_translate_nucleotide_exception(sb_resources):
 
 def test_back_translate_bad_mode(sb_resources):
     with pytest.raises(AttributeError):
-        Sb.back_translate(Sb.make_copy(sb_resources.get_one("p f")), 'fgsdjkghjdalgsdf', 'human')
+        Sb.back_translate(sb_resources.get_one("p f"), 'fgsdjkghjdalgsdf', 'human')
 
 
 def test_back_translate_bad_organism(sb_resources):
-    seqbuddy = Sb.make_copy(sb_resources.get_one("p f"))
+    seqbuddy = sb_resources.get_one("p f")
     with pytest.raises(AttributeError):
         Sb.back_translate(seqbuddy, 'OPTIMIZED', 'fgsdjkghjdalgsdf')
 
@@ -292,7 +304,7 @@ def test_concat_seqs_clean(key, next_hash, sb_resources, sb_helpers):
 
 # ##################### '-cc', 'count_codons' ###################### ##
 def test_count_codons_dna(sb_resources, sb_helpers):
-    tester = Sb.make_copy(sb_resources.get_one("d f"))
+    tester = sb_resources.get_one("d f")
     tester.records[0].seq = tester.records[0].seq[:-4]
     counter = Sb.count_codons(tester)
     assert sb_helpers.seqs2hash(counter[0]) == '4dbd9a5c68d85bb200c75b309fdaeeca'
@@ -310,7 +322,7 @@ def test_count_codons_dna_badchar(sb_resources, sb_helpers):
 
 
 def test_count_codons_pep_exception(sb_resources):
-    tester = Sb.make_copy(sb_resources.get_one("p f"))
+    tester = sb_resources.get_one("p f")
     with pytest.raises(TypeError):
         Sb.count_codons(tester)
 
@@ -1501,13 +1513,15 @@ def test_transmembrane_domains_pep(sb_resources, sb_helpers, monkeypatch, capsys
                 yield job_id
 
         def submitjob(self, *args):
+            print(args)
             return [[self.current_job_id, self.result_url, self.numseq_str, self.errinfo, self.warninfo]]
 
         def checkjob(self, jobid):
-            #raise ValueError
+            print(jobid)
             return [[next(self.job_check), self.result_url, self.errinfo]]
 
     def mock_urlretrieve(result_url, filename, reporthook):
+        print(result_url)
         job_id = filename.split("/")[-1].split(".")[0]
         if os.path.isfile("%s/%s.hashmap" % (work_dir.path, job_id)):
             os.remove("%s/%s.hashmap" % (work_dir.path, job_id))
@@ -1594,4 +1608,3 @@ def test_transmembrane_domains_pep(sb_resources, sb_helpers, monkeypatch, capsys
     Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
     out, err = capsys.readouterr()
     assert "Error: Failed to download TOPCONS job rst_lE27A5 after 5 attempts." in err
-

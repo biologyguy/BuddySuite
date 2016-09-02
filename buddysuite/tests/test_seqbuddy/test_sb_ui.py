@@ -1084,8 +1084,8 @@ def test_purge_ui(capsys, sb_resources, sb_helpers):
     test_in_args.purge = 200
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c"
-    assert sb_helpers.string2hash(err) == "fbfde496ae179f83e3d096da15d90920"
+    assert sb_helpers.string2hash(out) == "b21b2e2f0ca1fcd7b25efbbe9c08858c", print(out)
+    assert sb_helpers.string2hash(err) == "fbfde496ae179f83e3d096da15d90920", print(err)
 
 
 # ######################  '-ri', '--rename_ids' ###################### #
