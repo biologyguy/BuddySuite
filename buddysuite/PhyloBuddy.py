@@ -1150,7 +1150,7 @@ def argparse_init():
     return in_args, phylobuddy
 
 
-def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):
+def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):   # ToDo: Convert to a class
     # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_trees(_phylobuddy):
         if in_args.test:

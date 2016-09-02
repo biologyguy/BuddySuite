@@ -1269,7 +1269,8 @@ def blast(subject, query, **kwargs):
     new_seqs = SeqBuddy("%s/seqs.fa" % tmp_dir.path)
     new_seqs.out_format = subject.out_format
     if query_sb:
-        query_sb.reverse_hashmap()
+        new_seqs.hash_map = query_sb.hash_map
+        new_seqs.reverse_hashmap()
     return new_seqs
 
 
@@ -3750,8 +3751,8 @@ def argparse_init():
     return in_args, seqbuddy
 
 
-def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
-    # ############################################# INTERNAL FUNCTION ################################################ #
+def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # ToDo: Convert to a class
+    # ############################################ INTERNAL FUNCTIONS ################################################ #
     def _print_recs(_seqbuddy):
         if in_args.test:
             _stderr("*** Test passed ***\n", in_args.quiet)
@@ -4547,8 +4548,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):
                         qualifs = OrderedDict(sorted(feat.qualifiers.items()))
                         for key, qual in qualifs.items():
                             _stdout('\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'")))
-                    if feat.ref is not None:
-                        _stdout('\ref: {0}'.format(feat.ref))
             else:
                 _stdout('None\n')
             _stdout("\n")
