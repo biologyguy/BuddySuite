@@ -10,11 +10,14 @@ import re
 import ftplib
 import urllib.request
 import argparse
+import json
 from hashlib import md5
 from time import sleep
 from unittest import mock
 from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
+from pkg_resources import DistributionNotFound
+from configparser import ConfigParser
 
 # Globals
 TEMP_DIR = br.TempDir()
@@ -26,6 +29,14 @@ class MockLocation(object):
     def __init__(self):
         self.start = 0
         self.end = 1
+
+
+def mock_valueerror(*args, **kwargs):
+    raise ValueError(args, kwargs)
+
+
+def mock_permissionerror(*args, **kwargs):
+    raise PermissionError(args, kwargs)
 
 
 # Tests
@@ -240,10 +251,16 @@ def test_run_multicore_function(monkeypatch, sb_helpers):
         assert sb_helpers.string2hash(output) == "41cc02db5a989591601308d0657544a8"
 
 
-def test_tempdir():
+# ######################################  TempDir  ###################################### #
+def test_tempdir_init():
     test_dir = br.TempDir()
     assert os.path.exists(test_dir.path)
+    assert not len(test_dir.subdirs)
+    assert not len(test_dir.subfiles)
 
+
+def test_tempdir_subdirs():
+    test_dir = br.TempDir()
     subdir = test_dir.subdir("test")
     assert os.path.exists(subdir)
     assert os.path.exists("{0}/test".format(test_dir.path))
@@ -259,6 +276,9 @@ def test_tempdir():
     assert os.path.exists(subdir)
     test_dir.del_subdir(subdir)
 
+
+def test_tempdir_subfiles():
+    test_dir = br.TempDir()
     subfile = test_dir.subfile("testfile")
     assert os.path.exists(subfile)
     assert os.path.exists("{0}/testfile".format(test_dir.path))
@@ -280,14 +300,26 @@ def test_tempdir():
     assert os.path.exists(subfile)
     test_dir.del_subfile(subfile)
 
+
+def test_tempdir_save():
     save_dir = br.TempDir()
-    test_dir.subfile("testfile")
-    assert test_dir.save("%s/fakedir" % save_dir.path)
+    save_dir.subfile("testfile")
+    assert save_dir.save("%s/fakedir" % save_dir.path)
     assert os.path.exists("%s/fakedir" % save_dir.path)
     assert os.path.exists("%s/fakedir/testfile" % save_dir.path)
-    assert not test_dir.save("%s/fakedir" % save_dir.path)
+    assert not save_dir.save("%s/fakedir" % save_dir.path)
 
 
+def test_tempdir_make_dir_generator():
+    test_dir = br.TempDir()
+    dir_path = test_dir.path
+    for _ in test_dir._make_dir():
+        pass
+    assert not os.path.isdir(dir_path)
+    os.makedirs(dir_path)
+
+
+# ######################################  TempFile  ###################################### #
 def test_tempfile():
     test_file = br.TempFile()
     assert os.path.exists(test_file.path)
@@ -328,7 +360,42 @@ def test_safetyvalve():
         while True:
             valve.test(state)
 
-# Skipped walklevel because idk what it's for
+
+def test_walklevel():
+    tmp_dir = br.TempDir()
+    tmp_dir.subdir("mydir")
+    tmp_dir.subdir("mydir/subdir")
+    tmp_dir.subdir("mydir/subdir/subsubdir")
+
+    tmp_dir.subfile("myfile.txt")
+    tmp_dir.subfile("mydir/subfile.txt")
+    tmp_dir.subfile("mydir/subdir/subsubfile.txt")
+
+    walker = br.walklevel(tmp_dir.path)
+    root, dirs, files = next(walker)
+    assert root == tmp_dir.path
+    assert dirs == ["mydir"]
+    assert files == ["myfile.txt"]
+
+    root, dirs, files = next(walker)
+    assert root == "%s/mydir" % tmp_dir.path
+    assert dirs == ["subdir"]
+    assert files == ["subfile.txt"]
+
+    with pytest.raises(StopIteration):
+        next(walker)
+
+    walker = br.walklevel(tmp_dir.path)
+    counter = 0
+    for _ in walker:
+        counter += 1
+    assert counter == 2
+
+    walker = br.walklevel(tmp_dir.path, level=2)
+    counter = 0
+    for _ in walker:
+        counter += 1
+    assert counter == 3
 
 
 def test_copydir():
@@ -471,6 +538,21 @@ def test_usage(monkeypatch):
     usage = br.Usage()
     usage.stats["last_upload"] = "2015-01-01"
     usage.save(send_report=True)
+    with open(usage.usage_file_path, "r") as ifile:
+        current_content = ifile.read()
+    assert current_content != ""
+
+    monkeypatch.setattr(json, "dump", mock_permissionerror)
+    usage.config["diagnostics"] = False
+    usage.save()
+    with open(usage.usage_file_path, "r") as ifile:
+        current_content = ifile.read()
+    assert current_content == ""
+
+    monkeypatch.setattr(os.path, "isfile", mock_valueerror)
+    usage.config["diagnostics"] = True
+    usage = br.Usage()
+    assert usage.usage_file_path == usage.tmpfile.path
 
 
 def test_version():
@@ -498,6 +580,23 @@ def test_config_values(monkeypatch):
     assert options["user_hash"] == "ABCDEFG"
     assert options["diagnostics"]
     assert options["email"] == "buddysuite@mockmail.com"
+
+    def mock_keyerror(*args, **kwargs):
+        raise KeyError(args, kwargs)
+
+    monkeypatch.setattr(ConfigParser, "getboolean", mock_keyerror)
+    monkeypatch.setattr(ConfigParser, "get", mock_keyerror)
+    options = br.config_values()
+    assert options["user_hash"] == "hashless"
+    assert not options["diagnostics"]
+    assert options["email"] == "buddysuite@nih.gov"
+
+    def mock_distributionerror(*args, **kwargs):
+        raise DistributionNotFound(args, kwargs)
+
+    monkeypatch.setattr(br, "resource_filename", mock_distributionerror)
+    options = br.config_values()
+    assert not options["data_dir"]
 
 
 def test_error_report(monkeypatch):
@@ -624,7 +723,7 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
         br.phylip_sequential_out(buddy, _type="seq")
 
 
-def test_phylip_sequential_read(alb_helpers):
+def test_phylip_sequential_read(alb_odd_resources, alb_helpers, capsys):
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
     assert alb_helpers.align2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
@@ -633,6 +732,47 @@ def test_phylip_sequential_read(alb_helpers):
                                         relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
+
+    with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r") as ifile:
+            records = ifile.read()
+    with pytest.raises(br.PhylipError) as err:
+        br.phylip_sequential_read(records)
+    assert "Malformed Phylip --> Less sequence found than expected" in str(err)
+
+    with open(alb_odd_resources['dna']['single']['phylipss_recs'], "r") as ifile:
+            records = ifile.read()
+    with pytest.raises(br.PhylipError) as err:
+        br.phylip_sequential_read(records)
+    assert "Malformed Phylip --> 9 sequences expected, 4 found." in str(err)
+
+    capsys.readouterr()
+
+    records = """  3 15
+Mle-Panxα4  M--VIE---------A
+Mle-Panxα8  M--VLE---------A
+Mle-Panxα6  M--LLE----------A
+"""
+    with pytest.raises(br.PhylipError) as err:
+        br.phylip_sequential_read(records)
+    assert "Malformed Phylip --> Sequence Mle-Panxα4 has 16 columns, 15 expected." in str(err)
+
+    records = """  3 15
+Mle-Panxα4  M--VIE--------A
+Mle-Panxα8  M--VLE--------A
+Mle-Panxα8  M--LLE--------A
+"""
+    with pytest.raises(br.PhylipError) as err:
+        br.phylip_sequential_read(records)
+    assert "Malformed Phylip --> Repeat ID Mle-Panxα8." in str(err)
+
+    records = """  3 15
+Mle-Panxα4M--VIE--------A
+Mle-Panxα8M--VLE--------A
+Mle-Panxα8M--LLE--------A
+"""
+    with pytest.raises(br.PhylipError) as err:
+        br.phylip_sequential_read(records, relaxed=False)
+    assert "Malformed Phylip --> Repeat id 'Mle-Panxα8' after strict truncation. " in str(err)
 
 
 def test_replacements():

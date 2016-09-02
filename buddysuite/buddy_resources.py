@@ -464,6 +464,7 @@ class SafetyValve(object):  # Use this class if you're afraid of an infinite loo
 
 
 # Pulled this function off of Stack Overflow -- posted by nosklo
+# Iterates over directories only to a specified depth (useful in a for loop)
 # Note that this is a generator, so need to use next() or `with` to get a result
 def walklevel(some_dir, level=1):
     some_dir = some_dir.rstrip(os.path.sep)
