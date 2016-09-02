@@ -4,11 +4,17 @@
 import pytest
 import io
 from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from Bio import AlignIO
 
 from ... import buddy_resources as br
 from ...AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
 from ...buddy_resources import GuessError, parse_format
+
+
+def mock_valueerror(*args, **kwargs):
+    raise ValueError(args, kwargs)
 
 
 def test_instantiate_alignbuddy_from_file(alb_resources):
@@ -100,6 +106,12 @@ def test_records_iter(alb_resources):
     assert counter == 29
 
 
+def test_records_dict(alb_resources, alb_helpers):
+    alignbuddy = alb_resources.get_one("o p g")
+    alb_dict = alignbuddy.records_dict()
+    assert alb_helpers.string2hash(str(alb_dict)) == "a11e822d85aa7dc43afad3eda4f1708d"
+
+
 def test_lengths_single(alb_resources):
     for alignbuddy in alb_resources.get_list("o p g py pr pss psr"):
         assert alignbuddy.lengths()[0] == 681
@@ -135,6 +147,59 @@ hashes = [('o p g', 'bf8485cbd30ff8986c2f50b677da4332'), ('o p n', '17ff1b919cac
 def test_str(alb_resources, alb_helpers, key, next_hash):
     tester = str(alb_resources.get_one(key))
     assert alb_helpers.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
+
+
+def test_str2(alb_resources, alb_helpers, capsys, monkeypatch):
+    alignbuddy = alb_resources.get_one("m p c")
+    alignbuddy.alignments[0] = []
+    assert alb_helpers.string2hash(str(alignbuddy)) == "cd017eee573d2cf27eb7c161babe0cad"
+
+    alignbuddy = alb_resources.get_one("o d f")
+    alignbuddy.alignments[0] = []
+    assert str(alignbuddy) == "AlignBuddy object contains no alignments.\n"
+
+    alignbuddy = alb_resources.get_one("o p g")
+    for rec in alignbuddy.records():
+        rec.annotations['organism'] = ". . "
+    assert alb_helpers.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+
+    alignbuddy = alb_resources.get_one("o p g")
+    for rec in alignbuddy.records():
+        del rec.annotations['organism']
+    assert alb_helpers.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+
+    alignbuddy = alb_resources.get_one("m p c")
+    alignbuddy.set_format("genbank")
+    with pytest.raises(ValueError) as err:
+        str(alignbuddy)
+    assert "genbank format does not support multiple alignments in one file." in str(err)
+
+    alignbuddy = alb_resources.get_one("o p g")
+    alignbuddy.set_format("phylipsr")
+    assert alb_helpers.string2hash(str(alignbuddy)) == "8ff80c7f0b8fc7f237060f94603c17be"
+
+    alignbuddy = alb_resources.get_one("o p py")
+    alignbuddy.set_format("phylipss")
+    alignbuddy.write("temp.del")
+    assert alb_helpers.string2hash(str(alignbuddy)) == "4bd927145de635c429b2917e0a1db176"
+
+    alignbuddy = alb_resources.get_one("o p g")
+    alignbuddy.set_format("phylip")
+    assert alb_helpers.string2hash(str(alignbuddy)) == "ce423d5b99d5917fbef6f3b47df40513"
+    out, err = capsys.readouterr()
+    assert "Warning: Phylip format returned a 'repeat name' error, probably due to truncation." in err
+
+    alignbuddy = alb_resources.get_one("o p py")
+    rec = alignbuddy.records()[0]
+    rec.seq = Seq(str(rec.seq)[:-2], alphabet=rec.seq.alphabet)
+    assert alb_helpers.string2hash(str(alignbuddy)) == "9337bba9fb455f1e6257cc236a663001"
+    out, err = capsys.readouterr()
+    assert "Warning: Alignment format detected but sequences are different lengths." in err
+
+    monkeypatch.setattr(AlignIO, "write", mock_valueerror)
+    alignbuddy = alb_resources.get_one("o p py")
+    with pytest.raises(ValueError):
+        str(alignbuddy)
 
 
 @pytest.mark.parametrize('key,next_hash', hashes)
