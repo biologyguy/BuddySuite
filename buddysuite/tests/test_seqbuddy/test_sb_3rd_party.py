@@ -81,6 +81,25 @@ def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
             assert 'blastp not found in system path' in str(e.value)
 
 
+def test_makeblastdb(monkeypatch, sb_resources, sb_helpers):
+    def mock_check_blast_bin(binary):
+        if binary == "makeblastdb":
+            return False
+        else:
+            return True
+
+    subject = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
+    query = Sb.pull_recs(sb_resources.get_one('p f'), 'α[^8]', True)
+    output = Sb.blast(subject, query)
+    output.write("temp.del")
+    assert sb_helpers.seqs2hash(output) == "4639da7978256eb8dae0e9e7a1ad3d01"
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "blastdbcmd not found in system path." in str(err)
+
+
 # #####################  '-psc', '--prosite_scan' ###################### ##
 def test_prosite_scan(sb_resources, sb_helpers):
     seqbuddy = sb_resources.get_one("d f")

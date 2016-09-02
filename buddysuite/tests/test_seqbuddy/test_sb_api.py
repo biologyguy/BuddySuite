@@ -996,6 +996,14 @@ def test_molecular_weight(sb_resources, sb_odd_resources, sb_helpers):
     assert tester.molecular_weights['masses_ss'][0] == 45692.99
     assert sb_helpers.seqs2hash(tester) == "fb1a66b7eb576c0584fc7988c45b6a18"
 
+    tester = sb_resources.get_one("d f")
+    seq = str(tester.records[0].seq)
+    seq = "j" + seq
+    tester.records[0].seq = Seq(seq, alphabet=tester.records[0].seq.alphabet)
+    with pytest.raises(KeyError) as err:
+        Sb.molecular_weight(tester)
+    assert "Invalid residue \'J\' in record Mle-Panxα9. \'J\' is not valid a valid character in IUPACAmbiguousDNA()." in str(err)
+
 
 # ######################  '-ns', '--num_seqs' ###################### #
 def test_num_seqs(sb_resources):

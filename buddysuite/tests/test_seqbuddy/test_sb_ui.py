@@ -187,7 +187,7 @@ def test_back_translate_ui(capsys, sb_resources, sb_helpers):
 
 
 # ######################  '-bl2s', '--bl2seq' ###################### #
-def test_bl2s_ui(capsys, sb_resources, sb_odd_resources, sb_helpers, monkeypatch):
+def test_bl2s_ui(capsys, sb_resources, sb_helpers, monkeypatch):
     tester = sb_resources.get_one('d f')
     bl2seq_output = OrderedDict([('Mle-Panxα10A', OrderedDict([('Mle-Panxα10B', [100.0, 235, 7e-171, 476.0]),
                                                                ('Mle-Panxα12', [56.28, 398, 5e-171, 478.0])])),
@@ -454,6 +454,20 @@ def test_extact_feature_sequences_ui(capsys, sb_resources, sb_helpers):
     assert sb_helpers.string2hash(out) == "3cdbd5c8790f12871f8e04e40e315c93"
 
 
+# ######################  '-er', '--extract_regions' ###################### #
+def test_extract_regions_ui(sb_resources, sb_helpers, capsys):
+    test_in_args = deepcopy(in_args)
+    test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "557f3591458d01e31ea64b0bc44a9629"
+
+    test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert "Unable to decode the positions string" in err
+
+
 # ######################  '-fcpg', '--find_cpg' ###################### #
 def test_find_cpg_ui(capsys, sb_resources, sb_helpers):
     test_in_args = deepcopy(in_args)
@@ -533,6 +547,12 @@ def test_find_repeats_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert sb_helpers.string2hash(out) == "59ab0d1e5c44977cc167b8d3af8c74f5", print(out)
+
+    Sb.rename(tester, "Seq14", "Seq13")
+    test_in_args.find_repeats = [2]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "49fa91e82b95a01ebeb3ba47c33ec315", print(out)
 
 
 # ######################  '-frs', '--find_restriction_sites' ###################### #
@@ -762,7 +782,7 @@ def test_list_features_ui(capsys, sb_resources, sb_helpers):
     tester.records[0].features[0] = feat
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "b757c1334a87139828b6785ff3537a4e"
+    assert sb_helpers.string2hash(out) == "b757c1334a87139828b6785ff3537a4e", print(out)
 
 
 # ######################  '-lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
@@ -1220,6 +1240,7 @@ def test_screw_formats_ui2(sb_resources):
     test_in_args.sequence = ["%s/seq" % TEMP_DIR.path]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     assert os.path.isfile("%s/seq.gb" % TEMP_DIR.path)
+
 
 # ######################  '-sfr', '--select_frame' ###################### #
 def test_select_frame_ui(capsys, sb_resources, sb_helpers):
