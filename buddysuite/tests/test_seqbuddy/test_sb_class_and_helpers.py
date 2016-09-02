@@ -7,6 +7,7 @@ from collections import OrderedDict
 from unittest import mock
 import os
 from shutil import which
+import subprocess
 
 from ... import buddy_resources as br
 from ...SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
@@ -163,44 +164,44 @@ def test_check_blast_bin_error(capsys):
         assert "Please install BLAST+ executables." in err
 
 
-@pytest.mark.internet
 def test_check_blast_bin_download(monkeypatch, capsys):
-    def patch_ask(_bool):
-        try:
-            monkeypatch.setattr("buddysuite.buddy_resources.ask", lambda _: _bool)
-        except ImportError:
-            monkeypatch.setattr("buddy_resources.ask", lambda _: _bool)
+    def patch_ask(message):
+        _blastp = temp_dir.subfile("blastp")
+        os.chmod(_blastp, 0o777)
+        return True
 
-    # Nuke user's conda installed blast bins if present, then reinstall at the end of test
-    conda_bin = "/".join(which("conda").split("/")[:-1])
-    pre_installed_conda_blast = False
-    if os.path.isfile("%s/blastp" % conda_bin):
-        Popen("conda remove blast", shell=True).wait()
-        pre_installed_conda_blast = True
+    monkeypatch.setattr(subprocess, "Popen", lambda *_: True)
+    temp_dir = br.TempDir()
+    monkeypatch.setitem(os.environ, "PATH", temp_dir.path)
+    assert not which("blastp")
 
-    with mock.patch.dict(os.environ, {"PATH": conda_bin}):
-        patch_ask(False)
-        assert not _check_for_blast_bin("blastp")
-        _out, _err = capsys.readouterr()
-        assert "blastp binary not found." in _err
-        assert "Abort..." in _err
+    assert not _check_for_blast_bin("blastp")
+    out, err = capsys.readouterr()
+    assert "Please install BLAST+ executables." in err
 
-        patch_ask(True)
-        # Try a few times in case there's an internet TimeOutError
-        attempts = 0
-        while True:
-            try:
-                attempts += 1
-                assert _check_for_blast_bin("blastp")
-                break
-            except TimeoutError as _err:
-                if attempts < 3:
-                    continue
-                else:
-                    raise _err
+    blastp = temp_dir.subfile("blastp")
+    os.chmod(blastp, 0o777)
+    assert which("blastp")
+    assert _check_for_blast_bin("blastp")
 
-    if not pre_installed_conda_blast:
-        Popen("conda remove blast", shell=True).wait()
+    temp_dir.del_subfile("blastp")
+    assert not which("blastp")
+
+    conda = temp_dir.subfile("conda")
+    os.chmod(conda, 0o777)
+    monkeypatch.setattr(br, "ask", lambda _: False)
+    assert not _check_for_blast_bin("blastp")
+    _out, _err = capsys.readouterr()
+    assert "blastp binary not found." in _err
+    assert "Abort..." in _err
+
+    monkeypatch.setattr(br, "ask", lambda _: True)
+    assert not _check_for_blast_bin("blastp")
+    out, err = capsys.readouterr()
+    assert "Failed to install BLAST+ executables with Conda." in err
+
+    monkeypatch.setattr(br, "ask", patch_ask)
+    assert _check_for_blast_bin("blastp")
 
 
 # ######################  '_feature_rc' ###################### #
