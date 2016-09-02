@@ -812,7 +812,6 @@ def extract_regions(alignbuddy, start, end):
     return alignbuddy
 
 
-# ToDo: clustalomega may be clustalo
 # ToDo: Completely refactor the handling of output formats
 def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
     """

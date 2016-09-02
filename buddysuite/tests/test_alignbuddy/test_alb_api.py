@@ -208,8 +208,32 @@ def test_extract_range(key, next_hash, alb_resources, alb_helpers):
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
 # ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
+def mock_popen(*args, **kwargs):
+    if "mafft" in args[0]:
+        pass
+    elif "prank" in args[0]:
+        pass
+    elif "pagan" in args[0]:
+        pass
+    elif "clustalw" in args[0]:
+        pass
+    elif "clustalo" in args[0]:
+        pass
+    return True
 
+"""
+@pytest.mark.alignment
 def test_pagan(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_pagan/result.fas" % alb_resources.res_path, "%s/" % tmp_dir.path)
+    monkeypatch.setattr(shutil, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", mock_popen)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'pagan')
+    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
+"""
+def test_del():
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_pagan" % alb_resources.res_path):
         raise NotADirectoryError("Unable to find mock resources")
@@ -229,7 +253,7 @@ def test_pagan(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, 'pagan')
     assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
 
-
+#@pytest.mark.alignment
 def test_prank(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_prank" % alb_resources.res_path):
@@ -250,7 +274,7 @@ def test_prank(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, 'prank')
     assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f"
 
-
+#@pytest.mark.alignment
 def test_muscle(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_muscle" % alb_resources.res_path):
@@ -277,7 +301,7 @@ def test_muscle(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, 'muscle')
     assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f"
 
-
+#@pytest.mark.alignment
 def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_clustalw2" % alb_resources.res_path):
@@ -306,7 +330,7 @@ def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, clustalw_bin)
     assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
 
-
+#@pytest.mark.alignment
 def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
     clustalo_bin = 'clustalo' if shutil.which('clustalo') else 'clustalomega'
     tmp_dir = br.TempDir()
@@ -328,7 +352,7 @@ def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, clustalo_bin)
     assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
-
+#@pytest.mark.alignment
 def test_mafft(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tmp_dir = br.TempDir()
     if not os.path.isdir("%s/mock_resources/test_mafft" % alb_resources.res_path):
@@ -355,7 +379,7 @@ def test_mafft(sb_resources, alb_resources, alb_helpers, monkeypatch):
     tester = Alb.generate_msa(tester, 'mafft')
     assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904"
 
-
+#@pytest.mark.alignment
 def test_generate_alignment_keep_temp(monkeypatch):
     pass
 
