@@ -335,7 +335,7 @@ class SeqBuddy(object):
                         SeqIO.write(self.records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
-                                "Format changed to phylip-relaxed.\n")
+                                "Attempting phylip-relaxed.\n")
                         SeqIO.write(self.records, _ofile, "phylip-relaxed")
                     elif "Locus identifier" in str(e) and "is too long" in str(e) \
                             and self.out_format in ["gb", "genbank"]:

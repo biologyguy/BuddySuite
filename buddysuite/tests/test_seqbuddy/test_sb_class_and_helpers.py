@@ -76,17 +76,17 @@ def test_to_dict(sb_resources, sb_helpers):
         tester.to_dict()
 
 
-def test_to_string(sb_resources, sb_helpers):
-    tester = sb_resources.get_one("o d f")
+def test_to_string(sb_resources, sb_helpers, capsys):
+    tester = sb_resources.get_one("d f")
     assert sb_helpers.string2hash(str(tester)) == "b831e901d8b6b1ba52bad797bad92d14"
 
-    tester = sb_resources.get_one("o d g")
+    tester = sb_resources.get_one("d g")
     assert sb_helpers.string2hash(str(tester)) == "2e02a8e079267bd9add3c39f759b252c"
 
     tester.out_format = "raw"
     assert sb_helpers.string2hash(str(tester)) == "5d00d481e586e287f32d2d29916374ca"
 
-    tester = sb_resources.get_one("o d n")
+    tester = sb_resources.get_one("d n")
     pull_recs(tester, "α[2-9]")
 
     tester.out_format = "phylip"
@@ -104,15 +104,53 @@ def test_to_string(sb_resources, sb_helpers):
     tester.records = []
     assert str(tester) == "Error: No sequences in object.\n"
 
+    with pytest.raises(ValueError):
+        str(SeqBuddy(">foo\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n>foo\nATGATGATGTAGT\n", out_format="phylip"))
+    out, err = capsys.readouterr()
+    assert "Warning: Phylip format returned a 'repeat name' error, probably due to truncation" in err
+
+    tester = SeqBuddy(">fooooooooooooooobar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n>fooooooooooooooobaz\nATGATGATGTAGT\n",
+                      out_format="phylip")
+    assert sb_helpers.string2hash(str(tester)) == "d8b82d5eea15918aac180e5d1095d5ca"
+    out, err = capsys.readouterr()
+    assert "Attempting phylip-relaxed." in err
+
+    tester = SeqBuddy(">fooooooooooooooobaaaaaaaaaaaaaaaaaar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n",
+                      out_format="gb")
+    assert sb_helpers.string2hash(str(tester)) == "473777dd047b46ef727a4b680247e374"
+    out, err = capsys.readouterr()
+    assert "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL." in err
+
+
+def test_write(sb_resources, sb_helpers):
+    temp_dir = br.TempDir()
+    tester = sb_resources.get_one("d g")
+    tester.write("%s/sequences.gb" % temp_dir.path)
+    with open("%s/sequences.gb" % temp_dir.path) as ifile:
+        assert sb_helpers.string2hash(ifile.read()) == "2e02a8e079267bd9add3c39f759b252c"
+
+    tester.write("%s/sequences.fa" % temp_dir.path, out_format="fasta")
+    with open("%s/sequences.fa" % temp_dir.path) as ifile:
+        assert sb_helpers.string2hash(ifile.read()) == "25073539df4a982b7f99c72dd280bb8f"
+
 
 def test_print_hashmap(sb_resources, sb_helpers):
-    tester = sb_resources.get_one("o d f")
+    tester = sb_resources.get_one("d f")
     hash_ids(tester)
     test_hashes = ["FEhFs96uVr", "5dOVoJsEaC", "muOhKHqlRK", "99id32X9JY", "hflijfeJXB", "0m9x7xeSqC", "qwgaHU3fms",
                    "uD7zXF2uEp", "btvnHXOJbc", "GiHvUV1n55", "dJm5uViNsC", "to4ctKvNG7", "VN579cevl3"]
     orig_ids = [rec_id for _hash, rec_id in tester.hash_map.items()]
     tester.hash_map = OrderedDict(zip(test_hashes, orig_ids))
     assert sb_helpers.string2hash(tester.print_hashmap()) == "ab38a224d002a5b227265b8211c9f7bc"
+
+
+def test_reverse_hashmap(sb_resources, sb_helpers):
+    tester = sb_resources.get_one("d f")
+    tester_str = str(tester)
+    hash_ids(tester)
+    assert tester_str != str(tester)
+    tester.reverse_hashmap()
+    assert tester_str == str(tester)
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -165,7 +203,8 @@ def test_check_blast_bin_error(capsys):
 
 
 def test_check_blast_bin_download(monkeypatch, capsys):
-    def patch_ask(message):
+    def patch_ask(*args):
+        print(args)
         _blastp = temp_dir.subfile("blastp")
         os.chmod(_blastp, 0o777)
         return True
