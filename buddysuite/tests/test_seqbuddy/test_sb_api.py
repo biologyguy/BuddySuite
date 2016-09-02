@@ -1257,10 +1257,18 @@ def test_pull_records_with_feature(key, next_hash, sb_resources, sb_helpers):
 
 
 # #####################  '-prg', '--purge' ###################### ##
-def test_purge(sb_resources, sb_helpers):
+def test_purge(sb_resources, sb_helpers, monkeypatch):
     tester = sb_resources.get_one("p f")
+    Sb.pull_recs(tester, "α1[02]")
+    bl2seq_output = OrderedDict([('Mle-Panxα10A', OrderedDict([('Mle-Panxα10B', [100.0, 235, 7e-171, 476.0]),
+                                                               ('Mle-Panxα12', [56.28, 398, 5e-171, 478.0])])),
+                                 ('Mle-Panxα10B', OrderedDict([('Mle-Panxα10A', [100.0, 235, 7e-171, 476.0]),
+                                                               ('Mle-Panxα12', [47.51, 381, 2e-128, 366.0])])),
+                                 ('Mle-Panxα12', OrderedDict([('Mle-Panxα10A', [56.28, 398, 5e-171, 478.0]),
+                                                              ('Mle-Panxα10B', [47.51, 381, 2e-128, 366.0])]))])
+    monkeypatch.setattr(Sb, "bl2seq", lambda *_: bl2seq_output)
     Sb.purge(tester, 200)
-    assert sb_helpers.seqs2hash(tester) == 'b21b2e2f0ca1fcd7b25efbbe9c08858c'
+    assert sb_helpers.seqs2hash(tester) == '256681ed87c67f8f3a8c5771572767f1'
 
 
 # ######################  '-ri', '--rename_ids' ###################### #

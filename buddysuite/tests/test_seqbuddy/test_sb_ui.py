@@ -32,6 +32,7 @@ from Bio.Alphabet import IUPAC
 import io
 import urllib.error
 import sys
+from collections import OrderedDict
 
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
@@ -56,6 +57,10 @@ def mock_raisekeyerror(*args, **kwargs):
 
 def mock_raisetypeerror(*args, **kwargs):
     raise TypeError("Fake TypeError: %s, %s" % (args, kwargs))
+
+
+def mock_raiseruntimeerror(*args, **kwargs):
+    raise RuntimeError("Fake RuntimeError: %s, %s" % (args, kwargs))
 
 
 def fmt(prog):
@@ -182,25 +187,31 @@ def test_back_translate_ui(capsys, sb_resources, sb_helpers):
 
 
 # ######################  '-bl2s', '--bl2seq' ###################### #
-def test_bl2s_ui(capsys, sb_resources, sb_odd_resources, sb_helpers):
+def test_bl2s_ui(capsys, sb_resources, sb_odd_resources, sb_helpers, monkeypatch):
+    tester = sb_resources.get_one('d f')
+    bl2seq_output = OrderedDict([('Mle-Panxα10A', OrderedDict([('Mle-Panxα10B', [100.0, 235, 7e-171, 476.0]),
+                                                               ('Mle-Panxα12', [56.28, 398, 5e-171, 478.0])])),
+                                 ('Mle-Panxα10B', OrderedDict([('Mle-Panxα10A', [100.0, 235, 7e-171, 476.0]),
+                                                               ('Mle-Panxα12', [47.51, 381, 2e-128, 366.0])])),
+                                 ('Mle-Panxα12', OrderedDict([('Mle-Panxα10A', [56.28, 398, 5e-171, 478.0]),
+                                                              ('Mle-Panxα10B', [47.51, 381, 2e-128, 366.0])]))])
+    monkeypatch.setattr(Sb, "bl2seq", lambda *_: bl2seq_output)
     test_in_args = deepcopy(in_args)
     test_in_args.bl2seq = True
-    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) in ['339377aee781fb9d01456f04553e3923', 'ae5cc2703ece3012956db53993101967']
+    assert sb_helpers.string2hash(out) == "caeb0df8226b0afaa2d2b91824e73e51"
 
-    Sb.command_line_ui(test_in_args, Sb.SeqBuddy(sb_odd_resources["duplicate"]), True)
+    tester.repeat_ids = [1, 2]
+    monkeypatch.setattr(Sb, "find_repeats", lambda *_: tester)
+    Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) in ['d24495bd87371cd0720084b5d723a4fc', '920e77d01f0d9f671a517c3db06a74c4',
-                                           '7e7b3d875aac282dd9495876d2c877d4']
     assert err == "Warning: There are records with duplicate ids which will be renamed.\n"
 
-    # noinspection PyUnresolvedReferences
-    with mock.patch.dict(os.environ, {"PATH": ""}):
-        with mock.patch('builtins.input', return_value="n"):
-            with pytest.raises(RuntimeError) as err:
-                Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
-            assert "not present in $PATH or working directory" in str(err)
+    tester.repeat_ids = []
+    monkeypatch.setattr(Sb, "bl2seq", mock_raiseruntimeerror)
+    with pytest.raises(RuntimeError):
+        Sb.command_line_ui(test_in_args, tester, True)
 
 
 # ######################  '-bl', '--blast' ###################### #

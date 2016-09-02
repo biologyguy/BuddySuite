@@ -1070,20 +1070,16 @@ def bl2seq(seqbuddy):
         _blast_res = Popen("echo '%s' | %s -subject %s -outfmt 6" %
                            (_query.format("fasta"), blast_bin, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
-        _result = ""
-        while True:
-            try:
-                if len(_blast_res) == 1:
-                    _result = "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
-                else:
-                    # values are: query, subject, %_ident, length, evalue, bit_score
-                    if _blast_res[10] == '0.0':
-                        _blast_res[10] = '1e-180'
-                    _result = "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
-                                                            _blast_res[3], _blast_res[10], _blast_res[11].strip())
-                break
-            except ConnectionRefusedError:
-                continue
+
+        if len(_blast_res) == 1:
+            _result = "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
+        else:
+            # values are: query, subject, %_ident, length, evalue, bit_score
+            if _blast_res[10] == '0.0':
+                _blast_res[10] = '1e-180'
+            _result = "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
+                                                    _blast_res[3], _blast_res[10], _blast_res[11].strip())
+
         with lock:
             with open("%s/blast_results.txt" % tmp_dir.path, "a", encoding="utf-8") as _ofile:
                 _ofile.write(_result)
