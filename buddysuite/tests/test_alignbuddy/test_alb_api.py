@@ -13,8 +13,21 @@ from Bio.Alphabet import IUPAC
 from ... import AlignBuddy as Alb
 from ... import SeqBuddy as Sb
 from ... import buddy_resources as br
+from .. import __init__
+from collections import OrderedDict
 
 TEMPDIR = br.TempDir()
+RES_PATH = __init__.RESOURCE_PATH
+
+
+def mock_hash_ids(sb, *args):
+    # This will only work for Mnemiopsis full files
+    sb.hash_map = OrderedDict([('KWpHHnwG', 'Mle-Panxα9'), ('ui9bSgqc', 'Mle-Panxα7A'), ('xDsAi9jU', 'Mle-Panxα1'),
+                               ('RraJkRhu', 'Mle-Panxα3'), ('PQKaRX5O', 'Mle-Panxα12'), ('hEZa4U1t', 'Mle-Panxα11'),
+                               ('oh8QNn5a', 'Mle-Panxα4'), ('ejCQN1iZ', 'Mle-Panxα8'), ('9PYuN1Vz', 'Mle-Panxα6'),
+                               ('yUf5nZfJ', 'Mle-Panxα10B'), ('xwOHuotu', 'Mle-Panxα5'), ('eDI1PEGu', 'Mle-Panxα2'),
+                               ('sfdhEBIk', 'Mle-Panxα10A')])
+    return sb
 
 
 # ##########################################  '-al', '--alignment_lengths' ########################################### #
@@ -207,181 +220,281 @@ def test_extract_range(key, next_hash, alb_resources, alb_helpers):
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
-# ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
-def mock_popen(*args, **kwargs):
-    if "mafft" in args[0]:
-        pass
-    elif "prank" in args[0]:
-        pass
-    elif "pagan" in args[0]:
-        pass
-    elif "clustalw" in args[0]:
-        pass
-    elif "clustalo" in args[0]:
-        pass
-    return True
+class MockPopen(object):
+    def __init__(self, *args, **kwargs):
+        self.kwargs = kwargs
+        if "my_mucsle" in args[0]:
+            self.output = ["Robert C. Edgar".encode(), "".encode()]
+        elif "-h" in args[0] or "-v" in args[0]:
+            self.output = ["Nothing".encode(), "here".encode()]
+        elif "clustalo" in args[0]:
+            self.output = [None, None]
+        elif "clustalw2" in args[0]:
+            with open("%s/mock_resources/test_clustalw2/stdout.txt" % RES_PATH, "r") as ifile:
+                stdout = ifile.read()
+            self.output = [stdout.encode(), ""]
+        elif "mafft" in args[0]:
+            with open("%s/mock_resources/test_mafft/result" % RES_PATH, "r") as ifile:
+                stdout = ifile.read()
+            self.output = [stdout.encode(), '']
+        elif "muscle" in args[0]:
+            with open("%s/mock_resources/test_muscle/result" % RES_PATH, "r") as ifile:
+                stdout = ifile.read()
+            self.output = [stdout.encode(), '']
+        elif "pagan" in args[0]:
+            with open("%s/mock_resources/test_pagan/stdout.txt" % RES_PATH, "r") as ifile:
+                stdout = ifile.read()
+            self.output = [stdout, ""]
+        elif "prank" in args[0]:
+            self.output = [None, None]
 
-"""
-@pytest.mark.alignment
-def test_pagan(sb_resources, alb_resources, alb_helpers, monkeypatch):
+    def communicate(self):
+        return self.output
+
+
+def test_clustalomega(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_pagan/result.fas" % alb_resources.res_path, "%s/" % tmp_dir.path)
-    monkeypatch.setattr(shutil, "which", lambda *_: True)
-    monkeypatch.setattr(Alb, "Popen", mock_popen)
-    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    shutil.copy("%s/mock_resources/test_clustalo/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalomega')
+    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+
+    # quiet
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalomega', quiet=True)
+    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+
+    # params
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=nexus", quiet=True)
+    assert alb_helpers.align2hash(tester) == "23d7c9fa33454ed551a5896e532cf552", tester.write("temp.del")
+
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=foobar", quiet=True)
+    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    tester = sb_resources.get_one("d f")
+    Alb.generate_msa(tester, 'clustalomega', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966", print(kept_output)
+
+
+def test_clustalw2(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_clustalw2/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalw2')
+    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+
+    # quiet
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalw2', quiet=True)
+    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+
+    # params
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalw2', "-output=nexus", quiet=True)
+    assert alb_helpers.align2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e", tester.write("temp.del")
+
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'clustalw2', "-output=foobar", quiet=True)
+    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    tester = sb_resources.get_one("d f")
+    Alb.generate_msa(tester, 'clustalw2', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3", print(kept_output)
+
+
+def test_pagan(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_pagan/result.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    open("warnings", "w").close()
+    assert os.path.isfile("warnings")
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan')
     assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
-"""
-def test_del():
-    tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_pagan" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    assert not os.path.isfile("warnings")
+
+    # quiet
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_pagan/result.fas" % alb_resources.res_path) as alnfile:
-        mock_communicate = mock.Mock(return_value=alnfile.read())
+    tester = Alb.generate_msa(tester, 'pagan', quiet=True)
+    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
 
-    for root, dirs, files in os.walk("%s/mock_resources/test_pagan" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
-
-    mock_popen = mock.Mock()
-    mock_popen.communicate = mock_communicate
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-
-    monkeypatch.setattr(Alb, 'Popen', mock_popen)
-    tester = Alb.generate_msa(tester, 'pagan')
-    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
-
-#@pytest.mark.alignment
-def test_prank(sb_resources, alb_resources, alb_helpers, monkeypatch):
-    tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_prank" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    # params
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_prank/result.best.fas" % alb_resources.res_path) as alnfile:
-        mock_communicate = mock.Mock(return_value=alnfile.read())
+    tester = Alb.generate_msa(tester, 'pagan', "-f nexus", quiet=True)
+    assert alb_helpers.align2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec", tester.write("temp.del")
 
-    for root, dirs, files in os.walk("%s/mock_resources/test_prank" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'pagan', "-f foobar", quiet=True)
+    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", tester.write("temp.del")
 
-    mock_popen = mock.Mock()
-    mock_popen.communicate = mock_communicate
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    tester = sb_resources.get_one("d f")
+    Alb.generate_msa(tester, 'pagan', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94", print(kept_output)
 
-    monkeypatch.setattr(Alb, 'Popen', mock_popen)
+
+def test_prank(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_prank/result.best.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
+    tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank')
-    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f"
+    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
-#@pytest.mark.alignment
-def test_muscle(sb_resources, alb_resources, alb_helpers, monkeypatch):
-    tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_muscle" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    # quiet
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_muscle/result" % alb_resources.res_path, 'r') as alnfile:
-        mock_data = [alnfile.read().encode('utf-8')]
+    tester = Alb.generate_msa(tester, 'prank', quiet=True)
+    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
-    for root, dirs, files in os.walk("%s/mock_resources/test_muscle" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+    # params
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'prank', "-f=nexus", quiet=True)
+    assert alb_helpers.align2hash(tester) == "4dcaa948e109487ee12512b6ac02183c", tester.write("temp.del")
 
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'prank', "-f=foobar", quiet=True)
+    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
-    class MockPopen:
-        def __init__(*args, **kwargs):
-            pass
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    tester = sb_resources.get_one("d f")
+    Alb.generate_msa(tester, 'prank', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "cec1754543ae90eb8c95a6388f337e87"
 
-        @staticmethod
-        def communicate():
-            return mock_data
 
-    monkeypatch.setattr(Alb, 'Popen', MockPopen)
+def test_muscle(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_muscle/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
+    tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle')
-    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f"
+    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
 
-#@pytest.mark.alignment
-def test_clustalw2(sb_resources, alb_resources, alb_helpers, monkeypatch):
-    tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_clustalw2" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    # quiet
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_clustalw2/result" % alb_resources.res_path, 'r') as alnfile:
-        mock_data = [alnfile.read().encode('utf-8')]
+    tester = Alb.generate_msa(tester, 'muscle', quiet=True)
+    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
 
-    for root, dirs, files in os.walk("%s/mock_resources/test_clustalw2" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
-
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-
-    class MockPopen:
-        def __init__(*args, **kwargs):
-            pass
-
-        @staticmethod
-        def communicate():
-            return mock_data
-
-    clustalw_bin = 'clustalw' if shutil.which('clustalw') else 'clustalw2'
-
-    monkeypatch.setattr(Alb, 'Popen', MockPopen)
-    tester = Alb.generate_msa(tester, clustalw_bin)
-    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
-
-#@pytest.mark.alignment
-def test_clustalomega(sb_resources, alb_resources, alb_helpers, monkeypatch):
-    clustalo_bin = 'clustalo' if shutil.which('clustalo') else 'clustalomega'
-    tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_clustalo" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_clustalo/result" % alb_resources.res_path) as alnfile:
-        mock_communicate = mock.Mock(return_value=alnfile.read())
+    Alb.generate_msa(tester, 'muscle', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "4703d739f5edd765660fcf081c8dbcbe"
 
-    for root, dirs, files in os.walk("%s/mock_resources/test_clustalo" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
 
-    mock_popen = mock.Mock()
-    mock_popen.communicate = mock_communicate
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-
-    monkeypatch.setattr(Alb, 'Popen', mock_popen)
-    tester = Alb.generate_msa(tester, clustalo_bin)
-    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
-
-#@pytest.mark.alignment
-def test_mafft(sb_resources, alb_resources, alb_helpers, monkeypatch):
+def test_mafft(sb_resources, alb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_mafft" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    tmp_dir.subdir("keep_files")
+    shutil.copy("%s/mock_resources/test_mafft/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
     tester = sb_resources.get_one("d f")
-    with open("%s/mock_resources/test_mafft/result" % alb_resources.res_path, 'r') as alnfile:
-        mock_data = [alnfile.read().encode('utf-8')]
-
-    for root, dirs, files in os.walk("%s/mock_resources/test_mafft" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
-
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-
-    class MockPopen:
-        def __init__(*args, **kwargs):
-            pass
-
-        @staticmethod
-        def communicate():
-            return mock_data
-
-    monkeypatch.setattr(Alb, 'Popen', MockPopen)
     tester = Alb.generate_msa(tester, 'mafft')
-    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904"
+    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
 
-#@pytest.mark.alignment
-def test_generate_alignment_keep_temp(monkeypatch):
-    pass
+    # quiet
+    tester = sb_resources.get_one("d f")
+    tester = Alb.generate_msa(tester, 'mafft', quiet=True)
+    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
+
+    # keep
+    monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    monkeypatch.setattr(br, "ask", lambda *_: True)
+    tester = sb_resources.get_one("d f")
+    Alb.generate_msa(tester, 'mafft', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in files:
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert alb_helpers.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906", print(kept_output)
+
+
+def test_alignment_edges(monkeypatch, sb_resources):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    shutil.copy("%s/mock_resources/test_muscle/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # Weird binary given, but muscle found
+    tester = sb_resources.get_one("d f")
+    with pytest.raises(br.GuessError) as err:
+        tester = Alb.generate_msa(tester, "my_mucsle")
+    assert "Could not determine format from raw input" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        Alb.generate_msa(tester, "foo")
+    assert "foo is not a supported alignment tool." in str(err)
+
+    monkeypatch.setattr(br, "ask", lambda *_: False)
+    tmp_dir.subdir("keep_files")
+    with pytest.raises(SystemExit):
+        Alb.generate_msa(tester, "mafft", keep_temp="%s/keep_files" % tmp_dir.path)
 
 
 # ######################  '-hi', '--hash_ids' ###################### #

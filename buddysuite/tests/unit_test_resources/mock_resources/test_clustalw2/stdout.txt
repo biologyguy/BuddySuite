@@ -1,0 +1,123 @@
+
+
+
+ CLUSTAL 2.1 Multiple Sequence Alignments
+
+
+Sequence format is Pearson
+Sequence 1: BbCECwEY    2043 bp
+Sequence 2: z85P8HhK    2043 bp
+Sequence 3: z1RH0QRe    2043 bp
+Sequence 4: BjwCEB7Z    2043 bp
+Sequence 5: MAdxaDPW    2043 bp
+Sequence 6: TVgRMUgh    2043 bp
+Sequence 7: qHK87T4Y    2043 bp
+Sequence 8: PbShOvrq    2043 bp
+Sequence 9: eUotQ97U    2043 bp
+Sequence 10: VMjoMs7x    2043 bp
+Sequence 11: Hv0FPKvz    2043 bp
+Sequence 12: Pc7pw6zs    2043 bp
+Sequence 13: mYTZdGyM    2043 bp
+Start of Pairwise alignments
+Aligning...
+
+Sequences (1:2) Aligned. Score:  45
+Sequences (1:3) Aligned. Score:  36
+Sequences (1:4) Aligned. Score:  55
+Sequences (1:5) Aligned. Score:  63
+Sequences (1:6) Aligned. Score:  56
+Sequences (1:7) Aligned. Score:  44
+Sequences (1:8) Aligned. Score:  55
+Sequences (1:9) Aligned. Score:  49
+Sequences (1:10) Aligned. Score:  87
+Sequences (1:11) Aligned. Score:  49
+Sequences (1:12) Aligned. Score:  39
+Sequences (1:13) Aligned. Score:  90
+Sequences (2:3) Aligned. Score:  7
+Sequences (2:4) Aligned. Score:  38
+Sequences (2:5) Aligned. Score:  46
+Sequences (2:6) Aligned. Score:  41
+Sequences (2:7) Aligned. Score:  35
+Sequences (2:8) Aligned. Score:  42
+Sequences (2:9) Aligned. Score:  46
+Sequences (2:10) Aligned. Score:  40
+Sequences (2:11) Aligned. Score:  41
+Sequences (2:12) Aligned. Score:  41
+Sequences (2:13) Aligned. Score:  41
+Sequences (3:4) Aligned. Score:  35
+Sequences (3:5) Aligned. Score:  34
+Sequences (3:6) Aligned. Score:  39
+Sequences (3:7) Aligned. Score:  9
+Sequences (3:8) Aligned. Score:  42
+Sequences (3:9) Aligned. Score:  35
+Sequences (3:10) Aligned. Score:  31
+Sequences (3:11) Aligned. Score:  12
+Sequences (3:12) Aligned. Score:  14
+Sequences (3:13) Aligned. Score:  33
+Sequences (4:5) Aligned. Score:  53
+Sequences (4:6) Aligned. Score:  53
+Sequences (4:7) Aligned. Score:  41
+Sequences (4:8) Aligned. Score:  51
+Sequences (4:9) Aligned. Score:  44
+Sequences (4:10) Aligned. Score:  50
+Sequences (4:11) Aligned. Score:  42
+Sequences (4:12) Aligned. Score:  41
+Sequences (4:13) Aligned. Score:  52
+Sequences (5:6) Aligned. Score:  59
+Sequences (5:7) Aligned. Score:  52
+Sequences (5:8) Aligned. Score:  56
+Sequences (5:9) Aligned. Score:  56
+Sequences (5:10) Aligned. Score:  54
+Sequences (5:11) Aligned. Score:  44
+Sequences (5:12) Aligned. Score:  47
+Sequences (5:13) Aligned. Score:  58
+Sequences (6:7) Aligned. Score:  50
+Sequences (6:8) Aligned. Score:  55
+Sequences (6:9) Aligned. Score:  46
+Sequences (6:10) Aligned. Score:  52
+Sequences (6:11) Aligned. Score:  50
+Sequences (6:12) Aligned. Score:  46
+Sequences (6:13) Aligned. Score:  56
+Sequences (7:8) Aligned. Score:  40
+Sequences (7:9) Aligned. Score:  47
+Sequences (7:10) Aligned. Score:  37
+Sequences (7:11) Aligned. Score:  9
+Sequences (7:12) Aligned. Score:  35
+Sequences (7:13) Aligned. Score:  40
+Sequences (8:9) Aligned. Score:  54
+Sequences (8:10) Aligned. Score:  50
+Sequences (8:11) Aligned. Score:  50
+Sequences (8:12) Aligned. Score:  40
+Sequences (8:13) Aligned. Score:  51
+Sequences (9:10) Aligned. Score:  42
+Sequences (9:11) Aligned. Score:  51
+Sequences (9:12) Aligned. Score:  44
+Sequences (9:13) Aligned. Score:  44
+Sequences (10:11) Aligned. Score:  38
+Sequences (10:12) Aligned. Score:  35
+Sequences (10:13) Aligned. Score:  97
+Sequences (11:12) Aligned. Score:  40
+Sequences (11:13) Aligned. Score:  42
+Sequences (12:13) Aligned. Score:  37
+Guide tree file created:   [/Volumes/Zippy/.sysTemp/tmpftwwaimr/tmp.dnd]
+
+There are 12 groups
+Start of Multiple Alignment
+
+Aligning...
+Group 1: Sequences:   2      Score:20092
+Group 2: Sequences:   3      Score:19138
+Group 3: Sequences:   2      Score:14108
+Group 4: Sequences:   2      Score:14320
+Group 5: Sequences:   4      Score:12624
+Group 6: Sequences:   2      Score:14108
+Group 7: Sequences:   3      Score:14110
+Group 8: Sequences:   7      Score:12406
+Group 9: Sequences:  10      Score:12710
+Group 10: Sequences:  11      Score:13026
+Group 11: Sequences:  12      Score:13488
+Group 12: Sequences:  13      Score:12099
+Alignment Score 260410
+
+CLUSTAL-Alignment file created  [/Volumes/Zippy/.sysTemp/tmpftwwaimr/result]
+
