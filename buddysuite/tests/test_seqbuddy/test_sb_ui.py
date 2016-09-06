@@ -55,12 +55,20 @@ def mock_raisekeyerror(*args, **kwargs):
     raise KeyError("Fake KeyError: %s, %s" % (args, kwargs))
 
 
+def mock_raisekeyboardinterrupt(*args, **kwargs):
+    raise KeyboardInterrupt("Fake KeyboardInterrupt: %s, %s" % (args, kwargs))
+
+
 def mock_raisetypeerror(*args, **kwargs):
     raise TypeError("Fake TypeError: %s, %s" % (args, kwargs))
 
 
 def mock_raiseruntimeerror(*args, **kwargs):
     raise RuntimeError("Fake RuntimeError: %s, %s" % (args, kwargs))
+
+
+def mock_raisesystemexit(*args, **kwargs):
+    raise SystemExit("Fake SystemExit: %s, %s" % (args, kwargs))
 
 
 def fmt(prog):
@@ -125,6 +133,10 @@ def test_argparse_init(capsys, sb_resources, sb_helpers, sb_odd_resources):
     sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path", "-evalue 1", "--quiet"]
     temp_in_args, seqbuddy = Sb.argparse_init()
     assert temp_in_args.blast == [['blastdb/path', ' -evalue 1']]
+
+    sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path", "--quiet"]
+    temp_in_args, seqbuddy = Sb.argparse_init()
+    assert temp_in_args.blast == [['blastdb/path']]
 
     sys.argv = ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "-gf"]
     temp_in_args, seqbuddy = Sb.argparse_init()
@@ -1415,3 +1427,23 @@ def test_transmembrane_domains_ui(capsys, sb_resources, sb_helpers, monkeypatch)
     with pytest.raises(FileNotFoundError) as err:
         Sb.command_line_ui(test_in_args, seqbuddy, pass_through=True)
     assert "SeqBuddy does not have the necessary hash-map" in str(err)
+
+
+# ######################  main() ###################### #
+def test_main(monkeypatch, capsys, sb_resources):
+    in_args.clean_seq = True
+    monkeypatch.setattr(Sb, "argparse_init", lambda: [in_args, sb_resources.get_one("d f")])
+    monkeypatch.setattr(Sb, "command_line_ui", lambda *_: True)
+    assert Sb.main()
+
+    monkeypatch.setattr(Sb, "command_line_ui", mock_raisekeyboardinterrupt)
+    assert not Sb.main()
+    out, err = capsys.readouterr()
+    assert "Fake KeyboardInterrupt" in out
+
+    monkeypatch.setattr(Sb, "command_line_ui", mock_raisesystemexit)
+    assert not Sb.main()
+
+    monkeypatch.setattr(Sb, "command_line_ui", mock_raiseruntimeerror)
+    monkeypatch.setattr(br, "send_traceback", lambda *_: True)
+    assert not Sb.main()

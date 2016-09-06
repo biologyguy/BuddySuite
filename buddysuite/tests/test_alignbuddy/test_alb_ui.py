@@ -37,6 +37,18 @@ TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION
 
 
+def mock_raisekeyboardinterrupt(*args, **kwargs):
+    raise KeyboardInterrupt("Fake KeyboardInterrupt: %s, %s" % (args, kwargs))
+
+
+def mock_raisesystemexit(*args, **kwargs):
+    raise SystemExit("Fake SystemExit: %s, %s" % (args, kwargs))
+
+
+def mock_raiseruntimeerror(*args, **kwargs):
+    raise RuntimeError("Fake RuntimeError: %s, %s" % (args, kwargs))
+
+
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
@@ -98,6 +110,16 @@ def test_argparse_init(capsys, alb_resources, alb_helpers, alb_odd_resources):
                 "--quiet", "--generate_alignment", "mafft", "--reorder"]
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert alignbuddy == []
+
+    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                "--generate_alignment", "mafft", "--op", "5", "--quiet"]
+    temp_in_args, alignbuddy = Alb.argparse_init()
+    assert temp_in_args.generate_alignment == [['mafft', ' --op', '5']]
+
+    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                "--generate_alignment", "mafft", "-q"]
+    temp_in_args, alignbuddy = Alb.argparse_init()
+    assert temp_in_args.generate_alignment == [['mafft']]
 
 
 # ##################### '-al', '--alignment_lengths' ###################### ##
@@ -596,3 +618,23 @@ def test_uppercase_ui(capsys, alb_resources, alb_helpers):
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert alb_helpers.string2hash(out) == "6f3f234d796520c521cb85c66a3e239a"
+
+
+# ######################  main() ###################### #
+def test_main(monkeypatch, capsys, alb_resources):
+    in_args.num_seqs = True
+    monkeypatch.setattr(Alb, "argparse_init", lambda: [in_args, alb_resources.get_one("o d f")])
+    monkeypatch.setattr(Alb, "command_line_ui", lambda *_: True)
+    assert Alb.main()
+
+    monkeypatch.setattr(Alb, "command_line_ui", mock_raisekeyboardinterrupt)
+    assert not Alb.main()
+    out, err = capsys.readouterr()
+    assert "Fake KeyboardInterrupt" in out
+
+    monkeypatch.setattr(Alb, "command_line_ui", mock_raisesystemexit)
+    assert not Alb.main()
+
+    monkeypatch.setattr(Alb, "command_line_ui", mock_raiseruntimeerror)
+    monkeypatch.setattr(br, "send_traceback", lambda *_: True)
+    assert not Alb.main()

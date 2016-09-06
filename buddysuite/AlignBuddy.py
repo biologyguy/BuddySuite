@@ -1930,8 +1930,9 @@ def main():
         command_line_ui(*initiation)
     except (KeyboardInterrupt, br.GuessError) as _e:
         print(_e)
+        return False
     except SystemExit:
-        pass
+        return False
     except Exception as _e:
         function = ""
         for next_arg in vars(initiation[0]):
@@ -1939,6 +1940,8 @@ def main():
                 function = next_arg
                 break
         br.send_traceback("AlignBuddy", function, _e, VERSION)
+        return False
+    return True
 
 if __name__ == '__main__':
     main()

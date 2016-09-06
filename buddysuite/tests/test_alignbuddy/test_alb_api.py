@@ -285,7 +285,7 @@ def test_clustalomega(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'clustalomega', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966", print(kept_output)
@@ -324,7 +324,7 @@ def test_clustalw2(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'clustalw2', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3", print(kept_output)
@@ -366,7 +366,7 @@ def test_pagan(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'pagan', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94", print(kept_output)
@@ -405,7 +405,7 @@ def test_prank(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'prank', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "cec1754543ae90eb8c95a6388f337e87"
@@ -435,7 +435,7 @@ def test_muscle(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'muscle', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "4703d739f5edd765660fcf081c8dbcbe"
@@ -467,7 +467,7 @@ def test_mafft(sb_resources, alb_helpers, monkeypatch):
     Alb.generate_msa(tester, 'mafft', keep_temp="%s/keep_files" % tmp_dir.path)
     root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
     kept_output = ""
-    for file in files:
+    for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
     assert alb_helpers.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906", print(kept_output)
