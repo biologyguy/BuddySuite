@@ -45,6 +45,14 @@ def mock_raisesystemexit(*args, **kwargs):
     raise SystemExit("Fake SystemExit: %s, %s" % (args, kwargs))
 
 
+def mock_raisesystemerror(*args, **kwargs):
+    raise SystemError("Could not find: %s, %s" % (args, kwargs))
+
+
+def mock_raiseattribute(*args, **kwargs):
+    raise AttributeError("is not a supported alignment tool: %s, %s" % (args, kwargs))
+
+
 def mock_raiseruntimeerror(*args, **kwargs):
     raise RuntimeError("Fake RuntimeError: %s, %s" % (args, kwargs))
 
@@ -253,6 +261,16 @@ def test_delete_records_ui(capsys, alb_resources, alb_helpers):
     out, err = capsys.readouterr()
     assert "No sequence identifiers match 'foo'\n" in err
 
+    tmp_file = br.TempFile()
+    tmp_file.write('''\
+α[1-5]
+β[A-M]
+''')
+    test_in_args.delete_records = [tmp_file.path]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert alb_helpers.string2hash(out) == "de5beddbc7f0a7f8e3dc2d5fd43b7b29"
+
 
 # ##################### '-et', '--enforce_triplets' ###################### ##
 def test_enforce_triplets_ui(capsys, alb_resources, alb_helpers):
@@ -288,7 +306,8 @@ def test_extract_regions_ui(capsys, alb_resources, alb_helpers):
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
 @pytest.mark.generate_alignments
-def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
+def test_generate_alignment_ui(capsys, monkeypatch, sb_resources, alb_resources, alb_helpers):
+    monkeypatch.setattr(Alb, "generate_msa", lambda *_: alb_resources.get_one("o d g"))
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
 
@@ -296,21 +315,47 @@ def test_generate_alignment_ui(capsys, sb_resources, alb_helpers):
     test_in_args.out_format = "gb"
     Alb.command_line_ui(test_in_args, Alb.AlignBuddy, skip_exit=True)
     out, err = capsys.readouterr()
-    assert alb_helpers.string2hash(out) == "00579d6d858b85a6662b4c29094bf205"
-
-    test_in_args.generate_alignment = [["foo"]]
-    with pytest.raises(AttributeError) as err:
-        Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
-    assert "foo is not a supported alignment tool" in str(err)
+    assert alb_helpers.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
 
 
-def test_generate_alignment_ui_patch_path(monkeypatch):
+@pytest.mark.generate_alignments
+def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
+    class MockClass(object):
+        @staticmethod
+        def isatty():
+            return True
+
+    class TextIOWrapper(object):
+        def __init__(self):
+            self.buffer = MockClass()
+            self.buffer.raw = MockClass()
+
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
     monkeypatch.setenv("PATH", [])
     with pytest.raises(AttributeError) as err:
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
     assert "Unable to identify any supported alignment tools on your system." in str(err)
+
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    test_in_args.alignments = [sb_resources.get_one("d g", "paths")]
+
+    test_in_args.generate_alignment = [["mafft"]]
+    monkeypatch.setattr(Alb, 'generate_msa', mock_raiseattribute)
+    with pytest.raises(AttributeError):
+        Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
+
+    monkeypatch.setattr(Alb, 'generate_msa', mock_raisesystemerror)
+    with pytest.raises(SystemError):
+        Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
+
+    monkeypatch.setattr(Alb, "TextIOWrapper", TextIOWrapper)
+    text_wrapper = TextIOWrapper()
+    test_in_args.alignments = [text_wrapper]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
+    out, err = capsys.readouterr()
+    assert "Warning: No input detected so AlignBuddy is aborting..." in err
 
 
 # ######################  '-hsi', '--hash_ids' ###################### #
@@ -622,7 +667,7 @@ def test_uppercase_ui(capsys, alb_resources, alb_helpers):
 
 # ######################  main() ###################### #
 def test_main(monkeypatch, capsys, alb_resources):
-    in_args.num_seqs = True
+    in_args.enforce_triplets = True
     monkeypatch.setattr(Alb, "argparse_init", lambda: [in_args, alb_resources.get_one("o d f")])
     monkeypatch.setattr(Alb, "command_line_ui", lambda *_: True)
     assert Alb.main()
@@ -638,3 +683,35 @@ def test_main(monkeypatch, capsys, alb_resources):
     monkeypatch.setattr(Alb, "command_line_ui", mock_raiseruntimeerror)
     monkeypatch.setattr(br, "send_traceback", lambda *_: True)
     assert not Alb.main()
+
+
+# ######################  loose command line ui helpers ###################### #
+def test_test(capsys, alb_resources, alb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_records = ["α1"]
+    test_in_args.test = True
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d f"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert alb_helpers.string2hash(out) == "d41d8cd98f00b204e9800998ecf8427e"
+
+
+def test_inplace(capsys, alb_resources, alb_helpers):
+    tmp_dir = br.TempDir()
+    tester = alb_resources.get_one("o d f")
+    tester.write("%s/align" % tmp_dir.path)
+
+    test_in_args = deepcopy(in_args)
+    test_in_args.transcribe = True
+    test_in_args.in_place = True
+    test_in_args.alignments = ["%s/align" % tmp_dir.path]
+
+    Alb.command_line_ui(test_in_args, tester, skip_exit=True)
+    out, err = capsys.readouterr()
+    tester = Alb.AlignBuddy("%s/align" % tmp_dir.path)
+    assert alb_helpers.align2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", tester.write("temp.del")
+    assert "File over-written at:" in err
+
+    test_in_args.alignments = ["I/do/not/exist"]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d f"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Warning: The -i flag was passed in, but the positional argument doesn't seem to be a file." in err
