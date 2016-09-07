@@ -20,7 +20,7 @@ from ... import buddy_resources as br
 # ######### RAxML ########### #
 raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
 raxml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
-if raxml_version not in ["8.2.4", "8.2.8"]:
+if raxml_version not in ["8.2.4", "8.2.8", "8.2.9"]:
     raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
 
 

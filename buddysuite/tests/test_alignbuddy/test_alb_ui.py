@@ -667,7 +667,7 @@ def test_uppercase_ui(capsys, alb_resources, alb_helpers):
 
 # ######################  main() ###################### #
 def test_main(monkeypatch, capsys, alb_resources):
-    in_args.enforce_triplets = True
+    in_args.enforce_triplets = [True]
     monkeypatch.setattr(Alb, "argparse_init", lambda: [in_args, alb_resources.get_one("o d f")])
     monkeypatch.setattr(Alb, "command_line_ui", lambda *_: True)
     assert Alb.main()
@@ -708,8 +708,9 @@ def test_inplace(capsys, alb_resources, alb_helpers):
     Alb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
     tester = Alb.AlignBuddy("%s/align" % tmp_dir.path)
-    assert alb_helpers.align2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", tester.write("temp.del")
-    assert "File over-written at:" in err
+    print("out: %s\nerr: %s\n" % (out, err))
+    assert "File over-written at:" in err, print("out: %s\nerr: %s\n" % (out, err))
+    assert alb_helpers.align2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", print(tester)
 
     test_in_args.alignments = ["I/do/not/exist"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d f"), skip_exit=True)
