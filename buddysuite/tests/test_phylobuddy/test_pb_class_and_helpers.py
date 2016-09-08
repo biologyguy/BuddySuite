@@ -5,6 +5,11 @@ import pytest
 
 from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, _convert_to_ete, _guess_format
 from ... import buddy_resources as br
+import ete3
+
+
+def mock_raiseattribute(*args, **kwargs):
+    raise AttributeError("has no attribute 'NodeStyle': %s, %s" % (args, kwargs))
 
 
 def test_instantiate_phylobuddy_from_file(pb_resources):
@@ -136,13 +141,28 @@ def test_write1(key, next_hash, pb_resources, pb_helpers):
     assert pb_helpers.string2hash(out) == next_hash
 
 
-def test_convert_to_ete(pb_resources):
+def test_convert_to_ete(monkeypatch, pb_resources):
     tester = pb_resources.get_one("m k")
     tester.trees[0].seed_node.annotations.add_new("pb_color", '#ff0000')
     ete_tree = _convert_to_ete(tester.trees[0])
     assert ete_tree.pb_color == '#ff0000'
 
+    monkeypatch.setattr(ete3, "NodeStyle", mock_raiseattribute)
+    with pytest.raises(AttributeError) as err:
+        _convert_to_ete(tester.trees[0])
+    assert "Unable to import NodeStyle... You probably need to install pyqt." in str(err)
 
-def test_guess_format():
+
+def test_guess_format(pb_resources):
+    guessed_format = _guess_format([])
+    assert guessed_format == "newick"
+
+    guessed_format = _guess_format(pb_resources.get_one("o n"))
+    assert guessed_format == "nexus"
+
+    guessed_format = _guess_format(pb_resources.get_one("o l", mode="paths"))
+    assert guessed_format == "nexml"
+
     with pytest.raises(br.GuessError):
         _guess_format(dict)
+

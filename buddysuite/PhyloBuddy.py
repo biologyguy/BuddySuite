@@ -315,7 +315,7 @@ def _convert_to_ete(_tree, ignore_color=False):
                 except AttributeError as e:
                     if "has no attribute 'NodeStyle'" in str(e):
                         raise AttributeError("Unable to import NodeStyle... You probably need to install pyqt.")
-                    raise
+                    raise e
                 style['fgcolor'] = node.pb_color
                 style['hz_line_color'] = node.pb_color
                 node.set_style(style)
@@ -754,17 +754,15 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
                 self.hash_map[-1][label] = self.all_hashes[label]
                 return str(label)
 
-            new_hash = ""
             while True:
-                new_hash = "".join([rand_gen.choice(string.ascii_letters + string.digits)
-                                    for _ in range(hash_length)])
-                if new_hash in self.hash_map:
+                output_hash = "".join([rand_gen.choice(string.ascii_letters + string.digits)
+                                       for _ in range(hash_length)])
+                if output_hash in self.all_hashes:
                     continue
                 else:
-                    self.hash_map[-1][new_hash] = str(label)
-                    self.all_hashes[new_hash] = str(label)
-                    break
-            return new_hash
+                    self.hash_map[-1][output_hash] = str(label)
+                    self.all_hashes[output_hash] = str(label)
+                    return output_hash
 
         def add_tree(self):
             self.hash_map.append(OrderedDict())

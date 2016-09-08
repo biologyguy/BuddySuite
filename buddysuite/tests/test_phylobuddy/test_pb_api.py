@@ -115,10 +115,14 @@ def test_distance_ed(key, next_hash, pb_resources, pb_helpers):
     assert pb_helpers.string2hash(output) == next_hash, print(output)
 
 
-def test_distance_unknown_method(pb_resources):
+def test_distance_errors(pb_resources):
     with pytest.raises(AttributeError) as err:
         Pb.distance(pb_resources.get_one("m k"), method='foo')
-        assert "foo is an invalid comparison method." in err
+    assert "foo is an invalid comparison method." in str(err)
+
+    with pytest.raises(ValueError) as err:
+        Pb.distance(pb_resources.get_one("o k"), method='ed')
+    assert "Distance requires at least two trees." in str(err)
 
 
 # ######################  'gt', '--generate_trees' ###################### #
@@ -347,7 +351,26 @@ def test_hash_ids(pb_resources, pb_helpers):
         assert pb_helpers.phylo2hash(phylobuddy) != orig_hash
 
 
-def test_hash_ids_edges(pb_resources, pb_helpers, pb_odd_resources):
+def test_hash_ids_edges(monkeypatch, pb_resources, pb_helpers, pb_odd_resources):
+    class MockRandom(object):
+        def __init__(self):
+            self.values = ["YCva8wcKxN", "r5iHz5XItJ", "b0dfUBWelI", "Tv0XxZziIQ", "hkwU50UQfq", "Jbn4JWgxXy",
+                           "OeGgev9Mdu", "pQRpDbjomQ", "z9JvFAa1vZ", "vHwNvExi6A", "i6tluyP88x", "mXvIO8GYAg",
+                           "clDGuGrku8", "atmvoy1uN6", "0R59tE6LgP", "eOUHJPbVaf", "2U0FarU2Lv", "4tITUmacIV",
+                           "UND58iKTiH", "aqQWMJnjeu", "rOFRXh4ftJ", "HeAcnkJ8LV", "bdWtyB4OP4", "L0aFqF3oMc",
+                           "4HN9dP8uqL", "TtdeGIxxY6", "s4S1RfO9sO", "mIScdjmMzq", "ohGB7fpJGq", "CtLTzCg6RB",
+                           "QufRP2p8jN", "NA98oE9g9u", "6IbtWWrdDr", "ZqnxsFXwpT", "hZd46Bc15s", "iL936ARfV9",
+                           "iOcjJIWv7Y", "yVkDeDhFpK", "d2amahGHzt", "H9VzjZZdbW", "kxFL0xMfFx", "glhRhmReup",
+                           "kxFL0xMfFx"]
+            self.current_value = self.values.pop()
+
+        def choice(self, *args):
+            if not self.current_value:
+                self.current_value = self.values.pop()
+            next_char = self.current_value[0]
+            self.current_value = self.current_value[1:]
+            return next_char
+
     with pytest.raises(TypeError) as e:
         Pb.hash_ids(Pb.PhyloBuddy, hash_length="foo")
     assert "Hash length argument must be an integer, not <class 'str'>" in str(e)
@@ -364,6 +387,10 @@ def test_hash_ids_edges(pb_resources, pb_helpers, pb_odd_resources):
     test_hash = pb_helpers.phylo2hash(tester)
     tester = Pb.hash_ids(tester, hash_length=5, nodes=True)
     assert pb_helpers.phylo2hash(tester) != test_hash
+
+    monkeypatch.setattr(Pb.random, "Random", MockRandom)
+    tester = Pb.hash_ids(pb_resources.get_one("o n"))
+    assert pb_helpers.phylo2hash(tester) == "48b1b2b0e1f7012ea1a964269300ac6b"
 
 # ###################### 'li', '--list_ids' ###################### #
 hashes = [('m k', '514675543e958d5177f248708405224d'), ('m n', '229e5d7cd8bb2bfc300fd45ec18e8424'),
