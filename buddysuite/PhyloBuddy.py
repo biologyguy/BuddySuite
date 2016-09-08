@@ -57,35 +57,27 @@ try:
     import ete3
     from ete3.coretype.tree import TreeError
 except ImportError:
-    confirm = br. ask("PhyloBuddy requires ETE v3+, which was not detected on your system. Try to install [y]/n? ",
-                      timeout=10)
-    if confirm:
-        Popen("pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip", shell=True).wait()
-        Popen("pip install six", shell=True).wait()
-        try:
-            import ete3
-            from ete3.coretype.tree import TreeError
+    print("""\
+ETE3 toolkit not detected on your system. Try running the following:
 
-        except ImportError:
-            sys.exit("Failed to install ETE3, please see http://etetoolkit.org/download/ for further details")
-    else:
-        sys.exit("Aborting. Please see http://etetoolkit.org/download/ for installation details\n")
+    pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip
+    pip install six
+
+Or see http://etetoolkit.org/download/ for installation details.
+""")
+    sys.exit()
 
 try:
     import dendropy
 except ImportError:
-    confirm = br. ask("PhyloBuddy requires dendropy, which was not detected on your system. Try to install [y]/n? ",
-                      timeout=10)
-    if confirm:
-        from subprocess import Popen
+    print("""\
+Dendropy not detected on your system. Try running the following:
 
-        Popen("pip install dendropy", shell=True).wait()
-        try:
-            import dendropy
-        except ImportError:
-            sys.exit("Failed to install dendropy, please see https://pythonhosted.org/DendroPy/ for further details")
-    else:
-        sys.exit("Aborting. Please see https://pythonhosted.org/DendroPy/ for installation details\n")
+    pip install dendropy
+
+Or see https://pythonhosted.org/DendroPy/ for installation details.
+""")
+    sys.exit()
 
 from dendropy.datamodel.treemodel import Tree, Node
 from dendropy.datamodel.treecollectionmodel import TreeList

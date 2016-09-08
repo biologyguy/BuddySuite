@@ -140,10 +140,11 @@ class MockPopen(object):
 
 
 def mock_check_output(*args, **kwargs):
+    print([args, kwargs])
     with open("%s/mock_resources/test_fasttree_inputs/result.tre" % RES_PATH, "r") as ifile:
         return ifile.read()
 
-@pytest.mark.generate_tree
+
 def test_raxml(alb_resources, pb_helpers, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
@@ -212,7 +213,6 @@ def test_raxml(alb_resources, pb_helpers, monkeypatch):
     assert pb_helpers.phylo2hash(tester) == "457533ada8e987fd0c50a41aabe1700b", tester.write("temp.del")
 
 
-@pytest.mark.generate_tree
 def test_phyml(alb_resources, pb_helpers, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
@@ -259,7 +259,6 @@ def test_phyml(alb_resources, pb_helpers, monkeypatch):
     assert pb_helpers.string2hash(kept_output) == "f25b49817747feed3f75b945d6be0780", print(kept_output)
 
 
-@pytest.mark.generate_tree
 def test_fasttree(alb_resources, pb_helpers, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
@@ -307,8 +306,7 @@ def test_fasttree(alb_resources, pb_helpers, monkeypatch):
     assert pb_helpers.string2hash(kept_output) == "743a96ec63d2cfb8dfb3ffe0b19e34ba", print(kept_output)
 
 
-@pytest.mark.generate_tree
-def test_generate_tree_edges(alb_resources, pb_helpers, monkeypatch, capsys):
+def test_generate_tree_edges(alb_resources, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     for root, dirs, files in os.walk("%s/mock_resources/test_fasttree_inputs" % RES_PATH):
