@@ -1624,3 +1624,4 @@ def test_transmembrane_domains_pep(sb_resources, sb_helpers, monkeypatch, capsys
     Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
     out, err = capsys.readouterr()
     assert "Error: Failed to download TOPCONS job rst_lE27A5 after 5 attempts." in err
+    os.remove("rst_lE27A5.hashmap")

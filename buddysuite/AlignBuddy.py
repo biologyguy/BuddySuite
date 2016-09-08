@@ -1051,6 +1051,26 @@ def hash_ids(alignbuddy, hash_length=10, r_seed=None):
     if 32 ** hash_length <= len(alignbuddy.records()) * 2:
         raise ValueError("Insufficient number of hashes available to cover all sequences. "
                          "Hash length must be increased.")
+    # If a hash_map already exists and fits all the specs, re-apply it.
+    if alignbuddy.hash_map:
+        alignbuddy_copy = make_copy(alignbuddy)
+        re_apply_hash_map = True
+        records = alignbuddy_copy.records_dict()
+        reverse_hashmap_ids = [rec_id for _hash, rec_id in alignbuddy.hash_map.items()]
+        reverse_hashmap_hashes = [_hash for _hash, rec_id in alignbuddy.hash_map.items()]
+
+        for rec_id, rec_list in records.items():
+            if rec_id not in reverse_hashmap_ids:
+                re_apply_hash_map = False
+                break
+            for rec in rec_list:
+                _hash = reverse_hashmap_hashes[reverse_hashmap_ids.index(rec_id)]
+                rec.id = _hash
+                rec.name = _hash
+
+        if re_apply_hash_map:
+            alignbuddy.alignments = alignbuddy_copy.alignments
+            return alignbuddy
 
     hash_map = OrderedDict()
     for alignment in alignbuddy.alignments:

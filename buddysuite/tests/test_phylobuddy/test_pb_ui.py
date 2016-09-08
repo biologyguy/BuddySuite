@@ -80,12 +80,12 @@ def mock_systemexit(*args, **kwargs):
 
 
 # ###################### argparse_init() ###################### #
-def test_argparse_init(capsys, pb_odd_resources, pb_helpers):
-    sys.argv = ['PhyloBuddy.py', pb_odd_resources["compare"]]
+def test_argparse_init(capsys, monkeypatch, pb_odd_resources, pb_helpers):
+    monkeypatch.setattr(sys, "argv", ['PhyloBuddy.py', pb_odd_resources["compare"]])
     temp_in_args, phylobuddy = Pb.argparse_init()
     assert pb_helpers.string2hash(str(phylobuddy)) == "d8e14a2bfc8e9c0ac3c524f5fb478c67"
 
-    sys.argv += ["-f", "foo"]
+    monkeypatch.setattr(sys, "argv", ['PhyloBuddy.py', pb_odd_resources["compare"], "-f", "foo"])
     with pytest.raises(SystemExit):
         Pb.argparse_init()
 

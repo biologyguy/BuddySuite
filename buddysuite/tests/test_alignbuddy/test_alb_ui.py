@@ -79,53 +79,56 @@ in_args = parser.parse_args([])
 
 
 # ###################### argparse_init() ###################### #
-def test_argparse_init(capsys, alb_resources, alb_helpers, alb_odd_resources):
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "stockholm"]
+def test_argparse_init(capsys, monkeypatch, alb_resources, alb_helpers, alb_odd_resources):
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con",
+                                      "-o", "stockholm"])
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert alb_helpers.align2hash(alignbuddy) == "5d9a03d9e1b4bf72d991257d3a696306"
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "foo"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-o", "foo"])
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "Format type 'foo' is not recognized/supported" in err
 
-    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"], "-con"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"], "-con"])
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "GuessError: Could not determine format from _input file" in err
 
-    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"], "-con", "-f", "phylip"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["fasta"],
+                                      "-con", "-f", "phylip"])
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "ValueError: First line should have two integers" in err
 
-    sys.argv = ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["phylipss_recs"], "-con", "-f", "phylipss"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_odd_resources["dna"]["single"]["phylipss_recs"], "-con",
+                                      "-f", "phylipss"])
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "PhylipError: Malformed Phylip --> 9 sequences expected, 8 found." in err
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-f", "foo"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p py", "paths"), "-con", "-f", "foo"])
     with pytest.raises(SystemExit):
         Alb.argparse_init()
     out, err = capsys.readouterr()
     assert "TypeError: Format type 'foo' is not recognized/supported" in err
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
-                "--quiet", "--generate_alignment", "mafft", "--reorder"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                                      "--quiet", "--generate_alignment", "mafft", "--reorder"])
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert alignbuddy == []
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
-                "--generate_alignment", "mafft", "--op", "5", "--quiet"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                                      "--generate_alignment", "mafft", "--op", "5", "--quiet"])
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert temp_in_args.generate_alignment == [['mafft', ' --op', '5']]
 
-    sys.argv = ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
-                "--generate_alignment", "mafft", "-q"]
+    monkeypatch.setattr(sys, 'argv', ['AlignBuddy.py', alb_resources.get_one("o p f", "paths"),
+                                      "--generate_alignment", "mafft", "-q"])
     temp_in_args, alignbuddy = Alb.argparse_init()
     assert temp_in_args.generate_alignment == [['mafft']]
 
@@ -667,7 +670,8 @@ def test_uppercase_ui(capsys, alb_resources, alb_helpers):
 
 # ######################  main() ###################### #
 def test_main(monkeypatch, capsys, alb_resources):
-    in_args.enforce_triplets = [True]
+    test_in_args = deepcopy(in_args)
+    test_in_args.enforce_triplets = True
     monkeypatch.setattr(Alb, "argparse_init", lambda: [in_args, alb_resources.get_one("o d f")])
     monkeypatch.setattr(Alb, "command_line_ui", lambda *_: True)
     assert Alb.main()
@@ -708,9 +712,8 @@ def test_inplace(capsys, alb_resources, alb_helpers):
     Alb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
     tester = Alb.AlignBuddy("%s/align" % tmp_dir.path)
-    print("out: %s\nerr: %s\n" % (out, err))
-    assert "File over-written at:" in err, print("out: %s\nerr: %s\n" % (out, err))
-    assert alb_helpers.align2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", print(tester)
+    assert "File over-written at:" in err
+    assert alb_helpers.align2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", tester.write("temp.del")
 
     test_in_args.alignments = ["I/do/not/exist"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d f"), skip_exit=True)

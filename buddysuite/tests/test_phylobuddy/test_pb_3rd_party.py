@@ -20,38 +20,42 @@ from ... import buddy_resources as br
 # ######### RAxML ########### #
 raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
 raxml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
-if raxml_version not in ["8.2.4", "8.2.8", "8.2.9"]:
+if raxml_version not in ["7.6.6", "8.2.4", "8.2.8", "8.2.9"]:
     raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
 
 
 def test_raxml_inputs_nuc(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml')
-    assert pb_helpers.phylo2hash(tester) in ['4e083fc6d8b4f4342674efd93d5e313c', '1cede6c576bb88125e2387d850f813ab']
+    assert pb_helpers.phylo2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
+                                             '1cede6c576bb88125e2387d850f813ab']
 
 
 def test_raxml_inputs_quiet(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', quiet=True)
-    assert pb_helpers.phylo2hash(tester) in ['4e083fc6d8b4f4342674efd93d5e313c', '1cede6c576bb88125e2387d850f813ab']
+    assert pb_helpers.phylo2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
+                                             '1cede6c576bb88125e2387d850f813ab']
 
 
 def test_raxml_inputs_pep(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(tester, 'raxml')
-    assert pb_helpers.phylo2hash(tester) in ['41ccd8852002f3b98c032378403c38b0', '6443e4dddb9b64a783bd9e97b369e0d4']
+    assert pb_helpers.phylo2hash(tester) in ['3e6ab2efc088d5547fa8244462f7cc03',
+                                             '41ccd8852002f3b98c032378403c38b0', '6443e4dddb9b64a783bd9e97b369e0d4']
 
 
 def test_raxml_multi_param(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
-    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 2')
-    assert pb_helpers.phylo2hash(tester) in ['1999ef930c0d6cadbe5844b7c6355029', '53ea2002e19d1d88c684f0ddc02de187']
+    tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 3')
+    assert pb_helpers.phylo2hash(tester) in ['08fa932a0cbb33d936ef4c8aef3c0095', '53ea2002e19d1d88c684f0ddc02de187',
+                                             'c24b5e9c1899246b9a459a61efe0aad5']
 
 
 def test_raxml_multiple_searches(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d py")
-    tester = Pb.generate_tree(tester, 'raxml', '-N 2')
-    assert pb_helpers.phylo2hash(tester) in ['4f722d2a473604c6fab0bc63366128dc', '59a3f6cd366d9918b36ac95c04572a2f']
+    tester = Pb.generate_tree(tester, 'raxml', '-N 3')
+    assert pb_helpers.phylo2hash(tester) in ['76356987f7e2368cdf13c42567cb7453', 'ee223e46a9f9753203553e6fd7473ec9']
 
 
 # def test_raxml_multiple_trees(alb_resources, pb_helpers):

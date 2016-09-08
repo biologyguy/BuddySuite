@@ -614,6 +614,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
         phylo_objs = []
         for alignment in alignbuddy.alignments:  # Need to loop through one tree at a time
             sub_alignbuddy = Alb.AlignBuddy([alignment])
+            sub_alignbuddy.hash_map = alignbuddy.hash_map
             Alb.hash_ids(sub_alignbuddy, 8, r_seed=r_seed)
             sub_alignbuddy = Alb.clean_seq(sub_alignbuddy)
             sub_alignbuddy.set_format('phylipss') if tool == "phyml" else sub_alignbuddy.set_format('phylipi')
@@ -654,8 +655,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 command = '{0} -i {1} {2}'.format(alias, tmp_in, params)
 
             elif tool == 'fasttree':
-                if '-n ' not in params and '--multiple' not in params and len(sub_alignbuddy.alignments) > 1:
-                    params += ' -n {0}'.format(len(sub_alignbuddy.alignments))  # Number of alignments to be input
+                params = remove_invalid_params({'-n': True})
                 if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
                                             IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
                     command = '{0} {1} -nt {2}'.format(alias, params, tmp_in)  # FastTree must be told what alpha to use
@@ -688,7 +688,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                         output = check_output(command, shell=True, universal_newlines=True)
 
             except CalledProcessError:  # Haven't been able to find a way to get here. Needs a test.
-                raise RuntimeError('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(alias))
+                raise RuntimeError('{0} threw an error. Scroll up for more info.\n'.format(alias))
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
@@ -706,8 +706,6 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                         with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx),
                                   "r", encoding="utf-8") as result:
                             output += result.read()
-                else:
-                    raise NotImplementedError("Could not find any RAxML results.\n%s" % command)
 
             elif tool == 'phyml':
                 phyml_out = '{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)
@@ -725,11 +723,11 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if keep_temp:
                 _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
-                    with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
+                    with open("%s/%s" % (_root, file), "r") as ifile:
                         contents = ifile.read()
                     for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
-                    with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
+                    with open("%s/%s" % (_root, file), "w") as ofile:
                         ofile.write(contents)
             phylo_objs += phylobuddy.trees
 

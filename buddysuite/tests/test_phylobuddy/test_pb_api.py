@@ -5,25 +5,27 @@
 import pytest
 from ... import PhyloBuddy as Pb
 from ... import buddy_resources as br
+from .. import __init__
 
 from unittest import mock
 import ete3
 import os
 import shutil
 import re
+from collections import OrderedDict
 
-
-class MockPopen(object):
-    def __init__(self, *args, **kwargs):
-        return
-
-    @staticmethod
-    def wait():
-        return True
-
-    @staticmethod
-    def communicate(output=""):
-        return output
+RES_PATH = __init__.RESOURCE_PATH
+HASH_MAP = OrderedDict([('mYSiElpW', 'Mle-Panxα9'), ('wPDsBSFF', 'Mle-Panxα7A'), ('eMBqjkZe', 'Mle-Panxα1'),
+                        ('RSHOU1Si', 'Mle-Panxα3'), ('9aY8Cnau', 'Mle-Panxα12'), ('ap5o0Lez', 'Mle-Panxα11'),
+                        ('SITWTd8S', 'Mle-Panxα4'), ('6pukL30B', 'Mle-Panxα8'), ('IqzLlJ2r', 'Mle-Panxα6'),
+                        ('8rWWJ2h3', 'Mle-Panxα10B'), ('scPvTxj1', 'Mle-Panxα5'), ('i6SVQvFT', 'Mle-Panxα2'),
+                        ('9V0yrhWi', 'Mle-Panxα10A'), ('5FHehw3fRm', 'Ate-PanxβG'), ('9J38W9UwOl', 'Ate-PanxβD'),
+                        ('t7YmMoZMmc', 'Hvu-PanxβI'), ('iqwtNz79Pq', 'Che-PanxβF'), ('71B14dBaei', 'Ael-PanxβB'),
+                        ('JPmIAQtH4Y', 'Ael-PanxβD'), ('ToKark9AhV', 'Hvu-PanxβL'), ('TwCggovLaz', 'Cla-PanxβD'),
+                        ('QIxkMXuSco', 'Hec-PanxβD'), ('b0rsCIFOWv', 'Che-PanxβA'), ('RB5B3tt56a', 'Pph-PanxβE'),
+                        ('nM2JtozKiL', 'Pph-PanxβD'), ('V6onrYnwqL', 'Nbi-PanxβF'), ('l7keL2rmHu', 'Hvu-PanxβE'),
+                        ('zbHrcxNBJB', 'Ccr-PanxγA'), ('vsDsQ3V1ZY', 'Che-PanxβC'), ('PJnknRqrKD', 'Hvu-PanxβJ'),
+                        ('h7zOT9CNlZ', 'Che-PanxβD'), ('a0BEtaUs4Y', 'Nbi-PanxβG'), ('FMLbM2xkqq', 'Ate-PanxβC')])
 
 
 # ###################### 'cpt', '--collapse_polytomies' ###################### #
@@ -121,49 +123,222 @@ def test_distance_unknown_method(pb_resources):
 
 # ######################  'gt', '--generate_trees' ###################### #
 # ToDo: All of these tests need to be run on mock output. Actual 3rd party software is tested in test_alb_3rd_party.py
-def test_raxml_inputs(monkeypatch, alb_resources, pb_helpers):
+class MockPopen(object):
+    def __init__(self, *args, **kwargs):
+        self.kwargs = kwargs
+        if " -v" in args[0]:
+            self.output = ["This is RAxML version".encode(), "".encode()]
+        else:
+            self.output = None
+
+    def communicate(self):
+        return self.output
+
+    @staticmethod
+    def wait():
+        return True
+
+
+def mock_check_output(*args, **kwargs):
+    with open("%s/mock_resources/test_fasttree_inputs/result.tre" % RES_PATH, "r") as ifile:
+        return ifile.read()
+
+@pytest.mark.generate_tree
+def test_raxml(alb_resources, pb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_raxml_inputs" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
-    for root, dirs, files in os.walk("%s/mock_resources/test_raxml_inputs" % alb_resources.res_path):
-        for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+    root, dirs, files = next(os.walk("%s/mock_resources/test_raxml_inputs" % RES_PATH))
+    for _file in files:
+        shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (mock_tmp_dir.path, _file))
+    monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
+    monkeypatch.setattr(Pb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
+    # basic
     tester = alb_resources.get_one("o d n")
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-    with mock.patch('buddysuite.PhyloBuddy.Popen', MockPopen):
-        tester = Pb.generate_tree(tester, 'raxml', " -r_seed 12345")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml')
+    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
 
-    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
+    # quiet
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml', quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+
+    # params
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml', "-w path/to/nowhere", quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+
+    # slight edges
+    tester = alb_resources.get_one("o p n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml-HPC', tmp_dir.path, quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+
+    # bootstraps
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml', "-b 1234 -N 4", quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "b8a3b6068aa06bd8a70fcc9bda0efad9", tester.write("temp.del")
+
+    # keep
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    Pb.generate_tree(tester, 'raxml', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in sorted(files):
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert pb_helpers.string2hash(kept_output) == "393353fb47861460aecaefa69a6ec55c", print(kept_output)
+
+    # multi-run
+    os.remove("%s/RAxML_bestTree.result" % mock_tmp_dir.path)
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml', "-N 3", quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "e8ce19bba744f0188df2ebb4ffced4d8", tester.write("temp.del")
+
+    # bipartitions
+    shutil.copy("%s/mock_resources/test_raxml_inputs/bipartitions/RAxML_bipartitions.result" % RES_PATH,
+                "%s/" % mock_tmp_dir.path)
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'raxml', "-f b -z {0}/RAxML_bootstrap.result "
+                                               "-t {0}/RAxML_bestTree.result".format(tmp_dir.path))
+    assert pb_helpers.phylo2hash(tester) == "457533ada8e987fd0c50a41aabe1700b", tester.write("temp.del")
 
 
-# PhyML version 20120412
-def test_phyml_inputs(monkeypatch, alb_resources, pb_helpers):
+@pytest.mark.generate_tree
+def test_phyml(alb_resources, pb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    if not os.path.isdir("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
-    for root, dirs, files in os.walk("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
+    for root, dirs, files in os.walk("%s/mock_resources/test_phyml_inputs" % RES_PATH):
         for _file in files:
-            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (tmp_dir.path, _file))
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (mock_tmp_dir.path, _file))
+    monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
+    monkeypatch.setattr(Pb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
+    # basic
     tester = alb_resources.get_one("o d n")
-    monkeypatch.setattr("buddysuite.buddy_resources.TempDir", lambda: tmp_dir)
-    with mock.patch('buddysuite.PhyloBuddy.Popen', MockPopen):
-        tester = Pb.generate_tree(tester, 'phyml', " -r_seed 12345")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'phyml')
+    assert pb_helpers.phylo2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
 
-    assert pb_helpers.phylo2hash(tester) == "01699cec16b5dc41036d9c9f5e4894d2"
-
-
-def test_fasttree_inputs(monkeypatch, alb_resources, pb_helpers):
-    if not os.path.isdir("%s/mock_resources/test_phyml_inputs" % alb_resources.res_path):
-        raise NotADirectoryError("Unable to find mock resources")
+    # quiet
     tester = alb_resources.get_one("o d n")
-    with open("%s/mock_resources/test_fasttree_inputs/fasttree_result.aln" % alb_resources.res_path) as treefile:
-        mock_check_output = mock.Mock(return_value=treefile.read())
-    monkeypatch.setattr(Pb, 'check_output', mock_check_output)
-    monkeypatch.setattr(Pb, 'Popen', MockPopen)
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'phyml', quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+
+    # params
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'phyml', "--sequential", quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+
+    # slight edges
+    tester = alb_resources.get_one("o p n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'phyml-foo', tmp_dir.path, quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+
+    # keep
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    Pb.generate_tree(tester, 'phyml', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in sorted(files):
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert pb_helpers.string2hash(kept_output) == "f25b49817747feed3f75b945d6be0780", print(kept_output)
+
+
+@pytest.mark.generate_tree
+def test_fasttree(alb_resources, pb_helpers, monkeypatch):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    for root, dirs, files in os.walk("%s/mock_resources/test_fasttree_inputs" % RES_PATH):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (mock_tmp_dir.path, _file))
+    monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
+    monkeypatch.setattr(Pb, "Popen", MockPopen)
+    monkeypatch.setattr(Pb, "check_output", mock_check_output)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # basic
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'fasttree')
-    assert pb_helpers.phylo2hash(tester) == "f6caf053c1cd4287ac2f80381a991d8c"
+    assert pb_helpers.phylo2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+
+    # quiet
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'fasttree', quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+
+    # params
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'fasttree', "-pseudo", quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+
+    # slight edges
+    tester = alb_resources.get_one("m p s")
+    tester.hash_map = HASH_MAP
+    tester = Pb.generate_tree(tester, 'fasttree-foo', quiet=True)
+    assert pb_helpers.phylo2hash(tester) == "7692ee7edb8df4f91d2bdca6c3767796", tester.write("temp.del")
+
+    # keep
+    tester = alb_resources.get_one("o d n")
+    tester.hash_map = HASH_MAP
+    Pb.generate_tree(tester, 'fasttree', keep_temp="%s/keep_files" % tmp_dir.path)
+    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    kept_output = ""
+    for file in sorted(files):
+        with open("%s/%s" % (root, file), "r") as ifile:
+            kept_output += ifile.read()
+    assert pb_helpers.string2hash(kept_output) == "743a96ec63d2cfb8dfb3ffe0b19e34ba", print(kept_output)
+
+
+@pytest.mark.generate_tree
+def test_generate_tree_edges(alb_resources, pb_helpers, monkeypatch, capsys):
+    mock_tmp_dir = br.TempDir()
+    tmp_dir = br.TempDir()
+    for root, dirs, files in os.walk("%s/mock_resources/test_fasttree_inputs" % RES_PATH):
+        for _file in files:
+            shutil.copyfile("%s/%s" % (root, _file), "%s/%s" % (mock_tmp_dir.path, _file))
+    monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
+    monkeypatch.setattr(Pb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    with pytest.raises(RuntimeError) as err:
+        Pb.generate_tree(alb_resources.get_one("o d n"), 'fasttree', "--nonsense")
+    assert "fasttree threw an error. Scroll up for more info." in str(err)
+
+    with pytest.raises(FileExistsError) as err:
+        Pb.generate_tree(alb_resources.get_one("o d n"), 'raxml', keep_temp=tmp_dir.path)
+    assert "Execution of raxml was halted to prevent files in" in str(err)
+
+    with pytest.raises(FileNotFoundError) as err:
+        Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
+    assert 'Foo failed to generate a tree' in str(err)
+
+    monkeypatch.setattr(Pb.shutil, "which", lambda *_: None)
+    with pytest.raises(ProcessLookupError) as err:
+        Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
+    assert "ProcessLookupError: #### Could not find Foo in $PATH. ####" in str(err)
+
+    monkeypatch.setattr(Pb.Popen, "communicate", lambda *_: ["".encode(), "".encode()])
+    with pytest.raises(AttributeError) as err:
+        Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
+    assert "Foo is not a valid alignment tool" in str(err)
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
