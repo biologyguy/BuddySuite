@@ -28,20 +28,20 @@ def test_raxml_inputs_nuc(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml')
     assert pb_helpers.phylo2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
-                                             '1cede6c576bb88125e2387d850f813ab']
+                                             '706ba436f8657ef3aee7875217dd07c0', '1cede6c576bb88125e2387d850f813ab']
 
 
 def test_raxml_inputs_quiet(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', quiet=True)
     assert pb_helpers.phylo2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
-                                             '1cede6c576bb88125e2387d850f813ab']
+                                             '706ba436f8657ef3aee7875217dd07c0', '1cede6c576bb88125e2387d850f813ab']
 
 
 def test_raxml_inputs_pep(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(tester, 'raxml')
-    assert pb_helpers.phylo2hash(tester) in ['3e6ab2efc088d5547fa8244462f7cc03',
+    assert pb_helpers.phylo2hash(tester) in ['3e6ab2efc088d5547fa8244462f7cc03', '832f3b301a2a320affb9864b4c6a3979',
                                              '41ccd8852002f3b98c032378403c38b0', '6443e4dddb9b64a783bd9e97b369e0d4']
 
 
@@ -49,13 +49,14 @@ def test_raxml_multi_param(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 3')
     assert pb_helpers.phylo2hash(tester) in ['08fa932a0cbb33d936ef4c8aef3c0095', '53ea2002e19d1d88c684f0ddc02de187',
-                                             'c24b5e9c1899246b9a459a61efe0aad5']
+                                             '02e5ea7b756b68b8622636ba7e28e15b', 'c24b5e9c1899246b9a459a61efe0aad5']
 
 
 def test_raxml_multiple_searches(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d py")
     tester = Pb.generate_tree(tester, 'raxml', '-N 3')
-    assert pb_helpers.phylo2hash(tester) in ['76356987f7e2368cdf13c42567cb7453', 'ee223e46a9f9753203553e6fd7473ec9']
+    assert pb_helpers.phylo2hash(tester) in ['76356987f7e2368cdf13c42567cb7453', 'ee223e46a9f9753203553e6fd7473ec9',
+                                             'b3a8359c62e9d29b952782df53a4782a']
 
 
 # def test_raxml_multiple_trees(alb_resources, pb_helpers):
