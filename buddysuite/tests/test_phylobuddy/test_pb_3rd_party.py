@@ -49,14 +49,14 @@ def test_raxml_multi_param(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 3')
     assert pb_helpers.phylo2hash(tester) in ['08fa932a0cbb33d936ef4c8aef3c0095', '53ea2002e19d1d88c684f0ddc02de187',
-                                             '02e5ea7b756b68b8622636ba7e28e15b', 'c24b5e9c1899246b9a459a61efe0aad5']
+                                             '02e5ea7b756b68b8622636ba7e28e15b', 'c24b5e9c1899246b9a459a61efe0aad5'], print(tester)
 
 
 def test_raxml_multiple_searches(alb_resources, pb_helpers):
     tester = alb_resources.get_one("o d py")
     tester = Pb.generate_tree(tester, 'raxml', '-N 3')
     assert pb_helpers.phylo2hash(tester) in ['76356987f7e2368cdf13c42567cb7453', 'ee223e46a9f9753203553e6fd7473ec9',
-                                             'b3a8359c62e9d29b952782df53a4782a']
+                                             'b3a8359c62e9d29b952782df53a4782a'], print(tester)
 
 
 # def test_raxml_multiple_trees(alb_resources, pb_helpers):

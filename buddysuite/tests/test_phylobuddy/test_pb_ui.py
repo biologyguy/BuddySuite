@@ -75,6 +75,10 @@ def mock_guesserror(*args, **kwargs):
     raise br.GuessError("%s, %s" % (args, kwargs))
 
 
+def mock_assertionerror(*args, **kwargs):
+    raise AssertionError("%s, %s" % (args, kwargs))
+
+
 def mock_systemexit(*args, **kwargs):
     sys.exit("%s, %s" % (args, kwargs))
 
@@ -91,6 +95,12 @@ def test_argparse_init(capsys, monkeypatch, pb_odd_resources, pb_helpers):
 
     out, err = capsys.readouterr()
     assert "Error: The format 'foo' passed in with the -f flag is not recognized." in err
+
+    monkeypatch.setattr(sys, "argv", ['PhyloBuddy.py', pb_odd_resources["compare"], "-o", "foo"])
+    with pytest.raises(SystemExit):
+        Pb.argparse_init()
+    out, err = capsys.readouterr()
+    assert "Error: Output type foo is not recognized/supported" in err
 
 
 # ###################### INTERNAL FUNCTIONS ###################### #
@@ -205,6 +215,10 @@ def test_distance_ui(capsys, pb_resources, pb_helpers):
     with pytest.raises(AttributeError) as err:
         Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
     assert "foo is an invalid comparison method." in str(err)
+
+    with pytest.raises(ValueError) as err:
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), pass_through=True)
+    assert "Distance requires at least two trees." in str(err)
 
 
 # ###################### 'gt', '--generate_tree' ###################### #
@@ -461,3 +475,38 @@ def test_main(monkeypatch, capsys, pb_resources):
     monkeypatch.setattr(Pb, "command_line_ui", mock_fileexistserror)
     monkeypatch.setattr(br, "send_traceback", lambda *_: True)
     assert not Pb.main()
+
+
+# ######################  loose command line ui helpers ###################### #
+def test_exit(monkeypatch, capsys, pb_resources):
+    class MockUsage(object):
+        @staticmethod
+        def increment(*args):
+            print(args)
+            return True
+
+        @staticmethod
+        def save():
+            return True
+
+    monkeypatch.setattr(br, "Usage", MockUsage)
+    test_in_args = deepcopy(in_args)
+    test_in_args.list_ids = [True]
+
+    with pytest.raises(SystemExit):
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"))
+    out, err = capsys.readouterr()
+    assert "('PhyloBuddy', '1.1', 'list_ids', 2412)" in out
+
+
+def test_error(monkeypatch, capsys, pb_resources, pb_odd_resources):
+    test_in_args = deepcopy(in_args)
+    test_in_args.show_unique = [True]
+
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "PhyloBuddy object should have exactly 2 trees." in err
+
+    monkeypatch.setattr(Pb, "_convert_to_ete", mock_assertionerror)
+    with pytest.raises(AssertionError):
+        Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["compare"]), skip_exit=True)
