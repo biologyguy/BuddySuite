@@ -13,6 +13,7 @@ import os
 import shutil
 import re
 from collections import OrderedDict
+from ete3.coretype.tree import TreeError
 
 RES_PATH = __init__.RESOURCE_PATH
 HASH_MAP = OrderedDict([('mYSiElpW', 'Mle-Panxα9'), ('wPDsBSFF', 'Mle-Panxα7A'), ('eMBqjkZe', 'Mle-Panxα1'),
@@ -424,6 +425,17 @@ def test_prune_taxa(key, next_hash, pb_resources, pb_helpers):
     Pb.prune_taxa(tester, 'fir')
     assert pb_helpers.phylo2hash(tester) == next_hash
 
+
+def test_prune_taxa_edge(pb_resources, pb_helpers):
+    # Test for when all leaves are deleted with prune
+    fir_only = pb_resources.get_one("o n")
+    Pb.rename(fir_only, "pen|ovi", "fir")
+    mix = pb_resources.get_one("o n")
+    mix.trees += fir_only.trees
+    Pb.prune_taxa(mix, "fir")
+    assert pb_helpers.phylo2hash(mix) == "6dd711f4330e7f088563045616085ba5"
+
+
 # ######################  'ri', '--rename_ids' ###################### #
 hashes = [('m k', '6843a620b725a3a0e0940d4352f2036f'), ('m n', '543d2fc90ca1f391312d6b8fe896c59c'),
           ('m l', '6ce146e635c20ad62e21a1ed6fddbd3a'), ('o k', '4dfed97b2a23b8957ee5141bf4681fe4'),
@@ -505,11 +517,18 @@ def test_show_unique(pb_odd_resources, pb_resources, pb_helpers):
         Pb.show_unique(tester)
 
 
-def test_show_unique_unrooted(pb_odd_resources, pb_helpers):
+def test_show_unique_unrooted(monkeypatch, pb_odd_resources, pb_helpers):
+    def mock_treeerror(*args):
+        raise TreeError(args)
+
     tester = Pb.PhyloBuddy(pb_odd_resources['compare'])
     Pb.unroot(tester)
     Pb.show_unique(tester)
     assert pb_helpers.phylo2hash(tester) == "2bba16e2c77102ba150adecc352407a9"
+
+    monkeypatch.setattr(Pb.ete3.TreeNode, 'robinson_foulds', mock_treeerror)
+    with pytest.raises(TreeError):
+        Pb.show_unique(tester)
 
 
 # ###################### 'sp', '--split_polytomies' ###################### #

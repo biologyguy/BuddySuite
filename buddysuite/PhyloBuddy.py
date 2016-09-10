@@ -535,6 +535,7 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
 
 def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
     # ToDo: Break the function up for each program being wrapped. There's WAY too much going on here...
+    # ToDo: Multiple alignments are not un-hashing correctly (at least in raxml)
     """
     Calls tree building tools to generate trees
     :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
@@ -747,9 +748,6 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
             self.all_hashes = {}
 
         def new_hash(self, label):
-            if not self.hash_map:
-                self.add_tree()
-
             if str(label) in self.all_hashes:
                 self.hash_map[-1][label] = self.all_hashes[label]
                 return str(label)
@@ -832,7 +830,7 @@ def prune_taxa(phylobuddy, *patterns):
         try:
             for taxon in taxa_to_prune:  # Removes the nodes from the tree
                 tree.prune_taxa_with_labels(StringIO(taxon))
-        except AttributeError:
+        except AttributeError:  # If all leaves are removed, then delete the tree
             del phylobuddy.trees[indx]
 
 
@@ -856,6 +854,8 @@ def rename(phylobuddy, query, replace):
 def root(phylobuddy, *root_nodes):
     """
     Place a new root on trees
+    Note: There may be some sort of weird behavior (likely crash) if an internal node is selected as root. Not sure how
+    to test for it though, so it isn't currently accounted for. Need a use case.
     :param phylobuddy: PhyloBuddy object
     :param root_nodes: A string with the taxon label to root on, or a list of labels and the most common ancestor
     node will be rooted on
@@ -869,21 +869,17 @@ def root(phylobuddy, *root_nodes):
                     for next_id in id_list:
                         if re.search(regex, next_id):
                             all_nodes.append(next_id)
-            mrca = None
             if len(all_nodes) == 0:
                 return _tree
             elif len(all_nodes) == 1:
                 leaf_node = _tree.find_node_with_taxon_label(all_nodes[0])
-                if leaf_node:
-                    mrca = leaf_node._parent_node
+                mrca = leaf_node._parent_node
 
             else:
                 mrca = _tree.mrca(taxon_labels=all_nodes)
 
-            if mrca:
-                _tree.reroot_at_node(mrca, update_bipartitions=True, suppress_unifurcations=False)
-            else:
-                _root(_tree)
+            _tree.reroot_at_node(mrca, update_bipartitions=True, suppress_unifurcations=False)
+
         else:
             # WARNING! There is a bug in DendroPy leading to an infinite loop here. The dendropy folks have fixed it
             # in their development branch but it is not yet in the main branch
