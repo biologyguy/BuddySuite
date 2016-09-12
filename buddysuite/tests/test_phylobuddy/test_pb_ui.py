@@ -458,7 +458,7 @@ def test_unroot_ui(capsys, pb_odd_resources, pb_helpers):
 
 
 # ###################### main() ###################### #
-def test_main(monkeypatch, capsys, pb_resources):
+def test_main(monkeypatch, pb_resources):
     monkeypatch.setattr(sys, "argv", ["PhyloBuddy", pb_resources.get_one("o k", mode="paths"), "-li"])
     monkeypatch.setattr(Pb, "command_line_ui", lambda *_: True)
     assert Pb.main()

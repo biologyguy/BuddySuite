@@ -2389,21 +2389,16 @@ def argparse_init():
     dbbuddy = []
     out_format = "summary" if not in_args.out_format else in_args.out_format
 
-    try:
-        if isinstance(in_args.user_input[0], TextIOWrapper) and in_args.user_input[0].buffer.raw.isatty():
-                dbbuddy = DbBuddy()
-                in_args.live_shell = True
-        elif len(in_args.user_input) > 1:
-            for search_set in in_args.user_input:
-                dbbuddy.append(DbBuddy(search_set, in_args.database, out_format))
+    if isinstance(in_args.user_input[0], TextIOWrapper) and in_args.user_input[0].buffer.raw.isatty():
+            dbbuddy = DbBuddy()
+            in_args.live_shell = True
+    elif len(in_args.user_input) > 1:
+        for search_set in in_args.user_input:
+            dbbuddy.append(DbBuddy(search_set, in_args.database, out_format))
 
-            dbbuddy = DbBuddy(dbbuddy, in_args.database, in_args.out_format)
-        else:
-            dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
-
-    except br.GuessError:
-        sys.exit("Error: DatabaseBuddy could not understand your input. "
-                 "Check the file path or try specifying an input type with -f")
+        dbbuddy = DbBuddy(dbbuddy, in_args.database, out_format)
+    else:
+        dbbuddy = DbBuddy(in_args.user_input[0], in_args.database, out_format)
 
     return in_args, dbbuddy
 
@@ -2524,8 +2519,9 @@ def main():
         command_line_ui(*initiation)
     except (KeyboardInterrupt, br.GuessError) as e:
         print(e)
+        return False
     except SystemExit:
-        pass
+        return False
     except Exception as e:
         function = ""
         for next_arg in vars(initiation[0]):
@@ -2533,6 +2529,8 @@ def main():
                 function = next_arg
                 break
         br.send_traceback("DbBuddy", function, e, VERSION)
+        return False
+    return True
 
 if __name__ == '__main__':
     main()

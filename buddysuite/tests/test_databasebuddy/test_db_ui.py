@@ -1,9 +1,37 @@
 import pytest
 import os
 import re
+import sys
+import argparse
+from copy import deepcopy
 
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
+
+
+def fmt(prog):
+    return br.CustomHelpFormatter(prog)
+
+parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                 description='''
+\033[1mDatabaseBuddy\033[m
+Go forth to the servers of sequence, and discover.
+
+\033[1mUsage examples\033[m:
+DbBuddy.py -ls (launch empty live session)
+DbBuddy.py "<accn1,accn2,accn3,...>" -<cmd>
+DbBuddy.py "<search term1, search term2,...>" -<cmd>
+DbBuddy.py "<accn1,search term1>" -<cmd>
+DbBuddy.py "/path/to/file_of_accns" -<cmd>
+''')
+
+br.db_modifiers["database"]["choices"] = Db.DATABASES
+br.flags(parser, ("user_input", "Specify accession numbers or search terms, "
+                                "either in a file or as a comma separated list"),
+         br.db_flags, br.db_modifiers, Db.VERSION)
+
+# This is to allow py.test to work with its own flags
+in_args = parser.parse_args([])
 
 
 def mock_cmdloop(*args):
@@ -35,9 +63,44 @@ class OpenPermissionError(object):
     def close():
         raise PermissionError
 
+
+def mock_fileexistserror(*args, **kwargs):
+    raise FileExistsError(args, kwargs)
+
+
+def mock_keyboardinterrupt(*args, **kwargs):
+    raise KeyboardInterrupt(args, kwargs)
+
+
+def mock_guesserror(*args, **kwargs):
+    raise br.GuessError("%s, %s" % (args, kwargs))
+
+
+def mock_systemexit(*args, **kwargs):
+    sys.exit("%s, %s" % (args, kwargs))
+
+
 # A few real accession numbers to test things out with
 ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",
          "XM_003978475", "ENSAMEG00000011912", "ENSCJAG00000008732", "ENSMEUG00000000523"]
+
+
+# ###################### argparse_init() ###################### #
+def test_argparse_init(capsys, monkeypatch, sb_helpers):
+    monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "Casp9"])
+    temp_in_args, dbbuddy = Db.argparse_init()
+    assert sb_helpers.string2hash(str(dbbuddy)) == "b61a8e0e0a97f33ec1e85c09391ada64"
+
+    monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "Casp9,Panx3", "Cx43"])
+    temp_in_args, dbbuddy = Db.argparse_init()
+    assert sb_helpers.string2hash(str(dbbuddy)) == "c717f3c1636ab03f0c5f5e86d5e909cb"
+
+    monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "-f"])
+    with pytest.raises(SystemExit):
+        Db.argparse_init()
+
+    out, err = capsys.readouterr()
+    assert "DbBuddy.py: error: unrecognized arguments: -f" in err
 
 
 def test_liveshell_init(monkeypatch, capsys, sb_helpers):
@@ -1084,3 +1147,88 @@ def test_helps(monkeypatch, capsys):
     liveshell.help_write()
     out, err = capsys.readouterr()
     assert "Send records to a file" in out
+
+
+# ###################### main() ###################### #
+def test_main(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["DatabaseBuddy", "Casp9,Panx3", "-ls"])
+    monkeypatch.setattr(Db, "command_line_ui", lambda *_: True)
+    assert Db.main()
+
+    monkeypatch.setattr(Db, "command_line_ui", mock_keyboardinterrupt)
+    assert not Db.main()
+
+    monkeypatch.setattr(Db, "command_line_ui", mock_guesserror)
+    assert not Db.main()
+
+    monkeypatch.setattr(Db, "command_line_ui", mock_systemexit)
+    assert not Db.main()
+
+    monkeypatch.setattr(Db, "command_line_ui", mock_fileexistserror)
+    monkeypatch.setattr(br, "send_traceback", lambda *_: True)
+    assert not Db.main()
+
+
+# ######################  loose command line ui helpers ###################### #
+@pytest.mark.loose
+def test_exit(monkeypatch, capsys):
+    class MockExitUsage(object):
+        @staticmethod
+        def increment(*args):
+            print(args)
+            return True
+
+        @staticmethod
+        def save():
+            return True
+
+    monkeypatch.setattr(br, "Usage", MockExitUsage)
+    monkeypatch.setattr(Db, "LiveShell", lambda *_: True)
+    test_in_args = deepcopy(in_args)
+
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, Db.DbBuddy())
+    out, err = capsys.readouterr()
+    assert "('DatabaseBuddy', '1.0', 'LiveShell', 0)" in out
+
+
+@pytest.mark.loose
+def test_error(monkeypatch, capsys):
+    monkeypatch.setattr(Db, "LiveShell", mock_systemexit)
+
+    test_in_args = deepcopy(in_args)
+    test_in_args.live_shell = True
+
+    assert Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True) is None
+
+    test_in_args.live_shell = False
+    monkeypatch.setattr(Db, "LiveShell", mock_keyboardinterrupt)
+    assert Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True) is None
+    out, err = capsys.readouterr()
+    assert "DbBuddy object" in out
+
+    monkeypatch.setattr(Db, "LiveShell", mock_fileexistserror)
+    monkeypatch.setattr(br.TempFile, "save", lambda *_: True)
+    monkeypatch.setattr(br, "send_traceback", lambda *_: True)
+    capsys.readouterr()
+    assert Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True) is None
+    out, err = capsys.readouterr()
+    assert "can be loaded by launching DatabaseBuddy and using the 'load' command." in err
+
+
+@pytest.mark.loose
+def test_guess_db(capsys, sb_helpers):
+    test_in_args = deepcopy(in_args)
+    test_in_args.guess_database = True
+
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True)
+
+    out, err = capsys.readouterr()
+    assert 'Nothing to return' in out
+
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, Db.DbBuddy(",".join(ACCNS) + ",Casp9"), skip_exit=True)
+
+    out, err = capsys.readouterr()
+    assert sb_helpers.string2hash(out) == "4b3edb0272b02d8e18ce591304fdea1d"
