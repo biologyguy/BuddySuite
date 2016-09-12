@@ -84,10 +84,10 @@ def mock_systemexit(*args, **kwargs):
 
 
 # ###################### argparse_init() ###################### #
-def test_argparse_init(capsys, monkeypatch, pb_odd_resources, pb_helpers):
+def test_argparse_init(capsys, monkeypatch, pb_odd_resources, hf):
     monkeypatch.setattr(sys, "argv", ['PhyloBuddy.py', pb_odd_resources["compare"]])
     temp_in_args, phylobuddy = Pb.argparse_init()
-    assert pb_helpers.string2hash(str(phylobuddy)) == "d8e14a2bfc8e9c0ac3c524f5fb478c67"
+    assert hf.string2hash(str(phylobuddy)) == "d8e14a2bfc8e9c0ac3c524f5fb478c67"
 
     monkeypatch.setattr(sys, "argv", ['PhyloBuddy.py', pb_odd_resources["compare"], "-f", "foo"])
     with pytest.raises(SystemExit):
@@ -126,36 +126,36 @@ def test_in_place_ui(capsys, pb_resources):
 
 
 # ###################### 'cpt', '--collapse_polytomies' ###################### #
-def test_collapse_polytomies_ui(capsys, pb_odd_resources, pb_helpers):
+def test_collapse_polytomies_ui(capsys, pb_odd_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.collapse_polytomies = [[20]]
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "1b0979265205b17ca7f34abbd02f6e26"
+    assert hf.string2hash(out) == "1b0979265205b17ca7f34abbd02f6e26"
 
     test_in_args.collapse_polytomies = [[0.1, 'length']]
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['support']), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "252572f7b9566c62df24d57065412240"
+    assert hf.string2hash(out) == "252572f7b9566c62df24d57065412240"
 
 
 # ###################### 'ct', '--consensus_tree' ###################### #
-def test_consensus_tree_ui(capsys, pb_resources, pb_helpers):
+def test_consensus_tree_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.consensus_tree = [False]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
+    assert hf.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
 
     test_in_args.consensus_tree = [0.9]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "baf9b2def2c0fa2ff97d3a16d24b4738"
+    assert hf.string2hash(out) == "baf9b2def2c0fa2ff97d3a16d24b4738"
 
     test_in_args.consensus_tree = [1.5]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
+    assert hf.string2hash(out) == "acd3fb34cce867c37684244701f9f5bf"
     assert err == "Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n"
 
 
@@ -185,30 +185,30 @@ def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
 
 
 # ###################### 'dis', '--distance' ###################### #
-def test_distance_ui(capsys, pb_resources, pb_helpers):
+def test_distance_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.distance = [False]  # Should default to wrf
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
+    assert hf.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
     assert err == "Tree 1	Tree 2	Value\n"
 
     test_in_args.distance = ["wrf"]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
+    assert hf.string2hash(out) == "66df36fa117e4c4660f04e2649c3fa6b"
     assert err == "Tree 1	Tree 2	Value\n"
 
     test_in_args.distance = ["uwrf"]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "9dd162b4cc4fa28f402e6f31ef2fb349"
+    assert hf.string2hash(out) == "9dd162b4cc4fa28f402e6f31ef2fb349"
     assert err == "Tree 1	Tree 2	Value\n"
 
     test_in_args.distance = ["ed"]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "a49e54a6c14ab4dbbf73d3f7d1d6aa82"
+    assert hf.string2hash(out) == "a49e54a6c14ab4dbbf73d3f7d1d6aa82"
     assert err == "Tree 1	Tree 2	Value\n"
 
     test_in_args.distance = ["foo"]
@@ -249,14 +249,14 @@ def test_generate_tree_ui1(capsys, pb_resources, alb_resources, monkeypatch):
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
-def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
+def test_hash_ids_ui(capsys, monkeypatch, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.hash_ids = [[1, "nodes"]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("o n"))
+    assert hf.string2hash(out) != hf.buddy2hash(pb_resources.get_one("o n"))
     assert "Warning: The hash_length parameter was passed in with the value 1" in err
 
     test_in_args.hash_ids = [[-1, "nodes"]]
@@ -264,7 +264,7 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert pb_helpers.string2hash(out) != pb_helpers.phylo2hash(pb_resources.get_one("m n"))
+    assert hf.string2hash(out) != hf.buddy2hash(pb_resources.get_one("m n"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
     def hash_ids(*args):
@@ -279,18 +279,18 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, pb_helpers):
 
 
 # ###################### 'li', '--list_ids' ###################### #
-def test_list_ids_ui(capsys, pb_resources, pb_helpers):
+def test_list_ids_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.list_ids = [True]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "4f0857e0211ff0cd058d0cf7cbaf64d5"
+    assert hf.string2hash(out) == "4f0857e0211ff0cd058d0cf7cbaf64d5"
 
     test_in_args.list_ids = [4]
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "bf2fbfe1bd52e9b27ae21f5c06e7763a"
+    assert hf.string2hash(out) == "bf2fbfe1bd52e9b27ae21f5c06e7763a"
 
     test_in_args.list_ids = [4]
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy("(, );"), skip_exit=True)
@@ -299,87 +299,87 @@ def test_list_ids_ui(capsys, pb_resources, pb_helpers):
 
 
 # ###################### '-nt', '--num_tips' ###################### #
-def test_num_tips_ui(capsys, pb_resources, pb_helpers):
+def test_num_tips_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.num_tips = True
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "f43920f4df66e76fbacae4af178eeebb"
+    assert hf.string2hash(out) == "f43920f4df66e76fbacae4af178eeebb"
 
 
 # ###################### 'ptr', '--print_trees' ###################### #
-def test_print_trees_ui(capsys, pb_resources, pb_helpers):
+def test_print_trees_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.print_trees = True
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
+    assert hf.string2hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
 
 
 # ###################### 'pt', '--prune_taxa' ###################### #
-def test_prune_taxa_ui(capsys, pb_resources, pb_helpers):
+def test_prune_taxa_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.prune_taxa = [["fir"]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "99635c6dbf708f94cf4dfdca87113c44"
+    assert hf.string2hash(out) == "99635c6dbf708f94cf4dfdca87113c44"
 
     test_in_args.prune_taxa = [["fir", "ovi"]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m n"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "2a385fa95024323fea412fd2b3c3e91f"
+    assert hf.string2hash(out) == "2a385fa95024323fea412fd2b3c3e91f"
 
 
 # ###################### 'ri', '--rename_ids' ###################### #
-def test_rename_ids_ui(capsys, pb_resources, pb_helpers):
+def test_rename_ids_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.rename_ids = ['Mle', 'Phylo']
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "6843a620b725a3a0e0940d4352f2036f"
+    assert hf.string2hash(out) == "6843a620b725a3a0e0940d4352f2036f"
 
 
 # ###################### 'rt', '--root' ###################### #
-def test_root_ui_midpoint(capsys, pb_resources, pb_helpers):
+def test_root_ui_midpoint(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.root = [[]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) in ["8a7fdd9421e0752c9cd58a1e073186c7", "25ea14c2e89530a0fb48163c0ef2a102"]
+    assert hf.string2hash(out) in ["8a7fdd9421e0752c9cd58a1e073186c7", "25ea14c2e89530a0fb48163c0ef2a102"]
 
 
-def test_root_ui_leaf(capsys, pb_resources, pb_helpers):
+def test_root_ui_leaf(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.root = [["firSA25a"]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "f32bdc34bfe127bb0453a80cf7b01302"
+    assert hf.string2hash(out) == "f32bdc34bfe127bb0453a80cf7b01302"
 
 
-def test_root_ui_mrca(capsys, pb_resources, pb_helpers):
+def test_root_ui_mrca(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.root = [["firSA25a", "penSH31b"]]
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "757489907bd5c82882d084ffcb22cfba"
+    assert hf.string2hash(out) == "757489907bd5c82882d084ffcb22cfba"
 
 
 # ###################### 'sf', '--screw_formats' ###################### #
-def test_screw_formats_ui(capsys, pb_resources, pb_helpers):
+def test_screw_formats_ui(capsys, pb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.screw_formats = "nexus"
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "543d2fc90ca1f391312d6b8fe896c59c"
+    assert hf.string2hash(out) == "543d2fc90ca1f391312d6b8fe896c59c"
 
 
 def test_screw_formats_fail(capsys, pb_resources):
@@ -419,13 +419,13 @@ def test_screw_formats_inplace_ui(capsys, pb_odd_resources):
 
 
 # ###################### 'su', '--show_unique' ###################### #
-def test_show_unique_ui(capsys, pb_resources, pb_helpers, pb_odd_resources):
+def test_show_unique_ui(capsys, pb_resources, hf, pb_odd_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.show_unique = True
 
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["compare"]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+    assert hf.string2hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
 
     with pytest.raises(AssertionError) as err:
         Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
@@ -448,13 +448,13 @@ def test_split_polytomies_ui(capsys):
 
 
 # ###################### 'ur', '--unroot' ###################### #
-def test_unroot_ui(capsys, pb_odd_resources, pb_helpers):
+def test_unroot_ui(capsys, pb_odd_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.unroot = True
 
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["figtree"]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert pb_helpers.string2hash(out) == "10e9024301b3178cdaed0b57ba33f615"
+    assert hf.string2hash(out) == "10e9024301b3178cdaed0b57ba33f615"
 
 
 # ###################### main() ###################### #

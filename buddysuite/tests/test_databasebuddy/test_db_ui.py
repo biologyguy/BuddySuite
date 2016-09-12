@@ -86,14 +86,14 @@ ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096
 
 
 # ###################### argparse_init() ###################### #
-def test_argparse_init(capsys, monkeypatch, sb_helpers):
+def test_argparse_init(capsys, monkeypatch, hf):
     monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "Casp9"])
     temp_in_args, dbbuddy = Db.argparse_init()
-    assert sb_helpers.string2hash(str(dbbuddy)) == "b61a8e0e0a97f33ec1e85c09391ada64"
+    assert hf.string2hash(str(dbbuddy)) == "b61a8e0e0a97f33ec1e85c09391ada64"
 
     monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "Casp9,Panx3", "Cx43"])
     temp_in_args, dbbuddy = Db.argparse_init()
-    assert sb_helpers.string2hash(str(dbbuddy)) == "c717f3c1636ab03f0c5f5e86d5e909cb"
+    assert hf.string2hash(str(dbbuddy)) == "c717f3c1636ab03f0c5f5e86d5e909cb"
 
     monkeypatch.setattr(sys, "argv", ['DatabaseBuddy.py', "-f"])
     with pytest.raises(SystemExit):
@@ -103,7 +103,7 @@ def test_argparse_init(capsys, monkeypatch, sb_helpers):
     assert "DbBuddy.py: error: unrecognized arguments: -f" in err
 
 
-def test_liveshell_init(monkeypatch, capsys, sb_helpers):
+def test_liveshell_init(monkeypatch, capsys, hf):
     # Default instantiate
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
@@ -112,7 +112,7 @@ def test_liveshell_init(monkeypatch, capsys, sb_helpers):
     assert type(liveshell.tmpdir) == br.TempDir
     assert liveshell.terminal_default == "\033[m\033[40m\033[97m"
     assert liveshell.prompt == '[95m[1mDbBuddy[m[40m[97m[1m>[m[40m[97m '
-    assert sb_helpers.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
+    assert hf.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
     assert hash(liveshell.dbbuddy) == hash(dbbuddy)
     assert liveshell.crash_file == crash_file
     assert liveshell.history_path.split("/")[-1] == "cmd_history"
@@ -213,7 +213,7 @@ def test_liveshell_get_headings(monkeypatch):
     assert liveshell.get_headings() == ['ACCN', 'DB', 'Type', 'record', 'organism']
 
 
-def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
+def test_liveshell_filter(monkeypatch, sb_resources, hf, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
@@ -226,19 +226,19 @@ def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     liveshell.filter("(organism) Mouse")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "9774790626857cd05298b4e9c5e09836"
+    assert hf.string2hash(out) == "9774790626857cd05298b4e9c5e09836"
 
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "836e1b6810b2e349634face7b19d4999"
+    assert hf.string2hash(out) == "836e1b6810b2e349634face7b19d4999"
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "746d5e86ff1d3b23707977e0e41fd210"
+    assert hf.string2hash(out) == "746d5e86ff1d3b23707977e0e41fd210"
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
@@ -256,24 +256,24 @@ def test_liveshell_filter(monkeypatch, sb_resources, sb_helpers, capsys):
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "fdcfcc6d32d726cba592e5c9d0bfdf44"
+    assert hf.string2hash(out) == "fdcfcc6d32d726cba592e5c9d0bfdf44"
 
     monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
     liveshell.filter(None, mode="restore")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "a3249f5616e3ec863d911638e7f82ed8"
+    assert hf.string2hash(out) == "a3249f5616e3ec863d911638e7f82ed8"
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "ef0ef9f16687530cadea9a465ff92634"
+    assert hf.string2hash(out) == "ef0ef9f16687530cadea9a465ff92634"
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "4aa2b9aaf54bbcb874e17621da1a43c5"
+    assert hf.string2hash(out) == "4aa2b9aaf54bbcb874e17621da1a43c5"
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
@@ -700,7 +700,7 @@ def test_liveshell_do_search(monkeypatch):
     assert "NewFailure1" in dbbuddy.failures
 
 
-def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_liveshell_do_show(monkeypatch, capsys, sb_resources, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
@@ -719,7 +719,7 @@ def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
     # Specify columns and number of records
     liveshell.do_show("ACCN organism 3")
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "43f5edc18717e2f7df08818d2ed32b78"
+    assert hf.string2hash(out) == "43f5edc18717e2f7df08818d2ed32b78"
 
     # Large group, say 'no' to display
     monkeypatch.setattr(br, "ask", lambda *_, **kwargs: False)
@@ -731,7 +731,7 @@ def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
     monkeypatch.setattr(br, "ask", lambda *_, **kwargs: True)
     liveshell.do_show(None)
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "edc78c2e17543392933c87d833d8a2ea"
+    assert hf.string2hash(out) == "edc78c2e17543392933c87d833d8a2ea"
 
     # Try sequence format on LiveShell with only summary data
     dbbuddy.out_format = "fasta"
@@ -777,7 +777,7 @@ def test_liveshell_do_show(monkeypatch, capsys, sb_resources, sb_helpers):
     assert "Unknown ValueError" in str(err)
 
 
-def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
@@ -849,7 +849,7 @@ def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, sb_helpers):
     capsys.readouterr()
     liveshell.do_show("10")
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "c05f7a103d2b50d767407817f43a1828"
+    assert hf.string2hash(out) == "c05f7a103d2b50d767407817f43a1828"
 
 
 def test_liveshell_do_status(monkeypatch, capsys):
@@ -1217,7 +1217,7 @@ def test_error(monkeypatch, capsys):
 
 
 @pytest.mark.loose
-def test_guess_db(capsys, sb_helpers):
+def test_guess_db(capsys, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_database = True
 
@@ -1231,4 +1231,4 @@ def test_guess_db(capsys, sb_helpers):
         Db.command_line_ui(test_in_args, Db.DbBuddy(",".join(ACCNS) + ",Casp9"), skip_exit=True)
 
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "4b3edb0272b02d8e18ce591304fdea1d"
+    assert hf.string2hash(out) == "4b3edb0272b02d8e18ce591304fdea1d"

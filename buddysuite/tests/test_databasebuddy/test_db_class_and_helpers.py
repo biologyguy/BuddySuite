@@ -727,7 +727,7 @@ def test_print_columns(capsys):
 [m'''
 
 
-def test_print_full_recs(sb_resources, sb_helpers, capsys):
+def test_print_full_recs(sb_resources, hf, capsys):
     # Protein
     accns = ["A0A087WX70", "A0A087WX71", "A0A087WX72", "A0A087WX73"]  # Made up for this test
     dbbuddy = Db.DbBuddy(", ".join(accns))
@@ -743,7 +743,7 @@ def test_print_full_recs(sb_resources, sb_helpers, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert sb_helpers.string2hash(out) == "4e85ebfc85e02e7067fe40b5b68dfa7e"
+    assert hf.string2hash(out) == "4e85ebfc85e02e7067fe40b5b68dfa7e"
 
     # DNA
     seqbuddy = sb_resources.get_one("d g")
@@ -756,7 +756,7 @@ def test_print_full_recs(sb_resources, sb_helpers, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
-    assert sb_helpers.string2hash(out) == "6d53edc1070790c02ae8e8c6e72045e6"
+    assert hf.string2hash(out) == "6d53edc1070790c02ae8e8c6e72045e6"
 
     # Long accn work around for genbank
     dbbuddy.records["ENSGALG00000001366"] = dbbuddy.records["A0A087WX70"]
@@ -767,7 +767,7 @@ def test_print_full_recs(sb_resources, sb_helpers, capsys):
     out, err = capsys.readouterr()
     out = re.sub(" +\n", "\n", out)
 
-    assert sb_helpers.string2hash(out) == "8f77b7da51dcc74242558d96ceafcd91"
+    assert hf.string2hash(out) == "8f77b7da51dcc74242558d96ceafcd91"
     assert err == "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n"
 
 

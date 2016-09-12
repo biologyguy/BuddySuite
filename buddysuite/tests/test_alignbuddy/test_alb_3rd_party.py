@@ -21,31 +21,27 @@ from ... import buddy_resources as br
 
 # ##########   PAGAN   ########## #
 # This is tested for PAGAN version 0.61. NOTE: Do not split these up. Only one instance of Pagan can run at a time
-def test_pagan(sb_resources, alb_helpers):
+def test_pagan(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan')
-    assert alb_helpers.align2hash(tester) in ['da1c6bb365e2da8cb4e7fad32d7dafdb',
-                                              '1219647676b359a5ad0be6d9dda81c73']
+    assert hf.buddy2hash(tester) in ['da1c6bb365e2da8cb4e7fad32d7dafdb', '1219647676b359a5ad0be6d9dda81c73']
     # NEXUS
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', '-f nexus')
-    assert alb_helpers.align2hash(tester) in ['f93607e234441a2577fa7d8a387ef7ec',
-                                              '42bfddd38fa4ed75a99841abf2112e54']
+    assert hf.buddy2hash(tester) in ['f93607e234441a2577fa7d8a387ef7ec', '42bfddd38fa4ed75a99841abf2112e54']
     # PHYLIPI
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', '-f phylipi')
-    assert alb_helpers.align2hash(tester) in ['09dd492fde598670d7cfee61d4e2eab8',
-                                              '438e1551b3f1c8526fc8a44eaf2a3dc1']
+    assert hf.buddy2hash(tester) in ['09dd492fde598670d7cfee61d4e2eab8', '438e1551b3f1c8526fc8a44eaf2a3dc1']
     # PHYLIPS
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', '-f phylips')
-    assert alb_helpers.align2hash(tester) in ['249c88cb64d41c47388514c65bf8fff1',
-                                              '6366e50da5a6b33d2d281d6ea13df0b7']
+    assert hf.buddy2hash(tester) in ['249c88cb64d41c47388514c65bf8fff1', '6366e50da5a6b33d2d281d6ea13df0b7']
     # Multi-param
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', '-f nexus --translate')
-    assert alb_helpers.align2hash(tester) == 'dd140ec4eb895ce75d574498a58aa28a'
+    assert hf.buddy2hash(tester) == 'dd140ec4eb895ce75d574498a58aa28a'
 
     # A few edge cases
     tester = sb_resources.get_one("d f")
@@ -92,65 +88,61 @@ def test_prank_outputs3(sb_resources):
 
 
 # ##########   MUSCLE   ########## #
-def test_muscle_inputs(sb_resources, alb_helpers):
+def test_muscle_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle')
-    assert alb_helpers.align2hash(tester) == '5ec18f3e0c9f5cf96944a1abb130232f'
+    assert hf.buddy2hash(tester) == '5ec18f3e0c9f5cf96944a1abb130232f'
 
 
-def test_muscle_outputs(sb_resources, alb_helpers):
+def test_muscle_outputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', '-clw')
-    assert alb_helpers.align2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
+    assert hf.buddy2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
 
 
-def test_muscle_multi_param(sb_resources, alb_helpers):
+def test_muscle_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
-    assert alb_helpers.align2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
+    assert hf.buddy2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
 
 # ##########   CLUSTAL   ########## #
 clustalw_bin = 'clustalw' if which('clustalw') else 'clustalw2'
 
 
-def test_clustalw_inputs(sb_resources, alb_helpers):
+def test_clustalw_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin)
-    assert alb_helpers.align2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446',
-                                              'efc9b04f73c72036aa230a8d72da228b']
+    assert hf.buddy2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446', 'efc9b04f73c72036aa230a8d72da228b']
 
 
-def test_clustalw_outputs1(sb_resources, alb_helpers):
+def test_clustalw_outputs1(sb_resources, hf):
     # NEXUS
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=nexus')
-    assert alb_helpers.align2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e',
-                                              '7ca92360f0787164664843c895dd98f2']
+    assert hf.buddy2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e', '7ca92360f0787164664843c895dd98f2']
 
 
-def test_clustalw_outputs2(sb_resources, alb_helpers):
+def test_clustalw_outputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=phylip')
-    assert alb_helpers.align2hash(tester) in ['a9490f124039c6a2a6193d27d3d01205',
-                                              'd3cc272a45fbde4b759460faa8e63ebc']
+    assert hf.buddy2hash(tester) in ['a9490f124039c6a2a6193d27d3d01205', 'd3cc272a45fbde4b759460faa8e63ebc']
 
 
-def test_clustalw_outputs3(sb_resources, alb_helpers):
+def test_clustalw_outputs3(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=fasta')
-    assert alb_helpers.align2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446',
-                                              'efc9b04f73c72036aa230a8d72da228b']
+    assert hf.buddy2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446', 'efc9b04f73c72036aa230a8d72da228b']
 
 
-def test_clustalw_multi_param(sb_resources, alb_helpers):
+def test_clustalw_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=phylip -noweights')
-    assert alb_helpers.align2hash(tester) == 'ae9126eb8c482a82d4060d175803c478'
+    assert hf.buddy2hash(tester) == 'ae9126eb8c482a82d4060d175803c478'
 
 
 # ##########   CLUSTAL Omega   ########## #
@@ -161,73 +153,73 @@ if clustalo_version not in ["1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
     raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
 
 
-def test_clustalomega_inputs1(sb_resources, alb_helpers):
+def test_clustalomega_inputs1(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin)
-    assert alb_helpers.align2hash(tester) in ['f5afdc7c76ab822bdc95230329766aba', 'e2f0efc90372b23a1c753629d43a79c4']
+    assert hf.buddy2hash(tester) in ['f5afdc7c76ab822bdc95230329766aba', 'e2f0efc90372b23a1c753629d43a79c4']
 
 
-def test_clustalomega_inputs2(sb_resources, alb_helpers):
+def test_clustalomega_inputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d py")
     tester = Alb.generate_msa(tester, clustalo_bin)
-    assert alb_helpers.align2hash(tester) in ['8299780bf9485b89a2f3462ead666142', '5d808493da6c0f43a572b2a9257dce4f']
+    assert hf.buddy2hash(tester) in ['8299780bf9485b89a2f3462ead666142', '5d808493da6c0f43a572b2a9257dce4f']
 
 
-def test_clustalomega_inputs3(sb_resources, alb_helpers):
+def test_clustalomega_inputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d s")
     tester = Alb.generate_msa(tester, clustalo_bin)
-    assert alb_helpers.align2hash(tester) in ['d6654e3db3818cc3427cb9241113fdfa', 'aeb2c5926843402cf620299802946224']
+    assert hf.buddy2hash(tester) in ['d6654e3db3818cc3427cb9241113fdfa', 'aeb2c5926843402cf620299802946224']
 
 
-def test_clustalomega_outputs1(sb_resources, alb_helpers):
+def test_clustalomega_outputs1(sb_resources, hf):
     # CLUSTAL
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal')
-    assert alb_helpers.align2hash(tester) in ['970f6e4389f77a30563763937a3d32bc', '50c48b43089f528714c7933cd0f3f91c']
+    assert hf.buddy2hash(tester) in ['970f6e4389f77a30563763937a3d32bc', '50c48b43089f528714c7933cd0f3f91c']
 
 
-def test_clustalomega_outputs2(sb_resources, alb_helpers):
+def test_clustalomega_outputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=phylip')
-    assert alb_helpers.align2hash(tester) in ['692c6af848bd90966f15908903894dbd', '75ec68313368dac249b40fe63b26777e']
+    assert hf.buddy2hash(tester) in ['692c6af848bd90966f15908903894dbd', '75ec68313368dac249b40fe63b26777e']
 
 
-def test_clustalomega_outputs3(sb_resources, alb_helpers):
+def test_clustalomega_outputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=stockholm')
-    assert alb_helpers.align2hash(tester) in ['4c24975c033abcf15911a61cb9663a97', 'c115d474a16c23ca4219fa3d2fc9f154']
+    assert hf.buddy2hash(tester) in ['4c24975c033abcf15911a61cb9663a97', 'c115d474a16c23ca4219fa3d2fc9f154']
 
 
-def test_clustalomega_multi_param(sb_resources, alb_helpers):
+def test_clustalomega_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal --iter=1')
-    assert alb_helpers.align2hash(tester) in ['25480f7a9340ff643bb7eeb326e8f981', '9c55bb8be0cc89c5346d8f699e97cc87']
+    assert hf.buddy2hash(tester) in ['25480f7a9340ff643bb7eeb326e8f981', '9c55bb8be0cc89c5346d8f699e97cc87']
 
 
 # ##########   MAFFT   ########## #
-def test_mafft_inputs(sb_resources, alb_helpers):
+def test_mafft_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft')
-    assert alb_helpers.align2hash(tester) == 'f94e0fd591dad83bd94201f0af038904'
+    assert hf.buddy2hash(tester) == 'f94e0fd591dad83bd94201f0af038904'
 
 
-def test_mafft_outputs(sb_resources, alb_helpers):
+def test_mafft_outputs(sb_resources, hf):
     # CLUSTAL
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout')
-    assert alb_helpers.align2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
+    assert hf.buddy2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
 
 
-def test_mafft_multi_param(sb_resources, alb_helpers):
+def test_mafft_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
-    assert alb_helpers.align2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
+    assert hf.buddy2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
 
 
 def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
@@ -261,10 +253,10 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     assert os.path.isfile("%s/ga_temp_files/tmp.fa" % temp_dir.path)
 
 
-def test_generate_alignments_genbank(sb_resources, alb_helpers):
+def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
-    assert alb_helpers.align2hash(tester) == "f894ff6060ec5c2904f48ba0c5cdc8fd"
+    assert hf.buddy2hash(tester) == "f894ff6060ec5c2904f48ba0c5cdc8fd"
 
 
 def test_generate_alignments_edges1(sb_resources):

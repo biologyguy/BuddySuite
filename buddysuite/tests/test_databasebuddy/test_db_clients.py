@@ -297,7 +297,7 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
     assert len(dbbuddy.records) == 4
 
 
-def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, hf):
     def patch_query_uniprot_search(*args, **kwargs):
         print("patch_query_uniprot_search\nargs: %s\nkwargs: %s" % (args, kwargs))
         client.results_file.write('''# Search: inx15
@@ -363,7 +363,7 @@ similarities (1); Subcellular location (1)
     out, err = capsys.readouterr()
     assert "Requesting 10 full records from UniProt..." in err
     seq = str(client.dbbuddy.records["A8XEF9"].record.seq)
-    assert sb_helpers.string2hash(seq) == "04f13629336cf6cdd5859c8913b742a5"
+    assert hf.string2hash(seq) == "04f13629336cf6cdd5859c8913b742a5"
 
     # Some edge cases
     monkeypatch.setattr(Db.UniProtRestClient, "query_uniprot", patch_query_uniprot_fetch_nothing)
@@ -375,7 +375,7 @@ similarities (1); Subcellular location (1)
     assert "Requesting 1 full records from UniProt..." in err
     assert "No sequences returned\n\n" in err
     assert "The following errors were encountered while querying UniProt with fetch_proteins():" in err
-    assert sb_helpers.string2hash(str(client.dbbuddy.records["a" * 999])) == "670bf9c6ae5832b42841798d882a7276"
+    assert hf.string2hash(str(client.dbbuddy.records["a" * 999])) == "670bf9c6ae5832b42841798d882a7276"
 
     with pytest.raises(ValueError) as err:
         client.dbbuddy.records["a" * 1001] = Db.Record("a" * 1001, _database="uniprot")
@@ -396,7 +396,7 @@ def test_ncbiclient_init():
     assert client.max_attempts == 5
 
 
-def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
+def test_ncbiclient_mc_query(sb_resources, hf, monkeypatch):
     def patch_entrez_esummary_taxa(*args, **kwargs):
         print("patch_entrez_esummary_taxa\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
@@ -424,7 +424,7 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_taxa)
     client._mc_query("649,734,1009,2302", ["esummary_taxa"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "acfb85bbdf7c2f8ea7e925c5bfcaaf06"
+    assert hf.string2hash(client.results_file.read()) == "acfb85bbdf7c2f8ea7e925c5bfcaaf06"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_gis)
@@ -434,12 +434,12 @@ def test_ncbiclient_mc_query(sb_resources, sb_helpers, monkeypatch):
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_seq)
     client._mc_query("703125407,703125412,67586143", ["esummary_seq"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "e6ba80b5fe2f35002ac2227ca7791c17"
+    assert hf.string2hash(client.results_file.read()) == "e6ba80b5fe2f35002ac2227ca7791c17"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_seq)
     client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
-    assert sb_helpers.string2hash(client.results_file.read()) == "0154d7bd9d47ca6abac00f25428b9e7e"
+    assert hf.string2hash(client.results_file.read()) == "0154d7bd9d47ca6abac00f25428b9e7e"
 
     monkeypatch.undo()
     monkeypatch.setattr(Db, "sleep", lambda _: True)
@@ -515,7 +515,7 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     assert 'NCBI returned no protein results' in err
 
 
-def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
+def test_ncbiclient_fetch_summaries(sb_resources, hf, monkeypatch):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:
@@ -549,10 +549,10 @@ def test_ncbiclient_fetch_summaries(sb_resources, sb_helpers, monkeypatch):
     for accn, rec in dbbuddy.records.items():
         assert rec.gi in [703125407, 703125412, 67586143, 257467473]
     assert dbbuddy.records["AAY72386.1"].summary["organism"] == "Unclassified"
-    assert sb_helpers.string2hash(str(dbbuddy)) == "0cf7c9ccf058cf3b50d2aab7ecb1f953"
+    assert hf.string2hash(str(dbbuddy)) == "0cf7c9ccf058cf3b50d2aab7ecb1f953"
 
 
-def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsys):
+def test_ncbiclient_fetch_sequences(sb_resources, hf, monkeypatch, capsys):
     def patch_entrez_fetch_seq(*args, **kwargs):
         print("patch_entrez_fetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
@@ -563,7 +563,7 @@ def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsy
     dbbuddy = Db.DbBuddy()
     client = Db.NCBIClient(dbbuddy)
     client.fetch_sequences("ncbi_prot")
-    assert sb_helpers.string2hash(str(dbbuddy)) == "016d020dd926f64ac1431f15c5683678"
+    assert hf.string2hash(str(dbbuddy)) == "016d020dd926f64ac1431f15c5683678"
 
     # With records
     monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_seq)
@@ -571,12 +571,12 @@ def test_ncbiclient_fetch_sequences(sb_resources, sb_helpers, monkeypatch, capsy
     client = Db.NCBIClient(dbbuddy)
     client.fetch_sequences("ncbi_prot")
     dbbuddy.out_format = "gb"
-    assert sb_helpers.string2hash(str(dbbuddy)) == "9bd8017da009696c1b6ebe5d4e3c0a89"
+    assert hf.string2hash(str(dbbuddy)) == "9bd8017da009696c1b6ebe5d4e3c0a89"
     capsys.readouterr()  # Clean up the buffer
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert sb_helpers.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
+    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
 
     # Error
     monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
@@ -638,7 +638,7 @@ def test_ensembl_mc_search(monkeypatch, sb_resources):
     assert "HTTP Error 101: Fake HTTPError from Mock" in client.http_errors_file.read()
 
 
-def test_ensembl_perform_rest_action(monkeypatch, sb_resources, sb_helpers):
+def test_ensembl_perform_rest_action(monkeypatch, sb_resources, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
@@ -690,7 +690,7 @@ def test_ensembl_perform_rest_action(monkeypatch, sb_resources, sb_helpers):
     # Fetch sequence from accn numbers
     data = client.perform_rest_action("sequence/id", data={"ids": ["ENSPTRG00000014529"]},
                                       headers={"Content-type": "text/x-seqxml+xml"})
-    assert sb_helpers.string2hash(next(data).format("embl")) == "f4bb7d1ec812824b51f14d152e156f8f"
+    assert hf.string2hash(next(data).format("embl")) == "f4bb7d1ec812824b51f14d152e156f8f"
 
     # Unrecognized endpoint header
     with pytest.raises(ValueError) as err:
@@ -720,7 +720,7 @@ def test_ensembl_perform_rest_action(monkeypatch, sb_resources, sb_helpers):
     assert '57ad6fc317cf0d12ccb78d64d43682dc' in client.dbbuddy.failures
 
 
-def test_search_ensembl(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_search_ensembl(monkeypatch, capsys, sb_resources, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         with open("%s/ensembl_species.json" % test_files, "r") as ifile:
@@ -751,12 +751,12 @@ def test_search_ensembl(monkeypatch, capsys, sb_resources, sb_helpers):
 
     monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
     client.search_ensembl()
-    assert sb_helpers.string2hash(str(client.dbbuddy)) == "95dc1ecce077bef84cdf2d85ce154eef"
+    assert hf.string2hash(str(client.dbbuddy)) == "95dc1ecce077bef84cdf2d85ce154eef"
     assert len(client.dbbuddy.records) == 44
     assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
 
 
-def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, hf):
     def patch_species_fetch(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
@@ -786,18 +786,18 @@ def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, sb_helpers):
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "8f251aee7d5efe536191b752e43f0d1a"
+    assert hf.string2hash(out + err) == "8f251aee7d5efe536191b752e43f0d1a"
 
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     client.fetch_summaries()
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "303bfe789a37c2a2263146e505d2147a"
+    assert hf.string2hash(out + err) == "303bfe789a37c2a2263146e505d2147a"
     assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
 
 
-def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers):
+def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         if "info/species" in args:
@@ -822,4 +822,4 @@ def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, sb_helpers)
     capsys.readouterr()
     client.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out + err) == "bc7610d5373db0b0fd9835410a182f10"
+    assert hf.string2hash(out + err) == "bc7610d5373db0b0fd9835410a182f10"

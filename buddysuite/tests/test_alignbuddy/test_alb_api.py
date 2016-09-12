@@ -42,7 +42,7 @@ def test_alignment_lengths(alb_resources):
 
 
 # ##############################################  '-bts', '--bootstrap' ############################################## #
-def test_bootstrap(alb_resources, alb_helpers):
+def test_bootstrap(alb_resources, hf):
     # Test an amino acid file
     tester = Alb.bootstrap(alb_resources.get_one("m p py"))
     assert tester.lengths() == [681, 480]
@@ -55,22 +55,22 @@ def test_bootstrap(alb_resources, alb_helpers):
     _hashes = ["903af255a993b60c3370ba8226d9d3da", "f7a0381727e1b803a902125f57e2f3fc",
                "a679eab7acf2c631f8f76a08ee424b3e", "e8e80045999234d2ea10ce926a123720"]
     for _ in range(20):
-        assert alb_helpers.align2hash(Alb.bootstrap(tester)) in _hashes
+        assert hf.buddy2hash(Alb.bootstrap(tester)) in _hashes
 
 
 # ##############################################  '-cs', '--clean_seqs' ############################################## #
-def test_clean_seqs(alb_resources, alb_helpers):
+def test_clean_seqs(alb_resources, hf):
     # Test an amino acid file
     tester = Alb.clean_seq(alb_resources.get_one("m p py"))
-    assert alb_helpers.align2hash(tester) == "07a861a1c80753e7f89f092602271072"
+    assert hf.buddy2hash(tester) == "07a861a1c80753e7f89f092602271072"
 
-    tester = Alb.clean_seq(Alb.AlignBuddy("%s/ambiguous_dna_alignment.fa" % alb_helpers.resource_path),
+    tester = Alb.clean_seq(Alb.AlignBuddy("%s/ambiguous_dna_alignment.fa" % hf.resource_path),
                            ambiguous=False, rep_char="X")
-    assert alb_helpers.align2hash(tester) == "6755ea1408eddd0e5f267349c287d989"
+    assert hf.buddy2hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
 
 # ###########################################  '-cta', '--concat_alignments' ######################################### #
-def test_concat_alignments(alb_resources, alb_helpers):
+def test_concat_alignments(alb_resources, hf):
     with pytest.raises(AttributeError) as e:
         Alb.concat_alignments(alb_resources.get_one("p o g"), '.*')
     assert "Please provide at least two alignments." in str(e)
@@ -86,31 +86,31 @@ def test_concat_alignments(alb_resources, alb_helpers):
         Alb.concat_alignments(tester, 'Panx')
     assert "Replicate matches" in str(e)
 
-    tester = Sb.SeqBuddy("%s/Cnidaria_pep.nexus" % alb_helpers.resource_path)
+    tester = Sb.SeqBuddy("%s/Cnidaria_pep.nexus" % hf.resource_path)
     Sb.pull_recs(tester, "Ccr|Cla|Hec")
     tester = Alb.AlignBuddy(str(tester))
     tester.alignments.append(tester.alignments[0])
-    assert alb_helpers.align2hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
+    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert alb_helpers.align2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
+    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert alb_helpers.align2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
+    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "Panx.*")
-    assert alb_helpers.align2hash(tester2) == 'e754350b0397cf54f531421d1e85774f'
+    assert hf.buddy2hash(tester2) == 'e754350b0397cf54f531421d1e85774f'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "(P)an(x)(.)")
-    assert alb_helpers.align2hash(tester2) == '5c6653aec09489cadcbed68fbd2f7465'
+    assert hf.buddy2hash(tester2) == '5c6653aec09489cadcbed68fbd2f7465'
 
     shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
-    assert alb_helpers.align2hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
+    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
 
 # ###########################################  '-con', '--consensus' ############################################ #
@@ -124,9 +124,9 @@ hashes = [('o d g', '888a13e13666afb4d3d851ca9150b442'), ('o d n', '560d4fc4be7a
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_consensus(alb_resources, alb_helpers, key, next_hash):
+def test_consensus(alb_resources, hf, key, next_hash):
     tester = Alb.consensus_sequence(alb_resources.get_one(key))
-    assert alb_helpers.align2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
@@ -140,9 +140,9 @@ hashes = [('o d g', 'b418ba198da2b4a268a962db32cc2a31'), ('o d n', '355a98dad5cf
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_delete_records(alb_resources, alb_helpers, key, next_hash):
+def test_delete_records(alb_resources, hf, key, next_hash):
     tester = Alb.delete_records(alb_resources.get_one(key), "α[1-5]|β[A-M]")
-    assert alb_helpers.align2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
@@ -155,11 +155,11 @@ hashes = [('o d g', '4bf291d91d4b27923ef07c660b011c72', '2a42c56df314609d042bdbf
 
 
 @pytest.mark.parametrize("key,d2r_hash,r2d_hash", hashes)
-def test_transcribe(alb_resources, alb_helpers, key, d2r_hash, r2d_hash):
+def test_transcribe(alb_resources, hf, key, d2r_hash, r2d_hash):
     tester = Alb.dna2rna(alb_resources.get_one(key))
-    assert alb_helpers.align2hash(tester) == d2r_hash, tester.write("error_files/%s" % d2r_hash)
+    assert hf.buddy2hash(tester) == d2r_hash, tester.write("error_files/%s" % d2r_hash)
     tester = Alb.rna2dna(tester)
-    assert alb_helpers.align2hash(tester) == r2d_hash, tester.write("error_files/%s" % r2d_hash)
+    assert hf.buddy2hash(tester) == r2d_hash, tester.write("error_files/%s" % r2d_hash)
 
 
 def test_transcribe_exceptions(alb_resources):
@@ -189,9 +189,9 @@ hashes = [('o d g', '6ff2a8a7c58bb6ac0d98fe373981e220'), ('o d n', 'c907d29434fe
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_enforce_triplets(key, next_hash, alb_resources, alb_helpers):
+def test_enforce_triplets(key, next_hash, alb_resources, hf):
     tester = Alb.enforce_triplets(alb_resources.get_one(key))
-    assert alb_helpers.align2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 def test_enforce_triplets_error(alb_resources):
@@ -214,9 +214,9 @@ hashes = [('o d g', 'aaa69d3abb32876a2774d981a274cbad'), ('o d n', '10ca718b74f3
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_extract_range(key, next_hash, alb_resources, alb_helpers):
+def test_extract_range(key, next_hash, alb_resources, hf):
     tester = Alb.extract_regions(alb_resources.get_one(key), 0, 50)
-    assert alb_helpers.align2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -252,7 +252,7 @@ class MockPopen(object):
         return self.output
 
 
-def test_clustalomega(sb_resources, alb_helpers, monkeypatch):
+def test_clustalomega(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     shutil.copy("%s/mock_resources/test_clustalo/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
@@ -263,21 +263,21 @@ def test_clustalomega(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega')
-    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', quiet=True)
-    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=nexus", quiet=True)
-    assert alb_helpers.align2hash(tester) == "23d7c9fa33454ed551a5896e532cf552", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "23d7c9fa33454ed551a5896e532cf552", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=foobar", quiet=True)
-    assert alb_helpers.align2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -288,10 +288,10 @@ def test_clustalomega(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966", print(kept_output)
+    assert hf.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966", print(kept_output)
 
 
-def test_clustalw2(sb_resources, alb_helpers, monkeypatch):
+def test_clustalw2(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     shutil.copy("%s/mock_resources/test_clustalw2/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
@@ -302,21 +302,21 @@ def test_clustalw2(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2')
-    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', quiet=True)
-    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=nexus", quiet=True)
-    assert alb_helpers.align2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=foobar", quiet=True)
-    assert alb_helpers.align2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -327,10 +327,10 @@ def test_clustalw2(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3", print(kept_output)
+    assert hf.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3", print(kept_output)
 
 
-def test_pagan(sb_resources, alb_helpers, monkeypatch):
+def test_pagan(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     shutil.copy("%s/mock_resources/test_pagan/result.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
@@ -343,22 +343,22 @@ def test_pagan(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan')
-    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
     assert not os.path.isfile("warnings")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', quiet=True)
-    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f nexus", quiet=True)
-    assert alb_helpers.align2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f foobar", quiet=True)
-    assert alb_helpers.align2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -369,10 +369,10 @@ def test_pagan(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94", print(kept_output)
+    assert hf.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94", print(kept_output)
 
 
-def test_prank(sb_resources, alb_helpers, monkeypatch):
+def test_prank(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     shutil.copy("%s/mock_resources/test_prank/result.best.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
@@ -383,21 +383,21 @@ def test_prank(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank')
-    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', quiet=True)
-    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=nexus", quiet=True)
-    assert alb_helpers.align2hash(tester) == "4dcaa948e109487ee12512b6ac02183c", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "4dcaa948e109487ee12512b6ac02183c", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=foobar", quiet=True)
-    assert alb_helpers.align2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -408,10 +408,10 @@ def test_prank(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "cec1754543ae90eb8c95a6388f337e87"
+    assert hf.string2hash(kept_output) == "cec1754543ae90eb8c95a6388f337e87"
 
 
-def test_muscle(sb_resources, alb_helpers, monkeypatch):
+def test_muscle(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     shutil.copy("%s/mock_resources/test_muscle/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
@@ -422,12 +422,12 @@ def test_muscle(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle')
-    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', quiet=True)
-    assert alb_helpers.align2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -438,10 +438,10 @@ def test_muscle(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "4703d739f5edd765660fcf081c8dbcbe"
+    assert hf.string2hash(kept_output) == "4703d739f5edd765660fcf081c8dbcbe"
 
 
-def test_mafft(sb_resources, alb_helpers, monkeypatch):
+def test_mafft(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     tmp_dir.subdir("keep_files")
@@ -453,12 +453,12 @@ def test_mafft(sb_resources, alb_helpers, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft')
-    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft', quiet=True)
-    assert alb_helpers.align2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -470,7 +470,7 @@ def test_mafft(sb_resources, alb_helpers, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert alb_helpers.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906", print(kept_output)
+    assert hf.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906", print(kept_output)
 
 
 def test_alignment_edges(monkeypatch, sb_resources):
@@ -542,11 +542,11 @@ hashes = [('o d g', '2a42c56df314609d042bdbfa742871a3', '2a42c56df314609d042bdbf
 
 
 @pytest.mark.parametrize("key,uc_hash,lc_hash", hashes)
-def test_cases(key, uc_hash, lc_hash, alb_resources, alb_helpers):
+def test_cases(key, uc_hash, lc_hash, alb_resources, hf):
     tester = Alb.uppercase(alb_resources.get_one(key))
-    assert alb_helpers.align2hash(tester) == uc_hash, tester.write("error_files/%s" % uc_hash)
+    assert hf.buddy2hash(tester) == uc_hash, tester.write("error_files/%s" % uc_hash)
     tester = Alb.lowercase(tester)
-    assert alb_helpers.align2hash(tester) == lc_hash, tester.write("error_files/%s" % lc_hash)
+    assert hf.buddy2hash(tester) == lc_hash, tester.write("error_files/%s" % lc_hash)
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
@@ -557,15 +557,15 @@ hashes = [('o p n', '79078260e8725a0d7ccbed9400c78eae'), ('o p pr', '02b977e5b08
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_map_features2alignment(key, next_hash, alb_resources, alb_helpers):
+def test_map_features2alignment(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     if alignbuddy.alpha == IUPAC.protein:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_pep.gb" % alb_helpers.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_pep.gb" % hf.resource_path)
     else:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_cds.gb" % alb_helpers.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_cds.gb" % hf.resource_path)
     tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
     tester.set_format("genbank")
-    assert alb_helpers.align2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-oi', '--order_ids' ############################################ #
@@ -580,22 +580,22 @@ hashes = [('o d g', '37df4bfa14878fc2772710da243942b6', '7dc190f41c9fb1f96956abd
 
 
 @pytest.mark.parametrize("key,fwd_hash,rev_hash", hashes)
-def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, alb_helpers):
+def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.order_ids(alignbuddy)
-    assert alb_helpers.align2hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files/%s" % fwd_hash)
+    assert hf.buddy2hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files/%s" % fwd_hash)
 
     Alb.order_ids(alignbuddy, reverse=True)
-    assert alb_helpers.align2hash(alignbuddy) == rev_hash, alignbuddy.write("error_files/%s" % rev_hash)
+    assert hf.buddy2hash(alignbuddy) == rev_hash, alignbuddy.write("error_files/%s" % rev_hash)
 
 
-def test_order_ids2(alb_resources, alb_helpers):
+def test_order_ids2(alb_resources, hf):
     alignbuddy = alb_resources.get_one("o p n")
     Alb.rename(alignbuddy, "Mle-Panxα4", "Mle004-Panxα4")
     Alb.rename(alignbuddy, "Mle-Panxα5", "Mle05-Panxα5")
     Alb.rename(alignbuddy, "Mle-Panxα9", "aMle-PanxαBlahh")
     Alb.order_ids(alignbuddy)
-    assert alb_helpers.align2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
+    assert hf.buddy2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
 
 # ##################### '-pr', '--pull_records' ###################### ##
 hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
@@ -605,10 +605,10 @@ hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_pull_records(key, next_hash, alb_resources, alb_helpers):
+def test_pull_records(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
-    assert alb_helpers.align2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 # ###########################################  '-ri', '--rename_ids' ############################################ #
@@ -619,10 +619,10 @@ hashes = [('o d g', 'c35db8b8353ef2fb468b0981bd960a38'), ('o d n', '243024bfd2f6
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_rename_ids(key, next_hash, alb_resources, alb_helpers):
+def test_rename_ids(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.rename(alignbuddy, 'Panx', 'Test', 0)
-    assert alb_helpers.align2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 # ###########################################  'tr', '--translate' ############################################ #
@@ -637,10 +637,10 @@ hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', 'a949edce9852
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_translate1(key, next_hash, alb_resources, alb_helpers):
+def test_translate1(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.translate_cds(alignbuddy)
-    assert alb_helpers.align2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
 def test_translate2(alb_resources):
@@ -663,35 +663,35 @@ hashes = [('o d psr', '5df948e4b2cb6c0d0740984445655135', '384563eb411713e90cb2f
 
 
 @pytest.mark.parametrize("key,hash3,hash07", hashes)
-def test_trimal(key, hash3, hash07, alb_resources, alb_helpers):
+def test_trimal(key, hash3, hash07, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 3)
-    assert alb_helpers.align2hash(tester1) == hash3, alignbuddy.write("error_files/%s" % hash3)
+    assert hf.buddy2hash(tester1) == hash3, alignbuddy.write("error_files/%s" % hash3)
 
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 0.7)
-    assert alb_helpers.align2hash(tester1) == hash07, alignbuddy.write("error_files/%s" % hash07)
+    assert hf.buddy2hash(tester1) == hash07, alignbuddy.write("error_files/%s" % hash07)
 
 
-def test_trimal2(alb_resources, alb_helpers):
+def test_trimal2(alb_resources, hf):
     tester = Alb.trimal(alb_resources.get_one("o p n"), 'all')
-    assert alb_helpers.align2hash(tester) == "8faaf09741ddb3137653cb77ee66974a"
+    assert hf.buddy2hash(tester) == "8faaf09741ddb3137653cb77ee66974a"
     tester = alb_resources.get_one("o p n")
     tester.alignments[0]._records = tester.alignments[0]._records[:5]
     Alb.trimal(tester, 'clean')
-    assert alb_helpers.align2hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
+    assert hf.buddy2hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
     tester = alb_resources.get_one("o p n")
     tester_dir = TEMPDIR.subdir()
     tester.write("%s/trimal" % tester_dir)
-    assert alb_helpers.align2hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
+    assert hf.buddy2hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
     """ Probably not a good idea to be calling binaries like this...
     real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
     real_trimal = real_trimal[0].decode()
     with open("%s/trimal" % tester_dir, "w") as ofile:
         ofile.write(real_trimal)
     tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
-    assert alb_helpers.align2hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
+    assert hf.buddy2hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
     """
     records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]
     tester = Alb.AlignBuddy([MultipleSeqAlignment(records)])

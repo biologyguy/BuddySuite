@@ -20,23 +20,21 @@ if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0
 
 
 # ######################  '-bl2s', '--bl2seq' ###################### #
-def test_bl2seq(sb_resources, sb_helpers):
+def test_bl2seq(sb_resources, hf):
     result = Sb.bl2seq(sb_resources.get_one("d f"))
-    assert sb_helpers.string2hash(str(result)) in ['87dbd3baeb59285ad25e6473c87bb5bb',
-                                                   '8280eb4010208db891020a96ad783edb']
+    assert hf.string2hash(str(result)) in ['87dbd3baeb59285ad25e6473c87bb5bb', '8280eb4010208db891020a96ad783edb']
 
     result = Sb.bl2seq(sb_resources.get_one("p f"))
     # ToDo: there is an issue with blast 2.3 or higher with inconsistent output here. Need to fix it...
-    assert sb_helpers.string2hash(str(result)) in ['248d4c53d7947c4c8dfd7c415bfbfbf2',
-                                                   '33b393de45d0d628a217bf9107ec9719',
-                                                   'ca7105bf6646c1ab3f07efeea57a69df']
+    assert hf.string2hash(str(result)) in ['248d4c53d7947c4c8dfd7c415bfbfbf2', '33b393de45d0d628a217bf9107ec9719',
+                                           'ca7105bf6646c1ab3f07efeea57a69df']
 
 
 # ######################  '-bl', '--blast' ###################### #
-def test_blastn(sb_resources, sb_odd_resources, sb_helpers):
+def test_blastn(sb_resources, sb_odd_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one("d f"), '8', True)
     tester = Sb.blast(tester, sb_odd_resources["blastn"])
-    assert sb_helpers.seqs2hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
+    assert hf.buddy2hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
 
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("d f")
@@ -58,11 +56,10 @@ def test_blastn(sb_resources, sb_odd_resources, sb_helpers):
     assert len(tester.records) == 0
 
 
-def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
+def test_blastp(sb_resources, sb_odd_resources, hf):
     seqbuddy = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
     tester = Sb.blast(seqbuddy, sb_odd_resources["blastp"])
-    assert sb_helpers.seqs2hash(tester) in ["4237c79672c1cf1d4a9bdb160a53a4b9",
-                                            "118d4f412e2a362b9d16130abbf395c5"]
+    assert hf.buddy2hash(tester) in ["4237c79672c1cf1d4a9bdb160a53a4b9", "118d4f412e2a362b9d16130abbf395c5"]
 
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("p f")
@@ -81,7 +78,7 @@ def test_blastp(sb_resources, sb_odd_resources, sb_helpers):
             assert 'blastp not found in system path' in str(e.value)
 
 
-def test_makeblastdb(monkeypatch, sb_resources, sb_helpers):
+def test_makeblastdb(monkeypatch, sb_resources, hf):
     def mock_check_blast_bin(binary):
         if binary == "makeblastdb":
             return False
@@ -92,7 +89,7 @@ def test_makeblastdb(monkeypatch, sb_resources, sb_helpers):
     query = Sb.pull_recs(sb_resources.get_one('p f'), 'α[^8]', True)
     output = Sb.blast(subject, query)
     output.write("temp.del")
-    assert sb_helpers.seqs2hash(output) == "4639da7978256eb8dae0e9e7a1ad3d01"
+    assert hf.buddy2hash(output) == "4639da7978256eb8dae0e9e7a1ad3d01"
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)
     with pytest.raises(SystemError) as err:
@@ -101,31 +98,31 @@ def test_makeblastdb(monkeypatch, sb_resources, sb_helpers):
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##
-def test_prosite_scan(sb_resources, sb_helpers):
+def test_prosite_scan(sb_resources, hf):
     seqbuddy = sb_resources.get_one("d f")
     ps_scan = Sb.PrositeScan(seqbuddy)
     ps_scan.run()
-    assert sb_helpers.seqs2hash(ps_scan.seqbuddy) == "e9090efdd362d527a115049dfced42cd"
+    assert hf.buddy2hash(ps_scan.seqbuddy) == "e9090efdd362d527a115049dfced42cd"
 
 
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
 """  Need to figure out a way of applying a timeout to these...
-def test_transmembrane_domains_pep(sb_resources, sb_helpers):
+def test_transmembrane_domains_pep(sb_resources, hf):
     tester = sb_resources.get_one("p f")
     Sb.pull_recs(tester, "Panxα[234]")
     tester = Sb.transmembrane_domains(tester, quiet=True)
     tester.out_format = "gb"
-    assert sb_helpers.seqs2hash(tester) == "3d62e2548b9181574d51907d2205b36c"
+    assert hf.buddy2hash(tester) == "3d62e2548b9181574d51907d2205b36c"
 
 
-def test_transmembrane_domains_cds(sb_resources, sb_helpers):
+def test_transmembrane_domains_cds(sb_resources, hf):
     tmp_dir = br.TempDir()
     tmp_dir.subdir("topcons")
     tester = sb_resources.get_one("d f")
     Sb.pull_recs(tester, "Panxα[234]")
     tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % tmp_dir.path)
     tester.out_format = "gb"
-    assert sb_helpers.seqs2hash(tester) == "479eb1c8728c959b813c97962cac545a"
+    assert hf.buddy2hash(tester) == "479eb1c8728c959b813c97962cac545a"
     _root, dirs, files = next(br.walklevel("%s/topcons" % tmp_dir.path))
     _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (tmp_dir.path, dirs[0])))
     assert files

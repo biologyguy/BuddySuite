@@ -127,18 +127,18 @@ hashes = [('m k', '6843a620b725a3a0e0940d4352f2036f'), ('m n', '543d2fc90ca1f391
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_str(key, next_hash, pb_resources, pb_helpers):
+def test_str(key, next_hash, pb_resources, hf):
     tester = pb_resources.get_one(key)
-    assert pb_helpers.string2hash(str(tester)) == next_hash
+    assert hf.string2hash(str(tester)) == next_hash
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_write1(key, next_hash, pb_resources, pb_helpers):
+def test_write1(key, next_hash, pb_resources, hf):
     temp_file = br.TempFile()
     tester = pb_resources.get_one(key)
     tester.write(temp_file.path)
     out = "{0}\n".format(temp_file.read().rstrip())
-    assert pb_helpers.string2hash(out) == next_hash
+    assert hf.string2hash(out) == next_hash
 
 
 def test_convert_to_ete(monkeypatch, pb_resources):

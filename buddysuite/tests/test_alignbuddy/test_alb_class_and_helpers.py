@@ -106,10 +106,10 @@ def test_records_iter(alb_resources):
     assert counter == 29
 
 
-def test_records_dict(alb_resources, alb_helpers):
+def test_records_dict(alb_resources, hf):
     alignbuddy = alb_resources.get_one("o p g")
     alb_dict = alignbuddy.records_dict()
-    assert alb_helpers.string2hash(str(alb_dict)) == "a11e822d85aa7dc43afad3eda4f1708d"
+    assert hf.string2hash(str(alb_dict)) == "a11e822d85aa7dc43afad3eda4f1708d"
 
 
 def test_lengths_single(alb_resources):
@@ -144,15 +144,15 @@ hashes = [('o p g', 'bf8485cbd30ff8986c2f50b677da4332'), ('o p n', '17ff1b919cac
 
 
 @pytest.mark.parametrize('key,next_hash', hashes)
-def test_str(alb_resources, alb_helpers, key, next_hash):
+def test_str(alb_resources, hf, key, next_hash):
     tester = str(alb_resources.get_one(key))
-    assert alb_helpers.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
+    assert hf.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
 
 
-def test_str2(alb_resources, alb_helpers, capsys, monkeypatch):
+def test_str2(alb_resources, hf, capsys, monkeypatch):
     alignbuddy = alb_resources.get_one("m p c")
     alignbuddy.alignments[0] = []
-    assert alb_helpers.string2hash(str(alignbuddy)) == "cd017eee573d2cf27eb7c161babe0cad"
+    assert hf.string2hash(str(alignbuddy)) == "cd017eee573d2cf27eb7c161babe0cad"
 
     alignbuddy = alb_resources.get_one("o d f")
     alignbuddy.alignments[0] = []
@@ -161,12 +161,12 @@ def test_str2(alb_resources, alb_helpers, capsys, monkeypatch):
     alignbuddy = alb_resources.get_one("o p g")
     for rec in alignbuddy.records():
         rec.annotations['organism'] = ". . "
-    assert alb_helpers.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+    assert hf.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
 
     alignbuddy = alb_resources.get_one("o p g")
     for rec in alignbuddy.records():
         del rec.annotations['organism']
-    assert alb_helpers.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+    assert hf.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
 
     alignbuddy = alb_resources.get_one("m p c")
     alignbuddy.set_format("genbank")
@@ -176,23 +176,23 @@ def test_str2(alb_resources, alb_helpers, capsys, monkeypatch):
 
     alignbuddy = alb_resources.get_one("o p g")
     alignbuddy.set_format("phylipsr")
-    assert alb_helpers.string2hash(str(alignbuddy)) == "8ff80c7f0b8fc7f237060f94603c17be"
+    assert hf.string2hash(str(alignbuddy)) == "8ff80c7f0b8fc7f237060f94603c17be"
 
     alignbuddy = alb_resources.get_one("o p py")
     alignbuddy.set_format("phylipss")
     alignbuddy.write("temp.del")
-    assert alb_helpers.string2hash(str(alignbuddy)) == "4bd927145de635c429b2917e0a1db176"
+    assert hf.string2hash(str(alignbuddy)) == "4bd927145de635c429b2917e0a1db176"
 
     alignbuddy = alb_resources.get_one("o p g")
     alignbuddy.set_format("phylip")
-    assert alb_helpers.string2hash(str(alignbuddy)) == "ce423d5b99d5917fbef6f3b47df40513"
+    assert hf.string2hash(str(alignbuddy)) == "ce423d5b99d5917fbef6f3b47df40513"
     out, err = capsys.readouterr()
     assert "Warning: Phylip format returned a 'repeat name' error, probably due to truncation." in err
 
     alignbuddy = alb_resources.get_one("o p py")
     rec = alignbuddy.records()[0]
     rec.seq = Seq(str(rec.seq)[:-2], alphabet=rec.seq.alphabet)
-    assert alb_helpers.string2hash(str(alignbuddy)) == "9337bba9fb455f1e6257cc236a663001"
+    assert hf.string2hash(str(alignbuddy)) == "9337bba9fb455f1e6257cc236a663001"
     out, err = capsys.readouterr()
     assert "Warning: Alignment format detected but sequences are different lengths." in err
 
@@ -203,11 +203,11 @@ def test_str2(alb_resources, alb_helpers, capsys, monkeypatch):
 
 
 @pytest.mark.parametrize('key,next_hash', hashes)
-def test_write1(alb_resources, alb_helpers, key, next_hash):
+def test_write1(alb_resources, hf, key, next_hash):
     temp_file = br.TempFile()
     alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path)
-    tester_hash = alb_helpers.string2hash(temp_file.read())
+    tester_hash = hf.string2hash(temp_file.read())
     assert tester_hash == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d24000f8b72dd9d25620cff1'),
@@ -216,15 +216,15 @@ hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d240
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_write2(alb_resources, alb_helpers, key, next_hash):
+def test_write2(alb_resources, hf, key, next_hash):
     alignbuddy = alb_resources.get_one(key)
     temp_file = br.TempFile()
     alignbuddy.write(temp_file.path, out_format="phylipr")
     out = temp_file.read()
-    assert alb_helpers.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
 
 
-def test_write3(alb_resources, alb_helpers):  # Unloopable components
+def test_write3(alb_resources, hf):  # Unloopable components
     tester = alb_resources.get_one("m p py")
     tester.set_format("fasta")
     with pytest.raises(ValueError):
@@ -235,11 +235,11 @@ def test_write3(alb_resources, alb_helpers):  # Unloopable components
 
     tester = alb_resources.get_one("o d pr")
     tester.set_format("phylipi")
-    assert alb_helpers.align2hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
+    assert hf.buddy2hash(tester) == "52c23bd793c9761b7c0f897d3d757c12"
 
-    tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % alb_helpers.resource_path)
+    tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % hf.resource_path)
     tester.set_format("phylip-strict")
-    assert alb_helpers.align2hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+    assert hf.buddy2hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
@@ -303,10 +303,10 @@ def test_guess_format(alb_resources, alb_odd_resources):
     assert "Unsupported _input argument in guess_format()" in str(e)
 
 
-def test_make_copy(alb_resources, alb_helpers):
+def test_make_copy(alb_resources, hf):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
-        alb_helpers.align2hash(tester) == alb_helpers.align2hash(alb)
+        hf.buddy2hash(tester) == hf.buddy2hash(alb)
 
 
 def test_stderr(capsys):

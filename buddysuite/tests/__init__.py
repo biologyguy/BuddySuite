@@ -15,6 +15,23 @@ from .. import buddy_resources as br
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
 
 
+# #################################  -  Helper class  -  ################################## #
+class HelperMethods(object):
+    def __init__(self):
+        self.resource_path = RESOURCE_PATH
+
+    @staticmethod
+    def buddy2hash(buddy):
+        if type(buddy) not in [Sb.SeqBuddy, Alb.AlignBuddy, Pb.PhyloBuddy, Db.DbBuddy]:
+            raise AttributeError("Buddy object required")
+        _hash = md5("{0}".format(str(buddy)).encode("utf-8")).hexdigest()
+        return _hash
+
+    @staticmethod
+    def string2hash(_input):
+        return md5(_input.encode("utf-8")).hexdigest()
+
+
 # #################################  -  SeqBuddy  -  ################################## #
 class SbResources(object):
     def __init__(self):
@@ -146,41 +163,6 @@ class SbResources(object):
         code = code.split()
         return {"type": self.code_dict["type"][code[0]],
                 "format": br.parse_format(self.code_dict["format"][code[1]])}
-
-
-class SbHelpers(object):
-    def __init__(self):
-        self.resource_path = RESOURCE_PATH
-        self.write_file = br.TempFile()
-
-    def seqs2hash(self, _seqbuddy, mode='hash'):
-        if _seqbuddy.out_format in ["gb", "genbank"]:
-            for _rec in _seqbuddy.records:
-                try:
-                    if re.search("(\. )+", _rec.annotations['organism']):
-                        _rec.annotations['organism'] = "."
-                except KeyError:
-                    pass
-
-        if _seqbuddy.out_format == "phylipsr":
-            self.write_file.write(br.phylip_sequential_out(_seqbuddy, relaxed=True, _type="seqbuddy"))
-        elif _seqbuddy.out_format == "phylipss":
-            self.write_file.write(br.phylip_sequential_out(_seqbuddy, relaxed=False, _type="seqbuddy"))
-        else:
-            _seqbuddy.write(self.write_file.path)
-
-        seqs_string = "{0}\n".format(self.write_file.read().rstrip())
-        self.write_file.clear()
-
-        if mode != "hash":
-            return seqs_string
-
-        _hash = md5(seqs_string.encode()).hexdigest()
-        return _hash
-
-    @staticmethod
-    def string2hash(_input):
-        return md5(_input.encode("utf-8")).hexdigest()
 
 
 # #################################  -  AlignBuddy  -  ################################ #
@@ -353,25 +335,6 @@ class AlbResources(object):
         return None if not output else output[0]
 
 
-class AlbHelpers(object):
-    def __init__(self):
-        self.resource_path = RESOURCE_PATH
-
-    @staticmethod
-    def align2hash(alignbuddy=None, mode='hash'):
-        if not alignbuddy:
-            raise AttributeError("AlignBuddy object required")
-
-        if mode != "hash":
-            return "{0}".format(str(alignbuddy))
-        _hash = md5("{0}".format(str(alignbuddy)).encode("utf-8")).hexdigest()
-        return _hash
-
-    @staticmethod
-    def string2hash(_input):
-        return md5(_input.encode("utf-8")).hexdigest()
-
-
 # ################################  -  PhyloBuddy  -  ################################# #
 class PbResources(object):
     def __init__(self):
@@ -485,21 +448,3 @@ class PbResources(object):
         code = code.split()
         return {"num_trees": self.code_dict["num_trees"][code[0]],
                 "format": br.parse_format(self.code_dict["format"][code[1]])}
-
-
-class PbHelpers(object):
-    def __init__(self):
-        self.resource_path = RESOURCE_PATH
-        self.write_file = br.TempFile()
-
-    @staticmethod
-    def phylo2hash(_phylobuddy, mode='hash'):
-        if mode != "hash":
-            return "{0}\n".format(str(_phylobuddy).rstrip())
-        _hash = md5("{0}\n".format(str(_phylobuddy).rstrip()).encode('utf-8')).hexdigest()
-        return _hash
-
-    @staticmethod
-    def string2hash(_input):
-        return md5(_input.encode("utf-8")).hexdigest()
-

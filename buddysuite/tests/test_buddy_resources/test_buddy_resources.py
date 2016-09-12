@@ -186,7 +186,7 @@ def test_usable_cpu_count(monkeypatch):
 # skipping run_multicore function for now
 
 
-def test_run_multicore_function(monkeypatch, sb_helpers):
+def test_run_multicore_function(monkeypatch, hf):
     temp_file = br.TempFile()
     temp_path = temp_file.path
     monkeypatch.setattr(br, "time", lambda: 1)
@@ -204,21 +204,21 @@ def test_run_multicore_function(monkeypatch, sb_helpers):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
 
     with open(temp_path, "w") as output:
         br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
                                   max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
 
     with open(temp_path, "w") as output:
         br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
                                   max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "cf5afec941a4b854ed78f01d2753009d"
+        assert hf.string2hash(output) == "cf5afec941a4b854ed78f01d2753009d"
 
     with pytest.raises(AttributeError) as err:
         br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False, out_type=sys.stdout)
@@ -239,7 +239,7 @@ def test_run_multicore_function(monkeypatch, sb_helpers):
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "08f48aaa5d64ac48ea15a4aa63d75141"
+        assert hf.string2hash(output) == "08f48aaa5d64ac48ea15a4aa63d75141"
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
@@ -248,7 +248,7 @@ def test_run_multicore_function(monkeypatch, sb_helpers):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert sb_helpers.string2hash(output) == "41cc02db5a989591601308d0657544a8"
+        assert hf.string2hash(output) == "41cc02db5a989591601308d0657544a8"
 
 
 # ######################################  TempDir  ###################################### #
@@ -473,7 +473,7 @@ def test_contributor():
     assert str(contributor) == "Bud Suite"
 
 
-def test_customhelpformatter(capsys, sb_helpers):
+def test_customhelpformatter(capsys, hf):
     oldparser = argparse.ArgumentParser(prog="SeqBuddy.py")
     oldparser.add_argument('-v', '--version', help='Show module version #s', action='store')
     oldparser.print_help()
@@ -485,8 +485,8 @@ def test_customhelpformatter(capsys, sb_helpers):
     parser.print_help()
     out, err = capsys.readouterr()
     assert out != oldout
-    assert sb_helpers.string2hash(oldout) == "5964e3c404d744898171d953c4c6c5f0"
-    assert sb_helpers.string2hash(out) == "790871bff8c3811c3f7bce6f9e19bb05"
+    assert hf.string2hash(oldout) == "5964e3c404d744898171d953c4c6c5f0"
+    assert hf.string2hash(out) == "790871bff8c3811c3f7bce6f9e19bb05"
     assert err == "" and olderr == ""
 
 
@@ -644,7 +644,7 @@ def test_error_report(monkeypatch):
     br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
 
 
-def test_flags(capsys, sb_helpers):
+def test_flags(capsys, hf):
     contributors = list()
     contributors.append(br.Contributor("Bud", "Suite", "D", commits=10, github="buddysuite"))
     contributors.append(br.Contributor("Sweet", "Water", commits=5, github="sweetwater"))
@@ -675,7 +675,7 @@ def test_flags(capsys, sb_helpers):
     br.flags(parser, _positional=pos_dict, _flags=flag_dict, _modifiers=mod_dict, version=version)
     parser.print_help()
     out, err = capsys.readouterr()
-    assert sb_helpers.string2hash(out) == "9ea2d4ac842b1712687034ea0abf497b"
+    assert hf.string2hash(out) == "9ea2d4ac842b1712687034ea0abf497b"
 
 
 def test_parse_format():
@@ -723,15 +723,15 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
         br.phylip_sequential_out(buddy, _type="seq")
 
 
-def test_phylip_sequential_read(alb_odd_resources, alb_helpers, capsys):
+def test_phylip_sequential_read(alb_odd_resources, hf, capsys):
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
-    assert alb_helpers.align2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
+    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
 
     records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(),
                                         relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
-    assert alb_helpers.align2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
+    assert hf.buddy2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
 
     with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r") as ifile:
             records = ifile.read()
@@ -820,34 +820,34 @@ def test_send_traceback(capsys, monkeypatch):
         assert "raise TypeError" in out
 
 
-def test_shift_features(sb_resources, sb_helpers):
+def test_shift_features(sb_resources, hf):
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, 10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.seqs2hash(buddy) == "e494bf6dc9c6c73c509e66ffc3db57a9"
+    assert hf.buddy2hash(buddy) == "e494bf6dc9c6c73c509e66ffc3db57a9"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, -10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.seqs2hash(buddy) == "c2b852ded3b2829f4aaa7f98f0a9f7f3"
+    assert hf.buddy2hash(buddy) == "c2b852ded3b2829f4aaa7f98f0a9f7f3"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, 1160, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.seqs2hash(buddy) == "35e0b3b0079ee41591f5f28ac27f039d"
+    assert hf.buddy2hash(buddy) == "35e0b3b0079ee41591f5f28ac27f039d"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, 1400, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert sb_helpers.seqs2hash(buddy) == "750a1dd925dd9cef7e3ec0760fd9de9b"
+    assert hf.buddy2hash(buddy) == "750a1dd925dd9cef7e3ec0760fd9de9b"
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]
@@ -974,7 +974,7 @@ def test_remap_gapped_features(alb_resources, sb_resources):
     assert align_str == new_str
 
 
-def test_main(capsys, sb_helpers):
+def test_main(capsys, hf):
     sys.argv = ['buddy_resources.py', "-v"]
     br.main()
     out, err = capsys.readouterr()

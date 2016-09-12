@@ -10,6 +10,15 @@ from . import __init__ as init
 from .. import buddy_resources as br
 
 
+# #################################  -  Helper functions  -  ################################## #
+@pytest.fixture(scope="session")
+def hf():
+    """
+    Collection of helper methods
+    """
+    return init.HelperMethods()
+
+
 # #################################  -  SeqBuddy  -  ################################## #
 @pytest.fixture(scope="session")
 def sb_resources():
@@ -39,12 +48,6 @@ def sb_odd_resources():
         ('mixed', '{path}/mixed_alpha.fa')
     ]}
     return resource_list
-
-
-@pytest.fixture(scope="session")
-def sb_helpers():
-    helper_obj = init.SbHelpers()
-    return helper_obj
 
 
 # #################################  -  AlignBuddy  -  ################################ #
@@ -77,12 +80,6 @@ def alb_odd_resources():
     return resource_list
 
 
-@pytest.fixture(scope="session")
-def alb_helpers():
-    helper_obj = init.AlbHelpers()
-    return helper_obj
-
-
 # ################################  -  PhyloBuddy  -  ################################# #
 @pytest.fixture(scope="session")
 def pb_resources():
@@ -109,8 +106,4 @@ def pb_odd_resources():
     return resource_list
 
 
-@pytest.fixture(scope="session")
-def pb_helpers():
-    helper_obj = init.PbHelpers()
-    return helper_obj
 # ###############################  -  DatabaseBuddy  -  ############################### #
