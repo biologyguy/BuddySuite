@@ -297,7 +297,7 @@ E3MGD6	E3MGD6_CAERE	384	31234	Caenorhabditis remanei (Caenorhabditis vulgaris)	I
     assert len(dbbuddy.records) == 4
 
 
-def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, sb_resources, hf):
+def test_uniprotrestclient_fetch_proteins(monkeypatch, capsys, hf):
     def patch_query_uniprot_search(*args, **kwargs):
         print("patch_query_uniprot_search\nargs: %s\nkwargs: %s" % (args, kwargs))
         client.results_file.write('''# Search: inx15
@@ -326,7 +326,7 @@ similarities (1); Subcellular location (1)
 
     def patch_query_uniprot_fetch(*args, **kwargs):
         print("patch_query_uniprot_fetch\nargs: %s\nkwargs: %s" % (args, kwargs))
-        with open("%s/mock_resources/test_databasebuddy_clients/uniprot_fetch.txt" % sb_resources.res_path, "r") \
+        with open("%s/mock_resources/test_databasebuddy_clients/uniprot_fetch.txt" % hf.resource_path, "r") \
                 as ifile:
             client.results_file.write(ifile.read(), "w")
         return
@@ -396,10 +396,10 @@ def test_ncbiclient_init():
     assert client.max_attempts == 5
 
 
-def test_ncbiclient_mc_query(sb_resources, hf, monkeypatch):
+def test_ncbiclient_mc_query(hf, monkeypatch):
     def patch_entrez_esummary_taxa(*args, **kwargs):
         print("patch_entrez_esummary_taxa\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % hf.resource_path
         return open(test_file, "r")
 
     def patch_entrez_efetch_gis(*args, **kwargs):
@@ -410,12 +410,12 @@ def test_ncbiclient_mc_query(sb_resources, hf, monkeypatch):
 
     def patch_entrez_esummary_seq(*args, **kwargs):
         print("patch_entrez_esummary_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % sb_resources.res_path
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % hf.resource_path
         return open(test_file, "r")
 
     def patch_entrez_efetch_seq(*args, **kwargs):
         print("patch_entrez_efetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % hf.resource_path
         return open(test_file, "r")
 
     monkeypatch.setattr(Db, "sleep", lambda _: True)  # No need to wait around for stuff...
@@ -477,7 +477,7 @@ def test_ncbiclient_mc_query(sb_resources, hf, monkeypatch):
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
 
-def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
+def test_ncbiclient_search_ncbi(hf, monkeypatch, capsys):
     def patch_entrez_esearch(*args, **kwargs):
         print("patch_entrez_esearch\nargs: %s\nkwargs: %s" % (args, kwargs))
         if "rettype" in kwargs:
@@ -491,7 +491,7 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
 """)
             handle = test_file.get_handle(mode="r")
         else:
-            handle = open("%s/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml" % sb_resources.res_path,
+            handle = open("%s/mock_resources/test_databasebuddy_clients/Entrez_esearch.xml" % hf.resource_path,
                           "r")
         return handle
 
@@ -515,16 +515,16 @@ def test_ncbiclient_search_ncbi(sb_resources, monkeypatch, capsys):
     assert 'NCBI returned no protein results' in err
 
 
-def test_ncbiclient_fetch_summaries(sb_resources, hf, monkeypatch):
+def test_ncbiclient_fetch_summaries(hf, monkeypatch):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
         if kwargs["func_args"] == ["esummary_seq"]:
-            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % sb_resources.res_path
+            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % hf.resource_path
             with open(test_file, "r") as ifile:
                 client.results_file.write(ifile.read().strip())
                 client.results_file.write('\n### END ###\n')
         elif kwargs["func_args"] == ["esummary_taxa"]:
-            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % sb_resources.res_path
+            test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % hf.resource_path
             with open(test_file, "r") as ifile:
                 client.results_file.write(ifile.read().strip())
                 client.results_file.write('\n### END ###\n')
@@ -552,10 +552,10 @@ def test_ncbiclient_fetch_summaries(sb_resources, hf, monkeypatch):
     assert hf.string2hash(str(dbbuddy)) == "0cf7c9ccf058cf3b50d2aab7ecb1f953"
 
 
-def test_ncbiclient_fetch_sequences(sb_resources, hf, monkeypatch, capsys):
+def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     def patch_entrez_fetch_seq(*args, **kwargs):
         print("patch_entrez_fetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % sb_resources.res_path
+        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % hf.resource_path
         with open(test_file, "r") as ifile:
             client.results_file.write(ifile.read())
 
@@ -586,10 +586,10 @@ def test_ncbiclient_fetch_sequences(sb_resources, hf, monkeypatch, capsys):
 
 
 # ENSEMBL
-def test_ensembl_init(monkeypatch, sb_resources):
+def test_ensembl_init(monkeypatch, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
         if "info/species" in args:
             with open("%s/ensembl_species.json" % test_files, "r") as ifile:
                 return json.load(ifile)
@@ -612,10 +612,10 @@ def test_ensembl_init(monkeypatch, sb_resources):
     assert client.species == {}
 
 
-def test_ensembl_mc_search(monkeypatch, sb_resources):
+def test_ensembl_mc_search(monkeypatch, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
         if "info/species" in args:
             with open("%s/ensembl_species.json" % test_files, "r") as ifile:
                 return json.load(ifile)
@@ -638,10 +638,10 @@ def test_ensembl_mc_search(monkeypatch, sb_resources):
     assert "HTTP Error 101: Fake HTTPError from Mock" in client.http_errors_file.read()
 
 
-def test_ensembl_perform_rest_action(monkeypatch, sb_resources, hf):
+def test_ensembl_perform_rest_action(monkeypatch, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
         with open("%s/ensembl_species.json" % test_files, "r") as ifile:
             return json.load(ifile)
 
@@ -662,7 +662,7 @@ def test_ensembl_perform_rest_action(monkeypatch, sb_resources, hf):
                           '"end":49082954,"seq_region_name":"22","db_type":"core","strand":1,'
                           '"id":"ENSPTRG00000014529","start":49073399}}'.encode())
         elif "sequence/id" in args[0].full_url:
-            test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+            test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
             with open("%s/ensembl_sequence.seqxml" % test_files, "r") as ifile:
                 outfile.write(ifile.read().encode())
         elif "error400" in args[0].full_url:
@@ -720,7 +720,7 @@ def test_ensembl_perform_rest_action(monkeypatch, sb_resources, hf):
     assert '57ad6fc317cf0d12ccb78d64d43682dc' in client.dbbuddy.failures
 
 
-def test_search_ensembl(monkeypatch, capsys, sb_resources, hf):
+def test_search_ensembl(monkeypatch, capsys, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         with open("%s/ensembl_species.json" % test_files, "r") as ifile:
@@ -736,7 +736,7 @@ def test_search_ensembl(monkeypatch, capsys, sb_resources, hf):
             client.results_file.write(ifile.read())
         return
 
-    test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+    test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
 
@@ -756,10 +756,10 @@ def test_search_ensembl(monkeypatch, capsys, sb_resources, hf):
     assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
 
 
-def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, hf):
+def test_ensembl_fetch_summaries(monkeypatch, capsys, hf):
     def patch_species_fetch(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+        test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
         with open("%s/ensembl_species.json" % test_files, "r") as ifile:
             return json.load(ifile)
 
@@ -797,7 +797,7 @@ def test_ensembl_fetch_summaries(monkeypatch, capsys, sb_resources, hf):
     assert client.dbbuddy.records['ENSCJAG00000008732'].summary['name'] == "Foo"
 
 
-def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, hf):
+def test_ensembl_fetch_nucleotide(monkeypatch, capsys, hf):
     def patch_ensembl_perform_rest_action(*args, **kwargs):
         print("patch_ensembl_perform_rest_action\nargs: %s\nkwargs: %s" % (args, kwargs))
         if "info/species" in args:
@@ -809,7 +809,7 @@ def test_ensembl_fetch_nucleotide(monkeypatch, capsys, sb_resources, hf):
                 tmp_file.write(ifile.read().encode())
                 return Db.SeqIO.parse(tmp_file.get_handle("r"), "seqxml")
 
-    test_files = "%s/mock_resources/test_databasebuddy_clients/" % sb_resources.res_path
+    test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
     dbbuddy.records['ENSAMEG00000011912'] = Db.Record('ENSAMEG00000011912')

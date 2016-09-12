@@ -1541,13 +1541,13 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
         job_id = filename.split("/")[-1].split(".")[0]
         if os.path.isfile("%s/%s.hashmap" % (work_dir.path, job_id)):
             os.remove("%s/%s.hashmap" % (work_dir.path, job_id))
-        shutil.copy("%s/topcons/%s.zip" % (sb_resources.res_path, job_id), "%s/" % work_dir.path)
+        shutil.copy("%s/topcons/%s.zip" % (hf.resource_path, job_id), "%s/" % work_dir.path)
         reporthook(2, 10, 100)
         return
 
     def mock_hash_ids(seqbuddy):
         hashmap = OrderedDict()
-        with open("%s/topcons/%s.hashmap" % (sb_resources.res_path, suds_client.service.current_job_id), "r") as ifile:
+        with open("%s/topcons/%s.hashmap" % (hf.resource_path, suds_client.service.current_job_id), "r") as ifile:
             for line in ifile:
                 if line:
                     line = line.strip().split("\t")

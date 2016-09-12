@@ -104,6 +104,3 @@ def pb_odd_resources():
         ('support', '{path}/Mnemiopsis_pep_support.newick')
     ]}
     return resource_list
-
-
-# ###############################  -  DatabaseBuddy  -  ############################### #

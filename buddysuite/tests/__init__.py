@@ -4,6 +4,7 @@ import os
 from copy import deepcopy
 import re
 from hashlib import md5
+from collections import OrderedDict
 
 from .. import AlignBuddy as Alb
 from .. import SeqBuddy as Sb
@@ -79,7 +80,6 @@ class SbResources(object):
                                     "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm",
                                     "e": "embl", "x": "seqxml"}
-        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
@@ -112,7 +112,7 @@ class SbResources(object):
         for letter in code:
             if letter not in self.single_letter_codes:
                 raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
-        output = {}
+        output = OrderedDict()
         for letter in code:
             if letter in self.code_dict["molecule"]:
                 output["molecule"] = self.code_dict["molecule"][letter] \
@@ -135,7 +135,7 @@ class SbResources(object):
         :return: OrderedDict {key: resource}
         """
         files = self.parse_code(code)
-        output = {}
+        output = OrderedDict()
         slc = self.single_letter_codes
         for molecule in files["molecule"]:
             for _format in files["format"]:
@@ -158,11 +158,6 @@ class SbResources(object):
     def get_one(self, code, mode="objs"):
         output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
-
-    def deets(self, code):
-        code = code.split()
-        return {"type": self.code_dict["type"][code[0]],
-                "format": br.parse_format(self.code_dict["format"][code[1]])}
 
 
 # #################################  -  AlignBuddy  -  ################################ #
@@ -214,6 +209,7 @@ class AlbResources(object):
             ("phylipsr", "{path}/Alignments_cds.physr"),
             ("stockholm", "{path}/Alignments_cds.stklm")]}
         self.resources['rna']['single'] = {"nexus": "{path}/Mnemiopsis_rna.nex".format(path=RESOURCE_PATH)}
+        self.resources['rna']['multi'] = {}
         self.resources['pep']['single'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
             ("gb", "{path}/Mnemiopsis_pep_aln.gb"),
             ("nexus", "{path}/Mnemiopsis_pep.nex"),
@@ -246,7 +242,6 @@ class AlbResources(object):
                                     "o": "single", "m": "multi",
                                     "c": "clustal", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "s": "stockholm"}
-        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
@@ -307,7 +302,7 @@ class AlbResources(object):
         :rtype: dict
         """
         files = self.parse_code(code)
-        output = {}
+        output = OrderedDict()
         slc = self.single_letter_codes
         for molecule in files["molecule"]:
             for num_aligns in files["num_aligns"]:
@@ -332,7 +327,7 @@ class AlbResources(object):
         if len(code.split()) != 3:
             raise AttributeError("Only explicit three-component codes are accepted")
         output = self.get_list(code, mode)
-        return None if not output else output[0]
+        return None if not output or len(output) > 1else output[0]
 
 
 # ################################  -  PhyloBuddy  -  ################################# #
@@ -362,7 +357,6 @@ class PbResources(object):
 
         self.single_letter_codes = {"o": "single", "m": "multi",
                                     "k": "newick", "n": "nexus", "l": "nexml"}
-        self.res_path = RESOURCE_PATH
 
     def parse_code(self, code="", strict=False):
         """
@@ -418,7 +412,7 @@ class PbResources(object):
         :return: OrderedDict {key: resource}
         """
         files = self.parse_code(code)
-        output = {}
+        output = OrderedDict()
         slc = self.single_letter_codes
         for num_trees in files["num_trees"]:
             for _format in files["format"]:
@@ -442,7 +436,7 @@ class PbResources(object):
         if len(code.split()) != 2:
             raise AttributeError("Only explicit two-component codes are accepted")
         output = self.get_list(code, mode)
-        return None if not output else output[0]
+        return None if not output or len(output) > 1 else output[0]
 
     def deets(self, code):
         code = code.split()

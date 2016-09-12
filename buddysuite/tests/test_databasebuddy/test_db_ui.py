@@ -213,12 +213,12 @@ def test_liveshell_get_headings(monkeypatch):
     assert liveshell.get_headings() == ['ACCN', 'DB', 'Type', 'record', 'organism']
 
 
-def test_liveshell_filter(monkeypatch, sb_resources, hf, capsys):
+def test_liveshell_filter(monkeypatch, hf, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
 
     # 'keep' (default)
@@ -522,15 +522,15 @@ def test_liveshell_do_format(monkeypatch, capsys):
     assert "is not a valid format" in out
     assert dbbuddy.out_format == "summary"
 
-    for fmt in Db.FORMATS:
-        liveshell.do_format(fmt)
+    for frmt in Db.FORMATS:
+        liveshell.do_format(frmt)
         out, err = capsys.readouterr()
         assert "Output format changed to" in out
-        assert fmt in out
-        assert dbbuddy.out_format == fmt
+        assert frmt in out
+        assert dbbuddy.out_format == frmt
 
 
-def test_liveshell_do_load(monkeypatch, capsys, sb_resources):
+def test_liveshell_do_load(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
@@ -539,7 +539,7 @@ def test_liveshell_do_load(monkeypatch, capsys, sb_resources):
     dbbuddy.server_clients["uniprot"] = Db.UniProtRestClient(dbbuddy)
     dbbuddy.server_clients["uniprot"].http_errors_file.write("Hello!")
 
-    db_session = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    db_session = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     monkeypatch.setattr("builtins.input", lambda _: db_session)
     liveshell.do_load(None)
     out, err = capsys.readouterr()
@@ -700,14 +700,14 @@ def test_liveshell_do_search(monkeypatch):
     assert "NewFailure1" in dbbuddy.failures
 
 
-def test_liveshell_do_show(monkeypatch, capsys, sb_resources, hf):
+def test_liveshell_do_show(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
     capsys.readouterr()
 
@@ -777,14 +777,14 @@ def test_liveshell_do_show(monkeypatch, capsys, sb_resources, hf):
     assert "Unknown ValueError" in str(err)
 
 
-def test_liveshell_do_sort(monkeypatch, capsys, sb_resources, hf):
+def test_liveshell_do_sort(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
     capsys.readouterr()
 
@@ -877,14 +877,14 @@ Failures:     0
 ''' in out
 
 
-def test_liveshell_do_write(monkeypatch, capsys, sb_resources):
+def test_liveshell_do_write(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     monkeypatch.setattr(Db.LiveShell, "dump_session", lambda _: True)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
     capsys.readouterr()
     tmp_dir = br.TempDir()
@@ -938,7 +938,7 @@ def test_liveshell_do_write(monkeypatch, capsys, sb_resources):
     assert "written" not in out
 
 
-def test_liveshell_do_undo(monkeypatch, capsys, sb_resources):
+def test_liveshell_do_undo(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
@@ -948,7 +948,7 @@ def test_liveshell_do_undo(monkeypatch, capsys, sb_resources):
     out, err = capsys.readouterr()
     assert "There is currently no undo history (only a single undo is possible).\n\n" in out
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
 
     assert not dbbuddy.trash_bin
@@ -999,12 +999,12 @@ def test_liveshell_complete_format(monkeypatch):
                                               'fastq-solexa', 'fastq-illumina']
 
 
-def test_liveshell_complete_keep_remove_resort_trash_show_sort(monkeypatch, sb_resources):
+def test_liveshell_complete_keep_remove_resort_trash_show_sort(monkeypatch, hf):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % sb_resources.res_path
+    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
     liveshell.do_load(load_file)
 
     # Keep
