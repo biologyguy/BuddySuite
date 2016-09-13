@@ -10,7 +10,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: AlignBuddy.py
-version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -68,7 +67,7 @@ from Bio.Alphabet import IUPAC
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, 1, br.contributors)
+VERSION = br.Version("AlignBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
 
 
 # #################################################### ALIGNBUDDY #################################################### #

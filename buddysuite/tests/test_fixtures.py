@@ -20,8 +20,6 @@ def test_hf_buddy2hash(hf):
     assert hf.buddy2hash(phylobuddy) == "20f81e9f99c673e6cde3afb4b30cc6da"
 
     dbbuddy = DatabaseBuddy.DbBuddy("Casp9,Inx1")
-    with open("temp.del", "w") as ofile:
-        ofile.write(str(dbbuddy))
     assert hf.buddy2hash(dbbuddy) == "058055f7f09d0e8bcf8ae75d3ed73a1f"
 
     with pytest.raises(AttributeError) as err:

@@ -25,7 +25,7 @@ def test_globals():
                           "phylip", "seqxml", "stockholm", "tab", "qual"]
     assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'user_hash']
     assert type(Db.VERSION) == br.Version
-    assert str(Db.VERSION) == """DatabaseBuddy 1.0 (%s)
+    assert str(Db.VERSION) == """DatabaseBuddy 1.2beta (%s)
 
 Public Domain Notice
 This is free software; see the source for detailed copying conditions.

@@ -10,7 +10,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: buddy_resources.py
-version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -1806,7 +1805,10 @@ def main():
     in_args = main_parser.parse_args()
 
     if in_args.version:
-        from buddysuite import SeqBuddy, AlignBuddy, PhyloBuddy, DatabaseBuddy
+        import SeqBuddy
+        import AlignBuddy
+        import PhyloBuddy
+        import DatabaseBuddy
         print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
         print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
         print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())

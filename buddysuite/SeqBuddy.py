@@ -10,7 +10,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: SeqBuddy.py
-version: 1.2
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -157,7 +156,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, 1, br.contributors)
+VERSION = br.Version("SeqBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]

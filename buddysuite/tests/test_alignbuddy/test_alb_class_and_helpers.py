@@ -180,7 +180,6 @@ def test_str2(alb_resources, hf, capsys, monkeypatch):
 
     alignbuddy = alb_resources.get_one("o p py")
     alignbuddy.set_format("phylipss")
-    alignbuddy.write("temp.del")
     assert hf.string2hash(str(alignbuddy)) == "4bd927145de635c429b2917e0a1db176"
 
     alignbuddy = alb_resources.get_one("o p g")

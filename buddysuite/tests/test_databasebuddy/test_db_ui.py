@@ -159,7 +159,7 @@ def test_liveshell_postcmd(monkeypatch):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     assert liveshell.postcmd("STOP!", "foo bar line") == "STOP!"
-    assert liveshell.usage.stats['LiveShell'] == {'1.0': {'foo': 1}}
+    assert liveshell.usage.stats['LiveShell'] == {Db.VERSION.short(): {'foo': 1}}
 
 
 def test_liveshell_dump_session(monkeypatch):
@@ -1189,7 +1189,7 @@ def test_exit(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         Db.command_line_ui(test_in_args, Db.DbBuddy())
     out, err = capsys.readouterr()
-    assert "('DatabaseBuddy', '1.0', 'LiveShell', 0)" in out
+    assert "('DatabaseBuddy', '%s', 'LiveShell', 0)" % Db.VERSION.short() in out
 
 
 @pytest.mark.loose

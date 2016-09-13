@@ -88,7 +88,6 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
     subject = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
     query = Sb.pull_recs(sb_resources.get_one('p f'), 'α[^8]', True)
     output = Sb.blast(subject, query)
-    output.write("temp.del")
     assert hf.buddy2hash(output) == "4639da7978256eb8dae0e9e7a1ad3d01"
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)

@@ -496,7 +496,7 @@ def test_exit(monkeypatch, capsys, pb_resources):
     with pytest.raises(SystemExit):
         Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"))
     out, err = capsys.readouterr()
-    assert "('PhyloBuddy', '1.1', 'list_ids', 2412)" in out
+    assert "('PhyloBuddy', '%s', 'list_ids', 2412)" % Pb.VERSION.short() in out
 
 
 def test_error(monkeypatch, capsys, pb_resources, pb_odd_resources):

@@ -10,7 +10,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: PhyloBuddy.py
-version: 1.1
 author: Stephen R. Bond
 email: steve.bond@nih.gov
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
@@ -144,7 +143,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, 1, br.contributors)
+VERSION = br.Version("PhyloBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
