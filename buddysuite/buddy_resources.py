@@ -1805,10 +1805,10 @@ def main():
     in_args = main_parser.parse_args()
 
     if in_args.version:
-        import SeqBuddy
-        import AlignBuddy
-        import PhyloBuddy
-        import DatabaseBuddy
+        from . import SeqBuddy
+        from . import AlignBuddy
+        from . import PhyloBuddy
+        from . import DatabaseBuddy
         print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
         print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
         print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
