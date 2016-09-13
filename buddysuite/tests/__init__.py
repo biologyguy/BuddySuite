@@ -112,19 +112,17 @@ class SbResources(object):
         for letter in code:
             if letter not in self.single_letter_codes:
                 raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
-        output = OrderedDict()
-        for letter in code:
-            if letter in self.code_dict["molecule"]:
-                output["molecule"] = self.code_dict["molecule"][letter] \
-                    if "molecule" not in output else AttributeError
-            if letter in self.code_dict["format"]:
-                output["format"] = self.code_dict["format"][letter] \
-                    if "format" not in output else AttributeError
-        rev_output_check = {str(val): key for key, val in output.items()}
-        if str(AttributeError) in rev_output_check:
-            raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
-                                 "component of the key" % rev_output_check[str(AttributeError)])
 
+        output = {"molecule": None, "format": None}
+        for letter in code:
+            for component in ["molecule", "format"]:
+                if letter in self.code_dict[component]:
+                    if output[component]:
+                        raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
+                                             "component of the key" % component)
+                    else:
+                        output[component] = self.single_letter_codes[letter]
+                        break
         return output
 
     def get(self, code="", mode="objs"):
@@ -277,18 +275,16 @@ class AlbResources(object):
             if letter not in self.single_letter_codes:
                 raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
 
-        output = {}
-        for component in ["molecule", "num_aligns", "format"]:
-            for indx, letter in enumerate(code):
+        output = {"molecule": None, "num_aligns": None, "format": None}
+        for letter in code:
+            for component in ["molecule", "num_aligns", "format"]:
                 if letter in self.code_dict[component]:
-                    if component in output:
+                    if output[component]:
                         raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
                                              "component of the key" % component)
-                    output[component] = self.single_letter_codes[letter]
-                    del code[indx]
-                    break
-
-        # return [output["molecule"], output["num_aligns"], output["format"]]
+                    else:
+                        output[component] = self.single_letter_codes[letter]
+                        break
         return output
 
     def get(self, code="", mode="objs"):
@@ -390,16 +386,16 @@ class PbResources(object):
             if letter not in self.single_letter_codes:
                 raise AttributeError("Malformed letter code, '%s' not recognized" % letter)
 
-        output = {}
-        for component in ["num_trees", "format"]:
-            for indx, letter in enumerate(code):
+        output = {"num_trees": None, "format": None}
+        for letter in code:
+            for component in ["num_trees", "format"]:
                 if letter in self.code_dict[component]:
-                    if component in output:
+                    if output[component]:
                         raise AttributeError("Malformed letter code, trying to append multiple values to the %s "
                                              "component of the key" % component)
-                    output[component] = self.single_letter_codes[letter]
-                    del code[indx]
-                    break
+                    else:
+                        output[component] = self.single_letter_codes[letter]
+                        break
 
         # return [output["num_trees"], output["format"]]
         return output
@@ -438,7 +434,9 @@ class PbResources(object):
         output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
 
+'''
     def deets(self, code):
         code = code.split()
         return {"num_trees": self.code_dict["num_trees"][code[0]],
                 "format": br.parse_format(self.code_dict["format"][code[1]])}
+'''

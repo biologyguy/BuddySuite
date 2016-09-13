@@ -159,7 +159,7 @@ def test_sb_odd_resources(sb_odd_resources):
 
 
 # #################################  -  AlignBuddy  -  ################################ #
-def test_alb_resources_init(hf, alb_resources, capsys):
+def test_alb_resources_init(hf, alb_resources):
     assert alb_resources
     assert 'dna' in alb_resources.resources
     assert 'pep' in alb_resources.resources
@@ -226,10 +226,9 @@ def test_alb_resources_get_key(alb_resources):
         alb_resources.get_key("d o z")
     assert "Malformed letter code, 'z' not recognized" in str(err)
 
-    # ToDo: Fix the get_key method (it's not raising AttributeErrors correctly...)
-    # with pytest.raises(AttributeError) as err:
-    #    alb_resources.get_key("d p o")
-    # assert "Malformed letter code, trying to append multiple values to the molecule component of the key" in str(err)
+    with pytest.raises(AttributeError) as err:
+        alb_resources.get_key("d p o")
+    assert "Malformed letter code, trying to append multiple values to the molecule component of the key" in str(err)
 
 
 def test_alb_resources_get(alb_resources):
@@ -291,6 +290,14 @@ def test_alb_resources_get_one(alb_resources):
     with pytest.raises(ValueError) as err:
         alb_resources.get_one('d m pss', mode="foo")
     assert "The 'mode' parameter only accepts 'objs' or 'paths' as input." in str(err)
+    
+    with pytest.raises(AttributeError) as err:
+        alb_resources.get_one('p m')
+    assert "Only explicit three-component codes are accepted" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        alb_resources.get_one('p m o f')
+    assert "Only explicit three-component codes are accepted" in str(err)
 
 
 def test_alb_odd_resources(alb_odd_resources):
@@ -309,3 +316,131 @@ def test_alb_odd_resources(alb_odd_resources):
 
 
 # ################################  -  PhyloBuddy  -  ################################# #
+def test_pb_resources_init(hf, pb_resources):
+    assert pb_resources
+    assert 'single' in pb_resources.resources
+    assert len(pb_resources.resources['single']) == 3
+    assert 'multi' in pb_resources.resources
+    assert len(pb_resources.resources['multi']) == 3
+
+    assert pb_resources.resources['single']['newick'] == "%s/single_tree.newick" % hf.resource_path
+    assert type(pb_resources.pb_objs['single']['newick']) == PhyloBuddy.PhyloBuddy
+
+    for key in ["format", "num_trees"]:
+        assert key in pb_resources.code_dict
+    for key in ["k", "l", "n"]:
+        assert key in pb_resources.code_dict["format"]
+    for key in ["o", "m"]:
+        assert key in pb_resources.code_dict["num_trees"]
+    
+    for key in ["k", "n", "l", "o", "m"]:
+        assert key in pb_resources.single_letter_codes
+
+
+def test_pb_resources_parse_code(pb_resources):
+    codes = pb_resources.parse_code()
+    assert sorted(codes["num_trees"]) == ['m', 'o']
+    assert sorted(codes["format"]) == ["k", "l", "n"]
+
+    codes = pb_resources.parse_code("o")
+    assert codes["num_trees"] == ['o']
+    assert sorted(codes["format"]) == ["k", "l", "n"]
+
+    codes = pb_resources.parse_code("l")
+    assert sorted(codes["num_trees"]) == ['m', 'o']
+    assert codes["format"] == ['l']
+
+    codes = pb_resources.parse_code('o m l n')
+    assert sorted(codes["num_trees"]) == ['m', 'o']
+    assert sorted(codes["format"]) == ['l', 'n']
+
+
+def test_pb_resources_get_key(pb_resources):
+    key = pb_resources.get_key("o k")
+    assert key["num_trees"] == "single"
+    assert key["format"] == "newick"
+
+    with pytest.raises(AttributeError) as err:
+        pb_resources.get_key("o m k")
+    assert "Only explicit two-component codes are accepted" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        pb_resources.get_key("o z")
+    assert "Malformed letter code, 'z' not recognized" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        pb_resources.get_key("m o")
+    assert "Malformed letter code, trying to append multiple values to the num_trees component of the key" in str(err)
+
+
+def test_pb_resources_get(pb_resources):
+    objs = pb_resources.get("o m k l")
+    assert len(objs) == 4
+    assert type(objs["o l"]) == PhyloBuddy.PhyloBuddy
+    assert type(objs["o k"]) == PhyloBuddy.PhyloBuddy
+    assert type(objs["m l"]) == PhyloBuddy.PhyloBuddy
+    assert type(objs["m k"]) == PhyloBuddy.PhyloBuddy
+
+    objs = pb_resources.get("o", mode="paths")
+    assert len(objs) == 3
+    assert "single_tree.newick" in objs["o k"]
+    assert "single_tree.nex" in objs["o n"]
+    assert "single_tree.xml" in objs["o l"]
+
+    objs = pb_resources.get("l z o", mode="objs")
+    assert len(objs) == 1
+    assert "o l" in objs
+
+    with pytest.raises(ValueError) as err:
+        pb_resources.get('o l', mode="foo")
+    assert "The 'mode' parameter only accepts 'objs' or 'paths' as input." in str(err)
+
+    assert len(pb_resources.get('z m')) == 3
+
+
+def test_pb_resources_get_list(pb_resources):
+    objs = pb_resources.get_list("m")
+    assert len(objs) == 3
+    assert type(objs[0]) == PhyloBuddy.PhyloBuddy
+    assert type(objs[2]) == PhyloBuddy.PhyloBuddy
+
+    objs = pb_resources.get_list("m o l", mode="paths")
+    assert len(objs) == 2
+    assert "multi_tree.xml" in objs[0]
+    assert "single_tree.xml" in objs[1]
+
+    objs = pb_resources.get_list("o z k", mode="objs")
+    assert len(objs) == 1
+    assert type(objs[0]) == PhyloBuddy.PhyloBuddy
+
+    with pytest.raises(ValueError) as err:
+        pb_resources.get_list('o k', mode="foo")
+    assert "The 'mode' parameter only accepts 'objs' or 'paths' as input." in str(err)
+
+
+def test_pb_resources_get_one(pb_resources):
+    assert not pb_resources.get_one("k z")
+
+    objs = pb_resources.get_one("m k")
+    assert type(objs) == PhyloBuddy.PhyloBuddy
+
+    objs = pb_resources.get_one("m k", mode="paths")
+    assert "multi_tree.newick" in objs
+
+    with pytest.raises(ValueError) as err:
+        pb_resources.get_one('k o', mode="foo")
+    assert "The 'mode' parameter only accepts 'objs' or 'paths' as input." in str(err)
+    
+    with pytest.raises(AttributeError) as err:
+        pb_resources.get_one('o')
+    assert "Only explicit two-component codes are accepted" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        pb_resources.get_one('m o l')
+    assert "Only explicit two-component codes are accepted" in str(err)
+
+
+def test_pb_odd_resources(pb_odd_resources):
+    assert len(pb_odd_resources) == 8
+    for key in ["blank", "unrecognizable", "figtree", "compare", "node_lables", "lengths", "bootstraps", "support"]:
+        assert key in pb_odd_resources
