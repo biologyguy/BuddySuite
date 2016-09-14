@@ -23,7 +23,7 @@ def test_globals():
     assert Db.FORMATS == ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq",
                           "fastq-sanger", "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd",
                           "phylip", "seqxml", "stockholm", "tab", "qual"]
-    assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'user_hash']
+    assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'shortcuts', 'user_hash']
     assert type(Db.VERSION) == br.Version
     assert str(Db.VERSION) == """DatabaseBuddy 1.2beta (2016-09-13)
 

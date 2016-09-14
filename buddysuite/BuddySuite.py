@@ -25,80 +25,68 @@ from pkg_resources import Requirement, resource_filename
 from configparser import ConfigParser, NoOptionError
 import os
 import sys
+import re
 import buddysuite
 import buddysuite.buddy_resources as br
 import shutil
+import random
+import string
 
 
 def setup():
-    valid_email_blurb = "\nProviding a valid email address is recommended if accessing public databases with " \
-                        "BuddySuite.\nThe maintainers of those resources may attempt to contact you before " \
-                        "blocking your IP if you are not adhering to their usage limitations.\n"
-
-    sip_blurb = "Would you like to join our Software Improvement Program?\nAnonymized usage statistics " \
-                "and crash reports will be automatically transmitted to the BuddySuite developers ([y]/n): "
+    print('\033[1mWelcome to BuddySuite!\033[m\nTo configure your installation, please answer the following questions:\n')
 
     install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
     os.makedirs("%s/config" % install_dir, exist_ok=True)
-    if os.path.isfile("%s/config/config.ini" % install_dir):
-        reader = ConfigParser()
-        reader.read(config)
-        email = reader.get('DEFAULT', 'email')
-        diagnostics = reader.getboolean('DEFAULT', 'diagnostics')
-        user_hash = reader.get('DEFAULT', 'user_hash')
-        links = reader.get('DEFAULT', "links")
+    config = ConfigParser()
+    config.read("%s/config/config.ini" % install_dir)
+    options = {"email": None,
+               "diagnostics": None,
+               "user_hash": None,
+               "shortcuts": None}
 
-        print('Welcome to BuddySuite!\nPrevious installation detected...\n')
-        if not diagnostics:
-            diagnostics = br.ask(sip_blurb)
-        else:
-            diagnostics = br.ask("Would you like remain in our Software Improvement Program? ([y]/n): ")
+    for key in options:
+        try:
+            if key in ['diagnostics']:
+                options[key] = config.getboolean('DEFAULT', key)
+            else:
+                options[key] = config.get('DEFAULT', key)
+        except NoOptionError:
+            pass
 
-        print(valid_email_blurb)
-        email_update = input("Email address (currently '%s'): " % email)
-        email = email_update if email_update not in ['', email] else email
+    # Set Email
+    print("\033[1mProviding a valid email address is recommended if accessing public databases with "
+          "BuddySuite.\nThe maintainers of those resources may attempt to contact you before "
+          "blocking your IP if you are not adhering to their usage limitations.\033[m")
 
-    else:
-        print('Welcome to BuddySuite!\nTo configure your installation, please answer the following questions:\n')
-
-        diagnostics = br.ask(sip_blurb)
-
-        print(valid_email_blurb)
+    if options['email'] in [None, "buddysuite@nih.gov"]:
         email = input("Email address (optional): ")
+        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@nih.gov"
+    else:
+        email = input("Update email address (currently '%s'): " % options['email'])
+        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) and email not in ['', options['email']] \
+            else options['email']
+    options['email'] = email
 
-        user_hash = "".join([random.choice(string.ascii_letters + string.digits) for _ in range(10)])
+    # Set up software improvement
+    print("\n\033[1mBuddySuite is able to automatically send anonymized usage statistics and crash reports to the "
+          "developers as part of the software improvement program.\033[m")
 
-    writer = ConfigParser()
-    writer['DEFAULT'] = {'email': email, 'diagnostics': diagnostics, 'user_hash': user_hash}
+    question = "join" if not options['diagnostics'] else "remain in"
+    options['diagnostics'] = br.ask("Would you like to %s our Software Improvement Program? [y]/n: " % question)
+
+    # Create user hash id
+    if not options["user_hash"]:
+        options['user_hash'] = "".join([random.choice(string.ascii_letters + string.digits) for _ in range(10)])
+
+    # Set up shortcuts
+    options['shortcuts'] = "blahh,foo"
+    config['DEFAULT'] = options
+    with open("%s/config/config.ini" % install_dir, 'w') as config_file:
+        config.write(config_file)
+    print(options)
     # 'dXruTa0qkW'
-    with open('config.ini', 'w') as config_file:
-        writer.write(config_file)
-
-    shutil.rmtree("buddysuite")
-    try:
-        os.remove("config.ini")
-    except FileNotFoundError:
-        pass
-
-    for root, dirs, foiles in os.walk("./"):
-        for _dir in dirs:
-            shutil.rmtree("%s/%s" % (pwd, _dir), ignore_errors=True)
-            shutil.move("%s/%s" % (root, _dir), "%s/%s" % (pwd, _dir))
-
-    # Big hack to include a buddysuite_data directory in the installation directory.
-    # There may be a clean way to do this, but I haven't found it.
-    if 'install' in sys.argv:
-        with open("bs_data.py", "w") as ofile:
-            ofile.write('''
-    import buddysuite
-    import os
-
-    os.makedirs("%s/buddysuite_data" % "/".join(buddysuite.__file__.split("/")[:-3]), mode=0o777, exist_ok=True)
-    ''')
-        from subprocess import Popen
-        Popen("python bs_data.py", shell=True).wait()
-
-    os.chdir(pwd)
+    return
 
 
 def uninstall():
@@ -181,8 +169,6 @@ def main():
     parser.add_argument('-count', help="Output number of tools available", action='store_true')
 
     in_args = parser.parse_args()
-
-    print("%s" % "/".join(buddysuite.__file__.split("/")[:-2]))
 
     if in_args.versions:
         version()
