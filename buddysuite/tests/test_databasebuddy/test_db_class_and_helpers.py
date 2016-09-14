@@ -25,7 +25,7 @@ def test_globals():
                           "phylip", "seqxml", "stockholm", "tab", "qual"]
     assert sorted(list(Db.CONFIG)) == ['data_dir', 'diagnostics', 'email', 'user_hash']
     assert type(Db.VERSION) == br.Version
-    assert str(Db.VERSION) == """DatabaseBuddy 1.2beta (%s)
+    assert str(Db.VERSION) == """DatabaseBuddy 1.2beta (2016-09-13)
 
 Public Domain Notice
 This is free software; see the source for detailed copying conditions.
@@ -37,7 +37,7 @@ Contributors:
 Stephen Bond    https://github.com/biologyguy
 Karl Keat       https://github.com/KarlKeat
 Jeremy Labarge  https://github.com/biojerm
-""" % datetime.date.today()
+"""
     assert Db.GREY == "\033[90m"
     assert Db.RED == "\033[91m"
     assert Db.GREEN == "\033[92m"
