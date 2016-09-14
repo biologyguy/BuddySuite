@@ -25,15 +25,12 @@ from pkg_resources import Requirement, resource_filename
 from configparser import ConfigParser, NoOptionError
 import os
 import sys
+import buddysuite
+import buddysuite.buddy_resources as br
+import shutil
 
 
 def setup():
-    # Need to remove the local setup version of buddysuite from Python PATH before looking for pre-installed version
-    for indx, _path in enumerate(sys.path):
-        if "BuddySuite" in _path or "buddysuite" in _path:
-            sys.path[indx] = ''
-    sys.path = list(set(sys.path))
-
     valid_email_blurb = "\nProviding a valid email address is recommended if accessing public databases with " \
                         "BuddySuite.\nThe maintainers of those resources may attempt to contact you before " \
                         "blocking your IP if you are not adhering to their usage limitations.\n"
@@ -41,29 +38,30 @@ def setup():
     sip_blurb = "Would you like to join our Software Improvement Program?\nAnonymized usage statistics " \
                 "and crash reports will be automatically transmitted to the BuddySuite developers ([y]/n): "
 
-    try:
-        import buddysuite
-        config = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
+    install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
+    os.makedirs("%s/config" % install_dir, exist_ok=True)
+    if os.path.isfile("%s/config/config.ini" % install_dir):
         reader = ConfigParser()
         reader.read(config)
         email = reader.get('DEFAULT', 'email')
         diagnostics = reader.getboolean('DEFAULT', 'diagnostics')
         user_hash = reader.get('DEFAULT', 'user_hash')
+        links = reader.get('DEFAULT', "links")
 
         print('Welcome to BuddySuite!\nPrevious installation detected...\n')
         if not diagnostics:
-            diagnostics = ask(sip_blurb)
+            diagnostics = br.ask(sip_blurb)
         else:
-            diagnostics = ask("Would you like remain in our Software Improvement Program? ([y]/n): ")
+            diagnostics = br.ask("Would you like remain in our Software Improvement Program? ([y]/n): ")
 
         print(valid_email_blurb)
         email_update = input("Email address (currently '%s'): " % email)
         email = email_update if email_update not in ['', email] else email
 
-    except (ImportError, NoOptionError, KeyError):
+    else:
         print('Welcome to BuddySuite!\nTo configure your installation, please answer the following questions:\n')
 
-        diagnostics = ask(sip_blurb)
+        diagnostics = br.ask(sip_blurb)
 
         print(valid_email_blurb)
         email = input("Email address (optional): ")
@@ -103,20 +101,105 @@ def setup():
     os.chdir(pwd)
 
 
-def ask(input_prompt, default="yes"):
-    if default == "yes":
-        yes_list = ["yes", "y", '']
-        no_list = ["no", "n", "abort"]
-    else:
-        yes_list = ["yes", "y"]
-        no_list = ["no", "n", "abort", '']
+def uninstall():
+    if br.ask("Are you sure you want to completely remove BuddySuite from your system y/[n]? ", default="no"):
+        install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
 
-    _response = input(input_prompt)
-    while True:
-        if _response.lower() in yes_list:
-            return True
-        elif _response.lower() in no_list:
-            return False
-        else:
-            print("Response not understood. Valid options are 'yes' and 'no'.")
-            _response = input(input_prompt)
+        # Delete all custom shortcuts
+        config = br.config_values()
+        for shortcut in config["shortcuts"]:
+            try:
+                os.remove(shortcut)
+            except FileNotFoundError:
+                pass
+
+        # Delete all gateway programs
+        for buddy in ['seqbuddy', 'alignbuddy', 'phylobuddy', 'databasebuddy', 'buddysuite']:
+            try:
+                os.remove(shutil.which(buddy))
+            except FileNotFoundError:
+                pass
+
+        # Delete the main site-packages module
+        try:
+            shutil.rmtree(install_dir)
+        except FileNotFoundError:
+            pass
+    return
+
+
+def version():
+    import SeqBuddy
+    import AlignBuddy
+    import PhyloBuddy
+    import DatabaseBuddy
+    print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
+    print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
+    print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
+    print("DatabaseBuddy: %s\n" % DatabaseBuddy.VERSION.short())
+
+
+def tools():
+    print("### SeqBuddy")
+    for key in sorted([key for key in br.sb_flags]):
+        print(key)
+    print("\n### AlignBuddy")
+    for key in sorted([key for key in br.alb_flags]):
+        print(key)
+    print("\n### PhyloBuddy")
+    for key in sorted([key for key in br.pb_flags]):
+        print(key)
+    print("\n### DatabaseBuddy")
+    for key in sorted([key for key in br.db_flags]):
+        print(key)
+    print()
+
+
+def count():
+    print("SeqBuddy: %s" % len(br.sb_flags))
+    print("AlignBuddy: %s" % len(br.alb_flags))
+    print("PhyloBuddy: %s" % len(br.pb_flags))
+    print("DatabaseBuddy: %s" % len(br.db_flags))
+    print("Total: %s\n" % sum([len(x) for x in [br.sb_flags, br.alb_flags, br.pb_flags, br.db_flags]]))
+
+
+def main():
+    def fmt(prog):
+        return br.CustomHelpFormatter(prog)
+
+    parser = argparse.ArgumentParser(prog="BuddySuite.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+                                     description='''\
+\033[1mBuddySuite\033[m
+  Do fun stuff with biological data files. Seriously, biological data is fun stuff :)
+
+''')
+
+    parser.add_argument('-setup', help='Show module version #s', action='store_true')
+    parser.add_argument('-uninstall', help="List all tools", action='store_true')
+    parser.add_argument('-versions', help='Show module version #s', action='store_true')
+    parser.add_argument('-tools', help="List all BuddySuite tools", action='store_true')
+    parser.add_argument('-count', help="Output number of tools available", action='store_true')
+
+    in_args = parser.parse_args()
+
+    print("%s" % "/".join(buddysuite.__file__.split("/")[:-2]))
+
+    if in_args.versions:
+        version()
+
+    elif in_args.tools:
+        tools()
+
+    elif in_args.count:
+        count()
+
+    elif in_args.setup:
+        setup()
+
+    elif in_args.uninstall:
+        uninstall()
+
+    return
+
+if __name__ == '__main__':
+    main()
