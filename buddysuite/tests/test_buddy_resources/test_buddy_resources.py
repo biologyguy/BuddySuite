@@ -571,15 +571,17 @@ def test_version():
 
 def test_config_values(monkeypatch):
     fake_config = br.TempFile()
-    fake_config.write("[DEFAULT]\nuser_hash = ABCDEFG\ndiagnostics = True\nemail = buddysuite@mockmail.com")
+    fake_config.write("[DEFAULT]\nuser_hash = ABCDEFG\ndiagnostics = True\nemail = buddysuite@mockmail.com"
+                      "\nshortcuts = /usr/local/sb,/usr/local/alb")
     fake_config.close()
     config_path = fake_config.path
 
-    monkeypatch.setattr(br, "resource_filename", mock.Mock(return_value=config_path))
+    monkeypatch.setattr(br, "resource_filename", lambda *_: config_path)
     options = br.config_values()
     assert options["user_hash"] == "ABCDEFG"
     assert options["diagnostics"]
     assert options["email"] == "buddysuite@mockmail.com"
+    assert options["shortcuts"] == ['/usr/local/sb', '/usr/local/alb']
 
     def mock_keyerror(*args, **kwargs):
         raise KeyError(args, kwargs)

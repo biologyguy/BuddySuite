@@ -31,7 +31,7 @@ import argparse
 import datetime
 from collections import OrderedDict
 import os
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
 import json
 import traceback
 import re
@@ -696,10 +696,10 @@ Contributors:
 
 # #################################################### FUNCTIONS ##################################################### #
 def config_values():
-    # ToDo: "install_path" is deprecated. Remove it's use in DBBuddy, SeqBuddy:topcons
     options = {"email": "buddysuite@nih.gov",
                "diagnostics": False,
-               "user_hash": "hashless"}
+               "user_hash": "hashless",
+               "shortcuts": ""}
     try:
         config_file = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
         config = ConfigParser()
@@ -712,15 +712,12 @@ def config_values():
                     options[_key] = config.get('DEFAULT', _key)
             except KeyError:
                 options[_key] = value
-
-        import buddysuite
-        options["data_dir"] = "%s/buddysuite_data" % "/".join(buddysuite.__file__.split("/")[:-3])
+        options["shortcuts"] = options["shortcuts"].split(",")
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddy_data")
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
-    except DistributionNotFound:  # This occurs when buddysuite hasn't actually been installed
+    except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed
         options["data_dir"] = False
-        pass
-
     return options
 
 
