@@ -21,10 +21,8 @@ repository: https://github.com/biologyguy/BuddySuite
 Description: Setup and uninstall tools
 """
 import argparse
-from pkg_resources import Requirement, resource_filename
 from configparser import ConfigParser, NoOptionError
 import os
-import sys
 import re
 import buddysuite
 import buddysuite.buddy_resources as br
@@ -34,7 +32,7 @@ import string
 
 
 def setup():
-    print('\033[1mWelcome to BuddySuite!\033[m\nTo configure your installation, please answer the following questions:\n')
+    print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
 
     install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
     os.makedirs("%s/config" % install_dir, exist_ok=True)
@@ -79,8 +77,12 @@ def setup():
     if not options["user_hash"]:
         options['user_hash'] = "".join([random.choice(string.ascii_letters + string.digits) for _ in range(10)])
 
+    # ToDo: set up aliases or links
     # Set up shortcuts
-    options['shortcuts'] = "blahh,foo"
+    # print("\n\033[1mAdding shortcuts to your system PATH can make it much quicker to call the BuddySuite tools\033[m")
+    options['shortcuts'] = ""
+
+    # Write config file
     config['DEFAULT'] = options
     with open("%s/config/config.ini" % install_dir, 'w') as config_file:
         config.write(config_file)
@@ -155,15 +157,15 @@ def main():
     def fmt(prog):
         return br.CustomHelpFormatter(prog)
 
-    parser = argparse.ArgumentParser(prog="BuddySuite.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
+    parser = argparse.ArgumentParser(prog="BuddySuite.py", formatter_class=fmt, usage=argparse.SUPPRESS,
                                      description='''\
 \033[1mBuddySuite\033[m
   Do fun stuff with biological data files. Seriously, biological data is fun stuff :)
 
 ''')
 
-    parser.add_argument('-setup', help='Show module version #s', action='store_true')
-    parser.add_argument('-uninstall', help="List all tools", action='store_true')
+    parser.add_argument('-setup', help='Configure BuddySuite on your system', action='store_true')
+    parser.add_argument('-uninstall', help="Completely remove the system install of BuddySuite", action='store_true')
     parser.add_argument('-versions', help='Show module version #s', action='store_true')
     parser.add_argument('-tools', help="List all BuddySuite tools", action='store_true')
     parser.add_argument('-count', help="Output number of tools available", action='store_true')

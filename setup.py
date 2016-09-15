@@ -2,14 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, Command
-from pkg_resources import Requirement, resource_filename
 import os
-import sys
-import shutil
-import random
-import string
-from configparser import ConfigParser, NoOptionError
-from tempfile import TemporaryDirectory
 
 
 class CleanCommand(Command):
@@ -97,5 +90,5 @@ setup(name='buddysuite',
       keywords=KEYWORDS,
       data_files=DATA_FILES,
       zip_safe=False,
-      cmdclass={'setup': SetupCommand, 'clean': CleanCommand, 'uninstall': UninstallCommand, 'remove': UninstallCommand}
+      cmdclass={'clean': CleanCommand}
       )
