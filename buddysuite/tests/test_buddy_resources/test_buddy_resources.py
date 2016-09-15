@@ -974,28 +974,3 @@ def test_remap_gapped_features(alb_resources, sb_resources):
             align_str += "%s\n" % align_feat
             new_str += "%s\n" % new_feat
     assert align_str == new_str
-
-
-def test_main(capsys, hf):
-    sys.argv = ['buddy_resources.py', "-v"]
-    br.main()
-    out, err = capsys.readouterr()
-    assert len(out.strip().split("\n")) == 4
-    for buddy in ["SeqBuddy", "AlignBuddy", "PhyloBuddy", "DatabaseBuddy"]:
-        assert buddy in out
-
-    sys.argv = ['buddy_resources.py', "-t"]
-    br.main()
-    out, err = capsys.readouterr()
-    for buddy in ["SeqBuddy", "AlignBuddy", "PhyloBuddy", "DatabaseBuddy"]:
-        assert "### %s" % buddy in out
-
-    sys.argv = ['buddy_resources.py', "-c"]
-    br.main()
-    out, err = capsys.readouterr()
-    count = 0
-    for buddy in ["SeqBuddy", "AlignBuddy", "PhyloBuddy", "DatabaseBuddy"]:
-        num = re.search("%s: ([0-9]+)" % buddy, out)
-        count += int(num.group(1))
-    num = re.search("Total: ([0-9]+)", out)
-    assert count == int(num.group(1))

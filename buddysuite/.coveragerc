@@ -6,3 +6,4 @@ source = /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/__init__.py
          /home/travis/build/biologyguy/BuddySuite/buddysuite/AlignBuddy.py
          /home/travis/build/biologyguy/BuddySuite/buddysuite/PhyloBuddy.py
          /home/travis/build/biologyguy/BuddySuite/buddysuite/DatabaseBuddy.py
+         /home/travis/build/biologyguy/BuddySuite/buddysuite/BuddySuite.py

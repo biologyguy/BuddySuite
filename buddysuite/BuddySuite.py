@@ -192,19 +192,14 @@ def main():
 
     if in_args.versions:
         version()
-
     elif in_args.tools:
         tools()
-
     elif in_args.count:
         count()
-
     elif in_args.setup:
         setup()
-
     elif in_args.uninstall:
         uninstall()
-
     return
 
 if __name__ == '__main__':

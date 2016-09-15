@@ -23,6 +23,16 @@ if [ $? -ne 0 ]
 then
     FAILURE=1
 fi
+mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddysuite/
+
+#### BuddySuite
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddysuite
+TEST_SCRIPTS='test_buddysuite.py '
+py.test ${TEST_SCRIPTS} --cache-clear -p no:cacheprovider --cov --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10
+if [ $? -ne 0 ]
+then
+    FAILURE=1
+fi
 mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy/
 
 #### AlignBuddy

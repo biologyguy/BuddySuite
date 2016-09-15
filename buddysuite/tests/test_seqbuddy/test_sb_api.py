@@ -1560,6 +1560,8 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
 
     work_dir = br.TempDir()
     keep_dir = br.TempDir()
+    repo_dir = br.TempDir()
+    data_dir = repo_dir.subdir("buddy_data")
     suds_client = MockSudsClient()
 
     monkeypatch.setattr(time, "sleep", lambda _: True)
@@ -1567,6 +1569,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     monkeypatch.setattr(urllib.request, "urlretrieve", mock_urlretrieve)
     monkeypatch.setattr(br, "TempDir", lambda: work_dir)
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
+    monkeypatch.setattr(br, "config_values", lambda *_: {"data_dir": data_dir})
 
     tester = sb_resources.get_one("d g")
     Sb.pull_recs(tester, "α[56]")
@@ -1592,7 +1595,8 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     Sb.delete_features(tester, "splice|TMD")
     tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"], keep_temp=keep_dir.path)
     _root, dirs, files = next(br.walklevel(keep_dir.path))
-    assert sorted(dirs) == ['rst_MFhyxO', 'rst_lE27A5', 'topcons']
+
+    assert sorted(dirs) == ['rst_MFhyxO', 'rst_lE27A5']
     assert sorted(files) == sorted(['seqs.tmp', work_dir.path.split("/")[-1]])
 
     with pytest.raises(FileNotFoundError) as err:

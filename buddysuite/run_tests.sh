@@ -12,6 +12,10 @@ echo "buddy_resources.py"
 TEST_SCRIPTS=${DIR}'/tests/test_buddy_resources/ '
 py.test ${TEST_SCRIPTS} --cov ${DIR}/buddy_resources.py --cov-report html -n 8 -p no:cacheprovider --durations=10 $@
 
+echo "BuddySuite.py"
+TEST_SCRIPTS=${DIR}'/tests/test_buddysuite/ '
+py.test ${TEST_SCRIPTS} --cov ${DIR}/BuddySuite.py --cov-report html -n 8 -p no:cacheprovider --durations=10 $@
+
 echo "AlignBuddy.py"
 TEST_SCRIPTS=${DIR}'/tests/test_alignbuddy/test_alb_class_and_helpers.py '
 TEST_SCRIPTS+=${DIR}'/tests/test_alignbuddy/test_alb_api.py '
