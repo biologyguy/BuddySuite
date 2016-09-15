@@ -38,11 +38,6 @@ DEPENDENCIES = [
     'suds-py3'
 ]
 
-DATA_FILES = [
-    ('config', ['setup_files/config.ini']),
-    ('buddy_data', ['setup_files/buddysuite_usage.json', 'setup_files/cmd_history'])
-]
-
 CLASSIFIERS = [
     'Development Status :: 3 - Alpha',
     'Environment :: Console',
@@ -77,7 +72,7 @@ ENTRY_POINTS = {
 }
 
 setup(name='buddysuite',
-      version='1.2b.0',
+      version='1.2b.12',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
       author='Stephen Bond',
@@ -88,7 +83,6 @@ setup(name='buddysuite',
       entry_points=ENTRY_POINTS,
       license='Public Domain',
       keywords=KEYWORDS,
-      data_files=DATA_FILES,
       zip_safe=False,
-      cmdclass={'clean': CleanCommand}
+      cmdclass={'clean': CleanCommand},
       )

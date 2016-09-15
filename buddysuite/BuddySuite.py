@@ -31,13 +31,23 @@ import random
 import string
 
 
-def setup():
+def setup():  # ToDo: Check permissions?
     print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
 
-    install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
-    os.makedirs("%s/config" % install_dir, exist_ok=True)
+    install_dir = "/".join(buddysuite.__file__.split("/")[:-1])
+    os.makedirs("%s/buddy_data" % install_dir, exist_ok=True)
+    if not os.path.isfile("%s/buddy_data/config.ini" % install_dir):
+        open("%s/buddy_data/config.ini" % install_dir, "w").close()
+
+    if not os.path.isfile("%s/buddy_data/cmd_history" % install_dir):
+        open("%s/buddy_data/cmd_history" % install_dir, "w").close()
+
+    if not os.path.isfile("%s/buddy_data/buddysuite_usage.json" % install_dir):
+        with open("%s/buddy_data/buddysuite_usage.json" % install_dir, "w") as ofile:
+            ofile.write("{}")
+
     config = ConfigParser()
-    config.read("%s/config/config.ini" % install_dir)
+    config.read("%s/buddy_data/config.ini" % install_dir)
     options = {"email": None,
                "diagnostics": None,
                "user_hash": None,
@@ -73,7 +83,7 @@ def setup():
     question = "join" if not options['diagnostics'] else "remain in"
     options['diagnostics'] = br.ask("Would you like to %s our Software Improvement Program? [y]/n: " % question)
 
-    # Create user hash id
+    # Create user hash id   'dXruTa0qkW'
     if not options["user_hash"]:
         options['user_hash'] = "".join([random.choice(string.ascii_letters + string.digits) for _ in range(10)])
 
@@ -84,10 +94,18 @@ def setup():
 
     # Write config file
     config['DEFAULT'] = options
-    with open("%s/config/config.ini" % install_dir, 'w') as config_file:
+    with open("%s/buddy_data/config.ini" % install_dir, 'w') as config_file:
         config.write(config_file)
-    print(options)
-    # 'dXruTa0qkW'
+
+    print("""\
+
+\033[1mSuccess! You're all set.\033[m
+    Email address:     %s
+    Send diagnostics:  %s
+
+These choices can be changed at any time by re-running setup.
+Enjoy the BuddySuite!
+""" % (options['email'], options['diagnostics']))
     return
 
 
@@ -119,10 +137,10 @@ def uninstall():
 
 
 def version():
-    import SeqBuddy
-    import AlignBuddy
-    import PhyloBuddy
-    import DatabaseBuddy
+    from buddysuite import SeqBuddy
+    from buddysuite import AlignBuddy
+    from buddysuite import PhyloBuddy
+    from buddysuite import DatabaseBuddy
     print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
     print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
     print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
