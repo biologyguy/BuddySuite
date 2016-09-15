@@ -701,7 +701,7 @@ def config_values():
                "user_hash": "hashless",
                "shortcuts": ""}
     try:
-        config_file = resource_filename(Requirement.parse("buddysuite"), "config/config.ini")
+        config_file = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data/config.ini")
         config = ConfigParser()
         config.read(config_file)
         for _key, value in options.items():
@@ -713,7 +713,7 @@ def config_values():
             except KeyError:
                 options[_key] = value
         options["shortcuts"] = options["shortcuts"].split(",")
-        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddy_data")
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data")
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
     except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed
