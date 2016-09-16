@@ -1,0 +1,10 @@
+include buddysuite/buddy_resources.py
+include buddysuite/AlignBuddy.py
+include buddysuite/DatabaseBuddy.py
+include buddysuite/PhyloBuddy.py
+include buddysuite/SeqBuddy.py
+include buddysuite/BuddySuite.py
+include buddysuite/__init__.py
+include README.md
+include LICENSE.txt
+include privacy

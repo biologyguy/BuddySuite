@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=develop)](https://travis-ci.org/biologyguy/BuddySuite)
+[![Coverage Status](https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=develop)](https://coveralls.io/github/biologyguy/BuddySuite?branch=develop)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
@@ -8,104 +10,55 @@
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
-# We are currently approaching a new release, v1.2! To try out the new and improved BuddySuite, make sure to check out the 'develop' branch, not the master branch.
 
 ## Description
-The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
- manipulations.
+The BuddySuite modules are 'one-stop-shop' command line tools for common biological data file
+ manipulations. Formats are detected automatically, conversions are seamless, and you can pipe into
+ or out of the modules, allowing you to spend more time analyzing your sequences, alignments, and phylogenetic
+ trees, instead of wrangling them.
 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) is the most mature BuddySuite tool, although
- [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) and
- [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) are also functional with a more limited number
- of commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is a very different project,
- existing mostly as a 'live shell' for downloading sequences from GenBank, ENSEMBL, and UniProt.
-
-Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
- and Mac OS X, however, so it is unclear how well the suite will work within Windows.
+For example, the following command reads in three sequence files (all in different formats), pulls out records with RefSeq identifiers,
+ calls MAFFT to generate an alignment, shifts gaps to force a codon alignment, calls RAxML to infer a phylogeny, and then roots
+ the tree at its midpoint.
  
-If you're new to the command line, or simply want to get a better feel for how BuddySuite works, check out the [Beginners Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide).
+`$: ﻿seqbuddy seqs1.gb seqs2.embl seqs3.fasta --pull_records "[XN]M" | alignbuddy --generate_alignment mafft | alignbuddy --enforce_triplets | phylobuddy --generate_tree raxmlHPC-SSE3 | phylobuddy --root`
 
-## Installation 
-Installation should be extremely easy on Mac and Linux using the graphical installer (Windows users must install the
- development version, [see below](https://github.com/biologyguy/BuddySuite#development-version-installation)).
+BuddySuite is a Python3 project, developed and tested on Linux and Mac OS X. It should generally work on Windows as well, but
+ testing on Windows has been extremely limited.
 
-[Click here](https://raw.github.com/biologyguy/BuddySuite/master/BuddySuite_installer.py) to download the graphical
- installer and run it from the command line
-    
-    $: cd /path/to/download/folder
-    $: chmod +x BuddySuite_installer.py
-    $: ./BuddySuite_installer.py
-
-By default, the installer will create short-form symbolic links for the main tools in your system $PATH ('sb' for
- SeqBuddy, 'alb' for AlignBuddy, 'pb' for PhyloBuddy, and 'db' for DatabaseBuddy), so they can be accessed quickly
- ([examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use these short forms). The full names of each
- tool will also be added to $PATH. If working outside the context of a graphical OS (on a cluster, for example), the
- installer will run in command-line mode (also accessible with the -cmd flag on graphical systems, if you prefer that).
-
-The BuddySuite installer will only bundle stable release versions of the BuddySuite. If bugs are found they will be
- hot-fixed, but the *expected* behavior will not be changed once the release is finalized. Likewise, new features added
- to the development versions will not become available in the installer until the next release. Versions of each tool or
- the installer can be displayed using the -v flag.
-
-## Dependencies
-This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
- installed on your system, I highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
- from Continuum Analytics (if you experience any difficulty, 
- [click here](https://github.com/biologyguy/BuddySuite/wiki/anaconda)). Alternatively, the software can be downloaded 
- directly from the [Python Software Foundation](https://www.python.org/downloads/).
-
-AlignBuddy and PhyloBuddy can be used to launch a number of third party alignment and tree building programs, but
- installation of these optional programs is up to you. For example, if you wish to use PhyloBuddy to build a 
- phylogenetic tree with RAxML, you will first need to get RAxML into your system PATH. 
-
-All other dependencies come prepackaged with the installer, so you only need to worry about the following if you
- are using the unstable workshop version of BuddySuite.
-
-The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
- [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/). If not already in your PATH, SeqBuddy.py will
- attempt to download the binaries if any BLAST dependant functions are called. [BioPython](http://biopython.org/) is
- used heavily by the entire suite; any version earlier than 16.6 will cause unit tests to fail. PhyloBuddy requires 
- [DendroPy](https://pythonhosted.org/DendroPy/) and version 3.0 (beta) of the
- [ETE toolkit](http://etetoolkit.org/download/).
- 
 ## Getting started
-Once installed, you can access the modules from the command line using their full names:
+The simplest way to get up and running is:
 
-    $: SeqBuddy -h
+```bash
+$: pip install buddysuite 
+$: buddysuite -setup
+```
 
-Or the shortcuts created by the installer:
+Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
 
-    $: sb -h
+There is also a short [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
 
-For a detailed breakdown of the tools available within each module, check out the
- [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
+Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
+ complete with worked examples and explanations for all arguments/options.
+ 
+* [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) 
+* [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
+* [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
+* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy). 
 
-## Development version installation
-The easiest way to get the development version up and running is to
- [clone/fork](https://help.github.com/articles/fork-a-repo/) the repository.
-
-    $: git clone https://github.com/biologyguy/BuddySuite.git
-
-Then move into the repo and switch to the 'development' branch:
-    
-    $: cd BuddySuite
-    $: git checkout develop
-
-All of the individual Buddy toolkits are located in the 'workshop' directory. The 
- ['development' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features are created
- and tested, so things may be less stable here; it's usually pretty solid though. If you're interested in contributing
- to the project, please ensure you are working from this branch.
-  
-See the [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on
- development version dependencies and how to contribute to the project.
-
+## Developers
+All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
+ ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
+ implemented. If you're interested in contributing, please refer to the
+ [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on dependencies
+ and instructions.
 
 ## Citation
-There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+We are currently working on a [peer reviewed manuscript](https://github.com/biologyguy/BuddySuite/tree/develop/manuscript), but until then
+ there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
 
-
 ## Contact
-Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
- contact me directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)
+Any comments you have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
+ contact Steve Bond (lead developer) directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov).

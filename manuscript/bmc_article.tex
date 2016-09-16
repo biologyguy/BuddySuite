@@ -1,0 +1,456 @@
+%% BioMed_Central_Tex_Template_v1.06
+%%                                      %
+%  bmc_article.tex            ver: 1.06 %
+%                                       %
+
+%%IMPORTANT: do not delete the first line of this template
+%%It must be present to enable the BMC Submission system to
+%%recognise this template!!
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                     %%
+%%  LaTeX template for BioMed Central  %%
+%%     journal article submissions     %%
+%%                                     %%
+%%          <8 June 2012>              %%
+%%                                     %%
+%%                                     %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                 %%
+%% For instructions on how to fill out this Tex template           %%
+%% document please refer to Readme.html and the instructions for   %%
+%% authors page on the biomed central website                      %%
+%% http://www.biomedcentral.com/info/authors/                      %%
+%%                                                                 %%
+%% Please do not use \input{...} to include other tex files.       %%
+%% Submit your LaTeX manuscript as one .tex document.              %%
+%%                                                                 %%
+%% All additional figures and files should be attached             %%
+%% separately and not embedded in the \TeX\ document itself.       %%
+%%                                                                 %%
+%% BioMed Central currently use the MikTex distribution of         %%
+%% TeX for Windows) of TeX and LaTeX.  This is available from      %%
+%% http://www.miktex.org                                           %%
+%%                                                                 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% additional documentclass options:
+%  [doublespacing]
+%  [linenumbers]   - put the line numbers on margins
+
+%%% loading packages, author definitions
+
+\documentclass[twocolumn]{bmcart}% uncomment this for twocolumn layout and comment line below
+%\documentclass{bmcart}
+
+%%% Load packages
+%\usepackage{amsthm,amsmath}
+%\RequirePackage{natbib}
+%\RequirePackage[authoryear]{natbib}% uncomment this for author-year bibliography
+%\RequirePackage{hyperref}
+\usepackage[utf8]{inputenc} %unicode support
+%\usepackage[applemac]{inputenc} %applemac support if unicode package fails
+%\usepackage[latin1]{inputenc} %UNIX support if unicode package fails
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                             %%
+%%  If you wish to display your graphics for   %%
+%%  your own use using includegraphic or       %%
+%%  includegraphics, then comment out the      %%
+%%  following two lines of code.               %%
+%%  NB: These line *must* be included when     %%
+%%  submitting to BMC.                         %%
+%%  All figure files must be submitted as      %%
+%%  separate graphics through the BMC          %%
+%%  submission process, not included in the    %%
+%%  submitted article.                         %%
+%%                                             %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\def\includegraphic{}
+\def\includegraphics{}
+
+
+
+%%% Put your definitions there:
+\startlocaldefs
+\endlocaldefs
+
+
+%%% Begin ...
+\begin{document}
+
+%%% Start of article front matter
+\begin{frontmatter}
+
+\begin{fmbox}
+\dochead{Software}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Enter the title of your article here     %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{BuddySuite: Command-line toolkits for manipulating sequences, alignments, and phylogenetic trees}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Enter the authors here                   %%
+%%                                          %%
+%% Specify information, if available,       %%
+%% in the form:                             %%
+%%   <key>={<id1>,<id2>}                    %%
+%%   <key>=                                 %%
+%% Comment or delete the keys which are     %%
+%% not used. Repeat \author command as much %%
+%% as required.                             %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\author[
+   addressref={aff1},                    % id's of addresses, e.g. {aff1,aff2}
+   %noteref={n1},                        % id's of article notes, if any
+   %corref={aff1},                       % id of corresponding address, if any
+   %email={steve.bond@nih.gov}            % email address
+]{\inits{SR}\fnm{Stephen R} \snm{Bond}}
+\author[
+   addressref={aff1},
+   %email={karl.keat@nih.gov}
+]{\inits{KE}\fnm{Karl E} \snm{Keat}}
+\author[
+   addressref={aff1},
+   email={andy@mail.nih.gov}
+]{\inits{AD}\fnm{Andreas D} \snm{Baxevanis}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Enter the authors' addresses here        %%
+%%                                          %%
+%% Repeat \address commands as much as      %%
+%% required.                                %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\address[id=aff1]{%                           % unique id
+  \orgname{Computational and Statistical
+   Genomics Branch, Division of Intramural    % university, etc
+    Research, National Human Genome
+     Research Institute, National
+      Institutes of Health},
+  \street{50 South Drive},                     %
+  \postcode{20892}                                % post or zip code
+  \city{Bethesda},                              % city
+  \cny{USA}                                    % country
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Enter short notes here                   %%
+%%                                          %%
+%% Short notes will be after addresses      %%
+%% on first page.                           %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\begin{artnotes}
+%\note{Sample of title note}     % note to the article
+%\note[id=n1]{Equal contributor} % note, connected to author
+%\end{artnotes}
+
+%\end{fmbox}% comment this for two column layout
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% The Abstract begins here                 %%
+%%                                          %%
+%% Please refer to the Instructions for     %%
+%% authors on http://www.biomedcentral.com  %%
+%% and include the section headings         %%
+%% accordingly for your article type.       %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstractbox}
+
+\begin{abstract} % abstract
+\parttitle{Background}  % Required
+BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Common sequence, alignment, and tree file formats are automatically detected and parsed, and nearly 100 routine tasks have been combined into this comprehensive suite of toolkits. 
+
+\parttitle{Results}  % Required
+The project has been implemented in Python 3 for use on UNIX-based systems. Installation is performed using a dedicated graphical installer or by cloning the development Git repository. All source code is freely available.
+
+\parttitle{Conclusions}  % Required
+http://research.nhgri.nih.gov/software/BuddySuite
+
+\parttitle{Supplementary}
+Documentation for each BuddySuite tool is available at http://tiny.cc/buddysuite\_wiki
+
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% The keywords begin here                  %%
+%%                                          %%
+%% Put each keyword in separate \kwd{}.     %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{keyword}  % Three to ten keywords
+\kwd{sample}
+\kwd{article}
+\kwd{author}
+\end{keyword}
+
+% MSC classifications codes, if any
+%\begin{keyword}[class=AMS]
+%\kwd[Primary ]{}
+%\kwd{}
+%\kwd[; secondary ]{}
+%\end{keyword}
+
+\end{abstractbox}
+%
+\end{fmbox}% uncomment this for twcolumn layout
+
+\end{frontmatter}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% The Main Body begins here                %%
+%%                                          %%
+%% Please refer to the instructions for     %%
+%% authors on:                              %%
+%% http://www.biomedcentral.com/info/authors%%
+%% and include the section headings         %%
+%% accordingly for your article type.       %%
+%%                                          %%
+%% See the Results and Discussion section   %%
+%% for details on how to create sub-sections%%
+%%                                          %%
+%% use \cite{...} to cite references        %%
+%%  \cite{koon} and                         %%
+%%  \cite{oreg,khar,zvai,xjon,schn,pond}    %%
+%%  \nocite{smith,marg,hunn,advi,koha,mouse}%%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%% start of article main body
+% <put your article body there>
+
+%%%%%%%%%%%%%%%%
+%% Background %%
+%%
+\section*{Background}
+Manipulation of biological sequence data is now a routine task within the life sciences, not just by bioinformaticians, but also by `bench biologists' who are becoming increasingly savvy in applying computational methods to their own work. While there are excellent graphical platforms for organizing, visualizing, and manipulating these forms of data, it is often advantageous to interact with text files directly from the command line, especially when the size of datasets become even moderately large. Most common tasks can be accomplished with existing open source software, but it is usually necessary to bring together many different standalone tools to build a particular workflow. Such tools may be dependent on pre-defined file format specifications, have non-trivial installation requirements, and/or be difficult to extend or modify. While each of these issues is surmountable, particularly if one can write custom programs in any of the popular scripting languages (e.g., Perl, R, or Python), they do impose an entry barrier to those without a basic background in computer science. Furthermore, finding available tools can be non-trivial, as specialized programs are not generally well advertised or highly ranked by search engines. To address these issues we have developed BuddySuite, a unified set of command-line data manipulation tools that are easy to install, intuitively organized, and implemented in the popular programming language Python. The target audience for this software is those with a basic working knowledge of the standard POSIX shell (e.g., command-line terminals in Linux or Mac OS X) who routinely interact with sequence, alignment, or phylogenetic tree files.
+
+ % \cite{koon,oreg,khar,zvai,xjon,schn,pond,smith,marg,hunn,advi,koha,mouse}
+
+\section*{Implementation}
+ADD: Table of tools
+
+ADD: Installation via BioConda and PyPI
+
+ADD: Full list of wrapped software
+
+\subsection*{Command line user interface}
+BuddySuite is implemented in pure Python and includes four core command line programs: SeqBuddy, AlignBuddy, PhyloBuddy, and DatabaseBuddy. The first three accept sequence, alignment, or phylogenetic tree data as input, respectively, and flags are used to specify which tool to run. DatabaseBuddy, on the other hand, is intended to run primarily as a `live shell', allowing the user to interactively search for and download sequence data stored in public databases (e.g., NCBI, UniProt, and Ensembl). The BuddySuite programs collectively contain 103 individual tools at the time of this writing, each with extended help and usage examples on the BuddySuite wiki (http://tiny.cc/buddysuite\_wiki). 
+
+BuddySuite commands can be `daisy-chained' together with the pipe character ($\vert$) to create more complex workflows as a single line in the terminal. 
+
+\subsection*{Application programing interface (API)}
+that can be accessed directly from the command line or as an application programming interface (API)
+For those interested in integrating BuddySuite functions into their own Python 3 scripts, the process is simplified by base classes in each module that handle many forms of input (including plain text, file paths or handles, and BioPython objects), then automate format detection and pre-processing. An object invoked from one of these base classes is the first parameter of all BuddySuite functions and is also the output in most cases.
+
+\subsection*{File format parsing}
+File format detection is automated, and most of the formats with BioPython parsers are supported \cite{Cock:2009hj}. 
+Another key feature of BuddySuite is robust sequence annotation management. Flat file formats such as GenBank and EMBL allow for rich annotation of sequence features, and these will be retained and/or adjusted by SeqBuddy and AlignBuddy tools as necessary. As an example, the AlignBuddy `generate\_alignment' tool can be used to invoke popular third party alignment programs such as MAFFT \cite{Katoh:2013hm} on an annotated GenBank file; after completion, the new alignment will be returned in GenBank format with all original features re-mapped to account for newly introduced gaps.
+
+\subsection*{Installation}
+Users of BuddySuite have several options for installing and updating the software. Stable release versions are available from the Python Package Index \cite{pypi} (http://tiny.cc/buddysuite\_pypi) and BioConda \cite{bioconda} (http://tiny.cc/buddysuite\_bioconda), allowing for automated installation with the programs `pip' or `conda', respectively. The project is also hosted on a public GitHub \cite{github} repository (http://tiny.cc/buddysuite\_github) with an active development branch for continuous integration, allowing immediate access to all new features as they are built. Unit tests have been written to cover \textgreater 95\% of the codebase and continuous integration is monitored with Travis CI \cite{travisci} (http://tiny.cc/buddysuite\_travisci).
+
+\subsection*{Dependencies}
+Python standard library packages have been used where possible to minimize licensing and version incompatibility issues, although the suite does depend heavily on BioPython \cite{Cock:2009hj}. Furthermore, PhyloBuddy uses DendroPy \cite{Sukumaran:2010id}. for much of its tree manipulation functionality and the ETE toolkit \cite{HuertaCepas:2010fd} to graphically display trees. A number of optional programs are also used by individual functions within the BuddySuite, such as BLAST \cite{Camacho2009}, MAFFT \cite{Katoh:2013hm}, and RAxML \cite{Stamatakis:2006de}. These programs are not distributed with BuddySuite, so the user is responsible for their installation if they wish to use the functions that rely on them.
+
+\subsection*{Error/usage reporting and contribution}
+Looking forward, the modular nature of BuddySuite makes it particularly well suited for continued growth. New tools are easily added to each existing module and new modules may be added to the suite. Instead of relying exclusively on active community input to identify bugs and drive future development, we have implemented an optional passive data collection program to monitor usage and crash reporting. Personally identifiable information is stripped before any data is transmitted to our FTP server, and a randomly generated identifier is assigned to new systems when BuddySuite is installed to estimate attrition rates.
+
+\section*{Results and Discussion}
+\subsection*{Use-case examples}
+This is how you would do stuff with SeqBuddy etc.
+For example, after downloading the cDNA sequence for all members of a gene family with DatabaseBuddy, the records could be renamed, annotated, and translated to amino acids with SeqBuddy, converted to a multiple sequence alignment and trimmed of poorly aligned regions with AlignBuddy, and then PhyloBuddy could be used to estimate a phylogenetic tree, split any polytomies, and root on a particular set of taxa. Furthermore, third party programs that use any of the supported file formats can be seamlessly included in these pipelines.
+
+\subsection*{Performance}
+SOFIA'S SECTION
+
+Here are some graphs and tables showing how long each tool takes to run on different sized files (Write an automated method to get all the stats).
+
+\subsection*{Similar bioinformatics toolkits}
+Describe the state of EMBOSS and BioPieces
+To keep the learning curve as shallow as possible, care has been taken to minimize the dependence of each tool on additional parameters and to infer user intent where possible. For example, the SeqBuddy 'find\_restriction\_sites' function is one of the most flexible in the Suite. It can accept three different types of arguments that control which enzymes are included in the search and how the output is formatted; all of these arguments are optional and they can be passed to the tool in any order. This flexibility is in contrast to the paradigm implemented in EMBOSS and BioPieces, which require extra flags to explicitly set all parameters. In cases such as this, where the argument type (e.g., integer or string) unambiguously identifies how it should be used by the tool, it is counter-productive to require that the user remember additional flags to explicitly mark each input. 
+
+
+\section*{Conclusions}
+BuddySuite has been designed from the ground up to be an intuitive, extensible, and unified platform for routine command-line tasks performed on sequence, alignment, and phylogenetic tree files. By implementing this project in the popular language Python and distributing it through GitHub, along with extensive documentation, we hope to gain community support to continue building BuddySuite into an even more comprehensive open-source solution.
+
+% \subsection*{Sub-heading for section}
+% Text for this sub-heading \ldots
+% \subsubsection*{Sub-sub heading for section}
+% Text for this sub-sub-heading \ldots
+% \paragraph*{Sub-sub-sub heading for section}
+% Text for this sub-sub-sub-heading \ldots
+% (also see \cite{koon,khar,zvai,xjon,marg}).
+% \nocite{oreg,schn,pond,smith,marg,hunn,advi,koha,mouse}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Backmatter begins here                   %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{backmatter}
+
+\section*{Competing interests}
+  The authors declare that they have no competing interests.
+
+\section*{Author's contributions}
+    Text for this section \ldots
+
+\section*{Acknowledgements}
+  Text for this section \ldots
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                  The Bibliography                       %%
+%%                                                         %%
+%%  Bmc_mathpys.bst  will be used to                       %%
+%%  create a .BBL file for submission.                     %%
+%%  After submission of the .TEX file,                     %%
+%%  you will be prompted to submit your .BBL file.         %%
+%%                                                         %%
+%%                                                         %%
+%%  Note that the displayed Bibliography will not          %%
+%%  necessarily be rendered by Latex exactly as specified  %%
+%%  in the online Instructions for Authors.                %%
+%%                                                         %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% if your bibliography is in bibtex format, use those commands:
+\bibliographystyle{bmc-mathphys} % Style BST file (bmc-mathphys, vancouver, spbasic).
+\bibliography{bmc_article}      % Bibliography file (usually '*.bib' )
+% for author-year bibliography (bmc-mathphys or spbasic)
+% a) write to bib file (bmc-mathphys only)
+% @settings{label, options="nameyear"}
+% b) uncomment next line
+%\nocite{label}
+
+% or include bibliography directly:
+% \begin{thebibliography}
+% \bibitem{b1}
+% \end{thebibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                               %%
+%% Figures                       %%
+%%                               %%
+%% NB: this is for captions and  %%
+%% Titles. All graphics must be  %%
+%% submitted separately and NOT  %%
+%% included in the Tex document  %%
+%%                               %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% Do not use \listoffigures as most will included as separate files
+
+\section*{Figures}
+  \begin{figure}[h!]
+  \caption{\csentence{Sample figure title.}
+      A short description of the figure content
+      should go here.}
+      \end{figure}
+
+\begin{figure}[h!]
+  \caption{\csentence{Sample figure title.}
+      Figure legend text.}
+      \end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                               %%
+%% Tables                        %%
+%%                               %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Use of \listoftables is discouraged.
+%%
+\section*{Tables}
+\begin{table}[h!]
+\caption{File format reading (R) and writing (W) support provided by each BuddySuite program.}
+      \begin{tabular}{llll}
+        \hline \\
+        Format									& SeqBuddy  							& AlignBuddy   					& PhyloBuddy\\ 
+        \\
+        \hline
+        Clustal 									& R \& W\textsuperscript{\dag} 	& R \& W								& None \\ 
+        EMBL\textsuperscript{\ddag} 		& R \& W								& R\textsuperscript{\dag}/ W		& None \\
+        FASTA 									& R \& W								& R\textsuperscript{\dag}/ W 	& None \\
+        GenBank\textsuperscript{\ddag} 	& R \& W								& R\textsuperscript{\dag}/ W  	& None \\
+        Nexus 									& R \& W\textsuperscript{\dag}	& R \& W								& R \& W \\ 
+        Newick 								& None								& None								& R \& W \\ 
+        NeXML									& None								& None								& R \& W \\
+        PHYLIP (interleaved)				& R \& W\textsuperscript{\dag} 	& R \& W								& None \\
+        PHYLIP (sequential)				& R \& W\textsuperscript{\dag} 	& R \& W								& None \\	
+        SeqXML								& R \& W							 	& None								& None \\ 
+        Stockholm								& R \& W\textsuperscript{\dag} 	& R \& W								& None \\ 
+        Swissprot\textsuperscript{\ddag}	& R only								& None								& None \\
+        \hline
+      \end{tabular}
+      \begin{tabular}{l}
+      \textsuperscript{\dag}All sequences must be the same length \\
+      \textsuperscript{\ddag}Supports rich sequence annotation \\
+      \hline
+       \end{tabular}
+\end{table}
+
+\begin{table}[h!]
+\caption{List of optional third party software that BuddySuite programs can interact with.}
+      \begin{tabular}{lll}
+        \hline \\
+	   BuddySuite program	&3\textsuperscript{rd} party program	& Reference  \\ \\
+        \hline
+        SeqBuddy		& BLAST 			& \cite{Camacho2009} \\
+        \hline
+        AlignBuddy	& Clustal Omega 	& \cite{Sievers:2011fn} \\
+        					& ClustalW2 		& \cite{Larkin:2007hz} \\
+						& MAFFT 			& \cite{Katoh:2013hm} \\
+						& MUSCLE 			& \cite{Edgar:2004bo} \\
+						& PAGAN 			& \cite{Loytynoja:2012fy} \\
+        					& PRANK 			& \cite{Loytynoja:2005cb} \\				
+        \hline
+        PhyloBuddy	& FastTree 			& \cite{Price:2010eg} \\
+        					& RAxML 			& \cite{Stamatakis:2006de} \\
+        					& PhyML 			& \cite{Guindon:2010gf} \\
+        \hline
+      \end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                               %%
+%% Additional Files              %%
+%%                               %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Additional Files}
+  \subsection*{Additional file 1 --- Sample additional file title}
+    Additional file descriptions text (including details of how to
+    view the file, if it is in a non-standard format or the file extension).  This might
+    refer to a multi-page table or a figure.
+
+  \subsection*{Additional file 2 --- Sample additional file title}
+    Additional file descriptions text.
+
+
+\end{backmatter}
+\end{document}

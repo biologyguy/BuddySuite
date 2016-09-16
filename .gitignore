@@ -16,15 +16,21 @@
 .DS_Store
 
 # Unit test html coverage files
-workshop/htmlcov/*
+htmlcov
 .coverage
 .cache
 
 # Test/build files
 dependencies.conf
-/workshop/test_files/*
-/workshop/build_dir/BuddySuite.py
+/buddysuite/test_files/*
+/buddysuite/build_dir/BuddySuite.py
 
 # IPython
 .ipynb_checkpoints/*
-*\.ipynb
+*.ipynb
+
+# Manuscript compilation files
+bmc_article.log
+bmc_article.aux
+bmc_article.bbl
+bmc_article.blg

@@ -1,0 +1,26 @@
+**Public Domain Notice**
+Parts of this software are a United States Government Work. Anyone may use the software on a worldwide and royalty-free
+ basis for any purpose and anyone may reproduce and prepare derivative works without restriction. Although all
+ reasonable efforts have been taken to ensure the accuracy and reliability of the software, the National Human Genome
+ Research Institute (NHGRI), National Institutes of Health (NIH) and the U.S. Government do not and cannot warrant the
+ performance or any results that may be obtained by using this software. NHGRI, NIH and the U.S. Government disclaim
+ all warranties as to performance, merchantability or fitness for any particular purpose.  No indemnification is
+ intended or provided by the US government.
+
+In any work produced using or in any product derived from this material, the authors would appreciate being
+ acknowledged per scientific custom as the source of the software.
+
+**Copyrighted Works**
+BuddySuite uses copyrighted work and distributes these works under the terms of their respective licenses. All
+ copyright restrictions still apply to these 'third-party' packages. Furthermore, BuddySuite is a community project
+ with contributors outside of the US Government; these authors retain copyright on their work. Below is a list of
+ contributors, and the license under which their work is governed.
+
+**List of Contributors**
+Stephen Bond        2014 - Present          Public Domain
+Karl Keat           June 2015 - Aug 2015    Public Domain
+Jeremy LaBarge      2015 - Present          Public Domain
+Jason Bowen         2016 - Present          Public Domain
+Todd Smith          2016 - Present          Public Domain
+Adam Palmer         2016 - Present          Public Domain
+Dustin J. Mitchell  June 2016               Public Domain

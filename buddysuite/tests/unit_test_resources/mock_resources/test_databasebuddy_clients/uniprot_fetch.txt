@@ -1,0 +1,730 @@
+# Search: A8XEF9,O61786,A0A0H5SBJ0,E3MGD6,O61787,A0A0V1AZ11,A8XEF8,A0A0B2VB60,A0A0V0W5E2
+ID   INX16_CAEEL             Reviewed;         372 AA.
+AC   O61787;
+DT   20-DEC-2005, integrated into UniProtKB/Swiss-Prot.
+DT   01-OCT-2001, sequence version 2.
+DT   06-JUL-2016, entry version 96.
+DE   RecName: Full=Innexin-16;
+DE   AltName: Full=Protein opu-16;
+GN   Name=inx-16; Synonyms=opu-16; ORFNames=R12E2.5;
+OS   Caenorhabditis elegans.
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Rhabditida;
+OC   Rhabditoidea; Rhabditidae; Peloderinae; Caenorhabditis.
+OX   NCBI_TaxID=6239;
+RN   [1]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=Bristol N2;
+RX   PubMed=9851916; DOI=10.1126/science.282.5396.2012;
+RG   The C. elegans sequencing consortium;
+RT   "Genome sequence of the nematode C. elegans: a platform for
+RT   investigating biology.";
+RL   Science 282:2012-2018(1998).
+RN   [2]
+RP   FUNCTION.
+RA   Peters M.A., Teramoto T., Iwasaki K., Jorgensen E.M.;
+RT   "Innexin-16 is required for signals downstream of the defecation
+RT   clock.";
+RL   (In) Proceedings of the 15th international C. elegans meeting,
+RL   pp.90-90, Los Angeles (2005).
+CC   -!- FUNCTION: Structural components of the gap junctions (By
+CC       similarity). Required for signals downstream of defecation clock.
+CC       {ECO:0000250, ECO:0000269|Ref.2}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane {ECO:0000305}; Multi-pass
+CC       membrane protein {ECO:0000255|PROSITE-ProRule:PRU00351}. Cell
+CC       junction, gap junction {ECO:0000250}.
+CC   -!- SIMILARITY: Belongs to the pannexin family. {ECO:0000255|PROSITE-
+CC       ProRule:PRU00351}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; FO080613; CCD65172.1; -; Genomic_DNA.
+DR   PIR; T33091; T33091.
+DR   RefSeq; NP_491314.1; NM_058913.4.
+DR   UniGene; Cel.38915; -.
+DR   BioGrid; 37476; 1.
+DR   STRING; 6239.R12E2.5; -.
+DR   iPTMnet; O61787; -.
+DR   EPD; O61787; -.
+DR   PaxDb; O61787; -.
+DR   PRIDE; O61787; -.
+DR   EnsemblMetazoa; R12E2.5; R12E2.5; WBGene00002138.
+DR   GeneID; 172005; -.
+DR   KEGG; cel:CELE_R12E2.5; -.
+DR   UCSC; R12E2.5; c. elegans.
+DR   CTD; 172005; -.
+DR   WormBase; R12E2.5; CE28765; WBGene00002138; inx-16.
+DR   eggNOG; ENOG410J9RJ; Eukaryota.
+DR   eggNOG; ENOG4111EB7; LUCA.
+DR   GeneTree; ENSGT00530000064205; -.
+DR   HOGENOM; HOG000017412; -.
+DR   InParanoid; O61787; -.
+DR   OMA; HSPQKAN; -.
+DR   OrthoDB; EOG7327SN; -.
+DR   PhylomeDB; O61787; -.
+DR   PRO; PR:O61787; -.
+DR   Proteomes; UP000001940; Chromosome I.
+DR   GO; GO:0005921; C:gap junction; ISS:UniProtKB.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005622; C:intracellular; IEA:GOC.
+DR   GO; GO:0005886; C:plasma membrane; ISS:UniProtKB.
+DR   GO; GO:0005243; F:gap junction channel activity; ISS:UniProtKB.
+DR   GO; GO:0055077; F:gap junction hemi-channel activity; ISS:UniProtKB.
+DR   GO; GO:0019722; P:calcium-mediated signaling; IMP:WormBase.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   GO; GO:2000746; P:regulation of defecation rhythm; IMP:WormBase.
+DR   GO; GO:1900073; P:regulation of neuromuscular synaptic transmission; IMP:WormBase.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction; Cell membrane; Complete proteome; Gap junction;
+KW   Glycoprotein; Ion channel; Ion transport; Membrane;
+KW   Reference proteome; Transmembrane; Transmembrane helix; Transport.
+FT   CHAIN         1    372       Innexin-16.
+FT                                /FTId=PRO_0000208515.
+FT   TRANSMEM     31     51       Helical. {ECO:0000255|PROSITE-
+FT                                ProRule:PRU00351}.
+FT   TRANSMEM    106    126       Helical. {ECO:0000255|PROSITE-
+FT                                ProRule:PRU00351}.
+FT   TRANSMEM    181    201       Helical. {ECO:0000255|PROSITE-
+FT                                ProRule:PRU00351}.
+FT   TRANSMEM    263    283       Helical. {ECO:0000255|PROSITE-
+FT                                ProRule:PRU00351}.
+FT   CARBOHYD    352    352       N-linked (GlcNAc...). {ECO:0000255}.
+SQ   SEQUENCE   372 AA;  43086 MW;  FAACEA56A8A64DB3 CRC64;
+     MSMLGNIKTY AQTVTSLSDN DDTSIDRLNY VVTTSILIAF SLLLFAKNYV GEPMQCWTPN
+     QFAGGWESFA ESYCFIENTY FVPMQDSNLP AAETREGREM IYYQWVPFLL VIQALFFCVP
+     RAFWIIYPSY SGLTIADMIT AARQNGKQLE GADEALEQVA MINWRTEQQK GHGSRIFNCY
+     LVMKLLILLN IVLQFFLLNS FLNTAYTFWG WGIFWDMVNG RHWQESGHFP RVSFCDINVR
+     ELGNIHHWSL QCVLMVNMFN EKIFIFLWFW FAFLLVATAG DFVIWVWRRF DSNSKLGFIL
+     DLLNQEGIDH SPQKASELYK NVLRDDGVLF LRLLDSNSGR LNSEELMKKI YNISVGHATD
+     LNTPIEEHAT SE
+//
+ID   A0A0V1AZ11_TRISP        Unreviewed;       406 AA.
+AC   A0A0V1AZ11;
+DT   16-MAR-2016, integrated into UniProtKB/TrEMBL.
+DT   16-MAR-2016, sequence version 1.
+DT   08-JUN-2016, entry version 4.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-16 {ECO:0000313|EMBL:KRY29995.1};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=T01_6986 {ECO:0000313|EMBL:KRY29995.1};
+OS   Trichinella spiralis (Trichina worm).
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Enoplea; Dorylaimia;
+OC   Trichocephalida; Trichinellidae; Trichinella.
+OX   NCBI_TaxID=6334 {ECO:0000313|EMBL:KRY29995.1, ECO:0000313|Proteomes:UP000054776};
+RN   [1] {ECO:0000313|EMBL:KRY29995.1, ECO:0000313|Proteomes:UP000054776}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=ISS3 {ECO:0000313|EMBL:KRY29995.1};
+RA   Korhonen P.K., Edoardo P., Giuseppe L.R., Gasser R.B.;
+RT   "Evolution of Trichinella species and genotypes.";
+RL   Submitted (JAN-2015) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane
+CC       {ECO:0000256|RuleBase:RU010713}; Multi-pass membrane protein
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- CAUTION: The sequence shown here is derived from an
+CC       EMBL/GenBank/DDBJ whole genome shotgun (WGS) entry which is
+CC       preliminary data. {ECO:0000313|EMBL:KRY29995.1}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; JYDH01000154; KRY29995.1; -; Genomic_DNA.
+DR   Proteomes; UP000054776; Unassembled WGS sequence.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005886; C:plasma membrane; IEA:UniProtKB-SubCell.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000054776};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     20     39       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     97    119       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    185    202       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    265    285       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   406 AA;  47757 MW;  30EE0ADD9AA1B597 CRC64;
+     MFPLDNKFDM FFNFYGFEDF IDRMHFLFTV KVVVTYLVVM SFTDILTPRI KCWSPHHFVK
+     SWEQYAETYC FIHSTYYYTN SSIVEGTEGK KHGFHFWATY VLAIQAILFA TPAVIAAFLT
+     KKPTANILSL INTNVESPSK EDEISKHLQF KLSSYLKFYR INSSIFGFNN VACSYLTLSH
+     AFVKFLFLTN AVTQFIAVSW IFKRKSFFWG VEVAVEYLKT GKWSQSEHFP ITTFCDFNVR
+     EMNQVINHTV QCMIGVNAIH DKFFFLQWFW LFFCSIATTA HFIIWTRSSF SLSNHVDFIN
+     QCLELTTKDK DKYHNDLVVK FTKEILQWDG VKLLQLIKFK LSNIAAKTIT RNLFREFTKE
+     CCVTSGNEET VISIENSREE RRNQKNGERK QTLPFPRDMF TIVIEK
+//
+ID   A8XEF9_CAEBR            Unreviewed;       381 AA.
+AC   A8XEF9;
+DT   15-JAN-2008, integrated into UniProtKB/TrEMBL.
+DT   15-JAN-2008, sequence version 1.
+DT   11-MAY-2016, entry version 47.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-15 {ECO:0000313|WormBase:CBG12053};
+GN   Synonyms=Cbr-inx-15 {ECO:0000313|EMBL:CAP31094.1},
+GN   inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=CBG12053 {ECO:0000313|WormBase:CBG12053},
+GN   CBG_12053 {ECO:0000313|EMBL:CAP31094.1};
+OS   Caenorhabditis briggsae.
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Rhabditida;
+OC   Rhabditoidea; Rhabditidae; Peloderinae; Caenorhabditis.
+OX   NCBI_TaxID=6238 {ECO:0000313|EMBL:CAP31094.1, ECO:0000313|Proteomes:UP000008549};
+RN   [1] {ECO:0000313|EMBL:CAP31094.1, ECO:0000313|Proteomes:UP000008549}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=AF16 {ECO:0000313|EMBL:CAP31094.1,
+RC   ECO:0000313|Proteomes:UP000008549};
+RX   PubMed=14624247; DOI=10.1371/journal.pbio.0000045;
+RA   Stein L.D., Bao Z., Blasiar D., Blumenthal T., Brent M.R., Chen N.,
+RA   Chinwalla A., Clarke L., Clee C., Coghlan A., Coulson A.,
+RA   D'Eustachio P., Fitch D.H., Fulton L.A., Fulton R.E.,
+RA   Griffiths-Jones S., Harris T.W., Hillier L.W., Kamath R.,
+RA   Kuwabara P.E., Mardis E.R., Marra M.A., Miner T.L., Minx P.,
+RA   Mullikin J.C., Plumb R.W., Rogers J., Schein J.E., Sohrmann M.,
+RA   Spieth J., Stajich J.E., Wei C., Willey D., Wilson R.K., Durbin R.,
+RA   Waterston R.H.;
+RT   "The genome sequence of Caenorhabditis briggsae: a platform for
+RT   comparative genomics.";
+RL   PLoS Biol. 1:166-192(2003).
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane
+CC       {ECO:0000256|RuleBase:RU010713}; Multi-pass membrane protein
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; HE601540; CAP31094.1; -; Genomic_DNA.
+DR   RefSeq; XP_002646340.1; XM_002646294.1.
+DR   EnsemblMetazoa; CBG12053; CBG12053; CBG12053.
+DR   GeneID; 8588337; -.
+DR   KEGG; cbr:CBG12053; -.
+DR   CTD; 8588337; -.
+DR   WormBase; CBG12053; CBP08970; WBGene00033062; Cbr-inx-15.
+DR   eggNOG; ENOG410J9A9; Eukaryota.
+DR   eggNOG; ENOG4111AUT; LUCA.
+DR   InParanoid; A8XEF9; -.
+DR   OMA; ENTYYVP; -.
+DR   OrthoDB; EOG74N5G9; -.
+DR   Proteomes; UP000008549; Chromosome I.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005886; C:plasma membrane; IEA:UniProtKB-SubCell.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000008549};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000008549};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     31     56       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     98    120       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    190    211       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    269    290       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   381 AA;  44299 MW;  2AE95F85863B4780 CRC64;
+     MDQIIGLVTQ YTDKRHEDDF IDRLNFQYTS YVFALSALVI GYNTYFGTAI SCWTPAEFKK
+     GWVEYTRDYC LIENTYYVPL EDPNMPPEHY REERELTYYQ WVQFILVFLA FLFYLPYLYW
+     STVNWWSGLQ VKAVVAAACK LNKTDVKGRQ DQIEKIASHL KKFIDRQGRK SPIPFIPNAI
+     GRNWVSFNYV LTKSLFVINL FAQMLLIHFF LGFDMDDFLS LKVGFGSNWI ADGIFPRQTM
+     CDFEVRKKGS IQKYSVQCVL SMNMLNEKIF LALFYWLLAL IILTVTNLIL SLQHFFRASS
+     REAFVRRMLT AGGHGSTDDD TGSQRDEKEP LVDRPTKYSN DYNRILSVNP DVVVVLHLIA
+     KNAGDNVCQS VVNVLFKKLS E
+//
+ID   A8XEF8_CAEBR            Unreviewed;       374 AA.
+AC   A8XEF8;
+DT   15-JAN-2008, integrated into UniProtKB/TrEMBL.
+DT   16-DEC-2008, sequence version 2.
+DT   11-MAY-2016, entry version 47.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-16 {ECO:0000313|WormBase:CBG12052};
+GN   Synonyms=Cbr-inx-16 {ECO:0000313|EMBL:CAP31093.2},
+GN   inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=CBG12052 {ECO:0000313|WormBase:CBG12052},
+GN   CBG_12052 {ECO:0000313|EMBL:CAP31093.2};
+OS   Caenorhabditis briggsae.
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Rhabditida;
+OC   Rhabditoidea; Rhabditidae; Peloderinae; Caenorhabditis.
+OX   NCBI_TaxID=6238 {ECO:0000313|EMBL:CAP31093.2, ECO:0000313|Proteomes:UP000008549};
+RN   [1] {ECO:0000313|EMBL:CAP31093.2, ECO:0000313|Proteomes:UP000008549}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=AF16 {ECO:0000313|EMBL:CAP31093.2,
+RC   ECO:0000313|Proteomes:UP000008549};
+RX   PubMed=14624247; DOI=10.1371/journal.pbio.0000045;
+RA   Stein L.D., Bao Z., Blasiar D., Blumenthal T., Brent M.R., Chen N.,
+RA   Chinwalla A., Clarke L., Clee C., Coghlan A., Coulson A.,
+RA   D'Eustachio P., Fitch D.H., Fulton L.A., Fulton R.E.,
+RA   Griffiths-Jones S., Harris T.W., Hillier L.W., Kamath R.,
+RA   Kuwabara P.E., Mardis E.R., Marra M.A., Miner T.L., Minx P.,
+RA   Mullikin J.C., Plumb R.W., Rogers J., Schein J.E., Sohrmann M.,
+RA   Spieth J., Stajich J.E., Wei C., Willey D., Wilson R.K., Durbin R.,
+RA   Waterston R.H.;
+RT   "The genome sequence of Caenorhabditis briggsae: a platform for
+RT   comparative genomics.";
+RL   PLoS Biol. 1:166-192(2003).
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane
+CC       {ECO:0000256|RuleBase:RU010713}; Multi-pass membrane protein
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; HE601540; CAP31093.2; -; Genomic_DNA.
+DR   STRING; 6238.CBG12052; -.
+DR   EnsemblMetazoa; CBG12052; CBG12052; CBG12052.
+DR   WormBase; CBG12052; CBP36378; WBGene00033061; Cbr-inx-16.
+DR   eggNOG; ENOG410J9RJ; Eukaryota.
+DR   eggNOG; ENOG4111EB7; LUCA.
+DR   InParanoid; A8XEF8; -.
+DR   OMA; HSPQKAN; -.
+DR   OrthoDB; EOG7327SN; -.
+DR   Proteomes; UP000008549; Chromosome I.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005886; C:plasma membrane; IEA:UniProtKB-SubCell.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000008549};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000008549};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     26     44       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     98    115       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    184    208       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    262    286       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   374 AA;  43975 MW;  3AA1531109A5A673 CRC64;
+     MLNNIKHYAQ TVTKLSDHDD SSIDRLNYVI TTSILLGFSL LLFAKNYVGE PMQCWTPNQF
+     NDGWESFAEQ YCFIENTYFV PMQDSNLPAA DTREDREMIY YQWVPFLLII QALFFCIPRA
+     YWIIFPSYTG LTIADMITAA RKNGKQLESA DKALEQVALV NWRAEQQKGH NGSRIFNCYL
+     IMKLLILINI ILQFFLLNSF LNTAYTFWGW GIFWDMFHGR HWQESGHFPR VSFCDINVRE
+     LGNVHHWSLQ CVLMVNMFNE KIFIFLWFWF AFLLIATTFD FIIWVWRRFD KQSRIGFILD
+     LLNQEGIDHS PQKANELYHN VLRDDGVLFL RLLDSNSGRL NSEELMKKIY NLSVGTHAPH
+     ASIDSESDSN QQRS
+//
+ID   A0A0B2VB60_TOXCA        Unreviewed;       366 AA.
+AC   A0A0B2VB60;
+DT   04-MAR-2015, integrated into UniProtKB/TrEMBL.
+DT   04-MAR-2015, sequence version 1.
+DT   09-DEC-2015, entry version 5.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-16 {ECO:0000313|EMBL:KHN78220.1};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=Tcan_06337 {ECO:0000313|EMBL:KHN78220.1};
+OS   Toxocara canis (Canine roundworm).
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Ascaridida;
+OC   Ascaridoidea; Toxocaridae; Toxocara.
+OX   NCBI_TaxID=6265 {ECO:0000313|EMBL:KHN78220.1, ECO:0000313|Proteomes:UP000031036};
+RN   [1] {ECO:0000313|EMBL:KHN78220.1, ECO:0000313|Proteomes:UP000031036}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=PN_DK_2014 {ECO:0000313|EMBL:KHN78220.1};
+RA   Zhu X.-Q., Korhonen P.K., Cai H., Young N.D., Nejsum P.,
+RA   von Samson-Himmelstjerna G., Boag P.R., Tan P., Li Q., Min J.,
+RA   Yang Y., Wang X., Fang X., Hall R.S., Hofmann A., Sternberg P.W.,
+RA   Jex A.R., Gasser R.B.;
+RT   "Genetic blueprint of the zoonotic pathogen Toxocara canis.";
+RL   Submitted (NOV-2014) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- CAUTION: Lacks conserved residue(s) required for the propagation
+CC       of feature annotation. {ECO:0000256|RuleBase:RU010713}.
+CC   -!- CAUTION: The sequence shown here is derived from an
+CC       EMBL/GenBank/DDBJ whole genome shotgun (WGS) entry which is
+CC       preliminary data. {ECO:0000313|EMBL:KHN78220.1}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; JPKZ01002145; KHN78220.1; -; Genomic_DNA.
+DR   Proteomes; UP000031036; Unassembled WGS sequence.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 2.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000031036};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000031036};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     27     45       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    106    125       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    218    246       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   366 AA;  41643 MW;  7F038FAD9DEA81E6 CRC64;
+     MFLWPDEIGG RLSALRSDPT DDIVDRLNYV YTVSLLVFFA ALVGAKQHFG SPIQCMAPAH
+     FPGTWTNYAH DYCFVSNTYS LNVTKPITDG LTTGTVTKQE IVYYQWVPYV LVIQAFLLLV
+     PKIFWNSITS FHGGDEAAFH ESLIFTCPTA RKDCFVRCPI LAQYSHKLLN DFAVGHTWRT
+     TGMFPRVTFC DFNIAHLAQT NVYSVQCVLM VNILNEKIFL FLWFWITALT AVDLLSAFYT
+     TFVFITPSFR RSRILRLFQI EANERSGAEG QAFSRFMRHS LKPDSALLLW FVNSHAGGLI
+     ANELAWQIWG TVNSSQRLPR SLGKQDWIGK KTRGVSPPID AYDGPHRHML RSLSTDSTLT
+     ARNRIE
+//
+ID   A0A0V0W5E2_9BILA        Unreviewed;       410 AA.
+AC   A0A0V0W5E2;
+DT   16-MAR-2016, integrated into UniProtKB/TrEMBL.
+DT   16-MAR-2016, sequence version 1.
+DT   08-JUN-2016, entry version 4.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-16 {ECO:0000313|EMBL:KRX70912.1};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=T06_16604 {ECO:0000313|EMBL:KRX70912.1};
+OS   Trichinella sp. T6.
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Enoplea; Dorylaimia;
+OC   Trichocephalida; Trichinellidae; Trichinella.
+OX   NCBI_TaxID=92179 {ECO:0000313|EMBL:KRX70912.1, ECO:0000313|Proteomes:UP000054673};
+RN   [1] {ECO:0000313|EMBL:KRX70912.1, ECO:0000313|Proteomes:UP000054673}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=ISS34 {ECO:0000313|EMBL:KRX70912.1};
+RA   Korhonen P.K., Edoardo P., Giuseppe L.R., Gasser R.B.;
+RT   "Evolution of Trichinella species and genotypes.";
+RL   Submitted (JAN-2015) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- CAUTION: Lacks conserved residue(s) required for the propagation
+CC       of feature annotation. {ECO:0000256|RuleBase:RU010713}.
+CC   -!- CAUTION: The sequence shown here is derived from an
+CC       EMBL/GenBank/DDBJ whole genome shotgun (WGS) entry which is
+CC       preliminary data. {ECO:0000313|EMBL:KRX70912.1}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; JYDK01000261; KRX70912.1; -; Genomic_DNA.
+DR   Proteomes; UP000054673; Unassembled WGS sequence.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 2.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000054673};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000054673};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     20     39       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     97    119       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   410 AA;  47924 MW;  17FD9AFB02BCA24D CRC64;
+     MFPLDNKFDM FFNFYGFEDF IDRMHFLFTV KVVVTYLVVM SFTDILTPRI KCWSPHHFVK
+     SWENYAETYC FIHSTYYYTN SSIVEDTEGK KHGFHFWATY VLAIQAILFA TPAVIAAFLT
+     KKSTANILSL INTNVESPSK EDEIITQFIA VSWIFKRKSF FWGVEVAVEY FKTGKWSQSE
+     HFPITTFCDF NVREMNEVIN HTVQCMIATT VHLIIWTRSS FSLSNHVDFI NQCLELTTKD
+     KDNDLVVKFT KEILQWDGVK LLRLIKLKLS NIAAKTITRN LFREFTRECC VTSGNEETVI
+     STENSREERR NQKNGERKQT LPFPRDMFSI GCALFTSLDS VLFPESEPIH RCKFHNCLLS
+     TSSESVVFPD MEPIYGLPYS ELFSNHFFEQ NFTYKVATVQ QIPIQILYQI
+//
+ID   O61786_CAEEL            Unreviewed;       382 AA.
+AC   O61786;
+DT   01-AUG-1998, integrated into UniProtKB/TrEMBL.
+DT   01-AUG-1998, sequence version 1.
+DT   08-JUN-2016, entry version 88.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=inx-15 {ECO:0000313|EMBL:CCD65176.1,
+GN   ECO:0000313|WormBase:R12E2.9};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=CELE_R12E2.9 {ECO:0000313|EMBL:CCD65176.1},
+GN   R12E2.9 {ECO:0000313|WormBase:R12E2.9};
+OS   Caenorhabditis elegans.
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Rhabditida;
+OC   Rhabditoidea; Rhabditidae; Peloderinae; Caenorhabditis.
+OX   NCBI_TaxID=6239 {ECO:0000313|EMBL:CCD65176.1, ECO:0000313|Proteomes:UP000001940};
+RN   [1] {ECO:0000313|EMBL:CCD65176.1, ECO:0000313|Proteomes:UP000001940}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=Bristol N2 {ECO:0000313|EMBL:CCD65176.1,
+RC   ECO:0000313|Proteomes:UP000001940};
+RX   PubMed=9851916; DOI=10.1126/science.282.5396.2012;
+RG   Caenorhabditis elegans Sequencing Consortium;
+RA   Sulson J.E., Waterston R.;
+RT   "Genome sequence of the nematode C. elegans: a platform for
+RT   investigating biology.";
+RL   Science 282:2012-2018(1998).
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane
+CC       {ECO:0000256|RuleBase:RU010713}; Multi-pass membrane protein
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; BX284601; CCD65176.1; -; Genomic_DNA.
+DR   PIR; T33090; T33090.
+DR   RefSeq; NP_491313.1; NM_058912.4.
+DR   UniGene; Cel.147; -.
+DR   STRING; 6239.R12E2.9; -.
+DR   EPD; O61786; -.
+DR   PaxDb; O61786; -.
+DR   PRIDE; O61786; -.
+DR   EnsemblMetazoa; R12E2.9; R12E2.9; WBGene00002137.
+DR   GeneID; 172004; -.
+DR   KEGG; cel:CELE_R12E2.9; -.
+DR   UCSC; R12E2.9; c. elegans.
+DR   CTD; 172004; -.
+DR   WormBase; R12E2.9; CE18141; WBGene00002137; inx-15.
+DR   eggNOG; ENOG410J9A9; Eukaryota.
+DR   eggNOG; ENOG4111AUT; LUCA.
+DR   GeneTree; ENSGT00530000064205; -.
+DR   HOGENOM; HOG000114921; -.
+DR   InParanoid; O61786; -.
+DR   OMA; ENTYYVP; -.
+DR   OrthoDB; EOG74N5G9; -.
+DR   PhylomeDB; O61786; -.
+DR   Proteomes; UP000001940; Chromosome I.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005886; C:plasma membrane; IEA:UniProtKB-SubCell.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   1: Evidence at protein level;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000001940};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Proteomics identification {ECO:0000213|EPD:O61786,
+KW   ECO:0000213|PeptideAtlas:O61786};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000001940};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     28     46       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     98    120       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    194    213       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    269    289       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   382 AA;  44607 MW;  C15AA072B0543D06 CRC64;
+     MEFVVNLVTQ YTVQRHEDDF IDRLNFQYSA YVFALSALVI GYHTYFGRAI SCWTPAEFKG
+     GWNEYTTDYC LIENTYYVPL EDPNMPPERY REEKELSYYQ WVQFILVFLA FLFYLPYLYW
+     STVNWWSGLQ VKAVVDVACN LDKTDVGKRN AGIEKIASHL KKYIDRQGRK SPIPLIPNII
+     GRNWVSFNYI LTKFLFLVNL IAQMFLIHFF LGFDLDDFIS LRVGFGSNWI ANGIFPRQTM
+     CDFEIRKKGS IQKYSVQCVL SMNMLNEKVF LALFYWIIAL FFLTVWNLFT SFQHFFHASS
+     RKEFVRRMLS AGGHTLTDGG HGEEKVPLVE RPDGTYSNDY NRVLSINPDI VVVLHLIAKN
+     AGDNVCQNVV DMLFQKLSEK SQ
+//
+ID   A0A0H5SBJ0_BRUMA        Unreviewed;       129 AA.
+AC   A0A0H5SBJ0;
+DT   14-OCT-2015, integrated into UniProtKB/TrEMBL.
+DT   14-OCT-2015, sequence version 1.
+DT   08-JUN-2016, entry version 8.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=Bma-inx-15 {ECO:0000313|EMBL:CRZ25465.1};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=BM_Bm10752 {ECO:0000313|EMBL:CRZ25465.1};
+OS   Brugia malayi (Filarial nematode worm).
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Spirurida;
+OC   Filarioidea; Onchocercidae; Brugia.
+OX   NCBI_TaxID=6279 {ECO:0000313|EMBL:CRZ25465.1, ECO:0000313|Proteomes:UP000026912};
+RN   [1] {ECO:0000313|EMBL:CRZ25465.1, ECO:0000313|Proteomes:UP000006672}
+RP   NUCLEOTIDE SEQUENCE.
+RC   STRAIN=FR3 {ECO:0000313|EMBL:CRZ25465.1};
+RX   PubMed=17885136; DOI=10.1126/science.1145406;
+RA   Ghedin E., Wang S., Spiro D., Caler E., Zhao Q., Crabtree J.,
+RA   Allen J.E., Delcher A.L., Guiliano D.B., Miranda-Saavedra D.,
+RA   Angiuoli S.V., Creasy T., Amedeo P., Haas B., El-Sayed N.M.,
+RA   Wortman J.R., Feldblyum T., Tallon L., Schatz M., Shumway M., Koo H.,
+RA   Salzberg S.L., Schobel S., Pertea M., Pop M., White O., Barton G.J.,
+RA   Carlow C.K., Crawford M.J., Daub J., Dimmic M.W., Estes C.F.,
+RA   Foster J.M., Ganatra M., Gregory W.F., Johnson N.M., Jin J.,
+RA   Komuniecki R., Korf I., Kumar S., Laney S., Li B.W., Li W.,
+RA   Lindblom T.H., Lustigman S., Ma D., Maina C.V., Martin D.M.,
+RA   McCarter J.P., McReynolds L., Mitreva M., Nutman T.B., Parkinson J.,
+RA   Peregrin-Alvarez J.M., Poole C., Ren Q., Saunders L., Sluder A.E.,
+RA   Smith K., Stanke M., Unnasch T.R., Ware J., Wei A.D., Weil G.,
+RA   Williams D.J., Zhang Y., Williams S.A., Fraser-Liggett C., Slatko B.,
+RA   Blaxter M.L., Scott A.L.;
+RT   "Draft genome of the filarial nematode parasite Brugia malayi.";
+RL   Science 317:1756-1760(2007).
+RN   [2] {ECO:0000313|Proteomes:UP000026912}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RA   Lucero-Rivera Y.E., Tovar-Ramirez D.;
+RL   Submitted (NOV-2012) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; LN857009; CRZ25465.1; -; Genomic_DNA.
+DR   EnsemblMetazoa; Bm10752; Bm10752; WBGene00231013.
+DR   Proteomes; UP000006672; Unassembled WGS sequence.
+DR   Proteomes; UP000026912; Unassembled WGS sequence.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-UniRule.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000006672};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000006672};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   129 AA;  15115 MW;  869D038564A23DD7 CRC64;
+     MDKLSIVIES LTKPRYEEDF VDRLNYHITT LILLIAAFTI IAKEYGGDPI QCWLPAELAS
+     QKSWEQYAED YCFVENTYYI PLEQNMPQSE KHRDERLITY YQVRASTHSF VSCGLVFCLD
+     QFGWIGMLV
+//
+ID   E3MGD6_CAERE            Unreviewed;       384 AA.
+AC   E3MGD6;
+DT   11-JAN-2011, integrated into UniProtKB/TrEMBL.
+DT   11-JAN-2011, sequence version 1.
+DT   11-MAY-2016, entry version 20.
+DE   RecName: Full=Innexin {ECO:0000256|RuleBase:RU010713};
+GN   Name=Cre-inx-15 {ECO:0000313|EMBL:EFP01414.1};
+GN   Synonyms=inx {ECO:0000256|RuleBase:RU010713};
+GN   ORFNames=CRE_23905 {ECO:0000313|EMBL:EFP01414.1};
+OS   Caenorhabditis remanei (Caenorhabditis vulgaris).
+OC   Eukaryota; Metazoa; Ecdysozoa; Nematoda; Chromadorea; Rhabditida;
+OC   Rhabditoidea; Rhabditidae; Peloderinae; Caenorhabditis.
+OX   NCBI_TaxID=31234 {ECO:0000313|Proteomes:UP000008281};
+RN   [1] {ECO:0000313|Proteomes:UP000008281}
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=PB4641 {ECO:0000313|Proteomes:UP000008281};
+RG   Caenorhabditis remanei Sequencing Consortium;
+RA   Wilson R.K.;
+RT   "PCAP assembly of the Caenorhabditis remanei genome.";
+RL   Submitted (JUL-2007) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Structural components of the gap junctions.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell junction, gap junction
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SUBCELLULAR LOCATION: Cell membrane
+CC       {ECO:0000256|RuleBase:RU010713}; Multi-pass membrane protein
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -!- SIMILARITY: Belongs to the pannexin family.
+CC       {ECO:0000256|RuleBase:RU010713}.
+CC   -----------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution-NoDerivs License
+CC   -----------------------------------------------------------------------
+DR   EMBL; DS268443; EFP01414.1; -; Genomic_DNA.
+DR   RefSeq; XP_003104763.1; XM_003104715.1.
+DR   EnsemblMetazoa; CRE23905; CRE23905; CRE23905.
+DR   GeneID; 9809134; -.
+DR   CTD; 9809134; -.
+DR   eggNOG; ENOG410J9A9; Eukaryota.
+DR   eggNOG; ENOG4111AUT; LUCA.
+DR   InParanoid; E3MGD6; -.
+DR   OMA; ENTYYVP; -.
+DR   Proteomes; UP000008281; Unassembled WGS sequence.
+DR   GO; GO:0005921; C:gap junction; IEA:UniProtKB-SubCell.
+DR   GO; GO:0016021; C:integral component of membrane; IEA:UniProtKB-KW.
+DR   GO; GO:0005886; C:plasma membrane; IEA:UniProtKB-SubCell.
+DR   GO; GO:0006811; P:ion transport; IEA:UniProtKB-KW.
+DR   InterPro; IPR000990; Innexin.
+DR   PANTHER; PTHR11893; PTHR11893; 1.
+DR   Pfam; PF00876; Innexin; 1.
+DR   PRINTS; PR01262; INNEXIN.
+DR   PROSITE; PS51013; PANNEXIN; 1.
+PE   3: Inferred from homology;
+KW   Cell junction {ECO:0000256|RuleBase:RU010713};
+KW   Complete proteome {ECO:0000313|Proteomes:UP000008281};
+KW   Gap junction {ECO:0000256|RuleBase:RU010713};
+KW   Ion channel {ECO:0000256|RuleBase:RU010713};
+KW   Ion transport {ECO:0000256|RuleBase:RU010713};
+KW   Membrane {ECO:0000256|RuleBase:RU010713};
+KW   Reference proteome {ECO:0000313|Proteomes:UP000008281};
+KW   Transmembrane {ECO:0000256|RuleBase:RU010713};
+KW   Transmembrane helix {ECO:0000256|RuleBase:RU010713};
+KW   Transport {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     31     53       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM     98    120       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    194    213       Helical. {ECO:0000256|RuleBase:RU010713}.
+FT   TRANSMEM    269    289       Helical. {ECO:0000256|RuleBase:RU010713}.
+SQ   SEQUENCE   384 AA;  44857 MW;  AE31A0BAE3301989 CRC64;
+     MDQILSLVTQ YTDKRHEDDF IDRLNFQYTS YVFALSALII GYNTYFGTAI SCWTPAEFKK
+     GWVEYTRDYC LIENTYYVPI EDPNMPPERY REERELTYYQ WVQFILVFLA FLFYLPYLYW
+     STVNWWSGLQ VKAVVDEACK LDKTDVQSRE KQIERIANHL KKYIDRQGRK SPIPFIPNAI
+     GRNWVSFNYV LTKALFVVNL MAQMILIHFF LGFDIDDFLS LRVGFGSNWI ANGIFPRQTM
+     CDFEVRKKGS IQKYSVQCVL SMNMLNEKIF LALFYWLLAL LLLTIWNLVS SFEHFFRDSS
+     RKAFVSRMLS AGGHGSTDDD AGSQSDEKVP LVERPTNYTN DYNRALSINR DVVVVLHLIA
+     KNAGDNVCQN VVSVLFKKLS EKSQ
+//
+//
