@@ -10,101 +10,42 @@
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
+
 ## Description
-The BuddySuite modules are designed to be 'one-stop-shop' command line tools for common biological data file
- manipulations.
+The BuddySuite modules are 'one-stop-shop' command line tools for common biological data file
+ manipulations. Formats are detected automatically, conversions are seamless, and you can pipe into
+ or out of the modules, allowing you to spend more time analyzing your sequences, alignments, and phylogenetic
+ trees, instead of wrangling them.
 
-[SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) is the most mature BuddySuite tool, although
- [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy) and
- [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy) are also functional with a more limited number
- of commands. [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy) is a very different project,
- existing mostly as a 'live shell' for downloading sequences from GenBank, ENSEMBL, and UniProt.
-
-Being pure Python, the BuddySuite should be cross platform. Development and testing have been done on Linux
- and Mac OS X, however, so it is unclear how well the suite will work within Windows. 
+For example, the following command reads in three sequence files (all in different formats), pulls out records with RefSeq identifiers,
+ calls MAFFT to generate an alignment, shifts gaps to force a codon alignment, calls RAxML to infer a phylogeny, and then roots
+ the tree at its midpoint.
  
-If you're new to the command line, or simply want to get a better feel for how BuddySuite works, check out the [Beginners Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide).
+`$: ﻿seqbuddy seqs1.gb seqs2.embl seqs3.fasta --pull_records "[XN]M" | alignbuddy --generate_alignment mafft | alignbuddy --enforce_triplets | phylobuddy --generate_tree raxmlHPC-SSE3 | phylobuddy --root`
 
-## Installation 
-Clone the repository to your local machine and run setup.py installer (or
- [fork](https://help.github.com/articles/fork-a-repo/) it if planning to develop):
+BuddySuite is a Python3 project, developed and tested on Linux and Mac OS X. It should generally work on Windows as well, but
+ testing on Windows has been extremely limited.
 
-    $: git clone https://github.com/biologyguy/BuddySuite.git
-    $: cd BuddySuite
-    $: python3 setup.py install clean
-    
-The project should now be in your Python PATH along with sym-links to the executables. For example:
+## Getting started
+The simplest way to get up and running is:
+
+```bash
+$: pip install buddysuite 
+$: buddysuite -setup
+```
+
+Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
+
+There is also a short [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
+
+Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
+ complete with worked examples and explanations for all arguments/options.
  
-    $: which seqbuddy
-    >>> /usr/local/anaconda/bin/seqbuddy
+* [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) 
+* [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
+* [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
+* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy). 
 
-And to get started, simply use the 'help' flag
-
-    $: seqbuddy -h
-
-For a detailed breakdown of the tools available within each module, check out the
- [BuddySuite wiki](https://github.com/biologyguy/BuddySuite/wiki).
- 
-### Create shortcuts (OPTIONAL)
-We also recommend creating a set of short-form symbolic links or aliases to each program, which are very convenient if
- using the programs on a regular basis. Furthermore, all of the 
- [examples in the wiki](https://github.com/biologyguy/buddysuite/wiki) use the following short forms:
-
-*Tool* | *Short-form*
----------- | -------- 
-AlignBuddy | alb
-DatabaseBuddy | db
-PhyloBuddy | pb
-SeqBuddy | sb
- 
-First check to make sure the short-form command doesn't already exist; for example, the
- following should not return anything:
- 
-    $: which sb
-    >>>
-
-If there is a conflict, choose something else that seems reasonable (e.g., 'sbd' or 'sqb'). Now either create aliases
- or symbolic links:
-
-**Aliases**
-
-Copy the following into either the `.bashrc`, `.profile`, or `.bash_profile` (system dependent) file in your home directory:
-  
-    alias sb="seqbuddy"
-    alias alb="alignbuddy"
-    alias pb="phylobuddy"
-    alias db="databasebuddy"
-
-Then restart your terminal
-
-**Symbolic Links**
-
-For each program, replace the necessary path components in the command below and run from the shell
-
-    $: ln -s /<your>/<path>/<to>/BuddySuite/buddysuite/SeqBuddy.py /usr/local/bin/sb
-
-You should now be able to see the short form commands in your PATH, e.g.,:
-
-    $: which sb
-    >>> /usr/local/bin/sb
-
-## Dependencies
-This project has been written in Python3 and is not backwards compatible with Python2. If Python3 is not currently
- installed on your system, we highly recommend using the free [Anaconda manager](http://continuum.io/downloads#py34)
- from Continuum Analytics (if you experience any difficulty, 
- [click here](https://github.com/biologyguy/BuddySuite/wiki/anaconda)). Alternatively, the software can be downloaded 
- directly from the [Python Software Foundation](https://www.python.org/downloads/).
-
-AlignBuddy and PhyloBuddy can be used to launch a number of third party alignment and tree building programs, but
- installation of these optional programs is up to you. For example, if you wish to use PhyloBuddy to build a 
- phylogenetic tree with RAxML, you will first need to get RAxML into your system PATH. 
-
-The SeqBuddy blast, bl2seq, and purge functions require access to the blastp, blastn, and blastdbcmd binaries from the
- [NCBI C++ toolkit](http://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/).
- 
-See the [Dependencies](https://github.com/biologyguy/BuddySuite/wiki/Dependencies) page for a full list of all
- third-party packages and software that BuddySuite requires or wraps.
- 
 ## Developers
 All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
  ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
@@ -112,17 +53,12 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
  [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on dependencies
  and instructions.
 
-## Unit tests
-We are striving for high unit test coverage with py.test. To run the tests:
-
-    $: cd BuddySuite/buddysuite
-    $: bash run_tests.sh
-
 ## Citation
-There is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+We are currently working on a [peer reviewed manuscript](https://github.com/biologyguy/BuddySuite/tree/develop/manuscript), but until then
+ there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
 
 ## Contact
-Any comments you may have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
- contact Steve Bond (lead developer) directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov)
+Any comments you have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
+ contact Steve Bond (lead developer) directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov).

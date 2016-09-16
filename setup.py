@@ -27,15 +27,17 @@ PACKAGES = [
 ]
 
 DEPENDENCIES = [
-    'biopython',
-    'ete3',
-    'six',
-    'dendropy',
     'pytest',
-    'scipy',
+    'pytest-xdist',
+    'pytest-cov',
     'numpy',
+    'scipy',
+    'six',
     'dill',
-    'suds-py3'
+    'suds-py3',
+    'biopython',
+    'dendropy',
+    'ete3',
 ]
 
 CLASSIFIERS = [
@@ -58,7 +60,8 @@ KEYWORDS = [
     'genetics',
     'genome',
     'phylogenetics',
-    'biology'
+    'biology',
+    'bioinformatics'
 ]
 
 ENTRY_POINTS = {
@@ -72,13 +75,15 @@ ENTRY_POINTS = {
 }
 
 setup(name='buddysuite',
-      version='1.2b.12',
+      version='1.2b.3',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
+      long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
       author='Stephen Bond',
       author_email='steve.bond@gmail.com',
       url='https://github.com/biologyguy/BuddySuite',
       packages=PACKAGES,
+      setup_requires=['numpy'],
       install_requires=DEPENDENCIES,
       entry_points=ENTRY_POINTS,
       license='Public Domain',

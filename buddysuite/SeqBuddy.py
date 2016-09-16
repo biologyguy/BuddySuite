@@ -605,7 +605,7 @@ def _guess_format(_input):
         _input.seek(0)
 
         possible_formats = ["stockholm", "fasta", "gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
-                            "fastq", "nexus", "embl", "seqxml", "clustal", "swiss"]
+                            "fastq", "embl", "nexus", "seqxml", "clustal", "swiss"]
         for next_format in possible_formats:
             try:
                 _input.seek(0)
