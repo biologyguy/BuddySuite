@@ -1214,6 +1214,11 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         except SystemError:
             _stderr("Error: Your system is non-graphical, so display_trees can not work. "
                     "Please use print_trees instead.")
+        except ImportError as err:
+            if "No module named 'PyQt4.QtGui'" in str(err):
+                _stderr("Unable to display trees because PyQt4 is not installed.\n"
+                        "If conda is installed, try $: conda install pyqt=4.11.4\n")
+            _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
         _exit("display_trees")
 
     # Distance
