@@ -1,12 +1,12 @@
-[![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=develop)](https://travis-ci.org/biologyguy/BuddySuite)
-[![Coverage Status](https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=develop)](https://coveralls.io/github/biologyguy/BuddySuite?branch=develop)
+[![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master)](https://travis-ci.org/biologyguy/BuddySuite)
+[![Coverage Status](https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=master)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
-<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/BuddySuite-logo.gif" /></a></p>
+<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.gif" /></a></p>
 <p align="center">
-<a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/SeqBuddy-logo.gif" width=20%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/AlignBuddy-logo.gif" width=25%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/DBBuddy-logo.gif" width=20%/></a>
-<a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/workshop/images/PhyloBuddy-logo.gif" width=25%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/SeqBuddy-logo.gif" width=20%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/AlignBuddy-logo.gif" width=25%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/DBBuddy-logo.gif" width=20%/></a>
+<a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/PhyloBuddy-logo.gif" width=25%/></a>
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
 ___
