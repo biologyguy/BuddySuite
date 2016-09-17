@@ -1186,9 +1186,14 @@ def remap_gapped_features(old_records, new_records):
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=720, github="https://github.com/biologyguy"),
-                Contributor("Karl", "Keat", commits=299, github="https://github.com/KarlKeat"),
-                Contributor("Jeremy", "Labarge", commits=25, github="https://github.com/biojerm")]
+contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
+                Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
+                Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
+                Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
+                Contributor("Jason", "Bowen", commits=6, github="https://github.com/jwbowen"),
+                Contributor("Todd", "Smith", commits=5, github="https://github.com/etiology"),
+                Contributor("Adam", "Palmer", commits=2, github="https://github.com/apalm112"),
+                Contributor("Helena", "Mendes-Soares", commits=1, github="https://github.com/mendessoares")]
 
 # NOTE: If this is added to, be sure to update the unit test!
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
