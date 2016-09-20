@@ -39,6 +39,10 @@ def mock_permissionerror(*args, **kwargs):
     raise PermissionError(args, kwargs)
 
 
+def mock_unicodeencodeerror(*args, **kwargs):
+    raise UnicodeEncodeError(str(args), str(kwargs), 1, 2, "baz")
+
+
 # Tests
 def string2hash(_input):
     return md5(_input.encode("utf-8")).hexdigest()
@@ -974,3 +978,37 @@ def test_remap_gapped_features(alb_resources, sb_resources):
             align_str += "%s\n" % align_feat
             new_str += "%s\n" % new_feat
     assert align_str == new_str
+
+
+def test_stderr(capsys):
+    br._stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    br._stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+
+
+def test_stdout(capsys):
+    br._stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    br._stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+
+def test_std_errors(capfd, monkeypatch):
+    monkeypatch.setattr(sys.stderr, "write", mock_unicodeencodeerror)
+    br._stderr("Hello std_err α", quiet=False)
+    out, err = capfd.readouterr()
+    assert err == "Hello std_err α"
+
+    monkeypatch.setattr(sys.stdout, "write", mock_unicodeencodeerror)
+    br._stdout("Hello std_out α", quiet=False)
+    out, err = capfd.readouterr()
+    assert out == "Hello std_out α"
+
+

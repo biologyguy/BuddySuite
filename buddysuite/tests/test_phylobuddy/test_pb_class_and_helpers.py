@@ -3,7 +3,7 @@
 """ tests basic functionality of PhyloBuddy class """
 import pytest
 
-from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, _convert_to_ete, _guess_format
+from ...PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
 from ... import buddy_resources as br
 import ete3
 
@@ -78,26 +78,6 @@ def test_guess_error(pb_odd_resources):
     except br.GuessError as e:
         assert "Could not automatically determine the format of" in str(e.value) and \
                "\nTry explicitly setting it with the -f flag." in str(e.value)
-
-
-def test_stderr(capsys):
-    _stderr("Hello std_err", quiet=False)
-    out, err = capsys.readouterr()
-    assert err == "Hello std_err"
-
-    _stderr("Hello std_err", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""
-
-
-def test_stdout(capsys):
-    _stdout("Hello std_out", quiet=False)
-    out, err = capsys.readouterr()
-    assert out == "Hello std_out"
-
-    _stdout("Hello std_out", quiet=True)
-    out, err = capsys.readouterr()
-    assert out == ""
 
 
 def test_phylobuddy_edges(pb_odd_resources):

@@ -285,7 +285,7 @@ class SeqBuddy(object):
         elif self.alpha in ['rna', 'r', IUPAC.ambiguous_rna]:
             self.alpha = IUPAC.ambiguous_rna
         else:
-            _stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
+            br._stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
             self.alpha = _guess_alphabet(sequences)
 
         for seq in sequences:
@@ -329,16 +329,17 @@ class SeqBuddy(object):
                     SeqIO.write(self.records, _ofile, self.out_format)
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
-                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                "Format changed to fasta to accommodate proper printing of records.\n")
+                        br._stderr("Warning: Alignment format detected but sequences are different lengths. "
+                                   "Format changed to fasta to accommodate proper printing of records.\n")
                         SeqIO.write(self.records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
-                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
-                                "Attempting phylip-relaxed.\n")
+                        br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
+                                   "Attempting phylip-relaxed.\n")
                         SeqIO.write(self.records, _ofile, "phylip-relaxed")
                     elif "Locus identifier" in str(e) and "is too long" in str(e) \
                             and self.out_format in ["gb", "genbank"]:
-                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        br._stderr("Warning: Genbank format returned an 'ID too long' error. "
+                                   "Format changed to EMBL.\n\n")
                         SeqIO.write(self.records, _ofile, "embl")
                     else:
                         raise e
@@ -417,7 +418,7 @@ def _check_for_blast_bin(blast_bin):
     if which(blast_bin):
         return True
     else:
-        _stderr("%s binary not found. " % blast_bin)
+        br._stderr("%s binary not found. " % blast_bin)
 
     if which("conda"):
         prompt = br.ask("Would you like to install BLAST with BioConda? [yes]/no: ")
@@ -429,13 +430,13 @@ def _check_for_blast_bin(blast_bin):
             if which(blast_bin):
                 return True
             else:
-                _stderr("Failed to install BLAST+ executables with Conda.\n")
+                br._stderr("Failed to install BLAST+ executables with Conda.\n")
                 return False
         else:
-            _stderr("Abort...\n")
+            br._stderr("Abort...\n")
             return False
     else:
-        _stderr("Please install BLAST+ executables.\n")
+        br._stderr("Please install BLAST+ executables.\n")
         return False
 
 
@@ -697,32 +698,6 @@ def make_copy(seqbuddy):
     return _copy
 
 
-def _stderr(message, quiet=False):
-    """
-    Send text to stderr
-    :param message: Text to write
-    :param quiet: Suppress message with True
-    :return: None
-    """
-    if not quiet:
-        sys.stderr.write(message)
-        sys.stderr.flush()
-    return
-
-
-def _stdout(message, quiet=False):
-    """
-    Send text to stdout
-    :param message: Text to write
-    :param quiet: Suppress message with True
-    :return: None
-    """
-    if not quiet:
-        sys.stdout.write(message)
-        sys.stdout.flush()
-    return
-
-
 # ################################################ MAIN API FUNCTIONS ################################################ #
 def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
     """
@@ -810,7 +785,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
             pass
         else:
             strand = None
-            _stderr("Warning: strand input not recognized. Value set to None.")
+            br._stderr("Warning: strand input not recognized. Value set to None.")
     else:
         strand = None
     qualifiers = [qualifiers] if isinstance(qualifiers, str) else qualifiers
@@ -1169,7 +1144,7 @@ def blast(subject, query, **kwargs):
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
-        _stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
+        br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
         query = "%s/query_db" % temp_dir.path
 
     else:
@@ -1204,8 +1179,8 @@ def blast(subject, query, **kwargs):
         black_list = ["db", "query", "subject", "out", "outfmt"]
         for no_no in black_list:
             if re.search("-%s" % no_no, kwargs["blast_args"]):
-                _stderr("Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" % no_no,
-                        quiet=kwargs["quiet"])
+                br._stderr("Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" %
+                           no_no, quiet=kwargs["quiet"])
                 kwargs["blast_args"] = re.sub("-%s .*-" % no_no, "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-%s .*$" % no_no, "", kwargs["blast_args"])
 
@@ -1235,7 +1210,7 @@ def blast(subject, query, **kwargs):
     blast_command = "%s -db %s -query %s/tmp.fa -out %s/out.txt -outfmt 6 -num_threads %s -evalue %s %s" % \
                     (blast_bin, query, tmp_dir.path, tmp_dir.path, num_threads, evalue, kwargs["blast_args"])
 
-    _stderr("Running...\n%s\n############################################################\n\n" %
+    br._stderr("Running...\n%s\n############################################################\n\n" %
             re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
     blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     blast_output = blast_output[1].decode("utf-8")
@@ -1389,7 +1364,7 @@ def count_codons(seqbuddy):
                     try:
                         data_table[codon] = [codontable[codon], 1, 0.0]
                     except KeyError:
-                        _stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
+                        br._stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
             data_table[codon][2] = round(data_table[codon][1] / float(num_codons) * 100, 3)
@@ -2243,7 +2218,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
             try:
                 batch.add(enzyme)
             except ValueError:
-                _stderr("Warning: %s not a known enzyme\n" % enzyme, quiet=quiet)
+                br._stderr("Warning: %s not a known enzyme\n" % enzyme, quiet=quiet)
 
     sites = []
     for rec in seqbuddy.records:
@@ -2252,7 +2227,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
-                _stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
+                br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
                 pass
             elif min_cuts <= len(value) <= max_cuts:
                 try:
@@ -2261,7 +2236,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
                         rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
                 except TypeError:
-                    _stderr("Warning: No-cutters not supported.\n", quiet=quiet)
+                    br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
                     pass
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
@@ -2488,7 +2463,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
     :param mode: Specify how sequences should be matched up {list, key}
             - list = records are mapped in index order
             - key = records are converted to a dict and matched by key
-    :param quiet: Suppress _stderr messages
+    :param quiet: Suppress br._stderr messages
     :return: A protein SeqBuddy with the DNA SeqBuddy's features
     """
     def _feature_map(feature):
@@ -2529,7 +2504,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
         for seq_id, nucl_rec in nucl_dict.items():
             if seq_id not in prot_dict:
                 stderr_written = True
-                _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
+                br._stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
                 continue
             else:
                 record_map.append((nucl_rec, prot_dict[seq_id]))
@@ -2537,7 +2512,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
         for seq_id, prot_rec in prot_dict.items():
             if seq_id not in nucl_dict:
                 stderr_written = True
-                _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
+                br._stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
                 record_map.append((None, prot_rec))
     else:
         raise ValueError("'mode' must be either 'key' or 'position'.")
@@ -2548,8 +2523,8 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
             continue
 
         if len(prot_rec.seq) * 3 not in [len(nucl_rec.seq), len(nucl_rec.seq) - 3]:
-            _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                    (nucl_rec.id, len(nucl_rec.seq), len(prot_rec.seq)), quiet)
+            br._stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                       (nucl_rec.id, len(nucl_rec.seq), len(prot_rec.seq)), quiet)
 
         prot_feature_hashes = []
         for feat in prot_rec.features:
@@ -2562,7 +2537,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
 
     protseqbuddy.records = br.remap_gapped_features(prot_copy.records, protseqbuddy.records)
     if stderr_written:
-        _stderr("\n", quiet)
+        br._stderr("\n", quiet)
     return protseqbuddy
 
 
@@ -2574,7 +2549,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     :param mode: Specify how sequences should be matched up {list, key}
             - list = records are mapped in index order
             - key = records are converted to a dict and matched by key
-    :param quiet: Suppress _stderr messages
+    :param quiet: Suppress br._stderr messages
     :return: A DNA SeqBuddy with the protein SeqBuddy's features
     """
     def _feature_map(feature):
@@ -2615,7 +2590,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
         for seq_id, prot_rec in prot_dict.items():
             if seq_id not in nucl_dict:
                 stderr_written = True
-                _stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
+                br._stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
                 continue
             else:
                 record_map.append((prot_rec, nucl_dict[seq_id]))
@@ -2623,7 +2598,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
         for seq_id, dna_rec in nucl_dict.items():
             if seq_id not in prot_dict:
                 stderr_written = True
-                _stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
+                br._stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
                 record_map.append((None, dna_rec))
 
     else:
@@ -2635,8 +2610,8 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
             continue
 
         if len(prot_rec.seq) * 3 not in [len(nucl_rec.seq), len(nucl_rec.seq) - 3]:
-            _stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
-                    (prot_rec.id, len(prot_rec.seq), len(nucl_rec.seq)), quiet)
+            br._stderr("Warning: size mismatch between aa and nucl seqs for %s --> %s, %s\n" %
+                       (prot_rec.id, len(prot_rec.seq), len(nucl_rec.seq)), quiet)
 
         dna_feature_hashes = []
         for feat in nucl_rec.features:
@@ -2655,7 +2630,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
 
     nuclseqbuddy.records = br.remap_gapped_features(nucl_copy.records, nuclseqbuddy.records)
     if stderr_written:
-        _stderr("\n", quiet)
+        br._stderr("\n", quiet)
     return nuclseqbuddy
 
 
@@ -3485,7 +3460,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     jobid, result_url, numseq_str, errinfo, warninfo = ret_value[0][:5]
                     if jobid not in ["None", ""]:
                         printer.clear()
-                        _stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
+                        br._stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
                         job_ids.append(jobid)
                         temp_dir.subdir(jobid)
                         with open("%s/%s.hashmap" % (job_dir, jobid), "w", encoding="utf-8") as ofile:
@@ -3570,9 +3545,9 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         results.append(jobid)
 
                     else:
-                        _stderr("\nError: Failed to download TOPCONS job {0} after 5 attempts. "
-                                "The data will be saved on the server for manual retrieval.\n"
-                                "A sequence name hash-map has been saved to {0}.hashmap".format(jobid), quiet=quiet)
+                        br._stderr("\nError: Failed to download TOPCONS job {0} after 5 attempts. "
+                                   "The data will be saved on the server for manual retrieval.\n"
+                                   "A sequence name hash-map has been saved to {0}.hashmap".format(jobid), quiet=quiet)
                         with open("%s.hashmap" % jobid, "w", encoding="utf-8") as ofile:
                             ofile.write(seqbuddy.print_hashmap())
                         failed.append(jobid)
@@ -3728,7 +3703,7 @@ def argparse_init():
     seq_set = ""
 
     if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
-        _stderr("Error: Output type '%s' is not recognized/supported\n" % in_args.out_format)
+        br._stderr("Error: Output type '%s' is not recognized/supported\n" % in_args.out_format)
         sys.exit()
 
     if in_args.guess_alphabet or in_args.guess_format:
@@ -3737,7 +3712,7 @@ def argparse_init():
     try:
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected so SeqBuddy is aborting...\n"
+                br._stderr("Warning: No input detected so SeqBuddy is aborting...\n"
                         "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
@@ -3745,7 +3720,7 @@ def argparse_init():
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
     except br.GuessError as e:
-        _stderr("GuessError: %s\n" % e, in_args.quiet)
+        br._stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     return in_args, seqbuddy
@@ -3755,24 +3730,24 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # ############################################ INTERNAL FUNCTIONS ################################################ #
     def _print_recs(_seqbuddy):
         if in_args.test:
-            _stderr("*** Test passed ***\n", in_args.quiet)
+            br._stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
             _in_place(str(_seqbuddy), in_args.sequence[0])
 
         else:
-            _stdout("{0}\n".format(str(_seqbuddy).rstrip()))
+            br._stdout("{0}\n".format(str(_seqbuddy).rstrip()))
 
     def _in_place(_output, file_path):
         if not os.path.exists(file_path):
-            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                    "file. Nothing was written.\n", in_args.quiet)
-            _stderr("%s\n" % _output.strip(), in_args.quiet)
+            br._stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                       "file. Nothing was written.\n", in_args.quiet)
+            br._stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
         if pass_through:
@@ -3787,7 +3762,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                     break
             if re_raise:
                 raise _err
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
+        br._stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(tool)
 
     def _exit(tool, skip=skip_exit):
@@ -3832,12 +3807,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                                         "and a location.\n"), "annotate")
         ftype = in_args.annotate[0]
         if ftype not in genbank_features:
-            _stderr("Warning: The provided annotation type is not part of the GenBank format standard\n\n",
-                    in_args.quiet)
+            br._stderr("Warning: The provided annotation type is not part of the GenBank format standard\n\n",
+                       in_args.quiet)
 
         if len(ftype) > 16:
-            _stderr("Warning: Feature type is longer than 16 characters and "
-                    "will be truncated if printed to GenBank/EMBL format\n\n", in_args.quiet)
+            br._stderr("Warning: Feature type is longer than 16 characters and "
+                       "will be truncated if printed to GenBank/EMBL format\n\n", in_args.quiet)
 
         flocation = in_args.annotate[1]
 
@@ -3861,7 +3836,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # Average length of sequences
     if in_args.ave_seq_length:
         clean = False if not in_args.ave_seq_length[0] or in_args.ave_seq_length[0] != "clean" else True
-        _stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
+        br._stdout("%s\n" % round(ave_seq_length(seqbuddy, clean), 2))
         _exit("ave_seq_length")
 
     # Back translate CDS
@@ -3887,10 +3862,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # BL2SEQ
     if in_args.bl2seq:
         if len(find_repeats(seqbuddy).repeat_ids):
-            _stderr("Warning: There are records with duplicate ids which will be renamed.\n", quiet=in_args.quiet)
+            br._stderr("Warning: There are records with duplicate ids which will be renamed.\n", quiet=in_args.quiet)
         try:
             output_dict = bl2seq(seqbuddy)
-            _stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
+            br._stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
             ids_already_seen = []
             for query_id, query_values in output_dict.items():
                 ids_already_seen.append(query_id)
@@ -3901,7 +3876,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                         continue
 
                     ident, length, evalue, bit_score = subj_values
-                    _stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
+                    br._stdout("%s\t%s\t%s\t%s\t%s\t%s\n" % (query_id, subj_id, ident, length, evalue, bit_score))
         except RuntimeError as e:
             _raise_error(e, "bl2seq", "not present in \$PATH or working directory")
         _exit("bl2seq")
@@ -3923,7 +3898,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             if len(blast_res) > 0:
                 _print_recs(blast_res)
             else:
-                _stdout("No significant matches found\n")
+                br._stdout("No significant matches found\n")
 
         except (RuntimeError, SystemError) as e:
             _raise_error(e, "blast")
@@ -3967,12 +3942,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 seqbuddy = concat_seqs(seqbuddy)
             codon_table = count_codons(seqbuddy)[1]
             for sequence_id in codon_table:
-                _stdout('#### {0} ####\n'.format(sequence_id))
-                _stdout('Codon\tAA\tNum\tPercent\n')
+                br._stdout('#### {0} ####\n'.format(sequence_id))
+                br._stdout('Codon\tAA\tNum\tPercent\n')
                 for codon in codon_table[sequence_id]:
                     data = codon_table[sequence_id][codon]
-                    _stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
-                _stdout('\n')
+                    br._stdout('{0}\t{1}\t{2}\t{3}\n'.format(codon, data[0], data[1], data[2]))
+                br._stdout('\n')
         except TypeError as e:
             _raise_error(e, "count_codons", "Nucleic acid sequence required, not protein or other.")
         _exit("count_codons")
@@ -3984,13 +3959,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             seqbuddy = concat_seqs(seqbuddy)
         count_residues(seqbuddy)
         for rec in seqbuddy.records:
-            _stdout("%s\n" % str(rec.id))
+            br._stdout("%s\n" % str(rec.id))
             for residue, counts in rec.buddy_data["res_count"].items():
                 try:
-                    _stdout("{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2)))
+                    br._stdout("{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2)))
                 except TypeError:
-                    _stdout("{0}:\t{1}\n".format(residue, counts))
-            _stdout("\n")
+                    br._stdout("{0}:\t{1}\n".format(residue, counts))
+            br._stdout("\n")
         _exit("count_residues")
 
     # Delete features
@@ -4038,20 +4013,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
-            _stderr("# ####################### Deleted records ######################## #\n", in_args.quiet)
+            br._stderr("# ####################### Deleted records ######################## #\n", in_args.quiet)
             for seq in deleted_seqs:
-                _stderr(seq.id, in_args.quiet)
+                br._stderr(seq.id, in_args.quiet)
                 if counter % columns == 0 or counter == len(deleted_seqs):
-                    _stderr("\n", in_args.quiet)
+                    br._stderr("\n", in_args.quiet)
                 else:
-                    _stderr("\t", in_args.quiet)
+                    br._stderr("\t", in_args.quiet)
                 counter += 1
-            _stderr("# ################################################################ #\n", in_args.quiet)
+            br._stderr("# ################################################################ #\n", in_args.quiet)
 
         if len(deleted_seqs) == 0:
-            _stderr("# ################################################################ #\n", in_args.quiet)
-            _stderr("# No sequence identifiers match %s\n" % ", ".join(search_terms), in_args.quiet)
-            _stderr("# ################################################################ #\n", in_args.quiet)
+            br._stderr("# ################################################################ #\n", in_args.quiet)
+            br._stderr("# No sequence identifiers match %s\n" % ", ".join(search_terms), in_args.quiet)
+            br._stderr("# ################################################################ #\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("delete_records")
 
@@ -4071,19 +4046,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         find_repeats(seqbuddy)
 
         if len(seqbuddy.repeat_ids) > 0:
-            _stderr("# ################################################################ #\n", in_args.quiet)
+            br._stderr("# ################################################################ #\n", in_args.quiet)
 
         if len(seqbuddy.repeat_ids) > 0 and scope in ["all", "ids"]:
-            _stderr("# Records with duplicate ids deleted\n", in_args.quiet)
+            br._stderr("# Records with duplicate ids deleted\n", in_args.quiet)
             counter = 1
             for seq in seqbuddy.repeat_ids:
-                _stderr(seq, in_args.quiet)
+                br._stderr(seq, in_args.quiet)
                 if counter % columns == 0 or counter == len(seqbuddy.repeat_ids):
-                    _stderr("\n", in_args.quiet)
+                    br._stderr("\n", in_args.quiet)
                 else:
-                    _stderr("\t", in_args.quiet)
+                    br._stderr("\t", in_args.quiet)
                 counter += 1
-            _stderr("\n", in_args.quiet)
+            br._stderr("\n", in_args.quiet)
             seqbuddy = delete_repeats(seqbuddy, 'ids')
             find_repeats(seqbuddy)
 
@@ -4094,26 +4069,26 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 rep_seq_ids[-1].append(rep_seq_id)
 
         if len(rep_seq_ids) > 0 and scope in ["all", "seqs"]:
-            _stderr("# Records with duplicate sequence deleted\n", in_args.quiet)
+            br._stderr("# Records with duplicate sequence deleted\n", in_args.quiet)
             counter = 1
             for repeat_seqs in rep_seq_ids:
-                _stderr("[", in_args.quiet)
+                br._stderr("[", in_args.quiet)
                 for _indx, rep_seq in enumerate(repeat_seqs):
-                    _stderr(rep_seq, in_args.quiet)
+                    br._stderr(rep_seq, in_args.quiet)
                     if _indx + 1 != len(repeat_seqs):
-                        _stderr(", ", in_args.quiet)
-                _stderr("]", in_args.quiet)
+                        br._stderr(", ", in_args.quiet)
+                br._stderr("]", in_args.quiet)
                 if counter % columns == 0 or counter == len(rep_seq_ids):
-                    _stderr("\n", in_args.quiet)
+                    br._stderr("\n", in_args.quiet)
                 else:
-                    _stderr(", ", in_args.quiet)
+                    br._stderr(", ", in_args.quiet)
                 counter += 1
 
         if len(rep_seq_ids) > 0:
-            _stderr("# ################################################################ #\n\n", in_args.quiet)
+            br._stderr("# ################################################################ #\n\n", in_args.quiet)
 
         else:
-            _stderr("No duplicate records found\n", in_args.quiet)
+            br._stderr("No duplicate records found\n", in_args.quiet)
 
         _print_recs(delete_repeats(seqbuddy, 'seqs'))
         _exit("delete_repeats")
@@ -4130,20 +4105,20 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         try:
             degenerate_sequence(seqbuddy, degen_args)
         except KeyError as e:
-            _stderr("Valid dictionaries:\n"
-                    "Arg\tDictionary\n"
-                    "1\tStandard Genetic Code\n"
-                    "2\tVertebrate Mitochondrial Code\n"
-                    "3\tYeast Mitochondrial Code\n"
-                    "4\tMold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code\n"
-                    "5\tInvertebrate Mitochondrial Code\n"
-                    "6\tCiliate / Dasycladacean / Hexamita Nuclear Code\n"
-                    "7\tEchinoderm and Flatworm Mitochondrial Code\n"
-                    "8\tEuplotid Nuclear Code\n"
-                    "9\tBacterial / Archaeal / Plant Plastid Code\n"
-                    "10\tAlternative Yeast Nuclear Code\n"
-                    "11\tAscidian Mitochondrial Code\n"
-                    "12\tAlternative Flatworm Mitochondrial Code\n\n", in_args.quiet)
+            br._stderr("Valid dictionaries:\n"
+                       "Arg\tDictionary\n"
+                       "1\tStandard Genetic Code\n"
+                       "2\tVertebrate Mitochondrial Code\n"
+                       "3\tYeast Mitochondrial Code\n"
+                       "4\tMold / Protozoan / Coelenterate Mitochondrial Code & Mycoplasma / Spiroplasma Code\n"
+                       "5\tInvertebrate Mitochondrial Code\n"
+                       "6\tCiliate / Dasycladacean / Hexamita Nuclear Code\n"
+                       "7\tEchinoderm and Flatworm Mitochondrial Code\n"
+                       "8\tEuplotid Nuclear Code\n"
+                       "9\tBacterial / Archaeal / Plant Plastid Code\n"
+                       "10\tAlternative Yeast Nuclear Code\n"
+                       "11\tAscidian Mitochondrial Code\n"
+                       "12\tAlternative Flatworm Mitochondrial Code\n\n", in_args.quiet)
             _raise_error(e, "degenerate_sequence", "Could not locate codon dictionary")
         except TypeError as e:
             _raise_error(e, "degenerate_sequence", "Nucleic acid sequence required, not protein")
@@ -4178,17 +4153,17 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                     break
 
             if islands:
-                _stderr('########### Islands identified ###########\n', in_args.quiet)
+                br._stderr('########### Islands identified ###########\n', in_args.quiet)
                 for _indx, rec in enumerate(seqbuddy.records):
                     if rec.buddy_data["cpgs"]:
                         value = ["%s-%s" % (x[0], x[1]) for x in rec.buddy_data["cpgs"]]
-                        _stderr("{0}: {1}".format(rec.id, ", ".join(value)), in_args.quiet)
+                        br._stderr("{0}: {1}".format(rec.id, ", ".join(value)), in_args.quiet)
                         if _indx + 1 != len(seqbuddy.records):
-                            _stderr("\n", in_args.quiet)
+                            br._stderr("\n", in_args.quiet)
 
-                _stderr('\n##########################################\n\n', in_args.quiet)
+                br._stderr('\n##########################################\n\n', in_args.quiet)
             else:
-                _stderr("# No Islands identified\n\n", in_args.quiet)
+                br._stderr("# No Islands identified\n\n", in_args.quiet)
             _print_recs(seqbuddy)
             _exit("find_CpG")
 
@@ -4202,18 +4177,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             for rec in seqbuddy.records:
                 pos_indices = rec.buddy_data['find_orfs']['+']
                 neg_indices = rec.buddy_data['find_orfs']['-']
-                _stderr("# {0}\n".format(rec.id), in_args.quiet)
+                br._stderr("# {0}\n".format(rec.id), in_args.quiet)
                 if len(pos_indices) <= 0:
-                    _stderr("(+) ORFs: None\n", in_args.quiet)
+                    br._stderr("(+) ORFs: None\n", in_args.quiet)
                 else:
                     orfs = ", ".join(["%s:%s" % (x[0], x[1]) for x in pos_indices if len(x) > 0])
-                    _stderr("(+) ORFs: %s\n" % orfs, in_args.quiet)
+                    br._stderr("(+) ORFs: %s\n" % orfs, in_args.quiet)
                 if len(neg_indices) <= 0:
-                    _stderr("(-) ORFs: None\n", in_args.quiet)
+                    br._stderr("(-) ORFs: None\n", in_args.quiet)
                 else:
                     orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
-                    _stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
-            _stderr("\n", in_args.quiet)
+                    br._stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
+            br._stderr("\n", in_args.quiet)
             _print_recs(seqbuddy)
         except TypeError as e:
             _raise_error(e, "find_orfs")
@@ -4231,17 +4206,17 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
                 num_matches += len(indices)
-            _stderr("#### {0} matches found across {1} sequences for "
-                    "pattern '{2}' ####\n".format(num_matches, len(seqbuddy), pattern), in_args.quiet)
+            br._stderr("#### {0} matches found across {1} sequences for "
+                       "pattern '{2}' ####\n".format(num_matches, len(seqbuddy), pattern), in_args.quiet)
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
                 if not len(indices):
-                    _stderr("{0}: None\n".format(rec.id), in_args.quiet)
+                    br._stderr("{0}: None\n".format(rec.id), in_args.quiet)
                 else:
-                    _stderr("{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices])), in_args.quiet)
+                    br._stderr("{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices])), in_args.quiet)
                     num_matches += len(indices)
 
-            _stderr("\n", in_args.quiet)
+            br._stderr("\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_pattern")
 
@@ -4251,39 +4226,39 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         find_repeats(seqbuddy)
 
         if len(seqbuddy.repeat_ids) > 0:
-            _stdout("#### Records with duplicate IDs: ####\n")
+            br._stdout("#### Records with duplicate IDs: ####\n")
             counter = 1
             for next_id in seqbuddy.repeat_ids:
                 if counter % columns == 0 or counter == len(seqbuddy.repeat_ids):
-                    _stdout("%s\n" % next_id)
+                    br._stdout("%s\n" % next_id)
                 else:
-                    _stdout("%s\t" % next_id)
+                    br._stdout("%s\t" % next_id)
                 counter += 1
 
-            _stdout("\n")
+            br._stdout("\n")
 
         else:
-            _stdout("#### No records with duplicate IDs ####\n\n")
+            br._stdout("#### No records with duplicate IDs ####\n\n")
 
         if len(seqbuddy.repeat_seqs) > 0:
-            _stdout("#### Records with duplicate sequences: ####\n")
+            br._stdout("#### Records with duplicate sequences: ####\n")
             counter = 1
             for next_id in seqbuddy.repeat_seqs:
-                _stdout("[")
+                br._stdout("[")
                 for _indx, seq_id in enumerate(seqbuddy.repeat_seqs[next_id]):
-                    _stdout("%s" % seq_id)
+                    br._stdout("%s" % seq_id)
                     if _indx + 1 != len(seqbuddy.repeat_seqs[next_id]):
-                        _stdout(", ")
-                _stdout("]")
+                        br._stdout(", ")
+                br._stdout("]")
 
                 if counter % columns != 0 and counter != len(seqbuddy.repeat_seqs):
-                    _stdout(", ")
+                    br._stdout(", ")
                 else:
-                    _stdout("\n")
+                    br._stdout("\n")
 
                 counter += 1
         else:
-            _stdout("#### No records with duplicate sequences ####\n")
+            br._stdout("#### No records with duplicate sequences ####\n")
 
         _exit("find_repeats")
 
@@ -4325,9 +4300,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
-        _stderr('# ### Restriction Sites (indexed at cut-site) ### #\n', in_args.quiet)
+        br._stderr('# ### Restriction Sites (indexed at cut-site) ### #\n', in_args.quiet)
         for tup in seqbuddy.restriction_sites:
-            _stderr("{0}\n".format(tup[0]), in_args.quiet)
+            br._stderr("{0}\n".format(tup[0]), in_args.quiet)
             restriction_list = tup[1]
             restriction_list = [[key, value] for key, value in restriction_list.items()]
             restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
@@ -4335,10 +4310,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             for _enzyme in restriction_list:
                 cut_sites = [str(x) for x in _enzyme[1]]
-                _stderr("{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites)), in_args.quiet)
+                br._stderr("{0}\t{1}\n".format(_enzyme[0], ", ".join(cut_sites)), in_args.quiet)
             if tup != seqbuddy.restriction_sites[-1]:
-                _stderr("\n", in_args.quiet)
-        _stderr("# ############################################### #\n\n", in_args.quiet)
+                br._stderr("\n", in_args.quiet)
+        br._stderr("# ############################################### #\n\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("find_restriction_sites")
 
@@ -4373,7 +4348,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         for next_seqbuddy in taxa_groups:
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
                                                 br.format_to_extension[next_seqbuddy.out_format])
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
 
@@ -4403,7 +4378,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         for next_seqbuddy in taxa_groups:
             in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
                                                 br.format_to_extension[next_seqbuddy.out_format])
-            _stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
+            br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
 
@@ -4419,18 +4394,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
                 seq_set = seq_set.split("/")[-1]
-                _stdout("%s\t-->\t" % seq_set)
+                br._stdout("%s\t-->\t" % seq_set)
             else:
-                _stdout("PIPE\t-->\t")
+                br._stdout("PIPE\t-->\t")
 
             if seqbuddy.alpha == IUPAC.protein:
-                _stdout("prot\n")
+                br._stdout("prot\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_dna:
-                _stdout("dna\n")
+                br._stdout("dna\n")
             elif seqbuddy.alpha == IUPAC.ambiguous_rna:
-                _stdout("rna\n")
+                br._stdout("rna\n")
             else:
-                _stdout("Undetermined\n")
+                br._stdout("Undetermined\n")
         _exit("guess_alphabet")
 
     # Guess format
@@ -4439,9 +4414,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
                 _format = _guess_format(seq_set)
                 if _format:
-                    _stdout("PIPE\t-->\t%s\n" % _format)
+                    br._stdout("PIPE\t-->\t%s\n" % _format)
                 else:
-                    _stdout("PIPE\t-->\tUnknown\n")
+                    br._stdout("PIPE\t-->\tUnknown\n")
             else:
                 try:
                     file_format = _guess_format(seq_set)
@@ -4450,9 +4425,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
                 seq_set = seq_set.split("/")[-1]
                 if not file_format:
-                    _stdout("%s\t-->\tUnknown\n" % seq_set)
+                    br._stdout("%s\t-->\tUnknown\n" % seq_set)
                 else:
-                    _stdout("%s\t-->\t%s\n" % (seq_set, file_format))
+                    br._stdout("%s\t-->\t%s\n" % (seq_set, file_format))
         _exit("guess_format")
 
     # Hash sequence ids
@@ -4465,14 +4440,14 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             hash_length = in_args.hash_seq_ids[0]
 
         if hash_length < 1:
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
-                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                       "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
             hash_length = 10
 
         if 32 ** hash_length <= len(seqbuddy) * 2:
             holder = ceil(log(len(seqbuddy) * 2, 32))
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
-                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
+                       "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
 
         hash_ids(seqbuddy, hash_length)
@@ -4481,7 +4456,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         hash_table += seqbuddy.print_hashmap()
         hash_table += "\n"
 
-        _stderr(hash_table, in_args.quiet)
+        br._stderr(hash_table, in_args.quiet)
         _print_recs(seqbuddy)
         _exit("hash_seq_ids")
 
@@ -4514,43 +4489,43 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # Isoelectric Point
     if in_args.isoelectric_point:
         if seqbuddy.alpha != IUPAC.protein:
-            _stderr("Nucleic acid sequences detected, converting to protein.\n\n")
+            br._stderr("Nucleic acid sequences detected, converting to protein.\n\n")
             seqbuddy = translate_cds(seqbuddy, quiet=True)
 
         isoelectric_point(seqbuddy)
-        _stderr("ID\tpI\n")
+        br._stderr("ID\tpI\n")
         for rec in seqbuddy.records:
-            _stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
+            br._stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
         _exit("isoelectric_point")
 
     # List features
     if in_args.list_features:
         for rec in seqbuddy.records:
-            _stdout('#### {0} ####\n'.format(rec.id))
+            br._stdout('#### {0} ####\n'.format(rec.id))
             if len(rec.features) > 0:
                 for feat in rec.features:
-                    _stdout('{0}\n'.format(feat.type))
+                    br._stdout('{0}\n'.format(feat.type))
                     if isinstance(feat.location, CompoundLocation):
-                        _stdout('\tLocations:\n')
+                        br._stdout('\tLocations:\n')
                         for part in feat.location.parts:
-                            _stdout('\t\t{0}-{1}\n'.format(part.start, part.end))
+                            br._stdout('\t\t{0}-{1}\n'.format(part.start, part.end))
                     elif isinstance(feat.location, FeatureLocation):
-                        _stdout('\tLocation:\n')
-                        _stdout('\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end))
+                        br._stdout('\tLocation:\n')
+                        br._stdout('\t\t{0}-{1}\n'.format(feat.location.start, feat.location.end))
                     if feat.strand == 1:
-                        _stdout('\tStrand: Sense(+)\n')
+                        br._stdout('\tStrand: Sense(+)\n')
                     elif feat.strand == -1:
-                        _stdout('\tStrand: Antisense(-)\n')
+                        br._stdout('\tStrand: Antisense(-)\n')
                     if str(feat.id) != '<unknown id>':
-                        _stdout('\tID: {0}\n'.format(feat.id))
+                        br._stdout('\tID: {0}\n'.format(feat.id))
                     if len(feat.qualifiers) > 0:
-                        _stdout('\tQualifiers:\n')
+                        br._stdout('\tQualifiers:\n')
                         qualifs = OrderedDict(sorted(feat.qualifiers.items()))
                         for key, qual in qualifs.items():
-                            _stdout('\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'")))
+                            br._stdout('\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'")))
             else:
-                _stdout('None\n')
-            _stdout("\n")
+                br._stdout('None\n')
+            br._stdout("\n")
 
         _exit("list_features")
 
@@ -4559,9 +4534,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         columns = 1 if not in_args.list_ids[0] else abs(in_args.list_ids[0])
         for indx, rec in enumerate(seqbuddy.records):
             if (indx + 1) % columns == 0 or (indx + 1) == len(seqbuddy.records):
-                _stdout("%s\n" % rec.id, )
+                br._stdout("%s\n" % rec.id, )
             else:
-                _stdout("%s\t" % rec.id)
+                br._stdout("%s\t" % rec.id)
         _exit("list_ids")
 
     # Lowercase
@@ -4648,11 +4623,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             molecular_weight(seqbuddy)
             mws = seqbuddy.molecular_weights
             if seqbuddy.alpha == (IUPAC.ambiguous_dna or IUPAC.unambiguous_dna):
-                _stderr("ID\tssDNA\tdsDNA\n")
+                br._stderr("ID\tssDNA\tdsDNA\n")
             elif seqbuddy.alpha == (IUPAC.ambiguous_rna or IUPAC.unambiguous_rna):
-                _stderr("ID\tssRNA\n")
+                br._stderr("ID\tssRNA\n")
             else:
-                _stderr("ID\tProtein\n")
+                br._stderr("ID\tProtein\n")
             for indx, value in enumerate(mws['ids']):
                 if len(mws['masses_ds']) != 0:
                     print("{0}\t{1}\t{2}".format(value, mws['masses_ss'][indx], mws['masses_ds'][indx]))
@@ -4664,7 +4639,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Number of sequences
     if in_args.num_seqs:
-        _stdout("%s\n" % num_seqs(seqbuddy))
+        br._stdout("%s\n" % num_seqs(seqbuddy))
         _exit("num_seqs")
 
     # Order sequence features alphabetically
@@ -4768,19 +4743,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # Purge
     if in_args.purge:
         purge(seqbuddy, in_args.purge)
-        _stderr("### Deleted record mapping ###\n", in_args.quiet)
+        br._stderr("### Deleted record mapping ###\n", in_args.quiet)
         for indx1, rec in enumerate(seqbuddy.records):
-            _stderr("%s\n" % rec.id, in_args.quiet)
+            br._stderr("%s\n" % rec.id, in_args.quiet)
             if rec.buddy_data["purge_set"]:
                 for indx2, del_seq_id in enumerate(rec.buddy_data["purge_set"]):
-                    _stderr(del_seq_id, in_args.quiet)
+                    br._stderr(del_seq_id, in_args.quiet)
                     if indx2 + 1 != len(rec.buddy_data["purge_set"]):
-                        _stderr(", ", in_args.quiet)
+                        br._stderr(", ", in_args.quiet)
             if indx1 + 1 != len(seqbuddy.records):
-                _stderr("\n\n", in_args.quiet)
+                br._stderr("\n\n", in_args.quiet)
             else:
-                _stderr("\n", in_args.quiet)
-        _stderr("##############################\n\n", in_args.quiet)
+                br._stderr("\n", in_args.quiet)
+        br._stderr("##############################\n\n", in_args.quiet)
 
         _print_recs(seqbuddy)
         _exit("purge")

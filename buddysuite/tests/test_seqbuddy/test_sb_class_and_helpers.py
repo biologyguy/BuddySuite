@@ -11,7 +11,7 @@ import subprocess
 
 from ... import buddy_resources as br
 from ...SeqBuddy import SeqBuddy, hash_ids, pull_recs, make_copy,\
-    _guess_alphabet, _guess_format, _stdout, _stderr, _feature_rc, _check_for_blast_bin, Popen
+    _guess_alphabet, _guess_format, _feature_rc, _check_for_blast_bin, Popen
 
 
 def test_instantiate_seqbuddy_from_file(sb_resources):
@@ -298,24 +298,3 @@ def test_make_copy(sb_resources, hf):
     tester = SeqBuddy(sb_resources.get_one("d f", mode="paths"))
     tester_copy = make_copy(tester)
     assert hf.buddy2hash(tester) == hf.buddy2hash(tester_copy)
-
-
-# ######################  '_stdout and _stderr' ###################### #
-def test_stdout(capsys):
-    _stdout("Hello std_out", quiet=False)
-    out, err = capsys.readouterr()
-    assert out == "Hello std_out"
-
-    _stdout("Hello std_out", quiet=True)
-    out, err = capsys.readouterr()
-    assert out == ""
-
-
-def test_stderr(capsys):
-    _stderr("Hello std_err", quiet=False)
-    out, err = capsys.readouterr()
-    assert err == "Hello std_err"
-
-    _stderr("Hello std_err", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""

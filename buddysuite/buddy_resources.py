@@ -1184,6 +1184,42 @@ def remap_gapped_features(old_records, new_records):
     return new_records
 
 
+def _stderr(message, quiet=False):
+    """
+    Send text to stderr
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
+    if not quiet:
+        try:
+            sys.stderr.write(message)
+            sys.stderr.flush()
+        except UnicodeEncodeError:  # Mainly a work around for Windows
+            message = message.encode("utf-8")
+            sys.stderr.buffer.write(message)
+            sys.stderr.flush()
+    return
+
+
+def _stdout(message, quiet=False):
+    """
+    Send text to stdout
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
+    if not quiet:
+        try:
+            sys.stdout.write(message)
+            sys.stdout.flush()
+        except UnicodeEncodeError:  # Mainly a work around for Windows
+            message = message.encode("utf-8")
+            sys.stdout.buffer.write(message)
+            sys.stdout.flush()
+    return
+
+
 # #################################################### VARIABLES ##################################################### #
 
 contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),

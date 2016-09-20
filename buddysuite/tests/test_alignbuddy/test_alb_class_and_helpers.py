@@ -9,7 +9,7 @@ from Bio.Alphabet import IUPAC
 from Bio import AlignIO
 
 from ... import buddy_resources as br
-from ...AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy, _stderr, _stdout
+from ...AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy
 from ...buddy_resources import GuessError, parse_format
 
 
@@ -306,26 +306,5 @@ def test_make_copy(alb_resources, hf):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
         hf.buddy2hash(tester) == hf.buddy2hash(alb)
-
-
-def test_stderr(capsys):
-    _stderr("Hello std_err", quiet=False)
-    out, err = capsys.readouterr()
-    assert err == "Hello std_err"
-
-    _stderr("Hello std_err", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""
-
-
-def test_stdout(capsys):
-    _stdout("Hello std_out", quiet=False)
-    out, err = capsys.readouterr()
-    assert out == "Hello std_out"
-
-    _stdout("Hello std_out", quiet=True)
-    out, err = capsys.readouterr()
-    assert out == ""
-
 
 # ToDo: def test_feature_remapper()
