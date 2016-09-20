@@ -1813,7 +1813,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Create directory if necessary
         line = os.path.abspath(line)
-        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        _dir, _file = os.path.split(line)
         try:
             os.makedirs(_dir, exist_ok=True)
         except PermissionError:
@@ -1997,7 +1997,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Ensure the specified directory exists
         line = os.path.abspath(line)
-        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        _dir, _file = os.path.split(line)
         if not os.path.isdir(_dir):
             _stdout("The specified directory does not exist. Please create it before continuing "
                     "(you can use the 'bash' command from within the DbBuddy Live Session).\n\n", format_in=RED,

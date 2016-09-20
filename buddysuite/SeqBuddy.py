@@ -1827,7 +1827,7 @@ def extract_regions(seqbuddy, positions):
             try:
                 # mth of nth
                 if "/" in _position:
-                    start, end = _position.split("/")
+                    start, end = os.path.split(_position)
                     end = process_single(int(end), rec_len)
                     if ":" in start:
                         range_start, range_end = start.split(":")
@@ -4393,7 +4393,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 seqbuddy = SeqBuddy("", in_format="raw")
 
             if str(type(seq_set)) != "<class '_io.TextIOWrapper'>":
-                seq_set = seq_set.split("/")[-1]
+                path, seq_set = os.path.split(seq_set)
                 br._stdout("%s\t-->\t" % seq_set)
             else:
                 br._stdout("PIPE\t-->\t")
@@ -4423,7 +4423,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
                     file_format = None
 
-                seq_set = seq_set.split("/")[-1]
+                path, seq_set = os.path.split(seq_set)
                 if not file_format:
                     br._stdout("%s\t-->\tUnknown\n" % seq_set)
                 else:
@@ -4815,16 +4815,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
         seqbuddy.out_format = in_args.screw_formats
         if in_args.in_place:  # Need to change the file extension
-            _path = os.path.abspath(in_args.sequence[0]).split("/")
-            if "." in _path[-1]:
-                _file = str(_path[-1]).split(".")
-                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[seqbuddy.out_format])
-
-            else:
-                _file = "%s.%s" % (_path[-1], br.format_to_extension[seqbuddy.out_format])
+            _path, ext = os.path.splitext(os.path.abspath(in_args.sequence[0]))
+            _path = "%s.%s" % (_path, br.format_to_extension[seqbuddy.out_format])
 
             os.remove(in_args.sequence[0])
-            in_args.sequence[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
+            in_args.sequence[0] = _path
             open(in_args.sequence[0], "w", encoding="utf-8").close()
 
         _print_recs(seqbuddy)

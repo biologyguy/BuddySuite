@@ -540,7 +540,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
         if os.path.exists(keep_temp):
             raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
                                   "choose another location to save temporary files."
-                                  % (alias, keep_temp.split('/')[-1]))
+                                  % (alias, os.path.split(keep_temp)[-1]))
 
     # Figure out what tool is being used
     tool = False
@@ -1385,16 +1385,11 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             phylobuddy.out_format = in_args.screw_formats
             if in_args.in_place and os.path.isfile(str(in_args.trees[0])):
                 # Need to change the file extension
-                _path = os.path.abspath(in_args.trees[0]).split("/")
-                if "." in _path[-1]:
-                    _file = str(_path[-1]).split(".")
-                    _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[phylobuddy.out_format])
-
-                else:
-                    _file = "%s.%s" % (_path[-1], br.format_to_extension[phylobuddy.out_format])
+                _path, ext = os.path.splitext(os.path.abspath(in_args.trees[0]))
+                _path = "%s.%s" % (_path, br.format_to_extension[phylobuddy.out_format])
 
                 os.remove(in_args.trees[0])
-                in_args.trees[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
+                in_args.trees[0] = _path
                 open(in_args.trees[0], "w", encoding="utf-8").close()
 
             _print_trees(phylobuddy)

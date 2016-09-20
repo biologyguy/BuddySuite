@@ -330,7 +330,7 @@ class TempDir(object):
         return subdir_path
 
     def del_subdir(self, _dir):
-        _dir = _dir.split("/")[-1]
+        path, _dir = os.path.split(_dir)
         del self.subdirs[self.subdirs.index(_dir)]
         rmtree("%s/%s" % (self.path, _dir))
         return
@@ -347,13 +347,13 @@ class TempDir(object):
         return "%s/%s" % (self.path, file_name)
 
     def del_subfile(self, _file):
-        _file = _file.split("/")[-1]
+        path, _file = os.path.split(_file)
         del self.subfiles[self.subfiles.index(_file)]
         os.remove("%s/%s" % (self.path, _file))
         return
 
     def save(self, location, keep_hash=False):
-        location = location if not keep_hash else "%s/%s" % (location, self.path.split("/")[-1])
+        location = location if not keep_hash else "%s/%s" % (location, os.path.split(self.path)[-1])
         if os.path.isdir(location):
             print("Save Error: Indicated output folder already exists in TempDir.save(%s)" % location, file=sys.stderr)
             return False
@@ -366,7 +366,7 @@ class TempFile(object):
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
     def __init__(self, mode="w", byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
-        dir_hash = self._tmp_dir.path.split("/")[-1]
+        path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
         self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
         open(self.path, "w", encoding="utf-8").close()
@@ -496,7 +496,7 @@ def copydir(source, dest):
     if not os.path.exists(dest):
         os.makedirs(dest)
     for path in file_paths:
-        _file = path.split("/")[-1]
+        _path, _file = os.path.split(path)
         copyfile(path, "%s/%s" % (dest, _file))
 
 

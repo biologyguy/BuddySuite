@@ -1845,16 +1845,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         except TypeError as e:
             _raise_error(e, "screw_formats", "Format type '%s' is not recognized/supported" % in_args.screw_formats)
         if in_args.in_place:  # Need to change the file extension
-            _path = os.path.abspath(in_args.alignments[0]).split("/")
-            if "." in _path[-1]:
-                _file = str(_path[-1]).split(".")
-                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy.out_format])
-
-            else:
-                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy.out_format])
+            _path, ext = os.path.splitext(os.path.abspath(in_args.alignments[0]))
+            _path = "%s.%s" % (_path, br.format_to_extension[alignbuddy.out_format])
 
             os.remove(in_args.alignments[0])
-            in_args.alignments[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
+            in_args.alignments[0] = _path
             open(in_args.alignments[0], "w").close()
         _print_aligments(alignbuddy)
         _exit("screw_formats")

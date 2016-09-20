@@ -115,7 +115,7 @@ def test_liveshell_init(monkeypatch, capsys, hf):
     assert hf.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
     assert hash(liveshell.dbbuddy) == hash(dbbuddy)
     assert liveshell.crash_file == crash_file
-    assert liveshell.history_path.split("/")[-1] == "cmd_history"
+    assert os.path.split(liveshell.history_path)[-1] == "cmd_history"
     assert not liveshell.undo
     assert not liveshell.hash
     assert liveshell.shell_execs == []

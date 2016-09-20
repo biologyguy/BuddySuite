@@ -112,7 +112,7 @@ Enjoy the BuddySuite!
 """
 
 
-def test_uninstall(capsys, monkeypatch):
+def test_uninstall(monkeypatch):
     tmp_dir = br.TempDir()
     tmp_dir.subdir("main_site")
     tmp_dir.subdir("main_site/buddysuite")

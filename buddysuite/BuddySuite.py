@@ -34,7 +34,7 @@ import string
 def setup():  # ToDo: Check permissions?
     print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
 
-    install_dir = "/".join(buddysuite.__file__.split("/")[:-1])
+    install_dir, toss = os.path.split(buddysuite.__file__)
     os.makedirs("%s/buddy_data" % install_dir, exist_ok=True)
     if not os.path.isfile("%s/buddy_data/config.ini" % install_dir):
         open("%s/buddy_data/config.ini" % install_dir, "w").close()
@@ -111,8 +111,9 @@ Enjoy the BuddySuite!
 
 def uninstall():
     if br.ask("Are you sure you want to completely remove BuddySuite from your system y/[n]? ", default="no"):
-        install_dir = "/".join(buddysuite.__file__.split("/")[:-2])
-
+        # Need to run os.path.split() twice to get to the actual install dir
+        install_dir, toss = os.path.split(buddysuite.__file__)
+        install_dir, toss = os.path.split(install_dir)
         # Delete all custom shortcuts
         config = br.config_values()
         for shortcut in config["shortcuts"]:

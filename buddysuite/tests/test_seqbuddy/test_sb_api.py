@@ -1538,7 +1538,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
 
     def mock_urlretrieve(result_url, filename, reporthook):
         print(result_url)
-        job_id = filename.split("/")[-1].split(".")[0]
+        job_id = os.path.split(filename)[-1].split(".")[0]
         if os.path.isfile("%s/%s.hashmap" % (work_dir.path, job_id)):
             os.remove("%s/%s.hashmap" % (work_dir.path, job_id))
         shutil.copy("%s/topcons/%s.zip" % (hf.resource_path, job_id), "%s/" % work_dir.path)
@@ -1597,7 +1597,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     _root, dirs, files = next(br.walklevel(keep_dir.path))
 
     assert sorted(dirs) == ['rst_MFhyxO', 'rst_lE27A5']
-    assert sorted(files) == sorted(['seqs.tmp', work_dir.path.split("/")[-1]])
+    assert sorted(files) == sorted(['seqs.tmp', os.path.split(work_dir.path)[-1]])
 
     with pytest.raises(FileNotFoundError) as err:
         Sb.transmembrane_domains(tester, job_ids=["rst_BLAHHH!!"])
