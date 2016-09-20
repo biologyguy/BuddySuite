@@ -512,20 +512,44 @@ def ask(input_prompt, default="yes", timeout=0):
         raise TimeoutError(args)
 
     try:
-        signal.signal(signal.SIGALRM, kill)
-        signal.alarm(timeout)
-        _response = input(input_prompt)
-        signal.alarm(0)
-        while True:
-            if _response.lower() in yes_list:
+        if "win" in sys.platform:
+            import msvcrt
+            timeout = timeout if timeout > 0 else 3600
+            start_time = time()
+            sys.stdout.write(input_prompt)
+            sys.stdout.flush()
+            _response = ''
+            while True:
+                if msvcrt.kbhit():
+                    _chr = msvcrt.getche()
+                    if ord(_chr) == 13:  # enter_key
+                        break
+                    elif ord(_chr) >= 32:  # space_char
+                        _response += _chr.decode()
+                if len(_response) == 0 and (time() - start_time) > timeout:
+                    break
+
+            print('')  # needed to move to next line
+            if len(_response) > 0 and _response.lower() in yes_list:
                 return True
-            elif _response.lower() in no_list:
-                return False
             else:
-                print("Response not understood. Valid options are 'yes' and 'no'.")
-                signal.alarm(timeout)
-                _response = input(input_prompt)
-                signal.alarm(0)
+                return False
+
+        else:
+            signal.signal(signal.SIGALRM, kill)
+            signal.alarm(timeout)
+            _response = input(input_prompt)
+            signal.alarm(0)
+            while True:
+                if _response.lower() in yes_list:
+                    return True
+                elif _response.lower() in no_list:
+                    return False
+                else:
+                    print("Response not understood. Valid options are 'yes' and 'no'.")
+                    signal.alarm(timeout)
+                    _response = input(input_prompt)
+                    signal.alarm(0)
 
     except TimeoutError:
         return False
