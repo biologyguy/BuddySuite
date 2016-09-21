@@ -67,14 +67,17 @@ class Timer(object):
 
 
 class RunTime(object):
-    def __init__(self, prefix="", postfix="", out_type=sys.stdout):
+    def __init__(self, prefix="", postfix="", out_type="stdout"):
+        if out_type not in ["stdout", "stderr"]:
+            raise AttributeError("Only 'stdout' and 'stderr' are valid options for 'out_type'")
         self.out_type = out_type
         self.prefix = prefix
         self.postfix = postfix
         self.running_process = None
 
     def _run(self, check_file_path):
-        d_print = DynamicPrint(self.out_type)
+        out_type = sys.stdout if self.out_type == "stdout" else sys.stderr
+        d_print = DynamicPrint(out_type)
         start_time = round(time())
         elapsed = 0
         while True:
@@ -243,6 +246,9 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
         for next_iter in iterable:
             if type(iterable) is dict:
                 next_iter = iterable[next_iter]
+            if os.name == "nt":  # Multicore doesn't work well on Windows, so for now just run serial
+                function(next_iter, func_args)
+                continue
             while 1:     # Only fork a new process when there is a free processor.
                 if running_processes < max_processes:
                     # Start new process
