@@ -18,6 +18,8 @@ from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
 from pkg_resources import DistributionNotFound
 from configparser import ConfigParser
+if os.name == "nt":
+    import msvcrt
 
 # Globals
 TEMP_DIR = br.TempDir()
@@ -74,16 +76,16 @@ def test_timer():
 
 
 def test_runtime():
-    temp_file_path = TEMP_DIR.subfile("runtime")
-    with open(temp_file_path, "w") as temp_file:
-        timer = br.RunTime('x ', ' y', temp_file)
-        timer.start()
-        sleep(3)
-        timer.end()
-    with open(temp_file_path, "r") as temp_file:
-        out = temp_file.read()
-        assert re.search('\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n',
-                         out, re.MULTILINE)
+    timer = br.RunTime('x ', ' y', "stdout")
+    assert timer.out_type == "stdout"
+    assert timer.prefix == "x "
+    assert timer.postfix == " y"
+    assert not timer.running_process
+    timer.start()
+    assert timer.running_process
+    sleep(1.1)
+    timer.end()
+    assert not timer.running_process
 
 
 def test_dynamicprint_init():
@@ -190,7 +192,7 @@ def test_usable_cpu_count(monkeypatch):
 # skipping run_multicore function for now
 
 
-def test_run_multicore_function(monkeypatch, hf):
+def test_run_multicore_function(monkeypatch, hf, capsys):
     temp_file = br.TempFile()
     temp_path = temp_file.path
     monkeypatch.setattr(br, "time", lambda: 1)
@@ -208,21 +210,21 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
 
     with open(temp_path, "w") as output:
         br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
                                   max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
 
     with open(temp_path, "w") as output:
         br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
                                   max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "cf5afec941a4b854ed78f01d2753009d"
+        assert hf.string2hash(output) in ["cf5afec941a4b854ed78f01d2753009d", "b9a2268fefae3786a611f5e699fd6200"]
 
     with pytest.raises(AttributeError) as err:
         br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False, out_type=sys.stdout)
@@ -243,7 +245,7 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "08f48aaa5d64ac48ea15a4aa63d75141"
+        assert hf.string2hash(output) in ["08f48aaa5d64ac48ea15a4aa63d75141", 'b9a2268fefae3786a611f5e699fd6200']
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
@@ -252,7 +254,7 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "41cc02db5a989591601308d0657544a8"
+        assert hf.string2hash(output) in ["41cc02db5a989591601308d0657544a8", "c2adacdaf0de6526c707564068a3460a"]
 
 
 # ######################################  TempDir  ###################################### #
@@ -368,12 +370,12 @@ def test_safetyvalve():
 def test_walklevel():
     tmp_dir = br.TempDir()
     tmp_dir.subdir("mydir")
-    tmp_dir.subdir("mydir/subdir")
-    tmp_dir.subdir("mydir/subdir/subsubdir")
+    tmp_dir.subdir("mydir{0}subdir".format(os.path.sep))
+    tmp_dir.subdir("mydir{0}subdir{0}subsubdir".format(os.path.sep))
 
     tmp_dir.subfile("myfile.txt")
-    tmp_dir.subfile("mydir/subfile.txt")
-    tmp_dir.subfile("mydir/subdir/subsubfile.txt")
+    tmp_dir.subfile("mydir{0}subfile.txt".format(os.path.sep))
+    tmp_dir.subfile("mydir{0}subdir{0}subsubfile.txt".format(os.path.sep))
 
     walker = br.walklevel(tmp_dir.path)
     root, dirs, files = next(walker)
@@ -382,7 +384,7 @@ def test_walklevel():
     assert files == ["myfile.txt"]
 
     root, dirs, files = next(walker)
-    assert root == "%s/mydir" % tmp_dir.path
+    assert root == "%s%smydir" % (tmp_dir.path, os.path.sep)
     assert dirs == ["subdir"]
     assert files == ["subfile.txt"]
 
@@ -404,53 +406,90 @@ def test_walklevel():
 
 def test_copydir():
     tmp_path = TEMP_DIR.path
-    os.makedirs('{0}/fakedir'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub/empty'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub/subsub'.format(tmp_path))
-    open("{0}/fakedir/fakefile".format(tmp_path), 'w+').close()
-    open("{0}/fakedir/fakesub/fakesubfile".format(tmp_path), 'w+').close()
-    open("{0}/fakedir/fakesub/subsub/subsubfile".format(tmp_path), 'w+').close()
+    os.makedirs('{0}{1}fakedir'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub{1}empty'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub{1}subsub'.format(tmp_path, os.path.sep))
+    open("{0}{1}fakedir{1}fakefile".format(tmp_path, os.path.sep), 'w+').close()
+    open("{0}{1}fakedir{1}fakesub{1}fakesubfile".format(tmp_path, os.path.sep), 'w+').close()
+    open("{0}{1}fakedir{1}fakesub{1}subsub{1}subsubfile".format(tmp_path, os.path.sep), 'w+').close()
 
-    br.copydir('{0}/fakedir'.format(tmp_path), '{0}/fakecopy'.format(tmp_path))
+    br.copydir('{0}{1}fakedir'.format(tmp_path, os.path.sep), '{0}{1}fakecopy'.format(tmp_path, os.path.sep))
 
-    for x in os.listdir('{0}/fakecopy/'.format(tmp_path)):
+    for x in os.listdir('{0}{1}fakecopy{1}'.format(tmp_path, os.path.sep)):
         assert x in ["fakefile", "fakesubfile", "subsubfile"]
 
 
-def test_ask(monkeypatch):
+def test_windows_ask(monkeypatch):
+    if os.name == "nt":
+        import msvcrt
 
-    def wait(*args, **kwargs):
-        print(args, kwargs)
-        sleep(2)
-        return 'yes'
+        class MockMsvcrt(object):
+            def __init__(self, outcome=True):
+                self.run = outcome
+                self.output_chars = ["y", "e", "s", "\r"] if outcome else ["n", "o", "\r"]
+                self.output = self._output()
 
-    monkeypatch.setattr(builtins, "input", wait)
-    assert not br.ask("test", timeout=1)
+            @staticmethod
+            def kbhit():
+                return True
 
-    fake_input = mock.Mock(return_value="yes")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert br.ask("test")
+            def _output(self):
+                for _chr in self.output_chars:
+                    yield _chr.encode()
 
-    fake_input = mock.Mock(return_value="no")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test")
+            def getche(self):
+                return next(self.output)
 
-    fake_input = mock.Mock(return_value="abort")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test")
+        mock_msvcrt = MockMsvcrt(outcome=True)
+        monkeypatch.setattr(msvcrt, "getche", mock_msvcrt.getche)
+        monkeypatch.setattr(msvcrt, "kbhit", mock_msvcrt.kbhit)
+        assert br.ask("test")
 
-    fake_input = mock.Mock(side_effect=["dkjsfaksd", "fsdjgdfgdf", "no"])
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test", timeout=1)
+        mock_msvcrt = MockMsvcrt(outcome=False)
+        monkeypatch.setattr(msvcrt, "getche", mock_msvcrt.getche)
+        monkeypatch.setattr(msvcrt, "kbhit", mock_msvcrt.kbhit)
+        assert not br.ask("test")
 
-    fake_input = mock.Mock(return_value="")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert br.ask("test", default="yes")
+        # Timeout possitive
+        monkeypatch.setattr(msvcrt, "kbhit", lambda *_: False)
+        assert br.ask("test", timeout=1)
+        assert not br.ask("test", timeout=1, default="no")
 
-    fake_input = mock.Mock(return_value="")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test", default="no")
+
+def test_ask_unix(monkeypatch):
+    if os.name != "nt":
+        def wait(*args, **kwargs):
+            print(args, kwargs)
+            sleep(2)
+            return 'yes'
+
+        monkeypatch.setattr(builtins, "input", wait)
+        assert not br.ask("test", timeout=1)
+
+        fake_input = mock.Mock(return_value="yes")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert br.ask("test")
+
+        fake_input = mock.Mock(return_value="no")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test")
+
+        fake_input = mock.Mock(return_value="abort")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test")
+
+        fake_input = mock.Mock(side_effect=["dkjsfaksd", "fsdjgdfgdf", "no"])
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test", timeout=1)
+
+        fake_input = mock.Mock(return_value="")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert br.ask("test", default="yes")
+
+        fake_input = mock.Mock(return_value="")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test", default="no")
 
 
 def test_guesserror():
@@ -822,7 +861,7 @@ def test_send_traceback(capsys, monkeypatch):
         br.send_traceback("test2", "test2", err, 1.3)
         out, err = capsys.readouterr()
         assert "test2::test2 has crashed with the following traceback:" in out
-        assert 'File "test_buddy_resources.py", line' in out
+        assert re.search('File ".*test_buddy_resources.py", line', out)
         assert "raise TypeError" in out
 
 

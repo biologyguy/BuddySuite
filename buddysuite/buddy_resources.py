@@ -218,8 +218,10 @@ def usable_cpu_count():
 def run_multicore_function(iterable, function, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
-        d_print = DynamicPrint(out_type)
+        if func_args and not isinstance(func_args, list):
+            raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
 
+        d_print = DynamicPrint(out_type)
         if max_processes == 0:
             max_processes = usable_cpu_count()
 
@@ -256,11 +258,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                         d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
 
                     if func_args:
-                        if not isinstance(func_args, list):
-                            raise AttributeError("The arguments passed into the multi-thread function must be provided "
-                                                 "as a list")
                         p = Process(target=function, args=(next_iter, func_args))
-
                     else:
                         p = Process(target=function, args=(next_iter,))
                     p.start()
@@ -518,7 +516,7 @@ def ask(input_prompt, default="yes", timeout=0):
         raise TimeoutError(args)
 
     try:
-        if "win" in sys.platform:
+        if os.name == "nt":
             import msvcrt
             timeout = timeout if timeout > 0 else 3600
             start_time = time()
@@ -533,10 +531,11 @@ def ask(input_prompt, default="yes", timeout=0):
                     elif ord(_chr) >= 32:  # space_char
                         _response += _chr.decode()
                 if len(_response) == 0 and (time() - start_time) > timeout:
+                    _response = default
                     break
 
             print('')  # needed to move to next line
-            if len(_response) > 0 and _response.lower() in yes_list:
+            if _response.lower() in yes_list:
                 return True
             else:
                 return False
