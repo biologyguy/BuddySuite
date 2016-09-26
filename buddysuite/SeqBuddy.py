@@ -72,7 +72,6 @@ from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
 from Bio import AlignIO
 
-
 # ##################################################### WISH LIST #################################################### #
 '''
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
@@ -184,7 +183,7 @@ class SeqBuddy(object):
         # Handles
         if str(type(sb_input)) == "<class '_io.TextIOWrapper'>":
             if not sb_input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(sb_input.read())
+                temp = StringIO(br.utf_encode(sb_input.read()))
                 sb_input = temp
             sb_input.seek(0)
             in_handle = sb_input.read()
@@ -195,13 +194,14 @@ class SeqBuddy(object):
             in_format = "fasta"
             out_format = "fasta" if not out_format else out_format
             if type(sb_input) == str:
-                sb_input = [SeqRecord(Seq(sb_input), id="raw_input", description="")]
+                sb_input = br.utf_encode(sb_input)
             else:
-                sb_input = [SeqRecord(Seq(sb_input.read()), id="raw_input", description="")]
+                sb_input = br.utf_encode(sb_input.read())
+            sb_input = [SeqRecord(Seq(sb_input), id="raw_input", description="")]
 
         # Plain text in a specific format
         if type(sb_input) == str and not os.path.isfile(sb_input):
-            raw_sequence = sb_input
+            raw_sequence = br.utf_encode(sb_input)
             temp = StringIO(sb_input)
             sb_input = temp
             sb_input.seek(0)
@@ -210,6 +210,9 @@ class SeqBuddy(object):
         try:
             if os.path.isfile(sb_input):
                 in_file = sb_input
+                with open(sb_input, "r") as ifile:
+                    sb_input = StringIO(br.utf_encode(ifile.read()))
+
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -418,25 +421,7 @@ def _check_for_blast_bin(blast_bin):
     if which(blast_bin):
         return True
     else:
-        br._stderr("%s binary not found. " % blast_bin)
-
-    if which("conda"):
-        prompt = br.ask("Would you like to install BLAST with BioConda? [yes]/no: ")
-        if prompt:
-            Popen("conda config --add channels r", shell=True).wait()
-            Popen("conda config --add channels bioconda", shell=True).wait()
-            Popen("conda update -q conda", shell=True).wait()
-            Popen("conda install blast", shell=True).wait()
-            if which(blast_bin):
-                return True
-            else:
-                br._stderr("Failed to install BLAST+ executables with Conda.\n")
-                return False
-        else:
-            br._stderr("Abort...\n")
-            return False
-    else:
-        br._stderr("Please install BLAST+ executables.\n")
+        br._stderr("%s binary not found. Please install BLAST+ executables.\n" % blast_bin)
         return False
 
 

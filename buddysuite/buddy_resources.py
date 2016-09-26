@@ -984,9 +984,10 @@ def phylip_sequential_read(sequence, relaxed=True):
                                       "Try a relaxed Phylip format (phylipr or phylipsr)." % seq_id)
             key_list.append(seq_id)
             output += ">%s\n%s\n" % (seq_id, seq)
-        temp_file.write(output, "w")
-        aligns.append(AlignIO.read(temp_file.get_handle("r"), "fasta"))
-        temp_file.close()
+        with open(temp_file.path, "w", encoding="utf-8") as ofile:
+            ofile.write(output)
+        with open(temp_file.path, "r", encoding="utf-8") as ifile:
+            aligns.append(AlignIO.read(ifile, "fasta"))
     return aligns
 
 
@@ -1248,6 +1249,15 @@ def _stdout(message, quiet=False):
             sys.stdout.flush()
     return
 
+
+def utf_encode(_input):
+    tmp_file = TempFile()
+    tmp_file.write(_input)
+    import codecs
+    with codecs.open(tmp_file.path, "r", "utf-8", errors="replace") as ifile:
+        _input = ifile.read()
+    _input = re.sub("\r", "", _input)
+    return _input
 
 # #################################################### VARIABLES ##################################################### #
 
