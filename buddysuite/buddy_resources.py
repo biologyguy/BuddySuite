@@ -991,6 +991,54 @@ def phylip_sequential_read(sequence, relaxed=True):
     return aligns
 
 
+def phylip_guess(next_format, _input):
+    if next_format == "phylip":
+        sequence = "\n %s" % _input.read().strip()
+        _input.seek(0)
+        alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+        align_sizes = []
+        for indx in range(int(len(alignments) / 3)):
+            align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
+
+        phy = list(AlignIO.parse(_input, "phylip"))
+        _input.seek(0)
+
+        indx = 0
+        phy_ids = []
+        for key in align_sizes:
+            phy_ids.append([])
+            for rec in phy[indx]:
+                assert len(rec.seq) == key[1]
+                phy_ids[-1].append(rec.id)
+            indx += 1
+
+        phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
+        _input.seek(0)
+        if phy_rel:
+            for indx, aln in enumerate(phy_rel):
+                for rec in aln:
+                    if len(rec.seq) != align_sizes[indx][1]:
+                        return parse_format("phylip")
+                    if rec.id in phy_ids[indx]:
+                        return
+                    else:
+                        return parse_format("phylip-relaxed")
+        return parse_format("phylip")
+
+    if next_format == "phylipss":
+        if phylip_sequential_read(_input.read(), relaxed=False):
+            _input.seek(0)
+            return parse_format(next_format)
+        else:
+            return
+    if next_format == "phylipsr":
+        if phylip_sequential_read(_input.read()):
+            _input.seek(0)
+            return parse_format(next_format)
+        else:
+            return
+
+
 def replacements(input_str, query, replace="", num=0):
     """
     This will allow fancy positional regular expression replacements from right-to-left, as well as normal left-to-right
@@ -1258,6 +1306,22 @@ def utf_encode(_input):
         _input = ifile.read()
     _input = re.sub("\r", "", _input)
     return _input
+
+
+def isfile_override(path):
+    if os.name == "nt":
+        # This is a hack for Windows, which throws errors if the 'path' is too long
+        import stat
+        try:
+            st = os.stat(path)
+        except OSError:
+            return False
+        except ValueError as err:
+            if "path too long for Windows" in str(err):
+                return False
+            else:
+                raise err
+        return stat.S_ISREG(st.st_mode)
 
 # #################################################### VARIABLES ##################################################### #
 

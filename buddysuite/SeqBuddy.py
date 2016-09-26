@@ -72,6 +72,10 @@ from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
 from Bio import AlignIO
 
+# Windows specific
+if os.name == "nt":
+    os.path.isfile = br.isfile_override
+
 # ##################################################### WISH LIST #################################################### #
 '''
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
@@ -595,49 +599,10 @@ def _guess_format(_input):
         for next_format in possible_formats:
             try:
                 _input.seek(0)
-                if next_format == "phylip":
-                    sequence = "\n %s" % _input.read().strip()
-                    _input.seek(0)
-                    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
-                    align_sizes = []
-                    for indx in range(int(len(alignments) / 3)):
-                        align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
-
-                    phy = list(AlignIO.parse(_input, "phylip"))
-                    _input.seek(0)
-                    indx = 0
-                    phy_ids = []
-                    for key in align_sizes:
-                        phy_ids.append([])
-                        for rec in phy[indx]:
-                            assert len(rec.seq) == key[1]
-                            phy_ids[-1].append(rec.id)
-                        indx += 1
-
-                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
-                    _input.seek(0)
-                    if phy_rel:
-                        for indx, aln in enumerate(phy_rel):
-                            for rec in aln:
-                                if len(rec.seq) != align_sizes[indx][1]:
-                                    return br.parse_format("phylip")
-                                if rec.id in phy_ids[indx]:
-                                    continue
-                                else:
-                                    return br.parse_format("phylip-relaxed")
-
-                    return br.parse_format("phylip")
-
-                if next_format == "phylipss":
-                    if br.phylip_sequential_read(_input.read(), relaxed=False):
-                        _input.seek(0)
-                        return br.parse_format(next_format)
-                    else:
-                        continue
-                if next_format == "phylipsr":
-                    if br.phylip_sequential_read(_input.read()):
-                        _input.seek(0)
-                        return br.parse_format(next_format)
+                if next_format in ["phylip", "phylipsr", "phylipss"]:
+                    phylip = br.phylip_guess(next_format, _input)
+                    if phylip:
+                        return phylip
                     else:
                         continue
 

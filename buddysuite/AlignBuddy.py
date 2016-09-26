@@ -55,6 +55,9 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 
+# Windows specific
+if os.name == "nt":
+    os.path.isfile = br.isfile_override
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -87,7 +90,7 @@ class AlignBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(_input.read())
+                temp = StringIO(br.utf_encode(_input.read()))
                 _input = temp
             _input.seek(0)
             in_handle = _input.read()
@@ -95,7 +98,7 @@ class AlignBuddy(object):
 
         # Plain text in a specific format
         if type(_input) == str and not os.path.isfile(_input):
-            raw_seq = _input
+            raw_seq = br.utf_encode(_input)
             temp = StringIO(_input)
             _input = temp
             _input.seek(0)
@@ -104,7 +107,8 @@ class AlignBuddy(object):
         try:
             if os.path.isfile(_input):
                 in_file = _input
-
+                with open(_input, "r") as ifile:
+                    _input = StringIO(br.utf_encode(ifile.read()))
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -317,57 +321,19 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
         possible_formats = ["gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
                             "stockholm", "fasta", "nexus", "clustal"]
-        for _format in possible_formats:
+        for next_format in possible_formats:
             try:
                 _input.seek(0)
-                if _format == "phylip":
-                    sequence = "\n %s" % _input.read().strip()
-                    _input.seek(0)
-                    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
-                    align_sizes = []
-                    for indx in range(int(len(alignments) / 3)):
-                        align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
-
-                    phy = list(AlignIO.parse(_input, "phylip"))
-                    _input.seek(0)
-
-                    indx = 0
-                    phy_ids = []
-                    for key in align_sizes:
-                        phy_ids.append([])
-                        for rec in phy[indx]:
-                            assert len(rec.seq) == key[1]
-                            phy_ids[-1].append(rec.id)
-                        indx += 1
-
-                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
-                    _input.seek(0)
-                    if phy_rel:
-                        for indx, aln in enumerate(phy_rel):
-                            for rec in aln:
-                                if len(rec.seq) != align_sizes[indx][1]:
-                                    return br.parse_format("phylip")
-                                if rec.id in phy_ids[indx]:
-                                    continue
-                                else:
-                                    return br.parse_format("phylip-relaxed")
-                    return br.parse_format("phylip")
-
-                if _format == "phylipss":
-                    if br.phylip_sequential_read(_input.read(), relaxed=False):
-                        _input.seek(0)
-                        return br.parse_format(_format)
+                if next_format in ["phylip", "phylipsr", "phylipss"]:
+                    phylip = br.phylip_guess(next_format, _input)
+                    if phylip:
+                        return phylip
                     else:
                         continue
-                if _format == "phylipsr":
-                    if br.phylip_sequential_read(_input.read()):
-                        _input.seek(0)
-                        return br.parse_format(_format)
-                    else:
-                        continue
-                if list(AlignIO.parse(_input, _format)):
+
+                if list(AlignIO.parse(_input, next_format)):
                     _input.seek(0)
-                    return br.parse_format(_format)
+                    return br.parse_format(next_format)
                 else:
                     continue
             except br.PhylipError:
