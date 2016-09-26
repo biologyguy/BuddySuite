@@ -242,6 +242,47 @@ def test_guess_alphabet(sb_resources):
 
 
 # ######################  'guess_format' ###################### #
+def test_guess_stockholm(hf):
+    assert _guess_format("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep)) == "stockholm"
+
+    with open("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep), "r") as ifile:
+        assert _guess_format(ifile) == "stockholm"
+
+    seqbuddy = SeqBuddy("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep))
+    assert _guess_format(seqbuddy) == "stockholm"
+
+
+def test_guess_fasta(hf):
+    assert _guess_format("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep)) == "fasta"
+
+    with open("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep), "r") as ifile:
+        assert _guess_format(ifile) == "fasta"
+
+    seqbuddy = SeqBuddy("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep))
+    assert _guess_format(seqbuddy) == "fasta"
+
+
+def test_guess_gb(hf):
+    assert _guess_format("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep)) == "gb"
+
+    with open("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep), "r") as ifile:
+        assert _guess_format(ifile) == "gb"
+
+    seqbuddy = SeqBuddy("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep))
+    assert _guess_format(seqbuddy) == "gb"
+
+'''
+def test_guess_phylipss(hf):
+    print("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
+    assert _guess_format("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep)) == "phylipss"
+
+    with open("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep), "r") as ifile:
+        assert _guess_format(ifile) == "phylipss"
+
+    seqbuddy = SeqBuddy("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
+    assert _guess_format(seqbuddy) == "phylipss"
+'''
+
 def test_guess_format(sb_resources, sb_odd_resources):
     assert _guess_format(["foo", "bar"]) == "gb"
     assert _guess_format(sb_resources.get_one("d f")) == "fasta"

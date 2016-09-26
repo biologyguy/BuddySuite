@@ -192,7 +192,7 @@ def test_usable_cpu_count(monkeypatch):
 # skipping run_multicore function for now
 
 
-def test_run_multicore_function(monkeypatch, hf, capsys):
+def test_run_multicore_function(monkeypatch, hf):
     temp_file = br.TempFile()
     temp_path = temp_file.path
     monkeypatch.setattr(br, "time", lambda: 1)
@@ -227,7 +227,8 @@ def test_run_multicore_function(monkeypatch, hf, capsys):
         assert hf.string2hash(output) in ["cf5afec941a4b854ed78f01d2753009d", "b9a2268fefae3786a611f5e699fd6200"]
 
     with pytest.raises(AttributeError) as err:
-        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False, out_type=sys.stdout)
+        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False,
+                                  out_type=sys.stdout)
     assert "The arguments passed into the multi-thread function must be provided" in str(err)
 
     class MockTime(object):
@@ -1049,5 +1050,3 @@ def test_std_errors(capfd, monkeypatch):
     br._stdout("Hello std_out α", quiet=False)
     out, err = capfd.readouterr()
     assert out == "Hello std_out α"
-
-
