@@ -43,7 +43,7 @@ def test_sb_resources_init(hf, sb_resources, capsys):
         assert len(sb_resources.resources[molecule[0]]) == molecule[1]
         assert molecule[0] in sb_resources.sb_objs
 
-    assert sb_resources.resources['dna']["clustal"] == "%s/Mnemiopsis_cds.clus" % hf.resource_path
+    assert sb_resources.resources['dna']["clustal"] == "%sMnemiopsis_cds.clus" % hf.resource_path
     assert type(sb_resources.sb_objs['dna']["clustal"]) == SeqBuddy.SeqBuddy
 
     for key in ["molecule", "format"]:
@@ -167,7 +167,7 @@ def test_alb_resources_init(hf, alb_resources):
                   ('rna', 'multi', 0), ('pep', 'single', 7), ('pep', 'multi', 6)]:
         assert len(alb_resources.resources[files[0]][files[1]]) == files[2]
 
-    assert alb_resources.resources['dna']['single']['clustal'] == "%s/Mnemiopsis_cds.clus" % hf.resource_path
+    assert alb_resources.resources['dna']['single']['clustal'] == "%sMnemiopsis_cds.clus" % hf.resource_path
     assert type(alb_resources.alb_objs['dna']['single']['clustal']) == AlignBuddy.AlignBuddy
 
     for key in ["molecule", "format", "num_aligns"]:
@@ -321,7 +321,7 @@ def test_pb_resources_init(hf, pb_resources):
     assert 'multi' in pb_resources.resources
     assert len(pb_resources.resources['multi']) == 3
 
-    assert pb_resources.resources['single']['newick'] == "%s/single_tree.newick" % hf.resource_path
+    assert pb_resources.resources['single']['newick'] == "%ssingle_tree.newick" % hf.resource_path
     assert type(pb_resources.pb_objs['single']['newick']) == PhyloBuddy.PhyloBuddy
 
     for key in ["format", "num_trees"]:
