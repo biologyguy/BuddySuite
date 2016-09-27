@@ -23,7 +23,8 @@ if os.name == "nt":
 
 # Globals
 TEMP_DIR = br.TempDir()
-RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             '..{0}unit_test_resources{0}'.format(os.path.sep))
 
 
 # Mock resources
@@ -770,22 +771,23 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
 
 
 def test_phylip_sequential_read(alb_odd_resources, hf, capsys):
-    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
+    records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physr".format(RESOURCE_PATH),
+                                             "r", encoding="utf-8").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
-    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
+    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68", buddy.write("temp.del")
 
-    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(),
-                                        relaxed=False)
+    records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physs".format(RESOURCE_PATH),
+                                             "r", encoding="utf-8").read(), relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert hf.buddy2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
 
-    with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r") as ifile:
+    with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r", encoding="utf-8") as ifile:
             records = ifile.read()
     with pytest.raises(br.PhylipError) as err:
         br.phylip_sequential_read(records)
     assert "Malformed Phylip --> Less sequence found than expected" in str(err)
 
-    with open(alb_odd_resources['dna']['single']['phylipss_recs'], "r") as ifile:
+    with open(alb_odd_resources['dna']['single']['phylipss_recs'], "r", encoding="utf-8") as ifile:
             records = ifile.read()
     with pytest.raises(br.PhylipError) as err:
         br.phylip_sequential_read(records)
