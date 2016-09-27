@@ -3,6 +3,7 @@
 """ tests basic functionality of AlignBuddy class """
 import pytest
 import io
+import os
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
@@ -31,14 +32,17 @@ def test_instantiate_alignbuddy_from_file_guess(alb_resources):
 
 def test_instantiate_alignbuddy_from_handle(alb_resources):
     for _path in alb_resources.get_list(mode="paths"):
-        with open(_path, 'r') as ifile:
+        with open(_path, 'r', encoding="utf-8") as ifile:
             assert type(AlignBuddy(ifile)) == AlignBuddy
 
 
 def test_instantiate_alignbuddy_from_raw(alb_resources):
     for _path in alb_resources.get_list(mode="paths"):
-        with open(_path, 'r') as ifile:
-            assert type(AlignBuddy(ifile.read())) == AlignBuddy
+        with open(_path, 'r', encoding="utf-8") as ifile:
+            output = ifile.read()
+            output = br.utf_encode(output)
+            print(output)
+            assert type(AlignBuddy(output)) == AlignBuddy
 
 
 def test_instantiate_alignbuddy_from_alignbuddy(alb_resources):
@@ -61,7 +65,7 @@ def test_instantiation_alignbuddy_errors(alb_odd_resources):
         AlignBuddy(alb_odd_resources["dna"]["single"]["fasta"])
     assert "Could not determine format from _input file" in str(e)
 
-    tester = open(alb_odd_resources["dna"]["single"]["fasta"], "r")
+    tester = open(alb_odd_resources["dna"]["single"]["fasta"], "r", encoding="utf-8")
     with pytest.raises(GuessError) as e:
         AlignBuddy(tester.read())
     assert "Could not determine format from raw" in str(e)
@@ -73,7 +77,7 @@ def test_instantiation_alignbuddy_errors(alb_odd_resources):
 
 
 def test_empty_file(alb_odd_resources):
-    with open(alb_odd_resources["blank"], "r") as ifile:
+    with open(alb_odd_resources["blank"], "r", encoding="utf-8") as ifile:
         with pytest.raises(GuessError) as e:
             AlignBuddy(ifile)
         assert "Empty file" in str(e)
@@ -146,7 +150,7 @@ hashes = [('o p g', 'bf8485cbd30ff8986c2f50b677da4332'), ('o p n', '17ff1b919cac
 @pytest.mark.parametrize('key,next_hash', hashes)
 def test_str(alb_resources, hf, key, next_hash):
     tester = str(alb_resources.get_one(key))
-    assert hf.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w").write(tester)
+    assert hf.string2hash(tester) == next_hash, open("error_files/%s" % next_hash, "w", encoding="utf-8").write(tester)
 
 
 def test_str2(alb_resources, hf, capsys, monkeypatch):
@@ -206,8 +210,9 @@ def test_write1(alb_resources, hf, key, next_hash):
     temp_file = br.TempFile()
     alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path)
-    tester_hash = hf.string2hash(temp_file.read())
-    assert tester_hash == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    with open(temp_file.path, "r", encoding="utf-8") as ifile:
+        tester_hash = hf.string2hash(ifile.read())
+    assert tester_hash == next_hash
 
 hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d24000f8b72dd9d25620cff1'),
           ('m p py', '1f172a3beef76e8e3d42698bb2c3c87d'), ('m p pr', '3fef9a05058a5259ebd517d1500388d4'),
@@ -216,11 +221,12 @@ hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d240
 
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_write2(alb_resources, hf, key, next_hash):
-    alignbuddy = alb_resources.get_one(key)
     temp_file = br.TempFile()
+    alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path, out_format="phylipr")
-    out = temp_file.read()
-    assert hf.string2hash(out) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    with open(temp_file.path, "r", encoding="utf-8") as ifile:
+        tester_hash = hf.string2hash(ifile.read())
+    assert tester_hash == next_hash
 
 
 def test_write3(alb_resources, hf):  # Unloopable components
@@ -248,7 +254,7 @@ def test_guess_error(alb_odd_resources):
         unrecognizable = alb_odd_resources['protein']['single']['phylip']
         AlignBuddy(unrecognizable)
 
-    with open(unrecognizable, 'r') as ifile:
+    with open(unrecognizable, 'r', encoding="utf-8") as ifile:
         # Raw
         with pytest.raises(GuessError) as e:
             AlignBuddy(ifile.read())
@@ -286,8 +292,9 @@ def test_guess_format(alb_resources, alb_odd_resources):
         assert guess_format(obj) == parse_format(alb_resources.get_key(key)["format"])
 
     for key, path in alb_resources.get(mode="paths").items():
+        print(parse_format(alb_resources.get_key(key)["format"]))
         assert guess_format(path) == parse_format(alb_resources.get_key(key)["format"])
-        with open(path, "r") as ifile:
+        with open(path, "r", encoding="utf-8") as ifile:
             assert guess_format(ifile) == parse_format(alb_resources.get_key(key)["format"])
             ifile.seek(0)
             string_io = io.StringIO(ifile.read())

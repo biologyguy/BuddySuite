@@ -55,10 +55,6 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
 
-# Windows specific
-if os.name == "nt":
-    os.path.isfile = br.isfile_override
-
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
 # - Annotate alignment (entire columns or subsets of sequences)
@@ -107,8 +103,8 @@ class AlignBuddy(object):
         try:
             if os.path.isfile(_input):
                 in_file = _input
-                with open(_input, "r") as ifile:
-                    _input = StringIO(br.utf_encode(ifile.read()))
+                with open(_input, "r", encoding="utf-8") as ifile:
+                    _input = StringIO(ifile.read())
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -206,8 +202,8 @@ class AlignBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False)
 
         else:
-            tmp_dir = br.TempDir()
-            with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
+            tmp_file = br.TempFile()
+            with open(tmp_file.path, "w", encoding="utf-8") as ofile:
                 try:
                     AlignIO.write(self.alignments, ofile, self.out_format)
                 except ValueError as e:
@@ -222,7 +218,7 @@ class AlignBuddy(object):
                     else:
                         raise e
 
-            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
+            with open(tmp_file.path, "r", encoding="utf-8") as ifile:
                 output = ifile.read()
         if self.out_format == "clustal":
             return "%s\n\n" % output.rstrip()
@@ -256,7 +252,7 @@ class AlignBuddy(object):
         return lengths
 
     def write(self, file_path, out_format=None):
-        with open(file_path, "w") as ofile:
+        with open(file_path, "w", encoding="utf-8") as ofile:
             if out_format:
                 out_format_save = str(self.out_format)
                 self.set_format(out_format)
@@ -310,7 +306,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding="utf-8")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)

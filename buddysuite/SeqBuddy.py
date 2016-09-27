@@ -70,11 +70,6 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio.Data import CodonTable
 from Bio.Nexus.Trees import TreeError
-from Bio import AlignIO
-
-# Windows specific
-if os.name == "nt":
-    os.path.isfile = br.isfile_override
 
 # ##################################################### WISH LIST #################################################### #
 '''
@@ -214,8 +209,8 @@ class SeqBuddy(object):
         try:
             if os.path.isfile(sb_input):
                 in_file = sb_input
-                with open(sb_input, "r") as ifile:
-                    sb_input = StringIO(br.utf_encode(ifile.read()))
+                with open(sb_input, "r", encoding="utf-8") as ifile:
+                    sb_input = StringIO(ifile.read())
 
         except TypeError:  # This happens when testing something other than a string.
             pass

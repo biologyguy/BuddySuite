@@ -1300,7 +1300,8 @@ def _stdout(message, quiet=False):
 
 def utf_encode(_input):
     tmp_file = TempFile()
-    tmp_file.write(_input)
+    with open(tmp_file.path, "w", encoding="utf-8") as ofile:
+        ofile.write(_input)
     import codecs
     with codecs.open(tmp_file.path, "r", "utf-8", errors="replace") as ifile:
         _input = ifile.read()
@@ -1309,19 +1310,21 @@ def utf_encode(_input):
 
 
 def isfile_override(path):
-    if os.name == "nt":
-        # This is a hack for Windows, which throws errors if the 'path' is too long
-        import stat
-        try:
-            st = os.stat(path)
-        except OSError:
+    # This is a hack for Windows, which throws errors if the 'path' is too long
+    import stat
+    try:
+        st = os.stat(path)
+    except OSError:
+        return False
+    except ValueError as err:
+        if "path too long for Windows" in str(err):
             return False
-        except ValueError as err:
-            if "path too long for Windows" in str(err):
-                return False
-            else:
-                raise err
-        return stat.S_ISREG(st.st_mode)
+        else:
+            raise err
+    return stat.S_ISREG(st.st_mode)
+
+if os.name == "nt":
+    os.path.isfile = isfile_override
 
 # #################################################### VARIABLES ##################################################### #
 
