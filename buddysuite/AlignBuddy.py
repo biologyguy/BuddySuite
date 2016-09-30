@@ -97,7 +97,7 @@ class AlignBuddy(object):
             raw_seq = br.utf_encode(_input)
             temp = StringIO(_input)
             _input = temp
-            _input.seek(0)
+            #_input.seek(0)
 
         # File paths
         try:
@@ -910,7 +910,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     sys.exit()
 
                 if tool.startswith('clustal'):
-                    with open('{0}/result'.format(tmp_dir.path), "r") as result:
+                    with open('{0}{1}result'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'prank':
                     possible_files = os.listdir(tmp_dir.path)
@@ -918,13 +918,13 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     for _file in possible_files:
                         if 'result.best' in _file and "fas" in _file:
                             filename = _file
-                    with open('{0}/{1}'.format(tmp_dir.path, filename), "r") as result:
+                    with open('{0}{1}{2}'.format(tmp_dir.path, os.path.sep, filename), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'pagan':
-                    with open('{0}/result.fas'.format(tmp_dir.path), "r") as result:
+                    with open('{0}{1}result.fas'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
-                    if os.path.isfile("./warnings"):  # Pagan spits out this file (I've never seen anything in it)
-                        os.remove("./warnings")
+                    if os.path.isfile(".%swarnings" % os.path.sep):  # Pagan spits out this file (I've never seen anything in it)
+                        os.remove(".%swarnings" % os.path.sep)
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
                 if (tool == 'mafft' and '--clustalout' in params) or \
@@ -962,11 +962,11 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     # Loop through each saved file and rename any hashes that have been carried over
                     for root, dirs, files in os.walk(tmp_dir.path):
                         for next_file in files:
-                            with open("%s/%s" % (root, next_file), "r") as ifile:
+                            with open("%s%s%s" % (root, os.path.sep, next_file), "r", encoding="utf-8") as ifile:
                                 contents = ifile.read()
                             for _hash, sb_rec in seqbuddy.hash_map.items():
                                 contents = re.sub(_hash, sb_rec, contents)
-                            with open("%s/%s" % (root, next_file), "w") as ofile:
+                            with open("%s%s%s" % (root, os.path.sep, next_file), "w", encoding="utf-8") as ofile:
                                 ofile.write(contents)
 
                     br.copydir(tmp_dir.path, keep_temp)
@@ -1468,7 +1468,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                        "file. Nothing was written.\n", in_args.quiet)
             br._stderr("%s" % _output, in_args.quiet)
         else:
-            with open(os.path.abspath(file_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
             br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
@@ -1587,7 +1587,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         args = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
-                with open(arg, "r") as ifile:
+                with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
                         args.append(line.strip())
             else:
@@ -1812,7 +1812,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
             os.remove(in_args.alignments[0])
             in_args.alignments[0] = _path
-            open(in_args.alignments[0], "w").close()
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
         _print_aligments(alignbuddy)
         _exit("screw_formats")
 
@@ -1839,7 +1839,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             ext = br.format_to_extension[alignbuddy.out_format]
             in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
             br._stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
-            open(in_args.alignments[0], "w").close()
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
             _print_aligments(alignbuddy)
         _exit("split_to_files")
 
