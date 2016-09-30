@@ -978,15 +978,17 @@ def bl2seq(seqbuddy):
     """
     # Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     # threshold may need to be increased quite a bit to return short alignments
-
     def mc_blast(_query, _args):
         _subject_file = _args[0]
+        _query_file = br.TempFile()
+        with open(_query_file.path, "w", encoding="utf-8") as ofile:
+            ofile.write(_query.format("fasta"))
 
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("echo '%s' | %s -subject %s -outfmt 6" %
-                           (_query.format("fasta"), blast_bin, _subject_file), stdout=PIPE, shell=True).communicate()
+        _blast_res = Popen("%s -query %s -subject %s -outfmt 6" %
+                           (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
         if len(_blast_res) == 1:
@@ -1180,7 +1182,7 @@ def blast(subject, query, **kwargs):
 
     with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db %s -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)

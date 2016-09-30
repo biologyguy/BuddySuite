@@ -1190,7 +1190,9 @@ def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
     Sb.pull_recs(seqbuddy, "Mle-Panxα10B")
     ps_scan = Sb.PrositeScan(seqbuddy)
     ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
-    assert hf.string2hash(out_file.read()) == "7ced43edaee481ac149d6ece152c4621"
+    with open(out_file.path, "r", encoding="utf-8") as ifile:
+        output = ifile.read()
+    assert hf.string2hash(output) == "7ced43edaee481ac149d6ece152c4621"
 
 
 def test_prosite_scan_run(sb_resources, hf, monkeypatch):

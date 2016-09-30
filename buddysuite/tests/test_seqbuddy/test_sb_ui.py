@@ -406,7 +406,8 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
     temp_file = br.TempFile()
-    temp_file.write("α1\nα2")
+    with open(temp_file.path, "w", encoding="utf-8") as ofile:
+        ofile.write("α1\nα2")
     test_in_args.delete_records = [temp_file.path, "3"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
@@ -1095,7 +1096,8 @@ def test_pull_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "cd0c1b1406559c1bc2eea1acd1928c3d"
 
     temp_file = br.TempFile()
-    temp_file.write("α1\nα2")
+    with open(temp_file.path, "w", encoding="utf-8") as ofile:
+        ofile.write("α1\nα2")
     test_in_args.pull_records = [temp_file.path]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
