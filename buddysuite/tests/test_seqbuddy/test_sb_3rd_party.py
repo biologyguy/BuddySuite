@@ -97,6 +97,7 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##
+"""  Need to figure out a way of applying a timeout to these...
 def test_prosite_scan(sb_resources, hf):
     seqbuddy = sb_resources.get_one("d f")
     ps_scan = Sb.PrositeScan(seqbuddy)
@@ -105,7 +106,6 @@ def test_prosite_scan(sb_resources, hf):
 
 
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
-"""  Need to figure out a way of applying a timeout to these...
 def test_transmembrane_domains_pep(sb_resources, hf):
     tester = sb_resources.get_one("p f")
     Sb.pull_recs(tester, "Panxα[234]")
