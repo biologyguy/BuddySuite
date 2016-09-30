@@ -119,10 +119,10 @@ def test_transmembrane_domains_cds(sb_resources, hf):
     tmp_dir.subdir("topcons")
     tester = sb_resources.get_one("d f")
     Sb.pull_recs(tester, "Panxα[234]")
-    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % tmp_dir.path)
+    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s%stopcons" % (tmp_dir.path, os.sep))
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "479eb1c8728c959b813c97962cac545a"
-    _root, dirs, files = next(br.walklevel("%s/topcons" % tmp_dir.path))
-    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (tmp_dir.path, dirs[0])))
+    _root, dirs, files = next(br.walklevel("%s%stopcons" % (tmp_dir.path, os.sep)))
+    _root, dirs, files = next(br.walklevel("{0}{1}topcons{1}{2}".format(tmp_dir.path, os.sep, dirs[0])))
     assert files
 """
