@@ -242,15 +242,15 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     except ImportError:
         monkeypatch.setattr("buddy_resources.ask", ask_false)
     with pytest.raises(SystemExit):
-        Alb.generate_msa(tester, clustalo_bin, keep_temp="%s/ga_temp_files" % temp_dir.path)
+        Alb.generate_msa(tester, clustalo_bin, keep_temp="%s%sga_temp_files" % (temp_dir.path, os.sep))
 
     try:
         monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_true)
     except ImportError:
         monkeypatch.setattr("buddy_resources.ask", ask_true)
-    Alb.generate_msa(tester, clustalo_bin, keep_temp="%s/ga_temp_files" % temp_dir.path)
-    assert os.path.isfile("%s/ga_temp_files/result" % temp_dir.path)
-    assert os.path.isfile("%s/ga_temp_files/tmp.fa" % temp_dir.path)
+    Alb.generate_msa(tester, clustalo_bin, keep_temp="%s%sga_temp_files" % (temp_dir.path, os.sep))
+    assert os.path.isfile("{0}{1}ga_temp_files{1}result".format(temp_dir.path, os.sep))
+    assert os.path.isfile("{0}{1}ga_temp_files{1}tmp.fa".format(temp_dir.path, os.sep))
 
 
 def test_generate_alignments_genbank(sb_resources, hf):

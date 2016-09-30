@@ -47,7 +47,6 @@ from subprocess import Popen, PIPE, CalledProcessError
 from math import log, ceil
 
 # Third party
-# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
@@ -828,7 +827,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                        "the BuddySuite developers if recurring.")
             try:
                 tmp_dir = br.TempDir()
-                tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
+                tmp_in = "%s%stmp.fa" % (tmp_dir.path, os.sep)
 
                 params = re.split(' ', params)
 
@@ -879,15 +878,16 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 params = ' '.join(params)
 
                 if tool == 'clustalo':
-                    command = '{0} {1} -i {2} -o {3}/result -v'.format(alias, params, tmp_in, tmp_dir.path)
+                    command = '{0} {1} -i {2} -o {3}{4}result -v'.format(alias, params, tmp_in, tmp_dir.path, os.sep)
                 elif tool == 'clustalw':
-                    command = '{0} -infile={1} {2} -outfile={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -infile={1} {2} -outfile={3}{4}result'.format(alias, tmp_in, params,
+                                                                                 tmp_dir.path, os.sep)
                 elif tool == 'muscle':
                     command = '{0} -in {1} {2}'.format(alias, tmp_in, params)
                 elif tool == 'prank':
-                    command = '{0} -d={1} {2} -o={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -d={1} {2} -o={3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
                 elif tool == 'pagan':
-                    command = '{0} -s {1} {2} -o {3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -s {1} {2} -o {3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
                 elif tool == 'mafft':
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
@@ -1837,7 +1837,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         for indx, alignment in enumerate(alignments):
             alignbuddy.alignments = [alignment]
             ext = br.format_to_extension[alignbuddy.out_format]
-            in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
+            in_args.alignments[0] = "%s%s%s%s.%s" % (out_dir, os.sep, prefix, padding.format(indx + 1), ext)
             br._stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
             open(in_args.alignments[0], "w", encoding="utf-8").close()
             _print_aligments(alignbuddy)
