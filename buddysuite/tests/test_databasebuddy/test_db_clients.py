@@ -5,6 +5,7 @@ from collections import OrderedDict
 import tempfile
 import re
 import json
+import os
 from ... import buddy_resources as br
 from ... import DatabaseBuddy as Db
 
@@ -555,7 +556,8 @@ def test_ncbiclient_fetch_summaries(hf, monkeypatch):
 def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     def patch_entrez_fetch_seq(*args, **kwargs):
         print("patch_entrez_fetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_efetch_seq.gb" % hf.resource_path
+        test_file = "{0}mock_resources{1}test_databasebuddy_clients" \
+                    "{1}Entrez_efetch_seq.gb".format(hf.resource_path, os.path.sep)
         with open(test_file, "r") as ifile:
             client.results_file.write(ifile.read())
 
@@ -576,7 +578,10 @@ def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
+    if os.name == "nt":
+        assert hf.string2hash(out) == "b431f4f8a05f5a0c14de2d0826859bca"
+    else:
+        assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
 
     # Error
     monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
