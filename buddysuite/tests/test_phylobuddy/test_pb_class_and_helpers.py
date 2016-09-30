@@ -2,6 +2,7 @@
 # coding=utf-8
 """ tests basic functionality of PhyloBuddy class """
 import pytest
+import os
 
 from ...PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
 from ... import buddy_resources as br
@@ -122,6 +123,8 @@ def test_write1(key, next_hash, pb_resources, hf):
 
 
 def test_convert_to_ete(monkeypatch, pb_resources):
+    if os.name == "nt":
+        return
     tester = pb_resources.get_one("m k")
     tester.trees[0].seed_node.annotations.add_new("pb_color", '#ff0000')
     ete_tree = _convert_to_ete(tester.trees[0])

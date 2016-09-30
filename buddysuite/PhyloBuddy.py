@@ -1233,8 +1233,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                     args = [tool]
                     break
         if not args:
-            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference on your system."),
-                         "generate_alignment")
+            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference "
+                                        "software on your system."), "generate_alignment")
 
         alignbuddy = []
         align_set = None

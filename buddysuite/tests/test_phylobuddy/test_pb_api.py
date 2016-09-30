@@ -198,7 +198,10 @@ def test_raxml(alb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "393353fb47861460aecaefa69a6ec55c", print(kept_output)
+    if os.name == "nt":
+        assert hf.string2hash(kept_output) == "7f2fdfe55dbe805bd994f3f56c79bb1b"
+    else:
+        assert hf.string2hash(kept_output) == "393353fb47861460aecaefa69a6ec55c"
 
     # multi-run
     os.remove("%s%sRAxML_bestTree.result" % (mock_tmp_dir.path, os.path.sep))
@@ -215,7 +218,7 @@ def test_raxml(alb_resources, hf, monkeypatch):
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-f b -z {0}{1}RAxML_bootstrap.result "
                                                "-t {0}{1}RAxML_bestTree.result".format(tmp_dir.path, os.path.sep))
-    assert hf.buddy2hash(tester) == "457533ada8e987fd0c50a41aabe1700b", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "457533ada8e987fd0c50a41aabe1700b"
 
 
 def test_phyml(alb_resources, hf, monkeypatch):
@@ -261,8 +264,10 @@ def test_phyml(alb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "f25b49817747feed3f75b945d6be0780", print(kept_output)
-
+    if os.name == "nt":
+        assert hf.string2hash(kept_output) == "a795da6869c5e3a34962a52ec35006ed"
+    else:
+        assert hf.string2hash(kept_output) == "5a3559c264cb4c4779f15a515aaf2286"
 
 def test_fasttree(alb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
@@ -308,7 +313,10 @@ def test_fasttree(alb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "743a96ec63d2cfb8dfb3ffe0b19e34ba", print(kept_output)
+    if os.name == "nt":
+        assert hf.string2hash(kept_output) == "bcd034f0db63a7b41f4b3b6661200ef3"
+    else:
+        assert hf.string2hash(kept_output) == "10df99cd1696b002f841aa18b78477ca"
 
 
 def test_generate_tree_edges(alb_resources, monkeypatch):
@@ -416,7 +424,10 @@ hashes = [('m k', ['16d1fa2a370fc41160bf06532e6f0a04', '1b276812fec15fc5f3ec21e6
 def test_print_trees(key, next_hash, pb_resources, hf):
     tester = Pb.trees_to_ascii(pb_resources.get_one(key))
     tester = "\n".join([tree for indx, tree in tester.items()])
-    assert hf.string2hash(tester) in next_hash
+    if os.name == "nt":
+        assert hf.string2hash(tester) == next_hash[1]
+    else:
+        assert hf.string2hash(tester) == next_hash[0]
 
 # ###################### 'pr', '--prune_taxa' ###################### #
 pt_hashes = [('m k', '99635c6dbf708f94cf4dfdca87113c44'), ('m n', 'fc03b4f100f038277edf6a9f48913dd0'),
