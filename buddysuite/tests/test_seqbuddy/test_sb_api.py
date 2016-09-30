@@ -1537,17 +1537,20 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
             return [[next(self.job_check), self.result_url, self.errinfo]]
 
     def mock_urlretrieve(result_url, filename, reporthook):
-        print(result_url)
         job_id = os.path.split(filename)[-1].split(".")[0]
-        if os.path.isfile("%s/%s.hashmap" % (work_dir.path, job_id)):
-            os.remove("%s/%s.hashmap" % (work_dir.path, job_id))
-        shutil.copy("%s/topcons/%s.zip" % (hf.resource_path, job_id), "%s/" % work_dir.path)
+        if os.path.isfile("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id)):
+            os.remove("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id))
+        shutil.copy("%stopcons%s%s.zip" % (hf.resource_path, os.path.sep, job_id), work_dir.path)
+        for root, dirs, files in br.walklevel(work_dir.path):
+            print(root)
+            print(files)
         reporthook(2, 10, 100)
         return
 
     def mock_hash_ids(seqbuddy):
         hashmap = OrderedDict()
-        with open("%s/topcons/%s.hashmap" % (hf.resource_path, suds_client.service.current_job_id), "r") as ifile:
+        with open("{0}topcons{1}{2}.hashmap".format(hf.resource_path, os.path.sep, suds_client.service.current_job_id),
+                  "r", encoding="utf-8") as ifile:
             for line in ifile:
                 if line:
                     line = line.strip().split("\t")
@@ -1574,6 +1577,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     tester = sb_resources.get_one("d g")
     Sb.pull_recs(tester, "α[56]")
     Sb.delete_features(tester, "splice|TMD")
+    capsys.readouterr()
     tester = Sb.transmembrane_domains(tester)
     assert hf.buddy2hash(tester) == "443462d4a7d7ed3121378fca55491d5c"
 
@@ -1587,6 +1591,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     tester = sb_resources.get_one("p g")
     Sb.pull_recs(tester, "α[56]")
     Sb.delete_features(tester, "splice|TMD")
+    capsys.readouterr()
     tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
     assert hf.buddy2hash(tester) == "eb31602e292e5a056b956f13dbb0d590"
 
