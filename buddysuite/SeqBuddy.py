@@ -154,7 +154,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
+VERSION = br.Version("SeqBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -4609,6 +4609,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Order ids
     if in_args.order_ids:
+        1/0
         if in_args.order_ids[0] and type(in_args.order_ids[0]) == str:
             reverse = True if "reverse".startswith(in_args.order_ids[0].lower()) else False
         else:

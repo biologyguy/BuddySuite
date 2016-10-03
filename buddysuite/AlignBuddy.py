@@ -66,7 +66,7 @@ from Bio.Alphabet import IUPAC
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
+VERSION = br.Version("AlignBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
