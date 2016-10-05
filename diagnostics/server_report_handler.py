@@ -31,6 +31,8 @@ from datetime import date
 from hashlib import md5
 from subprocess import run
 import re
+from urllib import request
+from urllib.error import URLError, HTTPError, ContentTooShortError
 
 if __name__ == '__main__':
     import argparse
