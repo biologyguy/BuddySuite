@@ -54,7 +54,6 @@ import dill
 import glob
 
 # Third party
-# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
 from Bio import BiopythonWarning
@@ -1433,16 +1432,16 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
         if CONFIG["data_dir"]:
-            self.history_path = "%s/cmd_history" % CONFIG["data_dir"]
+            self.history_path = "%s%scmd_history" % (CONFIG["data_dir"], os.sep)
         else:
-            self.history_path = "%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s%scmd_history" % (self.tmpdir.path, os.sep)
         try:
             if not os.path.isfile(self.history_path):
                 open(self.history_path, "w", encoding="utf-8").close()
             else:
                 open(self.history_path, "r").close()
         except PermissionError:
-            self.history_path = "%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s%scmd_history" % (self.tmpdir.path, os.sep)
             open(self.history_path, "w", encoding="utf-8").close()
 
         readline.read_history_file(self.history_path)
@@ -2056,6 +2055,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         _stdout("Most recent state reloaded\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def complete_bash(self, *args):
+        # ToDo: Windows support
         text = args[0]
         if not self.shell_execs:
             path_dirs = Popen("echo $PATH", stdout=PIPE, shell=True).communicate()
@@ -2065,7 +2065,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
                     continue
                 root, dirs, files = next(os.walk(_dir))
                 for _file in files:
-                    if os.access("%s/%s" % (root, _file), os.X_OK):
+                    if os.access("%s%s%s" % (root, os.path.sep, _file), os.X_OK):
                         self.shell_execs.append(_file.strip())
         return ["%s " % x for x in self.shell_execs if x.startswith(text)]
 
@@ -2410,7 +2410,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         except (KeyboardInterrupt, br.GuessError) as err:
             print(err)
         except Exception as err:
-            save_file = "./DbSessionDump_%s" % temp_file.name
+            save_file = ".%sDbSessionDump_%s" % (temp_file.name, os.sep)
             temp_file.save(save_file)
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
             br._stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "

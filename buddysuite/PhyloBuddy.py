@@ -163,7 +163,7 @@ class PhyloBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(_input.read())
+                temp = StringIO(br.utf_encode(_input.read()))
                 _input = temp
             _input.seek(0)
             in_from_handle = _input.read()
@@ -171,8 +171,8 @@ class PhyloBuddy(object):
 
         # Raw sequences
         if type(_input) == str and not os.path.isfile(_input):
-            raw_seq = _input
-            temp = StringIO(_input)
+            raw_seq = br.utf_encode(_input)
+            temp = StringIO(raw_seq)
             _input = temp
             in_from_handle = _input.read()
             _input.seek(0)
@@ -181,11 +181,10 @@ class PhyloBuddy(object):
         try:
             if os.path.isfile(_input):
                 in_file = _input
-                with open(_input, "r") as ifile:
+                with open(in_file, "r", encoding="utf-8") as ifile:
                     _input = StringIO(ifile.read())
                     in_from_handle = _input.read()
                     _input.seek(0)
-
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -232,14 +231,15 @@ class PhyloBuddy(object):
             # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
             if figtree:
-                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                    _ofile.write(figtree[0])
+                in_from_handle = figtree[0]
+#                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
+#                    _ofile.write(figtree[0])
 
+            _trees = dendropy.TreeList()
             if self.in_format != 'nexml':
-                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.path], schema=self.in_format,
-                                               extract_comment_metadata=True)
+                _trees.read(data=in_from_handle, schema=self.in_format, extract_comment_metadata=True)
             else:
-                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.path], schema=self.in_format)
+                _trees.read(data=in_from_handle, schema=self.in_format)
 
             for _tree in _trees:
                 self.trees.append(_tree)
@@ -703,11 +703,11 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if keep_temp:
                 _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
-                    with open("%s/%s" % (_root, file), "r") as ifile:
+                    with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                         contents = ifile.read()
                     for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
-                    with open("%s/%s" % (_root, file), "w") as ofile:
+                    with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
                         ofile.write(contents)
             phylo_objs += phylobuddy.trees
 
@@ -1233,8 +1233,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                     args = [tool]
                     break
         if not args:
-            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference on your system."),
-                         "generate_alignment")
+            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference "
+                                        "software on your system."), "generate_alignment")
 
         alignbuddy = []
         align_set = None

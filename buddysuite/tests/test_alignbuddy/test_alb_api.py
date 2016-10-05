@@ -5,7 +5,6 @@
 import pytest
 import os
 import shutil
-from unittest import mock
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.AlignIO import MultipleSeqAlignment
@@ -64,7 +63,7 @@ def test_clean_seqs(alb_resources, hf):
     tester = Alb.clean_seq(alb_resources.get_one("m p py"))
     assert hf.buddy2hash(tester) == "07a861a1c80753e7f89f092602271072"
 
-    tester = Alb.clean_seq(Alb.AlignBuddy("%s/ambiguous_dna_alignment.fa" % hf.resource_path),
+    tester = Alb.clean_seq(Alb.AlignBuddy("%sambiguous_dna_alignment.fa" % hf.resource_path),
                            ambiguous=False, rep_char="X")
     assert hf.buddy2hash(tester) == "6755ea1408eddd0e5f267349c287d989"
 
@@ -86,7 +85,7 @@ def test_concat_alignments(alb_resources, hf):
         Alb.concat_alignments(tester, 'Panx')
     assert "Replicate matches" in str(e)
 
-    tester = Sb.SeqBuddy("%s/Cnidaria_pep.nexus" % hf.resource_path)
+    tester = Sb.SeqBuddy("%sCnidaria_pep.nexus" % hf.resource_path)
     Sb.pull_recs(tester, "Ccr|Cla|Hec")
     tester = Alb.AlignBuddy(str(tester))
     tester.alignments.append(tester.alignments[0])
@@ -126,7 +125,7 @@ hashes = [('o d g', '888a13e13666afb4d3d851ca9150b442'), ('o d n', '560d4fc4be7a
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_consensus(alb_resources, hf, key, next_hash):
     tester = Alb.consensus_sequence(alb_resources.get_one(key))
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
@@ -142,7 +141,7 @@ hashes = [('o d g', 'b418ba198da2b4a268a962db32cc2a31'), ('o d n', '355a98dad5cf
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_delete_records(alb_resources, hf, key, next_hash):
     tester = Alb.delete_records(alb_resources.get_one(key), "α[1-5]|β[A-M]")
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
@@ -157,9 +156,9 @@ hashes = [('o d g', '4bf291d91d4b27923ef07c660b011c72', '2a42c56df314609d042bdbf
 @pytest.mark.parametrize("key,d2r_hash,r2d_hash", hashes)
 def test_transcribe(alb_resources, hf, key, d2r_hash, r2d_hash):
     tester = Alb.dna2rna(alb_resources.get_one(key))
-    assert hf.buddy2hash(tester) == d2r_hash, tester.write("error_files/%s" % d2r_hash)
+    assert hf.buddy2hash(tester) == d2r_hash
     tester = Alb.rna2dna(tester)
-    assert hf.buddy2hash(tester) == r2d_hash, tester.write("error_files/%s" % r2d_hash)
+    assert hf.buddy2hash(tester) == r2d_hash
 
 
 def test_transcribe_exceptions(alb_resources):
@@ -191,7 +190,7 @@ hashes = [('o d g', '6ff2a8a7c58bb6ac0d98fe373981e220'), ('o d n', 'c907d29434fe
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_enforce_triplets(key, next_hash, alb_resources, hf):
     tester = Alb.enforce_triplets(alb_resources.get_one(key))
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 def test_enforce_triplets_error(alb_resources):
@@ -216,7 +215,7 @@ hashes = [('o d g', 'aaa69d3abb32876a2774d981a274cbad'), ('o d n', '10ca718b74f3
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_extract_range(key, next_hash, alb_resources, hf):
     tester = Alb.extract_regions(alb_resources.get_one(key), 0, 50)
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -224,25 +223,29 @@ class MockPopen(object):
     def __init__(self, *args, **kwargs):
         self.kwargs = kwargs
         if "my_mucsle" in args[0]:
-            self.output = ["Robert C. Edgar".encode(), "".encode()]
+            self.output = ["Robert C. Edgar".encode("utf-8"), "".encode("utf-8")]
         elif "-h" in args[0] or "-v" in args[0]:
-            self.output = ["Nothing".encode(), "here".encode()]
+            self.output = ["Nothing".encode("utf-8"), "here".encode("utf-8")]
         elif "clustalo" in args[0]:
             self.output = [None, None]
         elif "clustalw2" in args[0]:
-            with open("%s/mock_resources/test_clustalw2/stdout.txt" % RES_PATH, "r") as ifile:
+            _file = "{1}mock_resources{0}test_clustalw2{0}stdout.txt".format(os.path.sep, RES_PATH)
+            with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode(), ""]
+            self.output = [stdout.encode("utf-8"), ""]
         elif "mafft" in args[0]:
-            with open("%s/mock_resources/test_mafft/result" % RES_PATH, "r") as ifile:
+            _file = "{1}mock_resources{0}test_mafft{0}result".format(os.path.sep, RES_PATH)
+            with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode(), '']
+            self.output = [stdout.encode("utf-8"), '']
         elif "muscle" in args[0]:
-            with open("%s/mock_resources/test_muscle/result" % RES_PATH, "r") as ifile:
+            _file = "{1}mock_resources{0}test_muscle{0}result".format(os.path.sep, RES_PATH)
+            with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode(), '']
+            self.output = [stdout.encode("utf-8"), '']
         elif "pagan" in args[0]:
-            with open("%s/mock_resources/test_pagan/stdout.txt" % RES_PATH, "r") as ifile:
+            _file = "{1}mock_resources{0}test_pagan{0}stdout.txt".format(os.path.sep, RES_PATH)
+            with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
             self.output = [stdout, ""]
         elif "prank" in args[0]:
@@ -255,7 +258,8 @@ class MockPopen(object):
 def test_clustalomega(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_clustalo/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{1}mock_resources{0}test_clustalo{0}result".format(os.path.sep, RES_PATH),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -282,19 +286,20 @@ def test_clustalomega(sb_resources, hf, monkeypatch):
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'clustalomega', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'clustalomega', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966"
+    assert hf.string2hash(kept_output) == "bad3a345e769d32672d39ee51df295f5"
 
 
 def test_clustalw2(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_clustalw2/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{1}mock_resources{0}test_clustalw2{0}result".format(os.path.sep, hf.resource_path),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -321,19 +326,20 @@ def test_clustalw2(sb_resources, hf, monkeypatch):
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'clustalw2', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'clustalw2', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3"
+    assert hf.string2hash(kept_output) == "7c03d671198d4e6c4bb56c8fb5619fff"
 
 
 def test_pagan(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_pagan/result.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{0}{1}mock_resources{1}test_pagan{1}result.fas".format(RES_PATH, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     open("warnings", "w").close()
     assert os.path.isfile("warnings")
     monkeypatch.setattr(Alb, "which", lambda *_: True)
@@ -363,19 +369,20 @@ def test_pagan(sb_resources, hf, monkeypatch):
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'pagan', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'pagan', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94"
+    assert hf.string2hash(kept_output) == "864112dafb4896ba25ece7929ca0a818"
 
 
 def test_prank(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_prank/result.best.fas" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{0}{1}mock_resources{1}test_prank{1}result.best.fas".format(RES_PATH, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -402,19 +409,20 @@ def test_prank(sb_resources, hf, monkeypatch):
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'prank', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'prank', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "cec1754543ae90eb8c95a6388f337e87"
+    assert hf.string2hash(kept_output) == "d0564931e20a61b441fc60549f5560a0"
 
 
 def test_muscle(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_muscle/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{0}mock_resources{1}test_muscle{1}result".format(RES_PATH, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -432,20 +440,21 @@ def test_muscle(sb_resources, hf, monkeypatch):
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'muscle', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'muscle', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "4703d739f5edd765660fcf081c8dbcbe"
+    assert hf.string2hash(kept_output) == "bd85c34b11261aef2d38c7a6a9d20bf9"
 
 
 def test_mafft(sb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     tmp_dir.subdir("keep_files")
-    shutil.copy("%s/mock_resources/test_mafft/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{0}{1}mock_resources{1}test_mafft{1}result".format(RES_PATH, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -464,19 +473,20 @@ def test_mafft(sb_resources, hf, monkeypatch):
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
     monkeypatch.setattr(br, "ask", lambda *_: True)
     tester = sb_resources.get_one("d f")
-    Alb.generate_msa(tester, 'mafft', keep_temp="%s/keep_files" % tmp_dir.path)
-    root, dirs, files = next(os.walk("%s/keep_files" % tmp_dir.path))
+    Alb.generate_msa(tester, 'mafft', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
+    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
     kept_output = ""
     for file in sorted(files):
-        with open("%s/%s" % (root, file), "r") as ifile:
+        with open("%s%s%s" % (root, os.path.sep, file), "r", encoding="utf-8") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906"
+    assert hf.string2hash(kept_output) == "6eaa7e087dd42a8d3ffe86d216b917d8"
 
 
 def test_alignment_edges(monkeypatch, sb_resources):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy("%s/mock_resources/test_muscle/result" % RES_PATH, "%s/" % mock_tmp_dir.path)
+    shutil.copy("{0}{1}mock_resources{1}test_muscle{1}result".format(RES_PATH, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -494,7 +504,7 @@ def test_alignment_edges(monkeypatch, sb_resources):
     monkeypatch.setattr(br, "ask", lambda *_: False)
     tmp_dir.subdir("keep_files")
     with pytest.raises(SystemExit):
-        Alb.generate_msa(tester, "mafft", keep_temp="%s/keep_files" % tmp_dir.path)
+        Alb.generate_msa(tester, "mafft", keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
 
 
 # ######################  '-hi', '--hash_ids' ###################### #
@@ -544,9 +554,9 @@ hashes = [('o d g', '2a42c56df314609d042bdbfa742871a3', '2a42c56df314609d042bdbf
 @pytest.mark.parametrize("key,uc_hash,lc_hash", hashes)
 def test_cases(key, uc_hash, lc_hash, alb_resources, hf):
     tester = Alb.uppercase(alb_resources.get_one(key))
-    assert hf.buddy2hash(tester) == uc_hash, tester.write("error_files/%s" % uc_hash)
+    assert hf.buddy2hash(tester) == uc_hash, tester.write("error_files%s%s" % (uc_hash, os.path.sep))
     tester = Alb.lowercase(tester)
-    assert hf.buddy2hash(tester) == lc_hash, tester.write("error_files/%s" % lc_hash)
+    assert hf.buddy2hash(tester) == lc_hash, tester.write("error_files%s%s" % (lc_hash, os.path.sep))
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
@@ -560,12 +570,12 @@ hashes = [('o p n', '79078260e8725a0d7ccbed9400c78eae'), ('o p pr', '02b977e5b08
 def test_map_features2alignment(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     if alignbuddy.alpha == IUPAC.protein:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_pep.gb" % hf.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_pep.gb" % (hf.resource_path, os.path.sep))
     else:
-        seqbuddy = Sb.SeqBuddy("%s/Mnemiopsis_cds.gb" % hf.resource_path)
+        seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep))
     tester = Alb.map_features2alignment(seqbuddy, alignbuddy)
     tester.set_format("genbank")
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
 # ###########################################  '-oi', '--order_ids' ############################################ #
@@ -583,10 +593,10 @@ hashes = [('o d g', '37df4bfa14878fc2772710da243942b6', '7dc190f41c9fb1f96956abd
 def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.order_ids(alignbuddy)
-    assert hf.buddy2hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files/%s" % fwd_hash)
+    assert hf.buddy2hash(alignbuddy) == fwd_hash, alignbuddy.write("error_files%s%s" % (fwd_hash, os.path.sep))
 
     Alb.order_ids(alignbuddy, reverse=True)
-    assert hf.buddy2hash(alignbuddy) == rev_hash, alignbuddy.write("error_files/%s" % rev_hash)
+    assert hf.buddy2hash(alignbuddy) == rev_hash, alignbuddy.write("error_files%s%s" % (rev_hash, os.path.sep))
 
 
 def test_order_ids2(alb_resources, hf):
@@ -608,7 +618,7 @@ hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548
 def test_pull_records(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
 # ###########################################  '-ri', '--rename_ids' ############################################ #
@@ -622,7 +632,7 @@ hashes = [('o d g', 'c35db8b8353ef2fb468b0981bd960a38'), ('o d n', '243024bfd2f6
 def test_rename_ids(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.rename(alignbuddy, 'Panx', 'Test', 0)
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
 # ###########################################  'tr', '--translate' ############################################ #
@@ -640,7 +650,7 @@ hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', 'a949edce9852
 def test_translate1(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.translate_cds(alignbuddy)
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files/%s" % next_hash)
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
 def test_translate2(alb_resources):
@@ -667,11 +677,11 @@ def test_trimal(key, hash3, hash07, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 3)
-    assert hf.buddy2hash(tester1) == hash3, alignbuddy.write("error_files/%s" % hash3)
+    assert hf.buddy2hash(tester1) == hash3, alignbuddy.write("error_files%s%s" % (hash3, os.path.sep))
 
     tester1, tester2 = Alb.make_copy(alignbuddy), Alb.make_copy(alignbuddy)
     Alb.trimal(tester1, 0.7)
-    assert hf.buddy2hash(tester1) == hash07, alignbuddy.write("error_files/%s" % hash07)
+    assert hf.buddy2hash(tester1) == hash07, alignbuddy.write("error_files%s%s" % (hash07, os.path.sep))
 
 
 def test_trimal2(alb_resources, hf):
@@ -683,14 +693,15 @@ def test_trimal2(alb_resources, hf):
     assert hf.buddy2hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
     tester = alb_resources.get_one("o p n")
     tester_dir = TEMPDIR.subdir()
-    tester.write("%s/trimal" % tester_dir)
+    tester.write("%s%strimal" % (tester_dir, os.path.sep))
     assert hf.buddy2hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
     """ Probably not a good idea to be calling binaries like this...
-    real_trimal = Popen("trimal -in %s/trimal -gappyout" % tester_dir, stdout=PIPE, shell=True).communicate()
+    real_trimal = Popen("trimal -in %s%strimal -gappyout" % (tester_dir, os.path.sep),
+                        stdout=PIPE, shell=True).communicate()
     real_trimal = real_trimal[0].decode()
-    with open("%s/trimal" % tester_dir, "w") as ofile:
+    with open("%s%strimal" % (tester_dir, os.path.sep), "w") as ofile:
         ofile.write(real_trimal)
-    tester = Alb.AlignBuddy("%s/trimal" % tester_dir)
+    tester = Alb.AlignBuddy("%s%strimal" % (tester_dir, os.path.sep))
     assert hf.buddy2hash(tester) == "2877ecfb201fc35211a4625f34c7afdd"
     """
     records = [SeqRecord(Seq("A--G-")), SeqRecord(Seq("--T--")), SeqRecord(Seq("--TG-")), SeqRecord(Seq("A---C"))]

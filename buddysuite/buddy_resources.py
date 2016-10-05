@@ -328,15 +328,17 @@ class TempDir(object):
             while dir_name in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
                 dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        subdir_path = "%s/%s" % (self.path, dir_name)
-        os.mkdir(subdir_path)
-        self.subdirs.append(dir_name)
+        subdir_path = "%s%s%s" % (self.path, os.path.sep, dir_name)
+        if not os.path.exists(subdir_path):
+            os.mkdir(subdir_path)
+        if dir_name not in self.subdirs:
+            self.subdirs.append(dir_name)
         return subdir_path
 
     def del_subdir(self, _dir):
         path, _dir = os.path.split(_dir)
         del self.subdirs[self.subdirs.index(_dir)]
-        rmtree("%s/%s" % (self.path, _dir))
+        rmtree("%s%s%s" % (self.path, os.path.sep, _dir))
         return
 
     def subfile(self, file_name=None):
@@ -346,18 +348,18 @@ class TempDir(object):
             while file_name in files:  # Catch the very unlikely case that a duplicate occurs
                 file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        open("%s/%s" % (self.path, file_name), "w", encoding="utf-8").close()
+        open("%s%s%s" % (self.path, os.path.sep, file_name), "w", encoding="utf-8").close()
         self.subfiles.append(file_name)
-        return "%s/%s" % (self.path, file_name)
+        return "%s%s%s" % (self.path, os.path.sep, file_name)
 
     def del_subfile(self, _file):
         path, _file = os.path.split(_file)
         del self.subfiles[self.subfiles.index(_file)]
-        os.remove("%s/%s" % (self.path, _file))
+        os.remove("%s%s%s" % (self.path, os.path.sep, _file))
         return
 
     def save(self, location, keep_hash=False):
-        location = location if not keep_hash else "%s/%s" % (location, os.path.split(self.path)[-1])
+        location = location if not keep_hash else "%s%s%s" % (location, os.path.sep, os.path.split(self.path)[-1])
         if os.path.isdir(location):
             print("Save Error: Indicated output folder already exists in TempDir.save(%s)" % location, file=sys.stderr)
             return False
@@ -372,7 +374,7 @@ class TempFile(object):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
-        self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
+        self.path = "%s%s%s" % (self._tmp_dir.path, os.path.sep, dir_hash)
         open(self.path, "w", encoding="utf-8").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
@@ -486,11 +488,11 @@ def copydir(source, dest):
         files = []
         dirs = []
         for thing in contents:
-            _path = "%s/%s" % (_dir, thing)
-            if os.path.isdir(_path):
-                dirs.append(_path)
+            thing_path = "%s%s%s" % (_dir, os.path.sep, thing)
+            if os.path.isdir(thing_path):
+                dirs.append(thing_path)
             else:
-                files.append(_path)
+                files.append(thing_path)
         if len(dirs) != 0:
             for _dir in dirs:
                 files += search(_dir)
@@ -501,7 +503,7 @@ def copydir(source, dest):
         os.makedirs(dest)
     for path in file_paths:
         _path, _file = os.path.split(path)
-        copyfile(path, "%s/%s" % (dest, _file))
+        copyfile(path, "%s%s%s" % (dest, os.path.sep, _file))
 
 
 def ask(input_prompt, default="yes", timeout=0):
@@ -614,7 +616,7 @@ class Usage(object):
         self.config = config_values()
         usage_file = None
         if self.config["diagnostics"] and self.config["data_dir"]:
-            usage_file = "%s/buddysuite_usage.json" % self.config["data_dir"]
+            usage_file = "%s%sbuddysuite_usage.json" % (self.config["data_dir"], os.path.sep)
             try:
                 if not os.path.isfile(usage_file):
                     with open(usage_file, "w", encoding="utf-8") as ofile:
@@ -730,7 +732,8 @@ def config_values():
                "user_hash": "hashless",
                "shortcuts": ""}
     try:
-        config_file = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data/config.ini")
+        config_file = resource_filename(Requirement.parse("buddysuite"),
+                                        "buddysuite{0}buddy_data{0}config.ini".format(os.path.sep))
         config = ConfigParser()
         config.read(config_file)
         for _key, value in options.items():
@@ -742,7 +745,7 @@ def config_values():
             except KeyError:
                 options[_key] = value
         options["shortcuts"] = options["shortcuts"].split(",")
-        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data")
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite%sbuddy_data" % os.path.sep)
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
     except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed

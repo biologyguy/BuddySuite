@@ -228,6 +228,7 @@ def test_generate_tree_ui1(capsys, pb_resources, alb_resources, monkeypatch):
     test_in_args.trees = [alb_resources.get_one("o d n")]
 
     monkeypatch.setattr(Pb, "generate_tree", lambda *_, **__: pb_resources.get_one("o n"))
+    monkeypatch.setattr(shutil, "which", lambda *_: True)
 
     test_in_args.generate_tree = [None]
     Pb.command_line_ui(test_in_args, [], skip_exit=True)
@@ -245,7 +246,7 @@ def test_generate_tree_ui1(capsys, pb_resources, alb_resources, monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda _: False)
     with pytest.raises(AttributeError) as err:
         Pb.command_line_ui(test_in_args, [], pass_through=True)
-    assert "Unable to identify any supported phylogenetic inference on your system." in str(err)
+    assert "Unable to identify any supported phylogenetic inference software on your system." in str(err)
 
 
 # ###################### 'hi', '--hash_ids' ###################### #
@@ -315,7 +316,10 @@ def test_print_trees_ui(capsys, pb_resources, hf):
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
+    if os.name == "nt":
+        assert hf.string2hash(out) == "05d286a56bf98457c17830bb9c1766d0"
+    else:
+        assert hf.string2hash(out) == "fe340117cb8f573100c00fc897e6c8ce"
 
 
 # ###################### 'pt', '--prune_taxa' ###################### #

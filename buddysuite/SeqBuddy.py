@@ -60,7 +60,6 @@ from collections import OrderedDict
 from xml.sax import SAXParseException
 
 # Third party
-# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.SeqRecord import SeqRecord
@@ -326,7 +325,7 @@ class SeqBuddy(object):
             output = "\n\n".join([str(rec.seq) for rec in self.records])
         else:
             tmp_dir = br.TempDir()
-            with open("%s/seqs.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
+            with open("%s%sseqs.tmp" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as _ofile:
                 try:
                     SeqIO.write(self.records, _ofile, self.out_format)
                 except ValueError as e:
@@ -346,7 +345,7 @@ class SeqBuddy(object):
                     else:
                         raise e
 
-            with open("%s/seqs.tmp" % tmp_dir.path, "r", encoding="utf-8") as ifile:
+            with open("%s%sseqs.tmp" % (tmp_dir.path, os.path.sep), "r", encoding="utf-8") as ifile:
                 output = ifile.read()
 
         return "%s\n" % output.rstrip()
@@ -979,15 +978,17 @@ def bl2seq(seqbuddy):
     """
     # Note on blast2seq: Expect (E) values are calculated on an assumed database size of (the rather large) nr, so the
     # threshold may need to be increased quite a bit to return short alignments
-
     def mc_blast(_query, _args):
         _subject_file = _args[0]
+        _query_file = br.TempFile()
+        with open(_query_file.path, "w", encoding="utf-8") as ofile:
+            ofile.write(_query.format("fasta"))
 
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("echo '%s' | %s -subject %s -outfmt 6" %
-                           (_query.format("fasta"), blast_bin, _subject_file), stdout=PIPE, shell=True).communicate()
+        _blast_res = Popen("%s -query %s -subject %s -outfmt 6" %
+                           (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
         if len(_blast_res) == 1:
@@ -1000,7 +1001,7 @@ def bl2seq(seqbuddy):
                                                     _blast_res[3], _blast_res[10], _blast_res[11].strip())
 
         with lock:
-            with open("%s/blast_results.txt" % tmp_dir.path, "a", encoding="utf-8") as _ofile:
+            with open("%s%sblast_results.txt" % (tmp_dir.path, os.path.sep), "a", encoding="utf-8") as _ofile:
                 _ofile.write(_result)
         return
 
@@ -1020,7 +1021,7 @@ def bl2seq(seqbuddy):
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
-    subject_file = "%s/subject.fa" % tmp_dir.path
+    subject_file = "%s%ssubject.fa" % (tmp_dir.path, os.path.sep)
     for subject in seqbuddy.records:
         with open(subject_file, "w", encoding="utf-8") as ifile:
             SeqIO.write(subject, ifile, "fasta")
@@ -1028,7 +1029,7 @@ def bl2seq(seqbuddy):
         br.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
-    with open("%s/blast_results.txt" % tmp_dir.path, "r", encoding="utf-8") as _ifile:
+    with open("%s%sblast_results.txt" % (tmp_dir.path, os.path.sep), "r", encoding="utf-8") as _ifile:
         output_list = _ifile.read().strip().split("\n")
 
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
@@ -1082,15 +1083,15 @@ def blast(subject, query, **kwargs):
             raise SystemError("blastdbcmd not found in system path.")
         query_sb = hash_ids(query)
         temp_dir = br.TempDir()
-        query_sb.write("%s/query.fa" % temp_dir.path, out_format="fasta")
+        query_sb.write("%s%squery.fa" % (temp_dir.path, os.path.sep), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
-        makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}/query.fa -out {1}/query_db "
-                            "-parse_seqids".format(dbtype, temp_dir.path), shell=True,
+        makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}{2}query.fa -out {1}{2}query_db "
+                            "-parse_seqids".format(dbtype, temp_dir.path, os.path.sep), shell=True,
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
         br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
-        query = "%s/query_db" % temp_dir.path
+        query = "%s%squery_db" % (temp_dir.path, os.path.sep)
 
     else:
         query_sb = None
@@ -1114,7 +1115,7 @@ def blast(subject, query, **kwargs):
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
     tmp_dir = br.TempDir()
-    with open("%s/tmp.fa" % tmp_dir.path, "w", encoding="utf-8") as ofile:
+    with open("%s%stmp.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
     num_threads = 4
@@ -1152,8 +1153,9 @@ def blast(subject, query, **kwargs):
     else:
         kwargs["blast_args"] = ""
 
-    blast_command = "%s -db %s -query %s/tmp.fa -out %s/out.txt -outfmt 6 -num_threads %s -evalue %s %s" % \
-                    (blast_bin, query, tmp_dir.path, tmp_dir.path, num_threads, evalue, kwargs["blast_args"])
+    blast_command = "{0} -db {1} -query {2}tmp.fa -out {2}out.txt " \
+                    "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
+                                                                        num_threads, evalue, kwargs["blast_args"])
 
     br._stderr("Running...\n%s\n############################################################\n\n" %
             re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
@@ -1163,7 +1165,7 @@ def blast(subject, query, **kwargs):
     if "Error" in blast_output:
         raise RuntimeError(blast_output)
 
-    with open("%s/out.txt" % tmp_dir.path, "r", encoding="utf-8") as ifile:
+    with open("%s%sout.txt" % (tmp_dir.path, os.path.sep), "r", encoding="utf-8") as ifile:
         blast_results = ifile.read()
         records = blast_results.split("\n")
 
@@ -1178,14 +1180,14 @@ def blast(subject, query, **kwargs):
 
         hit_ids.append(hit_id)
 
-    with open("%s/seqs.fa" % tmp_dir.path, "w", encoding="utf-8") as ofile:
+    with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry 'lcl|%s'" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db %s -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
 
-    new_seqs = SeqBuddy("%s/seqs.fa" % tmp_dir.path)
+    new_seqs = SeqBuddy("%s%sseqs.fa" % (tmp_dir.path, os.path.sep))
     new_seqs.out_format = subject.out_format
     if query_sb:
         new_seqs.hash_map = query_sb.hash_map
@@ -3311,13 +3313,14 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     temp_dir = br.TempDir()
     config = br.config_values()
 
-    job_dir = "/%s/topcons" % temp_dir.path if not config["data_dir"] else "%s/topcons" % config["data_dir"]
+    job_dir = "{0}{1}topcons".format(temp_dir.path, os.path.sep) if not config["data_dir"] \
+        else "%s%stopcons" % (config["data_dir"], os.path.sep)
     try:
         os.makedirs(job_dir, exist_ok=True)
-        open("%s/del" % job_dir, "w").close()
-        os.remove("%s/del" % job_dir)
+        open("%s%sdel" % (job_dir, os.path.sep), "w").close()
+        os.remove("%s%sdel" % (job_dir, os.path.sep))
     except PermissionError:
-        job_dir = "/%s/topcons" % temp_dir.path
+        job_dir = "{0}{1}topcons".format(temp_dir.path, os.path.sep)
         os.makedirs(job_dir, exist_ok=True)
 
     printer.write("Cleaning sequences")
@@ -3344,7 +3347,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     if job_ids:
         seqbuddy_recs = []
         for jobid in job_ids:
-            if not os.path.isfile("%s/%s.hashmap" % (job_dir, jobid)):
+            if not os.path.isfile("%s%s%s.hashmap" % (job_dir, os.path.sep, jobid)):
                 printer.clear()
                 error_message = "SeqBuddy does not have the necessary hash-map to process job id '%s'. This could be" \
                                 " a job id typo, a configuration issue, or you may be attempting to access a job" \
@@ -3352,7 +3355,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                                 " https://github.com/biologyguy/BuddySuite/wiki/SB-Transmembrane-domains" % jobid
                 raise FileNotFoundError(error_message)
 
-            with open("%s/%s.hashmap" % (job_dir, jobid), "r") as ifile:
+            with open("%s%s%s.hashmap" % (job_dir, os.path.sep, jobid), "r") as ifile:
                 jobs.append({"type": "previous", "hash_map": OrderedDict(), "records": []})
                 for line in ifile:
                     line = line.strip().split("\t")
@@ -3408,7 +3411,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         br._stderr("Job '%s' submitted\n" % jobid, quiet=quiet)
                         job_ids.append(jobid)
                         temp_dir.subdir(jobid)
-                        with open("%s/%s.hashmap" % (job_dir, jobid), "w", encoding="utf-8") as ofile:
+                        with open("%s%s%s.hashmap" % (job_dir, os.path.sep, jobid), "w", encoding="utf-8") as ofile:
                             ofile.write(job["records"].print_hashmap())
                     else:
                         printer.clear()
@@ -3459,7 +3462,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                     printer.clear()
                     raise ConnectionError("Job failed...\nServer message: %s" % errinfo)
                 elif status == "Finished":
-                    outfile = "%s/%s.zip" % (temp_dir.path, jobid)
+                    outfile = "%s%s%s.zip" % (temp_dir.path, os.path.sep, jobid)
                     printer.write("Retrieving job %s of %s" % (len(results) + len(failed) + 1, len(jobs)))
                     tries = 1
                     while True:
@@ -3486,7 +3489,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
                         if tries >= 5:
                             break
 
-                    if os.path.exists(outfile):
+                    if os.path.exists(outfile) and jobid not in results:
                         results.append(jobid)
 
                     else:
@@ -3507,14 +3510,15 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     for indx, jobid in enumerate(results):
         printer.write("Extracting results %s of %s (%s)" % (indx + 1, len(results), jobid))
-        with zipfile.ZipFile("%s/%s.zip" % (temp_dir.path, jobid)) as zf:
+        with zipfile.ZipFile("%s%s%s.zip" % (temp_dir.path, os.path.sep, jobid)) as zf:
             zf.extractall(temp_dir.path)
-        os.remove("%s/%s.zip" % (temp_dir.path, jobid))
+        os.remove("%s%s%s.zip" % (temp_dir.path, os.path.sep, jobid))
 
     printer.write("Processing results...")
     records = []
     for jobid in results:
-        with open("%s/%s/query.result.txt" % (temp_dir.path, jobid), "r", encoding="utf-8") as ifile:
+        with open("{0}{2}{1}{2}query.result.txt".format(temp_dir.path, jobid, os.path.sep),
+                  "r", encoding="utf-8") as ifile:
             topcons = ifile.read()
 
         topcons = topcons.split(
@@ -3552,20 +3556,20 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         printer.write("Preparing TOPCONS files to be saved")
         for _root, dirs, files in br.walklevel(temp_dir.path):
             for file in files:
-                with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
+                with open("%s%s%s" % (_root, os.path.sep, file), "r", encoding="utf-8") as ifile:
                     contents = ifile.read()
                 for _hash, _id in hash_map.items():
                     contents = re.sub(_hash, _id, contents)
-                with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
+                with open("%s%s%s" % (_root, os.path.sep, file), "w", encoding="utf-8") as ofile:
                     ofile.write(contents)
 
         printer.write("Saving TOPCONS files")
         os.makedirs(keep_temp, exist_ok=True)
         _root, dirs, files = next(br.walklevel(temp_dir.path))
         for file in files:
-            shutil.copyfile("%s/%s" % (_root, file), "%s/%s" % (keep_temp, file))
+            shutil.copyfile("%s%s%s" % (_root, os.path.sep, file), "%s%s%s" % (keep_temp, os.path.sep, file))
         for _dir in dirs:
-            shutil.copytree("%s/%s" % (_root, _dir), "%s/%s" % (keep_temp, _dir))
+            shutil.copytree("%s%s%s" % (_root, os.path.sep, _dir), "%s%s%s" % (keep_temp, os.path.sep, _dir))
 
     printer.write("Merging sequence features")
     if seqbuddy_copy.alpha != IUPAC.protein:
@@ -4291,8 +4295,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             taxa_groups = make_groups(seqbuddy, num_chars=5)
 
         for next_seqbuddy in taxa_groups:
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
-                                                br.format_to_extension[next_seqbuddy.out_format])
+            in_args.sequence[0] = "%s%s%s.%s" % (out_dir, os.path.sep, next_seqbuddy.identifier,
+                                                 br.format_to_extension[next_seqbuddy.out_format])
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
@@ -4321,8 +4325,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
         for next_seqbuddy in taxa_groups:
-            in_args.sequence[0] = "%s/%s.%s" % (out_dir, next_seqbuddy.identifier,
-                                                br.format_to_extension[next_seqbuddy.out_format])
+            in_args.sequence[0] = "%s%s%s.%s" % (out_dir, os.path.sep, next_seqbuddy.identifier,
+                                                 br.format_to_extension[next_seqbuddy.out_format])
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)

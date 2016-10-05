@@ -265,7 +265,8 @@ def test_delete_records_ui(capsys, alb_resources, hf):
     assert "No sequence identifiers match 'foo'\n" in err
 
     tmp_file = br.TempFile()
-    tmp_file.write('''\
+    with open(tmp_file.path, "w", encoding="utf-8") as ofile:
+        ofile.write('''\
 α[1-5]
 β[A-M]
 ''')
