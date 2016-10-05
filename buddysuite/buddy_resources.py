@@ -753,16 +753,18 @@ def config_values():
     return options
 
 
-def error_report(trace_back, tool, function, version):
+def error_report(trace_back, permission=False):
     message = ""
-    error_hash = md5(trace_back.encode("utf-8")).hexdigest()  # Hash the error
+    error_hash = re.sub("^#.*?\n{2}", "", trace_back, flags=re.DOTALL)  # Remove error header information before hashing
+    error_hash = md5(error_hash.encode("utf-8")).hexdigest()  # Hash the error
     try:  # Check online to see if error has been reported before
-        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/master/"
+        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/error_codes/"
                                          "diagnostics/error_codes", timeout=2)
         error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
         error_string = re.sub("#.*\n", "", error_string)
         error_json = json.loads(error_string)  # Convert JSON into a data table
-        version_str = str(version.major) + "." + str(version.minor)
+
+        version_str = re.search("# [A-Z]?[a-z]+Buddy: (.*)", trace_back).group(1)
 
         if error_hash in error_json.keys():  # Check if error is known (if it's in the data table)
             if error_json[error_hash][1] == "None" or error_json[error_hash][1] == version_str:  # If error not resolved
@@ -781,8 +783,6 @@ def error_report(trace_back, tool, function, version):
     except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)
 
-    config = config_values()
-    permission = config["diagnostics"]
     if permission:
         message += "An error report with the above traceback is being sent to the BuddySuite developers because " \
                    "you have elected to participate in the Software Improvement Program. You may opt-out of this " \
@@ -795,9 +795,6 @@ def error_report(trace_back, tool, function, version):
         if permission:
             print("\nPreparing error report for FTP upload...")
             temp_file = TempFile()
-            version_str = str(version.major) + "." + str(version.minor)
-            temp_file.write("%s\t%s::%s\t%s\nuser: %s\n" % (error_hash, tool, function,
-                                                            version_str, config['user_hash']))
             temp_file.write(trace_back)
             print("Connecting to FTP server...")
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
@@ -1079,13 +1076,23 @@ def replacements(input_str, query, replace="", num=0):
 
 
 def send_traceback(tool, function, e, version):
+    now = datetime.datetime.now()
+    config = config_values()
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
-        _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+        _line = re.sub('"(?:C\:)*{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
-    tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+    bs_version = "# %s: %s\n" % (tool, version.short())
+    func = "# Function: %s\n" % function
+    platform = "# Platform: %s\n" % sys.platform
+    python = "# Python: %s\n" % re.sub("[\n\r]", "", sys.version)
+    user = "# User: %s\n" % config['user_hash']
+    date = "# Date: %s\n\n" % now.strftime('%Y-%m-%d')
+    error = "%s: %s\n\n" % (type(e).__name__, e)
+
+    tb = "".join([bs_version, func, python, platform, user, date, error, tb])
     print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
-    error_report(tb, tool, function, version)
+    error_report(tb, config["diagnostics"])
     return
 
 

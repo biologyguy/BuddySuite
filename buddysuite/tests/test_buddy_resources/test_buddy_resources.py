@@ -13,6 +13,7 @@ import argparse
 import json
 from hashlib import md5
 from time import sleep
+import datetime
 from unittest import mock
 from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
@@ -655,31 +656,40 @@ def test_error_report(monkeypatch):
         def storlines(*args, **kwargs):
             raise RuntimeError  # If a runtime error is raised, the file was "sent"
 
-    fake_error = "ABCD"
-    error_hash = b'cb08ca4a7bb5f9683c19133a84872ca7'
+    fake_error = """\
+# SeqBuddy: 1.2b6
+# Function: order_ids
+# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
+# Platform: darwin
+# User: hashless
+# Date: 2016-10-03
+
+ZeroDivisionError: division by zero
+
+  File "sb", line 4856, in main
+    command_line_ui(*initiation)
+  File "sb", line 4612, in command_line_ui
+    1/0
+"""
+    error_hash = b'44f77d4602b7213f958ed80ef0301365'
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
-    config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": True, "user_hash": "hashless",
-                                     "data_dir": False})
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     monkeypatch.setattr(br, "FTP", FakeFTP)
-    monkeypatch.setattr(br, "config_values", config)
+    monkeypatch.setattr(br, "config_values", lambda *_, **__: {"email": "buddysuite@nih.gov", "diagnostics": True,
+                                                               "user_hash": "hashless", "data_dir": False})
 
-    br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))  # Known bug
+    br.error_report(fake_error, True)  # Known bug
 
-    fake_error = "WXYZ"
-
+    error_hash = b'54f77d4602b7213f958ed80ef0301365'
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)  # Needs to be reset every time
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     with pytest.raises(RuntimeError):  # Unknown error, diagnostics true
-        br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+        br.error_report(fake_error, True)
 
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     def raise_ftp_errors(*args, **kwargs):
         print(args, kwargs)
@@ -688,7 +698,7 @@ def test_error_report(monkeypatch):
     # Gracefully handling FTP errors
     FakeFTP.storlines = raise_ftp_errors
     monkeypatch.setattr(br, "FTP", FakeFTP)
-    br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+    br.error_report(fake_error, True)
 
 
 def test_flags(capsys, hf):
@@ -850,18 +860,32 @@ def test_replacements():
 
 
 def test_send_traceback(capsys, monkeypatch):
-    donothing = mock.Mock(return_value=0)
-    monkeypatch.setattr(br, "error_report", donothing)
-    br.send_traceback("test", "test", "RuntimeError\nTraceback (most recent call last)\n\t1 raise "
-                                      "RuntimeError(\"Something broke!\"\nRuntimeError: Something broke!", 1.2)
+    monkeypatch.setattr(br, "error_report", lambda *_: False)
+    version = br.Version("Foo", 1, 2, [])
+    br.send_traceback("TestBuddy", "FailedFunc", RuntimeError("Something broke!"), version)
     out, err = capsys.readouterr()
-    assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
-                       "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
-                       " Something broke!\n\n\n\n\033[m\n"
+    now = datetime.datetime.now()
+    assert out == """\
+\033[mTestBuddy::FailedFunc has crashed with the following traceback:\033[91m
+
+# TestBuddy: 1.2
+# Function: FailedFunc
+# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
+# Platform: darwin
+# User: hashless
+# Date: %s
+
+RuntimeError: Something broke!
+
+
+
+\033[m
+""" % now.strftime('%Y-%m-%d')
+
     try:
         raise TypeError
     except TypeError as err:
-        br.send_traceback("test2", "test2", err, 1.3)
+        br.send_traceback("test2", "test2", err, version)
         out, err = capsys.readouterr()
         assert "test2::test2 has crashed with the following traceback:" in out
         assert re.search('File ".*test_buddy_resources.py", line', out)

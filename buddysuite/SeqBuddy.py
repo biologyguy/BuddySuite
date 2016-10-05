@@ -4613,7 +4613,6 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Order ids
     if in_args.order_ids:
-        1/0
         if in_args.order_ids[0] and type(in_args.order_ids[0]) == str:
             reverse = True if "reverse".startswith(in_args.order_ids[0].lower()) else False
         else:

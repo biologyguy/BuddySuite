@@ -48,36 +48,51 @@ if __name__ == '__main__':
     root, dirs, reports = next(br.walklevel(in_args.report_folder))
 
     if in_args.errors:
-        with open("/home/buddysuite_resources/resolved_errors", "r") as ifile:
-            resolved = ifile.readlines()
-
         error_reports = []
         report_hashes = {}
         file_paths = []
-        for report in reports:
-            if re.match("error", report):
-                report = "%s/%s" % (root, report)
-                file_paths.append(report)
-                with open(report, "r") as ifile:
-                    content = ifile.read()
-                    _hash = md5(content.encode()).hexdigest()
+        email_msg = None
+        try:
+            raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/error_codes/"
+                                             "diagnostics/error_codes", timeout=2)
+            error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
+            error_string = re.sub("#.*\n", "", error_string)
+            error_json = json.loads(error_string)  # Convert JSON into a data table
 
-                if _hash in resolved:
-                    continue
+            resolved = []
+            for key, values in error_json.items():
+                report_ver, fixed_ver = values
+                if fixed_ver != "":
+                    resolved.append(key)
 
-                if _hash not in report_hashes:
-                    report_hashes[_hash] = 1
-                    error_reports.append(content)
-                else:
-                    report_hashes[_hash] += 1
+            for report in reports:
+                if re.match("error", report):
+                    report = "%s/%s" % (root, report)
+                    file_paths.append(report)
+                    with open(report, "r", encoding="utf-8") as ifile:
+                        content = ifile.read()
+                        _hash = md5(content.encode()).hexdigest()
 
-        if len(error_reports) > 0:
-            email_msg = ""
-            for report in error_reports:
-                _hash = md5(report.encode()).hexdigest()
-                email_msg += "%s\n%s\n" % (_hash, report_hashes[_hash])
-                email_msg += "%s\n//\n\n" % report
+                    if _hash in resolved:
+                        continue
 
+                    if _hash not in report_hashes:
+                        report_hashes[_hash] = 1
+                        error_reports.append(content)
+                    else:
+                        report_hashes[_hash] += 1
+
+            if len(error_reports) > 0:
+                email_msg = ""
+                for report in error_reports:
+                    _hash = md5(report.encode()).hexdigest()
+                    email_msg += "%s\n%s\n" % (_hash, report_hashes[_hash])
+                    email_msg += "%s\n//\n\n" % report
+
+        except (URLError, HTTPError, ContentTooShortError) as err:
+            email_msg = "server_report_handler.py error: Unable to download error codes file"
+
+        if email_msg:
             try:
                 subject = "BuddySuite|error_reports|%s" % date.today()
                 br.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
@@ -97,16 +112,16 @@ if __name__ == '__main__':
             if re.match("usage", report):
                 report_path = "%s/%s" % (root, report)
                 file_paths.append(report_path)
-                with open(report_path, "r") as ifile:
+                with open(report_path, "r", encoding="utf-8") as ifile:
                     content = ifile.read()
                 email_msg += "%s\n" % content
 
         if email_msg != "":
-            with open(in_args.usage, "a") as ofile:
+            with open(in_args.usage, "a", encoding="utf-8") as ofile:
                 ofile.write(email_msg)
             try:
                 subject = "BuddySuite|usage_reports|%s" % date.today()
-                br.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
+                br.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
