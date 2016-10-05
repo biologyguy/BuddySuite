@@ -257,7 +257,9 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) in ["41cc02db5a989591601308d0657544a8", "c2adacdaf0de6526c707564068a3460a"]
+
+    assert "Running function <lambda>() on 4 cores" in output
+    assert re.search("DONE: 4 jobs in [0-9]+ sec", output)
 
 
 # ######################################  TempDir  ###################################### #
@@ -865,13 +867,13 @@ def test_send_traceback(capsys, monkeypatch):
     br.send_traceback("TestBuddy", "FailedFunc", RuntimeError("Something broke!"), version)
     out, err = capsys.readouterr()
     now = datetime.datetime.now()
-    assert out == """\
+    assert """\
 \033[mTestBuddy::FailedFunc has crashed with the following traceback:\033[91m
 
 # TestBuddy: 1.2
-# Function: FailedFunc
-# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
-# Platform: darwin
+# Function: FailedFunc""" in out
+
+    assert """\
 # User: hashless
 # Date: %s
 
@@ -880,7 +882,7 @@ RuntimeError: Something broke!
 
 
 \033[m
-""" % now.strftime('%Y-%m-%d')
+""" % now.strftime('%Y-%m-%d') in out
 
     try:
         raise TypeError
