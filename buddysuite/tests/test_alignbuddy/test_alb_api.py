@@ -288,7 +288,7 @@ def test_clustalomega(sb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966", print(kept_output)
+    assert hf.string2hash(kept_output) == "b22340abfa227e8d2f2cf9425e9e6966"
 
 
 def test_clustalw2(sb_resources, hf, monkeypatch):
@@ -327,7 +327,7 @@ def test_clustalw2(sb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3", print(kept_output)
+    assert hf.string2hash(kept_output) == "42c50ae47ca0c4d957a5b6d82b2980c3"
 
 
 def test_pagan(sb_resources, hf, monkeypatch):
@@ -343,13 +343,13 @@ def test_pagan(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan')
-    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
     assert not os.path.isfile("warnings")
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', quiet=True)
-    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", print(tester)
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
 
     # params
     tester = sb_resources.get_one("d f")
@@ -369,7 +369,7 @@ def test_pagan(sb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94", print(kept_output)
+    assert hf.string2hash(kept_output) == "714f9d8f4ef3751b30d7f79c0fff9f94"
 
 
 def test_prank(sb_resources, hf, monkeypatch):
@@ -470,7 +470,7 @@ def test_mafft(sb_resources, hf, monkeypatch):
     for file in sorted(files):
         with open("%s/%s" % (root, file), "r") as ifile:
             kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906", print(kept_output)
+    assert hf.string2hash(kept_output) == "61191aa1d738a916cd323cdef5f6e906"
 
 
 def test_alignment_edges(monkeypatch, sb_resources):
