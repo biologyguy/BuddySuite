@@ -33,6 +33,25 @@ from subprocess import run
 import re
 from urllib import request
 from urllib.error import URLError, HTTPError, ContentTooShortError
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+
+def sendmail(sender, recipient, subject_line, message):
+    msg = MIMEMultipart()
+    msg.preamble = subject_line
+    msg.add_header("From", sender)
+    msg.add_header("Subject", subject_line)
+    msg.add_header("To", recipient)
+
+    msg.attach(MIMEText(message))
+
+    smtp = smtplib.SMTP('localhost')
+    smtp.starttls()
+    smtp.sendmail(sender, recipient, msg.as_string())
+    smtp.quit()
+    return
 
 if __name__ == '__main__':
     import argparse
@@ -97,7 +116,7 @@ if __name__ == '__main__':
         if email_msg:
             try:
                 subject = "BuddySuite|error_reports|%s" % date.today()
-                br.sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
+                sendmail("mailer@rf-cloning.org", "buddysuite@mail.nih.gov", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
@@ -123,7 +142,7 @@ if __name__ == '__main__':
                 ofile.write(email_msg)
             try:
                 subject = "BuddySuite|usage_reports|%s" % date.today()
-                br.sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
+                sendmail("mailer@rf-cloning.org", "buddysuite@gmail.com", subject, email_msg)
 
                 for report in file_paths:
                     os.remove(report)
