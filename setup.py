@@ -78,7 +78,7 @@ setup(name='buddysuite',
       version='1.2b.3',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
-      long_description=open(os.path.join(os.path.dirname(__file__), 'README.md', encoding="utf-8")).read(),
+      long_description=open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding="utf-8").read(),
       author='Stephen Bond',
       author_email='steve.bond@gmail.com',
       url='https://github.com/biologyguy/BuddySuite',
