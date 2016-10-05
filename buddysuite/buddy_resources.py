@@ -67,14 +67,17 @@ class Timer(object):
 
 
 class RunTime(object):
-    def __init__(self, prefix="", postfix="", out_type=sys.stdout):
+    def __init__(self, prefix="", postfix="", out_type="stdout"):
+        if out_type not in ["stdout", "stderr"]:
+            raise AttributeError("Only 'stdout' and 'stderr' are valid options for 'out_type'")
         self.out_type = out_type
         self.prefix = prefix
         self.postfix = postfix
         self.running_process = None
 
     def _run(self, check_file_path):
-        d_print = DynamicPrint(self.out_type)
+        out_type = sys.stdout if self.out_type == "stdout" else sys.stderr
+        d_print = DynamicPrint(out_type)
         start_time = round(time())
         elapsed = 0
         while True:
@@ -215,8 +218,10 @@ def usable_cpu_count():
 def run_multicore_function(iterable, function, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
-        d_print = DynamicPrint(out_type)
+        if func_args and not isinstance(func_args, list):
+            raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
 
+        d_print = DynamicPrint(out_type)
         if max_processes == 0:
             max_processes = usable_cpu_count()
 
@@ -243,6 +248,9 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
         for next_iter in iterable:
             if type(iterable) is dict:
                 next_iter = iterable[next_iter]
+            if os.name == "nt":  # Multicore doesn't work well on Windows, so for now just run serial
+                function(next_iter, func_args)
+                continue
             while 1:     # Only fork a new process when there is a free processor.
                 if running_processes < max_processes:
                     # Start new process
@@ -250,11 +258,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                         d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
 
                     if func_args:
-                        if not isinstance(func_args, list):
-                            raise AttributeError("The arguments passed into the multi-thread function must be provided "
-                                                 "as a list")
                         p = Process(target=function, args=(next_iter, func_args))
-
                     else:
                         p = Process(target=function, args=(next_iter,))
                     p.start()
@@ -324,15 +328,17 @@ class TempDir(object):
             while dir_name in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
                 dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        subdir_path = "%s/%s" % (self.path, dir_name)
-        os.mkdir(subdir_path)
-        self.subdirs.append(dir_name)
+        subdir_path = "%s%s%s" % (self.path, os.path.sep, dir_name)
+        if not os.path.exists(subdir_path):
+            os.mkdir(subdir_path)
+        if dir_name not in self.subdirs:
+            self.subdirs.append(dir_name)
         return subdir_path
 
     def del_subdir(self, _dir):
-        _dir = _dir.split("/")[-1]
+        path, _dir = os.path.split(_dir)
         del self.subdirs[self.subdirs.index(_dir)]
-        rmtree("%s/%s" % (self.path, _dir))
+        rmtree("%s%s%s" % (self.path, os.path.sep, _dir))
         return
 
     def subfile(self, file_name=None):
@@ -342,18 +348,18 @@ class TempDir(object):
             while file_name in files:  # Catch the very unlikely case that a duplicate occurs
                 file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        open("%s/%s" % (self.path, file_name), "w", encoding="utf-8").close()
+        open("%s%s%s" % (self.path, os.path.sep, file_name), "w", encoding="utf-8").close()
         self.subfiles.append(file_name)
-        return "%s/%s" % (self.path, file_name)
+        return "%s%s%s" % (self.path, os.path.sep, file_name)
 
     def del_subfile(self, _file):
-        _file = _file.split("/")[-1]
+        path, _file = os.path.split(_file)
         del self.subfiles[self.subfiles.index(_file)]
-        os.remove("%s/%s" % (self.path, _file))
+        os.remove("%s%s%s" % (self.path, os.path.sep, _file))
         return
 
     def save(self, location, keep_hash=False):
-        location = location if not keep_hash else "%s/%s" % (location, self.path.split("/")[-1])
+        location = location if not keep_hash else "%s%s%s" % (location, os.path.sep, os.path.split(self.path)[-1])
         if os.path.isdir(location):
             print("Save Error: Indicated output folder already exists in TempDir.save(%s)" % location, file=sys.stderr)
             return False
@@ -366,9 +372,9 @@ class TempFile(object):
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
     def __init__(self, mode="w", byte_mode=False):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
-        dir_hash = self._tmp_dir.path.split("/")[-1]
+        path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
-        self.path = "%s/%s" % (self._tmp_dir.path, dir_hash)
+        self.path = "%s%s%s" % (self._tmp_dir.path, os.path.sep, dir_hash)
         open(self.path, "w", encoding="utf-8").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
@@ -482,11 +488,11 @@ def copydir(source, dest):
         files = []
         dirs = []
         for thing in contents:
-            _path = "%s/%s" % (_dir, thing)
-            if os.path.isdir(_path):
-                dirs.append(_path)
+            thing_path = "%s%s%s" % (_dir, os.path.sep, thing)
+            if os.path.isdir(thing_path):
+                dirs.append(thing_path)
             else:
-                files.append(_path)
+                files.append(thing_path)
         if len(dirs) != 0:
             for _dir in dirs:
                 files += search(_dir)
@@ -496,8 +502,8 @@ def copydir(source, dest):
     if not os.path.exists(dest):
         os.makedirs(dest)
     for path in file_paths:
-        _file = path.split("/")[-1]
-        copyfile(path, "%s/%s" % (dest, _file))
+        _path, _file = os.path.split(path)
+        copyfile(path, "%s%s%s" % (dest, os.path.sep, _file))
 
 
 def ask(input_prompt, default="yes", timeout=0):
@@ -512,20 +518,45 @@ def ask(input_prompt, default="yes", timeout=0):
         raise TimeoutError(args)
 
     try:
-        signal.signal(signal.SIGALRM, kill)
-        signal.alarm(timeout)
-        _response = input(input_prompt)
-        signal.alarm(0)
-        while True:
+        if os.name == "nt":
+            import msvcrt
+            timeout = timeout if timeout > 0 else 3600
+            start_time = time()
+            sys.stdout.write(input_prompt)
+            sys.stdout.flush()
+            _response = ''
+            while True:
+                if msvcrt.kbhit():
+                    _chr = msvcrt.getche()
+                    if ord(_chr) == 13:  # enter_key
+                        break
+                    elif ord(_chr) >= 32:  # space_char
+                        _response += _chr.decode()
+                if len(_response) == 0 and (time() - start_time) > timeout:
+                    _response = default
+                    break
+
+            print('')  # needed to move to next line
             if _response.lower() in yes_list:
                 return True
-            elif _response.lower() in no_list:
-                return False
             else:
-                print("Response not understood. Valid options are 'yes' and 'no'.")
-                signal.alarm(timeout)
-                _response = input(input_prompt)
-                signal.alarm(0)
+                return False
+
+        else:
+            signal.signal(signal.SIGALRM, kill)
+            signal.alarm(timeout)
+            _response = input(input_prompt)
+            signal.alarm(0)
+            while True:
+                if _response.lower() in yes_list:
+                    return True
+                elif _response.lower() in no_list:
+                    return False
+                else:
+                    print("Response not understood. Valid options are 'yes' and 'no'.")
+                    signal.alarm(timeout)
+                    _response = input(input_prompt)
+                    signal.alarm(0)
 
     except TimeoutError:
         return False
@@ -585,7 +616,7 @@ class Usage(object):
         self.config = config_values()
         usage_file = None
         if self.config["diagnostics"] and self.config["data_dir"]:
-            usage_file = "%s/buddysuite_usage.json" % self.config["data_dir"]
+            usage_file = "%s%sbuddysuite_usage.json" % (self.config["data_dir"], os.path.sep)
             try:
                 if not os.path.isfile(usage_file):
                     with open(usage_file, "w", encoding="utf-8") as ofile:
@@ -701,7 +732,8 @@ def config_values():
                "user_hash": "hashless",
                "shortcuts": ""}
     try:
-        config_file = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data/config.ini")
+        config_file = resource_filename(Requirement.parse("buddysuite"),
+                                        "buddysuite{0}buddy_data{0}config.ini".format(os.path.sep))
         config = ConfigParser()
         config.read(config_file)
         for _key, value in options.items():
@@ -713,7 +745,7 @@ def config_values():
             except KeyError:
                 options[_key] = value
         options["shortcuts"] = options["shortcuts"].split(",")
-        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite/buddy_data")
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite%sbuddy_data" % os.path.sep)
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
     except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed
@@ -721,16 +753,18 @@ def config_values():
     return options
 
 
-def error_report(trace_back, tool, function, version):
+def error_report(trace_back, permission=False):
     message = ""
-    error_hash = md5(trace_back.encode("utf-8")).hexdigest()  # Hash the error
+    error_hash = re.sub("^#.*?\n{2}", "", trace_back, flags=re.DOTALL)  # Remove error header information before hashing
+    error_hash = md5(error_hash.encode("utf-8")).hexdigest()  # Hash the error
     try:  # Check online to see if error has been reported before
-        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/master/"
+        raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/error_codes/"
                                          "diagnostics/error_codes", timeout=2)
         error_string = raw_error_data.read().decode("utf-8")  # Read downloaded file
         error_string = re.sub("#.*\n", "", error_string)
         error_json = json.loads(error_string)  # Convert JSON into a data table
-        version_str = str(version.major) + "." + str(version.minor)
+
+        version_str = re.search("# [A-Z]?[a-z]+Buddy: (.*)", trace_back).group(1)
 
         if error_hash in error_json.keys():  # Check if error is known (if it's in the data table)
             if error_json[error_hash][1] == "None" or error_json[error_hash][1] == version_str:  # If error not resolved
@@ -749,8 +783,6 @@ def error_report(trace_back, tool, function, version):
     except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)
 
-    config = config_values()
-    permission = config["diagnostics"]
     if permission:
         message += "An error report with the above traceback is being sent to the BuddySuite developers because " \
                    "you have elected to participate in the Software Improvement Program. You may opt-out of this " \
@@ -763,9 +795,6 @@ def error_report(trace_back, tool, function, version):
         if permission:
             print("\nPreparing error report for FTP upload...")
             temp_file = TempFile()
-            version_str = str(version.major) + "." + str(version.minor)
-            temp_file.write("%s\t%s::%s\t%s\nuser: %s\n" % (error_hash, tool, function,
-                                                            version_str, config['user_hash']))
             temp_file.write(trace_back)
             print("Connecting to FTP server...")
             ftp = FTP("rf-cloning.org", user="buddysuite", passwd="seqbuddy", timeout=5)
@@ -955,10 +984,59 @@ def phylip_sequential_read(sequence, relaxed=True):
                                       "Try a relaxed Phylip format (phylipr or phylipsr)." % seq_id)
             key_list.append(seq_id)
             output += ">%s\n%s\n" % (seq_id, seq)
-        temp_file.write(output, "w")
-        aligns.append(AlignIO.read(temp_file.get_handle("r"), "fasta"))
-        temp_file.close()
+        with open(temp_file.path, "w", encoding="utf-8") as ofile:
+            ofile.write(output)
+        with open(temp_file.path, "r", encoding="utf-8") as ifile:
+            aligns.append(AlignIO.read(ifile, "fasta"))
     return aligns
+
+
+def phylip_guess(next_format, _input):
+    if next_format == "phylip":
+        sequence = "\n %s" % _input.read().strip()
+        _input.seek(0)
+        alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
+        align_sizes = []
+        for indx in range(int(len(alignments) / 3)):
+            align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
+
+        phy = list(AlignIO.parse(_input, "phylip"))
+        _input.seek(0)
+
+        indx = 0
+        phy_ids = []
+        for key in align_sizes:
+            phy_ids.append([])
+            for rec in phy[indx]:
+                assert len(rec.seq) == key[1]
+                phy_ids[-1].append(rec.id)
+            indx += 1
+
+        phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
+        _input.seek(0)
+        if phy_rel:
+            for indx, aln in enumerate(phy_rel):
+                for rec in aln:
+                    if len(rec.seq) != align_sizes[indx][1]:
+                        return parse_format("phylip")
+                    if rec.id in phy_ids[indx]:
+                        return
+                    else:
+                        return parse_format("phylip-relaxed")
+        return parse_format("phylip")
+
+    if next_format == "phylipss":
+        if phylip_sequential_read(_input.read(), relaxed=False):
+            _input.seek(0)
+            return parse_format(next_format)
+        else:
+            return
+    if next_format == "phylipsr":
+        if phylip_sequential_read(_input.read()):
+            _input.seek(0)
+            return parse_format(next_format)
+        else:
+            return
 
 
 def replacements(input_str, query, replace="", num=0):
@@ -998,13 +1076,23 @@ def replacements(input_str, query, replace="", num=0):
 
 
 def send_traceback(tool, function, e, version):
+    now = datetime.datetime.now()
+    config = config_values()
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
-        _line = re.sub('"/.*/(.*)?"', r'"\1"', _line)
+        _line = re.sub('"(?:C\:)*{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
-    tb = "%s: %s\n\n%s" % (type(e).__name__, e, tb)
+    bs_version = "# %s: %s\n" % (tool, version.short())
+    func = "# Function: %s\n" % function
+    platform = "# Platform: %s\n" % sys.platform
+    python = "# Python: %s\n" % re.sub("[\n\r]", "", sys.version)
+    user = "# User: %s\n" % config['user_hash']
+    date = "# Date: %s\n\n" % now.strftime('%Y-%m-%d')
+    error = "%s: %s\n\n" % (type(e).__name__, e)
+
+    tb = "".join([bs_version, func, python, platform, user, date, error, tb])
     print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
-    error_report(tb, tool, function, version)
+    error_report(tb, config["diagnostics"])
     return
 
 
@@ -1183,6 +1271,70 @@ def remap_gapped_features(old_records, new_records):
         new_rec.features = features
     return new_records
 
+
+def _stderr(message, quiet=False):
+    """
+    Send text to stderr
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
+    if not quiet:
+        try:
+            sys.stderr.write(message)
+            sys.stderr.flush()
+        except UnicodeEncodeError:  # Mainly a work around for Windows
+            message = message.encode("utf-8")
+            sys.stderr.buffer.write(message)
+            sys.stderr.flush()
+    return
+
+
+def _stdout(message, quiet=False):
+    """
+    Send text to stdout
+    :param message: Text to write
+    :param quiet: Suppress message with True
+    :return: None
+    """
+    if not quiet:
+        try:
+            sys.stdout.write(message)
+            sys.stdout.flush()
+        except UnicodeEncodeError:  # Mainly a work around for Windows
+            message = message.encode("utf-8")
+            sys.stdout.buffer.write(message)
+            sys.stdout.flush()
+    return
+
+
+def utf_encode(_input):
+    tmp_file = TempFile()
+    with open(tmp_file.path, "w", encoding="utf-8") as ofile:
+        ofile.write(_input)
+    import codecs
+    with codecs.open(tmp_file.path, "r", "utf-8", errors="replace") as ifile:
+        _input = ifile.read()
+    _input = re.sub("\r", "", _input)
+    return _input
+
+
+def isfile_override(path):
+    # This is a hack for Windows, which throws errors if the 'path' is too long
+    import stat
+    try:
+        st = os.stat(path)
+    except OSError:
+        return False
+    except ValueError as err:
+        if "path too long for Windows" in str(err):
+            return False
+        else:
+            raise err
+    return stat.S_ISREG(st.st_mode)
+
+if os.name == "nt":
+    os.path.isfile = isfile_override
 
 # #################################################### VARIABLES ##################################################### #
 

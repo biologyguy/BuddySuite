@@ -2,8 +2,9 @@
 # coding=utf-8
 """ tests basic functionality of PhyloBuddy class """
 import pytest
+import os
 
-from ...PhyloBuddy import PhyloBuddy, _stderr, _stdout, _convert_to_ete, _guess_format
+from ...PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
 from ... import buddy_resources as br
 import ete3
 
@@ -80,26 +81,6 @@ def test_guess_error(pb_odd_resources):
                "\nTry explicitly setting it with the -f flag." in str(e.value)
 
 
-def test_stderr(capsys):
-    _stderr("Hello std_err", quiet=False)
-    out, err = capsys.readouterr()
-    assert err == "Hello std_err"
-
-    _stderr("Hello std_err", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""
-
-
-def test_stdout(capsys):
-    _stdout("Hello std_out", quiet=False)
-    out, err = capsys.readouterr()
-    assert out == "Hello std_out"
-
-    _stdout("Hello std_out", quiet=True)
-    out, err = capsys.readouterr()
-    assert out == ""
-
-
 def test_phylobuddy_edges(pb_odd_resources):
     # If the input list isn't a list of PhyloBuddy objects
     with pytest.raises(TypeError):
@@ -142,6 +123,8 @@ def test_write1(key, next_hash, pb_resources, hf):
 
 
 def test_convert_to_ete(monkeypatch, pb_resources):
+    if os.name == "nt":
+        return
     tester = pb_resources.get_one("m k")
     tester.trees[0].seed_node.annotations.add_new("pb_color", '#ff0000')
     ete_tree = _convert_to_ete(tester.trees[0])

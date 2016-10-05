@@ -1,8 +1,6 @@
 # coding=utf-8
-import sys
 import os
 from copy import deepcopy
-import re
 from hashlib import md5
 from collections import OrderedDict
 
@@ -10,10 +8,9 @@ from .. import AlignBuddy as Alb
 from .. import SeqBuddy as Sb
 from .. import PhyloBuddy as Pb
 from .. import DatabaseBuddy as Db
-from .. import buddy_resources as br
 
 # This file (conftest.py) must be in the same directory as unit_test_resources
-RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources')
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources') + os.path.sep
 
 
 # #################################  -  Helper class  -  ################################## #
@@ -40,30 +37,30 @@ class SbResources(object):
 
         self.resources = deepcopy(base_dict_structure)
         self.resources['dna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("clustal", "{path}/Mnemiopsis_cds.clus"),
-            ("fasta", "{path}/Mnemiopsis_cds.fa"),
-            ("gb", "{path}/Mnemiopsis_cds.gb"),
-            ("nexus", "{path}/Mnemiopsis_cds.nex"),
-            ("phylip", "{path}/Mnemiopsis_cds.phy"),
-            ("phylipr", "{path}/Mnemiopsis_cds.phyr"),
-            ("phylipss", "{path}/Mnemiopsis_cds.physs"),
-            ("phylipsr", "{path}/Mnemiopsis_cds.physr"),
-            ("stockholm", "{path}/Mnemiopsis_cds.stklm"),
-            ("embl", "{path}/Mnemiopsis_cds.embl"),
-            ("seqxml", "{path}/Mnemiopsis_cds.seqxml")]}
+            ("clustal", "{path}Mnemiopsis_cds.clus"),
+            ("fasta", "{path}Mnemiopsis_cds.fa"),
+            ("gb", "{path}Mnemiopsis_cds.gb"),
+            ("nexus", "{path}Mnemiopsis_cds.nex"),
+            ("phylip", "{path}Mnemiopsis_cds.phy"),
+            ("phylipr", "{path}Mnemiopsis_cds.phyr"),
+            ("phylipss", "{path}Mnemiopsis_cds.physs"),
+            ("phylipsr", "{path}Mnemiopsis_cds.physr"),
+            ("stockholm", "{path}Mnemiopsis_cds.stklm"),
+            ("embl", "{path}Mnemiopsis_cds.embl"),
+            ("seqxml", "{path}Mnemiopsis_cds.seqxml")]}
 
         self.resources['rna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("fasta", "{path}/Mnemiopsis_rna.fa"),
-            ("nexus", "{path}/Mnemiopsis_rna.nex")]}
+            ("fasta", "{path}Mnemiopsis_rna.fa"),
+            ("nexus", "{path}Mnemiopsis_rna.nex")]}
         self.resources['pep'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("fasta", "{path}/Mnemiopsis_pep.fa"),
-            ("gb", "{path}/Mnemiopsis_pep.gb"),
-            ("nexus", "{path}/Mnemiopsis_pep.nex"),
-            ("phylip", "{path}/Mnemiopsis_pep.phy"),
-            ("phylipr", "{path}/Mnemiopsis_pep.phyr"),
-            ("phylipss", "{path}/Mnemiopsis_pep.physs"),
-            ("phylipsr", "{path}/Mnemiopsis_pep.physr"),
-            ("stockholm", "{path}/Mnemiopsis_pep.stklm")]}
+            ("fasta", "{path}Mnemiopsis_pep.fa"),
+            ("gb", "{path}Mnemiopsis_pep.gb"),
+            ("nexus", "{path}Mnemiopsis_pep.nex"),
+            ("phylip", "{path}Mnemiopsis_pep.phy"),
+            ("phylipr", "{path}Mnemiopsis_pep.phyr"),
+            ("phylipss", "{path}Mnemiopsis_pep.physs"),
+            ("phylipsr", "{path}Mnemiopsis_pep.physr"),
+            ("stockholm", "{path}Mnemiopsis_pep.stklm")]}
 
         # Create new SeqBuddy objects for each resource file
         self.sb_objs = deepcopy(base_dict_structure)
@@ -189,40 +186,40 @@ class AlbResources(object):
 
         self.resources = deepcopy(base_dict_structure)
         self.resources['dna']['single'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("clustal", "{path}/Mnemiopsis_cds.clus"),
-            ("fasta", "{path}/Mnemiopsis_cds_aln.fa"),
-            ("gb", "{path}/Mnemiopsis_cds_aln.gb"),
-            ("nexus", "{path}/Mnemiopsis_cds.nex"),
-            ("phylip", "{path}/Mnemiopsis_cds.phy"),
-            ("phylipr", "{path}/Mnemiopsis_cds.phyr"),
-            ("phylipss", "{path}/Mnemiopsis_cds.physs"),
-            ("phylipsr", "{path}/Mnemiopsis_cds.physr"),
-            ("stockholm", "{path}/Mnemiopsis_cds.stklm")]}
+            ("clustal", "{path}Mnemiopsis_cds.clus"),
+            ("fasta", "{path}Mnemiopsis_cds_aln.fa"),
+            ("gb", "{path}Mnemiopsis_cds_aln.gb"),
+            ("nexus", "{path}Mnemiopsis_cds.nex"),
+            ("phylip", "{path}Mnemiopsis_cds.phy"),
+            ("phylipr", "{path}Mnemiopsis_cds.phyr"),
+            ("phylipss", "{path}Mnemiopsis_cds.physs"),
+            ("phylipsr", "{path}Mnemiopsis_cds.physr"),
+            ("stockholm", "{path}Mnemiopsis_cds.stklm")]}
 
         self.resources['dna']['multi'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("clustal", "{path}/Alignments_cds.clus"),
-            ("phylip", "{path}/Alignments_cds.phy"),
-            ("phylipr", "{path}/Alignments_cds.phyr"),
-            ("phylipss", "{path}/Alignments_cds.physs"),
-            ("phylipsr", "{path}/Alignments_cds.physr"),
-            ("stockholm", "{path}/Alignments_cds.stklm")]}
-        self.resources['rna']['single'] = {"nexus": "{path}/Mnemiopsis_rna.nex".format(path=RESOURCE_PATH)}
+            ("clustal", "{path}Alignments_cds.clus"),
+            ("phylip", "{path}Alignments_cds.phy"),
+            ("phylipr", "{path}Alignments_cds.phyr"),
+            ("phylipss", "{path}Alignments_cds.physs"),
+            ("phylipsr", "{path}Alignments_cds.physr"),
+            ("stockholm", "{path}Alignments_cds.stklm")]}
+        self.resources['rna']['single'] = {"nexus": "{path}Mnemiopsis_rna.nex".format(path=RESOURCE_PATH)}
         self.resources['rna']['multi'] = {}
         self.resources['pep']['single'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("gb", "{path}/Mnemiopsis_pep_aln.gb"),
-            ("nexus", "{path}/Mnemiopsis_pep.nex"),
-            ("phylip", "{path}/Mnemiopsis_pep.phy"),
-            ("phylipr", "{path}/Mnemiopsis_pep.phyr"),
-            ("phylipss", "{path}/Mnemiopsis_pep.physs"),
-            ("phylipsr", "{path}/Mnemiopsis_pep.physr"),
-            ("stockholm", "{path}/Mnemiopsis_pep.stklm")]}
+            ("gb", "{path}Mnemiopsis_pep_aln.gb"),
+            ("nexus", "{path}Mnemiopsis_pep.nex"),
+            ("phylip", "{path}Mnemiopsis_pep.phy"),
+            ("phylipr", "{path}Mnemiopsis_pep.phyr"),
+            ("phylipss", "{path}Mnemiopsis_pep.physs"),
+            ("phylipsr", "{path}Mnemiopsis_pep.physr"),
+            ("stockholm", "{path}Mnemiopsis_pep.stklm")]}
         self.resources['pep']['multi'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("clustal", "{path}/Alignments_pep.clus"),
-            ("phylip", "{path}/Alignments_pep.phy"),
-            ("phylipr", "{path}/Alignments_pep.phyr"),
-            ("phylipss", "{path}/Alignments_pep.physs"),
-            ("phylipsr", "{path}/Alignments_pep.physr"),
-            ("stockholm", "{path}/Alignments_pep.stklm")]}
+            ("clustal", "{path}Alignments_pep.clus"),
+            ("phylip", "{path}Alignments_pep.phy"),
+            ("phylipr", "{path}Alignments_pep.phyr"),
+            ("phylipss", "{path}Alignments_pep.physs"),
+            ("phylipsr", "{path}Alignments_pep.physr"),
+            ("stockholm", "{path}Alignments_pep.stklm")]}
 
         # Create new AlignBuddy objects for each resource file
         self.alb_objs = deepcopy(base_dict_structure)
@@ -333,14 +330,14 @@ class PbResources(object):
 
         self.resources = deepcopy(base_dict_structure)
         self.resources['single'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("newick", "{path}/single_tree.newick"),
-            ("nexus", "{path}/single_tree.nex"),
-            ("nexml", "{path}/single_tree.xml")]}
+            ("newick", "{path}single_tree.newick"),
+            ("nexus", "{path}single_tree.nex"),
+            ("nexml", "{path}single_tree.xml")]}
 
         self.resources['multi'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-            ("newick", "{path}/multi_tree.newick"),
-            ("nexus", "{path}/multi_tree.nex"),
-            ("nexml", "{path}/multi_tree.xml")]}
+            ("newick", "{path}multi_tree.newick"),
+            ("nexus", "{path}multi_tree.nex"),
+            ("nexml", "{path}multi_tree.xml")]}
 
         # Create new PhyloBuddy objects for each resrouce file
         self.pb_objs = deepcopy(base_dict_structure)
@@ -433,10 +430,3 @@ class PbResources(object):
             raise AttributeError("Only explicit two-component codes are accepted")
         output = self.get_list(code, mode)
         return None if not output or len(output) > 1 else output[0]
-
-'''
-    def deets(self, code):
-        code = code.split()
-        return {"num_trees": self.code_dict["num_trees"][code[0]],
-                "format": br.parse_format(self.code_dict["format"][code[1]])}
-'''

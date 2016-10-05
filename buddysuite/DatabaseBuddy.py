@@ -54,7 +54,6 @@ import dill
 import glob
 
 # Third party
-# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import Entrez
 from Bio import SeqIO
 from Bio import BiopythonWarning
@@ -78,7 +77,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
+VERSION = br.Version("DatabaseBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -276,7 +275,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         if errors_etc != "":
             errors_etc = "%s\n# ################################################################ #\n\n" \
                          % errors_etc.strip()
-            _stderr(errors_etc, quiet)
+            br._stderr(errors_etc, quiet)
 
         _output = ""
         # If negative number requests, return from back of list
@@ -382,7 +381,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             if self.out_format in ["gb", "genbank"]:
                 for _accession, _rec in group.items():
                     if len(_accession) > 16:
-                        _stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
+                        br._stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
                         self.out_format = "embl"
                         break
 
@@ -605,13 +604,6 @@ class DatabaseError(Exception):
         return self.value
 
 
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-        sys.stderr.flush()
-    return
-
-
 def _stdout(message, quiet=False, format_in=None, format_out=None):
     output = ""
     if format_in:
@@ -661,9 +653,9 @@ def check_database(database=None):
         if _db in DATABASES:
             _output.append(_db)
         else:
-            _stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
+            br._stderr("Warning: '%s' is not a valid database choice, omitted.\n" % _db)
     if not _output:
-        _stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
+        br._stderr("Warning: No valid database choice provided. Setting to default 'all'.\n")
         _output = DATABASES
     return _output
 
@@ -678,7 +670,7 @@ def check_type(_type):
         _type = "gi_num"
 
     if _type and _type not in RETRIEVAL_TYPES:
-        _stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
+        br._stderr("Warning: '%s' is not a valid choice for '_type'. Setting to default 'protein'.\n" % _type)
         _type = "protein"
     return _type
 
@@ -807,7 +799,7 @@ class UniProtRestClient(GenericClient):
             else:
                 self.write_error("Uniprot request failed", err)
         except KeyboardInterrupt:
-            _stderr("\n\tUniProt query interrupted by user\n")
+            br._stderr("\n\tUniProt query interrupted by user\n")
         return
 
     def count_hits(self):
@@ -845,22 +837,22 @@ class UniProtRestClient(GenericClient):
         _count = self.count_hits()
 
         if _count == 0:
-            _stderr("Uniprot returned no results\n\n")
+            br._stderr("Uniprot returned no results\n\n")
             return
 
         else:
-            _stderr("Retrieving summary data for %s records from UniProt\n" % _count)
+            br._stderr("Retrieving summary data for %s records from UniProt\n" % _count)
 
         # download the tab info on all or subset
         params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
         runtime = br.RunTime(prefix="\t")
         runtime.start()
         if len(self.dbbuddy.search_terms) > 1:
-            _stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
+            br._stderr("Querying UniProt with %s search terms (Ctrl+c to abort)\n" % len(self.dbbuddy.search_terms))
             br.run_multicore_function(self.dbbuddy.search_terms, self.query_uniprot, max_processes=10, quiet=True,
                                       func_args=[params])
         else:
-            _stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
+            br._stderr("Querying UniProt with the search term '%s'...\n" % self.dbbuddy.search_terms[0])
             self.query_uniprot(self.dbbuddy.search_terms[0], params)
         runtime.end()
         self.parse_error_file()
@@ -882,7 +874,7 @@ class UniProtRestClient(GenericClient):
 
                 self.dbbuddy.records[hit[0]] = Record(hit[0], _database="uniprot", _type="protein",
                                                       _search_term=result[0], summary=raw, _size=int(hit[2]))
-        _stderr("\t%s records received.\n" % result_count)
+        br._stderr("\t%s records received.\n" % result_count)
 
     def fetch_proteins(self):
         self.results_file.clear()
@@ -892,7 +884,7 @@ class UniProtRestClient(GenericClient):
         if not _records:
             return
 
-        _stderr("Requesting %s full records from UniProt...\n" % len(_records))
+        br._stderr("Requesting %s full records from UniProt...\n" % len(_records))
         accessions = self.group_terms_for_url([_rec.accession for _rec in _records])
         runtime = br.RunTime(prefix="\t")
         runtime.start()
@@ -905,8 +897,8 @@ class UniProtRestClient(GenericClient):
         runtime.end()
         errors = self.parse_error_file()
         if errors:
-            _stderr("{0}{1}The following errors were encountered while querying UniProt with "
-                    "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
+            br._stderr("{0}{1}The following errors were encountered while querying UniProt with "
+                       "fetch_proteins():{2}\n{3}{4}".format(RED, UNDERLINE, NO_UNDERLINE, errors, DEF_FONT))
 
         data = self.results_file.read().strip()
         data = re.sub("# Search.*?\n", "", data)
@@ -914,7 +906,7 @@ class UniProtRestClient(GenericClient):
         data = re.sub("^//\n*", "", data)
         data = re.sub("//\n\n+", "//\n", data)
         if data in ["", "//\n"]:
-            _stderr("No sequences returned\n\n")
+            br._stderr("No sequences returned\n\n")
             return
 
         self.results_file.write(data, "w")
@@ -1028,7 +1020,7 @@ class NCBIClient(GenericClient):
             result = Entrez.read(StringIO(result))
             gi_nums += result["IdList"]
         if not gi_nums:
-            _stderr("NCBI returned no %s results\n\n" % _type)
+            br._stderr("NCBI returned no %s results\n\n" % _type)
             return
         for accn, rec in self.dbbuddy.records.items():
             if str(rec.gi) in gi_nums:
@@ -1073,7 +1065,7 @@ class NCBIClient(GenericClient):
         # Download all of the summaries
         self.results_file.clear()
         gi_groups = self.group_terms_for_url(gi_nums)
-        _stderr("Retrieving %s %s record summaries from NCBI...\n" % (len(gi_nums), _type))
+        br._stderr("Retrieving %s %s record summaries from NCBI...\n" % (len(gi_nums), _type))
         runtime = br.RunTime(prefix="\t")
         runtime.start()
         if len(gi_groups) > 1:
@@ -1097,7 +1089,7 @@ class NCBIClient(GenericClient):
                     self.tries = 0
                     break
                 else:
-                    _stderr("Problem talking to NCBI, retrying...\n")
+                    br._stderr("Problem talking to NCBI, retrying...\n")
                     self.tries += 1
                     self.fetch_summaries(database)
                 break
@@ -1156,7 +1148,7 @@ class NCBIClient(GenericClient):
                 rec.summary["organism"] = taxa[rec.summary["TaxId"]]
             else:
                 rec.summary["organism"] = "Unclassified"
-        _stderr("\t%s records received.\n" % len(gi_nums))
+        br._stderr("\t%s records received.\n" % len(gi_nums))
 
         # Update the dbbuddy object with all the new info
         for gi, rec in gi_nums.items():
@@ -1179,7 +1171,7 @@ class NCBIClient(GenericClient):
             self.results_file.clear()
             gi_nums = self.group_terms_for_url(gi_nums)
             runtime = br.RunTime(prefix="\t")
-            _stderr("Fetching full %s sequence records from NCBI...\n" % database)
+            br._stderr("Fetching full %s sequence records from NCBI...\n" % database)
             runtime.start()
             if len(gi_nums) > 1:
                 br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"],
@@ -1193,14 +1185,14 @@ class NCBIClient(GenericClient):
             for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
                 if rec.id not in records:
                     records[rec.id] = rec
-            _stderr("\tDone\n")
+            br._stderr("\tDone\n")
             for accn, rec in records.items():
                 self.dbbuddy.records[accn].record = rec
                 version = re.search("^.*?\.([0-9]+)$", accn)
                 if version:
                     self.dbbuddy.records[accn].version = version.group(1)
         except KeyboardInterrupt:
-            _stderr("\n\tNCBI query interrupted by user\n")
+            br._stderr("\n\tNCBI query interrupted by user\n")
 
         return
 
@@ -1289,7 +1281,7 @@ class EnsemblRestClient(GenericClient):
         self.results_file.clear()
         species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
-            _stderr("Searching Ensembl for %s...\n" % search_term)
+            br._stderr("Searching Ensembl for %s...\n" % search_term)
             br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
             self.parse_error_file()
             results = self.results_file.read().split("\n### END ###")
@@ -1328,9 +1320,9 @@ class EnsemblRestClient(GenericClient):
                     self.dbbuddy.records[rec.accession] = rec
 
             if counter > 0:
-                _stderr("\t%s records received\n" % counter)
+                br._stderr("\t%s records received\n" % counter)
             else:
-                _stderr("Ensembl returned no results\n")
+                br._stderr("Ensembl returned no results\n")
 
     def fetch_summaries(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
@@ -1368,7 +1360,7 @@ class EnsemblRestClient(GenericClient):
     def fetch_nucleotide(self):
         accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         if len(accns) > 0:
-            _stderr("Fetching sequence from Ensembl...\n")
+            br._stderr("Fetching sequence from Ensembl...\n")
             runtime = br.RunTime(prefix="\t")
             runtime.start()
             for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
@@ -1440,16 +1432,16 @@ Further details about each command can be accessed by typing 'help <command>'
         self.dump_session()
 
         if CONFIG["data_dir"]:
-            self.history_path = "%s/cmd_history" % CONFIG["data_dir"]
+            self.history_path = "%s%scmd_history" % (CONFIG["data_dir"], os.sep)
         else:
-            self.history_path = "%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s%scmd_history" % (self.tmpdir.path, os.sep)
         try:
             if not os.path.isfile(self.history_path):
                 open(self.history_path, "w", encoding="utf-8").close()
             else:
                 open(self.history_path, "r").close()
         except PermissionError:
-            self.history_path = "%s/cmd_history" % self.tmpdir.path
+            self.history_path = "%s%scmd_history" % (self.tmpdir.path, os.sep)
             open(self.history_path, "w", encoding="utf-8").close()
 
         readline.read_history_file(self.history_path)
@@ -1459,7 +1451,7 @@ Further details about each command can be accessed by typing 'help <command>'
         # occurs, and back to False if undo is used.
         self.undo = False
 
-        _stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
+        br._stderr(self.terminal_default)  # This needs to be called here if stderr is going to format correctly
         if self.dbbuddy.records or self.dbbuddy.search_terms:
             retrieve_summary(_dbbuddy)
         else:
@@ -1820,7 +1812,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Create directory if necessary
         line = os.path.abspath(line)
-        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        _dir, _file = os.path.split(line)
         try:
             os.makedirs(_dir, exist_ok=True)
         except PermissionError:
@@ -1892,10 +1884,10 @@ Further details about each command can be accessed by typing 'help <command>'
                 return
 
             if breakdown["summary"] or breakdown["accession"]:
-                _stderr("%sWarning: %s records are only summary data, so will not be displayed in %s format. "
-                        "Use 'fetch' to retrieve all sequence data.%s\n"
-                        % (RED, len(breakdown["summary"] + breakdown["accession"]),
-                           self.dbbuddy.out_format, self.terminal_default))
+                br._stderr("%sWarning: %s records are only summary data, so will not be displayed in %s format. "
+                           "Use 'fetch' to retrieve all sequence data.%s\n"
+                           % (RED, len(breakdown["summary"] + breakdown["accession"]),
+                              self.dbbuddy.out_format, self.terminal_default))
 
             num_records = len(breakdown["full"])
 
@@ -1929,7 +1921,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else:
                 raise ValueError(_e)
 
-        _stderr("%s\n" % self.terminal_default)
+        br._stderr("%s\n" % self.terminal_default)
 
     def do_sort(self, line=None):
         def sub_sort(records, _sort_columns, _rev=False):
@@ -2004,7 +1996,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         # Ensure the specified directory exists
         line = os.path.abspath(line)
-        _dir = "/%s" % "/".join(line.split("/")[:-1])
+        _dir, _file = os.path.split(line)
         if not os.path.isdir(_dir):
             _stdout("The specified directory does not exist. Please create it before continuing "
                     "(you can use the 'bash' command from within the DbBuddy Live Session).\n\n", format_in=RED,
@@ -2063,6 +2055,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
         _stdout("Most recent state reloaded\n\n", format_in=GREEN, format_out=self.terminal_default)
 
     def complete_bash(self, *args):
+        # ToDo: Windows support
         text = args[0]
         if not self.shell_execs:
             path_dirs = Popen("echo $PATH", stdout=PIPE, shell=True).communicate()
@@ -2072,7 +2065,7 @@ NOTE: There are %s summary records in the Live Session, and only full records ca
                     continue
                 root, dirs, files = next(os.walk(_dir))
                 for _file in files:
-                    if os.access("%s/%s" % (root, _file), os.X_OK):
+                    if os.access("%s%s%s" % (root, os.path.sep, _file), os.X_OK):
                         self.shell_execs.append(_file.strip())
         return ["%s " % x for x in self.shell_execs if x.startswith(text)]
 
@@ -2417,11 +2410,11 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         except (KeyboardInterrupt, br.GuessError) as err:
             print(err)
         except Exception as err:
-            save_file = "./DbSessionDump_%s" % temp_file.name
+            save_file = ".%sDbSessionDump_%s" % (temp_file.name, os.sep)
             temp_file.save(save_file)
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
-            _stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
-                    "the 'load' command.%s\n" % (GREEN, save_file, DEF_FONT))
+            br._stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
+                       "the 'load' command.%s\n" % (GREEN, save_file, DEF_FONT))
         dbbuddy.memory_footprint = int(os.path.getsize(temp_file.path))
         _exit("LiveShell")
 
@@ -2454,7 +2447,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
                 if counter % 4 == 0:
                     output = "%s\n" % output.strip()
                 counter += 1
-            _stderr("%s\n# ################################################################ #\n\n" % output.strip())
+            br._stderr("%s\n# ################################################################ #\n\n" % output.strip())
 
         dbbuddy.print()
         sys.exit()

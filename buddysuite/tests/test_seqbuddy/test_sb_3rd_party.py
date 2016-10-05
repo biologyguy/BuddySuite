@@ -14,7 +14,7 @@ from ... import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
-if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0"]:
+if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0", "2.5.0"]:
     raise ValueError("Untested Blast version (%s). Please update the tests as necessary "
                      "(each version of blast seems to do something a little different...)" % blast_version)
 
@@ -88,7 +88,7 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
     subject = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
     query = Sb.pull_recs(sb_resources.get_one('p f'), 'α[^8]', True)
     output = Sb.blast(subject, query)
-    assert hf.buddy2hash(output) == "4639da7978256eb8dae0e9e7a1ad3d01"
+    assert hf.buddy2hash(output) in ["4639da7978256eb8dae0e9e7a1ad3d01", "638938107e33174206e9fce9b789fe64"]
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)
     with pytest.raises(SystemError) as err:
@@ -97,6 +97,7 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##
+"""  Need to figure out a way of applying a timeout to these...
 def test_prosite_scan(sb_resources, hf):
     seqbuddy = sb_resources.get_one("d f")
     ps_scan = Sb.PrositeScan(seqbuddy)
@@ -105,7 +106,6 @@ def test_prosite_scan(sb_resources, hf):
 
 
 # ######################  '-tmd', '--transmembrane_domains' ###################### #
-"""  Need to figure out a way of applying a timeout to these...
 def test_transmembrane_domains_pep(sb_resources, hf):
     tester = sb_resources.get_one("p f")
     Sb.pull_recs(tester, "Panxα[234]")
@@ -119,10 +119,10 @@ def test_transmembrane_domains_cds(sb_resources, hf):
     tmp_dir.subdir("topcons")
     tester = sb_resources.get_one("d f")
     Sb.pull_recs(tester, "Panxα[234]")
-    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s/topcons" % tmp_dir.path)
+    tester = Sb.transmembrane_domains(tester, quiet=True, keep_temp="%s%stopcons" % (tmp_dir.path, os.sep))
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "479eb1c8728c959b813c97962cac545a"
-    _root, dirs, files = next(br.walklevel("%s/topcons" % tmp_dir.path))
-    _root, dirs, files = next(br.walklevel("%s/topcons/%s" % (tmp_dir.path, dirs[0])))
+    _root, dirs, files = next(br.walklevel("%s%stopcons" % (tmp_dir.path, os.sep)))
+    _root, dirs, files = next(br.walklevel("{0}{1}topcons{1}{2}".format(tmp_dir.path, os.sep, dirs[0])))
     assert files
 """

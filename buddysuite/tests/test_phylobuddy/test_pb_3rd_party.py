@@ -114,7 +114,7 @@ def test_fasttree_inputs(alb_resources, hf):
                                              '732c5e9a978cebb1cfce6af6d64950c2']
 
     alignbuddy = alb_resources.get_one("o p n")
-    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', keep_temp="%s/new_dir" % temp_dir.path)
+    tester = Pb.generate_tree(alignbuddy, 'fasttree', '-seed 12345', keep_temp="%s%snew_dir" % (temp_dir.path, os.sep))
     assert hf.buddy2hash(tester) in ['57eace9bdd2074297cbd2692c1f4cd38', '82d5a9d4f44fbedf29565686a7cdfcaa',
                                              '682210ef16beedee0e9f43c05edac112']
 

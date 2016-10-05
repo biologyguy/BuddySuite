@@ -115,7 +115,7 @@ def test_liveshell_init(monkeypatch, capsys, hf):
     assert hf.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
     assert hash(liveshell.dbbuddy) == hash(dbbuddy)
     assert liveshell.crash_file == crash_file
-    assert liveshell.history_path.split("/")[-1] == "cmd_history"
+    assert os.path.split(liveshell.history_path)[-1] == "cmd_history"
     assert not liveshell.undo
     assert not liveshell.hash
     assert liveshell.shell_execs == []
@@ -127,12 +127,14 @@ def test_liveshell_init(monkeypatch, capsys, hf):
     tmp_dir = br.TempDir()
     monkeypatch.setitem(Db.CONFIG, "data_dir", tmp_dir.path)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    assert liveshell.history_path == "%s/cmd_history" % tmp_dir.path
+    assert liveshell.history_path == "%s%scmd_history" % (tmp_dir.path, os.sep)
 
     # Permission error
-    os.chmod("%s/cmd_history" % tmp_dir.path, 0o333)
+    os.chmod("%s%scmd_history" % (tmp_dir.path, os.sep), 0o333)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    assert liveshell.history_path == "%s/cmd_history" % liveshell.tmpdir.path
+    # Windows does not actually change the permissions with os.chmod...
+    if os.name != "nt":
+        assert liveshell.history_path == "%s%scmd_history" % (liveshell.tmpdir.path, os.sep)
 
     # Run initial search
     monkeypatch.setattr(Db, "retrieve_summary", lambda _: True)
@@ -199,7 +201,7 @@ def test_liveshell_default(monkeypatch, capsys):
 def test_liveshell_append_slash_if_dir():
     tmp_dir = br.TempDir()
     tmp_dir.subfile("test.txt")
-    assert Db.LiveShell._append_slash_if_dir(tmp_dir.path) == "%s/" % tmp_dir.path
+    assert Db.LiveShell._append_slash_if_dir(tmp_dir.path) == "%s%s" % (tmp_dir.path, os.sep)
     assert Db.LiveShell._append_slash_if_dir(tmp_dir.subfiles[0]) == tmp_dir.subfiles[0]
 
 
@@ -295,11 +297,11 @@ def test_liveshell_do_bash(monkeypatch, capsys):
     capsys.readouterr()
     tmp_file = br.TempFile()
     liveshell.do_bash("echo 'hello from bash' > %s" % tmp_file.path)
-    assert tmp_file.read() == "hello from bash\n"
+    assert "hello from bash" in tmp_file.read()
 
     monkeypatch.setattr("builtins.input", lambda _: "echo 'Line from input' > %s" % tmp_file.path)
     liveshell.do_bash(None)
-    assert tmp_file.read() == "Line from input\n"
+    assert "Line from input" in tmp_file.read()
 
     liveshell.do_bash("cd /this/path/doesnt/exist")
     out, err = capsys.readouterr()
@@ -965,6 +967,9 @@ def test_liveshell_do_undo(monkeypatch, capsys, hf):
 
 
 def test_liveshell_complete_bash(monkeypatch):
+    # Note, this doesn't work in Windows
+    if os.name == "nt":
+        return
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
@@ -1052,17 +1057,17 @@ def test_liveshell_complete_load_save_write(monkeypatch):
 
     # Load
     assert liveshell.complete_load("load fi ", "load fi ", 5, 7) == ['file.txt']
-    assert liveshell.complete_load("load ", "load ", 5, 5) == ['extra_dir/', 'file.txt']
+    assert liveshell.complete_load("load ", "load ", 5, 5) == ['extra_dir%s' % os.path.sep, 'file.txt']
     assert not liveshell.complete_load("load ", "load ", 4, 5)
 
     # Save
     assert liveshell.complete_save("save fi ", "save fi ", 5, 7) == ['file.txt']
-    assert liveshell.complete_save("save ", "save ", 5, 5) == ['extra_dir/', 'file.txt']
+    assert liveshell.complete_save("save ", "save ", 5, 5) == ['extra_dir%s' % os.path.sep, 'file.txt']
     assert not liveshell.complete_save("save ", "save ", 4, 5)
 
     # Save
     assert liveshell.complete_write("write fi ", "write fi ", 6, 8) == ['file.txt']
-    assert liveshell.complete_write("write ", "write ", 6, 6) == ['extra_dir/', 'file.txt']
+    assert liveshell.complete_write("write ", "write ", 6, 6) == ['extra_dir%s' % os.path.sep, 'file.txt']
     assert not liveshell.complete_write("write ", "write ", 4, 5)
 
 

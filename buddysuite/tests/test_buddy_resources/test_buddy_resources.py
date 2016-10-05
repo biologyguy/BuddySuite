@@ -13,15 +13,19 @@ import argparse
 import json
 from hashlib import md5
 from time import sleep
+import datetime
 from unittest import mock
 from ... import AlignBuddy as Alb
 from ... import buddy_resources as br
 from pkg_resources import DistributionNotFound
 from configparser import ConfigParser
+if os.name == "nt":
+    import msvcrt
 
 # Globals
 TEMP_DIR = br.TempDir()
-RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../unit_test_resources')
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             '..{0}unit_test_resources{0}'.format(os.path.sep))
 
 
 # Mock resources
@@ -37,6 +41,10 @@ def mock_valueerror(*args, **kwargs):
 
 def mock_permissionerror(*args, **kwargs):
     raise PermissionError(args, kwargs)
+
+
+def mock_unicodeencodeerror(*args, **kwargs):
+    raise UnicodeEncodeError(str(args), str(kwargs), 1, 2, "baz")
 
 
 # Tests
@@ -70,16 +78,16 @@ def test_timer():
 
 
 def test_runtime():
-    temp_file_path = TEMP_DIR.subfile("runtime")
-    with open(temp_file_path, "w") as temp_file:
-        timer = br.RunTime('x ', ' y', temp_file)
-        timer.start()
-        sleep(3)
-        timer.end()
-    with open(temp_file_path, "r") as temp_file:
-        out = temp_file.read()
-        assert re.search('\n\nx 0 sec y\n         \nx 1 sec y\n         \nx 2 sec y\n',
-                         out, re.MULTILINE)
+    timer = br.RunTime('x ', ' y', "stdout")
+    assert timer.out_type == "stdout"
+    assert timer.prefix == "x "
+    assert timer.postfix == " y"
+    assert not timer.running_process
+    timer.start()
+    assert timer.running_process
+    sleep(1.1)
+    timer.end()
+    assert not timer.running_process
 
 
 def test_dynamicprint_init():
@@ -204,24 +212,25 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
 
     with open(temp_path, "w") as output:
         br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
                                   max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "107696d60ee9b932ecaffad7c97a609f"
+        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
 
     with open(temp_path, "w") as output:
         br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
                                   max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "cf5afec941a4b854ed78f01d2753009d"
+        assert hf.string2hash(output) in ["cf5afec941a4b854ed78f01d2753009d", "b9a2268fefae3786a611f5e699fd6200"]
 
     with pytest.raises(AttributeError) as err:
-        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False, out_type=sys.stdout)
+        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False,
+                                  out_type=sys.stdout)
     assert "The arguments passed into the multi-thread function must be provided" in str(err)
 
     class MockTime(object):
@@ -239,7 +248,7 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "08f48aaa5d64ac48ea15a4aa63d75141"
+        assert hf.string2hash(output) in ["08f48aaa5d64ac48ea15a4aa63d75141", 'b9a2268fefae3786a611f5e699fd6200']
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
@@ -248,7 +257,9 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "41cc02db5a989591601308d0657544a8"
+
+    assert "Running function <lambda>() on 4 cores" in output
+    assert re.search("DONE: 4 jobs in [0-9]+ sec", output)
 
 
 # ######################################  TempDir  ###################################### #
@@ -364,12 +375,12 @@ def test_safetyvalve():
 def test_walklevel():
     tmp_dir = br.TempDir()
     tmp_dir.subdir("mydir")
-    tmp_dir.subdir("mydir/subdir")
-    tmp_dir.subdir("mydir/subdir/subsubdir")
+    tmp_dir.subdir("mydir{0}subdir".format(os.path.sep))
+    tmp_dir.subdir("mydir{0}subdir{0}subsubdir".format(os.path.sep))
 
     tmp_dir.subfile("myfile.txt")
-    tmp_dir.subfile("mydir/subfile.txt")
-    tmp_dir.subfile("mydir/subdir/subsubfile.txt")
+    tmp_dir.subfile("mydir{0}subfile.txt".format(os.path.sep))
+    tmp_dir.subfile("mydir{0}subdir{0}subsubfile.txt".format(os.path.sep))
 
     walker = br.walklevel(tmp_dir.path)
     root, dirs, files = next(walker)
@@ -378,7 +389,7 @@ def test_walklevel():
     assert files == ["myfile.txt"]
 
     root, dirs, files = next(walker)
-    assert root == "%s/mydir" % tmp_dir.path
+    assert root == "%s%smydir" % (tmp_dir.path, os.path.sep)
     assert dirs == ["subdir"]
     assert files == ["subfile.txt"]
 
@@ -400,53 +411,90 @@ def test_walklevel():
 
 def test_copydir():
     tmp_path = TEMP_DIR.path
-    os.makedirs('{0}/fakedir'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub/empty'.format(tmp_path))
-    os.makedirs('{0}/fakedir/fakesub/subsub'.format(tmp_path))
-    open("{0}/fakedir/fakefile".format(tmp_path), 'w+').close()
-    open("{0}/fakedir/fakesub/fakesubfile".format(tmp_path), 'w+').close()
-    open("{0}/fakedir/fakesub/subsub/subsubfile".format(tmp_path), 'w+').close()
+    os.makedirs('{0}{1}fakedir'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub{1}empty'.format(tmp_path, os.path.sep))
+    os.makedirs('{0}{1}fakedir{1}fakesub{1}subsub'.format(tmp_path, os.path.sep))
+    open("{0}{1}fakedir{1}fakefile".format(tmp_path, os.path.sep), 'w+').close()
+    open("{0}{1}fakedir{1}fakesub{1}fakesubfile".format(tmp_path, os.path.sep), 'w+').close()
+    open("{0}{1}fakedir{1}fakesub{1}subsub{1}subsubfile".format(tmp_path, os.path.sep), 'w+').close()
 
-    br.copydir('{0}/fakedir'.format(tmp_path), '{0}/fakecopy'.format(tmp_path))
+    br.copydir('{0}{1}fakedir'.format(tmp_path, os.path.sep), '{0}{1}fakecopy'.format(tmp_path, os.path.sep))
 
-    for x in os.listdir('{0}/fakecopy/'.format(tmp_path)):
+    for x in os.listdir('{0}{1}fakecopy{1}'.format(tmp_path, os.path.sep)):
         assert x in ["fakefile", "fakesubfile", "subsubfile"]
 
 
-def test_ask(monkeypatch):
+def test_windows_ask(monkeypatch):
+    if os.name == "nt":
+        import msvcrt
 
-    def wait(*args, **kwargs):
-        print(args, kwargs)
-        sleep(2)
-        return 'yes'
+        class MockMsvcrt(object):
+            def __init__(self, outcome=True):
+                self.run = outcome
+                self.output_chars = ["y", "e", "s", "\r"] if outcome else ["n", "o", "\r"]
+                self.output = self._output()
 
-    monkeypatch.setattr(builtins, "input", wait)
-    assert not br.ask("test", timeout=1)
+            @staticmethod
+            def kbhit():
+                return True
 
-    fake_input = mock.Mock(return_value="yes")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert br.ask("test")
+            def _output(self):
+                for _chr in self.output_chars:
+                    yield _chr.encode()
 
-    fake_input = mock.Mock(return_value="no")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test")
+            def getche(self):
+                return next(self.output)
 
-    fake_input = mock.Mock(return_value="abort")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test")
+        mock_msvcrt = MockMsvcrt(outcome=True)
+        monkeypatch.setattr(msvcrt, "getche", mock_msvcrt.getche)
+        monkeypatch.setattr(msvcrt, "kbhit", mock_msvcrt.kbhit)
+        assert br.ask("test")
 
-    fake_input = mock.Mock(side_effect=["dkjsfaksd", "fsdjgdfgdf", "no"])
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test", timeout=1)
+        mock_msvcrt = MockMsvcrt(outcome=False)
+        monkeypatch.setattr(msvcrt, "getche", mock_msvcrt.getche)
+        monkeypatch.setattr(msvcrt, "kbhit", mock_msvcrt.kbhit)
+        assert not br.ask("test")
 
-    fake_input = mock.Mock(return_value="")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert br.ask("test", default="yes")
+        # Timeout possitive
+        monkeypatch.setattr(msvcrt, "kbhit", lambda *_: False)
+        assert br.ask("test", timeout=1)
+        assert not br.ask("test", timeout=1, default="no")
 
-    fake_input = mock.Mock(return_value="")
-    monkeypatch.setattr(builtins, "input", fake_input)
-    assert not br.ask("test", default="no")
+
+def test_ask_unix(monkeypatch):
+    if os.name != "nt":
+        def wait(*args, **kwargs):
+            print(args, kwargs)
+            sleep(2)
+            return 'yes'
+
+        monkeypatch.setattr(builtins, "input", wait)
+        assert not br.ask("test", timeout=1)
+
+        fake_input = mock.Mock(return_value="yes")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert br.ask("test")
+
+        fake_input = mock.Mock(return_value="no")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test")
+
+        fake_input = mock.Mock(return_value="abort")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test")
+
+        fake_input = mock.Mock(side_effect=["dkjsfaksd", "fsdjgdfgdf", "no"])
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test", timeout=1)
+
+        fake_input = mock.Mock(return_value="")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert br.ask("test", default="yes")
+
+        fake_input = mock.Mock(return_value="")
+        monkeypatch.setattr(builtins, "input", fake_input)
+        assert not br.ask("test", default="no")
 
 
 def test_guesserror():
@@ -610,31 +658,40 @@ def test_error_report(monkeypatch):
         def storlines(*args, **kwargs):
             raise RuntimeError  # If a runtime error is raised, the file was "sent"
 
-    fake_error = "ABCD"
-    error_hash = b'cb08ca4a7bb5f9683c19133a84872ca7'
+    fake_error = """\
+# SeqBuddy: 1.2b6
+# Function: order_ids
+# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
+# Platform: darwin
+# User: hashless
+# Date: 2016-10-03
+
+ZeroDivisionError: division by zero
+
+  File "sb", line 4856, in main
+    command_line_ui(*initiation)
+  File "sb", line 4612, in command_line_ui
+    1/0
+"""
+    error_hash = b'44f77d4602b7213f958ed80ef0301365'
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
-    config = mock.Mock(return_value={"email": "buddysuite@nih.gov", "diagnostics": True, "user_hash": "hashless",
-                                     "data_dir": False})
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     monkeypatch.setattr(br, "FTP", FakeFTP)
-    monkeypatch.setattr(br, "config_values", config)
+    monkeypatch.setattr(br, "config_values", lambda *_, **__: {"email": "buddysuite@nih.gov", "diagnostics": True,
+                                                               "user_hash": "hashless", "data_dir": False})
 
-    br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))  # Known bug
+    br.error_report(fake_error, True)  # Known bug
 
-    fake_error = "WXYZ"
-
+    error_hash = b'54f77d4602b7213f958ed80ef0301365'
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)  # Needs to be reset every time
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     with pytest.raises(RuntimeError):  # Unknown error, diagnostics true
-        br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+        br.error_report(fake_error, True)
 
     fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
-    mock_json = mock.Mock(return_value=fake_raw_output)
-    monkeypatch.setattr(urllib.request, "urlopen", mock_json)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     def raise_ftp_errors(*args, **kwargs):
         print(args, kwargs)
@@ -643,7 +700,7 @@ def test_error_report(monkeypatch):
     # Gracefully handling FTP errors
     FakeFTP.storlines = raise_ftp_errors
     monkeypatch.setattr(br, "FTP", FakeFTP)
-    br.error_report(fake_error, "test", "test", br.Version("BuddySuite", 3, 5, _contributors=[]))
+    br.error_report(fake_error, True)
 
 
 def test_flags(capsys, hf):
@@ -726,22 +783,23 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
 
 
 def test_phylip_sequential_read(alb_odd_resources, hf, capsys):
-    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physr".format(RESOURCE_PATH), "r").read())
+    records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physr".format(RESOURCE_PATH),
+                                             "r", encoding="utf-8").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
-    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
+    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68", buddy.write("temp.del")
 
-    records = br.phylip_sequential_read(open("{0}/Mnemiopsis_cds.physs".format(RESOURCE_PATH), "r").read(),
-                                        relaxed=False)
+    records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physs".format(RESOURCE_PATH),
+                                             "r", encoding="utf-8").read(), relaxed=False)
     buddy = Alb.AlignBuddy(records, out_format="phylipss")
     assert hf.buddy2hash(buddy) == "4c0c1c0c63298786e6fb3db1385af4d5"
 
-    with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r") as ifile:
+    with open(alb_odd_resources['dna']['single']['phylipss_cols'], "r", encoding="utf-8") as ifile:
             records = ifile.read()
     with pytest.raises(br.PhylipError) as err:
         br.phylip_sequential_read(records)
     assert "Malformed Phylip --> Less sequence found than expected" in str(err)
 
-    with open(alb_odd_resources['dna']['single']['phylipss_recs'], "r") as ifile:
+    with open(alb_odd_resources['dna']['single']['phylipss_recs'], "r", encoding="utf-8") as ifile:
             records = ifile.read()
     with pytest.raises(br.PhylipError) as err:
         br.phylip_sequential_read(records)
@@ -804,21 +862,35 @@ def test_replacements():
 
 
 def test_send_traceback(capsys, monkeypatch):
-    donothing = mock.Mock(return_value=0)
-    monkeypatch.setattr(br, "error_report", donothing)
-    br.send_traceback("test", "test", "RuntimeError\nTraceback (most recent call last)\n\t1 raise "
-                                      "RuntimeError(\"Something broke!\"\nRuntimeError: Something broke!", 1.2)
+    monkeypatch.setattr(br, "error_report", lambda *_: False)
+    version = br.Version("Foo", 1, 2, [])
+    br.send_traceback("TestBuddy", "FailedFunc", RuntimeError("Something broke!"), version)
     out, err = capsys.readouterr()
-    assert str(out) == "\033[mtest::test has crashed with the following traceback:\033[91m\n\nstr: RuntimeError\n" \
-                       "Traceback (most recent call last)\n\t1 raise RuntimeError(\"Something broke!\"\nRuntimeError:" \
-                       " Something broke!\n\n\n\n\033[m\n"
+    now = datetime.datetime.now()
+    assert """\
+\033[mTestBuddy::FailedFunc has crashed with the following traceback:\033[91m
+
+# TestBuddy: 1.2
+# Function: FailedFunc""" in out
+
+    assert """\
+# User: hashless
+# Date: %s
+
+RuntimeError: Something broke!
+
+
+
+\033[m
+""" % now.strftime('%Y-%m-%d') in out
+
     try:
         raise TypeError
     except TypeError as err:
-        br.send_traceback("test2", "test2", err, 1.3)
+        br.send_traceback("test2", "test2", err, version)
         out, err = capsys.readouterr()
         assert "test2::test2 has crashed with the following traceback:" in out
-        assert 'File "test_buddy_resources.py", line' in out
+        assert re.search('File ".*test_buddy_resources.py", line', out)
         assert "raise TypeError" in out
 
 
@@ -974,3 +1046,35 @@ def test_remap_gapped_features(alb_resources, sb_resources):
             align_str += "%s\n" % align_feat
             new_str += "%s\n" % new_feat
     assert align_str == new_str
+
+
+def test_stderr(capsys):
+    br._stderr("Hello std_err", quiet=False)
+    out, err = capsys.readouterr()
+    assert err == "Hello std_err"
+
+    br._stderr("Hello std_err", quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+
+
+def test_stdout(capsys):
+    br._stdout("Hello std_out", quiet=False)
+    out, err = capsys.readouterr()
+    assert out == "Hello std_out"
+
+    br._stdout("Hello std_out", quiet=True)
+    out, err = capsys.readouterr()
+    assert out == ""
+
+
+def test_std_errors(capfd, monkeypatch):
+    monkeypatch.setattr(sys.stderr, "write", mock_unicodeencodeerror)
+    br._stderr("Hello std_err α", quiet=False)
+    out, err = capfd.readouterr()
+    assert err == "Hello std_err α"
+
+    monkeypatch.setattr(sys.stdout, "write", mock_unicodeencodeerror)
+    br._stdout("Hello std_out α", quiet=False)
+    out, err = capfd.readouterr()
+    assert out == "Hello std_out α"

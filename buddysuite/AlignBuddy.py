@@ -47,14 +47,12 @@ from subprocess import Popen, PIPE, CalledProcessError
 from math import log, ceil
 
 # Third party
-# sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio import AlignIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
-
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -67,7 +65,7 @@ from Bio.Alphabet import IUPAC
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
+VERSION = br.Version("AlignBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -87,7 +85,7 @@ class AlignBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(_input.read())
+                temp = StringIO(br.utf_encode(_input.read()))
                 _input = temp
             _input.seek(0)
             in_handle = _input.read()
@@ -95,16 +93,17 @@ class AlignBuddy(object):
 
         # Plain text in a specific format
         if type(_input) == str and not os.path.isfile(_input):
-            raw_seq = _input
+            raw_seq = br.utf_encode(_input)
             temp = StringIO(_input)
             _input = temp
-            _input.seek(0)
+            #_input.seek(0)
 
         # File paths
         try:
             if os.path.isfile(_input):
                 in_file = _input
-
+                with open(_input, "r", encoding="utf-8") as ifile:
+                    _input = StringIO(ifile.read())
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -202,23 +201,23 @@ class AlignBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False)
 
         else:
-            tmp_dir = br.TempDir()
-            with open("%s/aligns.tmp" % tmp_dir.path, "w") as ofile:
+            tmp_file = br.TempFile()
+            with open(tmp_file.path, "w", encoding="utf-8") as ofile:
                 try:
                     AlignIO.write(self.alignments, ofile, self.out_format)
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
-                        _stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                "Format changed to fasta to accommodate proper printing of records.\n")
+                        br._stderr("Warning: Alignment format detected but sequences are different lengths. "
+                                   "Format changed to fasta to accommodate proper printing of records.\n")
                         AlignIO.write(self.alignments, ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
-                        _stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
-                                "Format changed to phylip-relaxed.\n")
+                        br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
+                                   "Format changed to phylip-relaxed.\n")
                         AlignIO.write(self.alignments, ofile, "phylip-relaxed")
                     else:
                         raise e
 
-            with open("%s/aligns.tmp" % tmp_dir.path, "r") as ifile:
+            with open(tmp_file.path, "r", encoding="utf-8") as ifile:
                 output = ifile.read()
         if self.out_format == "clustal":
             return "%s\n\n" % output.rstrip()
@@ -252,7 +251,7 @@ class AlignBuddy(object):
         return lengths
 
     def write(self, file_path, out_format=None):
-        with open(file_path, "w") as ofile:
+        with open(file_path, "w", encoding="utf-8") as ofile:
             if out_format:
                 out_format_save = str(self.out_format)
                 self.set_format(out_format)
@@ -306,7 +305,7 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
     # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
     if os.path.isfile(str(_input)):
-        _input = open(_input, "r")
+        _input = open(_input, "r", encoding="utf-8")
 
     if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
         if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
@@ -317,57 +316,19 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
 
         possible_formats = ["gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
                             "stockholm", "fasta", "nexus", "clustal"]
-        for _format in possible_formats:
+        for next_format in possible_formats:
             try:
                 _input.seek(0)
-                if _format == "phylip":
-                    sequence = "\n %s" % _input.read().strip()
-                    _input.seek(0)
-                    alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
-                    align_sizes = []
-                    for indx in range(int(len(alignments) / 3)):
-                        align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
-
-                    phy = list(AlignIO.parse(_input, "phylip"))
-                    _input.seek(0)
-
-                    indx = 0
-                    phy_ids = []
-                    for key in align_sizes:
-                        phy_ids.append([])
-                        for rec in phy[indx]:
-                            assert len(rec.seq) == key[1]
-                            phy_ids[-1].append(rec.id)
-                        indx += 1
-
-                    phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
-                    _input.seek(0)
-                    if phy_rel:
-                        for indx, aln in enumerate(phy_rel):
-                            for rec in aln:
-                                if len(rec.seq) != align_sizes[indx][1]:
-                                    return br.parse_format("phylip")
-                                if rec.id in phy_ids[indx]:
-                                    continue
-                                else:
-                                    return br.parse_format("phylip-relaxed")
-                    return br.parse_format("phylip")
-
-                if _format == "phylipss":
-                    if br.phylip_sequential_read(_input.read(), relaxed=False):
-                        _input.seek(0)
-                        return br.parse_format(_format)
+                if next_format in ["phylip", "phylipsr", "phylipss"]:
+                    phylip = br.phylip_guess(next_format, _input)
+                    if phylip:
+                        return phylip
                     else:
                         continue
-                if _format == "phylipsr":
-                    if br.phylip_sequential_read(_input.read()):
-                        _input.seek(0)
-                        return br.parse_format(_format)
-                    else:
-                        continue
-                if list(AlignIO.parse(_input, _format)):
+
+                if list(AlignIO.parse(_input, next_format)):
                     _input.seek(0)
-                    return br.parse_format(_format)
+                    return br.parse_format(next_format)
                 else:
                     continue
             except br.PhylipError:
@@ -388,18 +349,6 @@ def make_copy(alignbuddy):
     for indx, rec in enumerate(_copy.records()):
         rec.seq.alphabet = alphabet_list[indx]
     return _copy
-
-
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-    return
-
-
-def _stdout(message, quiet=False):
-    if not quiet:
-        sys.stdout.write(message)
-    return
 
 
 class FeatureReMapper(object):
@@ -878,7 +827,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                        "the BuddySuite developers if recurring.")
             try:
                 tmp_dir = br.TempDir()
-                tmp_in = "{0}/tmp.fa".format(tmp_dir.path)
+                tmp_in = "%s%stmp.fa" % (tmp_dir.path, os.sep)
 
                 params = re.split(' ', params)
 
@@ -929,15 +878,16 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 params = ' '.join(params)
 
                 if tool == 'clustalo':
-                    command = '{0} {1} -i {2} -o {3}/result -v'.format(alias, params, tmp_in, tmp_dir.path)
+                    command = '{0} {1} -i {2} -o {3}{4}result -v'.format(alias, params, tmp_in, tmp_dir.path, os.sep)
                 elif tool == 'clustalw':
-                    command = '{0} -infile={1} {2} -outfile={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -infile={1} {2} -outfile={3}{4}result'.format(alias, tmp_in, params,
+                                                                                 tmp_dir.path, os.sep)
                 elif tool == 'muscle':
                     command = '{0} -in {1} {2}'.format(alias, tmp_in, params)
                 elif tool == 'prank':
-                    command = '{0} -d={1} {2} -o={3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -d={1} {2} -o={3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
                 elif tool == 'pagan':
-                    command = '{0} -s {1} {2} -o {3}/result'.format(alias, tmp_in, params, tmp_dir.path)
+                    command = '{0} -s {1} {2} -o {3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
                 elif tool == 'mafft':
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
@@ -956,11 +906,11 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                             output = Popen(command, shell=True, stdout=PIPE).communicate()
                         output = output[0].decode("utf-8")
                 except CalledProcessError:
-                    _stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
+                    br._stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
                     sys.exit()
 
                 if tool.startswith('clustal'):
-                    with open('{0}/result'.format(tmp_dir.path), "r") as result:
+                    with open('{0}{1}result'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'prank':
                     possible_files = os.listdir(tmp_dir.path)
@@ -968,13 +918,13 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     for _file in possible_files:
                         if 'result.best' in _file and "fas" in _file:
                             filename = _file
-                    with open('{0}/{1}'.format(tmp_dir.path, filename), "r") as result:
+                    with open('{0}{1}{2}'.format(tmp_dir.path, os.path.sep, filename), "r", encoding="utf-8") as result:
                         output = result.read()
                 elif tool == 'pagan':
-                    with open('{0}/result.fas'.format(tmp_dir.path), "r") as result:
+                    with open('{0}{1}result.fas'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
-                    if os.path.isfile("./warnings"):  # Pagan spits out this file (I've never seen anything in it)
-                        os.remove("./warnings")
+                    if os.path.isfile(".%swarnings" % os.path.sep):  # Pagan spits out this file (I've never seen anything in it)
+                        os.remove(".%swarnings" % os.path.sep)
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
                 if (tool == 'mafft' and '--clustalout' in params) or \
@@ -1012,11 +962,11 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     # Loop through each saved file and rename any hashes that have been carried over
                     for root, dirs, files in os.walk(tmp_dir.path):
                         for next_file in files:
-                            with open("%s/%s" % (root, next_file), "r") as ifile:
+                            with open("%s%s%s" % (root, os.path.sep, next_file), "r", encoding="utf-8") as ifile:
                                 contents = ifile.read()
                             for _hash, sb_rec in seqbuddy.hash_map.items():
                                 contents = re.sub(_hash, sb_rec, contents)
-                            with open("%s/%s" % (root, next_file), "w") as ofile:
+                            with open("%s%s%s" % (root, os.path.sep, next_file), "w", encoding="utf-8") as ofile:
                                 ofile.write(contents)
 
                     br.copydir(tmp_dir.path, keep_temp)
@@ -1026,7 +976,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
             except FileNotFoundError:
                 pass
 
-        _stderr("Returning to AlignBuddy...\n\n", quiet)
+        br._stderr("Returning to AlignBuddy...\n\n", quiet)
         return alignbuddy
 
 
@@ -1455,7 +1405,7 @@ def argparse_init():
         try:
             in_args.out_format = br.parse_format(in_args.out_format)
         except TypeError as e:
-            _stderr("%s\n" % str(e))
+            br._stderr("%s\n" % str(e))
             sys.exit()
 
     try:
@@ -1463,8 +1413,8 @@ def argparse_init():
         if not in_args.generate_alignment:
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                    _stderr("Warning: No input detected so AlignBuddy is aborting...\n"
-                            "For more information, try:\n%s --help\n" % sys.argv[0])
+                    br._stderr("Warning: No input detected so AlignBuddy is aborting...\n"
+                               "For more information, try:\n%s --help\n" % sys.argv[0])
                     sys.exit()
                 align_set = AlignBuddy(align_set, in_args.in_format, in_args.out_format)
                 alignbuddy += align_set.alignments
@@ -1472,20 +1422,20 @@ def argparse_init():
             alignbuddy = AlignBuddy(alignbuddy, align_set.in_format, align_set.out_format)
 
     except br.GuessError as e:
-        _stderr("GuessError: %s\n" % e, in_args.quiet)
+        br._stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     except ValueError as e:
-        _stderr("ValueError: %s\n" % e, in_args.quiet)
+        br._stderr("ValueError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     except br.PhylipError as e:
-        _stderr("PhylipError: %s\n" % e, in_args.quiet)
+        br._stderr("PhylipError: %s\n" % e, in_args.quiet)
         sys.exit()
 
     except TypeError as e:
         if "Format type '%s' is not recognized/supported" % in_args.in_format in str(e):
-            _stderr("TypeError: %s\n" % str(e), in_args.quiet)
+            br._stderr("TypeError: %s\n" % str(e), in_args.quiet)
             sys.exit()
         else:
             raise e
@@ -1499,28 +1449,28 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         try:
             _output = str(_alignbuddy)
         except ValueError as err:
-            _stderr("ValueError: %s\n" % str(err))
+            br._stderr("ValueError: %s\n" % str(err))
             return False
 
         if in_args.test:
-            _stderr("*** Test passed ***\n", in_args.quiet)
+            br._stderr("*** Test passed ***\n", in_args.quiet)
 
         elif in_args.in_place:
             _in_place(_output, in_args.alignments[0])
 
         else:
-            _stdout("%s" % _output)
+            br._stdout("%s" % _output)
         return True
 
     def _in_place(_output, file_path):
         if not os.path.exists(file_path):
-            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                    "file. Nothing was written.\n", in_args.quiet)
-            _stderr("%s" % _output, in_args.quiet)
+            br._stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                       "file. Nothing was written.\n", in_args.quiet)
+            br._stderr("%s" % _output, in_args.quiet)
         else:
-            with open(os.path.abspath(file_path), "w") as _ofile:
+            with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1544,7 +1494,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                     break
             if re_raise:
                 raise _err
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
+        br._stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
@@ -1552,11 +1502,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
     if in_args.alignment_lengths:
         counts = alignment_lengths(alignbuddy)
         if len(counts) == 1:
-            _stdout("%s\n" % counts[0])
+            br._stdout("%s\n" % counts[0])
         else:
             for indx, count in enumerate(counts):
-                _stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
-                _stdout("%s\n" % count)
+                br._stderr("# Alignment %s\n" % (indx + 1), quiet=in_args.quiet)
+                br._stdout("%s\n" % count)
         _exit("alignment_lengths")
 
     # Bootstrap
@@ -1637,7 +1587,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         args = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
-                with open(arg, "r") as ifile:
+                with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
                         args.append(line.strip())
             else:
@@ -1673,7 +1623,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             stderr += "#     No sequence identifiers match '%s'\n" % "|".join(args)
             stderr += "# ################################################################ #\n"
 
-        _stderr(stderr, in_args.quiet)
+        br._stderr(stderr, in_args.quiet)
         _print_aligments(alignbuddy)
         _exit("delete_records")
 
@@ -1709,8 +1659,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         seq_set = None
         for seq_set in in_args.alignments:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected so AlignBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                br._stderr("Warning: No input detected so AlignBuddy is aborting...\n"
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
 
             seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
@@ -1743,14 +1693,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             hash_length = in_args.hash_ids[0]
 
         if hash_length < 1:
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
-                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                       "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
             hash_length = 10
 
         if 32 ** hash_length <= len(alignbuddy.records()) * 2:
             holder = ceil(log(len(alignbuddy.records()) * 2, 32))
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
-                    "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. "
+                       "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
+                       (hash_length, holder), in_args.quiet)
             hash_length = holder
         hash_ids(alignbuddy, hash_length)
 
@@ -1759,7 +1710,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             hash_table += "%s\t%s\n" % (_hash, orig_id)
         hash_table += "\n"
 
-        _stderr(hash_table, in_args.quiet)
+        br._stderr(hash_table, in_args.quiet)
         _print_aligments(alignbuddy)
         _exit("hash_seq_ids")
 
@@ -1774,7 +1725,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                 if (rec_indx + 1) % columns == 0:
                     output = "%s\n" % output.strip()
             output = "%s\n\n" % output.strip()
-        _stdout("%s\n" % output.strip())
+        br._stdout("%s\n" % output.strip())
         _exit("list_ids")
 
     # Lowercase
@@ -1797,12 +1748,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
     # Number sequences per alignment
     if in_args.num_seqs:
         if len(alignbuddy.alignments) == 1:
-            _stdout("%s\n" % len(alignbuddy.alignments[0]))
+            br._stdout("%s\n" % len(alignbuddy.alignments[0]))
         else:
             output = ""
             for indx, alignment in enumerate(alignbuddy.alignments):
                 output += "# Alignment %s\n%s\n\n" % (indx + 1, len(alignment))
-            _stdout("%s\n" % output.strip())
+            br._stdout("%s\n" % output.strip())
         _exit("num_seqs")
 
     # Order IDs
@@ -1856,17 +1807,12 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         except TypeError as e:
             _raise_error(e, "screw_formats", "Format type '%s' is not recognized/supported" % in_args.screw_formats)
         if in_args.in_place:  # Need to change the file extension
-            _path = os.path.abspath(in_args.alignments[0]).split("/")
-            if "." in _path[-1]:
-                _file = str(_path[-1]).split(".")
-                _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[alignbuddy.out_format])
-
-            else:
-                _file = "%s.%s" % (_path[-1], br.format_to_extension[alignbuddy.out_format])
+            _path, ext = os.path.splitext(os.path.abspath(in_args.alignments[0]))
+            _path = "%s.%s" % (_path, br.format_to_extension[alignbuddy.out_format])
 
             os.remove(in_args.alignments[0])
-            in_args.alignments[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
-            open(in_args.alignments[0], "w").close()
+            in_args.alignments[0] = _path
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
         _print_aligments(alignbuddy)
         _exit("screw_formats")
 
@@ -1877,7 +1823,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
         args = in_args.split_to_files[0]
         if len(args) > 2:
-            _stderr("Warning: Only one prefix can be accepted, %s where provided. Using the first.\n" % (len(args) - 1))
+            br._stderr("Warning: Only one prefix can be accepted, %s where provided. Using the first.\n" % (len(args) - 1))
         in_args.in_place = True
 
         out_dir = os.path.abspath(args[0])
@@ -1891,9 +1837,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         for indx, alignment in enumerate(alignments):
             alignbuddy.alignments = [alignment]
             ext = br.format_to_extension[alignbuddy.out_format]
-            in_args.alignments[0] = "%s/%s%s.%s" % (out_dir, prefix, padding.format(indx + 1), ext)
-            _stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
-            open(in_args.alignments[0], "w").close()
+            in_args.alignments[0] = "%s%s%s%s.%s" % (out_dir, os.sep, prefix, padding.format(indx + 1), ext)
+            br._stderr("New file: %s\n" % in_args.alignments[0], check_quiet)
+            open(in_args.alignments[0], "w", encoding="utf-8").close()
             _print_aligments(alignbuddy)
         _exit("split_to_files")
 

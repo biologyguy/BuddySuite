@@ -143,7 +143,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2beta", br.contributors, {"year": 2016, "month": 9, "day": 13})
+VERSION = br.Version("PhyloBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -163,7 +163,7 @@ class PhyloBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(_input.read())
+                temp = StringIO(br.utf_encode(_input.read()))
                 _input = temp
             _input.seek(0)
             in_from_handle = _input.read()
@@ -171,8 +171,8 @@ class PhyloBuddy(object):
 
         # Raw sequences
         if type(_input) == str and not os.path.isfile(_input):
-            raw_seq = _input
-            temp = StringIO(_input)
+            raw_seq = br.utf_encode(_input)
+            temp = StringIO(raw_seq)
             _input = temp
             in_from_handle = _input.read()
             _input.seek(0)
@@ -181,11 +181,10 @@ class PhyloBuddy(object):
         try:
             if os.path.isfile(_input):
                 in_file = _input
-                with open(_input, "r") as ifile:
+                with open(in_file, "r", encoding="utf-8") as ifile:
                     _input = StringIO(ifile.read())
                     in_from_handle = _input.read()
                     _input.seek(0)
-
         except TypeError:  # This happens when testing something other than a string.
             pass
 
@@ -232,14 +231,15 @@ class PhyloBuddy(object):
             # Removes figtree data so parser doesn't die
             figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
             if figtree:
-                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-                    _ofile.write(figtree[0])
+                in_from_handle = figtree[0]
+#                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
+#                    _ofile.write(figtree[0])
 
+            _trees = dendropy.TreeList()
             if self.in_format != 'nexml':
-                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.path], schema=self.in_format,
-                                               extract_comment_metadata=True)
+                _trees.read(data=in_from_handle, schema=self.in_format, extract_comment_metadata=True)
             else:
-                _trees = Tree.yield_from_files(files=["%s/tree.tmp" % tmp_dir.path], schema=self.in_format)
+                _trees.read(data=in_from_handle, schema=self.in_format)
 
             for _tree in _trees:
                 self.trees.append(_tree)
@@ -419,18 +419,6 @@ def num_taxa(phylobuddy, nodes=False, split=False):
     return count if split else count[0]
 
 
-def _stderr(message, quiet=False):
-    if not quiet:
-        sys.stderr.write(message)
-    return
-
-
-def _stdout(message, quiet=False):
-    if not quiet:
-        sys.stdout.write(message)
-    return
-
-
 # ################################################ MAIN API FUNCTIONS ################################################ #
 def collapse_polytomies(phylobuddy, threshold, mode="support"):
     """
@@ -552,7 +540,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
         if os.path.exists(keep_temp):
             raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
                                   "choose another location to save temporary files."
-                                  % (alias, keep_temp.split('/')[-1]))
+                                  % (alias, os.path.split(keep_temp)[-1]))
 
     # Figure out what tool is being used
     tool = False
@@ -620,10 +608,10 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 if '-m' not in params:  # An evolutionary model is required
                     if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
                                                 IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-                        _stderr("Warning: Using default evolutionary model GTRCAT\n")
+                        br._stderr("Warning: Using default evolutionary model GTRCAT\n")
                         params += " -m GTRCAT"
                     elif sub_alignbuddy.alpha == IUPAC.protein:
-                        _stderr("Warning: Using default evolutionary model PROTCATLG\n")
+                        br._stderr("Warning: Using default evolutionary model PROTCATLG\n")
                         params += " -m PROTCATLG"
 
                 if '-p' not in params:  # RNG seed
@@ -715,16 +703,16 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if keep_temp:
                 _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
-                    with open("%s/%s" % (_root, file), "r") as ifile:
+                    with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                         contents = ifile.read()
                     for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
-                    with open("%s/%s" % (_root, file), "w") as ofile:
+                    with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
                         ofile.write(contents)
             phylo_objs += phylobuddy.trees
 
         phylobuddy = PhyloBuddy(phylo_objs)
-        _stderr("Returning to PhyloBuddy...\n\n", quiet)
+        br._stderr("Returning to PhyloBuddy...\n\n", quiet)
         return phylobuddy
 
 
@@ -1112,19 +1100,19 @@ def argparse_init():
     tree_set = ""
 
     if in_args.in_format and in_args.in_format.lower() not in OUTPUT_FORMATS:
-        _stderr("Error: The format '%s' passed in with the -f flag is not recognized. "
-                "Valid options include %s.\n" % (in_args.in_format, OUTPUT_FORMATS))
+        br._stderr("Error: The format '%s' passed in with the -f flag is not recognized. "
+                   "Valid options include %s.\n" % (in_args.in_format, OUTPUT_FORMATS))
         sys.exit()
 
     if in_args.out_format and in_args.out_format.lower() not in OUTPUT_FORMATS:
-        _stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
+        br._stderr("Error: Output type %s is not recognized/supported\n" % in_args.out_format)
         sys.exit()
 
     if not in_args.generate_tree:  # If passing in an alignment, don't want to try and build PhyloBuddy obj
         for tree_set in in_args.trees:
             if isinstance(tree_set, TextIOWrapper) and tree_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                br._stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             tree_set = PhyloBuddy(tree_set, in_args.in_format, in_args.out_format)
             phylobuddy += tree_set.trees
@@ -1137,23 +1125,23 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
     # ############################################## INTERNAL FUNCTIONS ############################################## #
     def _print_trees(_phylobuddy):
         if in_args.test:
-            _stderr("*** Test passed ***\n", in_args.quiet)
+            br._stderr("*** Test passed ***\n", in_args.quiet)
 
         elif in_args.in_place:
             _in_place(str(_phylobuddy), in_args.trees[0])
 
         else:
-            _stdout("{0}\n".format(str(_phylobuddy).rstrip()))
+            br._stdout("{0}\n".format(str(_phylobuddy).rstrip()))
 
     def _in_place(_output, file_path):
         if not os.path.isfile(str(file_path)):
-            _stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
-                    "file. Nothing was written.\n", in_args.quiet)
-            _stderr("%s\n" % _output.strip(), in_args.quiet)
+            br._stderr("Warning: The -i flag was passed in, but the positional argument doesn't seem to be a "
+                       "file. Nothing was written.\n", in_args.quiet)
+            br._stderr("%s\n" % _output.strip(), in_args.quiet)
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            _stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1177,7 +1165,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                     break
             if re_raise:
                 raise _err
-        _stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
+        br._stderr("{0}: {1}\n".format(_err.__class__.__name__, str(_err)), in_args.quiet)
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
@@ -1201,7 +1189,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         frequency = in_args.consensus_tree[0]
         frequency = 0.5 if not frequency else frequency
         if not 0 <= frequency <= 1:
-            _stderr("Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n")
+            br._stderr("Warning: The frequency value should be between 0 and 1. Defaulting to 0.5.\n\n")
             frequency = 0.5
 
         _print_trees(consensus_tree(phylobuddy, frequency))
@@ -1212,12 +1200,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         try:
             display_trees(phylobuddy)
         except SystemError:
-            _stderr("Error: Your system is non-graphical, so display_trees can not work. "
-                    "Please use print_trees instead.")
+            br._stderr("Error: Your system is non-graphical, so display_trees can not work. "
+                       "Please use print_trees instead.")
         except ImportError as err:
             if "No module named 'PyQt4.QtGui'" in str(err):
-                _stderr("Unable to display trees because PyQt4 is not installed.\n"
-                        "If conda is installed, try $: conda install pyqt=4.11.4\n")
+                br._stderr("Unable to display trees because PyQt4 is not installed.\n"
+                           "If conda is installed, try $: conda install pyqt=4.11.4\n")
             _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
         _exit("display_trees")
 
@@ -1230,10 +1218,10 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         else:
             output = distance(phylobuddy)
 
-        _stderr('Tree 1\tTree 2\tValue\n')
+        br._stderr('Tree 1\tTree 2\tValue\n')
         for key1 in output:
             for key2 in output[key1]:
-                _stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
+                br._stdout('{0}\t{1}\t{2}\n'.format(key1, key2, output[key1][key2]))
         _exit("distance")
 
     # Generate Tree
@@ -1245,8 +1233,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                     args = [tool]
                     break
         if not args:
-            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference on your system."),
-                         "generate_alignment")
+            _raise_error(AttributeError("Unable to identify any supported phylogenetic inference "
+                                        "software on your system."), "generate_alignment")
 
         alignbuddy = []
         align_set = None
@@ -1256,8 +1244,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
         for align_set in in_args.trees:  # Build an AlignBuddy object
             if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
-                _stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                br._stderr("Warning: No input detected so PhyloBuddy is aborting...\n"
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             align_set = Alb.AlignBuddy(align_set, in_args.in_format, in_args.out_format)
             alignbuddy += align_set.alignments
@@ -1296,8 +1284,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                         hash_nodes = True
 
         if hash_length < 1:
-            _stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
-                    "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
+                       "integer, so the hash length as been set to 10.\n\n" % hash_length, quiet=in_args.quiet)
             hash_length = 10
 
         try:
@@ -1305,9 +1293,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         except ValueError as e:
             if "Insufficient number of hashes available" in str(e):
                 holder = ceil(log(num_taxa(phylobuddy) * 2, 32))
-                _stderr("Warning: The hash_length parameter was passed in with the value %s. "
-                        "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
-                        (hash_length, holder), in_args.quiet)
+                br._stderr("Warning: The hash_length parameter was passed in with the value %s. "
+                           "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
+                           (hash_length, holder), in_args.quiet)
                 hash_length = int(holder)
                 hash_ids(phylobuddy, hash_length, hash_nodes)
             else:
@@ -1321,7 +1309,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                 hash_table += "%s\t%s\n" % (_hash, orig_id)
             hash_table += "\n"
         hash_table = "%s\n######################\n\n" % hash_table.strip()
-        _stderr(hash_table, in_args.quiet)
+        br._stderr(hash_table, in_args.quiet)
         _print_trees(phylobuddy)
         _exit("hash_ids")
 
@@ -1344,7 +1332,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                     count += 1
 
             output = '%s\n\n' % output.strip()
-        _stdout('%s\n\n' % output.strip())
+        br._stdout('%s\n\n' % output.strip())
         _exit("list_ids")
 
     # Number of tips
@@ -1355,7 +1343,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             if len(counts) > 1:
                 output += "# Tree %s\n" % (indx + 1)
             output += "%s\n\n" % count
-        _stdout("%s\n" % output.strip())
+        br._stdout("%s\n" % output.strip())
 
     # Print trees
     if in_args.print_trees:
@@ -1365,7 +1353,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             output += '\n#### {0} ####\n'.format(key)
             output += tree_table[key]
         output += '\n'
-        _stdout(output)
+        br._stdout(output)
         _exit("print_trees")
 
     # Prune taxa
@@ -1392,21 +1380,16 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
     # Screw formats
     if in_args.screw_formats:
         if in_args.screw_formats not in OUTPUT_FORMATS:
-            _stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
+            br._stderr("Error: unknown format '%s'\n" % in_args.screw_formats)
         else:
             phylobuddy.out_format = in_args.screw_formats
             if in_args.in_place and os.path.isfile(str(in_args.trees[0])):
                 # Need to change the file extension
-                _path = os.path.abspath(in_args.trees[0]).split("/")
-                if "." in _path[-1]:
-                    _file = str(_path[-1]).split(".")
-                    _file = "%s.%s" % (".".join(_file[:-1]), br.format_to_extension[phylobuddy.out_format])
-
-                else:
-                    _file = "%s.%s" % (_path[-1], br.format_to_extension[phylobuddy.out_format])
+                _path, ext = os.path.splitext(os.path.abspath(in_args.trees[0]))
+                _path = "%s.%s" % (_path, br.format_to_extension[phylobuddy.out_format])
 
                 os.remove(in_args.trees[0])
-                in_args.trees[0] = "%s/%s" % ("/".join(_path[:-1]), _file)
+                in_args.trees[0] = _path
                 open(in_args.trees[0], "w", encoding="utf-8").close()
 
             _print_trees(phylobuddy)

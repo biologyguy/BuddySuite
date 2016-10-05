@@ -56,16 +56,6 @@ def test_databaseerror():
     assert "Raised and err" in str(err)
 
 
-def test_stderr(capsys):
-    Db._stderr("Hello from _stderr()")
-    out, err = capsys.readouterr()
-    assert err == "Hello from _stderr()"
-
-    Db._stderr("Hello from _stderr()", quiet=True)
-    out, err = capsys.readouterr()
-    assert err == ""
-
-
 def test_stdout(capsys):
     Db._stdout("Hello from _stdout()")
     out, err = capsys.readouterr()
