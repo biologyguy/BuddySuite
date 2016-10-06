@@ -24,8 +24,8 @@ For example, the following command reads in three sequence files (all in differe
  
 `$: ﻿seqbuddy seqs1.gb seqs2.embl seqs3.fasta --pull_records "[XN]M" | alignbuddy --generate_alignment mafft | alignbuddy --enforce_triplets | phylobuddy --generate_tree raxmlHPC-SSE3 | phylobuddy --root`
 
-BuddySuite is a Python3 project, developed and tested on Linux and Mac OS X. It should generally work on Windows as well, but
- testing on Windows has been extremely limited.
+BuddySuite is a Python3 project, developed and extensively tested on Linux and Mac OS X. Full release versions
+ are also tested on Windows before release, so should work as expected on Vista and above.
 
 ## Getting started
 The simplest way to get up and running is:
