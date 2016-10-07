@@ -81,7 +81,7 @@ developer) directly at steve.bond@nih.gov.
 
 .. |Build Status| image:: https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master
    :target: https://travis-ci.org/biologyguy/BuddySuite
-.. |Coverage Status| image:: https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=master
+.. |Coverage Status| image:: https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg
    :target: https://coveralls.io/github/biologyguy/BuddySuite?branch=master
 .. |PyPi version| image:: https://img.shields.io/pypi/v/buddysuite.svg
    :target: https://pypi.python.org/pypi/buddysuite
