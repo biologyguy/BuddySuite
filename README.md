@@ -44,7 +44,7 @@ Each tool in the BuddySuite has been extensively documented in the [wiki](https:
 * [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) 
 * [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
 * [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
-* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy). 
+* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy)
 
 ## Developers
 All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
