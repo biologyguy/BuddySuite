@@ -874,7 +874,11 @@ def test_send_traceback(capsys, monkeypatch):
 # Function: FailedFunc""" in out
 
     assert """\
-# User: hashless
+# TestBuddy: 1.2
+# Function: FailedFunc
+# Python:""" in out
+
+    assert """\
 # Date: %s
 
 RuntimeError: Something broke!
