@@ -379,8 +379,8 @@ def test_count_residues_prot(sb_resources):
     assert res_count["% Positive"] == 12.23
     assert res_count["% Negative"] == 12.71
     assert res_count["% Uncharged"] == 73.62
-    assert res_count["% Hyrdophilic"] == 36.93
-    assert res_count["% Hyrdophobic"] == 55.4
+    assert res_count["% Hydrophilic"] == 36.93
+    assert res_count["% Hydrophobic"] == 55.4
 
 
 # ######################  '-dgn' '--degenerate_sequence'################### #
