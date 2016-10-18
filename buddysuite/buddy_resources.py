@@ -23,9 +23,8 @@ Description: Collection of resources used by all BuddySuite tools,
 """
 from __future__ import print_function
 import sys
-if float("%s.%s" % (sys.version_info[0], sys.version_info[1])) < 3.5:
-    print("Error: Attempting to run BuddySuite with Python %s.%s. Python 3.5+ required." %
-          (sys.version_info[0], sys.version_info[1]))
+if int(sys.version_info[0]) < 3:
+    print("Error: Attempting to run BuddySuite with Python %s. Python 3+ required." % sys.version_info[0])
     sys.exit()
 import argparse
 import datetime

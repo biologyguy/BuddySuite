@@ -9,8 +9,8 @@ import pytest
 from unittest import mock
 from subprocess import Popen, PIPE
 import re
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import SeqBuddy as Sb
+import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
@@ -31,32 +31,27 @@ def test_bl2seq(sb_resources, hf):
 
 
 # ######################  '-bl', '--blast' ###################### #
-def test_blastn(sb_resources, sb_odd_resources, hf):
+def test_blastn(sb_resources, sb_odd_resources, hf, monkeypatch):
     tester = Sb.pull_recs(sb_resources.get_one("d f"), '8', True)
     tester = Sb.blast(tester, sb_odd_resources["blastn"])
     assert hf.buddy2hash(tester) == "95c417b6c2846d1b7a1a07f50c62ff8a"
+
+    tester = Sb.SeqBuddy(">Seq1\nATGCGCGCTACGCTAGCTAGCTAGCTCGCATGCAT")
+    tester = Sb.blast(tester, sb_odd_resources["blastn"])
+    assert len(tester.records) == 0
 
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("d f")
         Sb.blast(tester, "Mnemiopsis_cds.nhr")
     assert "The .nhr file of your blast database was not found" in str(e.value)
 
-    try:
-        with mock.patch("buddysuite.SeqBuddy._check_for_blast_bin", return_value=False):
-            with pytest.raises(SystemError) as e:
-                Sb.blast(tester, sb_odd_resources["blastn"])
-            assert 'blastn not found in system path' in str(e.value)
-    except ImportError:
-        with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
-            with pytest.raises(SystemError) as e:
-                Sb.blast(tester, sb_odd_resources["blastn"])
-            assert 'blastn not found in system path' in str(e.value)
-    tester = Sb.SeqBuddy(">Seq1\nATGCGCGCTACGCTAGCTAGCTAGCTCGCATGCAT")
-    tester = Sb.blast(tester, sb_odd_resources["blastn"])
-    assert len(tester.records) == 0
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
+    with pytest.raises(SystemError) as e:
+        Sb.blast(tester, sb_odd_resources["blastn"])
+    assert 'blastn not found in system path' in str(e.value)
 
 
-def test_blastp(sb_resources, sb_odd_resources, hf):
+def test_blastp(sb_resources, sb_odd_resources, hf, monkeypatch):
     seqbuddy = Sb.pull_recs(sb_resources.get_one('p f'), '8', True)
     tester = Sb.blast(seqbuddy, sb_odd_resources["blastp"])
     assert hf.buddy2hash(tester) in ["4237c79672c1cf1d4a9bdb160a53a4b9", "118d4f412e2a362b9d16130abbf395c5"]
@@ -66,16 +61,10 @@ def test_blastp(sb_resources, sb_odd_resources, hf):
         Sb.blast(tester, "Mnemiopsis_pep.phr")
     assert "The .phr file of your blast database was not found" in str(e.value)
 
-    try:
-        with mock.patch("buddysuite.SeqBuddy._check_for_blast_bin", return_value=False):
-            with pytest.raises(SystemError) as e:
-                Sb.blast(tester, sb_odd_resources["blastp"])
-            assert 'blastp not found in system path' in str(e.value)
-    except ImportError:
-        with mock.patch("SeqBuddy._check_for_blast_bin", return_value=False):
-            with pytest.raises(SystemError) as e:
-                Sb.blast(tester, sb_odd_resources["blastp"])
-            assert 'blastp not found in system path' in str(e.value)
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
+    with pytest.raises(SystemError) as e:
+        Sb.blast(tester, sb_odd_resources["blastp"])
+    assert 'blastp not found in system path' in str(e.value)
 
 
 def test_makeblastdb(monkeypatch, sb_resources, hf):

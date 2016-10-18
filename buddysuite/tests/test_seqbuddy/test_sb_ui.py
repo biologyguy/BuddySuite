@@ -34,8 +34,8 @@ import urllib.error
 import sys
 from collections import OrderedDict
 
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import SeqBuddy as Sb
+import buddy_resources as br
 
 TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION

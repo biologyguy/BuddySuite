@@ -11,9 +11,9 @@ from unittest import mock
 from subprocess import Popen, PIPE
 import re
 
-from ... import AlignBuddy as Alb
-from ... import PhyloBuddy as Pb
-from ... import buddy_resources as br
+import AlignBuddy as Alb
+import PhyloBuddy as Pb
+import buddy_resources as br
 
 
 # ######################  'gt', '--generate_trees' ###################### #

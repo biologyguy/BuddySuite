@@ -26,12 +26,8 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 from __future__ import print_function
 
 # BuddySuite specific
-try:
-    from . import buddy_resources as br
-    from . import AlignBuddy as Alb
-except SystemError:
-    import buddy_resources as br
-    import AlignBuddy as Alb
+import buddy_resources as br
+import AlignBuddy as Alb
 
 # Standard library
 import sys

@@ -31,8 +31,8 @@ from unittest import mock
 import ete3
 import shutil
 
-from ... import buddy_resources as br
-from ... import PhyloBuddy as Pb
+import buddy_resources as br
+import PhyloBuddy as Pb
 
 VERSION = Pb.VERSION
 WRITE_FILE = br.TempFile()

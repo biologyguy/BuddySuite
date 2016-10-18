@@ -5,21 +5,27 @@ verify that fixtures are working as expected. I.e., test the tests before testin
 """
 import os
 import pytest
-from buddysuite import SeqBuddy, AlignBuddy, PhyloBuddy, DatabaseBuddy
+from .__init__ import Sb, Alb, Db, Pb
+'''
+from .. import SeqBuddy
+from .. import AlignBuddy
+from .. import PhyloBuddy
+from .. import DatabaseBuddy
+'''
 
 
 # #################################  -  Helper functions  -  ################################## #
 def test_hf_buddy2hash(hf):
-    seqbuddy = SeqBuddy.SeqBuddy(">Foo\nATGCGCGCATGCTA")
+    seqbuddy = Sb.SeqBuddy(">Foo\nATGCGCGCATGCTA")
     assert hf.buddy2hash(seqbuddy) == "0b7482f09f950144574337d95376d644"
 
-    alignbuddy = AlignBuddy.AlignBuddy(">Foo1\nATGCGCGCATGCTA>Foo2\nATGGGCGAATTTTA")
+    alignbuddy = Alb.AlignBuddy(">Foo1\nATGCGCGCATGCTA>Foo2\nATGGGCGAATTTTA")
     assert hf.buddy2hash(alignbuddy) == "71b794705f9817006cd053bd20fb1481"
 
-    phylobuddy = PhyloBuddy.PhyloBuddy("(((A, B), C),(D, E));")
+    phylobuddy = Pb.PhyloBuddy("(((A, B), C),(D, E));")
     assert hf.buddy2hash(phylobuddy) == "20f81e9f99c673e6cde3afb4b30cc6da"
 
-    dbbuddy = DatabaseBuddy.DbBuddy("Casp9,Inx1")
+    dbbuddy = Db.DbBuddy("Casp9,Inx1")
     assert hf.buddy2hash(dbbuddy) == "058055f7f09d0e8bcf8ae75d3ed73a1f"
 
     with pytest.raises(AttributeError) as err:
@@ -44,7 +50,7 @@ def test_sb_resources_init(hf, sb_resources, capsys):
         assert molecule[0] in sb_resources.sb_objs
 
     assert sb_resources.resources['dna']["clustal"] == "%sMnemiopsis_cds.clus" % hf.resource_path
-    assert type(sb_resources.sb_objs['dna']["clustal"]) == SeqBuddy.SeqBuddy
+    assert type(sb_resources.sb_objs['dna']["clustal"]) == Sb.SeqBuddy
 
     for key in ["molecule", "format"]:
         assert key in sb_resources.code_dict
@@ -95,8 +101,8 @@ def test_sb_resources_get_key(sb_resources):
 def test_sb_resources_get(sb_resources):
     objs = sb_resources.get("d p pss")
     assert len(objs) == 2
-    assert type(objs["d pss"]) == SeqBuddy.SeqBuddy
-    assert type(objs["p pss"]) == SeqBuddy.SeqBuddy
+    assert type(objs["d pss"]) == Sb.SeqBuddy
+    assert type(objs["p pss"]) == Sb.SeqBuddy
 
     objs = sb_resources.get("d p pss", mode="paths")
     assert len(objs) == 2
@@ -117,8 +123,8 @@ def test_sb_resources_get(sb_resources):
 def test_sb_resources_get_list(sb_resources):
     objs = sb_resources.get_list("d p pss")
     assert len(objs) == 2
-    assert type(objs[0]) == SeqBuddy.SeqBuddy
-    assert type(objs[1]) == SeqBuddy.SeqBuddy
+    assert type(objs[0]) == Sb.SeqBuddy
+    assert type(objs[1]) == Sb.SeqBuddy
 
     objs = sb_resources.get_list("d p pss", mode="paths")
     assert len(objs) == 2
@@ -127,7 +133,7 @@ def test_sb_resources_get_list(sb_resources):
 
     objs = sb_resources.get_list("d z pss", mode="objs")
     assert len(objs) == 1
-    assert type(objs[0]) == SeqBuddy.SeqBuddy
+    assert type(objs[0]) == Sb.SeqBuddy
 
     with pytest.raises(ValueError) as err:
         sb_resources.get_list('d p pss', mode="foo")
@@ -139,7 +145,7 @@ def test_sb_resources_get_one(sb_resources):
     assert not sb_resources.get_one("z pss")
 
     objs = sb_resources.get_one("d pss")
-    assert type(objs) == SeqBuddy.SeqBuddy
+    assert type(objs) == Sb.SeqBuddy
 
     objs = sb_resources.get_one("p pss", mode="paths")
     assert "Mnemiopsis_pep.physs" in objs
@@ -168,7 +174,7 @@ def test_alb_resources_init(hf, alb_resources):
         assert len(alb_resources.resources[files[0]][files[1]]) == files[2]
 
     assert alb_resources.resources['dna']['single']['clustal'] == "%sMnemiopsis_cds.clus" % hf.resource_path
-    assert type(alb_resources.alb_objs['dna']['single']['clustal']) == AlignBuddy.AlignBuddy
+    assert type(alb_resources.alb_objs['dna']['single']['clustal']) == Alb.AlignBuddy
 
     for key in ["molecule", "format", "num_aligns"]:
         assert key in alb_resources.code_dict
@@ -232,10 +238,10 @@ def test_alb_resources_get_key(alb_resources):
 def test_alb_resources_get(alb_resources):
     objs = alb_resources.get("d p pss")
     assert len(objs) == 4
-    assert type(objs["o d pss"]) == AlignBuddy.AlignBuddy
-    assert type(objs["o p pss"]) == AlignBuddy.AlignBuddy
-    assert type(objs["m d pss"]) == AlignBuddy.AlignBuddy
-    assert type(objs["m p pss"]) == AlignBuddy.AlignBuddy
+    assert type(objs["o d pss"]) == Alb.AlignBuddy
+    assert type(objs["o p pss"]) == Alb.AlignBuddy
+    assert type(objs["m d pss"]) == Alb.AlignBuddy
+    assert type(objs["m p pss"]) == Alb.AlignBuddy
 
     objs = alb_resources.get("d p o pss", mode="paths")
     assert len(objs) == 2
@@ -257,8 +263,8 @@ def test_alb_resources_get(alb_resources):
 def test_alb_resources_get_list(alb_resources):
     objs = alb_resources.get_list("d p pss")
     assert len(objs) == 4
-    assert type(objs[0]) == AlignBuddy.AlignBuddy
-    assert type(objs[2]) == AlignBuddy.AlignBuddy
+    assert type(objs[0]) == Alb.AlignBuddy
+    assert type(objs[2]) == Alb.AlignBuddy
 
     objs = alb_resources.get_list("d p o pss", mode="paths")
     assert len(objs) == 2
@@ -267,8 +273,8 @@ def test_alb_resources_get_list(alb_resources):
 
     objs = alb_resources.get_list("d z pss", mode="objs")
     assert len(objs) == 2
-    assert type(objs[0]) == AlignBuddy.AlignBuddy
-    assert type(objs[1]) == AlignBuddy.AlignBuddy
+    assert type(objs[0]) == Alb.AlignBuddy
+    assert type(objs[1]) == Alb.AlignBuddy
 
     with pytest.raises(ValueError) as err:
         alb_resources.get_list('d p pss', mode="foo")
@@ -280,7 +286,7 @@ def test_alb_resources_get_one(alb_resources):
     assert not alb_resources.get_one("d z pss")
 
     objs = alb_resources.get_one("d m pss")
-    assert type(objs) == AlignBuddy.AlignBuddy
+    assert type(objs) == Alb.AlignBuddy
 
     objs = alb_resources.get_one("p m pss", mode="paths")
     assert "Alignments_pep.physs" in objs
@@ -322,7 +328,7 @@ def test_pb_resources_init(hf, pb_resources):
     assert len(pb_resources.resources['multi']) == 3
 
     assert pb_resources.resources['single']['newick'] == "%ssingle_tree.newick" % hf.resource_path
-    assert type(pb_resources.pb_objs['single']['newick']) == PhyloBuddy.PhyloBuddy
+    assert type(pb_resources.pb_objs['single']['newick']) == Pb.PhyloBuddy
 
     for key in ["format", "num_trees"]:
         assert key in pb_resources.code_dict
@@ -374,10 +380,10 @@ def test_pb_resources_get_key(pb_resources):
 def test_pb_resources_get(pb_resources):
     objs = pb_resources.get("o m k l")
     assert len(objs) == 4
-    assert type(objs["o l"]) == PhyloBuddy.PhyloBuddy
-    assert type(objs["o k"]) == PhyloBuddy.PhyloBuddy
-    assert type(objs["m l"]) == PhyloBuddy.PhyloBuddy
-    assert type(objs["m k"]) == PhyloBuddy.PhyloBuddy
+    assert type(objs["o l"]) == Pb.PhyloBuddy
+    assert type(objs["o k"]) == Pb.PhyloBuddy
+    assert type(objs["m l"]) == Pb.PhyloBuddy
+    assert type(objs["m k"]) == Pb.PhyloBuddy
 
     objs = pb_resources.get("o", mode="paths")
     assert len(objs) == 3
@@ -399,8 +405,8 @@ def test_pb_resources_get(pb_resources):
 def test_pb_resources_get_list(pb_resources):
     objs = pb_resources.get_list("m")
     assert len(objs) == 3
-    assert type(objs[0]) == PhyloBuddy.PhyloBuddy
-    assert type(objs[2]) == PhyloBuddy.PhyloBuddy
+    assert type(objs[0]) == Pb.PhyloBuddy
+    assert type(objs[2]) == Pb.PhyloBuddy
 
     objs = pb_resources.get_list("m o l", mode="paths")
     assert len(objs) == 2
@@ -409,7 +415,7 @@ def test_pb_resources_get_list(pb_resources):
 
     objs = pb_resources.get_list("o z k", mode="objs")
     assert len(objs) == 1
-    assert type(objs[0]) == PhyloBuddy.PhyloBuddy
+    assert type(objs[0]) == Pb.PhyloBuddy
 
     with pytest.raises(ValueError) as err:
         pb_resources.get_list('o k', mode="foo")
@@ -420,7 +426,7 @@ def test_pb_resources_get_one(pb_resources):
     assert not pb_resources.get_one("k z")
 
     objs = pb_resources.get_one("m k")
-    assert type(objs) == PhyloBuddy.PhyloBuddy
+    assert type(objs) == Pb.PhyloBuddy
 
     objs = pb_resources.get_one("m k", mode="paths")
     assert "multi_tree.newick" in objs

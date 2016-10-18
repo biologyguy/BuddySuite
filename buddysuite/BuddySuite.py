@@ -25,7 +25,7 @@ from configparser import ConfigParser, NoOptionError
 import os
 import re
 import buddysuite
-import buddysuite.buddy_resources as br
+import buddy_resources as br
 import shutil
 import random
 import string

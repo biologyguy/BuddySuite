@@ -13,8 +13,8 @@ import shutil
 import time
 from collections import OrderedDict
 
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import SeqBuddy as Sb
+import buddy_resources as br
 
 
 TEMPDIR = br.TempDir()

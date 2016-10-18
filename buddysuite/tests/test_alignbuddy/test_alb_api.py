@@ -9,9 +9,9 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.AlignIO import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
-from ... import AlignBuddy as Alb
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import AlignBuddy as Alb
+import SeqBuddy as Sb
+import buddy_resources as br
 from .. import __init__
 from collections import OrderedDict
 
