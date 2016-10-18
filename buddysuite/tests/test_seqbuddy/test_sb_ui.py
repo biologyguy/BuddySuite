@@ -324,7 +324,7 @@ def test_count_residues_ui(capsys, sb_resources, hf):
     test_in_args.count_residues = ["conc"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c7062408f939f4b310f2f97c3e94eb37"
+    assert hf.string2hash(out) == "051d98f6e2ba6159f5f282562d3627b4"
 
 
 # ######################  '-dgn' '--degenerate_sequence'################### #

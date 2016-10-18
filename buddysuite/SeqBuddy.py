@@ -1351,11 +1351,11 @@ def count_residues(seqbuddy):
             neut = len(re.findall("[GAVLIPFYWSTNQM]", seq))
             resid_count['% Uncharged'] = round(100 * neut / seq_len, 2)
 
-            hyrdophobic = len(re.findall("[AVLIPYFWMC]", seq))
-            resid_count['% Hyrdophobic'] = round(100 * hyrdophobic / seq_len, 2)
+            hydrophobic = len(re.findall("[AVLIPYFWMC]", seq))
+            resid_count['% Hydrophobic'] = round(100 * hydrophobic / seq_len, 2)
 
-            hyrdophilic = len(re.findall("[NQSTKRHDE]", seq))
-            resid_count['% Hyrdophilic'] = round(100 * hyrdophilic / seq_len, 2)
+            hydrophilic = len(re.findall("[NQSTKRHDE]", seq))
+            resid_count['% Hydrophilic'] = round(100 * hydrophilic / seq_len, 2)
 
             for residue in ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M",
                             "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]:
