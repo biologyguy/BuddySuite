@@ -9,9 +9,9 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 from Bio import AlignIO
 
-from ... import buddy_resources as br
-from ...AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy
-from ...buddy_resources import GuessError, parse_format
+import buddy_resources as br
+from AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy
+from buddy_resources import GuessError, parse_format
 
 
 def mock_valueerror(*args, **kwargs):

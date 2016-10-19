@@ -33,19 +33,19 @@ def sb_resources():
 def sb_odd_resources():
     # A dict of invalid file resources
     resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-        ('blank', '{path}/blank.fa'),
-        ('figtree', '{path}/figtree.nexus'),
-        ('unrecognizable', '{path}/unrecognizable.phy'),
-        ('gibberish', '{path}/gibberish.fa'),
-        ('phylipss_cols', '{path}/malformed_phylip_columns.physs'),
-        ('duplicate', '{path}/Duplicate_seqs.fa'),
-        ('ambiguous_dna', '{path}/ambiguous_dna.fa'),
-        ('ambiguous_rna', '{path}/ambiguous_rna.fa'),
-        ('blastn', '{path}/blast/Mnemiopsis_cds.n'),
-        ('blastp', '{path}/blast/Mnemiopsis_pep.p'),
-        ('dummy_feats', '{path}/Mnemiopsis_cds_dummy_features.gb'),
-        ('cnidaria_pep', '{path}/Cnidaria_pep.nexus'),
-        ('mixed', '{path}/mixed_alpha.fa')
+        ('blank', '{path}blank.fa'),
+        ('figtree', '{path}figtree.nexus'),
+        ('unrecognizable', '{path}unrecognizable.phy'),
+        ('gibberish', '{path}gibberish.fa'),
+        ('phylipss_cols', '{path}malformed_phylip_columns.physs'),
+        ('duplicate', '{path}Duplicate_seqs.fa'),
+        ('ambiguous_dna', '{path}ambiguous_dna.fa'),
+        ('ambiguous_rna', '{path}ambiguous_rna.fa'),
+        ('blastn', '{path}blast/Mnemiopsis_cds.n'),
+        ('blastp', '{path}blast/Mnemiopsis_pep.p'),
+        ('dummy_feats', '{path}Mnemiopsis_cds_dummy_features.gb'),
+        ('cnidaria_pep', '{path}Cnidaria_pep.nexus'),
+        ('mixed', '{path}mixed_alpha.fa')
     ]}
     return resource_list
 
@@ -66,16 +66,16 @@ def alb_odd_resources():
     resource_list = {
         'dna': {
             'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-                ('fasta', '{path}/gibberish.fa'),
-                ('phylipss_recs', '{path}/malformed_phylip_records.physs'),
-                ('phylipss_cols', '{path}/malformed_phylip_columns.physs'),
-                ('ambiguous', '{path}/ambiguous_dna_alignment.fa')]}
+                ('fasta', '{path}gibberish.fa'),
+                ('phylipss_recs', '{path}malformed_phylip_records.physs'),
+                ('phylipss_cols', '{path}malformed_phylip_columns.physs'),
+                ('ambiguous', '{path}ambiguous_dna_alignment.fa')]}
         },
         'protein': {
             'single': {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-                ('phylip', '{path}/unrecognizable.phy')]}
+                ('phylip', '{path}unrecognizable.phy')]}
         },
-        'blank': "%s/blank.fa" % RESOURCE_PATH
+        'blank': "%sblank.fa" % RESOURCE_PATH
     }
     return resource_list
 
@@ -94,13 +94,13 @@ def pb_resources():
 def pb_odd_resources():
     # A dict of invalid file resources
     resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
-        ('blank', '{path}/blank.fa'),
-        ('unrecognizable', '{path}/unrecognizable.phy'),
-        ('figtree', '{path}/figtree.nexus'),
-        ('compare', '{path}/compare_trees.newick'),
-        ('node_lables', '{path}/tree_with_node_lables.nwk'),
-        ('lengths', '{path}/Mnemiopsis_pep.newick'),
-        ('bootstraps', '{path}/Mnemiopsis_pep_bootstraps.newick'),
-        ('support', '{path}/Mnemiopsis_pep_support.newick')
+        ('blank', '{path}blank.fa'),
+        ('unrecognizable', '{path}unrecognizable.phy'),
+        ('figtree', '{path}figtree.nexus'),
+        ('compare', '{path}compare_trees.newick'),
+        ('node_lables', '{path}tree_with_node_lables.nwk'),
+        ('lengths', '{path}Mnemiopsis_pep.newick'),
+        ('bootstraps', '{path}Mnemiopsis_pep_bootstraps.newick'),
+        ('support', '{path}Mnemiopsis_pep_support.newick')
     ]}
     return resource_list

@@ -28,11 +28,15 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import SeqBuddy as Sb
-except SystemError:
     import buddy_resources as br
     import SeqBuddy as Sb
+except ImportError:
+    try:
+        import buddysuite.buddy_resources as br
+        import buddysuite.SeqBuddy as Sb
+    except AttributeError:
+        from . import buddy_resources as br
+        from . import SeqBuddy as Sb
 
 # Standard library
 import sys
@@ -65,7 +69,7 @@ from Bio.Alphabet import IUPAC
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
+VERSION = br.Version("AlignBuddy", 1, "2b7", br.contributors, {"year": 2016, "month": 10, "day": 19})
 
 
 # #################################################### ALIGNBUDDY #################################################### #

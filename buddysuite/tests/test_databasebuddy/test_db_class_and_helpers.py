@@ -5,8 +5,8 @@ import datetime
 import random
 import re
 
-from ... import buddy_resources as br
-from ... import DatabaseBuddy as Db
+import buddy_resources as br
+import DatabaseBuddy as Db
 
 # A few real accession numbers to test things out with
 ACCNS = ["NP_001287575.1", "ADH10263.1", "XP_005165403.2", "A0A087WX72", "A0A096MTH0", "A0A0A9YFB0",

@@ -15,8 +15,8 @@ from hashlib import md5
 from time import sleep
 import datetime
 from unittest import mock
-from ... import AlignBuddy as Alb
-from ... import buddy_resources as br
+import AlignBuddy as Alb
+import buddy_resources as br
 from pkg_resources import DistributionNotFound
 from configparser import ConfigParser
 if os.name == "nt":
@@ -673,8 +673,8 @@ ZeroDivisionError: division by zero
   File "sb", line 4612, in command_line_ui
     1/0
 """
-    error_hash = b'44f77d4602b7213f958ed80ef0301365'
-    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    error_hash = b'{"44f77d4602b7213f958ed80ef0301365": [1.1, 1.2]}'
+    fake_raw_output = io.BytesIO(error_hash)
     monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     monkeypatch.setattr(br, "FTP", FakeFTP)
@@ -683,14 +683,14 @@ ZeroDivisionError: division by zero
 
     br.error_report(fake_error, True)  # Known bug
 
-    error_hash = b'54f77d4602b7213f958ed80ef0301365'
-    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)  # Needs to be reset every time
+    error_hash = b'{"54f77d4602b7213f958ed80ef0301365": [1.1, 1.2]}'
+    fake_raw_output = io.BytesIO(error_hash)  # Needs to be reset every time
     monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     with pytest.raises(RuntimeError):  # Unknown error, diagnostics true
         br.error_report(fake_error, True)
 
-    fake_raw_output = io.BytesIO(b'{\"%b\": [1.1, 1.2]}' % error_hash)
+    fake_raw_output = io.BytesIO(error_hash)
     monkeypatch.setattr(urllib.request, "urlopen", lambda *_, **__: fake_raw_output)
 
     def raise_ftp_errors(*args, **kwargs):
@@ -874,7 +874,11 @@ def test_send_traceback(capsys, monkeypatch):
 # Function: FailedFunc""" in out
 
     assert """\
-# User: hashless
+# TestBuddy: 1.2
+# Function: FailedFunc
+# Python:""" in out
+
+    assert """\
 # Date: %s
 
 RuntimeError: Something broke!
@@ -900,7 +904,7 @@ def test_shift_features(sb_resources, hf):
     features = buddy.records[0].features
     shifted_features = br.shift_features(features, 10, len(buddy.records[0]))
     buddy.records[0].features = shifted_features
-    assert hf.buddy2hash(buddy) == "e494bf6dc9c6c73c509e66ffc3db57a9"
+    assert hf.buddy2hash(buddy) == "e494bf6dc9c6c73c509e66ffc3db57a9", print(buddy)
 
     buddy = sb_resources.get_one("d g")
     buddy.records = [buddy.records[0]]

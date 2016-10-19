@@ -51,8 +51,7 @@ Each tool in the BuddySuite has been extensively documented in the [wiki](https:
 All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
  ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
  implemented. If you're interested in contributing, please refer to the
- [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on dependencies
- and instructions.
+ [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information.
 
 ## Citation
 We are currently working on a [peer reviewed manuscript](https://github.com/biologyguy/BuddySuite/tree/develop/manuscript), but until then

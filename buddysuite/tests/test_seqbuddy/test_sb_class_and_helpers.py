@@ -5,8 +5,8 @@ import pytest
 from Bio.Alphabet import IUPAC
 from collections import OrderedDict
 import os
-from ... import buddy_resources as br
-from ... import SeqBuddy as Sb
+import buddy_resources as br
+import SeqBuddy as Sb
 
 
 def test_instantiate_seqbuddy_from_file(sb_resources):
