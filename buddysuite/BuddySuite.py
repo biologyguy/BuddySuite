@@ -39,6 +39,7 @@ except ImportError:
         from . import buddysuite
         from . import buddy_resources as br
 
+
 def setup():  # ToDo: Check permissions?
     print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
 

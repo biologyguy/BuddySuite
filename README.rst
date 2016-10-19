@@ -60,7 +60,7 @@ branch <https://github.com/biologyguy/BuddySuite/tree/develop>`__ is
 where all new features have been implemented. If you're interested in
 contributing, please refer to the `developer
 page <https://github.com/biologyguy/BuddySuite/wiki/Developers>`__ for
-further information on dependencies and instructions.
+further information.
 
 Citation
 --------

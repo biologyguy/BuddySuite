@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
+VERSION = br.Version("PhyloBuddy", 1, "2b7", br.contributors, {"year": 2016, "month": 10, "day": 19})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
