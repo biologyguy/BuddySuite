@@ -1,7 +1,6 @@
 #!/use/bin/env python3
 # coding=utf-8
 
-import pytest
 import sys
 import re
 import os

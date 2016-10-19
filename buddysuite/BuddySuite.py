@@ -24,12 +24,20 @@ import argparse
 from configparser import ConfigParser, NoOptionError
 import os
 import re
-import buddysuite
-import buddy_resources as br
 import shutil
 import random
 import string
 
+try:
+    import buddysuite
+    import buddy_resources as br
+except ImportError:
+    try:
+        import buddysuite
+        import buddysuite.buddy_resources as br
+    except AttributeError:
+        from . import buddysuite
+        from . import buddy_resources as br
 
 def setup():  # ToDo: Check permissions?
     print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
