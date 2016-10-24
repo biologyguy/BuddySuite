@@ -1,0 +1,33 @@
+[mSeqBuddy::back_translate has crashed with the following traceback:[91m
+
+ValueError: Proteins do not have complements!
+
+  File "SeqBuddy.py", line 4940, in main
+    command_line_ui(*initiation)
+  File "SeqBuddy.py", line 3884, in command_line_ui
+    _print_recs(back_translate(seqbuddy, mode, species))
+  File "SeqBuddy.py", line 1034, in back_translate
+    clean_seq(seqbuddy, skip_list="\-*")
+  File "SeqBuddy.py", line 1305, in clean_seq
+    br.remap_gapped_features(seqbuddy_copy.records, seqbuddy.records)
+  File "buddy_resources.py", line 1176, in remap_gapped_features
+    features.append(ungap_feature_ends(feat, old_rec))
+  File "buddy_resources.py", line 1080, in ungap_feature_ends
+    part = ungap_feature_ends(SeqFeature(part), rec)
+  File "buddy_resources.py", line 1085, in ungap_feature_ends
+    extract = str(feat.extract(rec.seq))
+  File "SeqFeature.py", line 329, in extract
+    return self.location.extract(parent_sequence)
+  File "SeqFeature.py", line 939, in extract
+    f_seq = f_seq.reverse_complement()
+  File "Seq.py", line 810, in reverse_complement
+    return self.complement()[::-1]
+  File "Seq.py", line 760, in complement
+    raise ValueError("Proteins do not have complements!")
+
+
+[m
+Uh oh, you've found a new bug! This issue is not currently in our bug tracker
+
+An error report with the above traceback has been prepared and is ready to send to the BuddySuite developers.
+Would you like to upload the report? [y]/n 
