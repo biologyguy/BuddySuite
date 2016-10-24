@@ -11,7 +11,7 @@ if __name__ == '__main__':
     # parser.add_argument("replace", help="replacement", action="store")
     # parser.add_argument("file", help="input file", action="store")
     # parser.add_argument("-m", "--module", help="specify a single module", action='store')
-    parser.add_argument("-c", "--command", help="specify a single module", action='store')
+    # parser.add_argument("-c", "--command", help="specify a single module", action='store')
     # use seq buddy for now, then ad the --module option
     in_args = parser.parse_args()
 
