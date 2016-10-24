@@ -3,10 +3,6 @@
 import sys
 import argparse
 import timeit
-from buddysuite import SeqBuddy
-#from subprocess import Popen
-from buddysuite import AlignBuddy
-from buddysuite import PhyloBuddy
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="performanceScanner", description="Check function time", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -22,18 +18,12 @@ if __name__ == '__main__':
     # create a dictionary with the default parameters for each function (-c, --command)
     opts_sb = {
         'list_ids': '3',
+        "num_seqs": "",
+        "lowercase": ""
     }
 
-    # if in_args.module == "all":
-    if in_args.command == "list_ids":
-        timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa -li opts_sb[in_args.command] -q", shell=True, stderr=PIPE, stdout=PIPE).wait()', number=10)
-        newtimer = timer / 10
-        print(newtimer)
-    elif in_args.command == "num_seqs":
-        timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa -ns -q", shell=True, stderr=PIPE, stdout=PIPE).wait()', number=10)
-        newtimer = timer / 10
-        print(newtimer)
-    elif in_args.command == "lowercase":
-        timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa -lc", shell=True, stderr=PIPE, stdout=PIPE).wait()', number=10)
-        newtimer = timer / 10
-        print(newtimer)
+    for flag, args in opts_sb.items():
+        sys.stdout.write("%s: " % flag)
+        sys.stdout.flush()
+        timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=10)
+        sys.stdout.write("%s\n" % round(timer / 10, 3))
