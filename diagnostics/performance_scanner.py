@@ -24,7 +24,8 @@ if __name__ == '__main__':
         "degenerate_sequence": "1", "delete_features": "TMD1", "delete_large": "400", "delete_metadata": "",
         "delete_records": "Aae-", "delete_repeats": "", "delete_small": "100", "extract_feature_sequences": "TMD1",
         "extract_regions": ":50", "find_CpG": "-o genbank", "find_orfs": "-o genbank", "find_pattern": "\'LLL\' \'LLY\'",
-        "find_repeats": "3", "find_restriction_sites": "",
+        "find_repeats": "3", "find_restriction_sites": "commercial", "group_by_prefix": "~/BuddySuite/diagnostics/files_prefix/",
+        "group_by_regex": "~/BuddySuite/diagnostics/files_regex/ Sra", "guess_alphabet": "~/BuddySuite/diagnostics/files_regex/*",
         "list_ids": "3", "num_seqs": "", "lowercase": "",
     }
 
@@ -49,6 +50,9 @@ if __name__ == '__main__':
             elif flag == "delete_records":
                 timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s \'%s\'", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=in_args.iteration)
                 sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
+            elif flag == "guess_alphabet":
+                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy \'%s\' --%s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (args, flag), number=in_args.iteration)
+                sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
             else:
                 timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=in_args.iteration)
                 sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
@@ -69,6 +73,9 @@ if __name__ == '__main__':
             sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
         elif in_args.command == "delete_records":
             timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s \'%s\'", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=in_args.iteration)
+            sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
+        elif in_args.command == "guess_alphabet":
+            timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy \'%s\' --%s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (opts_sb[in_args.command], in_args.command), number=in_args.iteration)
             sys.stdout.write("%s\n" % round(timer / in_args.iteration, 3))
         else:
             timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=in_args.iteration)
