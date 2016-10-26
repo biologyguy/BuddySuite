@@ -179,13 +179,13 @@
 
 \begin{abstract} % abstract
 \parttitle{Background}  % Required
-The ability to manipulate sequence, alignment, and phylogenetic tree files has become an increasingly important skill in the life sciences, whether it be to generate summary information about those files or to prepare them for further downstream analysis. The command-line is generally the most powerful environment for interacting with these resources, especially as the files become even moderately large, but there has been little focus on developing or maintaining general purpose toolkits in recent years.
+The ability to manipulate sequence, alignment, and phylogenetic tree files has become an increasingly important skill in the life sciences, whether it be to generate summary information or to prepare data for further downstream analysis. The command-line is an extremely powerful environment for interacting with these resources, especially as files become even moderately large, but there has been little focus on developing or maintaining general-purpose toolkits in recent years.
 
 \parttitle{Results}  % Required
-BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Common sequence, alignment, and tree file formats are automatically detected and parsed, and over 100 routine tasks have been implemented in this comprehensive suite of toolkits. The project has been engineered to easily accommodate the addition of new tools, written in the popular programming language Python, and hosted on the Python Package Index and GitHub to maximize accessibility. Documentation for each BuddySuite tool, including usage examples, is available at http://tiny.cc/buddysuite\_wiki.
+BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Standardized sequence, alignment, and tree file formats are automatically detected and parsed, and over 100 routine tasks have been implemented in this comprehensive suite of toolkits. This project has been engineered to easily accommodate the addition of new tools, it is written in the popular programming language Python, and is hosted on the Python Package Index and GitHub to maximize accessibility. Documentation for each BuddySuite tool, including usage examples, is available at http://tiny.cc/buddysuite\_wiki.
 
 \parttitle{Conclusions}  % Required
-All software is open source and freely available without restriction.
+Great care has been taken to create a useful and intuitive toolkit to meet the needs of biologists. All software is open source and distributed without restriction.
 http://research.nhgri.nih.gov/software/BuddySuite
 
 \end{abstract}
@@ -289,7 +289,7 @@ BuddySuite modules are executed from the command line using the following genera
 
 \smallskip
 
-Any number of files may be passed into the module but only a single command can be executed at a time. As a specific example, the following would accept two sequence files (in FASTA and GenBank formats) and delete any sequences larger than 300 residues (module names have been shorted to sb, alb, and pb for SeqBuddy, AlignBuddy, and PhyloBuddy, respectively):
+Any number of files may be passed into the module but only a single command can be executed at a time. As a specific example, the following would accept two sequence files (in FASTA and GenBank formats) and delete any sequences larger than 300 residues (module names have been shorted in the following examples to sb, alb, and pb for SeqBuddy, AlignBuddy, and PhyloBuddy, respectively):
 
 \smallskip
 
