@@ -50,6 +50,7 @@ from pkg_resources import Requirement, resource_filename, DistributionNotFound
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
+from Bio.Alphabet import IUPAC
 
 
 # ################################################## MYFUNCS ################################################### #
@@ -1169,6 +1170,8 @@ def ungap_feature_ends(feat, rec):
         feat.location = CompoundLocation(parts, feat.location.operator)
 
     elif type(feat.location) == FeatureLocation:
+        if feat.strand == -1 and rec.seq.alphabet == IUPAC.protein:
+            feat.strand = None
         extract = str(feat.extract(rec.seq))
         front_gaps = re.search("^-+", extract)
         if front_gaps:
