@@ -121,11 +121,15 @@
 ]{\inits{SR}\fnm{Stephen R} \snm{Bond}}
 \author[
    addressref={aff1},
-   %email={karl.keat@nih.gov}
+   %email={karlkeat@gmail.com}
 ]{\inits{KE}\fnm{Karl E} \snm{Keat}}
 \author[
    addressref={aff1},
-   email={andy@mail.nih.gov}
+   %email={sofia.barreira@nih.gov}
+]{\inits{S}\fnm{Sofia} \snm{de Pereira Barreira,}}
+\author[
+   addressref={aff1},
+   email={andy@mail.nih.gov}   
 ]{\inits{AD}\fnm{Andreas D} \snm{Baxevanis}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                                          %%
@@ -182,10 +186,10 @@
 The ability to manipulate sequence, alignment, and phylogenetic tree files has become an increasingly important skill in the life sciences, whether it be to generate summary information or to prepare data for further downstream analysis. The command-line is an extremely powerful environment for interacting with these resources, especially as files become even moderately large, but there has been little focus on developing or maintaining general-purpose toolkits in recent years.
 
 \parttitle{Results}  % Required
-BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Standardized sequence, alignment, and tree file formats are automatically detected and parsed, and over 100 routine tasks have been implemented in this comprehensive suite of toolkits. This project has been engineered to easily accommodate the addition of new tools, it is written in the popular programming language Python, and is hosted on the Python Package Index and GitHub to maximize accessibility. Documentation for each BuddySuite tool, including usage examples, is available at http://tiny.cc/buddysuite\_wiki.
+BuddySuite is a collection of four independent yet interrelated command-line programs that facilitate each step in the workflow of sequence discovery, curation, alignment, and phylogenetic reconstruction. Most of the common sequence, alignment, and tree file formats are automatically detected and parsed, and over 100 tools have been implemented for manipulating this data. The project has been engineered to easily accommodate the addition of new tools, it is written in the popular programming language Python, and is hosted on the Python Package Index and GitHub to maximize accessibility. Documentation for each BuddySuite tool, including usage examples, is available at http://tiny.cc/buddysuite\_wiki.
 
 \parttitle{Conclusions}  % Required
-Great care has been taken to create a useful and intuitive toolkit to meet the needs of biologists. All software is open source and distributed without restriction.
+Great care has been taken to create useful and intuitive toolkits to meet the needs of biologists. All software is open source and distributed without restriction.
 http://research.nhgri.nih.gov/software/BuddySuite
 
 \end{abstract}
@@ -328,6 +332,10 @@ The BuddySuite modules also accept input from standard output, allowing for the 
 
 Third party programs that use any of the supported file formats and utilize standard output and standard input from the command line can also be seamlessly included in these pipelines.
 
+---------------------------------------------------------------------------------
+DatabaseBuddy, on the other hand, has been implemented as a live-shell application. 
+---------------------------------------------------------------------------------
+
 \subsection*{Performance}
 SOFIA'S SECTION
 
@@ -357,7 +365,7 @@ BuddySuite has been designed from the ground up to be an intuitive, extensible, 
   The authors declare that they have no competing interests.
 
 \section*{Author's contributions}
-  SRB is the lead developer of BuddySuite and wrote the manuscript, KEK contributed significantly to the code base, SNB generated the performance statistics for FIG.X, ADB was involved in the design and coordination of the project. All authors read and approved the final manuscript.
+  SRB is the lead developer of BuddySuite and wrote the manuscript, KEK contributed significantly to the code base and documentation, SPB generated the performance statistics for FIG.X, and ADB was involved in the design and coordination of the project. All authors read and approved the final manuscript.
 
 \section*{Acknowledgements}
   We would like to thank the community members who contributed code to this project, big or small. It takes a village.
