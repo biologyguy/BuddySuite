@@ -270,7 +270,7 @@ Stable release versions of BuddySuite can be installed directly from PyPI using 
 
 \smallskip
 
-Doing so will create directories for caching data on the user's system and will register an email address for the tools that interact with public databases (to prevent possible IP blocking). To simplify installation, dependencies have been limited to packages available through PyPI, although there are a number of optional third-party programs that can be accessed through BuddySuite; these include BLAST \cite{Camacho2009} for comparing sequences, multiple sequence alignment packages like MAFFT \cite{Katoh:2013hm}, and phylogenetic inference packages like RAxML \cite{Stamatakis:2006de}. As these programs are not necessary for the general operation of the BuddySuite modules, installation is the user's responsibility. The list of third-party tools that BuddySuite wraps is itemized in Table \ref{table:software}.
+Doing so will create directories for caching data on the user's system and will register an email address for the tools that interact with public databases (to prevent possible IP blocking). To simplify installation, dependencies have been limited to packages available through PyPI, although there are a number of optional third-party programs that can be accessed through BuddySuite; these include BLAST \cite{Camacho2009} for comparing sequences, multiple sequence alignment packages like MAFFT \cite{Katoh:2013hm}, and phylogenetic inference packages like RAxML \cite{Stamatakis:2006de}. As these programs are not necessary for the general operation of the BuddySuite modules, installation is the user's responsibility. The third-party tools that BuddySuite wraps are itemized in Table \ref{table:software}.
 
 \subsection*{Command line user interface}
 The four core command line programs distributed with BuddySuite are SeqBuddy, AlignBuddy, PhyloBuddy, and DatabaseBuddy. The first three accept sequence, alignment, or phylogenetic tree data as input, respectively, using flags to switch among the tools available in each program. All output is printed directly to the terminal window by default and each module adheres to the UNIX convention of accepting piped data, allowing individual tools to be `daisy-chained' into more complex workflows. DatabaseBuddy, on the other hand, is intended to run primarily as a `live shell', allowing the user to interactively search and download sequence data stored in the NCBI, UniProt, and Ensembl public databases. At the time of writing, 104 individual tools have been implemented across the BuddySuite programs.
@@ -290,7 +290,7 @@ The European Molecular Biology Open Software Suite (EMBOSS) and Biopieces are th
 
 To keep the learning curve as shallow as possible, care has been taken to minimize the number of parameters each tool depends upon and to use duck typing to infer user intent. For example, the SeqBuddy `find\_restriction\_sites' function is one of the most flexible in the Suite; it can accept three different argument types that control what enzymes are included in the search and how the output is formatted, yet all of these arguments are optional and can be passed to the tool in any order. This flexibility is in contrast to EMBOSS and BioPieces, which generally require extra flags to explicitly set all parameters. When the argument type (e.g., integer or string) unambiguously identifies how it should be used by the tool, we believe it is counter-productive to impose positional constraints or additional flags. Furthermore, file format detection is fully automated. Any number of sequence, alignment, or phylogenetic tree files can be passed into their respective BuddySuite program, in any combination of supported formats, and the records will be parsed seamlessly (see table \ref{table:formats} for a list of supported formats). Bioinformatics software is rarely this flexible in terms of user input. For specialized tools that are intended to be called from scripts in larger pipelines, explicitly setting parameters can increase methodological clarity and is less of a burden because they are not typed repeatedly. For a general purpose tool like BuddySuite, however, where the user is intended to interact with their data dynamically on the command line, minimizing key-strokes is crucial.
 
-Perhaps the greatest advantage BuddySuite has over other tools is its handling of annotations. Rich flat-file formats like GenBank and EMBL support sequence feature annotation, but the information is generally discarded by the EMBOSS programs and the Biopieces suite is unable to write these formats. SeqBuddy and AlignBuddy are both aware of features in the sequence records they process, and will update those annotations when sequences are modified. For example, if a group of DNA sequences are translated to protein with SeqBuddy, the relative positions of each feature will be scaled by one third to account for the conversion of codons to amino acids. If those proteins are then passed to AlignBuddy to create a multiple sequence alignment, the features will be adjusted again to account for any gaps that are introduced (see figure X). Unfortunately, support for the Generic Feature Format (GFF3) specification is not currently implemented in BioPython, so is also not available in BuddySuite at the time of writing. While GFF3 support is planned for a future release, users are currently encouraged to write annotated sequences to GenBank or EMBL (this includes alignments, as BuddySuite will respect gap characters in these formats).
+Perhaps the greatest advantage BuddySuite has over other tools is its handling of annotations. Rich flat-file formats like GenBank and EMBL support sequence feature annotation, but the information is generally discarded by the EMBOSS programs and the Biopieces suite is unable to write these formats. SeqBuddy and AlignBuddy are both aware of features in the sequence records they process, and will update those annotations when sequences are modified. For example, if a group of DNA sequences are translated to protein with SeqBuddy, the relative positions of each feature will be scaled by one third to account for the conversion of codons to amino acids. If those proteins are then passed to AlignBuddy to create a multiple sequence alignment, the features will be adjusted again to account for any gaps that are introduced. Unfortunately, support for the Generic Feature Format (GFF3) specification is not currently implemented in BioPython, so is also not available in BuddySuite at the time of writing. While GFF3 support is planned for a future release, users are currently encouraged to write annotated sequences to GenBank or EMBL (this includes alignments, as BuddySuite will respect gap characters in these formats).
 
 \subsection*{Use-case examples}
 BuddySuite modules are executed from the command line using the following generalized syntax:
@@ -303,7 +303,7 @@ BuddySuite modules are executed from the command line using the following genera
 
 \smallskip
 
-Any number of files may be passed into the module but only a single command can be executed at a time. As a specific example, the following would accept two sequence files (in FASTA and GenBank formats) and delete any sequences larger than 300 residues (module names have been shorted in the following examples to sb, alb, and pb for SeqBuddy, AlignBuddy, and PhyloBuddy, respectively):
+Any number of files may be passed into the module but only a single command can be executed at a time. As a specific example, the following would accept two sequence files (in FASTA and GenBank formats) and delete any sequences larger than 300 residues (module names have been shortened in the following examples to sb, alb, and pb for SeqBuddy, AlignBuddy, and PhyloBuddy, respectively):
 
 \smallskip
 
@@ -313,7 +313,7 @@ Any number of files may be passed into the module but only a single command can 
 
 \smallskip
 
-Whichever format is encountered last will be the format the records output in (in this case, FASTA), although this behaviour may be overridden with the `-{}-output' modifier:
+Whichever format is encountered last will be the format the final records will be output as (in this case, FASTA), although this behaviour may be overridden with the `-{}-output' modifier:
 
 \smallskip
 
@@ -326,7 +326,7 @@ Whichever format is encountered last will be the format the records output in (i
 
 Keeping with the spirit of inferring user intent, modifiers are used sparingly in the BuddySuite modules and only when their effects are intuitively applicable across all tools in the module (e.g., quiet execution or to modify files in-place).
 
-The BuddySuite modules also accept input from standard output, allowing for the construction of more complex workflows using the pipe character. In the following example, SeqBuddy pulls out records with RefSeq identifiers, AlignBuddy calls MAFFT to generate an alignment and shifts gaps to force a codon alignment, then PhyloBuddy calls RAxML to infer a phylogeny before rooting the tree at its midpoint.
+The BuddySuite modules also accept input from standard output, allowing for the construction of more complex workflows using the pipe character. In the following example, SeqBuddy pulls out records with RefSeq identifiers (using a regular expression), AlignBuddy calls MAFFT to generate an alignment and shifts gaps to force a codon alignment, then PhyloBuddy calls RAxML to infer a phylogeny before rooting the tree at its midpoint.
 
 \smallskip
 
@@ -342,22 +342,13 @@ The BuddySuite modules also accept input from standard output, allowing for the 
 
 Third party programs that use any of the supported file formats and utilize standard output and standard input from the command line can also be seamlessly included in these pipelines.
 
-\subsection*{DatabaseBuddy}
--------------------------------------------------------------
-
-Not sure if this should be it's own thing... It's so different from the other modules, that maybe? 
-
-DatabaseBuddy, on the other hand, has been implemented as a live-shell application. 
-
--------------------------------------------------------------
-
 \subsection*{Performance}
 SOFIA'S SECTION
 
 Here are some graphs and tables showing how long each tool takes to run on different sized files.
 
 \section*{Conclusions}
-BuddySuite has been designed from the ground up to be an intuitive, extensible, and unified platform for routine command-line tasks performed on sequence, alignment, and phylogenetic tree files. While the individual tools are not generally novel in and of themselves, this is the first time that such a large suite of general-purpose bioinformatics utilities have been implemented purely in Python and packaged together under a flag-driven paradigm. Well designed and actively supported open-source tools are going to be invaluable over the coming years as an increasing number of biologists turn to the command line to analyze their data. We hope that BuddySuite will be widely adopted by the community and, thanks to the passive data-collection built into this project, we look forward to tailoring future development to the needs of our users.
+BuddySuite has been designed from the ground up as an intuitive, extensible, and unified platform for routine command-line tasks performed on sequence, alignment, and phylogenetic tree files. While the individual tools are not generally novel in and of themselves, this is the first time that such a large suite of general-purpose bioinformatics utilities have been implemented purely in Python and packaged together under a flag-driven paradigm. Well designed and actively supported open-source tools are going to be invaluable over the coming years as an increasing number of biologists turn to the command line to analyze their data. We hope that BuddySuite will be widely adopted by the community and, thanks to the passive data-collection built into this project, we look forward to tailoring future development to the needs of our users.
 
 % \subsection*{Sub-heading for section}
 % Text for this sub-heading \ldots
