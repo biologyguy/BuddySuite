@@ -50,6 +50,7 @@ from pkg_resources import Requirement, resource_filename, DistributionNotFound
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
+from Bio.Alphabet import IUPAC
 
 
 # ################################################## MYFUNCS ################################################### #
@@ -1079,7 +1080,10 @@ def send_traceback(tool, function, e, version):
     config = config_values()
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
-        _line = re.sub('"(?:C\:)*{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
+        if os.name == "nt":
+            _line = re.sub('"(?:[A-Za-z]:)*\{0}.*\{0}(.*)?"'.format(os.sep), r'"\1"', _line)
+        else:
+            _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
     bs_version = "# %s: %s\n" % (tool, version.short())
     func = "# Function: %s\n" % function
@@ -1169,6 +1173,8 @@ def ungap_feature_ends(feat, rec):
         feat.location = CompoundLocation(parts, feat.location.operator)
 
     elif type(feat.location) == FeatureLocation:
+        if feat.strand == -1 and rec.seq.alphabet == IUPAC.protein:
+            feat.strand = None
         extract = str(feat.extract(rec.seq))
         front_gaps = re.search("^-+", extract)
         if front_gaps:
