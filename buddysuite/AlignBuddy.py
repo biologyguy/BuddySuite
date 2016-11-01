@@ -57,6 +57,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
+from Bio.Nexus.Nexus import NexusError
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -336,6 +337,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
                 else:
                     continue
             except br.PhylipError:
+                continue
+            except NexusError:
                 continue
             except ValueError:
                 continue
