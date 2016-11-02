@@ -205,10 +205,10 @@ class PhyloBuddy(object):
                                     "Try explicitly setting it with the -f flag.".format(in_file))
             elif raw_seq:
                 raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(raw_seq[:50]))
             elif in_from_handle:
                 raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(in_from_handle)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(in_from_handle[:50]))
             else:
                 raise br.GuessError("Unable to determine the format or input type. "
                                     "Please check how PhyloBuddy is being called.")
