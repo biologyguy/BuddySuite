@@ -1,13 +1,12 @@
 #!/use/bin/env python3
 # coding=utf-8
 
-import pytest
 import sys
 import re
 import os
 import shutil
-from ... import BuddySuite as Bs
-from ... import buddy_resources as br
+import BuddySuite as Bs
+import buddy_resources as br
 
 
 def test_version(capsys):

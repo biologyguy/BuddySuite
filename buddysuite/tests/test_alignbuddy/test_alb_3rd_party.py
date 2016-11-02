@@ -12,9 +12,9 @@ import os
 from unittest import mock
 from shutil import which
 from subprocess import Popen, PIPE
-from ... import AlignBuddy as Alb
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import AlignBuddy as Alb
+import SeqBuddy as Sb
+import buddy_resources as br
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -237,17 +237,11 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
             pass
         return True
 
-    try:
-        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_false)
-    except ImportError:
-        monkeypatch.setattr("buddy_resources.ask", ask_false)
+    monkeypatch.setattr(br, "ask", ask_false)
     with pytest.raises(SystemExit):
         Alb.generate_msa(tester, clustalo_bin, keep_temp="%s%sga_temp_files" % (temp_dir.path, os.sep))
 
-    try:
-        monkeypatch.setattr("buddysuite.buddy_resources.ask", ask_true)
-    except ImportError:
-        monkeypatch.setattr("buddy_resources.ask", ask_true)
+    monkeypatch.setattr(br, "ask", ask_true)
     Alb.generate_msa(tester, clustalo_bin, keep_temp="%s%sga_temp_files" % (temp_dir.path, os.sep))
     assert os.path.isfile("{0}{1}ga_temp_files{1}result".format(temp_dir.path, os.sep))
     assert os.path.isfile("{0}{1}ga_temp_files{1}tmp.fa".format(temp_dir.path, os.sep))

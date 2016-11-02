@@ -31,11 +31,15 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import AlignBuddy as Alb
-except SystemError:
     import buddy_resources as br
     import AlignBuddy as Alb
+except ImportError:
+    try:
+        import buddysuite.buddy_resources as br
+        import buddysuite.AlignBuddy as Alb
+    except AttributeError:
+        from . import buddy_resources as br
+        from . import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -153,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
+VERSION = br.Version("SeqBuddy", 1, "2.0", br.contributors, {"year": 2016, "month": 11, "day": 1})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -1355,11 +1359,11 @@ def count_residues(seqbuddy):
             neut = len(re.findall("[GAVLIPFYWSTNQM]", seq))
             resid_count['% Uncharged'] = round(100 * neut / seq_len, 2)
 
-            hyrdophobic = len(re.findall("[AVLIPYFWMC]", seq))
-            resid_count['% Hyrdophobic'] = round(100 * hyrdophobic / seq_len, 2)
+            hydrophobic = len(re.findall("[AVLIPYFWMC]", seq))
+            resid_count['% Hydrophobic'] = round(100 * hydrophobic / seq_len, 2)
 
-            hyrdophilic = len(re.findall("[NQSTKRHDE]", seq))
-            resid_count['% Hyrdophilic'] = round(100 * hyrdophilic / seq_len, 2)
+            hydrophilic = len(re.findall("[NQSTKRHDE]", seq))
+            resid_count['% Hydrophilic'] = round(100 * hydrophilic / seq_len, 2)
 
             for residue in ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M",
                             "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]:
@@ -3662,7 +3666,7 @@ def argparse_init():
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 br._stderr("Warning: No input detected so SeqBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records

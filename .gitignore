@@ -30,7 +30,12 @@ dependencies.conf
 *.ipynb
 
 # Manuscript compilation files
-bmc_article.log
-bmc_article.aux
-bmc_article.bbl
-bmc_article.blg
+*_article.log
+*_article.aux
+*_article.bbl
+*_article.blg
+*_article.idx
+/*/*/figures/*.pdf
+
+# Manuscript submission files
+/manuscript/submission_docs/*

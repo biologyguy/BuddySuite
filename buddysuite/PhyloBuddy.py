@@ -27,11 +27,15 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import AlignBuddy as Alb
-except SystemError:
     import buddy_resources as br
     import AlignBuddy as Alb
+except ImportError:
+    try:
+        import buddysuite.buddy_resources as br
+        import buddysuite.AlignBuddy as Alb
+    except AttributeError:
+        from . import buddy_resources as br
+        from . import AlignBuddy as Alb
 
 # Standard library
 import sys
@@ -143,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
+VERSION = br.Version("PhyloBuddy", 1, "2.0", br.contributors, {"year": 2016, "month": 11, "day": 1})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -201,10 +205,10 @@ class PhyloBuddy(object):
                                     "Try explicitly setting it with the -f flag.".format(in_file))
             elif raw_seq:
                 raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(raw_seq[:50]))
             elif in_from_handle:
                 raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(in_from_handle)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(in_from_handle[:50]))
             else:
                 raise br.GuessError("Unable to determine the format or input type. "
                                     "Please check how PhyloBuddy is being called.")

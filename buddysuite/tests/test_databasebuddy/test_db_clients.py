@@ -6,8 +6,9 @@ import tempfile
 import re
 import json
 import os
-from ... import buddy_resources as br
-from ... import DatabaseBuddy as Db
+import buddy_resources as br
+import DatabaseBuddy as Db
+from io import StringIO
 
 
 def patched_close(self):  # This suppresses an 'ignored' exception
@@ -83,12 +84,12 @@ similarities (1); Subcellular location (1)
 
 def mock_raise_httperror(*args, **kwargs):
     print("mock_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
-    raise HTTPError(url="http://fake.come", code=101, msg="Fake HTTPError from Mock", hdrs="Foo", fp="Bar")
+    raise HTTPError(url="http://fake.come", code=101, msg="Fake HTTPError from Mock", hdrs="Foo", fp=StringIO("Bar"))
 
 
 def mock_raise_503_httperror(*args, **kwargs):
     print("mock_raise_httperror\nargs: %s\nkwargs: %s" % (args, kwargs))
-    raise HTTPError(url="http://fake.come", code=503, msg="Service unavailable", hdrs="Foo", fp="Bar")
+    raise HTTPError(url="http://fake.come", code=503, msg="Service unavailable", hdrs="Foo", fp=StringIO("Bar"))
 
 
 def mock_raise_urlerror(*args, **kwargs):
@@ -135,7 +136,7 @@ def test_client_parse_error_file():
 
     assert not client.parse_error_file()
     assert not dbbuddy.failures
-    client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", "Baz"))
+    client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", StringIO("Baz")))
     client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
 
     assert client.parse_error_file() == '''Casp9
@@ -176,11 +177,11 @@ def test_uniprotrestclient_init():
     assert client.max_url == 1000
 
 
-def test_uniprotrestclient_query_uniprot(capsys):
+def test_uniprotrestclient_query_uniprot(capsys, monkeypatch):
     dbbuddy = Db.DbBuddy()
     client = Db.UniProtRestClient(dbbuddy)
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_handle_uniprot_ids):
-        client.query_uniprot("inx15", {"format": "list"})
+    monkeypatch.setattr(Db, 'urlopen', mock_urlopen_handle_uniprot_ids)
+    client.query_uniprot("inx15", {"format": "list"})
 
     assert client.results_file.read() == '''# Search: inx15
 A8XEF9
@@ -189,25 +190,25 @@ A0A0H5SBJ0
 //
 '''
     # Also make sure request_params can come in as a list
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_handle_uniprot_ids):
-        client.query_uniprot("inx15", [{"format": "list"}])
+    monkeypatch.setattr(Db, 'urlopen', mock_urlopen_handle_uniprot_ids)
+    client.query_uniprot("inx15", [{"format": "list"}])
 
     # Errors
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_httperror):
-        client.query_uniprot("inx15", [{"format": "list"}])
+    monkeypatch.setattr(Db, 'urlopen', mock_raise_httperror)
+    client.query_uniprot("inx15", [{"format": "list"}])
     assert client.http_errors_file.read() == "Uniprot search failed for 'inx15'\nHTTP Error 101: " \
                                              "Fake HTTPError from Mock\n//\n"
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_urlerror_8):
-        client.query_uniprot("inx15", [{"format": "list"}])
+    monkeypatch.setattr(Db, 'urlopen', mock_raise_urlerror_8)
+    client.query_uniprot("inx15", [{"format": "list"}])
     assert "Uniprot request failed, are you connected to the internet?" in client.http_errors_file.read()
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_urlerror):
-        client.query_uniprot("inx15", [{"format": "list"}])
+    monkeypatch.setattr(Db, 'urlopen', mock_raise_urlerror)
+    client.query_uniprot("inx15", [{"format": "list"}])
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_keyboardinterrupt):
-        client.query_uniprot("inx15", [{"format": "list"}])
+    monkeypatch.setattr(Db, 'urlopen', mock_raise_keyboardinterrupt)
+    client.query_uniprot("inx15", [{"format": "list"}])
     out, err = capsys.readouterr()
     assert "\n\tUniProt query interrupted by user\n" in err
 
@@ -215,19 +216,19 @@ A0A0H5SBJ0
     client.query_uniprot("ABXEF9", params)
 
 
-def test_uniprotrestclient_count_hits():
+def test_uniprotrestclient_count_hits(monkeypatch):
     dbbuddy = Db.DbBuddy("inx15,inx16")
     client = Db.UniProtRestClient(dbbuddy)
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_urlopen_uniprot_count_hits):
-        assert client.count_hits() == 10
+    monkeypatch.setattr(Db, 'urlopen', mock_urlopen_uniprot_count_hits)
+    assert client.count_hits() == 10
 
-        for indx in range(10):
-            client.dbbuddy.search_terms.append("a" * 110)
-        assert client.count_hits() == 20
+    for indx in range(10):
+        client.dbbuddy.search_terms.append("a" * 110)
+    assert client.count_hits() == 20
 
-    with mock.patch('buddysuite.DatabaseBuddy.urlopen', mock_raise_httperror):
-        assert client.count_hits() == 0
-        assert "d3b8e6bb4b9094117b7555b01dc85f64" in client.dbbuddy.failures
+    monkeypatch.setattr(Db, 'urlopen', mock_raise_httperror)
+    assert client.count_hits() == 0
+    assert "d3b8e6bb4b9094117b7555b01dc85f64" in client.dbbuddy.failures
 
     with pytest.raises(ValueError) as err:
         client.dbbuddy.search_terms[0] = "a" * 1001
@@ -671,9 +672,11 @@ def test_ensembl_perform_rest_action(monkeypatch, hf):
             with open("%s/ensembl_sequence.seqxml" % test_files, "r") as ifile:
                 outfile.write(ifile.read().encode())
         elif "error400" in args[0].full_url:
-            raise HTTPError(url="http://fake.come", code=400, msg="Bad request", hdrs="Foo", fp="Bar")
+            raise HTTPError(url="http://fake.come", code=400, msg="Bad request",
+                            hdrs="Foo", fp=StringIO("Bar"))
         elif "error429" in args[0].full_url:
-            raise HTTPError(url="http://fake.come", code=429, msg="Server busy", hdrs={'Retry-After': 0}, fp="Bar")
+            raise HTTPError(url="http://fake.come", code=429, msg="Server busy",
+                            hdrs={'Retry-After': 0}, fp=StringIO("Bar"))
         return outfile.get_handle("r")
 
     outfile = br.TempFile(byte_mode=True)

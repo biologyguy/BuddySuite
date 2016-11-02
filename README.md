@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master)](https://travis-ci.org/biologyguy/BuddySuite)
-[![Coverage Status](https://coveralls.io/repos/github/biologyguy/BuddySuite/badge.svg?branch=master)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
+[![Coverage Status](https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
 [![PyPi version](https://img.shields.io/pypi/v/buddysuite.svg)](https://pypi.python.org/pypi/buddysuite)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
 <img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.gif" /></a></p>
@@ -45,17 +45,16 @@ Each tool in the BuddySuite has been extensively documented in the [wiki](https:
 * [SeqBuddy](https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy) 
 * [AlignBuddy](https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy)
 * [PhyloBuddy](https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy)
-* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy). 
+* [DatabaseBuddy](https://github.com/biologyguy/BuddySuite/wiki/DatabaseBuddy)
 
 ## Developers
 All of the individual Buddy toolkits are located in the 'buddysuite' directory and the 
  ['develop' branch](https://github.com/biologyguy/BuddySuite/tree/develop) is where all new features have been
  implemented. If you're interested in contributing, please refer to the
- [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information on dependencies
- and instructions.
+ [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information.
 
 ## Citation
-We are currently working on a [peer reviewed manuscript](https://github.com/biologyguy/BuddySuite/tree/develop/manuscript), but until then
+We are currently working on a [manuscript for peer review](https://github.com/biologyguy/BuddySuite/blob/develop/manuscript/MBE/compile_dir/MBE_article.pdf), but until then
  there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)

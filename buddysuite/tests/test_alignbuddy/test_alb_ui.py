@@ -29,9 +29,9 @@ import sys
 import argparse
 from copy import deepcopy
 
-from ... import AlignBuddy as Alb
-from ... import SeqBuddy as Sb
-from ... import buddy_resources as br
+import AlignBuddy as Alb
+import SeqBuddy as Sb
+import buddy_resources as br
 
 TEMP_DIR = br.TempDir()
 VERSION = Sb.VERSION

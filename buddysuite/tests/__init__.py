@@ -1,13 +1,17 @@
 # coding=utf-8
 import os
+import sys
 from copy import deepcopy
 from hashlib import md5
 from collections import OrderedDict
 
-from .. import AlignBuddy as Alb
-from .. import SeqBuddy as Sb
-from .. import PhyloBuddy as Pb
-from .. import DatabaseBuddy as Db
+DIRECTORY_SCRIPT = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, "%s%s.." % (DIRECTORY_SCRIPT, os.sep))
+
+import AlignBuddy as Alb
+import SeqBuddy as Sb
+import PhyloBuddy as Pb
+import DatabaseBuddy as Db
 
 # This file (conftest.py) must be in the same directory as unit_test_resources
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources') + os.path.sep
@@ -21,7 +25,7 @@ class HelperMethods(object):
     @staticmethod
     def buddy2hash(buddy):
         if type(buddy) not in [Sb.SeqBuddy, Alb.AlignBuddy, Pb.PhyloBuddy, Db.DbBuddy]:
-            raise AttributeError("Buddy object required")
+            raise AttributeError("Buddy object required, not %s" % type(buddy))
         _hash = md5("{0}".format(str(buddy)).encode("utf-8")).hexdigest()
         return _hash
 
@@ -320,7 +324,7 @@ class AlbResources(object):
         if len(code.split()) != 3:
             raise AttributeError("Only explicit three-component codes are accepted")
         output = self.get_list(code, mode)
-        return None if not output or len(output) > 1else output[0]
+        return None if not output or len(output) > 1 else output[0]
 
 
 # ################################  -  PhyloBuddy  -  ################################# #

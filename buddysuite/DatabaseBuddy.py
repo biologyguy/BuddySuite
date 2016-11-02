@@ -30,9 +30,12 @@ from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-except SystemError:
     import buddy_resources as br
+except ImportError:
+    try:
+        import buddysuite.buddy_resources as br
+    except AttributeError:
+        from . import buddy_resources as br
 
 # Standard library
 import sys
@@ -77,7 +80,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, "2b6", br.contributors, {"year": 2016, "month": 10, "day": 3})
+VERSION = br.Version("DatabaseBuddy", 1, "2.0", br.contributors, {"year": 2016, "month": 11, "day": 1})
 
 GREY = "\033[90m"
 RED = "\033[91m"

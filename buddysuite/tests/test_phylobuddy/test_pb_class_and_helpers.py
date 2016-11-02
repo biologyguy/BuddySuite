@@ -4,8 +4,8 @@
 import pytest
 import os
 
-from ...PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
-from ... import buddy_resources as br
+from PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
+import buddy_resources as br
 import ete3
 
 

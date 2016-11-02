@@ -3,8 +3,8 @@
 
 """ Tests PhyloBuddy API functions """
 import pytest
-from ... import PhyloBuddy as Pb
-from ... import buddy_resources as br
+import PhyloBuddy as Pb
+import buddy_resources as br
 from .. import __init__
 
 from unittest import mock
