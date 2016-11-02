@@ -35,6 +35,7 @@ dependencies.conf
 *_article.bbl
 *_article.blg
 *_article.idx
+/*/*/figures/*.pdf
 
 # Manuscript submission files
 /manuscript/submission_docs/*
