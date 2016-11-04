@@ -4,6 +4,7 @@ import os
 import shutil
 import argparse
 import timeit
+import re
 import buddysuite.SeqBuddy as Sb
 import buddysuite.AlignBuddy as Alb
 import buddysuite.PhyloBuddy as Pb
@@ -24,28 +25,23 @@ class TempDir(object):
 
 
 class Tool(object):
-    def __init__(self, flag, options, module, ref, third_party=False):
+    def __init__(self, flag, options, module, prefix, ref, third_party=False):
         self.flag = flag
         self.options = options if str(options) != "nan" else ""
         self.module = module
-        self.reference = ref
-        self.third_party = third_party
-
-    def ref_file(self, file_prefix):
-        output = "reference%s%s" % (os.sep, file_prefix)
-
+        self.reference = "reference%s%s" % (os.sep, prefix)
         if self.module == "phylobuddy":
-            return output + "_tree.nwk"
+            self.reference += "_tree.nwk"
+        else:
+            if ref == "pep":
+                self.reference += "_pep"
+            elif ref == "rna":
+                self.reference += "_rna"
 
-        if self.reference == "pep":
-            output += "_pep"
-        elif self.reference == "rna":
-            output += "_rna"
-
-        if self.module == "alignbuddy":
-            output += "_aln"
-
-        return output + ".gb"
+            if self.module == "alignbuddy":
+                self.reference += "_aln"
+            self.reference += ".gb"
+        self.third_party = third_party
 
     def __str__(self):
         return "$: %s %s --%s %s" % (self.module, self.reference, self.flag, self.options)
@@ -114,16 +110,21 @@ if __name__ == '__main__':
 
     # Create all of the Tool objects for processing
     pd_tools = pd.read_csv("tools.csv", comment="#", escapechar="\\")
-    tools = [Tool(tl.flag, tl.options, tl.module, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
+    tools = [Tool(tl.flag, tl.options, tl.module, ref_name, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
 
     # Benchmark each tool
     for tool in tools:
         if not in_args.third_party and tool.third_party:
             continue
 
-        assert tool.reference in ["dna", "dna/dna", "pep", "dna/pep", "rna", "tree"]
-
         if in_args.tools in ["all", tool.flag, tool.module]:
+            # Catch any hooks in the options and convert
+            hook = re.search("__(.+)__", tool.options)
+            if hook:
+                hook = hook.group(1)
+                if "ref" in hook:
+                    tool.options = "reference%s%s%s" % (os.sep, ref_name, hook[3:])
+
             if in_args.verbose:
                 print(tool)
                 pipe = ""
@@ -133,7 +134,7 @@ if __name__ == '__main__':
                 pipe = ", stderr=PIPE, stdout=PIPE"
 
             command = 'from subprocess import Popen, PIPE; '
-            command += 'Popen("%s %s --%s %s", ' % (tool.module, tool.ref_file(ref_name), tool.flag, tool.options)
+            command += 'Popen("%s %s --%s %s", ' % (tool.module, tool.reference, tool.flag, tool.options)
             command += 'shell=True%s).communicate()' % pipe
 
             timer = timeit.timeit(command, number=int(in_args.iterations))

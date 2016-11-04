@@ -4,7 +4,7 @@ annotate,misc_feature 1-10,seqbuddy,dna,False
 ave_seq_length,,seqbuddy,dna,False
 back_translate,,seqbuddy,pep,False
 bl2seq,,seqbuddy,dna,True
-blast,mnemiopsis_leidyi,seqbuddy,dna,True
+blast,__ref.gb__,seqbuddy,dna,True
 clean_seq,,seqbuddy,dna,False
 complement,,seqbuddy,dna,False
 concat_seqs,,seqbuddy,dna,False
