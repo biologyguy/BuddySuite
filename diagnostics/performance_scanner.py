@@ -129,9 +129,9 @@ if __name__ == '__main__':
             if hook:
                 hook = hook.group(1)
                 if "ref" in hook:
-                    tool.options = "reference%s%s%s" % (os.sep, ref_name, hook[3:])
+                    tool.options = re.sub("__.+__", "reference%s%s%s" % (os.sep, ref_name, hook[3:]), tool.options)
                 elif hook == "tmp":
-                    tool.options = tmp_dir.path
+                    tool.options = re.sub("__.+__", tmp_dir.path, tool.options)
 
             if in_args.verbose:
                 print(tool)
