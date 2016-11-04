@@ -124,13 +124,18 @@ if __name__ == '__main__':
         assert tool.reference in ["dna", "dna/dna", "pep", "dna/pep", "rna", "tree"]
 
         if in_args.tools in ["all", tool.flag, tool.module]:
-            pipe = ", stderr=PIPE, stdout=PIPE" if not in_args.verbose else ""
+            if in_args.verbose:
+                print(tool)
+                pipe = ""
+            else:
+                sys.stdout.write("%s: " % tool.flag)
+                sys.stdout.flush()
+                pipe = ", stderr=PIPE, stdout=PIPE"
+
             command = 'from subprocess import Popen, PIPE; '
             command += 'Popen("%s %s --%s %s", ' % (tool.module, tool.ref_file(ref_name), tool.flag, tool.options)
             command += 'shell=True%s).communicate()' % pipe
 
-            sys.stdout.write("%s: " % tool.flag)
-            sys.stdout.flush()
             timer = timeit.timeit(command, number=int(in_args.iterations))
             sys.stdout.write("%s\n" % round(timer / int(in_args.iterations), 3))
 
