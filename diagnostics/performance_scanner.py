@@ -57,6 +57,7 @@ if __name__ == '__main__':
     parser.add_argument("-3p", "--third_party", help="Include tools that use third party software", action='store_true')
 
     parser.add_argument("-i", "--iterations", help="Specify number of timeit replicates", action='store', default=10)
+    parser.add_argument("-v", "--verbose", help="Print out the result of each tool.", action="store_true")
     in_args = parser.parse_args()
 
     # Validate input reference file
@@ -74,7 +75,6 @@ if __name__ == '__main__':
         sys.exit()
 
     # Create or load all necessary reference files
-    tmp_dir = TempDir()
     ref_dir = "{0}{1}reference{1}".format(os.path.dirname(os.path.realpath(__file__)), os.path.sep)
     ref_name = in_args.reference.split(os.sep)[-1]
     ref_name = os.path.splitext(ref_name)[0]
@@ -115,16 +115,17 @@ if __name__ == '__main__':
     tools = [Tool(tl.flag, tl.options, tl.module, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
 
     # Benchmark each tool
-    for tool in tools[:5]:
+    for tool in tools:
         if not in_args.third_party and tool.third_party:
             continue
 
         assert tool.reference in ["dna", "dna/dna", "pep", "dna/pep", "rna", "tree"]
 
         if in_args.tools in ["all", tool.flag, tool.module]:
+            pipe = ", stderr=PIPE, stdout=PIPE" if not in_args.verbose else ""
             command = 'from subprocess import Popen, PIPE; '
             command += 'Popen("%s %s --%s %s", ' % (tool.module, tool.ref_file(ref_name), tool.flag, tool.options)
-            command += 'shell=True, stderr=PIPE, stdout=PIPE).communicate()'
+            command += 'shell=True%s).communicate()' % pipe
 
             sys.stdout.write("%s: " % tool.flag)
             sys.stdout.flush()
