@@ -47,6 +47,8 @@ class Tool(object):
 
         return output + ".gb"
 
+    def __str__(self):
+        return "$: %s %s --%s %s" % (self.module, self.reference, self.flag, self.options)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="performanceScanner", description="Check function time", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
