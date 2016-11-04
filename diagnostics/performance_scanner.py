@@ -57,7 +57,9 @@ if __name__ == '__main__':
     parser.add_argument("-3p", "--third_party", action='store_true', help="Include tools that use third party software")
 
     parser.add_argument("-i", "--iterations", action='store', default=10, help="Specify number of timeit replicates")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print out the result of each tool.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print out the result of each tool")
+    parser.add_argument("-p", "--pause", action="store_true",
+                        help="Stop execution until 'return' key pressed (only workes in combination with -v)")
     in_args = parser.parse_args()
 
     # Validate input reference file
@@ -141,6 +143,9 @@ if __name__ == '__main__':
 
             timer = timeit.timeit(command, number=int(in_args.iterations))
             sys.stdout.write("%s\n" % round(timer / int(in_args.iterations), 3))
+
+            if in_args.verbose and in_args.pause:
+                input("Press 'return' to continue")
 
     sys.exit()
     if in_args.module == "seqbuddy":
