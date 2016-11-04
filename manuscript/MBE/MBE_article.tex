@@ -198,28 +198,29 @@ The BuddySuite modules also accept input from standard output, allowing for the 
 Third-party programs that use any of the supported file formats and utilize standard output and standard input from the command line can also be seamlessly included in these pipelines.
 
 \subsubsection{Performance}
-Performance is a key disadvantage when implementing bioinformatics software in an interpreted language, such as Python, compared to compiled languages like C or C++.
-The primary trade-off an interpreted language over a complied language for BuddySuite, is performance. While careful use of Python's core data-types can dramatically improve the performance of the software, it will not compare to C.
+Execution times can be a key disadvantage when implementing bioinformatics software in an interpreted language like Python verses a compiled language like C or C++ \cite{Fourment:2008fra}. This is unlikely to have a practical effect on the end user for moderately sized datasets of several megabases, although performance can become an issue as datasets inflate to gigabases. These limitations should be kept in mind when using BuddySuite, as it has not been designed for high performance processing of extremely large datasets. Figure \ref{fig:timeit} illustrates the average runtimes of the BuddySuite tools (not including tools that rely on third-party software or servers) on a desktop computer (SOFIA'S HARDWARE). The sequence-independent overhead of executing SeqBuddy or AlignBuddy from the command line is less than one second, while a call to PhyloBuddy requires close to two seconds regardless of tree size.  
 
-Here are some graphs and tables showing how long each tool takes to run on different sized files. Include reference to BamTools and SamTools here, explaining why this is such a different project. See figure \ref{fig:timeit}.
+
+
+See figure \ref{fig:timeit}.
 
 \begin{table}[!t]
 \tableparts{\caption{Runtimes for each BuddySuite tool.\label{table:timeit}}}
       {\tabcolsep=5pt\begin{tabular}{@{\extracolsep{\fill}}llcccc@{}}
       \toprule
-	   				& Dataset Size	& 25\%		& 50\%		& 75\%		& max
+	   				& Dataset Size	& 25\%	& 50\%	& 75\%	& max
       \\\colrule
-      SeqBuddy		& 10				& 0.715	& 0.722	& 0.733	& 1.570 \\
-      				& 100				& 0.711	& 0.728	& 0.776	& 9.049 \\
-						& 1000			& 0.778	& 0.850	& 1.315	& 83.83
+      SeqBuddy		& 10			& 0.715	& 0.722	& 0.733	& 1.570 \\
+      				& 100			& 0.711	& 0.728	& 0.776	& 9.049 \\
+					& 1000			& 0.778	& 0.850	& 1.315	& 83.83
 		\\\colrule
-      AlignBuddy	& 10				& 0.724	& 0.728	& 0.749	& 1.876 \\
-      				& 100				& 0.762	& 0.786	& 0.974	& 26.39 \\
-						& 1000			& 4.811	& 5.680	& 14.22	& 2032.0
+      AlignBuddy	& 10			& 0.724	& 0.728	& 0.749	& 1.876 \\
+      				& 100			& 0.762	& 0.786	& 0.974	& 26.39 \\
+					& 1000			& 4.811	& 5.680	& 14.22	& 2032.0
 		\\\colrule
-      PhyloBuddy	& 10				& 1.702	& 1.717	& 1.737	& 3.010 \\
-      				& 100				& 1.747	& 1.757	& 1.770	& 3.549 \\
-						& 1000			& 1.637	& 1.657	& 1.693	& 4.546
+      PhyloBuddy	& 10			& 1.702	& 1.717	& 1.737	& 3.010 \\
+      				& 100			& 1.747	& 1.757	& 1.770	& 3.549 \\
+					& 1000			& 1.637	& 1.657	& 1.693	& 4.546
       \\\botrule
       \end{tabular}}
 {\tablenote{All tools not dependent on third-party resources were executed in triplicate using sample datasets of 10, 100, and ~1000 records on [SOFIA'S HARDWARE]. Runtime percentiles are expressed in seconds.}}
