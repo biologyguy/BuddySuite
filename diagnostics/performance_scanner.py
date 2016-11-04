@@ -32,7 +32,7 @@ class Tool(object):
         self.third_party = third_party
 
     def ref_file(self, file_prefix):
-        output = file_prefix
+        output = "reference%s%s" % (os.sep, file_prefix)
 
         if self.module == "phylobuddy":
             return output + "_tree.nwk"
