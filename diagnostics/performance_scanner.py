@@ -4,12 +4,12 @@ import os
 import shutil
 import argparse
 import timeit
-import math
 import buddysuite.SeqBuddy as Sb
 import buddysuite.AlignBuddy as Alb
 import buddysuite.PhyloBuddy as Pb
 from Bio.Alphabet import IUPAC
 from tempfile import TemporaryDirectory
+import pandas as pd
 
 
 class TempDir(object):
@@ -59,6 +59,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--iterations", help="Specify number of timeit replicates", action='store', default=10)
     in_args = parser.parse_args()
 
+    # Validate input reference file
     if not os.path.isfile(in_args.reference):
         sys.stderr("Error: Reference file does not exist\n")
         sys.exit()
@@ -72,6 +73,7 @@ if __name__ == '__main__':
         sys.stderr("Error: Reference file must be GenBank format\n")
         sys.exit()
 
+    # Create or load all necessary reference files
     tmp_dir = TempDir()
     ref_dir = "{0}{1}reference{1}".format(os.path.dirname(os.path.realpath(__file__)), os.path.sep)
     ref_name = in_args.reference.split(os.sep)[-1]
@@ -108,113 +110,15 @@ if __name__ == '__main__':
     else:
         phylobuddy = Pb.PhyloBuddy("%s%s_tree.nwk" % (ref_dir, ref_name))
 
-    tools = []
-    tools.append(Tool("annotate", "misc_feature 1-10", "seqbuddy", "dna", False))
-    tools.append(Tool("ave_seq_length", "", "seqbuddy", "dna", False))
-    tools.append(Tool("back_translate", "", "seqbuddy", "pep", False))
-    tools.append(Tool("bl2seq", "", "seqbuddy", "dna", True))
-    tools.append(Tool("blast", "mnemiopsis_leidyi", "seqbuddy", "dna", True))
-    tools.append(Tool("clean_seq", "", "seqbuddy", "dna", False))
-    tools.append(Tool("complement", "", "seqbuddy", "dna", False))
-    tools.append(Tool("concat_seqs", "", "seqbuddy", "dna", False))
-    tools.append(Tool("count_codons", "", "seqbuddy", "dna", False))
-    tools.append(Tool("count_residues", "concatenate", "seqbuddy", "dna", False))
-    tools.append(Tool("degenerate_sequence", "1", "seqbuddy", "pep", False))
-    tools.append(Tool("delete_features", "TMD1", "seqbuddy", "dna", False))
-    tools.append(Tool("delete_large", "4000", "seqbuddy", "dna", False))
-    tools.append(Tool("delete_metadata", "", "seqbuddy", "dna", False))
-    tools.append(Tool("delete_records", "Aae-", "seqbuddy", "dna", False))
-    tools.append(Tool("delete_repeats", "", "seqbuddy", "dna", False))
-    tools.append(Tool("delete_small", "1000", "seqbuddy", "dna", False))
-    tools.append(Tool("extract_feature_sequences", "TMD1", "seqbuddy", "dna", False))
-    tools.append(Tool("extract_regions", ",50", "seqbuddy", "dna", False))
-    tools.append(Tool("find_CpG", "-o genbank", "seqbuddy", "dna", False))
-    tools.append(Tool("find_orfs", "-o genbank", "seqbuddy", "dna", False))
-    tools.append(Tool("find_pattern", "\'LLL\' \'LLY\'", "seqbuddy", "pep", False))
-    tools.append(Tool("find_repeats", "3", "seqbuddy", "dna", False))
-    tools.append(Tool("find_restriction_sites", "commercial", "seqbuddy", "dna", False))
-    tools.append(Tool("group_by_prefix",  tmp_dir.path, "seqbuddy", "dna", False))
-    tools.append(Tool("group_by_regex", "%s Sra" % tmp_dir.path, "seqbuddy", "dna", False))
-    tools.append(Tool("guess_alphabet", "reference/*", "seqbuddy", "dna", False))
-    tools.append(Tool("guess_format", "reference/*", "seqbuddy", "dna", False))
-    tools.append(Tool("hash_seq_ids", "10", "seqbuddy", "dna", False))
-    tools.append(Tool("insert_seq", "DYKDDDDK 0", "seqbuddy", "pep", False))
-    tools.append(Tool("isoelectric_point", "", "seqbuddy", "pep", False))
-    tools.append(Tool("list_features", "", "seqbuddy", "dna", False))
-    tools.append(Tool("list_ids", "3", "seqbuddy", "dna", False))
-    tools.append(Tool("lowercase", "", "seqbuddy", "dna", False))
-    tools.append(Tool("make_ids_unique", "10 \'-\'", "seqbuddy", "dna", False))
-    tools.append(Tool("map_features_nucl2prot", "", "seqbuddy", "dna/pep", False))
-    tools.append(Tool("map_features_prot2nucl", "", "seqbuddy", "dna/pep", False))
-    tools.append(Tool("merge", "", "seqbuddy", "dna/dna", False))
-    tools.append(Tool("molecular_weight", "", "seqbuddy", "dna", False))
-    tools.append(Tool("num_seqs", "", "seqbuddy", "dna", False))
-    tools.append(Tool("order_features_alphabetically", "", "seqbuddy", "dna", False))
-    tools.append(Tool("order_features_by_position", "", "seqbuddy", "dna", False))
-    tools.append(Tool("order_ids", "", "seqbuddy", "dna", False))
-    tools.append(Tool("order_ids_randomly", "", "seqbuddy", "dna", False))
-    tools.append(Tool("prosite_scan", "strict", "seqbuddy", "pep", True))
-    tools.append(Tool("pull_random_record", math.ceil(len(seqbuddy) / 10), "seqbuddy", "dna", False))
-    tools.append(Tool("pull_records", "Aae-Panx", "seqbuddy", "dna", False))
-    tools.append(Tool("pull_record_ends", "-100", "seqbuddy", "dna", False))
-    tools.append(Tool("pull_records_with_feature", "PHOSPHO", "seqbuddy", "dna", False))
-    tools.append(Tool("purge", "230", "seqbuddy", "dna", True))
-    tools.append(Tool("rename_ids", "Mle Mnemiopsis", "seqbuddy", "dna", False))
-    tools.append(Tool("replace_subseq", "IL].{1,4}[IL] _motif_", "seqbuddy", "pep", False))
-    tools.append(Tool("reverse_complement", "", "seqbuddy", "dna", False))
-    tools.append(Tool("reverse_transcribe", "", "seqbuddy", "rna", False))
-    tools.append(Tool("screw_formats", "fasta", "seqbuddy", "dna", False))
-    tools.append(Tool("select_frame", "3", "seqbuddy", "dna", False))
-    tools.append(Tool("shuffle_seqs", "", "seqbuddy", "dna", False))
-    tools.append(Tool("translate", "", "seqbuddy", "dna", False))
-    tools.append(Tool("translate6frames", "", "seqbuddy", "dna", False))
-    tools.append(Tool("transcribe", "", "seqbuddy", "dna", False))
-    tools.append(Tool("transmembrane_domains", "", "seqbuddy", "pep", True))
-    tools.append(Tool("uppercase", "", "seqbuddy", "dna", False))
-    
-    tools.append(Tool("alignment_lengths", "", "alignbuddy", "", False))
-    tools.append(Tool("back_transcribe", "", "alignbuddy", "", False))
-    tools.append(Tool("bootstrap", "3", "alignbuddy", "", False))
-    tools.append(Tool("clean_seq", "strict", "alignbuddy", "", False))
-    tools.append(Tool("concat_alignments", "[a-z]{3}-Panx", "alignbuddy", "", False))
-    tools.append(Tool("consensus", "", "alignbuddy", "", False))
-    tools.append(Tool("delete_records", "PanxγA", "alignbuddy", "", False))
-    tools.append(Tool("enforce_triplets", "", "alignbuddy", "", False))
-    tools.append(Tool("extract_regions", "10 110", "alignbuddy", "", False))
-    tools.append(Tool("generate_alignment", "mafft", "alignbuddy", "", False))
-    tools.append(Tool("hash_ids", "10", "alignbuddy", "", False))
-    tools.append(Tool("list_ids", "3", "alignbuddy", "", False))
-    tools.append(Tool("lowercase", "", "alignbuddy", "", False))
-    tools.append(Tool("mapfeat2align", "All_pannexins_pep.gb", "alignbuddy", "", False))
-    tools.append(Tool("num_seqs", "", "alignbuddy", "", False))
-    tools.append(Tool("order_ids", "rev", "alignbuddy", "", False))
-    tools.append(Tool("pull_records", "PanxβB PanxβC", "alignbuddy", "", False))
-    tools.append(Tool("rename_ids", "Mle Mnemiopsis", "alignbuddy", "", False))
-    tools.append(Tool("screw_formats", "fasta", "alignbuddy", "", False))
-    tools.append(Tool("split_to_files", "~/BuddySuite/diagnostics/files_al Pannexin_", "alignbuddy", "", False))
-    tools.append(Tool("transcribe", "", "alignbuddy", "", False))
-    tools.append(Tool("translate", "", "alignbuddy", "", False))
-    tools.append(Tool("trimal", "clean", "alignbuddy", "", False))
-    tools.append(Tool("uppercase", "", "alignbuddy", "", False))
-    
-    tools.append(Tool("collapse_polytomies", "length 0.1", "phylobuddy", "", False))
-    tools.append(Tool("consensus_tree", "0.5", "phylobuddy", "", False))
-    tools.append(Tool("display_trees", "", "phylobuddy", "", False))
-    tools.append(Tool("distance", "uwrf", "phylobuddy", "", False))
-    tools.append(Tool("generate_tree", "raxmlHPC-SSE3 -o nexus", "phylobuddy", "", False))
-    tools.append(Tool("hash_ids", "3", "phylobuddy", "", False))
-    tools.append(Tool("list_ids", "3", "phylobuddy", "", False))
-    tools.append(Tool("num_tips", "", "phylobuddy", "", False))
-    tools.append(Tool("print_trees", "", "phylobuddy", "", False))
-    tools.append(Tool("prune_taxa", "Cte-PanxζI", "phylobuddy", "", False))
-    tools.append(Tool("rename_ids", "α A", "phylobuddy", "", False))
-    tools.append(Tool("root", "2", "phylobuddy", "", False))
-    tools.append(Tool("screw_formats", "newick", "phylobuddy", "", False))
-    tools.append(Tool("show_unique", "", "phylobuddy", "", False))
-    tools.append(Tool("split_polytomies", "", "phylobuddy", "", False))
-    tools.append(Tool("unroot", "", "phylobuddy", "", False))
+    # Create all of the Tool objects for processing
+    pd_tools = pd.read_csv("tools.csv", comment="#", escapechar="\\")
+    tools = [Tool(tl.flag, tl.options, tl.module, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
 
+    # Benchmark each tool
     for tool in tools[:5]:
+        if not in_args.third_party and tool.third_party:
+            continue
+
         assert tool.reference in ["dna", "dna/dna", "pep", "dna/pep", "rna", "tree"]
 
         if in_args.tools in ["all", tool.flag, tool.module]:
