@@ -26,7 +26,7 @@ class TempDir(object):
 class Tool(object):
     def __init__(self, flag, options, module, ref, third_party=False):
         self.flag = flag
-        self.options = options
+        self.options = options if str(options) != "nan" else ""
         self.module = module
         self.reference = ref
         self.third_party = third_party
