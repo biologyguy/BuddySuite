@@ -47,15 +47,17 @@ class Tool(object):
         return "$: %s %s --%s %s" % (self.module, self.reference, self.flag, self.options)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog="performanceScanner", description="Check function time", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(prog="performanceScanner", description="Check function time",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("reference", help="Specify input DNA sequences in genbank format")
 
-    parser.add_argument("-t", "--tools", help="Specify the module(s) or tool(s) to run", action='store', default="all")
-    parser.add_argument("-3p", "--third_party", help="Include tools that use third party software", action='store_true')
+    parser.add_argument("-t", "--tools", nargs="+", default=["all"],
+                        help="Specify the module(s) or tool(s) to run")
+    parser.add_argument("-3p", "--third_party", action='store_true', help="Include tools that use third party software")
 
-    parser.add_argument("-i", "--iterations", help="Specify number of timeit replicates", action='store', default=10)
-    parser.add_argument("-v", "--verbose", help="Print out the result of each tool.", action="store_true")
+    parser.add_argument("-i", "--iterations", action='store', default=10, help="Specify number of timeit replicates")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print out the result of each tool.")
     in_args = parser.parse_args()
 
     # Validate input reference file
@@ -117,7 +119,7 @@ if __name__ == '__main__':
         if not in_args.third_party and tool.third_party:
             continue
 
-        if in_args.tools in ["all", tool.flag, tool.module]:
+        if any(i in in_args.tools for i in ["all", tool.flag, tool.module]):  # Allows multiple tools to be called
             # Catch any hooks in the options and convert
             hook = re.search("__(.+)__", tool.options)
             if hook:
