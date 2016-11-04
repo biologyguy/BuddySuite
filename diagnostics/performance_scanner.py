@@ -112,6 +112,8 @@ if __name__ == '__main__':
     else:
         phylobuddy = Pb.PhyloBuddy("%s%s_tree.nwk" % (ref_dir, ref_name))
 
+    tmp_dir = TempDir()
+
     # Create all of the Tool objects for processing
     pd_tools = pd.read_csv("tools.csv", comment="#", escapechar="\\")
     tools = [Tool(tl.flag, tl.options, tl.module, ref_name, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
@@ -128,6 +130,8 @@ if __name__ == '__main__':
                 hook = hook.group(1)
                 if "ref" in hook:
                     tool.options = "reference%s%s%s" % (os.sep, ref_name, hook[3:])
+                elif hook == "tmp":
+                    tool.options = tmp_dir.path
 
             if in_args.verbose:
                 print(tool)
