@@ -87,19 +87,18 @@ translate,,alignbuddy,dna,False
 trimal,clean,alignbuddy,pep,False
 uppercase,,alignbuddy,dna,False
 # Phylobuddy
-collapse_polytomies,length 0.1,phylobuddy,,False
-consensus_tree,0.5,phylobuddy,,False
-display_trees,,phylobuddy,,False
-distance,uwrf,phylobuddy,,False
-generate_tree,raxmlHPC-SSE3 -o nexus,phylobuddy,,False
-hash_ids,3,phylobuddy,,False
-list_ids,3,phylobuddy,,False
-num_tips,,phylobuddy,,False
-print_trees,,phylobuddy,,False
-prune_taxa,Cte-PanxζI,phylobuddy,,False
-rename_ids,α A,phylobuddy,,False
-root,2,phylobuddy,,False
-screw_formats,newick,phylobuddy,,False
-show_unique,,phylobuddy,,False
-split_polytomies,,phylobuddy,,False
-unroot,,phylobuddy,,False
+collapse_polytomies,length 0.1,phylobuddy,tree,False
+consensus_tree,0.5,phylobuddy,tree/tree,False
+distance,uwrf,phylobuddy,tree/tree,False
+generate_tree,fasttree -q,phylobuddy,dna,True
+hash_ids,3,phylobuddy,tree,False
+list_ids,3,phylobuddy,tree,False
+num_tips,,phylobuddy,tree,False
+print_trees,,phylobuddy,tree,False
+prune_taxa,XM,phylobuddy,tree,False
+rename_ids,XM Predicted,phylobuddy,tree,False
+root,,phylobuddy,tree,False
+screw_formats,nexus,phylobuddy,tree,False
+show_unique,,phylobuddy,tree/tree,False
+split_polytomies,,phylobuddy,tree,False
+unroot,,phylobuddy,tree,False

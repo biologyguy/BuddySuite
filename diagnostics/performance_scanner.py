@@ -19,8 +19,8 @@ class TempDir(object):
         self.path = self.dir.name
 
     def _make_dir(self):
-        tmp_dir = TemporaryDirectory()
-        yield tmp_dir
+        temp_dir = TemporaryDirectory()
+        yield temp_dir
         rmtree(self.path)
 
 
@@ -30,8 +30,10 @@ class Tool(object):
         self.options = options if str(options) != "nan" else ""
         self.module = module
         self.reference = "reference%s%s" % (os.sep, prefix)
-        if self.module == "phylobuddy":
+        if self.module == "phylobuddy" and "tree" in ref:
             self.reference += "_tree.nwk"
+            if ref == "tree/tree":
+                self.reference += " %s" % self.reference
         else:
             if ref == "pep":
                 self.reference += "_pep"
@@ -43,7 +45,7 @@ class Tool(object):
                 self.reference += ".gb %s" % self.reference
             self.reference += ".gb"
 
-            if self.module == "alignbuddy" and flag != "generate_alignment":
+            if self.module in ["alignbuddy", "phylobuddy"] and flag != "generate_alignment":
                 self.reference = re.sub("\.gb", "_aln.gb", self.reference)
 
         self.third_party = third_party
@@ -155,109 +157,3 @@ if __name__ == '__main__':
 
             if in_args.verbose and in_args.pause:
                 input("\033[91mPress 'return' to continue\033[39m")
-
-    sys.exit()
-    if in_args.module == "seqbuddy":
-        if in_args.command == "all":
-            for flag, args in opts_sb.items():
-                sys.stdout.write("%s: " % flag)
-                sys.stdout.flush()
-                if flag in ["concat_seqs", "delete_metadata", "pull_records_with_feature", "delete_features", "extract_feature_sequences", "extract_regions"]:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag in ["degenerate_sequence", "find_CpG", "find_orfs", "find_restriction_sites", "translate", "translate6frames", "transcribe","uppercase"]:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_nuc.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag in ["guess_alphabet", "guess_format", "map_features_nucl2prot", "map_features_prot2nucl", "merge"]:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy \'%s\' --%s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (args, flag), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag == "reverse_transcribe":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_rna.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                else:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        elif in_args.command != "all" and in_args.command in opts_sb:
-            sys.stdout.write("%s: " % in_args.command)
-            sys.stdout.flush()
-            if in_args.command in ["concat_seqs", "delete_metadata", "pull_records_with_feature", "delete_features", "extract_feature_sequences", "extract_regions"]:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command in ["degenerate_sequence", "find_CpG", "find_orfs", "find_restriction_sites", "translate", "translate6frames", "transcribe", "uppercase"]:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_nuc.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command in ["guess_alphabet", "guess_format", "map_features_nucl2prot", "map_features_prot2nucl", "merge"]:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy \'%s\' --%s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (opts_sb[in_args.command], in_args.command), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command == "reverse_transcribe":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_rna.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            else:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("seqbuddy All_pannexins_pep.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_sb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        elif in_args.command not in opts_sb:
-            sys.stdout.write("Invalid command\n")
-    elif in_args.module == "alignbuddy":
-        if in_args.command == "all":
-            for flag, args in opts_ab.items():
-                sys.stdout.write("%s: " % flag)
-                sys.stdout.flush()
-                if flag == "generate_alignment":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_pep.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag == "transcribe":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_nuc_aln.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag == "translate":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_rna_aln.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                else:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_pep_aln.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        elif in_args.command != "all" and in_args.command in opts_ab:
-            sys.stdout.write("%s: " % in_args.command)
-            sys.stdout.flush()
-            if in_args.command == "generate_alignment":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_pep.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_ab[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command == "transcribe":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_nuc_aln.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_ab[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command == "translate":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_rna_aln.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_ab[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            else:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("alignbuddy All_pannexins_pep_aln.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_ab[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        elif in_args.command not in opts_ab:
-            sys.stdout.write("Invalid command\n")
-    elif in_args.module == "phylobuddy":
-        if in_args.command == "all":
-            for flag, args in opts_pb.items():
-                sys.stdout.write("%s: " % flag)
-                sys.stdout.flush()
-                if flag == "consensus_tree":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep.nwk --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                elif flag == "generate_tree":
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep_aln.fa --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-                else:
-                    timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep_aln_tree.nex --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (flag, args), number=int(in_args.iteration))
-                    sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        elif in_args.command != "all" and in_args.command in opts_pb:
-            sys.stdout.write("%s: " % in_args.command)
-            sys.stdout.flush()
-            if in_args.command == "consensus_tree":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep.nwk --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_pb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            elif in_args.command == "generate_tree":
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep_aln.gb --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_pb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-            else:
-                timer = timeit.timeit('from subprocess import Popen, PIPE; Popen("phylobuddy All_pannexins_pep_aln_tree.nex --%s %s", shell=True, stderr=PIPE, stdout=PIPE).communicate()' % (in_args.command, opts_pb[in_args.command]), number=int(in_args.iteration))
-                sys.stdout.write("%s\n" % round(timer / int(in_args.iteration), 3))
-        else:
-            sys.stdout.write("Invalid command\n")
-    else:
-        sys.stdout.write("Invalid module\n")
