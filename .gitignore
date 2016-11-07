@@ -39,3 +39,7 @@ dependencies.conf
 
 # Manuscript submission files
 /manuscript/submission_docs/*
+
+# Diagnostic reference sequence files
+/diagnostics/reference/*.gb
+/diagnostics/reference/*.nwk
