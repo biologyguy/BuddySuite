@@ -37,7 +37,10 @@ class Tool(object):
                 self.reference += "_pep"
             elif ref == "rna":
                 self.reference += "_rna"
-
+            elif ref == "dna/pep":
+                self.reference += ".gb %s_pep" % self.reference
+            elif ref == "dna/dna":
+                self.reference += ".gb %s" % self.reference
             if self.module == "alignbuddy":
                 self.reference += "_aln"
             self.reference += ".gb"
