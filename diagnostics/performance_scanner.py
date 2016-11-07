@@ -41,9 +41,11 @@ class Tool(object):
                 self.reference += ".gb %s_pep" % self.reference
             elif ref == "dna/dna":
                 self.reference += ".gb %s" % self.reference
-            if self.module == "alignbuddy":
-                self.reference += "_aln"
             self.reference += ".gb"
+
+            if self.module == "alignbuddy" and flag != "generate_alignment":
+                self.reference = re.sub("\.gb", "_aln.gb", self.reference)
+
         self.third_party = third_party
 
     def __str__(self):

@@ -63,30 +63,29 @@ transcribe,,seqbuddy,dna,False
 transmembrane_domains,-q,seqbuddy,pep,True
 uppercase,,seqbuddy,dna,False
 # AlignBuddy
-alignment_lengths,,alignbuddy,,False
-back_transcribe,,alignbuddy,,False
-bootstrap,3,alignbuddy,,False
-clean_seq,strict,alignbuddy,,False
-concat_alignments,[a-z]{3}-Panx,alignbuddy,,False
-consensus,,alignbuddy,,False
-delete_records,PanxγA,alignbuddy,,False
-enforce_triplets,,alignbuddy,,False
-extract_regions,10 110,alignbuddy,,False
-generate_alignment,mafft,alignbuddy,,False
-hash_ids,10,alignbuddy,,False
-list_ids,3,alignbuddy,,False
-lowercase,,alignbuddy,,False
-mapfeat2align,All_pannexins_pep.gb,alignbuddy,,False
-num_seqs,,alignbuddy,,False
-order_ids,rev,alignbuddy,,False
-pull_records,PanxβB PanxβC,alignbuddy,,False
-rename_ids,Mle Mnemiopsis,alignbuddy,,False
-screw_formats,fasta,alignbuddy,,False
-split_to_files,~/BuddySuite/diagnostics/files_al Pannexin_,alignbuddy,,False
-transcribe,,alignbuddy,,False
-translate,,alignbuddy,,False
-trimal,clean,alignbuddy,,False
-uppercase,,alignbuddy,,False
+alignment_lengths,,alignbuddy,dna,False
+bootstrap,3 -o nexus,alignbuddy,dna,False
+clean_seq,,alignbuddy,pep,False
+concat_alignments,-o phylipr,alignbuddy,dna/dna,False
+consensus,,alignbuddy,dna,False
+delete_records,XM,alignbuddy,dna,False
+enforce_triplets,,alignbuddy,dna,False
+extract_regions,10 110,alignbuddy,dna,False
+generate_alignment,mafft -q,alignbuddy,dna,True
+hash_ids,10,alignbuddy,dna,False
+list_ids,3,alignbuddy,dna,False
+lowercase,,alignbuddy,dna,False
+mapfeat2align,__ref.gb__,alignbuddy,dna,False
+num_seqs,,alignbuddy,dna,False
+order_ids,rev,alignbuddy,dna,False
+pull_records,NM,alignbuddy,dna,False
+rename_ids,XM Predicted,alignbuddy,dna,False
+screw_formats,fasta,alignbuddy,dna,False
+split_to_files,__tmp__,alignbuddy,dna/pep,False
+transcribe,,alignbuddy,dna,False
+translate,,alignbuddy,dna,False
+trimal,clean,alignbuddy,pep,False
+uppercase,,alignbuddy,dna,False
 # Phylobuddy
 collapse_polytomies,length 0.1,phylobuddy,,False
 consensus_tree,0.5,phylobuddy,,False
