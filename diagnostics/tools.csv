@@ -3,31 +3,31 @@ flag,options,module,reference,third_party
 annotate,misc_feature 1-10,seqbuddy,dna,False
 ave_seq_length,,seqbuddy,dna,False
 back_translate,,seqbuddy,pep,False
-bl2seq,,seqbuddy,dna,True
+bl2seq,,seqbuddy,pep,True
 blast,__ref.gb__,seqbuddy,dna,True
 clean_seq,,seqbuddy,dna,False
 complement,,seqbuddy,dna,False
 concat_seqs,,seqbuddy,dna,False
 count_codons,,seqbuddy,dna,False
 count_residues,concatenate,seqbuddy,dna,False
-degenerate_sequence,1,seqbuddy,pep,False
-delete_features,TMD1,seqbuddy,dna,False
-delete_large,4000,seqbuddy,dna,False
+degenerate_sequence,1,seqbuddy,dna,False
+delete_features,CDS,seqbuddy,dna,False
+delete_large,1000,seqbuddy,dna,False
 delete_metadata,,seqbuddy,dna,False
-delete_records,Aae-,seqbuddy,dna,False
+delete_records,XM_,seqbuddy,dna,False
 delete_repeats,,seqbuddy,dna,False
 delete_small,1000,seqbuddy,dna,False
-extract_feature_sequences,TMD1,seqbuddy,dna,False
+extract_feature_sequences,CDS,seqbuddy,dna,False
 extract_regions,:50,seqbuddy,dna,False
-find_CpG,-o genbank,seqbuddy,dna,False
-find_orfs,-o genbank,seqbuddy,dna,False
-find_pattern,\'LLL\' \'LLY\',seqbuddy,pep,False
+find_CpG,,seqbuddy,dna,False
+find_orfs,,seqbuddy,dna,False
+find_pattern,\'M.{9}A\',seqbuddy,pep,False
 find_repeats,3,seqbuddy,dna,False
-find_restriction_sites,commercial,seqbuddy,dna,False
-group_by_prefix, tmp_dir.path,seqbuddy,dna,False
-group_by_regex,%s Sra % tmp_dir.path,seqbuddy,dna,False
-guess_alphabet,reference/*,seqbuddy,dna,False
-guess_format,reference/*,seqbuddy,dna,False
+find_restriction_sites,EcoRI HindIII BamHI XhoI,seqbuddy,dna,False
+group_by_prefix,2 __tmp__,seqbuddy,dna,False
+group_by_regex,\'^[XN]M\' __tmp__,seqbuddy,dna,False
+guess_alphabet,,seqbuddy,dna,False
+guess_format,,seqbuddy,dna,False
 hash_seq_ids,10,seqbuddy,dna,False
 insert_seq,DYKDDDDK 0,seqbuddy,pep,False
 isoelectric_point,,seqbuddy,pep,False
@@ -44,14 +44,14 @@ order_features_alphabetically,,seqbuddy,dna,False
 order_features_by_position,,seqbuddy,dna,False
 order_ids,,seqbuddy,dna,False
 order_ids_randomly,,seqbuddy,dna,False
-prosite_scan,strict,seqbuddy,pep,True
+prosite_scan,-q,seqbuddy,pep,True
 pull_random_record,10,seqbuddy,dna,False
-pull_records,Aae-Panx,seqbuddy,dna,False
+pull_records,NM,seqbuddy,dna,False
 pull_record_ends,-100,seqbuddy,dna,False
-pull_records_with_feature,PHOSPHO,seqbuddy,dna,False
-purge,230,seqbuddy,dna,True
-rename_ids,Mle Mnemiopsis,seqbuddy,dna,False
-replace_subseq,IL].{1\,4}[IL] _motif_,seqbuddy,pep,False
+pull_records_with_feature,STS,seqbuddy,dna,False
+purge,100,seqbuddy,pep,True
+rename_ids,XM Predicted,seqbuddy,dna,False
+replace_subseq,\'M.{9}A\' _motif_,seqbuddy,pep,False
 reverse_complement,,seqbuddy,dna,False
 reverse_transcribe,,seqbuddy,rna,False
 screw_formats,fasta,seqbuddy,dna,False
@@ -60,7 +60,7 @@ shuffle_seqs,,seqbuddy,dna,False
 translate,,seqbuddy,dna,False
 translate6frames,,seqbuddy,dna,False
 transcribe,,seqbuddy,dna,False
-transmembrane_domains,,seqbuddy,pep,True
+transmembrane_domains,-q,seqbuddy,pep,True
 uppercase,,seqbuddy,dna,False
 # AlignBuddy
 alignment_lengths,,alignbuddy,,False
