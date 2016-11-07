@@ -1080,7 +1080,10 @@ def send_traceback(tool, function, e, version):
     config = config_values()
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
-        _line = re.sub('"(?:C\:)*{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
+        if os.name == "nt":
+            _line = re.sub('"(?:[A-Za-z]:)*\{0}.*\{0}(.*)?"'.format(os.sep), r'"\1"', _line)
+        else:
+            _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
     bs_version = "# %s: %s\n" % (tool, version.short())
     func = "# Function: %s\n" % function

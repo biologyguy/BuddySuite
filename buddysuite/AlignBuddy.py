@@ -57,6 +57,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
+from Bio.Nexus.Nexus import NexusError
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -69,7 +70,7 @@ from Bio.Alphabet import IUPAC
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2b7", br.contributors, {"year": 2016, "month": 10, "day": 19})
+VERSION = br.Version("AlignBuddy", 1, "2.0", br.contributors, {"year": 2016, "month": 11, "day": 1})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -336,6 +337,8 @@ def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, o
                 else:
                     continue
             except br.PhylipError:
+                continue
+            except NexusError:
                 continue
             except ValueError:
                 continue

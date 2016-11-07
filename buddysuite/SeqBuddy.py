@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2b7", br.contributors, {"year": 2016, "month": 10, "day": 19})
+VERSION = br.Version("SeqBuddy", 1, "2.0", br.contributors, {"year": 2016, "month": 11, "day": 1})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -3666,7 +3666,7 @@ def argparse_init():
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 br._stderr("Warning: No input detected so SeqBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records

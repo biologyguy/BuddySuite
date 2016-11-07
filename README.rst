@@ -65,10 +65,9 @@ further information.
 Citation
 --------
 
-We are currently working on a `peer reviewed
-manuscript <https://github.com/biologyguy/BuddySuite/tree/develop/manuscript>`__,
-but until then there is a very short application note on bioRxiv that
-can be cited if you use BuddySuite in your work.
+We are currently working on a
+`manuscript for peer review <https://github.com/biologyguy/BuddySuite/tree/develop/manuscript>`__,
+but until then there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
 
 `DOI: 10.1101/040675 <http://dx.doi.org/10.1101/040675>`__
 
