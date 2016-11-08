@@ -767,7 +767,7 @@ def extract_regions(alignbuddy, start, end):
     return alignbuddy
 
 
-def faux_alignment(seqbuddy, size=0, r_seed=None):
+def faux_alignment(seqbuddy, size=0, r_seed=12345):
     """
     Creates a meaningless alignment out of a collection of sequences. Gaps are added into each sequence at random
     to create the appropriate length
@@ -777,7 +777,17 @@ def faux_alignment(seqbuddy, size=0, r_seed=None):
     :param r_seed: Set the random generator seed value
     :return:
     """
+    from scipy.stats import gamma
     rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+    gamma_50 = gamma.ppf(0.5, 4)
+    gamma_scale = 20 / gamma_50
+
+    def gamma_draw(remaining_gaps):
+        draw = gamma.ppf(rand_gen.random(), 4)  # sample the gamma distribution
+        draw *= gamma_scale  # Scale to the empirically determined value
+        draw /= 100  # Convert to percentage
+        draw = 1 if draw > 1 else draw  # Ensure we don't go over 100%
+        return ceil(remaining_gaps * draw)
 
     seqbuddy = Sb.clean_seq(seqbuddy, skip_list="*")
     max_length = Sb.max_records(Sb.make_copy(seqbuddy))
@@ -787,9 +797,11 @@ def faux_alignment(seqbuddy, size=0, r_seed=None):
     for rec in Sb.make_copy(seqbuddy).records:
         gaps = max_length - len(rec)
         seq = list(str(rec.seq))
-        for _ in range(gaps):
+        while gaps > 0:
+            next_gap = gamma_draw(gaps)
+            gaps -= next_gap
             r = rand_gen.randint(1, len(seq) - 1)
-            seq = seq[:r] + ['-'] + seq[r:]
+            seq = seq[:r] + ['-' * next_gap] + seq[r:]
         rec.seq = Seq("".join(seq), rec.seq.alphabet)
         records.append(rec)
     gapped_seqbuddy = Sb.SeqBuddy(records, out_format='fasta')

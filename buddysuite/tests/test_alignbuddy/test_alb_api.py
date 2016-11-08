@@ -219,9 +219,9 @@ def test_extract_range(key, next_hash, alb_resources, hf):
 
 
 # ###########################################  'fa', '--faux_alignment' ############################################ #
-hashes = [('d g', 'dd072bdd17767d8cb2e28c463dff06ba'), ('d n', '0ca1d8555a1169d4c0a66c3c50ad8c9c'),
-          ('d py', '9edc4c2864d5f4d4577e69e1169ad199'), ('p g', 'd3791de45bd6433a23949454cf9149da'),
-          ('p n', '0f280821e8e2e411fff24da02f7639e6'), ('p py', '7ca88c939f4b089ba28e1268c286bbcc')]
+hashes = [('d g', '3a9aa82548f3690485ddcbe1fff28476'), ('d n', 'e0e56affb50efe8b2305a83f348064c1'),
+          ('d py', '7fe42a710e91979bd40a93207548bbda'), ('p g', '65fcda412cd548bb9c37f00429cb6fb7'),
+          ('p n', '97b76e936b623ec31b5bc96626af5a18'), ('p py', '15c05d7ad6366919fa23e9e9228d1f07')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
