@@ -308,6 +308,18 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
     assert "Please specify positive integer indices" in str(err)
 
 
+# ##################### '-fa', '--faux_align' ###################### ##
+def test_faux_align_ui(capsys, alb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.faux_align = [None]
+    test_in_args.alignments = [alb_resources.get_one("o p g", "paths")]
+
+    Alb.command_line_ui(test_in_args, Alb.AlignBuddy, skip_exit=True)
+    out, err = capsys.readouterr()
+    alignbuddy = Alb.AlignBuddy(out)
+    assert len(alignbuddy.alignments[0][0]) == 625
+
+
 # ##################### '-ga', '--generate_alignment' ###################### ##
 @pytest.mark.generate_alignments
 def test_generate_alignment_ui(capsys, monkeypatch, sb_resources, alb_resources, hf):

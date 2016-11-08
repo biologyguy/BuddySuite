@@ -11,6 +11,8 @@ import buddysuite.PhyloBuddy as Pb
 from Bio.Alphabet import IUPAC
 from tempfile import TemporaryDirectory
 import pandas as pd
+from time import time
+from subprocess import Popen, PIPE
 
 
 class TempDir(object):
@@ -53,6 +55,21 @@ class Tool(object):
     def __str__(self):
         return "$: %s %s --%s %s" % (self.module, self.reference, self.flag, self.options)
 
+
+def pto(cmd, timeout, pipe=False):
+    if pipe:
+        p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    else:
+        p = Popen(cmd, shell=True)
+    start = round(time())
+    end = start + timeout - 1
+    while round(time()) <= end:
+        if p.poll() is not None:
+            return p.communicate()
+    p.kill()
+    return False
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="performanceScanner", description="Check function time",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -67,6 +84,7 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose", action="store_true", help="Print out the result of each tool")
     parser.add_argument("-p", "--pause", action="store_true",
                         help="Stop execution until 'return' key pressed (only workes in combination with -v)")
+    parser.add_argument("-to", "--timeout", action='store', default=31536000, type=int, help="Set max execution time")
     in_args = parser.parse_args()
 
     # Validate input reference file
@@ -89,35 +107,54 @@ if __name__ == '__main__':
     ref_name = os.path.splitext(ref_name)[0]
 
     if not os.path.isfile("%s%s.gb" % (ref_dir, ref_name)):
+        print(" -> Copying DNA file")
         shutil.copy(in_args.reference, "%s%s.gb" % (ref_dir, ref_name))
 
     if not os.path.isfile("%s%s_pep.gb" % (ref_dir, ref_name)):
-        sb_pep = Sb.translate_cds(Sb.make_copy(seqbuddy))
+        print(" -> Creating protein file")
+        sb_pep = Sb.translate_cds(Sb.make_copy(seqbuddy), quiet=True)
         sb_pep.write("%s%s_pep.gb" % (ref_dir, ref_name))
+        del sb_pep
 
     if not os.path.isfile("%s%s_rna.gb" % (ref_dir, ref_name)):
+        print(" -> Creating RNA file")
         sb_rna = Sb.dna2rna(Sb.make_copy(seqbuddy))
         sb_rna.write("%s%s_rna.gb" % (ref_dir, ref_name))
+        del sb_rna
 
     if not os.path.isfile("%s%s_aln.gb" % (ref_dir, ref_name)):
-        alignbuddy = Alb.generate_msa(Sb.make_copy(seqbuddy), "mafft")
+        print(" -> Creating alignment file")
+        alignbuddy = Alb.faux_alignment(Sb.make_copy(seqbuddy), r_seed=12345)
         alignbuddy.write("%s%s_aln.gb" % (ref_dir, ref_name))
     else:
         alignbuddy = Alb.AlignBuddy("%s%s_aln.gb" % (ref_dir, ref_name))
 
     if not os.path.isfile("%s%s_pep_aln.gb" % (ref_dir, ref_name)):
-        alb_pep = Alb.translate_cds(Alb.make_copy(alignbuddy))
+        print(" -> Creating protein alignment file")
+        alb_pep = Alb.faux_alignment(Sb.SeqBuddy("%s%s_pep.gb" % (ref_dir, ref_name)))
         alb_pep.write("%s%s_pep_aln.gb" % (ref_dir, ref_name))
+        del alb_pep
 
     if not os.path.isfile("%s%s_rna_aln.gb" % (ref_dir, ref_name)):
+        print(" -> Creating RNA alignment file")
         alb_rna = Alb.dna2rna(Alb.make_copy(alignbuddy))
         alb_rna.write("%s%s_rna_aln.gb" % (ref_dir, ref_name))
+        del alb_rna
 
     if not os.path.isfile("%s%s_tree.nwk" % (ref_dir, ref_name)):
-        phylobuddy = Pb.generate_tree(Alb.make_copy(alignbuddy), "fasttree")
+        print(" -> Creating tree file")
+        from dendropy.simulate import treesim
+        tree = treesim.birth_death_tree(birth_rate=1.0, death_rate=0.5, ntax=len(seqbuddy))
+        tree = tree.as_string("newick")
+        for indx, rec in enumerate(seqbuddy.records):
+            tree = re.sub("T%s:" % indx, "%s:" % rec.id, tree)
+        phylobuddy = Pb.PhyloBuddy(tree)
         phylobuddy.write("%s%s_tree.nwk" % (ref_dir, ref_name))
-    else:
-        phylobuddy = Pb.PhyloBuddy("%s%s_tree.nwk" % (ref_dir, ref_name))
+        del tree
+        del phylobuddy
+
+    del seqbuddy
+    del alignbuddy
 
     tmp_dir = TempDir()
 
@@ -142,15 +179,15 @@ if __name__ == '__main__':
 
             if in_args.verbose:
                 print("\033[92m%s\033[39m" % tool)
-                pipe = ""
+                verbose = ""
             else:
                 sys.stdout.write("%s: " % tool.flag)
                 sys.stdout.flush()
-                pipe = ", stderr=PIPE, stdout=PIPE"
+                verbose = ", pipe=True"
 
-            command = 'from subprocess import Popen, PIPE; '
-            command += 'Popen("%s %s --%s %s", ' % (tool.module, tool.reference, tool.flag, tool.options)
-            command += 'shell=True%s).communicate()' % pipe
+            command = 'from performance_scanner import pto; '
+            command += 'pto("%s %s --%s %s", ' % (tool.module, os.path.abspath(tool.reference), tool.flag, tool.options)
+            command += 'timeout=%s%s)' % (in_args.timeout, verbose)
 
             timer = timeit.timeit(command, number=int(in_args.iterations))
             sys.stdout.write("%s\n" % round(timer / int(in_args.iterations), 3))

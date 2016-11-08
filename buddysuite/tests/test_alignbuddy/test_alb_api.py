@@ -218,6 +218,18 @@ def test_extract_range(key, next_hash, alb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
+# ###########################################  'fa', '--faux_alignment' ############################################ #
+hashes = [('d g', '3a9aa82548f3690485ddcbe1fff28476'), ('d n', 'e0e56affb50efe8b2305a83f348064c1'),
+          ('d py', '7fe42a710e91979bd40a93207548bbda'), ('p g', '65fcda412cd548bb9c37f00429cb6fb7'),
+          ('p n', '97b76e936b623ec31b5bc96626af5a18'), ('p py', '15c05d7ad6366919fa23e9e9228d1f07')]
+
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_faux_alignment(key, next_hash, sb_resources, hf):
+    tester = Alb.faux_alignment(sb_resources.get_one(key), r_seed=12345)
+    assert hf.buddy2hash(tester) == next_hash
+
+
 # ###########################################  'ga', '--generate_alignment' ########################################## #
 class MockPopen(object):
     def __init__(self, *args, **kwargs):
