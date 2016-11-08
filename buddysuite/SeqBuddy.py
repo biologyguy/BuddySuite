@@ -2651,6 +2651,25 @@ def merge(*seqbuddy):
     return seqbuddy
 
 
+def min_records(seqbuddy):
+    """
+    Removes all sequences of length greater than the minimum sequence length
+    :param seqbuddy:
+    :return:
+    """
+    cur_min = len(seqbuddy.records[0])
+    min_rec = []
+    for rec in seqbuddy.records:
+        cur_len = len(rec)
+        if cur_len == cur_min:
+            min_rec.append(rec)
+        elif cur_len < cur_min:
+            min_rec = [rec]
+            cur_min = cur_len
+    seqbuddy.records = min_rec
+    return seqbuddy
+
+
 def molecular_weight(seqbuddy):
     """
     Calculates the mass of each sequence in daltons
@@ -4599,6 +4618,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         except RuntimeError as e:
             _raise_error(e, "merge")
         _exit("merge")
+
+    # Max record length
+    if in_args.min_recs:
+        _print_recs(min_records(seqbuddy))
+        _exit("min_recs")
 
     # Molecular Weight
     if in_args.molecular_weight:

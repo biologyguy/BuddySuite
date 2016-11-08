@@ -939,6 +939,16 @@ def test_merge_ui(capsys, sb_resources, sb_odd_resources, hf):
     assert "Sequence mismatch for record 'Mle-Panxα9'" in str(err)
 
 
+# #####################  '-min', '--min_recs' ###################### ##
+def test_min_recs_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.min_recs = True
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "e40fe7ee465f49cda27f86dbdd479f26"
+
+
 # ######################  '-mw', '--molecular_weight' ###################### #
 def test_molecular_weight_ui(capsys, sb_resources, sb_odd_resources, hf, monkeypatch):
     test_in_args = deepcopy(in_args)
