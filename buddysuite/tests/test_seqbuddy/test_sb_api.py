@@ -12,6 +12,7 @@ import suds.client
 import shutil
 import time
 from collections import OrderedDict
+from copy import copy
 
 import SeqBuddy as Sb
 import buddy_resources as br
@@ -960,6 +961,21 @@ def test_map_features_prot2nucl_2(capsys, sb_resources, hf):
         Sb.pull_recs(prot_tester, "α[1-8]")
         Sb.map_features_prot2nucl(Sb.make_copy(prot_tester), sb_resources.get_one("p f"), mode="list")
     assert "The two input files do not contain the same number of sequences" in str(e.value)
+
+
+# #####################  '-max', '--max_recs' ###################### ##
+def test_max_recs(sb_resources):
+    tester = Sb.max_records(sb_resources.get_one("p f"))
+    assert tester.records[0].id == "Mle-Panxα7A"
+
+    tester.records += [copy(tester.records[0]), copy(tester.records[0])]
+    tester.records[1].id = "Foo"
+    tester.records[1].seq = Seq(str(tester.records[1].seq)[:-10], tester.records[1].seq.alphabet)
+    tester.records[2].id = "Bar"
+    tester = Sb.max_records(tester)
+    assert len(tester) == 2, print(tester)
+    assert tester.records[0].id == "Mle-Panxα7A"
+    assert tester.records[1].id == "Bar"
 
 
 # #####################  '-mg', '--merge' ###################### ##

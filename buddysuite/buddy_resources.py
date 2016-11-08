@@ -1557,6 +1557,9 @@ sb_flags = {"annotate": {"flag": "ano",
                                        "help": "Take the features annotated onto protein sequences "
                                                "and map to cDNA sequences. Both a protein and "
                                                "cDNA file must be passed in"},
+            "max_recs": {"flag": "max",
+                         "action": "store_true",
+                         "help": "Return the largest record(s)"},
             "merge": {"flag": "mrg",
                       "action": "store_true",
                       "help": "Merge multiple copies of sequence records together, "

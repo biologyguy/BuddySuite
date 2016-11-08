@@ -146,6 +146,12 @@ def incremental_rename(query, replace):
     """
     x = (query, replace)
     return x
+
+def order_sequences_by_size(seqbuddy, rev=False):
+    """
+    Sort the sequences by size
+    """
+    return
 '''
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
 # - Add support for selecting individual sequences to modify (as a global ability for any tool)
@@ -2585,6 +2591,25 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     return nuclseqbuddy
 
 
+def max_records(seqbuddy):
+    """
+    Removes all sequences of length less than the maximum sequence length
+    :param seqbuddy:
+    :return:
+    """
+    cur_max = 0
+    max_rec = []
+    for rec in seqbuddy.records:
+        cur_len = len(rec)
+        if cur_len == cur_max:
+            max_rec.append(rec)
+        elif cur_len > cur_max:
+            max_rec = [rec]
+            cur_max = cur_len
+    seqbuddy.records = max_rec
+    return seqbuddy
+
+
 def merge(*seqbuddy):
     """
     Merges the feature lists of SeqBuddy objects
@@ -4560,6 +4585,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         seqbuddy.out_format = in_args.out_format if in_args.out_format else "gb"
         _print_recs(seqbuddy)
         _exit("map_features_prot2nucl")
+
+    # Max record length
+    if in_args.max_recs:
+        _print_recs(max_records(seqbuddy))
+        _exit("max_recs")
 
     # Merge together multiple files into a single file
     if in_args.merge:

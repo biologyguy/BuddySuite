@@ -914,6 +914,16 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, hf):
     assert "You must provide one DNA file and one protein file" in str(err)
 
 
+# #####################  '-max', '--max_recs' ###################### ##
+def test_max_recs_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.max_recs = True
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "79e2eded9fb788df40bf4254392ace44"
+
+
 # ######################  '-mg', '--merge' ###################### #
 def test_merge_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args = deepcopy(in_args)
