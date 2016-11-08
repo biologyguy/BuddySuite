@@ -767,6 +767,37 @@ def extract_regions(alignbuddy, start, end):
     return alignbuddy
 
 
+def faux_alignment(seqbuddy, size=0, r_seed=None):
+    """
+    Creates a meaningless alignment out of a collection of sequences. Gaps are added into each sequence at random
+    to create the appropriate length
+    :param seqbuddy:
+    :param size: The final length of the alignment (defaults to the length of the longest sequence)
+    :type size: int
+    :param r_seed: Set the random generator seed value
+    :return:
+    """
+    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+
+    seqbuddy = Sb.clean_seq(seqbuddy, skip_list="*")
+    max_length = Sb.max_records(Sb.make_copy(seqbuddy))
+    max_length = len(max_length.records[0])
+    max_length = size if size and size > max_length else max_length
+    records = []
+    for rec in Sb.make_copy(seqbuddy).records:
+        gaps = max_length - len(rec)
+        seq = list(str(rec.seq))
+        for _ in range(gaps):
+            r = rand_gen.randint(1, len(seq) - 1)
+            seq = seq[:r] + ['-'] + seq[r:]
+        rec.seq = Seq("".join(seq), rec.seq.alphabet)
+        records.append(rec)
+    gapped_seqbuddy = Sb.SeqBuddy(records, out_format='fasta')
+    alignbuddy = AlignBuddy(str(gapped_seqbuddy), out_format=seqbuddy.out_format)
+    alignbuddy = map_features2alignment(seqbuddy, alignbuddy)
+    return alignbuddy
+
+
 # ToDo: Completely refactor the handling of output formats
 def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
     """
@@ -1417,7 +1448,7 @@ def argparse_init():
 
     try:
         # Some tools do not start with AlignBuddy objs, so skip this for those rare cases
-        if not in_args.generate_alignment:
+        if not in_args.generate_alignment and not in_args.faux_align:
             for align_set in in_args.alignments:
                 if isinstance(align_set, TextIOWrapper) and align_set.buffer.raw.isatty():
                     br._stderr("Warning: No input detected so AlignBuddy is aborting...\n"
@@ -1468,6 +1499,23 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         else:
             br._stdout("%s" % _output)
         return True
+
+    def create_seqbuddy():
+        sb = []
+        seq_set = None
+        for seq_set in in_args.alignments:
+            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
+                br._stderr("Warning: No input detected so AlignBuddy is aborting...\n"
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
+                sys.exit()
+
+            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
+            sb += seq_set.records
+        if seq_set:
+            sb = Sb.SeqBuddy(sb, seq_set.in_format, seq_set.out_format)
+        else:
+            sb = Sb.SeqBuddy(sb, in_args.in_format, in_args.out_format)
+        return sb
 
     def _in_place(_output, file_path):
         if not os.path.exists(file_path):
@@ -1650,6 +1698,13 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         _print_aligments(extract_regions(alignbuddy, start - 1, end))
         _exit("extract_regions")
 
+    # Faux alignment
+    if in_args.faux_align:
+        seqbuddy = create_seqbuddy()
+        in_args.faux_align = 0 if not in_args.faux_align[0] else in_args.faux_align[0]
+        _print_aligments(faux_alignment(seqbuddy, in_args.faux_align))
+        _exit("faux_align")
+
     # Generate Alignment
     if in_args.generate_alignment:
         args = in_args.generate_alignment[0]
@@ -1662,20 +1717,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             _raise_error(AttributeError("Unable to identify any supported alignment tools on your system."),
                          "generate_alignment")
 
-        seqbuddy = []
-        seq_set = None
-        for seq_set in in_args.alignments:
-            if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
-                br._stderr("Warning: No input detected so AlignBuddy is aborting...\n"
-                           "For more information, try:\n%s --help\n" % sys.argv[0])
-                sys.exit()
-
-            seq_set = Sb.SeqBuddy(seq_set, in_args.in_format, in_args.out_format)
-            seqbuddy += seq_set.records
-        if seq_set:
-            seqbuddy = Sb.SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format)
-        else:
-            seqbuddy = Sb.SeqBuddy(seqbuddy, in_args.in_format, in_args.out_format)
+        seqbuddy = create_seqbuddy()
 
         params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
 
