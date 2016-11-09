@@ -23,7 +23,7 @@ class TempDir(object):
     def _make_dir(self):
         temp_dir = TemporaryDirectory()
         yield temp_dir
-        rmtree(self.path)
+        shutil.rmtree(self.path)
 
 
 class Tool(object):
