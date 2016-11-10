@@ -83,7 +83,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--iterations", action='store', default=10, help="Specify number of timeit replicates")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print out the result of each tool")
     parser.add_argument("-p", "--pause", action="store_true",
-                        help="Stop execution until 'return' key pressed (only workes in combination with -v)")
+                        help="Stop execution until 'return' key pressed (only works in combination with -v)")
     parser.add_argument("-to", "--timeout", action='store', default=31536000, type=int, help="Set max execution time")
     in_args = parser.parse_args()
 
@@ -178,10 +178,10 @@ if __name__ == '__main__':
                     tool.options = re.sub("__.+__", tmp_dir.path, tool.options)
 
             if in_args.verbose:
-                print("\033[92m%s\033[39m" % tool)
+                print("\033[92m%s (%s)\033[39m" % (tool, tool.module))
                 verbose = ""
             else:
-                sys.stdout.write("%s: " % tool.flag)
+                sys.stdout.write("%s (%s): " % (tool.flag, tool.module))
                 sys.stdout.flush()
                 verbose = ", pipe=True"
 
