@@ -457,24 +457,40 @@ def alignment_lengths(alignbuddy):
     return output
 
 
-def bootstrap(alignbuddy, num_bootstraps=1):
+def bootstrap(alignbuddy, num_bootstraps=1, r_seed=None):
     """
     Sample len(alignbuddy) columns with replacement, and make new alignment(s)
     :param alignbuddy: The AlignBuddy object to be bootstrapped
-    :param num_bootstraps: The number of new alignments to be generated
     :type alignbuddy: AlignBuddy
+    :param num_bootstraps: The number of new alignments to be generated
+    :param r_seed: Set a seed value so 'random' numbers are reproducible
     :rtype: AlignBuddy
     """
+    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+
     new_alignments = []
-    for alignment in alignbuddy.alignments:
+    for align_indx, alignment in enumerate(alignbuddy.alignments):
+        alignment = [[res for res in str(seq.seq)] for seq in alignment]
+        align_length = len(alignment[0])
+        num_seqs = len(alignment)
         for _ in range(num_bootstraps):
-            length = alignment.get_alignment_length()
-            position = random.randint(0, length - 1)
-            new_alignment = alignment[:, position:position + 1]
-            for i in range(length - 1):
-                position = random.randint(0, length - 1)
-                new_alignment += alignment[:, position:position + 1]
+            # Instantiate an empty list of lists
+            align_as_lists = [['' for _ in range(align_length)] for _ in range(num_seqs)]
+            for res_indx in range(align_length):
+                column = rand_gen.randint(0, align_length - 1)
+                for seq_indx in range(num_seqs):
+                    align_as_lists[seq_indx][res_indx] = alignment[seq_indx][column]
+
+            align_as_lists = ["".join(seq) for seq in align_as_lists]
+            alb_copy = make_copy(alignbuddy)
+            for copy_indx, seq in enumerate(alb_copy.alignments[align_indx]):
+                seq.seq = Seq(align_as_lists[copy_indx], alphabet=seq.seq.alphabet)
+                seq.features = []
+                align_as_lists[copy_indx] = seq
+
+            new_alignment = MultipleSeqAlignment(align_as_lists, alphabet=alignbuddy.alpha)
             new_alignments.append(new_alignment)
+
     alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
     if alignbuddy.out_format == "nexus":
         alignbuddy.out_format = "phylip-relaxed"

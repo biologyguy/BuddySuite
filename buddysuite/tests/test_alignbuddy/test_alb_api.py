@@ -43,18 +43,11 @@ def test_alignment_lengths(alb_resources):
 # ##############################################  '-bts', '--bootstrap' ############################################## #
 def test_bootstrap(alb_resources, hf):
     # Test an amino acid file
-    tester = Alb.bootstrap(alb_resources.get_one("m p py"))
-    assert tester.lengths() == [681, 480]
+    tester = Alb.bootstrap(alb_resources.get_one("m p py"), r_seed=12345)
+    assert hf.buddy2hash(tester) == "ce9009b430ad0fe7f151477985e6f922"
 
-    tester = Alb.bootstrap(alb_resources.get_one("m p py"), 3)
-    assert tester.lengths() == [681, 681, 681, 480, 480, 480]
-
-    # Also get a really short alignment, and make sure all the expected columns are showing up
-    tester = Alb.extract_regions(alb_resources.get_one("o d n"), 13, 15)
-    _hashes = ["903af255a993b60c3370ba8226d9d3da", "f7a0381727e1b803a902125f57e2f3fc",
-               "a679eab7acf2c631f8f76a08ee424b3e", "e8e80045999234d2ea10ce926a123720"]
-    for _ in range(20):
-        assert hf.buddy2hash(Alb.bootstrap(tester)) in _hashes
+    tester = Alb.bootstrap(alb_resources.get_one("m p py"), 3, r_seed=12345)
+    assert hf.buddy2hash(tester) == "e6d5f30c3a7f53ec7899618a045b017d"
 
 
 # ##############################################  '-cs', '--clean_seqs' ############################################## #
