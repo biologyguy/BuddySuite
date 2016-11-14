@@ -3269,14 +3269,18 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Record %s is protein." % rec.id)
 
-        new_seq = ""
+        new_seq = [""] * ceil(len(rec) / 3)
+        new_seq_indx = 0
         old_seq = str(rec.seq)
         for codon in [old_seq[::1][i:i + 3][::1] for i in range(0, len(old_seq), 3)][::1]:
             if len(codon) == 3:
                 if codon in codon_dict:
-                    new_seq += codon_dict[codon]
+                    new_seq[new_seq_indx] = codon_dict[codon]
                 else:
-                    new_seq += "N"
+                    new_seq[new_seq_indx] = "N"
+                new_seq_indx += 1
+
+        new_seq = "".join(new_seq) if new_seq[-1] != "" else "".join(new_seq[:-1])
         new_seq = Seq(new_seq, IUPAC.protein)
         rec.seq = new_seq
         rec.features = []
