@@ -457,24 +457,40 @@ def alignment_lengths(alignbuddy):
     return output
 
 
-def bootstrap(alignbuddy, num_bootstraps=1):
+def bootstrap(alignbuddy, num_bootstraps=1, r_seed=None):
     """
     Sample len(alignbuddy) columns with replacement, and make new alignment(s)
     :param alignbuddy: The AlignBuddy object to be bootstrapped
-    :param num_bootstraps: The number of new alignments to be generated
     :type alignbuddy: AlignBuddy
+    :param num_bootstraps: The number of new alignments to be generated
+    :param r_seed: Set a seed value so 'random' numbers are reproducible
     :rtype: AlignBuddy
     """
+    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+
     new_alignments = []
-    for alignment in alignbuddy.alignments:
+    for align_indx, alignment in enumerate(alignbuddy.alignments):
+        alignment = [[res for res in str(seq.seq)] for seq in alignment]
+        align_length = len(alignment[0])
+        num_seqs = len(alignment)
         for _ in range(num_bootstraps):
-            length = alignment.get_alignment_length()
-            position = random.randint(0, length - 1)
-            new_alignment = alignment[:, position:position + 1]
-            for i in range(length - 1):
-                position = random.randint(0, length - 1)
-                new_alignment += alignment[:, position:position + 1]
+            # Instantiate an empty list of lists
+            align_as_lists = [['' for _ in range(align_length)] for _ in range(num_seqs)]
+            for res_indx in range(align_length):
+                column = rand_gen.randint(0, align_length - 1)
+                for seq_indx in range(num_seqs):
+                    align_as_lists[seq_indx][res_indx] = alignment[seq_indx][column]
+
+            align_as_lists = ["".join(seq) for seq in align_as_lists]
+            alb_copy = make_copy(alignbuddy)
+            for copy_indx, seq in enumerate(alb_copy.alignments[align_indx]):
+                seq.seq = Seq(align_as_lists[copy_indx], alphabet=seq.seq.alphabet)
+                seq.features = []
+                align_as_lists[copy_indx] = seq
+
+            new_alignment = MultipleSeqAlignment(align_as_lists, alphabet=alignbuddy.alpha)
             new_alignments.append(new_alignment)
+
     alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
     if alignbuddy.out_format == "nexus":
         alignbuddy.out_format = "phylip-relaxed"
@@ -699,46 +715,51 @@ def enforce_triplets(alignbuddy):
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Record '%s' is protein. Nucleic acid sequence required." % rec.name)
 
-        seq_string = str(rec.seq)
-        output = seq_string[0]
-        held_residues = ""
+        seq_list = list(str(rec.seq))
+        output = [seq_list[0]] + ([None] * (len(seq_list) - 1))
+        output_indx = 0
+        held_residues = []
         position = 2
-        for residue in seq_string[1:]:
+        for residue in seq_list[1:]:
             if position == 1:
                 while len(held_residues) >= 3:
-                    output += held_residues[:3]
+                    for res in held_residues[:3]:
+                        output_indx += 1
+                        output[output_indx] = res
                     held_residues = held_residues[3:]
                 position = len(held_residues) + 1
-                output += held_residues
-                held_residues = ""
+                for res in held_residues:
+                    output_indx += 1
+                    output[output_indx] = res
+                held_residues = []
 
-            if position == 1:
-                output += residue
-
-            elif output[-1] not in GAP_CHARS and residue not in GAP_CHARS:
-                output += residue
-
-            elif output[-1] in GAP_CHARS and residue in GAP_CHARS:
-                output += residue
+            if position == 1 \
+                or (output[output_indx] not in GAP_CHARS and residue not in GAP_CHARS) \
+                    or (output[output_indx] in GAP_CHARS and residue in GAP_CHARS):
+                output_indx += 1
+                output[output_indx] = residue
 
             else:
-                held_residues += residue
+                held_residues.append(residue)
                 continue
 
             if position != 3:
                 position += 1
             else:
                 position = 1
-
-        check_end_gaps = re.search("([\-]{1,2})$", output)
-        if check_end_gaps:
-            output = output[:-1 * len(check_end_gaps.group(1))]
-            output += held_residues + check_end_gaps.group(1)
-        else:
-            output += held_residues
-
-        rec.seq = Seq(output, alphabet=rec.seq.alphabet)
-
+        check_end_gaps = 0
+        back_indx = -1
+        while output[back_indx] in ["-", None]:
+            check_end_gaps += 1 if output[back_indx] == "-" else 0
+            back_indx -= 1
+        for res in held_residues:
+            output[back_indx] = res
+            back_indx += 1
+        back_indx += 1
+        for i in range(back_indx * -1):
+            output[back_indx] = "-"
+            back_indx += 1
+        rec.seq = Seq("".join(output), alphabet=rec.seq.alphabet)
     br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     trimal(alignbuddy, "clean")
     return alignbuddy
