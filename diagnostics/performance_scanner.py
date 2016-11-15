@@ -186,7 +186,7 @@ if __name__ == '__main__':
                 verbose = ", pipe=True"
 
             command = 'from performance_scanner import pto; '
-            command += 'pto("%s %s --%s %s", ' % (tool.module, os.path.abspath(tool.reference), tool.flag, tool.options)
+            command += 'pto("%s %s --%s %s &> /tmp/temp.del", ' % (tool.module, os.path.abspath(tool.reference), tool.flag, tool.options)
             command += 'timeout=%s%s)' % (in_args.timeout, verbose)
 
             timer = timeit.timeit(command, number=int(in_args.iterations))
