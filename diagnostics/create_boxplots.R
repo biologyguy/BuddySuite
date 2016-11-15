@@ -1,5 +1,5 @@
 
-setwd("/Users/depereirabarrsn/Documents/steve")
+setwd("/Users/depereirabarrsn/Buddysuite/diagnostics/results")
 
 
 ### Read in seqbuddy avg times
