@@ -747,15 +747,14 @@ def enforce_triplets(alignbuddy):
                 position += 1
             else:
                 position = 1
-        check_end_gaps = 0
         back_indx = -1
         while output[back_indx] in ["-", None]:
-            check_end_gaps += 1 if output[back_indx] == "-" else 0
             back_indx -= 1
+        back_indx += 1
         for res in held_residues:
             output[back_indx] = res
             back_indx += 1
-        back_indx += 1
+
         for i in range(back_indx * -1):
             output[back_indx] = "-"
             back_indx += 1
