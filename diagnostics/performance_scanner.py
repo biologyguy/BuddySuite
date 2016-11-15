@@ -106,6 +106,10 @@ if __name__ == '__main__':
     ref_name = in_args.reference.split(os.sep)[-1]
     ref_name = os.path.splitext(ref_name)[0]
 
+    res_dir = "{0}{1}results{1}{2}{1}".format(os.path.dirname(os.path.realpath(__file__)), os.path.sep, ref_name)
+    if not os.path.isdir(res_dir):
+        os.makedirs(res_dir)
+
     if not os.path.isfile("%s%s.gb" % (ref_dir, ref_name)):
         print(" -> Copying DNA file")
         shutil.copy(in_args.reference, "%s%s.gb" % (ref_dir, ref_name))
@@ -160,7 +164,8 @@ if __name__ == '__main__':
 
     # Create all of the Tool objects for processing
     pd_tools = pd.read_csv("tools.csv", comment="#", escapechar="\\")
-    tools = [Tool(tl.flag, tl.options, tl.module, ref_name, tl.reference, tl.third_party) for indx, tl in pd_tools.iterrows()]
+    tools = [Tool(tl.flag, tl.options, tl.module, ref_name, tl.reference, tl.third_party)
+             for indx, tl in pd_tools.iterrows()]
 
     # Benchmark each tool
     for tool in tools:
@@ -186,7 +191,8 @@ if __name__ == '__main__':
                 verbose = ", pipe=True"
 
             command = 'from performance_scanner import pto; '
-            command += 'pto("%s %s --%s %s &> /tmp/temp.del", ' % (tool.module, os.path.abspath(tool.reference), tool.flag, tool.options)
+            command += 'pto("{0} {1} --{2} {3} &> {4}{0}-{2}", '.format(tool.module, os.path.abspath(tool.reference),
+                                                                        tool.flag, tool.options, res_dir)
             command += 'timeout=%s%s)' % (in_args.timeout, verbose)
 
             timer = timeit.timeit(command, number=int(in_args.iterations))
