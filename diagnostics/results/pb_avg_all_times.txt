@@ -1,0 +1,15 @@
+program	pb.10	pb.100	pb.1000	pb.10000
+collapse_polytomies	1.647	1.71	6.105	533.799
+consensus_tree	1.646	1.725	4.076	166.261
+distance	1.652	1.684	2.798	68.664
+hash_ids	1.684	1.66	2.383	45.9
+list_ids	1.642	1.654	2.196	33.804
+num_tips	1.653	1.65	2.191	33.923
+print_trees	1.652	1.662	2.269	34.546
+prune_taxa	1.652	1.7	6.671	505.215
+rename_ids	1.651	1.658	2.405	48.2
+root	1.651	1.724	18.903	1032.517
+screw_formats	1.655	1.657	2.381	47.807
+show_unique	1.678	1.824	4.713	141.898
+split_polytomies	1.653	1.66	2.379	47.802
+unroot	1.653	1.657	2.395	48.678
