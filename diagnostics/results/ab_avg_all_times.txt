@@ -5,7 +5,7 @@ clean_seq	0.569	1.125	6.293	82.461
 concat_alignments	0.588	1.467	7.612	104.776
 consensus	0.624	1.966	14.229	247.799
 delete_records	2.426	47.105	535.176	3599.964
-enforce_triplets	2.849	72.714	NA	NA
+enforce_triplets	2.849	72.714	817.287	NA
 extract_regions	0.591	0.978	4.93	46.867
 hash_ids	0.589	1.152	6.691	65.019
 list_ids	0.567	0.887	4.045	37.139
@@ -18,6 +18,6 @@ rename_ids	0.606	1.154	6.648	62.576
 screw_formats	0.586	0.903	4.179	37.648
 split_to_files	0.604	1.215	7.323	69.971
 transcribe	0.584	1.15	6.587	62.017
-translate	3.105	95.004	20.14	NA
+translate	3.105	95.004	1034.615	NA
 trimal	1.225	16.916	179.265	2371.05
 uppercase	0.578	1.007	5.242	48.342
