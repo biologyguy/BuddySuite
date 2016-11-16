@@ -27,7 +27,7 @@
 
 
 \author[Bond et al.]{Stephen R. \surname{Bond}, Karl E.
-Keat, Sofia N. Barreira, and Anreas D. Baxevanis$^{\ast}$}
+Keat, Sofia N. Barreira, and Andreas D. Baxevanis$^{\ast}$}
 
 \address{Computational and Statistical Genomics Branch, Division of Intramural Research, National Human Genome Research Institute, National Institutes of Health, 50 South Drive, Bethesda, MD, USA, 20892}
 
@@ -51,7 +51,7 @@ Keat, Sofia N. Barreira, and Anreas D. Baxevanis$^{\ast}$}
 Manipulation of biological sequence data is now a routine task within the life sciences, not just by bioinformaticians, but also by `bench biologists' who are becoming increasingly savvy in applying computational methods to their own work. While there are excellent graphical platforms for organizing, visualizing, and manipulating these forms of data, it is often advantageous to interact with text files directly from the command line, especially when the size of datasets become even moderately large. Most common tasks can be accomplished with existing open source software, but this can involve stringing together different standalone tools to build custom workflows. Such tools may be dependent on pre-defined file format specifications, have non-trivial installation requirements, and/or be difficult to extend or modify. While each of these issues is surmountable, particularly if one can write their own programs in any of the popular scripting languages (e.g., bash, Perl, R, or Python), they do impose an entry barrier. Furthermore, finding tools can be difficult, as specialized programs or small utilities may not be highly ranked by search engines unless the developer takes steps to advertise them. To address these issues we have developed BuddySuite, a unified set of general-purpose command-line data manipulation tools that are easy to install, intuitively organized, and implemented in the popular programming language Python. This software is particularly geared for individuals with a basic working knowledge of the UNIX shell environment who routinely interact with sequence, alignment, or phylogenetic tree files.
 
 \section{Implementation}
-BuddySuite is a set of Python 3 libraries and command-line applications developed for use on all major operating systems (Windows 7+, Mac OSX, and Linux) and leverages the sequence and phylogenetic tree processing capabilities of Biopython \cite{Cock:2009hj}, Environment of Tree Exploration 3 (ETE3) \cite{HuertaCepas:2016hw}, and Dendropy \cite{Sukumaran:2010id}. The software is free and open-source, versioned on Github \cite{github} and the Python Package Index \cite{pypi} (PyPI), and unit tested at a code coverage of over 95\%.
+BuddySuite is a set of Python 3 libraries and command-line applications developed for use on all major operating systems (Windows 7+, Mac OSX, and Linux) and leverages the sequence and phylogenetic tree processing capabilities of Biopython \cite{Cock:2009hj}, Environment of Tree Exploration 3 (ETE3) \cite{HuertaCepas:2016hw}, and Dendropy \cite{Sukumaran:2010id}. The software is free and open-source, versioned on Github and the Python Package Index (PyPI), and unit tested at a code coverage of over 95\%.
 
 \subsection{Installation}
 Stable release versions of BuddySuite can be installed directly from PyPI using the popular package manager `pip', and development versions from GitHub are also easily installed using the provided setup script. While optional, users are also encouraged to run the BuddySuite configuration script after installation:
@@ -137,9 +137,9 @@ Perhaps the greatest advantage BuddySuite has over other tools is its handling o
 
 \begin{figure*}[t]
 \begin{center}
-\includegraphics[height=0.4\textheight]{figures/timeit.eps}
+\includegraphics[height=0.4\textheight]{figures/figure_fixed.eps}
 \end{center}
-\caption{Over 140K RefSeq records were identified in GenBank using the following query: ``Nematoda''[Organism] AND biomol\_mrna[PROP] AND refseq[filter]. The results were downloaded in GenBank format and subsamples of 10, 100, 1000, and 10000 records were used to test the runtime performance of the BuddySuite tools (excluding tools that depend on third-party programs or services). Average runtimes are expressed in seconds and the y-axis is log-scale.}
+\caption{RefSeq records were identified in GenBank using the following query: ``Nematoda''[Organism] AND biomol\_mrna[PROP] AND refseq[filter]. The results were downloaded in GenBank format and subsamples of 10 (53K), 100 (514K), 1000 (4.9M), and 10000 records were used to test the runtime performance of the BuddySuite tools (excluding tools that depend on third-party programs or services). Average runtimes are expressed in seconds (the y-axis is log-scale) and the subscript numbers below each jitter plot represents the size of the sequence, alignment, or tree file in bytes.}
 \label{fig:timeit}
 \end{figure*}
 
@@ -197,33 +197,7 @@ The BuddySuite modules also accept input from standard output, allowing for the 
 Third-party programs that use any of the supported file formats and utilize standard output and standard input from the command line can also be seamlessly included in these pipelines.
 
 \subsubsection{Performance}
-Execution time is often the primary disadvantage when implementing bioinformatics software in an interpreted language like Python verses a compiled language like C or C++ \cite{Fourment:2008fra}. When working with a few thousand sequence this is unlikely to have a practical effect on the end user, although performance will become an issue as datasets inflate to many thousands or millions of sequences. Figure \ref{fig:timeit} illustrates average runtimes for the BuddySuite tools on increasingly larger GenBank files using a desktop computer (OS X 10.11.6, 3.5 GHz Intel Xeon E5 processor, 64 GB RAM). GenBank format was chosen as the benchmark because manipulating feature annotations is frequently the time limiting step for many BuddySuite tools, so a user can expect shorter run-times when working with unannotated formats like FASTA or PHYLIP. Execution times for each tool are recorded in SUPPLEMENTAL TABLE X.
-
-\begin{table}[!t]
-\tableparts{\caption{Runtime for each BuddySuite tool.\label{table:timeit}}}
-      {\tabcolsep=5pt\begin{tabular}{@{\extracolsep{\fill}}llcccc@{}}
-      \toprule
-	   				& Num records	& 25\%	& 50\%	& 75\%	& max \\
-      				& (file size)
-      \\\colrule
-      SeqBuddy		& 10 (53K)				& 0.715	& 0.722	& 0.733	& 1.570 \\
-      				& 100 (514K)			& 0.711	& 0.728	& 0.776	& 9.049 \\
-					& 1000 (4.9M)			& 0.778	& 0.850	& 1.315	& 83.83 \\
-					& 10000 (49M)			
-	  \\\colrule
-      AlignBuddy	& 10 (70K)		& 0.724	& 0.728	& 0.749	& 1.876 \\
-      				& 100 (1.4M)	& 0.762	& 0.786	& 0.974	& 26.39 \\
-					& 1000 (14M)	& 4.811	& 5.680	& 14.22	& 2032.0 \\
-					& 10000 (137M)
-	  \\\colrule
-      PhyloBuddy	& 10 (0.53K)	& 1.702	& 1.717	& 1.737	& 3.010 \\
-      				& 100 (5.4K)	& 1.747	& 1.757	& 1.770	& 3.549 \\
-					& 1000 (54K)	& 1.637	& 1.657	& 1.693	& 4.546 \\
-					& 10000 (540K)	& 
-      \\\botrule
-      \end{tabular}}
-{\tablenote{Over 140K RefSeq records were identified in GenBank using the following query: ``Nematoda''[Organism] AND biomol\_mrna[PROP] AND refseq[filter]. The results were downloaded in GenBank format and subsamples of 10, 100, 1000, and 10000 records were used to test the runtime performance of the BuddySuite tools. Runtime percentiles are expressed in seconds.}}
-\end{table}
+Execution time is often the primary disadvantage when implementing bioinformatics software in an interpreted language like Python verses a compiled language like C or C++ \cite{Fourment:2008fra}. When working with a few thousand sequence this is unlikely to have a practical effect on the end user, although performance will become an issue as datasets inflate to many thousands or millions of sequences. Figure \ref{fig:timeit} illustrates average runtimes for the BuddySuite tools on increasingly larger GenBank files using a desktop computer (OS X 10.11.6, 3.5 GHz Intel Xeon E5 processor, 64 GB RAM). GenBank format was chosen as the benchmark because manipulating feature annotations is frequently the time limiting step for many BuddySuite tools, so a user can expect shorter run-times when working with unannotated formats like FASTA or PHYLIP. The performance script and a complete table of current results are maintained in the BuddySuite git repository.
 
 \section{Conclusions}
 BuddySuite has been designed from the ground up as an intuitive, extensible, and unified platform for routine command-line tasks performed on sequence, alignment, and phylogenetic tree files. This is the first time such a large suite of general-purpose bioinformatics utilities have been implemented purely in Python and packaged together under a flag-driven paradigm. Well-designed and actively supported open-source tools will be invaluable over the coming years as an increasing number of biologists turn to the command line to analyze their data. We hope that BuddySuite will be widely adopted by the community and, thanks to the passive data-collection features built into this project, we look forward to tailoring future development to the needs of our users.
