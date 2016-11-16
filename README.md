@@ -13,10 +13,10 @@
 ___
 
 ## Description
-The BuddySuite modules are 'one-stop-shop' command line tools for common biological data file
+The BuddySuite modules are 'one-stop-shop' command-line tools for common biological data file
  manipulations. Formats are detected automatically, conversions are seamless, and you can pipe into
- or out of the modules, allowing you to spend more time analyzing your sequences, alignments, and phylogenetic
- trees, instead of wrangling them.
+ or out of the modules to build custom bioinformatics workflows, allowing you to spend more time analyzing 
+ your sequences, alignments, and phylogenetic trees, instead of wrangling them.
 
 For example, the following command reads in three sequence files (all in different formats), pulls out records with RefSeq identifiers,
  calls MAFFT to generate an alignment, shifts gaps to force a codon alignment, calls RAxML to infer a phylogeny, and then roots
@@ -37,7 +37,7 @@ $: buddysuite -setup
 
 Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
 
-There is also a short [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
+There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
 
 Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
  complete with worked examples and explanations for all arguments/options.
