@@ -70,7 +70,7 @@ from Bio.Nexus.Nexus import NexusError
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2.1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("AlignBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 11, "day": 16})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
