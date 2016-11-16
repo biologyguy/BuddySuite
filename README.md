@@ -2,7 +2,7 @@
 [![Coverage Status](https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
 [![PyPi version](https://img.shields.io/pypi/v/buddysuite.svg)](https://pypi.python.org/pypi/buddysuite)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
-<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.png" /></a></p>
+<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.png" width=70%/></a></p>
 <p align="center">
 <a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/SeqBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/AlignBuddy-logo.gif" width=25%/></a>
