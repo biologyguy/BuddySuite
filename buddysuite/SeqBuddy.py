@@ -3827,8 +3827,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 feature_attrs["pattern"] = None
         try:
             seqbuddy = annotate(seqbuddy, ftype, flocation, **feature_attrs)
-            if in_args.out_format:
-                seqbuddy.out_format = in_args.out_format
+            if not in_args.out_format:
+                seqbuddy.out_format = "gb"
             _print_recs(seqbuddy)
         except AttributeError as e:
             _raise_error(e, "annotate")
