@@ -292,20 +292,15 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
 # ##################### '-er', '--extract_regions' ###################### ##
 def test_extract_regions_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.extract_regions = [10, 110]
-    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
+    assert hf.string2hash(out) == "569f1946a6af1b92a754c5a13279795b"
 
-    test_in_args.extract_regions = [110, 10]
-    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
-
-    test_in_args.extract_regions = [-110, 10]
-    with pytest.raises(ValueError) as err:
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), pass_through=True)
-    assert "Please specify positive integer indices" in str(err)
+    assert "Unable to decode the positions string" in err
 
 
 # ##################### '-ga', '--generate_alignment' ###################### ##
