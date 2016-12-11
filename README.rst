@@ -7,11 +7,11 @@
 Description
 -----------
 
-The BuddySuite modules are 'one-stop-shop' command line tools for common
+The BuddySuite modules are 'one-stop-shop' command-line tools for common
 biological data file manipulations. Formats are detected automatically,
-conversions are seamless, and you can pipe into or out of the modules,
-allowing you to spend more time analyzing your sequences, alignments,
-and phylogenetic trees, instead of wrangling them.
+conversions are seamless, and you can pipe into or out of the modules to
+build custom bioinformatics workflows, allowing you to spend more time analyzing
+your sequences, alignments, and phylogenetic trees, instead of wrangling them.
 
 For example, the following command reads in three sequence files (all in
 different formats), pulls out records with RefSeq identifiers, calls
@@ -38,7 +38,7 @@ The simplest way to get up and running is:
 Further instructions are available in the `installation
 guide <https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide>`__.
 
-There is also a short `Beginners'
+There is also a `Beginners'
 Guide <https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide>`__
 to show you the basics.
 
@@ -84,5 +84,6 @@ developer) directly at steve.bond@nih.gov.
    :target: https://coveralls.io/github/biologyguy/BuddySuite?branch=master
 .. |PyPi version| image:: https://img.shields.io/pypi/v/buddysuite.svg
    :target: https://pypi.python.org/pypi/buddysuite
-.. |BuddySuite| image:: https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.gif
+.. |BuddySuite| image:: https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.png
    :target: https://github.com/biologyguy/BuddySuite/wiki
+   :scale: 50 %
