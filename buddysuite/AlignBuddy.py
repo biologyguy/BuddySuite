@@ -764,26 +764,25 @@ def enforce_triplets(alignbuddy):
     return alignbuddy
 
 
-def extract_regions(alignbuddy, start, end):
+def extract_regions(alignbuddy, positions):
     """
     Extracts all columns within a given range
     :param alignbuddy: AlignBuddy object
-    :param start: The starting residue (indexed from 0)
-    :param end: The end residue (inclusive)
+    :param positions: Position code describing which residues to pull (str)
     :return: The modified AlignBuddy object
     :rtype: AlignBuddy
-    """
-    alb_copy = make_copy(alignbuddy)
-    for indx, alignment in enumerate(alignbuddy.alignments):
-        position_map = FeatureReMapper()
-        for i in range(alignment.get_alignment_length()):
-            if start <= i <= end:
-                position_map.extend(True)
-            else:
-                position_map.extend(False)
 
-        alignbuddy.alignments[indx] = alignment[:, start:end]
-        position_map.remap_features(alb_copy.alignments[indx], alignbuddy.alignments[indx])
+    Position Code:  - Always a string
+                    - Comma-separated
+                    - Three types of extraction:
+                        - Singlets: "2,5,9,-5"
+                        - Ranges: "40:75,89:100,432:-45"
+                        - mth of nth: "1/5,3/5"
+    """
+    for indx, alignment in enumerate(alignbuddy.alignments):
+        seqbuddy = Sb.SeqBuddy([rec for rec in alignment])
+        seqbuddy = Sb.extract_regions(seqbuddy, positions)
+        alignbuddy.alignments[indx] = MultipleSeqAlignment(seqbuddy.records, alphabet=alignbuddy.alpha)
     return alignbuddy
 
 
@@ -1722,12 +1721,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             _raise_error(e, "enforce_triplets", "Nucleic acid sequence required")
         _exit("enforce_triplets")
 
-    # Extract range
+    # Extract regions
     if in_args.extract_regions:
-        start, end = sorted(in_args.extract_regions)
-        if start < 1 or end < 1:
-            _raise_error(ValueError("Please specify positive integer indices"), "extract_regions")
-        _print_aligments(extract_regions(alignbuddy, start - 1, end))
+        try:
+            args = ",".join(in_args.extract_regions[0])
+            alignbuddy = extract_regions(alignbuddy, args)
+            _print_aligments(alignbuddy)
+        except ValueError as e:
+            # ToDo: output some information about position string syntax
+            _raise_error(e, "extract_positions", "Unable to decode the positions string")
         _exit("extract_regions")
 
     # Faux alignment
