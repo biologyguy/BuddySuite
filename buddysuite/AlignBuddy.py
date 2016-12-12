@@ -1728,8 +1728,17 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             alignbuddy = extract_regions(alignbuddy, args)
             _print_aligments(alignbuddy)
         except ValueError as e:
-            # ToDo: output some information about position string syntax
-            _raise_error(e, "extract_positions", "Unable to decode the positions string")
+            br._stderr("""
+Extraction regions can be specified in the following ways:
+    - Singlets: "2,5,9,-5"
+    - Ranges: "40:75,89:100,432:-45"
+    - mth of nth: "1/5,3/5"
+
+For examples, please see:
+https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
+
+""")
+            _raise_error(e, "extract_regions", "Unable to decode the positions string")
         _exit("extract_regions")
 
     # Faux alignment

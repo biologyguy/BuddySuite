@@ -1784,7 +1784,9 @@ def extract_regions(seqbuddy, positions):
             try:
                 # mth of nth
                 if "/" in _position:
-                    start, end = os.path.split(_position)
+                    start, end = _position.split("/")
+                    # NOTE: if end is negative, it is converted to the positive from the back of the sequence (this may
+                    # be confusing behaviour).
                     end = process_single(int(end), rec_len)
                     if ":" in start:
                         range_start, range_end = start.split(":")
@@ -4139,9 +4141,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             seqbuddy = extract_regions(seqbuddy, args)
             _print_recs(seqbuddy)
         except ValueError as e:
-            # ToDo: output some information about position string syntax
-            _raise_error(e, "extract_positions", "Unable to decode the positions string")
-        _exit("extract_positions")
+            br._stderr("""
+Extraction regions can be specified in the following ways:
+    - Singlets: "2,5,9,-5"
+    - Ranges: "40:75,89:100,432:-45"
+    - mth of nth: "1/5,3/5"
+
+For examples, please see:
+https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
+
+""")
+            _raise_error(e, "extract_regions", "Unable to decode the positions string")
+        _exit("extract_regions")
 
     # Find CpG
     if in_args.find_CpG:
