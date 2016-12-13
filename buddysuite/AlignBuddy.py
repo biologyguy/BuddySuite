@@ -628,6 +628,7 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
 
 def consensus_sequence(alignbuddy):
     # ToDo: include an ambiguous mode that will pull the degenerate nucleotide alphabet in the case of frequency ties.
+    # ToDo: Retain sequence annotations --> options to include ALL or CONSERVED
     """
     Generates a simple majority-rule consensus sequence
     :param alignbuddy: The AlignBuddy object to be processed
@@ -786,7 +787,7 @@ def extract_regions(alignbuddy, positions):
     return alignbuddy
 
 
-def faux_alignment(seqbuddy, size=0, r_seed=12345):
+def faux_alignment(seqbuddy, size=0, r_seed=None):
     """
     Creates a meaningless alignment out of a collection of sequences. Gaps are added into each sequence at random
     to create the appropriate length
