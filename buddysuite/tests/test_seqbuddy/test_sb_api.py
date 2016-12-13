@@ -538,6 +538,18 @@ def test_extract_feature_sequences(sb_resources, hf):
     assert hf.buddy2hash(tester) == "78629d308a89b458fb02e71d5568c978"
 
     tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD2:TMD3"])
+    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD3:TMD2"])
+    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD2:foo"])
+    assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
+
+    tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, "foo")
     assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
 

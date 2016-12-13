@@ -1707,24 +1707,47 @@ def extract_feature_sequences(seqbuddy, patterns):
     :return: Modified SeqBuddy object
     :rtype: SeqBuddy
     """
-    def check_patterns(_feature):
-        for pattern in patterns:
-            if re.search(pattern, _feature.type):
+    def check_single_patterns(_feature):
+        for pat in single_patterns:
+            if re.search(pat, _feature.type):
                 return True
         return False
 
     if type(patterns) == str:
         patterns = [patterns]
 
+    range_patterns = []
+    single_patterns = []
+    for pattern in patterns:
+        if ":" in pattern:
+            range_patterns.append(pattern.split(":"))
+        else:
+            single_patterns.append(pattern)
+
     new_recs = []
     for rec in seqbuddy.records:
         keep_ranges = []
         for feature in rec.features:
-            if check_patterns(feature):
+            if check_single_patterns(feature):
                 if type(feature.location) == CompoundLocation:
                     keep_ranges += [[int(x.start), int(x.end)] for x in feature.location.parts]
                 else:
                     keep_ranges.append([int(feature.location.start), int(feature.location.end)])
+        for rang_pat in range_patterns:
+            start, end = len(rec.seq), 0
+            pat1, pat2 = False, False
+            for feature in rec.features:
+                if re.search(rang_pat[0], feature.type):
+                    start = int(feature.location.start) if int(feature.location.start) < start else start
+                    end = int(feature.location.end) if int(feature.location.end) > end else end
+                    pat1 = True
+                if re.search(rang_pat[1], feature.type):
+                    start = int(feature.location.start) if int(feature.location.start) < start else start
+                    end = int(feature.location.end) if int(feature.location.end) > end else end
+                    pat2 = True
+            if pat1 and pat2:
+                keep_ranges.append([start, end])
+
         if not keep_ranges:
             rec.seq = Seq("", alphabet=rec.seq.alphabet)
             rec.features = []
