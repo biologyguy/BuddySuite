@@ -70,7 +70,7 @@ from Bio.Nexus.Nexus import NexusError
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2.1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("AlignBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -764,26 +764,108 @@ def enforce_triplets(alignbuddy):
     return alignbuddy
 
 
-def extract_regions(alignbuddy, start, end):
+def extract_feature_sequences(alignbuddy, patterns):
+    """
+    Pull out specific features from annotated sequences
+    :param alignbuddy: SeqBuddy object
+    :type alignbuddy: AlignBuddy
+    :param patterns: The feature(s) to be extracted
+    :type patterns: list str
+    :return: Modified AlignBuddy object
+    :rtype: AlignBuddy
+    """
+    if type(patterns) == str:
+        patterns = [patterns]
+
+    range_patterns = []
+    single_patterns = []
+    for pattern in patterns:
+        if ":" in pattern:
+            range_patterns.append(pattern.split(":"))
+        else:
+            single_patterns.append(pattern)
+
+    # Note that there isn't currently a way to store multiple annotated alignments, but still treat it like there is a
+    # way in case this changes in the future
+    new_alignments = []
+    for alignment in alignbuddy.alignments:
+        keep_ranges = []
+        for pat in single_patterns:
+            matches = []
+            for rec in alignment:
+                for feat in rec.features:
+                    if re.search(pat, feat.type):
+                        matches.append([int(feat.location.start), int(feat.location.end)])
+            if matches:
+                matches = sorted(matches, key=lambda x: x[0])
+                start, end = matches[0]
+                for next_start, next_end in matches[1:]:
+                    if end < next_start:
+                        keep_ranges.append([start, end])
+                        start, end = next_start, next_end
+                    elif end < next_end:
+                        end = next_end
+                keep_ranges.append([start, end])
+
+        for pat in range_patterns:
+            start, end = len(alignment[0]), 0
+            pat1, pat2 = False, False
+            for rec in alignment:
+                for feat in rec.features:
+                    if re.search(pat[0], feat.type):
+                        start = int(feat.location.start) if int(feat.location.start) < start else start
+                        end = int(feat.location.end) if int(feat.location.end) > end else end
+                        pat1 = True
+                    if re.search(pat[1], feat.type):
+                        start = int(feat.location.start) if int(feat.location.start) < start else start
+                        end = int(feat.location.end) if int(feat.location.end) > end else end
+                        pat2 = True
+            if pat1 and pat2:
+                keep_ranges.append([start, end])
+
+        if not keep_ranges:
+            for rec in alignment:
+                rec.seq = Seq("", alphabet=rec.seq.alphabet)
+                rec.features = []
+            new_alignments.append(alignment)
+        else:
+            keep_ranges = sorted(keep_ranges, key=lambda x: x[0])
+            final_positions = ""
+            active_range = keep_ranges[0]
+            for _range in keep_ranges[1:]:
+                if active_range[1] >= _range[0]:
+                    active_range[1] = max(active_range[1], _range[1])
+                else:
+                    final_positions += "%s:%s," % (active_range[0] + 1, active_range[1])
+                    active_range = [_range[0], _range[1]]
+
+            final_positions += "%s:%s" % (active_range[0] + 1, active_range[1])
+            alignment = AlignBuddy([alignment])
+            alignment = extract_regions(alignment, final_positions)
+            new_alignments.append(alignment.alignments[0])
+    alignbuddy.alignments = new_alignments
+    return alignbuddy
+
+
+def extract_regions(alignbuddy, positions):
     """
     Extracts all columns within a given range
     :param alignbuddy: AlignBuddy object
-    :param start: The starting residue (indexed from 0)
-    :param end: The end residue (inclusive)
+    :param positions: Position code describing which residues to pull (str)
     :return: The modified AlignBuddy object
     :rtype: AlignBuddy
-    """
-    alb_copy = make_copy(alignbuddy)
-    for indx, alignment in enumerate(alignbuddy.alignments):
-        position_map = FeatureReMapper()
-        for i in range(alignment.get_alignment_length()):
-            if start <= i <= end:
-                position_map.extend(True)
-            else:
-                position_map.extend(False)
 
-        alignbuddy.alignments[indx] = alignment[:, start:end]
-        position_map.remap_features(alb_copy.alignments[indx], alignbuddy.alignments[indx])
+    Position Code:  - Always a string
+                    - Comma-separated
+                    - Three types of extraction:
+                        - Singlets: "2,5,9,-5"
+                        - Ranges: "40:75,89:100,432:-45"
+                        - mth of nth: "1/5,3/5"
+    """
+    for indx, alignment in enumerate(alignbuddy.alignments):
+        seqbuddy = Sb.SeqBuddy([rec for rec in alignment])
+        seqbuddy = Sb.extract_regions(seqbuddy, positions)
+        alignbuddy.alignments[indx] = MultipleSeqAlignment(seqbuddy.records, alphabet=alignbuddy.alpha)
     return alignbuddy
 
 
@@ -1662,12 +1744,21 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
             _raise_error(e, "enforce_triplets", "Nucleic acid sequence required")
         _exit("enforce_triplets")
 
-    # Extract range
+    # Extact features
+    if in_args.extract_feature_sequences:
+        alignbuddy = extract_feature_sequences(alignbuddy, in_args.extract_feature_sequences[0])
+        _print_aligments(alignbuddy)
+        _exit("extract_feature_sequences")
+
+    # Extract regions
     if in_args.extract_regions:
-        start, end = sorted(in_args.extract_regions)
-        if start < 1 or end < 1:
-            _raise_error(ValueError("Please specify positive integer indices"), "extract_regions")
-        _print_aligments(extract_regions(alignbuddy, start - 1, end))
+        try:
+            args = ",".join(in_args.extract_regions[0])
+            alignbuddy = extract_regions(alignbuddy, args)
+            _print_aligments(alignbuddy)
+        except ValueError as e:
+            # ToDo: output some information about position string syntax
+            _raise_error(e, "extract_positions", "Unable to decode the positions string")
         _exit("extract_regions")
 
     # Generate Alignment

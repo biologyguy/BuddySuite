@@ -289,23 +289,47 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
     assert "Nucleic acid sequence required, not protein." in err
 
 
+# ######################  '-efs', '--extract_feature_sequences' ###################### #
+def test_extact_feature_sequences_ui(capsys, alb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.extract_feature_sequences = [["CDS"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "2d8b6524010177f6507dde387146378c"
+
+    test_in_args.extract_feature_sequences = [["TMD"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "3c20784722e00567cee04f3e7adca99c"
+
+    test_in_args.extract_feature_sequences = [["TMD1", "splice_a"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "6a556349095dac86339b0e0057467fdd"
+
+    test_in_args.extract_feature_sequences = [["TMD2:TMD3"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "1076bce8903f736787ce16fd95899af8"
+
+    test_in_args.extract_feature_sequences = [["foo"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "0ef69def122bd6923bc9ca02e2a19233"
+
+
 # ##################### '-er', '--extract_regions' ###################### ##
 def test_extract_regions_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.extract_regions = [10, 110]
-    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
+    assert hf.string2hash(out) == "569f1946a6af1b92a754c5a13279795b"
 
-    test_in_args.extract_regions = [110, 10]
-    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3929c5875a58e9a1e64425d4989e590a"
-
-    test_in_args.extract_regions = [-110, 10]
-    with pytest.raises(ValueError) as err:
-        Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), pass_through=True)
-    assert "Please specify positive integer indices" in str(err)
+    assert "Unable to decode the positions string" in err
 
 
 # ##################### '-ga', '--generate_alignment' ###################### ##

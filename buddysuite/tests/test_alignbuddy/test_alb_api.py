@@ -198,17 +198,121 @@ def test_enforce_triplets_error(alb_resources):
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
+
+# ######################  '-efs', '--extract_feature_sequences' ###################### #
+def test_extract_feature_sequences(alb_resources, hf):
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, "CDS")
+    assert hf.buddy2hash(tester) == "2d8b6524010177f6507dde387146378c"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD"])
+    assert hf.buddy2hash(tester) == "3c20784722e00567cee04f3e7adca99c"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD1", "splice_a"])
+    assert hf.buddy2hash(tester) == "6a556349095dac86339b0e0057467fdd"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD2:TMD3"])
+    assert hf.buddy2hash(tester) == "1076bce8903f736787ce16fd95899af8"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD3:TMD2"])
+    assert hf.buddy2hash(tester) == "1076bce8903f736787ce16fd95899af8"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD2:foo"])
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, "foo")
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, [])
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
 # ###########################################  'er', '--extract_regions' ############################################ #
-hashes = [('o d g', 'aaa69d3abb32876a2774d981a274cbad'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
-          ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '836ca0e0d42da0679b9dc8fe4a6e390a'),
+hashes = [('o d g', '4cef071777cfa87c45302f01b661b2c9'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
+          ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '500bca2fb601af601532b38de88fcc31'),
           ('o p n', '5f400edc6f0990c0cd6eb52ae7687e39'), ('o p py', '69c9ad73ae02525150d4682f9dd68093'),
           ('m d py', 'd06ba679c8a686c8f077bb460a4193b0'), ('m p py', '8151eeda36b9a170512709829d70230b')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_extract_range(key, next_hash, alb_resources, hf):
-    tester = Alb.extract_regions(alb_resources.get_one(key), 0, 50)
-    assert hf.buddy2hash(tester) == next_hash
+def test_extract_regions(key, next_hash, alb_resources, hf):
+    tester = Alb.extract_regions(alb_resources.get_one(key), "0:50")
+    assert hf.buddy2hash(tester) == next_hash, print(tester)
+
+
+def test_extract_regions_singlets(alb_resources, hf):
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "0")
+    assert hf.buddy2hash(tester) == "f43a8ceaa0a4316ee94c585cbe05dbd4"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1")
+    assert hf.buddy2hash(tester) == "f43a8ceaa0a4316ee94c585cbe05dbd4"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-10000000")
+    assert hf.buddy2hash(tester) == "f43a8ceaa0a4316ee94c585cbe05dbd4"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), ",1/")
+    assert hf.buddy2hash(tester) == "f43a8ceaa0a4316ee94c585cbe05dbd4"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1000000")
+    assert hf.buddy2hash(tester) == "22ab94845c529da24090d0fbfb9dfd94"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "2,5,9,-5")
+    assert hf.buddy2hash(tester) == "98fad1c733fd19c87d8a18474255383c"
+
+
+def test_extract_regions_ranges(alb_resources, hf):
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "0:10")
+    assert hf.buddy2hash(tester) == "85ca9a5893372e9114f053b3e4d4c9c8"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:10")
+    assert hf.buddy2hash(tester) == "85ca9a5893372e9114f053b3e4d4c9c8"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "10:1")
+    assert hf.buddy2hash(tester) == "85ca9a5893372e9114f053b3e4d4c9c8"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), ":10")
+    assert hf.buddy2hash(tester) == "85ca9a5893372e9114f053b3e4d4c9c8"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-10:")
+    assert hf.buddy2hash(tester) == "155496a7bdb25a97891d0dd3dce20e21"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "40:75,89:100,432:-45")
+    assert hf.buddy2hash(tester) == "558060bbac8b97ab4f36fec427525674"
+
+
+def test_extract_regions_mth_of_nth(alb_resources, hf):
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1/50")
+    assert hf.buddy2hash(tester) == "30fd2aaa33bbe4923238f9d54cf10c34"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-1/50")
+    assert hf.buddy2hash(tester) == "30414697c79e4af680021d337b298a47"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1/-500")
+    assert hf.buddy2hash(tester) == "91db964471556b36debd4ca0ab864343"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "50/1")
+    assert hf.buddy2hash(tester) == "cfc32cff951fc50f283131155a510310"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "50/25")
+    assert hf.buddy2hash(tester) == "44a0298522a7312014f90dae58c08bf0"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:5/50")
+    assert hf.buddy2hash(tester) == "ba873583e5fb769a5553e75b33f7cca9"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-5:/50")
+    assert hf.buddy2hash(tester) == "54cb86fdb9d5cb959506a3639cf651a0"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), ":5/50")
+    assert hf.buddy2hash(tester) == "ba873583e5fb769a5553e75b33f7cca9"
+
+    tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:10,1/50,-1")
+    assert hf.buddy2hash(tester) == "f396c1af79334ca4a93fba8f6dd9f17e"
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #

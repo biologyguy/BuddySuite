@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("SeqBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -789,21 +789,24 @@ def ave_seq_length(seqbuddy, clean=False):
     return sum_length / len(seqbuddy)
 
 
-def back_translate(seqbuddy, mode='random', species=None):
+def back_translate(seqbuddy, mode='random', species=None, r_seed=None):
     """
     Back-translates protein sequences into DNA sequences
     :param seqbuddy: SeqBuddy object
     :param mode: The codon selection mode (random/optimized)
     :param species: The model to use for optimized codon selection (human/mouse/yeast/ecoli)
     codon preference tables derived from the data at http://www.kazusa.or.jp
+    :param r_seed: Set the random generator seed value
     :return: Modified SeqBuddy object
     """
+    rand_gen = Random() if not r_seed else Random(r_seed)
+
     # Homo sapiens, species=9606
     if mode.upper() not in ['RANDOM', 'R', 'OPTIMIZED', 'O']:
         raise AttributeError("Back_translate modes accepted are 'random' or 'r' and 'optimized' or 'o'. "
                              "You entered '%s'" % mode)
 
-    h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.27, 0.40, 0.23, 0.11]),
+    h_sapi = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.2675, 0.3975, 0.2275, 0.1075]),
               'C': (['TGT', 'TGC'], [0.46, 0.54]),
               'D': (['GAT', 'GAC'], [0.46, 0.54]),
               'E': (['GAA', 'GAG'], [0.42, 0.58]),
@@ -812,14 +815,14 @@ def back_translate(seqbuddy, mode='random', species=None):
               'H': (['CAT', 'CAC'], [0.42, 0.58]),
               'I': (['ATT', 'ATC', 'ATA'], [0.36, 0.47, 0.17]),
               'K': (['AAA', 'AAG'], [0.43, 0.57]),
-              'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.08, 0.13, 0.13, 0.20, 0.07, 0.40]),
+              'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.08, 0.1275, 0.1275, 0.1975, 0.07, 0.3975]),
               'M': (['ATG'], [1.00]),
               'N': (['AAT', 'AAC'], [0.47, 0.53]),
               'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.29, 0.32, 0.28, 0.11]),
               'Q': (['CAA', 'CAG'], [0.27, 0.73]),
-              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.08, 0.18, 0.11, 0.20, 0.21, 0.21]),
+              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.08, 0.18, 0.1125, 0.2025, 0.2125, 0.2125]),
               'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.19, 0.22, 0.15, 0.05, 0.15, 0.24]),
-              '*': (['TAA', 'TGA', 'TAG'], [0.30, 0.47, 0.24]),
+              '*': (['TAA', 'TGA', 'TAG'], [0.30, 0.46, 0.24]),
               'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.25, 0.36, 0.28, 0.11]),
               'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.18, 0.24, 0.12, 0.46]),
               'W': (['TGG'], [1.00]),
@@ -828,7 +831,7 @@ def back_translate(seqbuddy, mode='random', species=None):
               '-': (['---'], [1.0])}
 
     # Mus musculus, species=10090
-    m_muscul = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.29, 0.38, 0.23, 0.09]),
+    m_muscul = {'A': (['GCT', 'GCC', 'GCA', 'GCG'], [0.2925, 0.3825, 0.2325, 0.0925]),
                 'C': (['TGT', 'TGC'], [0.48, 0.52]),
                 'D': (['GAT', 'GAC'], [0.45, 0.55]),
                 'E': (['GAA', 'GAG'], [0.41, 0.59]),
@@ -845,7 +848,7 @@ def back_translate(seqbuddy, mode='random', species=None):
                 'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.08, 0.17, 0.12, 0.19, 0.22, 0.22]),
                 'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.20, 0.22, 0.14, 0.05, 0.15, 0.24]),
                 '*': (['TAA', 'TGA', 'TAG'], [0.28, 0.49, 0.23]),
-                'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.25, 0.35, 0.29, 0.10]),
+                'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.2525, 0.3525, 0.2925, 0.1025]),
                 'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.17, 0.25, 0.12, 0.46]),
                 'W': (['TGG'], [1.00]),
                 'Y': (['TAT', 'TAC'], [0.43, 0.57]),
@@ -860,15 +863,15 @@ def back_translate(seqbuddy, mode='random', species=None):
               'F': (['TTT', 'TTC'], [0.58, 0.42]),
               'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.33, 0.39, 0.12, 0.16]),
               'H': (['CAT', 'CAC'], [0.58, 0.42]),
-              'I': (['ATT', 'ATC', 'ATA'], [0.50, 0.40, 0.09]),
+              'I': (['ATT', 'ATC', 'ATA'], [0.505, 0.404, 0.091]),
               'K': (['AAA', 'AAG'], [0.76, 0.24]),
               'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.13, 0.13, 0.11, 0.10, 0.04, 0.49]),
               'M': (['ATG'], [1.00]),
               'N': (['AAT', 'AAC'], [0.47, 0.53]),
               'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.17, 0.13, 0.19, 0.51]),
               'Q': (['CAA', 'CAG'], [0.33, 0.67]),
-              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.36, 0.37, 0.07, 0.11, 0.05, 0.03]),
-              'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.14, 0.15, 0.14, 0.15, 0.16, 0.27]),
+              'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.3625, 0.3725, 0.0725, 0.1125, 0.05, 0.03]),
+              'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.14, 0.1475, 0.14, 0.1475, 0.1575, 0.2675]),
               '*': (['TAA', 'TGA', 'TAG'], [0.59, 0.33, 0.08]),
               'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.17, 0.41, 0.15, 0.27]),
               'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.26, 0.21, 0.16, 0.37]),
@@ -885,9 +888,9 @@ def back_translate(seqbuddy, mode='random', species=None):
                'F': (['TTT', 'TTC'], [0.59, 0.41]),
                'G': (['GGT', 'GGC', 'GGA', 'GGG'], [0.47, 0.19, 0.22, 0.12]),
                'H': (['CAT', 'CAC'], [0.64, 0.36]),
-               'I': (['ATT', 'ATC', 'ATA'], [0.46, 0.26, 0.27]),
+               'I': (['ATT', 'ATC', 'ATA'], [0.464, 0.263, 0.273]),
                'K': (['AAA', 'AAG'], [0.58, 0.42]),
-               'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.28, 0.29, 0.13, 0.06, 0.14, 0.11]),
+               'L': (['TTA', 'TTG', 'CTT', 'CTC', 'CTA', 'CTG'], [0.2775, 0.2875, 0.1275, 0.06, 0.1375, 0.11]),
                'M': (['ATG'], [1.00]),
                'N': (['AAT', 'AAC'], [0.59, 0.41]),
                'P': (['CCT', 'CCC', 'CCA', 'CCG'], [0.31, 0.15, 0.42, 0.12]),
@@ -895,7 +898,7 @@ def back_translate(seqbuddy, mode='random', species=None):
                'R': (['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'], [0.14, 0.06, 0.07, 0.04, 0.48, 0.21]),
                'S': (['TCT', 'TCC', 'TCA', 'TCG', 'AGT', 'AGC'], [0.26, 0.16, 0.21, 0.10, 0.16, 0.11]),
                '*': (['TAA', 'TGA', 'TAG'], [0.47, 0.30, 0.23]),
-               'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.35, 0.22, 0.30, 0.14]),
+               'T': (['ACT', 'ACC', 'ACA', 'ACG'], [0.3475, 0.2175, 0.2975, 0.1375]),
                'V': (['GTT', 'GTC', 'GTA', 'GTG'], [0.39, 0.21, 0.21, 0.19]),
                'W': (['TGG'], [1.00]),
                'Y': (['TAT', 'TAC'], [0.56, 0.44]),
@@ -958,16 +961,16 @@ def back_translate(seqbuddy, mode='random', species=None):
     originals = make_copy(seqbuddy)
     for rec in seqbuddy.records:
         rec.features = []
-        dna_seq = ""
-        for aa in rec.seq.upper():
-            rand_num = random()
+        dna_seq = ["" for _ in range(len(rec))]
+        for indx, aa in enumerate(rec.seq.upper()):
+            rand_num = rand_gen.random()
             sum_probs = 0.
             for i in range(len(lookup_table[aa][1])):
                 sum_probs += lookup_table[aa][1][i]
                 if sum_probs >= rand_num:
-                    dna_seq += lookup_table[aa][0][i]
+                    dna_seq[indx] = lookup_table[aa][0][i]
                     break
-            rec.seq = Seq(dna_seq, alphabet=IUPAC.ambiguous_dna)
+            rec.seq = Seq("".join(dna_seq), alphabet=IUPAC.ambiguous_dna)
 
     seqbuddy.alpha = IUPAC.ambiguous_dna
     map_features_prot2nucl(originals, seqbuddy, mode="list")
@@ -1692,24 +1695,47 @@ def extract_feature_sequences(seqbuddy, patterns):
     :return: Modified SeqBuddy object
     :rtype: SeqBuddy
     """
-    def check_patterns(_feature):
-        for pattern in patterns:
-            if re.search(pattern, _feature.type):
+    def check_single_patterns(_feature):
+        for pat in single_patterns:
+            if re.search(pat, _feature.type):
                 return True
         return False
 
     if type(patterns) == str:
         patterns = [patterns]
 
+    range_patterns = []
+    single_patterns = []
+    for pattern in patterns:
+        if ":" in pattern:
+            range_patterns.append(pattern.split(":"))
+        else:
+            single_patterns.append(pattern)
+
     new_recs = []
     for rec in seqbuddy.records:
         keep_ranges = []
         for feature in rec.features:
-            if check_patterns(feature):
+            if check_single_patterns(feature):
                 if type(feature.location) == CompoundLocation:
                     keep_ranges += [[int(x.start), int(x.end)] for x in feature.location.parts]
                 else:
                     keep_ranges.append([int(feature.location.start), int(feature.location.end)])
+        for rang_pat in range_patterns:
+            start, end = len(rec.seq), 0
+            pat1, pat2 = False, False
+            for feature in rec.features:
+                if re.search(rang_pat[0], feature.type):
+                    start = int(feature.location.start) if int(feature.location.start) < start else start
+                    end = int(feature.location.end) if int(feature.location.end) > end else end
+                    pat1 = True
+                if re.search(rang_pat[1], feature.type):
+                    start = int(feature.location.start) if int(feature.location.start) < start else start
+                    end = int(feature.location.end) if int(feature.location.end) > end else end
+                    pat2 = True
+            if pat1 and pat2:
+                keep_ranges.append([start, end])
+
         if not keep_ranges:
             rec.seq = Seq("", alphabet=rec.seq.alphabet)
             rec.features = []
@@ -2771,12 +2797,15 @@ def order_ids(seqbuddy, reverse=False):
     return seqbuddy
 
 
-def order_ids_randomly(seqbuddy):
+def order_ids_randomly(seqbuddy, r_seed=None):
     """
     Reorders seqbuddy.records. The order will always be changed if more than 2 recs are fed in.
     :param seqbuddy: SeqBuddy object
+    :param r_seed: Set the random generator seed value
     :return: The reordered SeqBuddy object
     """
+    rand_gen = Random() if not r_seed else Random(r_seed)
+
     if len(seqbuddy) < 2:
         return seqbuddy
     elif len(seqbuddy) == 2:
@@ -2793,14 +2822,14 @@ def order_ids_randomly(seqbuddy):
     if not differences:
         return seqbuddy
 
-    output = []
+    output = [None for _ in range(len(seqbuddy))]
     valve = br.SafetyValve(global_reps=1000)
     while valve.step("order_ids_randomly() was unable to reorder your sequences. This shouldn't happen, so please"
                      "contact the developers to let then know about this error."):
         sb_copy = make_copy(seqbuddy)
-        for _ in range(len(sb_copy)):
-            random_index = randint(1, len(sb_copy)) - 1
-            output.append(sb_copy.records.pop(random_index))
+        for indx in range(len(sb_copy)):
+            random_index = rand_gen.randint(1, len(sb_copy)) - 1
+            output[indx] = (sb_copy.records.pop(random_index))
         if ["%s%s" % (rec.id, rec.seq) for rec in seqbuddy.records] != ["%s%s" % (rec.id, rec.seq) for rec in output]:
             break
         output = []
@@ -2934,17 +2963,19 @@ class PrositeScan(object):
         return self.seqbuddy
 
 
-def pull_random_recs(seqbuddy, count=1):
+def pull_random_recs(seqbuddy, count=1, r_seed=None):
     """
     Return a random record or subset of records (without replacement)
     :param seqbuddy: SeqBuddy object
     :param count: The number of random records to pull (int)
+    :param r_seed: Set the random generator seed value
     :return: The original SeqBuddy object with only the selected records remaining
     """
+    rand_gen = Random() if not r_seed else Random(r_seed)
     count = abs(count) if abs(count) <= len(seqbuddy) else len(seqbuddy)
     random_recs = []
     for _ in range(count):
-        rand_index = randint(0, len(seqbuddy) - 1)
+        rand_index = rand_gen.randint(0, len(seqbuddy) - 1)
         random_recs.append(seqbuddy.records.pop(rand_index))
     seqbuddy.records = random_recs
     return seqbuddy
@@ -3178,21 +3209,18 @@ def select_frame(seqbuddy, frame, add_metadata=True):
     return seqbuddy
 
 
-def shuffle_seqs(seqbuddy):
+def shuffle_seqs(seqbuddy, r_seed=None):
     """
     Randomly reorder the residues in each sequence
     :param seqbuddy: SeqBuddy object
+    :param r_seed: Set the random generator seed value
     :return: The shuffled SeqBuddy object
     """
+    rand_gen = Random() if not r_seed else Random(r_seed)
     for rec in seqbuddy.records:
-        tokens = []
-        for letter in rec.seq:
-            tokens.append(letter)
-        new_seq = ''
-        while len(tokens) > 0:
-            rand_indx = randint(0, len(tokens) - 1)
-            new_seq += tokens.pop(rand_indx)
-        rec.seq = Seq(data=new_seq, alphabet=seqbuddy.alpha)
+        new_seq = list(str(rec.seq))
+        rand_gen.shuffle(new_seq)
+        rec.seq = Seq("".join(new_seq), alphabet=seqbuddy.alpha)
     return seqbuddy
 
 
@@ -3670,7 +3698,7 @@ def argparse_init():
         for seq_set in in_args.sequence:
             if isinstance(seq_set, TextIOWrapper) and seq_set.buffer.raw.isatty():
                 br._stderr("Warning: No input detected so SeqBuddy is aborting...\n"
-                        "For more information, try:\n%s --help\n" % sys.argv[0])
+                           "For more information, try:\n%s --help\n" % sys.argv[0])
                 sys.exit()
             seq_set = SeqBuddy(seq_set, in_args.in_format, in_args.out_format, in_args.alpha)
             seqbuddy += seq_set.records

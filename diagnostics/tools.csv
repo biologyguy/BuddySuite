@@ -1,0 +1,104 @@
+# SeqBuddy
+flag,options,module,reference,third_party
+annotate,misc_feature 1-10,seqbuddy,dna,False
+ave_seq_length,,seqbuddy,dna,False
+back_translate,,seqbuddy,pep,False
+bl2seq,,seqbuddy,pep,True
+blast,__ref.gb__,seqbuddy,dna,True
+clean_seq,,seqbuddy,dna,False
+complement,,seqbuddy,dna,False
+concat_seqs,,seqbuddy,dna,False
+count_codons,,seqbuddy,dna,False
+count_residues,concatenate,seqbuddy,dna,False
+degenerate_sequence,1,seqbuddy,dna,False
+delete_features,CDS,seqbuddy,dna,False
+delete_large,1000,seqbuddy,dna,False
+delete_metadata,,seqbuddy,dna,False
+delete_records,XM_,seqbuddy,dna,False
+delete_repeats,,seqbuddy,dna,False
+delete_small,1000,seqbuddy,dna,False
+extract_feature_sequences,CDS,seqbuddy,dna,False
+extract_regions,:50,seqbuddy,dna,False
+find_CpG,,seqbuddy,dna,False
+find_orfs,,seqbuddy,dna,False
+find_pattern,\'M.{9}A\',seqbuddy,pep,False
+find_repeats,3,seqbuddy,dna,False
+find_restriction_sites,EcoRI HindIII BamHI XhoI,seqbuddy,dna,False
+group_by_prefix,2 __tmp__,seqbuddy,dna,False
+group_by_regex,\'^[XN]M\' __tmp__,seqbuddy,dna,False
+guess_alphabet,,seqbuddy,dna,False
+guess_format,,seqbuddy,dna,False
+hash_seq_ids,10,seqbuddy,dna,False
+insert_seq,DYKDDDDK 0,seqbuddy,pep,False
+isoelectric_point,,seqbuddy,pep,False
+list_features,,seqbuddy,dna,False
+list_ids,3,seqbuddy,dna,False
+lowercase,,seqbuddy,dna,False
+make_ids_unique,10 \'-\',seqbuddy,dna,False
+map_features_nucl2prot,,seqbuddy,dna/pep,False
+map_features_prot2nucl,,seqbuddy,dna/pep,False
+merge,,seqbuddy,dna/dna,False
+molecular_weight,,seqbuddy,dna,False
+num_seqs,,seqbuddy,dna,False
+order_features_alphabetically,,seqbuddy,dna,False
+order_features_by_position,,seqbuddy,dna,False
+order_ids,,seqbuddy,dna,False
+order_ids_randomly,,seqbuddy,dna,False
+prosite_scan,-q,seqbuddy,pep,True
+pull_random_record,10,seqbuddy,dna,False
+pull_records,NM,seqbuddy,dna,False
+pull_record_ends,-100,seqbuddy,dna,False
+pull_records_with_feature,STS,seqbuddy,dna,False
+purge,100,seqbuddy,pep,True
+rename_ids,XM Predicted,seqbuddy,dna,False
+replace_subseq,\'M.{9}A\' _motif_,seqbuddy,pep,False
+reverse_complement,,seqbuddy,dna,False
+reverse_transcribe,,seqbuddy,rna,False
+screw_formats,fasta,seqbuddy,dna,False
+select_frame,3,seqbuddy,dna,False
+shuffle_seqs,,seqbuddy,dna,False
+translate,,seqbuddy,dna,False
+translate6frames,,seqbuddy,dna,False
+transcribe,,seqbuddy,dna,False
+transmembrane_domains,-q,seqbuddy,pep,True
+uppercase,,seqbuddy,dna,False
+# AlignBuddy
+alignment_lengths,,alignbuddy,dna,False
+bootstrap,3 -o nexus,alignbuddy,dna,False
+clean_seq,,alignbuddy,pep,False
+concat_alignments,-o phylipr,alignbuddy,dna/dna,False
+consensus,,alignbuddy,dna,False
+delete_records,XM,alignbuddy,dna,False
+enforce_triplets,,alignbuddy,dna,False
+extract_regions,10 110,alignbuddy,dna,False
+generate_alignment,mafft -q,alignbuddy,dna,True
+hash_ids,10,alignbuddy,dna,False
+list_ids,3,alignbuddy,dna,False
+lowercase,,alignbuddy,dna,False
+mapfeat2align,__ref.gb__,alignbuddy,dna,False
+num_seqs,,alignbuddy,dna,False
+order_ids,rev,alignbuddy,dna,False
+pull_records,NM,alignbuddy,dna,False
+rename_ids,XM Predicted,alignbuddy,dna,False
+screw_formats,fasta,alignbuddy,dna,False
+split_to_files,__tmp__,alignbuddy,dna/pep,False
+transcribe,,alignbuddy,dna,False
+translate,,alignbuddy,dna,False
+trimal,clean,alignbuddy,pep,False
+uppercase,,alignbuddy,dna,False
+# Phylobuddy
+collapse_polytomies,length 0.1,phylobuddy,tree,False
+consensus_tree,0.5,phylobuddy,tree/tree,False
+distance,uwrf,phylobuddy,tree/tree,False
+generate_tree,fasttree -q,phylobuddy,dna,True
+hash_ids,3,phylobuddy,tree,False
+list_ids,3,phylobuddy,tree,False
+num_tips,,phylobuddy,tree,False
+print_trees,,phylobuddy,tree,False
+prune_taxa,XM,phylobuddy,tree,False
+rename_ids,XM Predicted,phylobuddy,tree,False
+root,,phylobuddy,tree,False
+screw_formats,nexus,phylobuddy,tree,False
+show_unique,,phylobuddy,tree/tree,False
+split_polytomies,,phylobuddy,tree,False
+unroot,,phylobuddy,tree,False

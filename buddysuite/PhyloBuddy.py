@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2.1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("PhyloBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -205,10 +205,10 @@ class PhyloBuddy(object):
                                     "Try explicitly setting it with the -f flag.".format(in_file))
             elif raw_seq:
                 raise br.GuessError("Could not automatically determine the format from raw input\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(raw_seq)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(raw_seq[:50]))
             elif in_from_handle:
                 raise br.GuessError("Could not automatically determine the format from input file-like object\n{0} ..."
-                                    "Try explicitly setting it with the -f flag.".format(in_from_handle)[:50])
+                                    "Try explicitly setting it with the -f flag.".format(in_from_handle[:50]))
             else:
                 raise br.GuessError("Unable to determine the format or input type. "
                                     "Please check how PhyloBuddy is being called.")

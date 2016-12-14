@@ -162,18 +162,25 @@ def test_ave_seq_length_pep(sb_resources):
 
 # ######################  '-btr', '--back_translate' ###################### #
 # Only fasta and genbank
-hashes = [('p f', 'human', '1b14489a78bfe8255c777138877b9648'), ('p g', 'human', 'b6bcb4e5104cb202db0ec4c9fc2eaed2'),
-          ('p f', 'yeast', '859ecfb88095f51bfaee6a1d1abeb50f'), ('p g', 'yeast', 'ba5c286b79a3514fba0b960ff81af25b'),
-          ('p f', 'ecoli', '952a91a4506afb57f27136aa1f2a8af9'), ('p g', 'ecoli', '40c4a3e08c811b6bf3be8bedcb5d65a0'),
-          ('p f', 'mouse', '3a3ee57f8dcde25c99a655494b218928'), ('p g', 'mouse', 'bc9f1ec6ec92c30b5053cd9bb6bb6f53')]
+hashes = [('p f', 'human', '1b14489a78bfe8255c777138877b9648', '5e42effd0bb67445200263f4bf59dbeb'),
+          ('p g', 'human', 'b6bcb4e5104cb202db0ec4c9fc2eaed2', '24aac218bb81fe7c6d6e5224035f2efd'),
+          ('p f', 'yeast', '859ecfb88095f51bfaee6a1d1abeb50f', '114b6c4f0a29db275d7832318870bcae'),
+          ('p g', 'yeast', 'ba5c286b79a3514fba0b960ff81af25b', '6349360ff0d24c3876b8970828ee2ea9'),
+          ('p f', 'ecoli', '952a91a4506afb57f27136aa1f2a8af9', '592d09df34a6c34caa2d0ff9dbc54930'),
+          ('p g', 'ecoli', '40c4a3e08c811b6bf3be8bedcb5d65a0', 'ee0cc1ac1a3577c25e7d46d3b227fc7b'),
+          ('p f', 'mouse', '3a3ee57f8dcde25c99a655494b218928', 'eb29f87da4d022e276e19a71aa03c469'),
+          ('p g', 'mouse', 'bc9f1ec6ec92c30b5053cd9bb6bb6f53', 'f4f6f8b14446417f112187f15d1f5d8c')]
 
 
-@pytest.mark.parametrize("key,organism,next_hash", hashes)
-def test_back_translate(key, organism, next_hash, sb_resources, hf):
+@pytest.mark.parametrize("key,organism,opt_hash,rand_hash", hashes)
+def test_back_translate(key, organism, opt_hash, rand_hash, sb_resources, hf):
     tester = sb_resources.get_one(key)
-    # tester.alpha = IUPAC.protein
-    tester = Sb.back_translate(tester, 'OPTIMIZED', organism)
-    assert hf.buddy2hash(tester) == next_hash
+    tester = Sb.back_translate(tester, mode='OPTIMIZED', species=organism)
+    assert hf.buddy2hash(tester) == opt_hash
+
+    tester = sb_resources.get_one(key)
+    tester = Sb.back_translate(tester, species=organism, r_seed=12345)
+    assert hf.buddy2hash(tester) == rand_hash
 
 
 def test_back_translate_nucleotide_exception(sb_resources):
@@ -528,6 +535,18 @@ def test_extract_feature_sequences(sb_resources, hf):
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD", "splice_a"])
     assert hf.buddy2hash(tester) == "78629d308a89b458fb02e71d5568c978"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD2:TMD3"])
+    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD3:TMD2"])
+    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+
+    tester = sb_resources.get_one("d g")
+    tester = Sb.extract_feature_sequences(tester, ["TMD2:foo"])
+    assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, "foo")
@@ -1091,27 +1110,35 @@ def test_order_ids2(sb_resources, hf):
 
 
 # ######################  '-oir', '--order_ids_randomly' ###################### #
-def test_order_ids_randomly(sb_resources, hf):
-    for seqbuddy in sb_resources.get_list(""):
-        tester = Sb.order_ids_randomly(Sb.make_copy(seqbuddy))
-        assert hf.buddy2hash(seqbuddy) != hf.buddy2hash(tester)
-        assert hf.buddy2hash(Sb.order_ids(tester)) == hf.buddy2hash(tester)
+hashes = [('d f', '78fa4ce6cf7fa4e8e82f0a7ccee260dd'), ('d g', '220ae6ddfe74d46127b95f2715e28d0a'),
+          ('d n', '83cff49333f9c3c46ee1f4cf4f5e963e'), ('p py', 'fd91fb622d9f5dad099c7a566dc7bd5b'),
+          ('p pr', '82238767f3d3793e9504eab5b8c286dc'), ('p s', '0c9c4769daed5c765ea9e52a0454ee28')]
+
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_order_ids_randomly(key, next_hash, sb_resources, hf):
+    tester = sb_resources.get_one(key)
+    tester = Sb.order_ids_randomly(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 def test_order_ids_randomly2(sb_resources, hf):
     tester = sb_resources.get_one("d f")
-    for _ in range(15):  # This will fail to repeat the while loop only ~5% of the time
-        Sb.pull_recs(tester, "α[789]")
-        assert hf.buddy2hash(tester) != hf.buddy2hash(Sb.order_ids_randomly(tester))
+    tester = Sb.pull_recs(tester, "α[789]")
+    tester = Sb.order_ids_randomly(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == "e2e95a6f695b5f98746664db179a9aea"
 
     Sb.pull_recs(tester, "α[89]")
-    assert hf.buddy2hash(tester) != hf.buddy2hash(Sb.order_ids_randomly(tester))
+    Sb.order_ids_randomly(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == "6fc8502070994a24ea61e752a5bc28cb"
 
-    Sb.pull_recs(tester, "α[9]")
-    assert hf.buddy2hash(tester) == hf.buddy2hash(Sb.order_ids_randomly(tester))
+    Sb.pull_recs(tester, "α9")
+    Sb.order_ids_randomly(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == "d1d16f79697d7502460ca0d9e65e51b8"
 
-    tester = Sb.SeqBuddy(tester.records * 3)
-    assert hf.buddy2hash(tester) == hf.buddy2hash(Sb.order_ids_randomly(tester))
+    tester = Sb.SeqBuddy(tester.records * 3, out_format="fasta")
+    Sb.order_ids_randomly(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == "bb75e7fc15f131e31271ea5006241615", print(tester)
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##
@@ -1220,12 +1247,16 @@ def test_prosite_scan_run(sb_resources, hf, monkeypatch):
 
 
 # #####################  '-prr', '--pull_random_recs' ###################### ##
-def test_pull_random_recs(sb_resources):
-    for seqbuddy in sb_resources.get_list(""):
-        tester = Sb.pull_random_recs(Sb.make_copy(seqbuddy))
-        orig_seqs = tester.to_dict()
-        assert len(tester.records) == 1
-        assert tester.records[0].id in orig_seqs
+hashes = [('d f', '8a27843a57fc5fdcfc2e3552565a6c1d'), ('d g', 'd5e75f41571a5123769afc9814a571a7'),
+          ('d n', '1f0e0124b2ae310284c773ea01a4f709'), ('p py', '5713b6020069c45e51146b4c16978ded'),
+          ('p pr', 'f1e8bf5bba47a6bbeb229cda55e2bec1'), ('p s', '4e09f49bff7ea0a4903e0906e8c502ed')]
+
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_pull_random_recs(key, next_hash, sb_resources, hf):
+    tester = sb_resources.get_one(key)
+    tester = Sb.pull_random_recs(tester, count=3, r_seed=12345)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # #####################  '-pre', '--pull_record_ends' ###################### ##
@@ -1386,14 +1417,19 @@ def test_select_frame_edges(sb_resources, hf):
 
 
 # ##################### '-ss', 'shuffle_seqs' ###################### ##
-def test_shuffle_seqs(sb_resources, hf):
-    for seqbuddy in sb_resources.get_list(""):
-        tester1 = Sb.make_copy(seqbuddy)
-        tester2 = Sb.shuffle_seqs(seqbuddy)
-        assert hf.buddy2hash(tester1) != hf.buddy2hash(tester2)
+hashes = [('d f', 'a86372ed83afc8ba31001919335017bc'), ('d g', '1222dd65c103fa15a50352670dc95f82'),
+          ('d n', 'ba022b722620d8688c1f70d535142a5b'), ('d py', '14068e77f8c78f98ff9462116c6781f6'),
+          ('d pr', '175821885e688971a818548ff67d0226'), ('d s', '70ba6a80a50c3a99ee3fbb6f5e47c11f'),
+          ('p f', '5194c37d5388792119ec988bd7acfbf5'), ('p g', '287e753f85837630d243553959953609'),
+          ('p n', 'e19f273ea91434427c8c3f585fabf1fc'), ('p py', 'fab43d82a2974e8ed0a8b983278ebdd7'),
+          ('p pr', 'b6a632a612b1249f29a88383b86d1c1c'), ('p s', 'd34648a0c505644fcd4d29045c9fa502')]
 
-        for indx, record in enumerate(tester1.records):
-            assert sorted(record.seq) == sorted(tester2.records[indx].seq)
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_shuffle_seqs(key, next_hash, sb_resources, hf):
+    tester = sb_resources.get_one(key)
+    tester = Sb.shuffle_seqs(tester, r_seed=12345)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # #####################  make_groups' ###################### ##

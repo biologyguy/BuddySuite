@@ -40,20 +40,6 @@ DEPENDENCIES = [
     'ete3',
 ]
 
-CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
-    'Environment :: Console',
-    'Intended Audience :: Science/Research',
-    'License :: Public Domain',
-    'Natural Language :: English',
-    'Operating System :: MacOS',
-    'Operating System :: POSIX :: Linux',
-    'Programming Language :: Python :: 3 :: only',
-    'Topic :: Scientific/Engineering :: Bio-Informatics',
-    'Topic :: Scientific/Engineering :: Medical Science Apps.',
-    'Topic :: Software Development :: Libraries :: Python Modules'
-]
-
 KEYWORDS = [
     'computational biology',
     'computational genetics',
@@ -75,7 +61,7 @@ ENTRY_POINTS = {
 }
 
 setup(name='buddysuite',
-      version='1.2.0',
+      version='1.2.2',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
       long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding="utf-8").read(),
@@ -91,4 +77,21 @@ setup(name='buddysuite',
       keywords=KEYWORDS,
       zip_safe=False,
       cmdclass={'clean': CleanCommand},
+      classifiers=[
+            'Development Status :: 5 - Production/Stable',
+            'Topic :: Scientific/Engineering',
+            'Topic :: Scientific/Engineering :: Bio-Informatics',
+            'Topic :: Software Development :: Libraries :: Python Modules',
+            'Intended Audience :: Science/Research',
+            'Operating System :: MacOS :: MacOS X',
+            'Operating System :: POSIX :: Linux',
+            'Operating System :: Microsoft :: Windows',
+            'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3 :: Only',
+            'License :: Public Domain',
+            'Natural Language :: English',
+            'Environment :: Console',
+            ],
       )
