@@ -40,20 +40,6 @@ DEPENDENCIES = [
     'ete3',
 ]
 
-CLASSIFIERS = [
-    'Development Status :: 3 - Alpha',
-    'Environment :: Console',
-    'Intended Audience :: Science/Research',
-    'License :: Public Domain',
-    'Natural Language :: English',
-    'Operating System :: MacOS',
-    'Operating System :: POSIX :: Linux',
-    'Programming Language :: Python :: 3 :: only',
-    'Topic :: Scientific/Engineering :: Bio-Informatics',
-    'Topic :: Scientific/Engineering :: Medical Science Apps.',
-    'Topic :: Software Development :: Libraries :: Python Modules'
-]
-
 KEYWORDS = [
     'computational biology',
     'computational genetics',
@@ -95,6 +81,7 @@ setup(name='buddysuite',
             'Development Status :: 5 - Production/Stable',
             'Topic :: Scientific/Engineering',
             'Topic :: Scientific/Engineering :: Bio-Informatics',
+            'Topic :: Software Development :: Libraries :: Python Modules',
             'Intended Audience :: Science/Research',
             'Operating System :: MacOS :: MacOS X',
             'Operating System :: POSIX :: Linux',
@@ -104,5 +91,7 @@ setup(name='buddysuite',
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3 :: Only',
             'License :: Public Domain',
+            'Natural Language :: English',
+            'Environment :: Console',
             ],
       )
