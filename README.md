@@ -55,7 +55,7 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
 
 ## Citation
 We are currently working on a [manuscript for peer review](https://github.com/biologyguy/BuddySuite/blob/develop/manuscript/MBE/compile_dir/MBE_article.pdf), but until then
- there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+ there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
 
