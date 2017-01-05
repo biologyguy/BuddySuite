@@ -198,6 +198,41 @@ def test_enforce_triplets_error(alb_resources):
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
+
+# ######################  '-efs', '--extract_feature_sequences' ###################### #
+def test_extract_feature_sequences(alb_resources, hf):
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, "CDS")
+    assert hf.buddy2hash(tester) == "2d8b6524010177f6507dde387146378c"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD"])
+    assert hf.buddy2hash(tester) == "3c20784722e00567cee04f3e7adca99c"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD1", "splice_a"])
+    assert hf.buddy2hash(tester) == "6a556349095dac86339b0e0057467fdd"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD2:TMD3"])
+    assert hf.buddy2hash(tester) == "1076bce8903f736787ce16fd95899af8"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD3:TMD2"])
+    assert hf.buddy2hash(tester) == "1076bce8903f736787ce16fd95899af8"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, ["TMD2:foo"])
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, "foo")
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
+    tester = alb_resources.get_one("o d g")
+    tester = Alb.extract_feature_sequences(tester, [])
+    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+
 # ###########################################  'er', '--extract_regions' ############################################ #
 hashes = [('o d g', '4cef071777cfa87c45302f01b661b2c9'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
           ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '500bca2fb601af601532b38de88fcc31'),
