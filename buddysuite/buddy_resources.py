@@ -40,7 +40,7 @@ from hashlib import md5
 from urllib import request
 from urllib.error import URLError, HTTPError, ContentTooShortError
 from multiprocessing import Process, cpu_count
-from time import time
+from time import time, sleep
 from math import floor
 from tempfile import TemporaryDirectory
 from shutil import copytree, rmtree, copyfile
@@ -68,29 +68,34 @@ class Timer(object):
 
 
 class RunTime(object):
-    def __init__(self, prefix="", postfix="", out_type="stdout"):
-        if out_type not in ["stdout", "stderr"]:
-            raise AttributeError("Only 'stdout' and 'stderr' are valid options for 'out_type'")
+    def __init__(self, prefix=None, postfix=None, out_type=sys.stdout, _sleep=0, final_clear=False):
         self.out_type = out_type
-        self.prefix = prefix
-        self.postfix = postfix
+        self.prefix = prefix if prefix else ""
+        self.postfix = postfix if postfix else ""
         self.running_process = None
+        self.sleep = _sleep
+        self.final_clear = final_clear
 
     def _run(self, check_file_path):
-        out_type = sys.stdout if self.out_type == "stdout" else sys.stderr
-        d_print = DynamicPrint(out_type)
+        d_print = DynamicPrint(self.out_type)
         start_time = round(time())
         elapsed = 0
         while True:
-            with open("%s" % check_file_path, "r", encoding="utf-8") as ifile:
+            prefix = self.prefix if not hasattr(self.prefix, '__call__') else self.prefix()
+            postfix = self.postfix if not hasattr(self.postfix, '__call__') else self.postfix()
+            with open("%s" % check_file_path, "r") as ifile:
                 if round(time()) - start_time == elapsed:
                     continue
                 elif ifile.read() == "Running":
-                    d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
+                    d_print.write("%s%s%s" % (prefix, pretty_time(elapsed), postfix))
                     elapsed = round(time()) - start_time
                 else:
-                    d_print.write("%s%s%s\n" % (self.prefix, pretty_time(elapsed), self.postfix))
+                    if not self.final_clear:
+                        d_print.write("%s%s%s\n" % (prefix, pretty_time(elapsed), postfix))
+                    else:
+                        d_print.clear()
                     break
+            sleep(self.sleep)
         return
 
     def start(self):
