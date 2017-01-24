@@ -1114,7 +1114,6 @@ def blast(subject, query, **kwargs):
 
     query = os.path.abspath(query)
 
-    # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
     # Check that complete blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_bin]:
         if not os.path.isfile("%s.%s" % (query, extension)):
@@ -1166,8 +1165,8 @@ def blast(subject, query, **kwargs):
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
-    br._stderr("Running...\n%s\n############################################################\n\n" %
-            re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
+    br._stderr("Running...\n%s\n\n" %
+               re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
     blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     blast_output = blast_output[1].decode("utf-8")
 
@@ -1201,6 +1200,14 @@ def blast(subject, query, **kwargs):
     if query_sb:
         new_seqs.hash_map = query_sb.hash_map
         new_seqs.reverse_hashmap()
+
+        for key, value in new_seqs.hash_map.items():
+            blast_results = re.sub(key, value, blast_results)
+
+        br._stderr("# ######################## BLAST results ######################## #\n%s"
+                   "# ############################################################### #\n\n" % blast_results,
+                   quiet=kwargs["quiet"])
+
     return new_seqs
 
 
