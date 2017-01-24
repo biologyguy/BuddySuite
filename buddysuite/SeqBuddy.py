@@ -1063,8 +1063,7 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: - Sort out makeblastdb download
-          - Allow mixed sequence types (blastx?)
+    ToDo: Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
