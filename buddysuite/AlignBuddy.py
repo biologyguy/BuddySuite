@@ -1831,6 +1831,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
     # Generate Alignment
     if in_args.generate_alignment:
+        # ToDo: The extra arguments parameter probably doesn't need to be dependent on the tool parameter being passed
         args = in_args.generate_alignment[0]
         if not args:
             for tool in ['mafft', 'pagan', 'muscle', 'clustalo', 'clustalomega', 'prank', 'clustalw2', 'clustalw']:

@@ -1037,6 +1037,9 @@ def bl2seq(seqbuddy):
     lock = Lock()
     tmp_dir = br.TempDir()
 
+    # Remove any gaps
+    seqbuddy = clean_seq(seqbuddy, skip_list=["*"])
+
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
