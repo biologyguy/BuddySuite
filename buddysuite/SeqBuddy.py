@@ -1083,7 +1083,7 @@ def blast(subject, query, **kwargs):
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
     :param kwargs:  - quiet -> [True|False]
-                    - blast_args -> [<any extra blast command line arguments>] !!TODO!!
+                    - blast_args -> [<any extra blast command line arguments>]
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
 
@@ -1098,24 +1098,24 @@ def blast(subject, query, **kwargs):
 
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
+    tmp_dir = br.TempDir()
 
     if query.__class__.__name__ == "SeqBuddy":
         if not _check_for_blast_bin("makeblastdb"):
-            raise SystemError("blastdbcmd not found in system path.")
+            raise SystemError("makeblastdb not found in system path.")
         if subject.alpha != query.alpha:
             raise ValueError("Trying to compare protein to nucleotide.")
-        query_sb = hash_ids(query)
+        query_sb = hash_ids(query, r_seed=12345)
         query_sb = clean_seq(query_sb, skip_list="*")
-        temp_dir = br.TempDir()
-        query_sb.write("%s%squery.fa" % (temp_dir.path, os.path.sep), out_format="fasta")
+        query_sb.write("%s%squery.fa" % (tmp_dir.path, os.path.sep), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
         makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}{2}query.fa -out {1}{2}query_db "
-                            "-parse_seqids".format(dbtype, temp_dir.path, os.path.sep), shell=True,
+                            "-parse_seqids".format(dbtype, tmp_dir.path, os.path.sep), shell=True,
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
         br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
-        query = "%s%squery_db" % (temp_dir.path, os.path.sep)
+        query = "%s%squery_db" % (tmp_dir.path, os.path.sep)
 
     else:
         query_sb = None
@@ -1137,7 +1137,6 @@ def blast(subject, query, **kwargs):
 
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
-    tmp_dir = br.TempDir()
     with open("%s%stmp.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
@@ -1153,9 +1152,9 @@ def blast(subject, query, **kwargs):
                 kwargs["blast_args"] = re.sub("-%s .*-" % no_no, "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-%s .*$" % no_no, "", kwargs["blast_args"])
 
-        num_threads_search = re.search("-num_threads ([0-9]+)", kwargs["blast_args"])
-        if num_threads_search:
+        if "-num_threads" in kwargs["blast_args"]:
             try:
+                num_threads_search = re.search("-num_threads ([^-]*)", kwargs["blast_args"])
                 num_threads = int(num_threads_search.group(1))
                 kwargs["blast_args"] = re.sub("-num_threads .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-num_threads .*$", "", kwargs["blast_args"])
@@ -1163,9 +1162,9 @@ def blast(subject, query, **kwargs):
             except ValueError:
                 raise ValueError("-num_threads expects an integer.")
 
-        evalue_search = re.search("-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
-        if evalue_search:
+        if "-evalue" in kwargs["blast_args"]:
             try:
+                evalue_search = re.search("-evalue ([^-]*)", kwargs["blast_args"])
                 evalue = float(evalue_search.group(1))
                 kwargs["blast_args"] = re.sub("-evalue .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-evalue .*$", "", kwargs["blast_args"])
@@ -1219,10 +1218,9 @@ def blast(subject, query, **kwargs):
         for key, value in new_seqs.hash_map.items():
             blast_results = re.sub(key, value, blast_results)
 
-        br._stderr("# ######################## BLAST results ######################## #\n%s"
-                   "# ############################################################### #\n\n" % blast_results,
-                   quiet=kwargs["quiet"])
-
+    br._stderr("# ######################## BLAST results ######################## #\n%s"
+               "# ############################################################### #\n\n" % blast_results,
+               quiet=kwargs["quiet"])
     return new_seqs
 
 
@@ -3940,7 +3938,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             except br.GuessError:
                 blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
-                _raise_error(e, "blast", ["num_threads expects an integer.", "Trying to compare protein to nucleotide"])
+                _raise_error(e, "blast", ["num_threads expects an integer.", "evalue expects a number",
+                                          "Trying to compare protein to nucleotide"])
 
             if len(blast_res) > 0:
                 _print_recs(blast_res)

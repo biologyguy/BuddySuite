@@ -244,7 +244,7 @@ def test_blast_ui(capsys, sb_resources, sb_odd_resources, hf):
     with pytest.raises(RuntimeError) as err:
         test_in_args.blast = "./foo.bar"
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "The .nhr file of your blast database was not found. " \
+    assert "The .nhr file of your BLASTN database was not found. " \
            "Ensure the -parse_seqids flag was used with makeblastdb." in str(err)
 
 
