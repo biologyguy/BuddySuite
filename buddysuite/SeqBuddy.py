@@ -1090,7 +1090,10 @@ def blast(subject, query, **kwargs):
     if query.__class__.__name__ == "SeqBuddy":
         if not _check_for_blast_bin("makeblastdb"):
             raise SystemError("blastdbcmd not found in system path.")
+        if subject.alpha != query.alpha:
+            raise ValueError("Trying to compare protein to nucleotide.")
         query_sb = hash_ids(query)
+        query_sb = clean_seq(query_sb, skip_list="*")
         temp_dir = br.TempDir()
         query_sb.write("%s%squery.fa" % (temp_dir.path, os.path.sep), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
@@ -1117,8 +1120,8 @@ def blast(subject, query, **kwargs):
     # Check that complete blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_bin]:
         if not os.path.isfile("%s.%s" % (query, extension)):
-            raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
-                               "used with makeblastdb." % extension)
+            raise RuntimeError("The .%s file of your %s database was not found. Ensure the -parse_seqids flag was "
+                               "used with makeblastdb." % (extension, blast_bin.upper()))
 
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
@@ -3891,7 +3894,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             except br.GuessError:
                 blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
-                _raise_error(e, "blast", ["num_threads expects an integer.", ""])
+                _raise_error(e, "blast", ["num_threads expects an integer.", "Trying to compare protein to nucleotide"])
 
             if len(blast_res) > 0:
                 _print_recs(blast_res)
