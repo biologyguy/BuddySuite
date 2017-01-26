@@ -347,7 +347,7 @@ class SeqBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         SeqIO.write(self.records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -1078,7 +1078,6 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
@@ -1086,6 +1085,8 @@ def blast(subject, query, **kwargs):
                     - blast_args -> [<any extra blast command line arguments>]
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
+    # ToDo: Allow mixed sequence types (blastx?)
+    # ToDo: Implement the 'keep' flag so the Databases can be saved.
 
     kwargs["quiet"] = False if "quiet" not in kwargs or not kwargs["quiet"] else True
 
@@ -3739,7 +3740,7 @@ def argparse_init():
 ''',)
 
     br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
-                                  "into SeqBuddy this argument can be left blank."),
+                                  "into SeqBuddy this argument must be left blank."),
              br.sb_flags, br.sb_modifiers, VERSION)
 
     in_args = parser.parse_args()

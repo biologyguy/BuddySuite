@@ -1096,7 +1096,7 @@ def argparse_init():
 ''')
 
     br.flags(parser, ("trees", "Supply file path(s) or raw tree string. If piping trees into PhyloBuddy "
-                               "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
+                               "this argument must be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
     in_args = parser.parse_args()
 
