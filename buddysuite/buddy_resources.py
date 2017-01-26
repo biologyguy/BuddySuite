@@ -1411,7 +1411,7 @@ sb_flags = {"annotate": {"flag": "ano",
                             "action": "append",
                             "nargs": "?",
                             "metavar": "'clean'",
-                            "help": "Concatenate a bunch of sequences into a single solid string. Pass in "
+                            "help": "Concatenate multiple sequences into a single solid string. Pass in "
                                     "the word 'clean' to remove stops, gaps, etc., from the sequences "
                                     "before concatenating"},
             "count_codons": {"flag": "cc",

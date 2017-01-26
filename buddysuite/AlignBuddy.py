@@ -213,7 +213,7 @@ class AlignBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         AlignIO.write(self.alignments, ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -1504,7 +1504,8 @@ def argparse_init():
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    br.flags(parser, ("alignments", "The file(s) you want to start working on"),
+    br.flags(parser, ("alignments", "Supply file path(s) or raw alignments. If piping sequences into AlignBuddy this "
+                                    "argument must be left blank."),
              br.alb_flags, br.alb_modifiers, VERSION)
 
     in_args = parser.parse_args()
