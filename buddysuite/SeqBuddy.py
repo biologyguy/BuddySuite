@@ -3118,12 +3118,13 @@ def pull_recs_with_feature(seqbuddy, regex):
 def purge(seqbuddy, threshold):
     """
     Deletes highly similar sequences
-    ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
-        - This would probably be a different flag in the UI
     :param seqbuddy: SeqBuddy object
     :param threshold: Sets the similarity threshold
     :return: The purged SeqBuddy object
     """
+    # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
+    #    - This would probably be a different flag in the UI
+
     keep_dict = {}
     purged = []
     for query_id, match_list in bl2seq(seqbuddy).items():
