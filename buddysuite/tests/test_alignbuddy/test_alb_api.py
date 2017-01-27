@@ -596,7 +596,7 @@ def test_alignment_edges(monkeypatch, sb_resources):
 
     with pytest.raises(AttributeError) as err:
         Alb.generate_msa(tester, "foo")
-    assert "foo is not a supported alignment tool." in str(err)
+    assert "foo is not a recognized alignment tool. Please check your spelling (case sensitive)" in str(err)
 
     monkeypatch.setattr(br, "ask", lambda *_: False)
     tmp_dir.subdir("keep_files")

@@ -778,7 +778,7 @@ def error_report(trace_back, permission=False):
                 return
 
         else:  # If error is unknown
-            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker\n"
+            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker.\n"
 
     except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)

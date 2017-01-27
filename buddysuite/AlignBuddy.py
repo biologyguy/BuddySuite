@@ -917,7 +917,8 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 tool = prog
                 break
     if not tool:
-        raise AttributeError("{0} is not a supported alignment tool.".format(alias))
+        raise AttributeError("{0} is not a recognized alignment tool. "
+                             "Please check your spelling (case sensitive)".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
         check = br.ask("{0} already exists, so files may be overwritten. Proceed [yes]/no?".format(keep_temp))
@@ -926,13 +927,13 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         keep_temp = os.path.abspath(keep_temp)
 
     if not which(alias):
-        error_msg = '#### Could not find %s in $PATH. ####\n ' \
-                    'Please go to %s to install %s.' % (alias, tool_list[tool]["url"], tool)
+        error_msg = '#### Could not find %s on your system. ####\n ' \
+                    'Please check that your spelling is correct (case sensitive) or go to %s to install %s.' \
+                    % (alias, tool_list[tool]["url"], tool)
         raise SystemError(error_msg)
     else:
         valve = br.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
-        alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
                        "the BuddySuite developers if recurring.")
