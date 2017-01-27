@@ -258,14 +258,14 @@ def test_generate_alignments_edges1(sb_resources):
 
     with pytest.raises(AttributeError) as e:
         Alb.generate_msa(tester, "foo")
-    assert "foo is not a supported alignment tool." in str(e)
+    assert "foo is not a recognized alignment tool. Please check your spelling" in str(e)
 
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['PATH']
         with pytest.raises(SystemError) as err:
             Alb.generate_msa(tester, "mafft")
-        assert "#### Could not find mafft in $PATH. ####" in str(err)
+        assert "#### Could not find mafft on your system. ####" in str(err)
 
 
 args = [("prank", "-f=phylipi"), (clustalo_bin, "--outfmt=foo"), (clustalw_bin, "-output=foo"),

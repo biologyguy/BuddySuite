@@ -565,11 +565,13 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 tool = prog[0]
                 break
     if not tool:
-        raise AttributeError("{0} is not a valid alignment tool.".format(alias))
+        raise AttributeError("{0} is not a recognized tree inference tool. "
+                             "Please check your spelling (case sensitive)".format(alias))
 
     if shutil.which(alias) is None:  # Tool must be callable from command line
-        raise ProcessLookupError('#### Could not find {0} in $PATH. ####\nInstallation instructions '
-                                 'may be found at {1}.\n'.format(alias, _get_tree_binaries(tool)))
+        raise ProcessLookupError('#### Could not find {0} on your system. ####\n'
+                                 'Please check that your spelling is correct (case sensitive) or find installation '
+                                 'instructions at {1}.\n'.format(alias, _get_tree_binaries(tool)))
 
     else:
         tmp_dir = br.TempDir()
