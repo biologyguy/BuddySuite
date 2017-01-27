@@ -915,6 +915,16 @@ def test_find_orf(sb_resources, hf):
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
 
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
+    assert hf.buddy2hash(tester) == "3f87e9996c17c14277355726b82245f3"
+
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
+    assert hf.buddy2hash(tester) == "3527d38b4a1d17c9b2c94fe124c6a0cb"
+
+    with pytest.raises(ValueError) as err:
+        Sb.find_orfs(tester, min_size=2)
+    assert "Open reading frames cannot be smaller than 6 residues." in str(err)
+
     tester = sb_resources.get_one("p g")
     with pytest.raises(TypeError) as err:
         Sb.find_orfs(tester)

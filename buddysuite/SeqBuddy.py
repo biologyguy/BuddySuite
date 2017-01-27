@@ -1979,18 +1979,24 @@ def find_cpg(seqbuddy):
     return seqbuddy
 
 
-def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
+def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True, min_size=None, rev_comp=True):
     """
     Finds all the open reading frames in the sequences and their reverse complements.
     :param seqbuddy: SeqBuddy object
     :param include_feature: Add a new 'orf' feature to records
     :param include_buddy_data: Append information directly to records
+    :param min_size: Smallest ORF that is accepted
+    :param rev_comp: Also include ORFS in the reverse complement sequence
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_orfs"].
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    pattern = "a[tu]g(?:...)*?(?:[tu]aa|[tu]ag|[tu]ga)"
+    if min_size and min_size < 6:
+        raise ValueError("Open reading frames cannot be smaller than 6 residues.")
+
+    min_size = "*" if not min_size else "{%s,}" % ceil((min_size - 6) / 3)  # Minus 6 to account for start/stop
+    pattern = "a[tu]g(?:...)%s?(?:[tu]aa|[tu]ag|[tu]ga)" % min_size
 
     clean_seq(seqbuddy)
     lowercase(seqbuddy)
@@ -1998,11 +2004,12 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
     find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
     lowercase(seqbuddy)
 
-    reverse_complement(seqbuddy)
-    find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
-    lowercase(seqbuddy)
+    if rev_comp:
+        reverse_complement(seqbuddy)
+        find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+        lowercase(seqbuddy)
 
-    reverse_complement(seqbuddy)
+        reverse_complement(seqbuddy)
 
     for rec in seqbuddy.records:
         buddy_data = {'+': [], '-': []}
@@ -4220,8 +4227,19 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Find orfs
     if in_args.find_orfs:
+        min_size = None
+        rev_comp = True
+        for arg in in_args.find_orfs[0]:
+            if arg.lower() == "false":
+                rev_comp = False
+                continue
+            try:
+                min_size = int(arg)
+            except ValueError:
+                pass
+
         try:
-            find_orfs(seqbuddy)
+            find_orfs(seqbuddy, min_size=min_size, rev_comp=rev_comp)
             for rec in seqbuddy.records:
                 pos_indices = rec.buddy_data['find_orfs']['+']
                 neg_indices = rec.buddy_data['find_orfs']['-']
@@ -4231,15 +4249,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                 else:
                     orfs = ", ".join(["%s:%s" % (x[0], x[1]) for x in pos_indices if len(x) > 0])
                     br._stderr("(+) ORFs: %s\n" % orfs, in_args.quiet)
-                if len(neg_indices) <= 0:
-                    br._stderr("(-) ORFs: None\n", in_args.quiet)
-                else:
-                    orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
-                    br._stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
+                if rev_comp:
+                    if len(neg_indices) <= 0:
+                        br._stderr("(-) ORFs: None\n", in_args.quiet)
+                    else:
+                        orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
+                        br._stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
             br._stderr("\n", in_args.quiet)
             _print_recs(seqbuddy)
-        except TypeError as e:
-            _raise_error(e, "find_orfs")
+        except TypeError as err:
+            _raise_error(err, "find_orfs", "Nucleic acid sequence required, not protein.")
+        except ValueError as err:
+            _raise_error(err, "find_orfs", "Open reading frames cannot be smaller than 6 residues.")
         _exit("find_orfs")
 
     # Find pattern
