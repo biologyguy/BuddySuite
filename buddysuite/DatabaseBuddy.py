@@ -2413,7 +2413,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         except (KeyboardInterrupt, br.GuessError) as err:
             print(err)
         except Exception as err:
-            save_file = ".%sDbSessionDump_%s" % (temp_file.name, os.sep)
+            save_file = ".%sDbSessionDump_%s" % (os.sep, temp_file.name)
             temp_file.save(save_file)
             br.send_traceback("DatabaseBuddy", "live_shell", err, VERSION)
             br._stderr("\n%sYour work has been saved to %s, and can be loaded by launching DatabaseBuddy and using "
