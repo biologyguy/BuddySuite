@@ -68,7 +68,17 @@ class Timer(object):
 
 
 class RunTime(object):
-    def __init__(self, prefix=None, postfix=None, out_type=sys.stdout, _sleep=0, final_clear=False):
+    def __init__(self, prefix=None, postfix=None, out_type="stdout", _sleep=0, final_clear=False):
+        """
+        Sets up a dynamic counter that lets the user know how long a job has been going for
+        :param prefix: Some arbitrary text to go in front of the counter message
+        :param postfix:  Some arbitrary text to go behind the counter message
+        :param out_type: Either "stdout" or "stderr". Cannot be sys.stdout/err directly, for pickling reasons
+        :param _sleep: Pause the loop for however many seconds
+        :param final_clear: If set to True, the counter message will be deleted before moving on
+        """
+        if out_type not in ["stdout", "stderr"]:
+            raise ValueError("The 'out_type' parameter must be either 'stdout' or 'stderr', not %s." % out_type)
         self.out_type = out_type
         self.prefix = prefix if prefix else ""
         self.postfix = postfix if postfix else ""
@@ -77,7 +87,8 @@ class RunTime(object):
         self.final_clear = final_clear
 
     def _run(self, check_file_path):
-        d_print = DynamicPrint(self.out_type)
+        out_type = sys.stdout if self.out_type == "stdout" else sys.stderr
+        d_print = DynamicPrint(out_type)
         start_time = round(time())
         elapsed = 0
         while True:

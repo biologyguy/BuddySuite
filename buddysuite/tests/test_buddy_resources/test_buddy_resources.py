@@ -89,6 +89,10 @@ def test_runtime():
     timer.end()
     assert not timer.running_process
 
+    with pytest.raises(ValueError) as err:
+        br.RunTime(out_type=sys.stderr)
+    assert "The 'out_type' parameter must be either 'stdout' or 'stderr', not" in str(err)
+
 
 def test_dynamicprint_init():
     printer = br.DynamicPrint()
