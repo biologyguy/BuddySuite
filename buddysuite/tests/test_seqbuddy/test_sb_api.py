@@ -7,10 +7,12 @@ from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Seq import Seq
 from unittest import mock
 import os
+import re
 import urllib.request
 import suds.client
 import shutil
 import time
+import subprocess
 from collections import OrderedDict
 from copy import copy
 
@@ -218,13 +220,243 @@ def test_bl2_no_binary(sb_resources):
 
 
 # ######################  '-bl', '--blast' ###################### #
-# ToDo: mock output data
-def test_blastn():
-    pass
+class MockPopen(object):
+    def __init__(self, command, shell, stdout=None, stderr=None):
+        self.command = command
+
+    def communicate(self):
+        if self.command[:11] == "makeblastdb":
+            if "nucl" in self.command:
+                output = ["""\
+Building a new DB, current time: 01/25/2017 10:35:34
+New DB name:   Mnemiopsis_cds
+New DB title:  Mnemiopsis_cds.fa
+Sequence type: Nucleotide
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 12 sequences in 0.000432968 seconds.""".encode()]
+            else:
+                output = ["""\
+Building a new DB, current time: 01/25/2017 10:35:34
+New DB name:   {0}{1}Mnemiopsis_pep
+New DB title:  {0}{1}Mnemiopsis_pep.fa
+Sequence type: Protein
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 12 sequences in 0.000432968 seconds.""".encode()]
+        elif "blast_error" in self.command:
+            output = ["", "Some sort of Error".encode()]
+        elif self.command[:6] == "blastn":
+            output = ["".encode(), "".encode()]
+            out_dir = re.search("-out (.*out.txt)", self.command)
+            with open(out_dir.group(1), "w") as ofile:
+                ofile.write("Mle-Panxα12\tem1vubDvb9\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panxα12\towIvkyuadd\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panxα2\towIvkyuadd\t100.000\t1314\t0\t0\t1\t1314\t1\t1314\t0.0\t2427\n")
+        elif self.command[:10] == "blastdbcmd":
+            if "em1vubDvb9" in self.command:
+                output = [">em1vubDvb9 cDNA - ML25997a.\nATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC".encode("utf-8")]
+            else:
+                output = [">owIvkyuadd cDNA - ML25998a.\nATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA".encode("utf-8")]
+        else:
+            output = []
+
+        return output
 
 
-def test_blastp():
-    pass
+def test_blast(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+
+    query = sb_resources.get_one("d g")
+    blast = Sb.blast(Sb.make_copy(subject), query)
+    out, err = capsys.readouterr()
+
+    assert "Building a new DB with makeblastdb" in err
+    assert "Sequence type: Nucleotide" in err
+    assert "New DB" not in err
+
+    assert "blastn -num_threads 4 -evalue 0.01" in err
+
+    assert """\
+# ######################## BLAST results ######################## #
+Mle-Panxα12	Mle-Panxα12	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panxα12	Mle-Panxα2	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panxα2	Mle-Panxα2	100.000	1314	0	0	1	1314	1	1314	0.0	2427
+# ############################################################### #""" in err
+    assert str(blast) == """\
+>Mle-Panxα12 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>Mle-Panxα2 cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+    # This is calling the pre-indexed database instead of a sequence file
+    expected_output = """\
+>em1vubDvb9 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>owIvkyuadd cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+    query = "%s%squery_db" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+    query = "%s%squery_db.n" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+    query = "%s%squery_db.nhr" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+
+def test_blast_quiet(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    blast = Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert str(blast) == """\
+>Mle-Panxα12 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>Mle-Panxα2 cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+
+def test_blast_blacklist_args(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query),
+             blast_args="-db foo -query bar -subject baz -out there -outfmt 7 -not_black_listed 54")
+
+    out, err = capsys.readouterr()
+    black_list = ["db", "query", "subject", "out", "outfmt"]
+    for no_no in black_list:
+        assert "Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" % no_no
+
+    assert "blastn -num_threads 4 -evalue 0.01 -not_black_listed 54" in err
+
+
+def test_blast_num_threads(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-num_threads 5")
+    out, err = capsys.readouterr()
+    assert "blastn -num_threads 5 -evalue 0.01 \n" in err
+
+    with pytest.raises(ValueError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-num_threads foo")
+    assert "-num_threads expects an integer." in str(err)
+
+
+def test_blast_evalue(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-evalue 0.1")
+    out, err = capsys.readouterr()
+    assert "blastn -num_threads 4 -evalue 0.1 \n" in err
+
+    with pytest.raises(ValueError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-evalue foo")
+    assert "-evalue expects a number." in str(err)
+
+
+def test_blast_errors(monkeypatch, capsys, sb_resources, hf):
+    # Note that the order of these tests is important because of all the wonky monkeypatching
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    with pytest.raises(RuntimeError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-blast_error 0.1")
+    assert "Some sort of Error" in str(err)
+
+    os.remove("%s%squery_db.nhr" % (tmp_dir.path, os.sep))
+    with pytest.raises(RuntimeError) as err:
+        Sb.blast(subject, query, blast_args="-delete_nhr 0.1")
+    assert "The .nhr file of your BLASTN database was not found." in str(err)
+
+    query = sb_resources.get_one("p g")
+    with pytest.raises(ValueError) as err:
+        Sb.blast(subject, query)
+    assert "Trying to compare protein to nucleotide." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "makeblastdb" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "makeblastdb not found in system path." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "blastdbcmd" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "blastdbcmd not found in system path." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "blastn" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "blastn not found in system path." in str(err)
 
 
 # ######################  '-cs', '--clean_seq'  ###################### #
@@ -682,6 +914,16 @@ def test_find_orf(sb_resources, hf):
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
+
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
+    assert hf.buddy2hash(tester) == "3f87e9996c17c14277355726b82245f3"
+
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
+    assert hf.buddy2hash(tester) == "3527d38b4a1d17c9b2c94fe124c6a0cb"
+
+    with pytest.raises(ValueError) as err:
+        Sb.find_orfs(tester, min_size=2)
+    assert "Open reading frames cannot be smaller than 6 residues." in str(err)
 
     tester = sb_resources.get_one("p g")
     with pytest.raises(TypeError) as err:

@@ -783,7 +783,7 @@ def error_report(trace_back, permission=False):
                 return
 
         else:  # If error is unknown
-            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker\n"
+            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker.\n"
 
     except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)
@@ -1414,7 +1414,7 @@ sb_flags = {"annotate": {"flag": "ano",
                             "action": "append",
                             "nargs": "?",
                             "metavar": "'clean'",
-                            "help": "Concatenate a bunch of sequences into a single solid string. Pass in "
+                            "help": "Concatenate multiple sequences into a single solid string. Pass in "
                                     "the word 'clean' to remove stops, gaps, etc., from the sequences "
                                     "before concatenating"},
             "count_codons": {"flag": "cc",
@@ -1478,8 +1478,10 @@ sb_flags = {"annotate": {"flag": "ano",
                          "action": "store_true",
                          "help": "Predict regions under strong purifying selection based on high CpG content"},
             "find_orfs": {"flag": "orf",
-                          "action": "store_true",
-                          "help": "Finds all the open reading frames in the sequences and their reverse complements."},
+                          "action": "append",
+                          "nargs": '*',
+                          "metavar": ("[min size (int)]", "[reverse comp (True|False)]"),
+                          "help": "Finds all the open reading frames, or set a minimum threshold size."},
             "find_pattern": {"flag": "fp",
                              "action": "store",
                              "nargs": "+",

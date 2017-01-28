@@ -347,7 +347,7 @@ class SeqBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         SeqIO.write(self.records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -1037,6 +1037,9 @@ def bl2seq(seqbuddy):
     lock = Lock()
     tmp_dir = br.TempDir()
 
+    # Remove any gaps
+    seqbuddy = clean_seq(seqbuddy, skip_list=["*"])
+
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
@@ -1075,15 +1078,15 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: - Sort out makeblastdb download
-          - Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
     :param kwargs:  - quiet -> [True|False]
-                    - blast_args -> [<any extra blast command line arguments>] !!TODO!!
+                    - blast_args -> [<any extra blast command line arguments>]
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
+    # ToDo: Allow mixed sequence types (blastx?)
+    # ToDo: Implement the 'keep' flag so the Databases can be saved.
 
     kwargs["quiet"] = False if "quiet" not in kwargs or not kwargs["quiet"] else True
 
@@ -1096,21 +1099,24 @@ def blast(subject, query, **kwargs):
 
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
+    tmp_dir = br.TempDir()
 
     if query.__class__.__name__ == "SeqBuddy":
         if not _check_for_blast_bin("makeblastdb"):
-            raise SystemError("blastdbcmd not found in system path.")
-        query_sb = hash_ids(query)
-        temp_dir = br.TempDir()
-        query_sb.write("%s%squery.fa" % (temp_dir.path, os.path.sep), out_format="fasta")
+            raise SystemError("makeblastdb not found in system path.")
+        if subject.alpha != query.alpha:
+            raise ValueError("Trying to compare protein to nucleotide.")
+        query_sb = hash_ids(query, r_seed=12345)
+        query_sb = clean_seq(query_sb, skip_list="*")
+        query_sb.write("%s%squery.fa" % (tmp_dir.path, os.path.sep), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
         makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}{2}query.fa -out {1}{2}query_db "
-                            "-parse_seqids".format(dbtype, temp_dir.path, os.path.sep), shell=True,
+                            "-parse_seqids".format(dbtype, tmp_dir.path, os.path.sep), shell=True,
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
         br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
-        query = "%s%squery_db" % (temp_dir.path, os.path.sep)
+        query = "%s%squery_db" % (tmp_dir.path, os.path.sep)
 
     else:
         query_sb = None
@@ -1124,16 +1130,14 @@ def blast(subject, query, **kwargs):
 
     query = os.path.abspath(query)
 
-    # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
     # Check that complete blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_bin]:
         if not os.path.isfile("%s.%s" % (query, extension)):
-            raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
-                               "used with makeblastdb." % extension)
+            raise RuntimeError("The .%s file of your %s database was not found. Ensure the -parse_seqids flag was "
+                               "used with makeblastdb." % (extension, blast_bin.upper()))
 
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
-    tmp_dir = br.TempDir()
     with open("%s%stmp.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
@@ -1149,9 +1153,9 @@ def blast(subject, query, **kwargs):
                 kwargs["blast_args"] = re.sub("-%s .*-" % no_no, "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-%s .*$" % no_no, "", kwargs["blast_args"])
 
-        num_threads_search = re.search("-num_threads ([0-9]+)", kwargs["blast_args"])
-        if num_threads_search:
+        if "-num_threads" in kwargs["blast_args"]:
             try:
+                num_threads_search = re.search("-num_threads ([^-]*)", kwargs["blast_args"])
                 num_threads = int(num_threads_search.group(1))
                 kwargs["blast_args"] = re.sub("-num_threads .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-num_threads .*$", "", kwargs["blast_args"])
@@ -1159,9 +1163,9 @@ def blast(subject, query, **kwargs):
             except ValueError:
                 raise ValueError("-num_threads expects an integer.")
 
-        evalue_search = re.search("-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
-        if evalue_search:
+        if "-evalue" in kwargs["blast_args"]:
             try:
+                evalue_search = re.search("-evalue ([^-]*)", kwargs["blast_args"])
                 evalue = float(evalue_search.group(1))
                 kwargs["blast_args"] = re.sub("-evalue .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-evalue .*$", "", kwargs["blast_args"])
@@ -1176,8 +1180,8 @@ def blast(subject, query, **kwargs):
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
-    br._stderr("Running...\n%s\n############################################################\n\n" %
-            re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
+    br._stderr("Running...\n%s\n\n" %
+               re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
     blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     blast_output = blast_output[1].decode("utf-8")
 
@@ -1211,6 +1215,13 @@ def blast(subject, query, **kwargs):
     if query_sb:
         new_seqs.hash_map = query_sb.hash_map
         new_seqs.reverse_hashmap()
+
+        for key, value in new_seqs.hash_map.items():
+            blast_results = re.sub(key, value, blast_results)
+
+    br._stderr("# ######################## BLAST results ######################## #\n%s"
+               "# ############################################################### #\n\n" % blast_results,
+               quiet=kwargs["quiet"])
     return new_seqs
 
 
@@ -1970,18 +1981,24 @@ def find_cpg(seqbuddy):
     return seqbuddy
 
 
-def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
+def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True, min_size=None, rev_comp=True):
     """
     Finds all the open reading frames in the sequences and their reverse complements.
     :param seqbuddy: SeqBuddy object
     :param include_feature: Add a new 'orf' feature to records
     :param include_buddy_data: Append information directly to records
+    :param min_size: Smallest ORF that is accepted
+    :param rev_comp: Also include ORFS in the reverse complement sequence
     :return: Annotated SeqBuddy object. The match indices are also stored in rec.buddy_data["find_orfs"].
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Nucleic acid sequence required, not protein.")
 
-    pattern = "a[tu]g(?:...)*?(?:[tu]aa|[tu]ag|[tu]ga)"
+    if min_size and min_size < 6:
+        raise ValueError("Open reading frames cannot be smaller than 6 residues.")
+
+    min_size = "*" if not min_size else "{%s,}" % ceil((min_size - 6) / 3)  # Minus 6 to account for start/stop
+    pattern = "a[tu]g(?:...)%s?(?:[tu]aa|[tu]ag|[tu]ga)" % min_size
 
     clean_seq(seqbuddy)
     lowercase(seqbuddy)
@@ -1989,11 +2006,12 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
     find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
     lowercase(seqbuddy)
 
-    reverse_complement(seqbuddy)
-    find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
-    lowercase(seqbuddy)
+    if rev_comp:
+        reverse_complement(seqbuddy)
+        find_pattern(seqbuddy, pattern, ambig=True, include_feature=True, include_buddy_data=False)
+        lowercase(seqbuddy)
 
-    reverse_complement(seqbuddy)
+        reverse_complement(seqbuddy)
 
     for rec in seqbuddy.records:
         buddy_data = {'+': [], '-': []}
@@ -3109,12 +3127,13 @@ def pull_recs_with_feature(seqbuddy, regex):
 def purge(seqbuddy, threshold):
     """
     Deletes highly similar sequences
-    ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
-        - This would probably be a different flag in the UI
     :param seqbuddy: SeqBuddy object
     :param threshold: Sets the similarity threshold
     :return: The purged SeqBuddy object
     """
+    # ToDo: Implement a way to return a certain # of seqs (i.e. auto-determine threshold)
+    #    - This would probably be a different flag in the UI
+
     keep_dict = {}
     purged = []
     for query_id, match_list in bl2seq(seqbuddy).items():
@@ -3731,7 +3750,7 @@ def argparse_init():
 ''',)
 
     br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
-                                  "into SeqBuddy this argument can be left blank."),
+                                  "into SeqBuddy this argument must be left blank."),
              br.sb_flags, br.sb_modifiers, VERSION)
 
     in_args = parser.parse_args()
@@ -3930,7 +3949,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             except br.GuessError:
                 blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
-                _raise_error(e, "blast", ["num_threads expects an integer.", ""])
+                _raise_error(e, "blast", ["num_threads expects an integer.", "evalue expects a number",
+                                          "Trying to compare protein to nucleotide"])
 
             if len(blast_res) > 0:
                 _print_recs(blast_res)
@@ -4218,8 +4238,19 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Find orfs
     if in_args.find_orfs:
+        min_size = None
+        rev_comp = True
+        for arg in in_args.find_orfs[0]:
+            if arg.lower() == "false":
+                rev_comp = False
+                continue
+            try:
+                min_size = int(arg)
+            except ValueError:
+                pass
+
         try:
-            find_orfs(seqbuddy)
+            find_orfs(seqbuddy, min_size=min_size, rev_comp=rev_comp)
             for rec in seqbuddy.records:
                 pos_indices = rec.buddy_data['find_orfs']['+']
                 neg_indices = rec.buddy_data['find_orfs']['-']
@@ -4229,15 +4260,18 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                 else:
                     orfs = ", ".join(["%s:%s" % (x[0], x[1]) for x in pos_indices if len(x) > 0])
                     br._stderr("(+) ORFs: %s\n" % orfs, in_args.quiet)
-                if len(neg_indices) <= 0:
-                    br._stderr("(-) ORFs: None\n", in_args.quiet)
-                else:
-                    orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
-                    br._stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
+                if rev_comp:
+                    if len(neg_indices) <= 0:
+                        br._stderr("(-) ORFs: None\n", in_args.quiet)
+                    else:
+                        orfs = ", ".join(["%s:%s" % (x[1], x[0]) for x in neg_indices if len(x) > 0])
+                        br._stderr("(-) ORFs: %s\n" % orfs, in_args.quiet)
             br._stderr("\n", in_args.quiet)
             _print_recs(seqbuddy)
-        except TypeError as e:
-            _raise_error(e, "find_orfs")
+        except TypeError as err:
+            _raise_error(err, "find_orfs", "Nucleic acid sequence required, not protein.")
+        except ValueError as err:
+            _raise_error(err, "find_orfs", "Open reading frames cannot be smaller than 6 residues.")
         _exit("find_orfs")
 
     # Find pattern

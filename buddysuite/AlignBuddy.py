@@ -213,7 +213,7 @@ class AlignBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         AlignIO.write(self.alignments, ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -959,7 +959,8 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 tool = prog
                 break
     if not tool:
-        raise AttributeError("{0} is not a supported alignment tool.".format(alias))
+        raise AttributeError("{0} is not a recognized alignment tool. "
+                             "Please check your spelling (case sensitive)".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
         check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
@@ -968,13 +969,13 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         keep_temp = os.path.abspath(keep_temp)
 
     if not which(alias):
-        error_msg = '#### Could not find %s in $PATH. ####\n ' \
-                    'Please go to %s to install %s.' % (alias, tool_list[tool]["url"], tool)
+        error_msg = '#### Could not find %s on your system. ####\n ' \
+                    'Please check that your spelling is correct (case sensitive) or go to %s to install %s.' \
+                    % (alias, tool_list[tool]["url"], tool)
         raise SystemError(error_msg)
     else:
         valve = br.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
-        alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
                        "the BuddySuite developers if recurring.")
@@ -1546,7 +1547,8 @@ def argparse_init():
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    br.flags(parser, ("alignments", "The file(s) you want to start working on"),
+    br.flags(parser, ("alignments", "Supply file path(s) or raw alignments. If piping sequences into AlignBuddy this "
+                                    "argument must be left blank."),
              br.alb_flags, br.alb_modifiers, VERSION)
 
     in_args = parser.parse_args()
@@ -1840,6 +1842,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
 
     # Generate Alignment
     if in_args.generate_alignment:
+        # ToDo: The extra arguments parameter probably doesn't need to be dependent on the tool parameter being passed
         args = in_args.generate_alignment[0]
         if not args:
             for tool in ['mafft', 'pagan', 'muscle', 'clustalo', 'clustalomega', 'prank', 'clustalw2', 'clustalw']:

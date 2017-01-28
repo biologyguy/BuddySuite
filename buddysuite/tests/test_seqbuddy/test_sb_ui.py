@@ -63,6 +63,10 @@ def mock_raisetypeerror(*args, **kwargs):
     raise TypeError("Fake TypeError: %s, %s" % (args, kwargs))
 
 
+def mock_raisevalueerror(*args, **kwargs):
+    raise ValueError("Fake ValueError: %s, %s" % (args, kwargs))
+
+
 def mock_raiseruntimeerror(*args, **kwargs):
     raise RuntimeError("Fake RuntimeError: %s, %s" % (args, kwargs))
 
@@ -244,7 +248,7 @@ def test_blast_ui(capsys, sb_resources, sb_odd_resources, hf):
     with pytest.raises(RuntimeError) as err:
         test_in_args.blast = "./foo.bar"
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "The .nhr file of your blast database was not found. " \
+    assert "The .nhr file of your BLASTN database was not found. " \
            "Ensure the -parse_seqids flag was used with makeblastdb." in str(err)
 
 
@@ -504,21 +508,60 @@ def test_find_cpg_ui(capsys, sb_resources, hf):
 # ######################  '-orf', '--find_orfs' ###################### #
 def test_find_orfs_ui(capsys, sb_resources, hf, monkeypatch):
     test_in_args = deepcopy(in_args)
-    test_in_args.find_orfs = True
+    test_in_args.find_orfs = [[]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
     assert hf.string2hash("%s\n%s" % (err, out)) == "1f29f572c06d4f9c69930053a6113a8d"
 
+    test_in_args.find_orfs = [['500']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "ecf3a2199b2d9b206e96bfa9ccd8cd77"
+
+    test_in_args.find_orfs = [['FalSe']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "3f00fdc68c036051d35c605e49a90423"
+
+    test_in_args.find_orfs = [['TRUE', '500']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "ecf3a2199b2d9b206e96bfa9ccd8cd77"
+
+    test_in_args.find_orfs = [['Foo', '500']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "ecf3a2199b2d9b206e96bfa9ccd8cd77"
+
+    test_in_args.find_orfs = [['false', '500']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "3f00fdc68c036051d35c605e49a90423"
+
+    test_in_args.find_orfs = [['500', 'FALSE']]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "3f00fdc68c036051d35c605e49a90423"
+
+    test_in_args.find_orfs = [['200', 'false', 'TRUE', '500']]  # This should work out to False and 500
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash("%s\n%s" % (err, out)) == "3f00fdc68c036051d35c605e49a90423"
+
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_regions(tester, "30:50")
+    test_in_args.find_orfs = [[]]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert hf.string2hash("%s\n%s" % (err, out)) == "786422d2a37b56222f97363d11e750ac"
 
     monkeypatch.setattr(Sb, "find_orfs", mock_raisetypeerror)
-    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
-    out, err = capsys.readouterr()
-    assert "TypeError" in err
+    with pytest.raises(TypeError):
+        Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+
+    monkeypatch.setattr(Sb, "find_orfs", mock_raisevalueerror)
+    with pytest.raises(ValueError):
+        Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
 
 
 # ######################  '-fp', '--find_pattern' ###################### #
