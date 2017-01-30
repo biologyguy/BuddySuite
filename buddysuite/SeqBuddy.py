@@ -3038,7 +3038,7 @@ class PrositeScan(object):
         for indx, rec in enumerate(seqbuddy_copy.records):
             for match in rec.buddy_data['find_patterns']["\*"]:
                 rec_2 = self.seqbuddy.records[indx]
-                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match:]
                 rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
 
         if seqbuddy_copy.alpha != IUPAC.protein:
