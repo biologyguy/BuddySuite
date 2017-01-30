@@ -2016,17 +2016,35 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True, min_size=
     for rec in seqbuddy.records:
         buddy_data = {'+': [], '-': []}
         feature_indicies = []
+        orf_list = []
+
         for indx, feature in enumerate(rec.features):
             if 'regex' in feature.qualifiers.keys() and feature.qualifiers['regex'] == pattern:
-                if include_feature:
-                    feature.type = "orf"
-                    strand = "+" if feature.strand == +1 else "-"
-                    feature.qualifiers.pop("regex")
-                    buddy_data[strand].append((int(feature.location.start), int(feature.location.end)))
-                else:
-                    feature_indicies.append(indx)
+                feature.type = "orf" if feature.strand == +1 else "comp_orf"
+                strand = "+" if feature.strand == +1 else "-"
+                feature.qualifiers.pop("regex")
+                buddy_data[strand].append((int(feature.location.start), int(feature.location.end)))
+                feature_indicies.append(indx)
+                orf_list.append(feature)
+
         for indx in sorted(feature_indicies, reverse=True):
             del rec.features[indx]
+
+        if include_feature:
+            orf_list = [(int(feature.location.end) - int(feature.location.start), feature) for feature in orf_list]
+            orf_list = sorted(orf_list, key=lambda x: x[0], reverse=True)
+            orf_list = [feature[1] for feature in orf_list]
+            orf_count = 1
+            comp_orf_count = 1
+            for orf in orf_list:
+                if orf.type == "orf":
+                    orf.type = "orf%s" % orf_count
+                    orf_count += 1
+                else:
+                    orf.type = "comp_orf%s" % comp_orf_count
+                    comp_orf_count += 1
+
+            rec.features += orf_list
 
         if include_buddy_data:
             _add_buddy_data(rec, 'find_orfs')

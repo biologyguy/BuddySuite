@@ -894,10 +894,10 @@ def test_find_cpg(sb_resources, hf):
 def test_find_orf(sb_resources, hf):
     tester = Sb.SeqBuddy("ATGAAATTTCCCGGGTAG", in_format='raw', out_format='gb')
     tester = Sb.find_orfs(tester)
-    assert hf.buddy2hash(tester) == "a9b8d1e17474184534f018d022c31c2a"
+    assert hf.buddy2hash(tester) == "7dd1292cb25413be4556a59b5a18f165"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
-    assert hf.buddy2hash(tester) == "7aee4906f59842b13ba086fbb32e524d"
+    assert hf.buddy2hash(tester) == "4aab797fc337ad4d00fbc7b439c601f4"
 
     tester.out_format = "fasta"
     assert hf.buddy2hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
@@ -909,17 +909,17 @@ def test_find_orf(sb_resources, hf):
     assert hf.buddy2hash(tester) == "d2db9b02485e80323c487c1dd6f1425b"
 
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == "2998cb6379a50ddb74deee05075430c0"
+    assert hf.buddy2hash(tester) == "8d779ee300503b47a66b0078410f5719"
 
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
-    assert hf.buddy2hash(tester) == "3f87e9996c17c14277355726b82245f3"
+    assert hf.buddy2hash(tester) == "814a914fb09bd49ae6f4d77cfaebb6ae"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
-    assert hf.buddy2hash(tester) == "3527d38b4a1d17c9b2c94fe124c6a0cb"
+    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
 
     with pytest.raises(ValueError) as err:
         Sb.find_orfs(tester, min_size=2)
