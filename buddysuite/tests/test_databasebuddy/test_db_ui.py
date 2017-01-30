@@ -161,7 +161,7 @@ def test_liveshell_postcmd(monkeypatch):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     assert liveshell.postcmd("STOP!", "foo bar line") == "STOP!"
-    assert liveshell.usage.stats['LiveShell'] == {Db.VERSION.short(): {'foo': 1}}
+    assert liveshell.usage.stats['LiveShell'][Db.VERSION.short()]['foo'] == 1
 
 
 def test_liveshell_dump_session(monkeypatch):
