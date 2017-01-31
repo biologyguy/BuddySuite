@@ -3398,7 +3398,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
                     new_seq[new_seq_indx] = "N"
                 new_seq_indx += 1
 
-        new_seq = "".join(new_seq) if new_seq[-1] != "" else "".join(new_seq[:-1])
+        new_seq = "".join(new_seq) if new_seq and new_seq[-1] != "" else "".join(new_seq[:-1])
         new_seq = Seq(new_seq, IUPAC.protein)
         rec.seq = new_seq
         rec.features = []
