@@ -511,12 +511,12 @@ def test_find_orfs_ui(capsys, sb_resources, hf, monkeypatch):
     test_in_args.find_orfs = [[]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash("%s\n%s" % (err, out)) == "fc729efb5d64e62f6815b43a758a8ec0"
+    assert hf.string2hash("%s\n%s" % (err, out)) == "e146d666d326380490736f4e855c015a"
 
     test_in_args.find_orfs = [['500']]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash("%s\n%s" % (err, out)) == "d9b92f14d6151fd1307dbae6b51a8122"
+    assert hf.string2hash("%s\n%s" % (err, out)) == "fba8ba5083914b8ee518924f6e4881c8"
 
     test_in_args.find_orfs = [['FalSe']]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
@@ -526,12 +526,12 @@ def test_find_orfs_ui(capsys, sb_resources, hf, monkeypatch):
     test_in_args.find_orfs = [['TRUE', '500']]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash("%s\n%s" % (err, out)) == "d9b92f14d6151fd1307dbae6b51a8122"
+    assert hf.string2hash("%s\n%s" % (err, out)) == "fba8ba5083914b8ee518924f6e4881c8"
 
     test_in_args.find_orfs = [['Foo', '500']]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash("%s\n%s" % (err, out)) == "d9b92f14d6151fd1307dbae6b51a8122"
+    assert hf.string2hash("%s\n%s" % (err, out)) == "fba8ba5083914b8ee518924f6e4881c8"
 
     test_in_args.find_orfs = [['false', '500']]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)

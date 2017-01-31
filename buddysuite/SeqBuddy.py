@@ -1997,8 +1997,7 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True, min_size=
     if min_size and min_size < 6:
         raise ValueError("Open reading frames cannot be smaller than 6 residues.")
 
-    min_size = "*" if not min_size else "{%s,}" % ceil((min_size - 6) / 3)  # Minus 6 to account for start/stop
-    pattern = "a[tu]g(?:...)%s?(?:[tu]aa|[tu]ag|[tu]ga)" % min_size
+    pattern = "a[tu]g(...)*?([tu]aa|[tu]ag|[tu]ga)"
 
     clean_seq(seqbuddy)
     lowercase(seqbuddy)
@@ -2017,15 +2016,17 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True, min_size=
         buddy_data = {'+': [], '-': []}
         feature_indicies = []
         orf_list = []
+        min_size = min_size if min_size else 9
 
         for indx, feature in enumerate(rec.features):
             if 'regex' in feature.qualifiers.keys() and feature.qualifiers['regex'] == pattern:
                 feature.type = "orf" if feature.strand == +1 else "comp_orf"
                 strand = "+" if feature.strand == +1 else "-"
                 feature.qualifiers.pop("regex")
-                buddy_data[strand].append((int(feature.location.start), int(feature.location.end)))
                 feature_indicies.append(indx)
-                orf_list.append(feature)
+                if len(feature) >= min_size:
+                    buddy_data[strand].append((int(feature.location.start), int(feature.location.end)))
+                    orf_list.append(feature)
 
         for indx in sorted(feature_indicies, reverse=True):
             del rec.features[indx]

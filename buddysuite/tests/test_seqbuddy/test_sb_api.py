@@ -897,7 +897,7 @@ def test_find_orf(sb_resources, hf):
     assert hf.buddy2hash(tester) == "7dd1292cb25413be4556a59b5a18f165"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
-    assert hf.buddy2hash(tester) == "4aab797fc337ad4d00fbc7b439c601f4"
+    assert hf.buddy2hash(tester) == "214851fb21af6e6710414f132ae379ad"
 
     tester.out_format = "fasta"
     assert hf.buddy2hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
@@ -909,14 +909,14 @@ def test_find_orf(sb_resources, hf):
     assert hf.buddy2hash(tester) == "d2db9b02485e80323c487c1dd6f1425b"
 
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == "8d779ee300503b47a66b0078410f5719"
+    assert hf.buddy2hash(tester) == "06c589abf5ab1c26c6458a9687f9acdc"
 
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
-    assert hf.buddy2hash(tester) == "814a914fb09bd49ae6f4d77cfaebb6ae"
+    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
     assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
