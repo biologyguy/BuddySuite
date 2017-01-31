@@ -282,7 +282,7 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "6ff2a8a7c58bb6ac0d98fe373981e220"
+    assert hf.string2hash(out) == "34c7d45c3f279df93ba82840f4320a5a"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -653,7 +653,7 @@ def test_translate_ui(capsys, alb_resources, hf):
     test_in_args.translate = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "a949edce98525924dbbc3ced03c18214"
+    assert hf.string2hash(out) == "625f68463c93310015c6f43100c6b96e"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
@@ -666,12 +666,12 @@ def test_trimal_ui(capsys, alb_resources, hf):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
+    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
+    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)

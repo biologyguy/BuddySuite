@@ -405,6 +405,8 @@ class FeatureReMapper(object):
                 if feature:
                     new_features.append(feature)
             new_records[indx].features = new_features
+            new_records[indx].annotations = rec.annotations
+            new_records[indx].dbxrefs = rec.dbxrefs
         return
 
     def _remap(self, feature):
