@@ -1853,7 +1853,8 @@ def extract_regions(seqbuddy, positions):
                     remapper.extend(False)
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1861,7 +1862,8 @@ def extract_regions(seqbuddy, positions):
                 new_seq.append(seq[indx])
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
 
         new_records.append(new_seq)
 
