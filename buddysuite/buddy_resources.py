@@ -1290,6 +1290,8 @@ def remap_gapped_features(old_records, new_records):
             if feat:
                 features.append(feat)
         new_rec.features = features
+        new_rec.annotations = old_rec.annotations
+        new_rec.dbxrefs = old_rec.dbxrefs
     return new_records
 
 
