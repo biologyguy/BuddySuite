@@ -122,9 +122,9 @@ def test_consensus(alb_resources, hf, key, next_hash):
 
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
-hashes = [('o d g', 'b418ba198da2b4a268a962db32cc2a31'), ('o d n', '355a98dad5cf382797eb907e83940978'),
+hashes = [('o d g', '4ed91c21c917622388a93128152722a7'), ('o d n', '355a98dad5cf382797eb907e83940978'),
           ('o d py', 'fe9a2776558f3fe9a1732c777c4bc9ac'), ('o d s', '35dc92c4f4697fb508eb1feca43d9d75'),
-          ('o r n', '96e6964115200d46c7cb4eb975718304'), ('o p g', '50e09d37a92af595f6fe881d4e57bfc5'),
+          ('o r n', '96e6964115200d46c7cb4eb975718304'), ('o p g', 'ca66e93287373b658c70d424264f4470'),
           ('o p n', '1cfaa4109c5db8fbfeaedabdc57af655'), ('o p py', '1d0e7b4d8e89b42b0ef7cc8c40ed1a93'),
           ('o p s', '1578d98739d2aa6196463957c7b408fa'), ('m d py', 'db4ed247b40707e8e1f0622bb420733b'),
           ('m d s', 'de5beddbc7f0a7f8e3dc2d5fd43b7b29'), ('m p py', '31f91f7dc548e4b075bfb0fdd7d5c82c'),
@@ -175,7 +175,7 @@ def test_reverse_transcribe_exceptions(alb_resources):  # Asserts that a TypeErr
 
 
 # ###########################################  '-et', '--enforce_triplets' ########################################### #
-hashes = [('o d g', '6ff2a8a7c58bb6ac0d98fe373981e220'), ('o d n', 'c907d29434fe2b45db60f1a9b70f110d'),
+hashes = [('o d g', '34c7d45c3f279df93ba82840f4320a5a'), ('o d n', 'c907d29434fe2b45db60f1a9b70f110d'),
           ('o d py', 'b6cf61c86588023b58257c9008c862b5'), ('o r n', '0ed7383ab2897f8350c2791739f0b0a4'),
           ('m d py', '669ffc4fa602fb101c559cb576bddee1')]
 
@@ -717,8 +717,8 @@ def test_order_ids2(alb_resources, hf):
     assert hf.buddy2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
 
 # ##################### '-pr', '--pull_records' ###################### ##
-hashes = [('o d g', '7d1091e16adc09e658563867e7c6bc35'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
-          ('o d py', 'd141752c38a892ccca800c637f609608'), ('o p g', 'efe1f01a6372519e314003572a269702'),
+hashes = [('o d g', '45b81626aaf64c32ed2d6558104c1514'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
+          ('o d py', 'd141752c38a892ccca800c637f609608'), ('o p g', '575242880f8fba5368094794a3313291'),
           ('o p n', '027bbc7e34522f9521f83ee7d03793a1'), ('o p py', '2cd74d7ede4d1fb6e18363567426437e'),
           ('m d py', '7c77c6f3245c21842f4be585714ec6ce'), ('m p py', 'f34fa4c34cfe5c1e6b228949557c9483')]
 
@@ -745,7 +745,7 @@ def test_rename_ids(key, next_hash, alb_resources, hf):
 
 
 # ###########################################  'tr', '--translate' ############################################ #
-hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', 'a949edce98525924dbbc3ced03c18214'),
+hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', '625f68463c93310015c6f43100c6b96e'),
           ('o d n', 'a2586af672ad71f16bbd54f359b323ff'), ('o d py', 'd0d4dd408e559215b2780f4f0ae0c418'),
           ('o d pr', 'f77705e32cd753267916539ee0936e1f'), ('o d pss', 'ede672b15221ec60981287ca1e286c52'),
           ('o d psr', '623fe1634752e812f482cfa7b7ea20ee'), ('o d s', '4ff563c39229d30aa3eda193cb290344'),
