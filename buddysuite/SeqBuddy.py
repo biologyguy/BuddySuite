@@ -2911,7 +2911,7 @@ class PrositeScan(object):
             spans = re.findall('([0-9]+ - [0-9]+)', feature)
             for span in spans:
                 span = span.split(" ")
-                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
+                feature = SeqFeature(FeatureLocation(int(span[0]) - 1, int(span[2])), type=feat_type)
                 feature_list.append(feature)
 
         temp_seq = SeqBuddy([_rec], out_format="gb")
