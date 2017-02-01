@@ -55,15 +55,15 @@ The European Molecular Biology Open Software Suite (EMBOSS) \cite{Rice:2000wr} a
 One of the greatest advantages BuddySuite has over other programs is its handling of sequence feature annotation. Rich flatfile specifications such as GenBank and EMBL support annotation, but this information is generally discarded by EMBOSS, and Biopieces is unable to create new records in these formats itself. BuddySuite modules recognize features in sequence files during processing and will update those annotations if a sequence is modified. For example, when a GenBank cDNA file is translated to protein, the relative position of each feature is scaled by one-third to account for the conversion of codons to amino acids. Similarly, if those protein sequences are passed into a supported multiple sequence alignment program, such as MAFFT \cite{Katoh:2013hm}, the feature positions will be adjusted to account for gaps.
 
 \begin{table}[!t]
-\tableparts{\caption{File format support provided by each BuddySuite module for reading (R) and writing (W).\label{table:formats}}}
+\tableparts{\caption{File format support for reading (R) and writing (W) provided by each BuddySuite module.\label{table:formats}}}
       {\tabcolsep=4pt\begin{tabular}{@{\extracolsep{\fill}}llll@{}}
         \toprule
         Format							& SeqBuddy  					& AlignBuddy   					& PhyloBuddy
         \\\colrule
         Clustal 						& R \& W\textsuperscript{\dag} 	& R \& W						& None \\ 
-        EMBL\textsuperscript{\ddag} 	& R \& W						& R\textsuperscript{\dag}\& W	& None \\
-        FASTA 							& R \& W						& R\textsuperscript{\dag}\& W	& None \\
-        GenBank\textsuperscript{\ddag} 	& R \& W						& R\textsuperscript{\dag}\& W 	& None \\
+        EMBL\textsuperscript{\ddag} 	& R \& W						& R\textsuperscript{\dag} \& W	& None \\
+        FASTA 							& R \& W						& R\textsuperscript{\dag} \& W	& None \\
+        GenBank\textsuperscript{\ddag} 	& R \& W						& R\textsuperscript{\dag} \& W 	& None \\
         Nexus 							& R \& W\textsuperscript{\dag}	& R \& W						& R \& W \\ 
         Newick 							& None							& None							& R \& W \\ 
         NeXML							& None							& None							& R \& W \\
@@ -71,7 +71,7 @@ One of the greatest advantages BuddySuite has over other programs is its handlin
         PHYLIP (sequential)				& R \& W\textsuperscript{\dag} 	& R \& W						& None \\	
         SeqXML							& R \& W						& None							& None \\ 
         Stockholm						& R \& W\textsuperscript{\dag} 	& R \& W						& None \\ 
-        SWISS-PROT\textsuperscript{\ddag} & R only						& None							& None
+        Swissprot\textsuperscript{\ddag}& R only						& None							& None
         \\\botrule
       \end{tabular}}
 {\tablenote{\textsuperscript{\dag}All sequences must be the same length \\
