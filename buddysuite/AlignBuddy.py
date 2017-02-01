@@ -1865,7 +1865,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
                 alignbuddy.set_format(in_args.out_format)
             _print_aligments(alignbuddy)
         except AttributeError as e:
-            _raise_error(e, "generate_alignment", "is not a supported alignment tool")
+            _raise_error(e, "generate_alignment", "is not a recognized alignment tool")
         except SystemError as e:
             _raise_error(e, "generate_alignment", "Could not find")
         _exit("generate_alignment")

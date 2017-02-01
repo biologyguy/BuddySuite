@@ -260,83 +260,6 @@ ORIGIN
       901 gaaaaccatg tgccaaggga ggggttaact cagttttcta agtatttttt attctgtaat
       961 gcaacttggg acgtcttttc catttgtgtt tcaacaataa aaacatctct ggatagca
 //
-LOCUS       XM_012471870            1231 bp    DNA     linear   PRI 04-MAY-2015
-DEFINITION  PREDICTED: Aotus nancymaae BRICK1, SCAR/WAVE actin-nucleating
-            complex subunit (BRK1), mRNA.
-ACCESSION   XM_012471870
-VERSION     XM_012471870.1
-DBLINK      BioProject:PRJNA282745
-KEYWORDS    RefSeq.
-SOURCE      Aotus nancymaae (Ma's night monkey)
-  ORGANISM  Aotus nancymaae
-            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
-            Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini;
-            Platyrrhini; Aotidae; Aotus.
-COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
-            analysis. This record is derived from a genomic sequence
-            (NW_012163536.1) annotated using gene prediction method: Gnomon,
-            supported by mRNA and EST evidence.
-            Also see:
-            Documentation of NCBI's Annotation Process
-            100
-            pipeline
-FEATURES             Location/Qualifiers
-     source          1..1231
-                     /chromosome="Unknown"
-                     /db_xref="taxon:37293"
-                     /isolate="85725"
-                     /mol_type="mRNA"
-                     /organism="Aotus nancymaae"
-                     /sex="female"
-                     /tissue_type="blood"
-     gene            1..1231
-                     /db_xref="GeneID:105730560"
-                     /gene="BRK1"
-                     /note="Derived by automated computational analysis using
-                     gene prediction method: Gnomon. Supporting evidence
-                     includes similarity to: 8 mRNAs, 525 ESTs, 11 Proteins, and
-                     100% coverage of the annotated genomic feature by RNAseq
-                     alignments, including 14 samples with support for all
-                     annotated introns"
-     CDS             106..333
-                     /codon_start=1
-                     /db_xref="GeneID:105730560"
-                     /gene="BRK1"
-                     /product="protein BRICK1"
-                     /protein_id="XP_012327293.1"
-                     /translation="MAGQEDPVQREIHQDWANREYIEIITSSIKKIADFLNSFDMSCRS
-                     RLATLNEKLTALERRIEYIEARVTKGETLT"
-     STS             604..718
-                     /db_xref="UniSTS:11391"
-                     /gene="BRK1"
-                     /standard_name="RH78271"
-     STS             797..948
-                     /db_xref="UniSTS:81407"
-                     /gene="BRK1"
-                     /standard_name="WI-14152"
-ORIGIN
-        1 ttcgtgggtg cccaagatga gcggggtgtg ggctggcggc gcaggcgcac tggaggccta
-       61 tggggtcggg gcgcctgcgc agtcgttctt cttcaggcgg ccgccatggc gggacaagag
-      121 gatccggtgc agagggagat tcaccaggac tgggctaatc gggagtacat tgaaataatc
-      181 accagcagca tcaagaaaat cgcggacttt ctcaactcgt ttgatatgtc atgtcgttca
-      241 agacttgcaa cactaaacga gaagttgaca gcccttgaac ggagaataga gtacattgaa
-      301 gcacgggtga caaaaggtga gacactcacc tagaacagtg ccgtcctgct gctgggaagt
-      361 tgctttacag aacacaggcc acatgggaaa ggccccagca gccttcagct tcttcctttc
-      421 tccttaaaga gcaacagggc ttattcttgt ttttcttttt tcttcaaaag cgtggccttt
-      481 ggtctctgcc atctggggtg tggtgtggta tgtggggaga agtccagagg gactgttgga
-      541 aataacatta ggcattttac cttttcagta acattttata gatcgacttg tcaatgtatt
-      601 tgaaatattc acagccaaaa gcctgggact ctttgtgaag gtcctcccca cctctgtcct
-      661 tctctctctc tctctctcaa actttcctta aagttctcat tgcctttgca ctgcttctgt
-      721 gaacagtctt agtctcctcc ccacctttgg tgggaagtgg ggggcagtcc tggccaaaac
-      781 acacatgccc tggcaatgtg gctgccagag aatgttgttg ctaacccacc agttttcttg
-      841 ttgatttggg gaggtcaaga ccaggccccc acttggcttg aagggacatt ttcaaacttt
-      901 tctttctgtc acttggggtg tctgtacctc tcatatttcc ctaataaact cctcaatttt
-      961 atctgactgc tgtgattatg gtggggagag gagctagaga tgggcttact tattccacag
-     1021 aaatgtatat atggcattat tattctaaca taaaactttc agatatagct gtttgattca
-     1081 aagcctaggt ggcttaccag cccaagtccc catgtttggc ctttcagctg actagttcat
-     1141 cctgggagtc atttggtcat tcagcacatt taccaagtac ttactatgta ggcatgttaa
-     1201 actccaataa aagatacagc attgaaccag a
-//
 LOCUS       XM_012441180            1139 bp    DNA     linear   PRI 04-MAY-2015
 DEFINITION  PREDICTED: Aotus nancymaae protein BRICK1 (LOC105709303), mRNA.
 ACCESSION   XM_012441180
@@ -413,6 +336,83 @@ ORIGIN
       961 aaactttcag atatagctgt ttgattcaaa gcctaggtgg cttaccagcc caagtcccca
      1021 tgtttggcct ttcagctgac tagttcatcc tgggaatcat ttggtcattc agcacattta
      1081 ccaagtactt actatgtagg catgttaaac tccaataaaa gatacagcat tgaaccaga
+//
+LOCUS       XM_012471870            1231 bp    DNA     linear   PRI 04-MAY-2015
+DEFINITION  PREDICTED: Aotus nancymaae BRICK1, SCAR/WAVE actin-nucleating
+            complex subunit (BRK1), mRNA.
+ACCESSION   XM_012471870
+VERSION     XM_012471870.1
+DBLINK      BioProject:PRJNA282745
+KEYWORDS    RefSeq.
+SOURCE      Aotus nancymaae (Ma's night monkey)
+  ORGANISM  Aotus nancymaae
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini;
+            Platyrrhini; Aotidae; Aotus.
+COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
+            analysis. This record is derived from a genomic sequence
+            (NW_012163536.1) annotated using gene prediction method: Gnomon,
+            supported by mRNA and EST evidence.
+            Also see:
+            Documentation of NCBI's Annotation Process
+            100
+            pipeline
+FEATURES             Location/Qualifiers
+     source          1..1231
+                     /chromosome="Unknown"
+                     /db_xref="taxon:37293"
+                     /isolate="85725"
+                     /mol_type="mRNA"
+                     /organism="Aotus nancymaae"
+                     /sex="female"
+                     /tissue_type="blood"
+     gene            1..1231
+                     /db_xref="GeneID:105730560"
+                     /gene="BRK1"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: Gnomon. Supporting evidence
+                     includes similarity to: 8 mRNAs, 525 ESTs, 11 Proteins, and
+                     100% coverage of the annotated genomic feature by RNAseq
+                     alignments, including 14 samples with support for all
+                     annotated introns"
+     CDS             106..333
+                     /codon_start=1
+                     /db_xref="GeneID:105730560"
+                     /gene="BRK1"
+                     /product="protein BRICK1"
+                     /protein_id="XP_012327293.1"
+                     /translation="MAGQEDPVQREIHQDWANREYIEIITSSIKKIADFLNSFDMSCRS
+                     RLATLNEKLTALERRIEYIEARVTKGETLT"
+     STS             604..718
+                     /db_xref="UniSTS:11391"
+                     /gene="BRK1"
+                     /standard_name="RH78271"
+     STS             797..948
+                     /db_xref="UniSTS:81407"
+                     /gene="BRK1"
+                     /standard_name="WI-14152"
+ORIGIN
+        1 ttcgtgggtg cccaagatga gcggggtgtg ggctggcggc gcaggcgcac tggaggccta
+       61 tggggtcggg gcgcctgcgc agtcgttctt cttcaggcgg ccgccatggc gggacaagag
+      121 gatccggtgc agagggagat tcaccaggac tgggctaatc gggagtacat tgaaataatc
+      181 accagcagca tcaagaaaat cgcggacttt ctcaactcgt ttgatatgtc atgtcgttca
+      241 agacttgcaa cactaaacga gaagttgaca gcccttgaac ggagaataga gtacattgaa
+      301 gcacgggtga caaaaggtga gacactcacc tagaacagtg ccgtcctgct gctgggaagt
+      361 tgctttacag aacacaggcc acatgggaaa ggccccagca gccttcagct tcttcctttc
+      421 tccttaaaga gcaacagggc ttattcttgt ttttcttttt tcttcaaaag cgtggccttt
+      481 ggtctctgcc atctggggtg tggtgtggta tgtggggaga agtccagagg gactgttgga
+      541 aataacatta ggcattttac cttttcagta acattttata gatcgacttg tcaatgtatt
+      601 tgaaatattc acagccaaaa gcctgggact ctttgtgaag gtcctcccca cctctgtcct
+      661 tctctctctc tctctctcaa actttcctta aagttctcat tgcctttgca ctgcttctgt
+      721 gaacagtctt agtctcctcc ccacctttgg tgggaagtgg ggggcagtcc tggccaaaac
+      781 acacatgccc tggcaatgtg gctgccagag aatgttgttg ctaacccacc agttttcttg
+      841 ttgatttggg gaggtcaaga ccaggccccc acttggcttg aagggacatt ttcaaacttt
+      901 tctttctgtc acttggggtg tctgtacctc tcatatttcc ctaataaact cctcaatttt
+      961 atctgactgc tgtgattatg gtggggagag gagctagaga tgggcttact tattccacag
+     1021 aaatgtatat atggcattat tattctaaca taaaactttc agatatagct gtttgattca
+     1081 aagcctaggt ggcttaccag cccaagtccc catgtttggc ctttcagctg actagttcat
+     1141 cctgggagtc atttggtcat tcagcacatt taccaagtac ttactatgta ggcatgttaa
+     1201 actccaataa aagatacagc attgaaccag a
 //
 LOCUS       NM_129400               4885 bp    DNA     linear   PLN 30-SEP-2016
 DEFINITION  Arabidopsis thaliana SCAR homolog 2 (SCAR2), mRNA.
@@ -3958,6 +3958,60 @@ ORIGIN
       241 gacgaaaggc gagaccctca cctagagccg agccggcagt gctgctgctg ggagtcgctt
       301 cgcgggacgc aggcctccgg gacagccccg cagccc
 //
+LOCUS       XM_019824977             457 bp    DNA     linear   MAM 29-DEC-2016
+DEFINITION  PREDICTED: Felis catus BRICK1, SCAR/WAVE actin nucleating complex
+            subunit (BRK1), transcript variant X1, mRNA.
+ACCESSION   XM_019824977
+VERSION     XM_019824977.1
+DBLINK      BioProject:PRJNA175699
+KEYWORDS    RefSeq.
+SOURCE      Felis catus (domestic cat)
+  ORGANISM  Felis catus
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Laurasiatheria; Carnivora; Feliformia; Felidae;
+            Felinae; Felis.
+COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
+            analysis. This record is derived from a genomic sequence
+            (NC_018724.2) annotated using gene prediction method: Gnomon.
+            Also see:
+            Documentation of NCBI's Annotation Process
+            pipeline
+FEATURES             Location/Qualifiers
+     source          1..457
+                     /breed="Abyssinian"
+                     /chromosome="A2"
+                     /db_xref="taxon:9685"
+                     /isolate="Cinnamon"
+                     /mol_type="mRNA"
+                     /organism="Felis catus"
+                     /sex="female"
+     gene            1..457
+                     /db_xref="GeneID:101086638"
+                     /gene="BRK1"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: Gnomon. Supporting evidence
+                     includes similarity to: 100% coverage of the annotated
+                     genomic feature by RNAseq alignments, including 51 samples
+                     with support for all annotated introns"
+     CDS             98..436
+                     /codon_start=1
+                     /db_xref="GeneID:101086638"
+                     /gene="BRK1"
+                     /product="protein BRICK1 isoform X1"
+                     /protein_id="XP_019680536.1"
+                     /translation="MAGQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
+                     RLATLNEKLTALERRIEYIEARVTKDLPDSLDGTLAIIFNKAGNDEPLIQHTPLTTVCT
+                     PLYMLPIF"
+ORIGIN
+        1 gggtgtcaag gcatgggtgt ggactggcag cgcagacgca ctgccggcct ggagggtcgg
+       61 ggcgcctgcg cagtcgctcc tcctttaggc ggcagccatg gcgggtcaag aggatccggt
+      121 gcagcgggag attcaccagg actgggcgaa ccgggagtac attgaggtca tcaccagcag
+      181 catcaagaaa atcgcggact ttctcaactc gttcgatatg tcttgtcgtt caagacttgc
+      241 aacactaaac gagaaattga cagccctcga acggagaata gagtacattg aagcacgggt
+      301 gacaaaagat ttgcctgact ccttggatgg gactcttgcc atcattttca acaaggcagg
+      361 aaatgatgaa cctctaatcc agcacactcc tctgaccacc gtctgcacac ccttatacat
+      421 gcttccaatt ttttaaaata aaacatttat atgtaaa
+//
 LOCUS       XM_003982466            1259 bp    DNA     linear   MAM 29-DEC-2016
 DEFINITION  PREDICTED: Felis catus BRICK1, SCAR/WAVE actin nucleating complex
             subunit (BRK1), transcript variant X2, mRNA.
@@ -4026,60 +4080,6 @@ ORIGIN
      1081 tctcagatgt tgctctttga tcaaagtcta ggttgcctac cagctggagc ccctccatgt
      1141 ttggactttt agctgactga tacatcctgg ggaatcattt ggtcattcag cagacatttc
      1201 ccaggtactt actatgtagg catgttatgc tccaataaaa gctacagcac tgaatcagg
-//
-LOCUS       XM_019824977             457 bp    DNA     linear   MAM 29-DEC-2016
-DEFINITION  PREDICTED: Felis catus BRICK1, SCAR/WAVE actin nucleating complex
-            subunit (BRK1), transcript variant X1, mRNA.
-ACCESSION   XM_019824977
-VERSION     XM_019824977.1
-DBLINK      BioProject:PRJNA175699
-KEYWORDS    RefSeq.
-SOURCE      Felis catus (domestic cat)
-  ORGANISM  Felis catus
-            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
-            Mammalia; Eutheria; Laurasiatheria; Carnivora; Feliformia; Felidae;
-            Felinae; Felis.
-COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
-            analysis. This record is derived from a genomic sequence
-            (NC_018724.2) annotated using gene prediction method: Gnomon.
-            Also see:
-            Documentation of NCBI's Annotation Process
-            pipeline
-FEATURES             Location/Qualifiers
-     source          1..457
-                     /breed="Abyssinian"
-                     /chromosome="A2"
-                     /db_xref="taxon:9685"
-                     /isolate="Cinnamon"
-                     /mol_type="mRNA"
-                     /organism="Felis catus"
-                     /sex="female"
-     gene            1..457
-                     /db_xref="GeneID:101086638"
-                     /gene="BRK1"
-                     /note="Derived by automated computational analysis using
-                     gene prediction method: Gnomon. Supporting evidence
-                     includes similarity to: 100% coverage of the annotated
-                     genomic feature by RNAseq alignments, including 51 samples
-                     with support for all annotated introns"
-     CDS             98..436
-                     /codon_start=1
-                     /db_xref="GeneID:101086638"
-                     /gene="BRK1"
-                     /product="protein BRICK1 isoform X1"
-                     /protein_id="XP_019680536.1"
-                     /translation="MAGQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
-                     RLATLNEKLTALERRIEYIEARVTKDLPDSLDGTLAIIFNKAGNDEPLIQHTPLTTVCT
-                     PLYMLPIF"
-ORIGIN
-        1 gggtgtcaag gcatgggtgt ggactggcag cgcagacgca ctgccggcct ggagggtcgg
-       61 ggcgcctgcg cagtcgctcc tcctttaggc ggcagccatg gcgggtcaag aggatccggt
-      121 gcagcgggag attcaccagg actgggcgaa ccgggagtac attgaggtca tcaccagcag
-      181 catcaagaaa atcgcggact ttctcaactc gttcgatatg tcttgtcgtt caagacttgc
-      241 aacactaaac gagaaattga cagccctcga acggagaata gagtacattg aagcacgggt
-      301 gacaaaagat ttgcctgact ccttggatgg gactcttgcc atcattttca acaaggcagg
-      361 aaatgatgaa cctctaatcc agcacactcc tctgaccacc gtctgcacac ccttatacat
-      421 gcttccaatt ttttaaaata aaacatttat atgtaaa
 //
 LOCUS       XM_005063074             199 bp    DNA     linear   VRT 20-APR-2016
 DEFINITION  PREDICTED: Ficedula albicollis BRICK1, SCAR/WAVE actin nucleating
@@ -7995,61 +7995,6 @@ ORIGIN
      1141 gggaatcatt tggtcattca gcacatttac caagtattta ctatgtaggc atgttaaact
      1201 ccaataaaac atacagcatt gaatca
 //
-LOCUS       XM_019428199             450 bp    DNA     linear   MAM 05-DEC-2016
-DEFINITION  PREDICTED: Panthera pardus BRICK1, SCAR/WAVE actin nucleating
-            complex subunit (BRK1), transcript variant X1, mRNA.
-ACCESSION   XM_019428199
-VERSION     XM_019428199.1
-DBLINK      BioProject:PRJNA355165
-KEYWORDS    RefSeq.
-SOURCE      Panthera pardus (leopard)
-  ORGANISM  Panthera pardus
-            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
-            Mammalia; Eutheria; Laurasiatheria; Carnivora; Feliformia; Felidae;
-            Pantherinae; Panthera.
-COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
-            analysis. This record is derived from a genomic sequence
-            (NW_017619959.1) annotated using gene prediction method: Gnomon.
-            Also see:
-            Documentation of NCBI's Annotation Process
-            100
-            pipeline
-FEATURES             Location/Qualifiers
-     source          1..450
-                     /chromosome="Unknown"
-                     /db_xref="taxon:9691"
-                     /isolate="Maewha"
-                     /mol_type="mRNA"
-                     /organism="Panthera pardus"
-                     /sex="female"
-                     /tissue_type="muscle"
-     gene            1..450
-                     /db_xref="GeneID:109254372"
-                     /gene="BRK1"
-                     /note="Derived by automated computational analysis using
-                     gene prediction method: Gnomon. Supporting evidence
-                     includes similarity to: 100% coverage of the annotated
-                     genomic feature by RNAseq alignments, including 54 samples
-                     with support for all annotated introns"
-     CDS             91..429
-                     /codon_start=1
-                     /db_xref="GeneID:109254372"
-                     /gene="BRK1"
-                     /product="protein BRICK1 isoform X1"
-                     /protein_id="XP_019283744.1"
-                     /translation="MAGQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
-                     RLATLNEKLTALERRIEYIEARVTKDLPDSLDGTLAIIFNKAGNDEPLIQHTPLTTVCT
-                     PLYMLPIF"
-ORIGIN
-        1 caaggcatgg gtgtggactg gcagcgcaga cgcactgccg gcctggaggg tcggggcgcc
-       61 tgcgcagtcg ctcctcctta ggcggcagcc atggcgggtc aagaggatcc ggtgcagcgg
-      121 gagattcacc aggactgggc gaaccgggag tacattgagg tcatcaccag cagcatcaag
-      181 aaaatcgcgg actttctcaa ctcgttcgat atgtcttgtc gttcaagact tgcaacacta
-      241 aacgagaaat tgacagccct cgaacggaga atagagtaca ttgaagcacg ggtgacaaaa
-      301 gatttgcctg actccttgga tgggactctt gccatcattt tcaacaaggc aggaaatgat
-      361 gaacctctaa tccagcacac tcctctgacc accgtctgca cacccttata catgcttcca
-      421 attttttaaa ataaaacatt tatatgtaaa
-//
 LOCUS       XM_019428200            1256 bp    DNA     linear   MAM 05-DEC-2016
 DEFINITION  PREDICTED: Panthera pardus BRICK1, SCAR/WAVE actin nucleating
             complex subunit (BRK1), transcript variant X2, mRNA.
@@ -8119,64 +8064,60 @@ ORIGIN
      1141 ttggactttt agttgactga tacatcctgg gaatcatttg gtcattcagc agacatttcc
      1201 caggtacttt atgtaggcat gttatgctcc agtaaaagct acagcactga atcagg
 //
-LOCUS       XM_007075472             437 bp    DNA     linear   MAM 08-FEB-2016
-DEFINITION  PREDICTED: Panthera tigris altaica BRICK1, SCAR/WAVE
-            actin-nucleating complex subunit (BRK1), transcript variant X1,
-            mRNA.
-ACCESSION   XM_007075472
-VERSION     XM_007075472.2
-DBLINK      BioProject:PRJNA236771
+LOCUS       XM_019428199             450 bp    DNA     linear   MAM 05-DEC-2016
+DEFINITION  PREDICTED: Panthera pardus BRICK1, SCAR/WAVE actin nucleating
+            complex subunit (BRK1), transcript variant X1, mRNA.
+ACCESSION   XM_019428199
+VERSION     XM_019428199.1
+DBLINK      BioProject:PRJNA355165
 KEYWORDS    RefSeq.
-SOURCE      Panthera tigris altaica (Amur tiger)
-  ORGANISM  Panthera tigris altaica
+SOURCE      Panthera pardus (leopard)
+  ORGANISM  Panthera pardus
             Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
             Mammalia; Eutheria; Laurasiatheria; Carnivora; Feliformia; Felidae;
             Pantherinae; Panthera.
 COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
             analysis. This record is derived from a genomic sequence
-            (NW_006711715.1) annotated using gene prediction method: Gnomon.
+            (NW_017619959.1) annotated using gene prediction method: Gnomon.
             Also see:
             Documentation of NCBI's Annotation Process
-            On Feb 8, 2016 this sequence version replaced gi:591296784.
-            Release 101
+            100
             pipeline
 FEATURES             Location/Qualifiers
-     source          1..437
+     source          1..450
                      /chromosome="Unknown"
-                     /db_xref="taxon:74533"
-                     /dev_stage="9 years old"
-                     /isolate="TaeGuk"
+                     /db_xref="taxon:9691"
+                     /isolate="Maewha"
                      /mol_type="mRNA"
-                     /organism="Panthera tigris altaica"
-                     /sex="male"
-                     /sub_species="altaica"
-                     /tissue_type="blood"
-     gene            1..437
-                     /db_xref="GeneID:102964962"
+                     /organism="Panthera pardus"
+                     /sex="female"
+                     /tissue_type="muscle"
+     gene            1..450
+                     /db_xref="GeneID:109254372"
                      /gene="BRK1"
                      /note="Derived by automated computational analysis using
                      gene prediction method: Gnomon. Supporting evidence
                      includes similarity to: 100% coverage of the annotated
-                     genomic feature by RNAseq alignments, including 21 samples
+                     genomic feature by RNAseq alignments, including 54 samples
                      with support for all annotated introns"
-     CDS             60..398
+     CDS             91..429
                      /codon_start=1
-                     /db_xref="GeneID:102964962"
+                     /db_xref="GeneID:109254372"
                      /gene="BRK1"
                      /product="protein BRICK1 isoform X1"
-                     /protein_id="XP_007075534.1"
-                     /translation="MAGQEDLVQREIDQDWANREYIEVITSSIKKIADFLNSFDMSCRS
+                     /protein_id="XP_019283744.1"
+                     /translation="MAGQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
                      RLATLNEKLTALERRIEYIEARVTKDLPDSLDGTLAIIFNKAGNDEPLIQHTPLTTVCT
                      PLYMLPIF"
 ORIGIN
-        1 gcactgccgg cctggagggt cggggcgcct gcgcagtcgc tcctccttag gcggcagcca
-       61 tggcgggtca agaggatctg gtgcagcggg agattgacca agactgggcg aaccgggagt
-      121 acattgaggt catcaccagc agcatcaaga aaatcgcgga ctttctcaac tcgttcgata
-      181 tgtcttgtcg ttcaagactt gcaacactaa acgagaaatt gacagccctc gaacggagaa
-      241 tagagtacat tgaagcacgg gtgacaaaag atttgcctga ctccttggat gggactcttg
-      301 ccatcatttt caacaaggca ggaaatgatg aacctctaat ccagcacact cctctgacca
-      361 ccgtctgcac acccttatac atgcttccaa ttttttaaaa taaaacattt atatgtaaat
-      421 gttttatttt ttgagag
+        1 caaggcatgg gtgtggactg gcagcgcaga cgcactgccg gcctggaggg tcggggcgcc
+       61 tgcgcagtcg ctcctcctta ggcggcagcc atggcgggtc aagaggatcc ggtgcagcgg
+      121 gagattcacc aggactgggc gaaccgggag tacattgagg tcatcaccag cagcatcaag
+      181 aaaatcgcgg actttctcaa ctcgttcgat atgtcttgtc gttcaagact tgcaacacta
+      241 aacgagaaat tgacagccct cgaacggaga atagagtaca ttgaagcacg ggtgacaaaa
+      301 gatttgcctg actccttgga tgggactctt gccatcattt tcaacaaggc aggaaatgat
+      361 gaacctctaa tccagcacac tcctctgacc accgtctgca cacccttata catgcttcca
+      421 attttttaaa ataaaacatt tatatgtaaa
 //
 LOCUS       XM_007075473            5197 bp    DNA     linear   MAM 08-FEB-2016
 DEFINITION  PREDICTED: Panthera tigris altaica BRICK1, SCAR/WAVE
@@ -8316,6 +8257,65 @@ ORIGIN
      5041 gaagttgttt attagcatca aatacattgt atgtctcctg tgcgtaaggc actggagata
      5101 aaatggtgag aaacagacat atagatcctg ctcttagaga gtataatgta gtcatggttc
      5161 actggtattt tcccagacaa cccagaggat accaaaa
+//
+LOCUS       XM_007075472             437 bp    DNA     linear   MAM 08-FEB-2016
+DEFINITION  PREDICTED: Panthera tigris altaica BRICK1, SCAR/WAVE
+            actin-nucleating complex subunit (BRK1), transcript variant X1,
+            mRNA.
+ACCESSION   XM_007075472
+VERSION     XM_007075472.2
+DBLINK      BioProject:PRJNA236771
+KEYWORDS    RefSeq.
+SOURCE      Panthera tigris altaica (Amur tiger)
+  ORGANISM  Panthera tigris altaica
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Laurasiatheria; Carnivora; Feliformia; Felidae;
+            Pantherinae; Panthera.
+COMMENT     MODEL REFSEQ:  This record is predicted by automated computational
+            analysis. This record is derived from a genomic sequence
+            (NW_006711715.1) annotated using gene prediction method: Gnomon.
+            Also see:
+            Documentation of NCBI's Annotation Process
+            On Feb 8, 2016 this sequence version replaced gi:591296784.
+            Release 101
+            pipeline
+FEATURES             Location/Qualifiers
+     source          1..437
+                     /chromosome="Unknown"
+                     /db_xref="taxon:74533"
+                     /dev_stage="9 years old"
+                     /isolate="TaeGuk"
+                     /mol_type="mRNA"
+                     /organism="Panthera tigris altaica"
+                     /sex="male"
+                     /sub_species="altaica"
+                     /tissue_type="blood"
+     gene            1..437
+                     /db_xref="GeneID:102964962"
+                     /gene="BRK1"
+                     /note="Derived by automated computational analysis using
+                     gene prediction method: Gnomon. Supporting evidence
+                     includes similarity to: 100% coverage of the annotated
+                     genomic feature by RNAseq alignments, including 21 samples
+                     with support for all annotated introns"
+     CDS             60..398
+                     /codon_start=1
+                     /db_xref="GeneID:102964962"
+                     /gene="BRK1"
+                     /product="protein BRICK1 isoform X1"
+                     /protein_id="XP_007075534.1"
+                     /translation="MAGQEDLVQREIDQDWANREYIEVITSSIKKIADFLNSFDMSCRS
+                     RLATLNEKLTALERRIEYIEARVTKDLPDSLDGTLAIIFNKAGNDEPLIQHTPLTTVCT
+                     PLYMLPIF"
+ORIGIN
+        1 gcactgccgg cctggagggt cggggcgcct gcgcagtcgc tcctccttag gcggcagcca
+       61 tggcgggtca agaggatctg gtgcagcggg agattgacca agactgggcg aaccgggagt
+      121 acattgaggt catcaccagc agcatcaaga aaatcgcgga ctttctcaac tcgttcgata
+      181 tgtcttgtcg ttcaagactt gcaacactaa acgagaaatt gacagccctc gaacggagaa
+      241 tagagtacat tgaagcacgg gtgacaaaag atttgcctga ctccttggat gggactcttg
+      301 ccatcatttt caacaaggca ggaaatgatg aacctctaat ccagcacact cctctgacca
+      361 ccgtctgcac acccttatac atgcttccaa ttttttaaaa taaaacattt atatgtaaat
+      421 gttttatttt ttgagag
 //
 LOCUS       XM_003910329             880 bp    DNA     linear   PRI 29-AUG-2016
 DEFINITION  PREDICTED: Papio anubis BRICK1, SCAR/WAVE actin nucleating complex
@@ -10550,65 +10550,6 @@ ORIGIN
       601 agcctttctt tgcagctctc atcgcctctg cattaattct acagtctttg tctcctcccc
       661 acctttggcc ggggatggga agcagtcctg gctg
 //
-LOCUS       NM_001171700             674 bp    DNA     linear   VRT 29-OCT-2016
-DEFINITION  Xenopus laevis BRICK1, SCAR/WAVE actin-nucleating complex subunit S
-            homeolog (brk1.S), mRNA.
-ACCESSION   NM_001171700
-VERSION     NM_001171700.1
-KEYWORDS    RefSeq.
-SOURCE      Xenopus laevis (African clawed frog)
-  ORGANISM  Xenopus laevis
-            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
-            Amphibia; Batrachia; Anura; Pipoidea; Pipidae; Xenopodinae; Xenopus;
-            Xenopus.
-REFERENCE   1  (bases 1 to 674)
-  AUTHORS   Klein SL, Strausberg RL, Wagner L, Pontius J, Clifton SW and
-            Richardson P.
-  TITLE     Genetic and genomic tools for Xenopus research: The NIH Xenopus
-            initiative
-  JOURNAL   Dev. Dyn. 225 (4), 384-391 (2002)
-   PUBMED   12454917
-COMMENT     PROVISIONAL REFSEQ: This record has not yet been subject to final
-            NCBI review. The reference sequence was derived from BC128952.1.
-            SAMD00012418, SAMD00012419
-            [ECO:0000348]
-FEATURES             Location/Qualifiers
-     source          1..674
-                     /chromosome="4S"
-                     /db_xref="taxon:8355"
-                     /mol_type="mRNA"
-                     /organism="Xenopus laevis"
-     gene            1..674
-                     /db_xref="GeneID:100037105"
-                     /db_xref="Xenbase:XB-GENE-1009803"
-                     /gene="brk1.S"
-                     /gene_synonym="brick1; brk1; brk1-a; brk1-b; c3orf10"
-                     /note="BRICK1, SCAR/WAVE actin-nucleating complex subunit S
-                     homeolog"
-     CDS             19..246
-                     /codon_start=1
-                     /db_xref="GeneID:100037105"
-                     /db_xref="Xenbase:XB-GENE-1009803"
-                     /gene="brk1.S"
-                     /gene_synonym="brick1; brk1; brk1-a; brk1-b; c3orf10"
-                     /product="probable protein BRICK1-B"
-                     /protein_id="NP_001165171.1"
-                     /translation="MASQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
-                     RLATLNEKLTTLERRIEYIEARVTKGETLT"
-ORIGIN
-        1 aagggagaga gggctaaaat ggccagtcag gaggatccag tgcagaggga gattcaccag
-       61 gattgggcca accgggagta cattgaggtg atcaccagca gcatcaagaa aatcgccgac
-      121 ttcttgaact catttgatat gtcttgtcgc tcacgactgg caacactaaa tgaaaagctg
-      181 accacattag agagaagaat tgagtatata gaagcacggg tgaccaaagg tgaaacgctg
-      241 acatagaaaa atccaccatt ctacaagtgt tccaagcttg cttttataaa tacactctat
-      301 ggacctctcc ccagcctgaa acggtcatcg actctccctg tcgtcacttt gctgccttgg
-      361 cagatacaaa cgagttttcc caaaccttca cggttttatt tgttcattcc tcagtttcct
-      421 tattttgtgg cattcggcct gaatctataa agaaactgct gtacagcttg tgttcttgct
-      481 ctgtacaaac ctactagcag ctcactaact aaatgtgttg tgtaatatgt gcaaagatgg
-      541 actgtatcgt gtgccaattg tgtagcgtgc ttgtttcatt tccttattct ttgtaccggt
-      601 gcttcattat gttttatttc tcttacaaat aaaatgctga acttttaaaa aaaaaaaaaa
-      661 aaaaaaaaaa aaaa
-//
 LOCUS       NM_001171693             749 bp    DNA     linear   VRT 25-SEP-2016
 DEFINITION  Xenopus laevis BRICK1, SCAR/WAVE actin-nucleating complex subunit L
             homeolog (brk1.L), mRNA.
@@ -10671,6 +10612,65 @@ ORIGIN
       601 gtaccggtgt ttcaatatat tttatttctc ttacaaataa agtgctgaac ttttattctg
       661 caaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
       721 aaaaaaaaaa aaaaaaaaaa aaaaaaaaa
+//
+LOCUS       NM_001171700             674 bp    DNA     linear   VRT 29-OCT-2016
+DEFINITION  Xenopus laevis BRICK1, SCAR/WAVE actin-nucleating complex subunit S
+            homeolog (brk1.S), mRNA.
+ACCESSION   NM_001171700
+VERSION     NM_001171700.1
+KEYWORDS    RefSeq.
+SOURCE      Xenopus laevis (African clawed frog)
+  ORGANISM  Xenopus laevis
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Amphibia; Batrachia; Anura; Pipoidea; Pipidae; Xenopodinae; Xenopus;
+            Xenopus.
+REFERENCE   1  (bases 1 to 674)
+  AUTHORS   Klein SL, Strausberg RL, Wagner L, Pontius J, Clifton SW and
+            Richardson P.
+  TITLE     Genetic and genomic tools for Xenopus research: The NIH Xenopus
+            initiative
+  JOURNAL   Dev. Dyn. 225 (4), 384-391 (2002)
+   PUBMED   12454917
+COMMENT     PROVISIONAL REFSEQ: This record has not yet been subject to final
+            NCBI review. The reference sequence was derived from BC128952.1.
+            SAMD00012418, SAMD00012419
+            [ECO:0000348]
+FEATURES             Location/Qualifiers
+     source          1..674
+                     /chromosome="4S"
+                     /db_xref="taxon:8355"
+                     /mol_type="mRNA"
+                     /organism="Xenopus laevis"
+     gene            1..674
+                     /db_xref="GeneID:100037105"
+                     /db_xref="Xenbase:XB-GENE-1009803"
+                     /gene="brk1.S"
+                     /gene_synonym="brick1; brk1; brk1-a; brk1-b; c3orf10"
+                     /note="BRICK1, SCAR/WAVE actin-nucleating complex subunit S
+                     homeolog"
+     CDS             19..246
+                     /codon_start=1
+                     /db_xref="GeneID:100037105"
+                     /db_xref="Xenbase:XB-GENE-1009803"
+                     /gene="brk1.S"
+                     /gene_synonym="brick1; brk1; brk1-a; brk1-b; c3orf10"
+                     /product="probable protein BRICK1-B"
+                     /protein_id="NP_001165171.1"
+                     /translation="MASQEDPVQREIHQDWANREYIEVITSSIKKIADFLNSFDMSCRS
+                     RLATLNEKLTTLERRIEYIEARVTKGETLT"
+ORIGIN
+        1 aagggagaga gggctaaaat ggccagtcag gaggatccag tgcagaggga gattcaccag
+       61 gattgggcca accgggagta cattgaggtg atcaccagca gcatcaagaa aatcgccgac
+      121 ttcttgaact catttgatat gtcttgtcgc tcacgactgg caacactaaa tgaaaagctg
+      181 accacattag agagaagaat tgagtatata gaagcacggg tgaccaaagg tgaaacgctg
+      241 acatagaaaa atccaccatt ctacaagtgt tccaagcttg cttttataaa tacactctat
+      301 ggacctctcc ccagcctgaa acggtcatcg actctccctg tcgtcacttt gctgccttgg
+      361 cagatacaaa cgagttttcc caaaccttca cggttttatt tgttcattcc tcagtttcct
+      421 tattttgtgg cattcggcct gaatctataa agaaactgct gtacagcttg tgttcttgct
+      481 ctgtacaaac ctactagcag ctcactaact aaatgtgttg tgtaatatgt gcaaagatgg
+      541 actgtatcgt gtgccaattg tgtagcgtgc ttgtttcatt tccttattct ttgtaccggt
+      601 gcttcattat gttttatttc tcttacaaat aaaatgctga acttttaaaa aaaaaaaaaa
+      661 aaaaaaaaaa aaaa
 //
 LOCUS       NM_001015994             666 bp    DNA     linear   VRT 28-OCT-2016
 DEFINITION  Xenopus tropicalis BRICK1, SCAR/WAVE actin-nucleating complex
