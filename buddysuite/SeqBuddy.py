@@ -3024,8 +3024,10 @@ def pull_recs(seqbuddy, regex, description=False):
     regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
-        if re.search(regex, rec.id) or re.search(regex, rec.name) \
-                or (description and re.search(regex, rec.description)):
+        if re.search(regex, rec.id) or re.search(regex, rec.name):
+            matched_records.append(rec)
+            continue
+        if description and (re.search(regex, rec.description) or re.search(regex, str(rec.annotations))):
             matched_records.append(rec)
     seqbuddy.records = matched_records
     return seqbuddy
@@ -3733,7 +3735,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
         if pass_through:
