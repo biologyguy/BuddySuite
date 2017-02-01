@@ -40,7 +40,8 @@ guide <https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide>`__.
 
 There is also a `Beginners'
 Guide <https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide>`__
-to show you the basics.
+to show you the basics, as well as a more comprehensive
+`Tutorial <https://github.com/biologyguy/BuddySuite/wiki/Tutorial>`__.
 
 Each tool in the BuddySuite has been extensively documented in the
 `wiki <https://github.com/biologyguy/BuddySuite/wiki>`__, complete with

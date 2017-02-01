@@ -37,7 +37,8 @@ $: buddysuite -setup
 
 Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
 
-There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
+There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics,
+ as well as a more comprehensive [Tutorial](https://github.com/biologyguy/BuddySuite/wiki/Tutorial).
 
 Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
  complete with worked examples and explanations for all arguments/options.
