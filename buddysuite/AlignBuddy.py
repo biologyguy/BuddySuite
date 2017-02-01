@@ -405,6 +405,8 @@ class FeatureReMapper(object):
                 if feature:
                     new_features.append(feature)
             new_records[indx].features = new_features
+            new_records[indx].annotations = rec.annotations
+            new_records[indx].dbxrefs = rec.dbxrefs
         return
 
     def _remap(self, feature):
@@ -918,7 +920,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         raise AttributeError("{0} is not a supported alignment tool.".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
-        check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
+        check = br.ask("{0} already exists, so files may be overwritten. Proceed [yes]/no?".format(keep_temp))
         if not check:
             sys.exit()
         keep_temp = os.path.abspath(keep_temp)
@@ -1579,7 +1581,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1796,7 +1798,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                 alignbuddy.set_format(in_args.out_format)
             _print_aligments(alignbuddy)
         except AttributeError as e:
-            _raise_error(e, "generate_alignment", "is not a supported alignment tool")
+            _raise_error(e, "generate_alignment", "is not a recognized alignment tool")
         except SystemError as e:
             _raise_error(e, "generate_alignment", "Could not find")
         _exit("generate_alignment")

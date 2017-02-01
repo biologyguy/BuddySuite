@@ -451,17 +451,17 @@ def test_extact_feature_sequences_ui(capsys, sb_resources, hf):
     test_in_args.extract_feature_sequences = [["CDS"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7e8a80caf902575c5eb3fc6ba8563956"
+    assert hf.string2hash(out) == "956b6a14e02c9c2a2faa11ffb7e2bbed"
 
     test_in_args.extract_feature_sequences = [["TMD"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "13944b21484d5ea22af4fe57cc8074df"
+    assert hf.string2hash(out) == "d23b3ecdd5d432518c20572e7af03dc1"
 
     test_in_args.extract_feature_sequences = [["TMD", "splice_a"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "78629d308a89b458fb02e71d5568c978"
+    assert hf.string2hash(out) == "344ffeb8e86442e0ae7e38d5b49072e1"
 
     test_in_args.extract_feature_sequences = [["foo"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
@@ -475,7 +475,7 @@ def test_extract_regions_ui(sb_resources, hf, capsys):
     test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "557f3591458d01e31ea64b0bc44a9629"
+    assert hf.string2hash(out) == "d03d43ff3c5212adf819fc67109a155b"
 
     test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
@@ -513,7 +513,7 @@ def test_find_orfs_ui(capsys, sb_resources, hf, monkeypatch):
     tester = Sb.extract_regions(tester, "30:50")
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash("%s\n%s" % (err, out)) == "786422d2a37b56222f97363d11e750ac"
+    assert hf.string2hash("%s\n%s" % (err, out)) == "54876473b1c31c7fe16e4aa8d4c847c2"
 
     monkeypatch.setattr(Sb, "find_orfs", mock_raisetypeerror)
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)

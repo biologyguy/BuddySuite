@@ -2,7 +2,7 @@
 [![Coverage Status](https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
 [![PyPi version](https://img.shields.io/pypi/v/buddysuite.svg)](https://pypi.python.org/pypi/buddysuite)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
-<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.gif" /></a></p>
+<img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.png" width=70%/></a></p>
 <p align="center">
 <a href="https://github.com/biologyguy/BuddySuite/wiki/SeqBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/SeqBuddy-logo.gif" width=20%/></a>
 <a href="https://github.com/biologyguy/BuddySuite/wiki/AlignBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/AlignBuddy-logo.gif" width=25%/></a>
@@ -13,10 +13,10 @@
 ___
 
 ## Description
-The BuddySuite modules are 'one-stop-shop' command line tools for common biological data file
+The BuddySuite modules are 'one-stop-shop' command-line tools for common biological data file
  manipulations. Formats are detected automatically, conversions are seamless, and you can pipe into
- or out of the modules, allowing you to spend more time analyzing your sequences, alignments, and phylogenetic
- trees, instead of wrangling them.
+ or out of the modules to build custom bioinformatics workflows, allowing you to spend more time analyzing 
+ your sequences, alignments, and phylogenetic trees, instead of wrangling them.
 
 For example, the following command reads in three sequence files (all in different formats), pulls out records with RefSeq identifiers,
  calls MAFFT to generate an alignment, shifts gaps to force a codon alignment, calls RAxML to infer a phylogeny, and then roots
@@ -37,7 +37,8 @@ $: buddysuite -setup
 
 Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
 
-There is also a short [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
+There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics,
+ as well as a more comprehensive [Tutorial](https://github.com/biologyguy/BuddySuite/wiki/Tutorial).
 
 Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
  complete with worked examples and explanations for all arguments/options.
@@ -55,7 +56,7 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
 
 ## Citation
 We are currently working on a [manuscript for peer review](https://github.com/biologyguy/BuddySuite/blob/develop/manuscript/MBE/compile_dir/MBE_article.pdf), but until then
- there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+ there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
 
 [DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
 

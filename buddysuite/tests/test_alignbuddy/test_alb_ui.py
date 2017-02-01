@@ -282,7 +282,7 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "6ff2a8a7c58bb6ac0d98fe373981e220"
+    assert hf.string2hash(out) == "34c7d45c3f279df93ba82840f4320a5a"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -295,22 +295,22 @@ def test_extact_feature_sequences_ui(capsys, alb_resources, hf):
     test_in_args.extract_feature_sequences = [["CDS"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2d8b6524010177f6507dde387146378c"
+    assert hf.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
 
     test_in_args.extract_feature_sequences = [["TMD"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3c20784722e00567cee04f3e7adca99c"
+    assert hf.string2hash(out) == "eb878a1b14b73dd6148291f630ba98d8"
 
     test_in_args.extract_feature_sequences = [["TMD1", "splice_a"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "6a556349095dac86339b0e0057467fdd"
+    assert hf.string2hash(out) == "f086752f8915872dc2260486142f643b"
 
     test_in_args.extract_feature_sequences = [["TMD2:TMD3"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "1076bce8903f736787ce16fd95899af8"
+    assert hf.string2hash(out) == "78d674f258e634ef0737db1cc6067be6"
 
     test_in_args.extract_feature_sequences = [["foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
@@ -324,7 +324,7 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
     test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "569f1946a6af1b92a754c5a13279795b"
+    assert hf.string2hash(out) == "891bdc3af63c6ddc96a507939e2d771a"
 
     test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
@@ -653,7 +653,7 @@ def test_translate_ui(capsys, alb_resources, hf):
     test_in_args.translate = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "a949edce98525924dbbc3ced03c18214"
+    assert hf.string2hash(out) == "625f68463c93310015c6f43100c6b96e"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
@@ -666,12 +666,12 @@ def test_trimal_ui(capsys, alb_resources, hf):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
+    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "362577b8b42f18c9a4fa557e785d17e1"
+    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)
@@ -737,7 +737,7 @@ def test_inplace(capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
     tester = Alb.AlignBuddy("%s/align" % tmp_dir.path)
-    assert "File over-written at:" in err
+    assert "File overwritten at:" in err
     assert hf.buddy2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", tester.write("temp.del")
 
     test_in_args.alignments = ["I/do/not/exist"]

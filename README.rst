@@ -40,7 +40,8 @@ guide <https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide>`__.
 
 There is also a `Beginners'
 Guide <https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide>`__
-to show you the basics.
+to show you the basics, as well as a more comprehensive
+`Tutorial <https://github.com/biologyguy/BuddySuite/wiki/Tutorial>`__.
 
 Each tool in the BuddySuite has been extensively documented in the
 `wiki <https://github.com/biologyguy/BuddySuite/wiki>`__, complete with
@@ -67,7 +68,7 @@ Citation
 
 We are currently working on a
 `manuscript for peer review <https://github.com/biologyguy/BuddySuite/tree/develop/manuscript>`__,
-but until then there is a very short application note on bioRxiv that can be cited if you use BuddySuite in your work.
+but until then there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
 
 `DOI: 10.1101/040675 <http://dx.doi.org/10.1101/040675>`__
 

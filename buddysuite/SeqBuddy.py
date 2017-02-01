@@ -1063,8 +1063,7 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: - Sort out makeblastdb download
-          - Allow mixed sequence types (blastx?)
+    ToDo: Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
@@ -1854,7 +1853,8 @@ def extract_regions(seqbuddy, positions):
                     remapper.extend(False)
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1862,7 +1862,8 @@ def extract_regions(seqbuddy, positions):
                 new_seq.append(seq[indx])
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
 
         new_records.append(new_seq)
 
@@ -2910,7 +2911,7 @@ class PrositeScan(object):
             spans = re.findall('([0-9]+ - [0-9]+)', feature)
             for span in spans:
                 span = span.split(" ")
-                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
+                feature = SeqFeature(FeatureLocation(int(span[0]) - 1, int(span[2])), type=feat_type)
                 feature_list.append(feature)
 
         temp_seq = SeqBuddy([_rec], out_format="gb")
@@ -2950,7 +2951,7 @@ class PrositeScan(object):
         for indx, rec in enumerate(seqbuddy_copy.records):
             for match in rec.buddy_data['find_patterns']["\*"]:
                 rec_2 = self.seqbuddy.records[indx]
-                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match:]
                 rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
 
         if seqbuddy_copy.alpha != IUPAC.protein:
@@ -3023,8 +3024,10 @@ def pull_recs(seqbuddy, regex, description=False):
     regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
-        if re.search(regex, rec.id) or re.search(regex, rec.name) \
-                or (description and re.search(regex, rec.description)):
+        if re.search(regex, rec.id) or re.search(regex, rec.name):
+            matched_records.append(rec)
+            continue
+        if description and (re.search(regex, rec.description) or re.search(regex, str(rec.annotations))):
             matched_records.append(rec)
     seqbuddy.records = matched_records
     return seqbuddy
@@ -3308,7 +3311,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
                     new_seq[new_seq_indx] = "N"
                 new_seq_indx += 1
 
-        new_seq = "".join(new_seq) if new_seq[-1] != "" else "".join(new_seq[:-1])
+        new_seq = "".join(new_seq) if new_seq and new_seq[-1] != "" else "".join(new_seq[:-1])
         new_seq = Seq(new_seq, IUPAC.protein)
         rec.seq = new_seq
         rec.features = []
@@ -3732,7 +3735,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
         if pass_through:
