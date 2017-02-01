@@ -737,7 +737,7 @@ def test_inplace(capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
     tester = Alb.AlignBuddy("%s/align" % tmp_dir.path)
-    assert "File over-written at:" in err
+    assert "File overwritten at:" in err
     assert hf.buddy2hash(tester) == "8f78e0c99e2d6d7d9b89b8d854e02bcd", tester.write("temp.del")
 
     test_in_args.alignments = ["I/do/not/exist"]
