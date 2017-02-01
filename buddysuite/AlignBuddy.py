@@ -965,7 +965,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                              "Please check your spelling (case sensitive)".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
-        check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
+        check = br.ask("{0} already exists, so files may be overwritten. Proceed [yes]/no?".format(keep_temp))
         if not check:
             sys.exit()
         keep_temp = os.path.abspath(keep_temp)
@@ -1644,7 +1644,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:

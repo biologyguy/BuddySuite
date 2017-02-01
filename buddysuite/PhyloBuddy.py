@@ -542,7 +542,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
 
     if keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(keep_temp):
-            raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
+            raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being overwritten. Please "
                                   "choose another location to save temporary files."
                                   % (alias, os.path.split(keep_temp)[-1]))
 
@@ -1147,7 +1147,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
