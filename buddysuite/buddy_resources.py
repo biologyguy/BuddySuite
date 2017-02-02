@@ -753,6 +753,31 @@ def config_values():
     return options
 
 
+def check_garbage_flags(in_args, tool):
+    """
+    If an unknown flag is thrown immediately after the sequence/alignment/tree positional argument it is not treated
+    as a flag, leading to a GuessError. Catch it here and exit more gracefully.
+    :param in_args: parser.parse_args object
+    :param tool: Which BuddySuite tool is calling?
+    :return: None
+    """
+    flag_list = []
+    if tool == "AlignBuddy":
+        flag_list = in_args.alignments
+    if tool == "DatabaseBuddy":
+        flag_list = in_args.user_input
+    if tool == "PhyloBuddy":
+        flag_list = in_args.trees
+    if tool == "SeqBuddy":
+        flag_list = in_args.sequence
+
+    for flag in flag_list:
+        if flag and re.match(" -", flag):
+            _stderr("%s.py: error: unrecognized arguments: %s\n" % (tool, flag))
+            sys.exit()
+    return True
+
+
 def error_report(trace_back, permission=False):
     message = ""
     error_hash = re.sub("^#.*?\n{2}", "", trace_back, flags=re.DOTALL)  # Remove error header information before hashing

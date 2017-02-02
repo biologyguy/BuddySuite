@@ -2380,6 +2380,7 @@ def argparse_init():
              br.db_flags, br.db_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "DatabaseBuddy")
 
     dbbuddy = []
     out_format = "summary" if not in_args.out_format else in_args.out_format

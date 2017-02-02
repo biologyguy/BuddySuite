@@ -1101,6 +1101,7 @@ def argparse_init():
                                "this argument must be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "PhyloBuddy")
 
     phylobuddy = []
     tree_set = ""
