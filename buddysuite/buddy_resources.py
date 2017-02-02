@@ -753,6 +753,31 @@ def config_values():
     return options
 
 
+def check_garbage_flags(in_args, tool):
+    """
+    If an unknown flag is thrown immediately after the sequence/alignment/tree positional argument it is not treated
+    as a flag, leading to a GuessError. Catch it here and exit more gracefully.
+    :param in_args: parser.parse_args object
+    :param tool: Which BuddySuite tool is calling?
+    :return: None
+    """
+    flag_list = []
+    if tool == "AlignBuddy":
+        flag_list = in_args.alignments
+    if tool == "DatabaseBuddy":
+        flag_list = in_args.user_input
+    if tool == "PhyloBuddy":
+        flag_list = in_args.trees
+    if tool == "SeqBuddy":
+        flag_list = in_args.sequence
+
+    for flag in flag_list:
+        if flag and re.match(" -", flag):
+            _stderr("%s.py: error: unrecognized arguments: %s\n" % (tool, flag))
+            sys.exit()
+    return True
+
+
 def error_report(trace_back, permission=False):
     message = ""
     error_hash = re.sub("^#.*?\n{2}", "", trace_back, flags=re.DOTALL)  # Remove error header information before hashing
@@ -778,7 +803,7 @@ def error_report(trace_back, permission=False):
                 return
 
         else:  # If error is unknown
-            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker\n"
+            message += "Uh oh, you've found a new bug! This issue is not currently in our bug tracker.\n"
 
     except (URLError, HTTPError, ContentTooShortError) as err:  # If there is an error, just blow through
         message += "Failed to locate known error codes:\n%s\n" % str(err)
@@ -1345,12 +1370,14 @@ if os.name == "nt":
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=1023, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
                 Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
                 Contributor("Jason", "Bowen", commits=6, github="https://github.com/jwbowen"),
                 Contributor("Todd", "Smith", commits=5, github="https://github.com/etiology"),
+                Contributor("Sofia", "Barreira", commits=2, github="https://github.com/alicarea"),
+                Contributor("Alexander", "Jones", commits=2, github="https://github.com/alexanjm"),
                 Contributor("Adam", "Palmer", commits=2, github="https://github.com/apalm112"),
                 Contributor("Helena", "Mendes-Soares", commits=1, github="https://github.com/mendessoares")]
 
@@ -1411,7 +1438,7 @@ sb_flags = {"annotate": {"flag": "ano",
                             "action": "append",
                             "nargs": "?",
                             "metavar": "'clean'",
-                            "help": "Concatenate a bunch of sequences into a single solid string. Pass in "
+                            "help": "Concatenate multiple sequences into a single solid string. Pass in "
                                     "the word 'clean' to remove stops, gaps, etc., from the sequences "
                                     "before concatenating"},
             "count_codons": {"flag": "cc",

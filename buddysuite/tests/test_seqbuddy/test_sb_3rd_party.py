@@ -42,7 +42,7 @@ def test_blastn(sb_resources, sb_odd_resources, hf, monkeypatch):
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("d f")
         Sb.blast(tester, "Mnemiopsis_cds.nhr")
-    assert "The .nhr file of your blast database was not found" in str(e.value)
+    assert "The .nhr file of your BLASTN database was not found" in str(e.value)
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
     with pytest.raises(SystemError) as e:
@@ -58,7 +58,7 @@ def test_blastp(sb_resources, sb_odd_resources, hf, monkeypatch):
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("p f")
         Sb.blast(tester, "Mnemiopsis_pep.phr")
-    assert "The .phr file of your blast database was not found" in str(e.value)
+    assert "The .phr file of your BLASTP database was not found" in str(e.value)
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
     with pytest.raises(SystemError) as e:
@@ -81,7 +81,7 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
     monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)
     with pytest.raises(SystemError) as err:
         Sb.blast(subject, query)
-    assert "blastdbcmd not found in system path." in str(err)
+    assert "makeblastdb not found in system path." in str(err)
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##

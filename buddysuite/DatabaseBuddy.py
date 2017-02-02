@@ -80,7 +80,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, "2.3", br.contributors, {"year": 2017, "month": 2, "day": 1})
+VERSION = br.Version("DatabaseBuddy", 1, "2.4", br.contributors, {"year": 2017, "month": 2, "day": 2})
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -2380,6 +2380,7 @@ def argparse_init():
              br.db_flags, br.db_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "DatabaseBuddy")
 
     dbbuddy = []
     out_format = "summary" if not in_args.out_format else in_args.out_format
