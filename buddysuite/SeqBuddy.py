@@ -3736,7 +3736,7 @@ def uppercase(seqbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     # Catching params to prevent weird collisions with 3rd party arguments
-    if '--blast' in sys.argv:  # Only plast at the moment, but other flags may come up in the future.
+    if '--blast' in sys.argv:  # Only blast at the moment, but other flags may come up in the future.
         sys.argv[sys.argv.index('--blast')] = '-bl'
     if '-bl' in sys.argv:
         sb_flag_indx = sys.argv.index('-bl')
@@ -3777,6 +3777,7 @@ def argparse_init():
              br.sb_flags, br.sb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "SeqBuddy")
 
     seqbuddy = []
     seq_set = ""

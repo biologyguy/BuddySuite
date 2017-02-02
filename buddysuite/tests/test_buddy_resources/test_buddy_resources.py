@@ -653,6 +653,44 @@ def test_config_values(monkeypatch):
     assert not options["data_dir"]
 
 
+def test_check_garbage_flags(capsys):
+    class InArgs(object):
+        def __init__(self):
+            self.alignments = ["valid.input", " --garbage"]
+            self.user_input = ["valid.input", " --garbage"]
+            self.trees = ["valid.input", " --garbage"]
+            self.sequence = ["valid.input", " --garbage"]
+
+    in_args = InArgs()
+
+    with pytest.raises(SystemExit):
+        br.check_garbage_flags(in_args, "AlignBuddy")
+
+    out, err = capsys.readouterr()
+    assert "AlignBuddy.py: error: unrecognized arguments:  --garbage" in err
+
+    with pytest.raises(SystemExit):
+        br.check_garbage_flags(in_args, "PhyloBuddy")
+
+    out, err = capsys.readouterr()
+    assert "PhyloBuddy.py: error: unrecognized arguments:  --garbage" in err
+
+    with pytest.raises(SystemExit):
+        br.check_garbage_flags(in_args, "DatabaseBuddy")
+
+    out, err = capsys.readouterr()
+    assert "DatabaseBuddy.py: error: unrecognized arguments:  --garbage" in err
+
+    with pytest.raises(SystemExit):
+        br.check_garbage_flags(in_args, "SeqBuddy")
+
+    out, err = capsys.readouterr()
+    assert "SeqBuddy.py: error: unrecognized arguments:  --garbage" in err
+
+    in_args.alignments = ["valid.input"]
+    assert br.check_garbage_flags(in_args, "AlignBuddy")
+
+
 def test_error_report(monkeypatch):
     class FakeFTP:
         def __init__(self, *args, **kwargs):

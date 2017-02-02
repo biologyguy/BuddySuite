@@ -1554,6 +1554,7 @@ def argparse_init():
              br.alb_flags, br.alb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "AlignBuddy")
 
     alignbuddy = []
     align_set = ""
