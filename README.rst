@@ -1,4 +1,4 @@
-|Build Status| |Coverage Status| |PyPi version|
+|Build_Status| |Coverage_Status| |PyPi_version|
 
 |BuddySuite|
 
@@ -70,7 +70,7 @@ We are currently working on a
 `manuscript for peer review <https://github.com/biologyguy/BuddySuite/tree/develop/manuscript>`__,
 but until then there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
 
-`DOI: 10.1101/040675 <http://dx.doi.org/10.1101/040675>`__
+|DOI|
 
 Contact
 -------
@@ -79,12 +79,14 @@ Any comments you have would be really appreciated. Please feel free to
 add issues in the GitHub issue tracker or contact Steve Bond (lead
 developer) directly at steve.bond@nih.gov.
 
-.. |Build Status| image:: https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master
+.. |Build_Status| image:: https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master
    :target: https://travis-ci.org/biologyguy/BuddySuite
-.. |Coverage Status| image:: https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg
+.. |Coverage_Status| image:: https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg
    :target: https://coveralls.io/github/biologyguy/BuddySuite?branch=master
-.. |PyPi version| image:: https://img.shields.io/pypi/v/buddysuite.svg
+.. |PyPi_version| image:: https://img.shields.io/pypi/v/buddysuite.svg
    :target: https://pypi.python.org/pypi/buddysuite
 .. |BuddySuite| image:: https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/BuddySuite-logo.png
    :target: https://github.com/biologyguy/BuddySuite/wiki
-   :scale: 30 %
+   :height: 200 px
+.. |DOI| image:: https://img.shields.io/badge/doi-10.1101.040675-blue.svg?style=flat
+   :target: https://doi.org/10.1101/040675
