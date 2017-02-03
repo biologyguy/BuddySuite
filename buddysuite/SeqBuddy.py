@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 2})
+VERSION = br.Version("SeqBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]

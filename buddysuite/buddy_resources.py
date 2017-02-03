@@ -1370,7 +1370,7 @@ if os.name == "nt":
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=1023, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=1033, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
                 Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
