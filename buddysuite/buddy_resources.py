@@ -772,7 +772,7 @@ def check_garbage_flags(in_args, tool):
         flag_list = in_args.sequence
 
     for flag in flag_list:
-        if flag and re.match(" -", flag):
+        if flag and re.match(" -", str(flag)):
             _stderr("%s.py: error: unrecognized arguments: %s\n" % (tool, flag))
             sys.exit()
     return True
@@ -1370,7 +1370,7 @@ if os.name == "nt":
 
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=1023, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=1033, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
                 Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),

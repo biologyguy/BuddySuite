@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.4", br.contributors, {"year": 2017, "month": 2, "day": 2})
+VERSION = br.Version("SeqBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -185,7 +185,11 @@ class SeqBuddy(object):
         # Handles
         if str(type(sb_input)) == "<class '_io.TextIOWrapper'>":
             if not sb_input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(br.utf_encode(sb_input.read()))
+                input_txt = sb_input.read()
+                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                    print(input_txt)
+                    sys.exit()
+                temp = StringIO(br.utf_encode(input_txt))
                 sb_input = temp
             sb_input.seek(0)
             in_handle = sb_input.read()

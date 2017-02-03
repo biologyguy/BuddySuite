@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2.4", br.contributors, {"year": 2017, "month": 2, "day": 2})
+VERSION = br.Version("PhyloBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -167,7 +167,11 @@ class PhyloBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(br.utf_encode(_input.read()))
+                input_txt = _input.read()
+                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                    print(input_txt)
+                    sys.exit()
+                temp = StringIO(br.utf_encode(input_txt))
                 _input = temp
             _input.seek(0)
             in_from_handle = _input.read()
