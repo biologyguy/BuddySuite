@@ -788,7 +788,7 @@ def check_garbage_flags(in_args, tool):
         flag_list = in_args.sequence
 
     for flag in flag_list:
-        if flag and re.match(" -", flag):
+        if flag and re.match(" -", str(flag)):
             _stderr("%s.py: error: unrecognized arguments: %s\n" % (tool, flag))
             sys.exit()
     return True
