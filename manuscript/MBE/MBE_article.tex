@@ -80,7 +80,7 @@ One of the greatest advantages BuddySuite has over other programs is its handlin
 
 
 \section{Use-case examples}
-The use cases highlighted in this section are intended to illustrate common features of the BuddySuite modules. For extended documentation, please refer to the public wiki (http://tiny.cc/buddysuite\_wiki), where each tool is described in greater detail. Furthermore, the module names in the examples below have been shortened to sb for SeqBuddy, alb for AlignBuddy, and pb for PhyloBuddy.
+The use cases highlighted in this section are intended to illustrate common features of the BuddySuite modules. For extended documentation, please refer to the public wiki (http://tiny.cc/buddysuite\_wiki), where each tool is described in greater detail. Please note that the module names in the examples below have been shortened to sb for SeqBuddy, alb for AlignBuddy, and pb for PhyloBuddy.
 
 BuddySuite modules are executed from the command line using the following generalized syntax:
 
@@ -128,14 +128,14 @@ Complex workflows can also be built from the BuddySuite modules using the pipe c
     sb  --translate |
     alb --generate_alignment mafft |
     alb --extract_feature_sequences "TMD2:TMD4" |
-    pb  --generate_tree raxmlHPC-SSE3 |
+    pb  --generate_tree phyml "-m WAG -a e -b 8" |
     pb  --root
 \end{verbatim}
 }
 
 \smallskip
 
-In the example above, SeqBuddy processes a set of homologous cDNAs and transmits them to the TopCons server \cite{Tsirigos:2015eo} to predict transmembrane domains (TMD). Once the results have been automatically retrieved from the server, the sequences are annotated and those that include `TMD4' are retained for further analysis (note that SeqBuddy recasts the format to GenBank when applying new sequence features). The cDNAs are translated to protein, a multiple sequence alignment is generated, the section of the alignment spanning the second through forth TMD is extracted, and then phylogenetic inference software is called via PhyloBuddy to generate a tree. Finally, the tree is rooted at its midpoint.
+In the example above, SeqBuddy processes a set of homologous cDNAs and transmits them to the TopCons server \cite{Tsirigos:2015eo} to predict transmembrane domains (TMD). Once the results have been automatically retrieved from the server, the sequences are annotated and those that include `TMD4' are retained for further analysis (note that SeqBuddy recasts the format to GenBank when applying new sequence features). The cDNAs are translated to protein, a multiple sequence alignment is generated, the section of the alignment spanning the second through forth TMD is extracted, and then the phylogenetic inference software PhyML \cite{Guindon:2010gf} is called with additional parameters via PhyloBuddy to generate a tree. Finally, the tree is rooted at its midpoint.
 
 To piece this workflow together without BuddySuite, a user may identify TMDs with a command-line version of software like TMHMM \cite{Krogh:2001bv} or access the TOPCONS server directly from a web browser, and then manually inspect the output files or parse them with awk to create a list of appropriate sequence IDs. After pulling those sequences from the original file with seqret and translating them with transeq (which are both part of the EMBOSS suite), they would then need to be saved as a new FASTA file in order to be passed into MAFFT to generate the multiple sequence alignment. Extracting the alignment columns covering TMD2 through TMD4 would require further manual inspection or a custom script to match the location of each TMD from the TMHMM or TOPCONS results to the alignment. Once identified, seqret could be called again to pull the correct regions from the alignment and create a new file. Finally, RAxML \cite{Stamatakis:2006de} could be used to infer a phylogenetic tree and root it. While the above series of steps is certainly valid and will accomplish the end goal of the user, BuddySuite offers a far simpler solution involving fewer pieces of software, fewer intermediary files, less manual intervention, and a consistent syntax. 
 
