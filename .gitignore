@@ -35,7 +35,10 @@ dependencies.conf
 *_article.bbl
 *_article.blg
 *_article.idx
+*_article.out
 /*/*/figures/*.pdf
+/*/*/figures/*.svg
+*.ai
 
 # Manuscript submission files
 /manuscript/submission_docs/*
@@ -43,3 +46,6 @@ dependencies.conf
 # Diagnostic reference sequence files
 /diagnostics/reference/*.gb
 /diagnostics/reference/*.nwk
+
+# PyPI distribution files
+/dist/*
