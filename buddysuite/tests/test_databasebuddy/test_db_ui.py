@@ -1160,9 +1160,6 @@ def test_main(monkeypatch):
     monkeypatch.setattr(Db, "command_line_ui", lambda *_: True)
     assert Db.main()
 
-    monkeypatch.setattr(Db, "command_line_ui", mock_keyboardinterrupt)
-    assert not Db.main()
-
     monkeypatch.setattr(Db, "command_line_ui", mock_guesserror)
     assert not Db.main()
 
@@ -1205,12 +1202,6 @@ def test_error(monkeypatch, capsys):
     test_in_args.live_shell = True
 
     assert Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True) is None
-
-    test_in_args.live_shell = False
-    monkeypatch.setattr(Db, "LiveShell", mock_keyboardinterrupt)
-    assert Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True) is None
-    out, err = capsys.readouterr()
-    assert "DbBuddy object" in out
 
     monkeypatch.setattr(Db, "LiveShell", mock_fileexistserror)
     monkeypatch.setattr(br.TempFile, "save", lambda *_: True)
