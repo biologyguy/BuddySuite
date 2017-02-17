@@ -801,8 +801,6 @@ class UniProtRestClient(GenericClient):
                 self.write_error("Uniprot request failed, are you connected to the internet?", err)
             else:
                 self.write_error("Uniprot request failed", err)
-        except KeyboardInterrupt:
-            br._stderr("\n\tUniProt query interrupted by user\n")
         return
 
     def count_hits(self):
@@ -987,8 +985,7 @@ class NCBIClient(GenericClient):
                 else:
                     self.write_error("NCBI request failed", err)
                 break
-            except KeyboardInterrupt:
-                return
+
         if handle:
             if tool == "efetch_seq":
                 result = "%s\n" % handle.read().strip()
@@ -1170,33 +1167,29 @@ class NCBIClient(GenericClient):
         gi_nums = [_rec.gi for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
         if not gi_nums:
             return
-        try:
-            self.results_file.clear()
-            gi_nums = self.group_terms_for_url(gi_nums)
-            runtime = br.RunTime(prefix="\t")
-            br._stderr("Fetching full %s sequence records from NCBI...\n" % database)
-            runtime.start()
-            if len(gi_nums) > 1:
-                br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"],
-                                          max_processes=3, quiet=True)
-            else:
-                self._mc_query(gi_nums[0], func_args=["efetch_seq"])
-            self.parse_error_file()
+        self.results_file.clear()
+        gi_nums = self.group_terms_for_url(gi_nums)
+        runtime = br.RunTime(prefix="\t")
+        br._stderr("Fetching full %s sequence records from NCBI...\n" % database)
+        runtime.start()
+        if len(gi_nums) > 1:
+            br.run_multicore_function(gi_nums, self._mc_query, func_args=["efetch_seq"],
+                                      max_processes=3, quiet=True)
+        else:
+            self._mc_query(gi_nums[0], func_args=["efetch_seq"])
+        self.parse_error_file()
 
-            runtime.end()
-            records = {}
-            for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
-                if rec.id not in records:
-                    records[rec.id] = rec
-            br._stderr("\tDone\n")
-            for accn, rec in records.items():
-                self.dbbuddy.records[accn].record = rec
-                version = re.search("^.*?\.([0-9]+)$", accn)
-                if version:
-                    self.dbbuddy.records[accn].version = version.group(1)
-        except KeyboardInterrupt:
-            br._stderr("\n\tNCBI query interrupted by user\n")
-
+        runtime.end()
+        records = {}
+        for rec in SeqIO.parse(self.results_file.get_handle("r"), "gb"):
+            if rec.id not in records:
+                records[rec.id] = rec
+        br._stderr("\tDone\n")
+        for accn, rec in records.items():
+            self.dbbuddy.records[accn].record = rec
+            version = re.search("^.*?\.([0-9]+)$", accn)
+            if version:
+                self.dbbuddy.records[accn].version = version.group(1)
         return
 
 
@@ -1275,9 +1268,6 @@ class EnsemblRestClient(GenericClient):
                 self.write_error("Ensembl request failed, are you connected to the internet?", err)
             else:
                 self.write_error("Ensembl request failed", err)
-
-        except KeyboardInterrupt:
-            pass
         return
 
     def search_ensembl(self):
@@ -1463,11 +1453,13 @@ Further details about each command can be accessed by typing 'help <command>'
         self.hash = None
         self.shell_execs = []  # Only populate this if "bash" is called by the user
         self.usage = br.Usage()
-        self.cmdloop()
-
-    # @staticmethod
-    # def do_crash(line=None):
-    #    open("a file that doesn't exist")
+        breakout = False
+        while not breakout:
+            try:
+                self.cmdloop()
+                breakout = True
+            except KeyboardInterrupt:
+                _stdout("\n")
 
     def precmd(self, line):
         # ToDo: Long commands are added to history, they are not output correctly in the terminal. For some reason they
@@ -1503,7 +1495,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout('*** Unknown syntax: %s\n\n' % line, format_in=RED, format_out=self.terminal_default)
 
     @staticmethod
-    def _append_slash_if_dir(p):  # Used for expanding file patsh
+    def _append_slash_if_dir(p):  # Used for expanding file path
             if p and os.path.isdir(p) and p[-1] != os.sep:
                 return p + os.sep
             else:
@@ -1573,6 +1565,9 @@ Further details about each command can be accessed by typing 'help <command>'
 
         _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
         self.dump_session()
+
+    def do_EOF(self, line):
+        return True
 
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
@@ -2411,7 +2406,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             LiveShell(dbbuddy, temp_file)
         except SystemExit:
             pass
-        except (KeyboardInterrupt, br.GuessError) as err:
+        except br.GuessError as err:
             print(err)
         except Exception as err:
             save_file = ".%sDbSessionDump_%s" % (os.sep, temp_file.name)
@@ -2513,7 +2508,7 @@ def main():
     try:
         initiation = argparse_init()
         command_line_ui(*initiation)
-    except (KeyboardInterrupt, br.GuessError) as e:
+    except br.GuessError as e:
         print(e)
         return False
     except SystemExit:

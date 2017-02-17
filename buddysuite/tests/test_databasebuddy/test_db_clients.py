@@ -207,11 +207,6 @@ A0A0H5SBJ0
     client.query_uniprot("inx15", [{"format": "list"}])
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
-    monkeypatch.setattr(Db, 'urlopen', mock_raise_keyboardinterrupt)
-    client.query_uniprot("inx15", [{"format": "list"}])
-    out, err = capsys.readouterr()
-    assert "\n\tUniProt query interrupted by user\n" in err
-
     params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
     client.query_uniprot("ABXEF9", params)
 
@@ -511,11 +506,6 @@ def test_ncbiclient_search_ncbi(hf, monkeypatch, capsys):
     for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
         assert accn in dbbuddy.records
 
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_raise_keyboardinterrupt)
-    client.search_ncbi("protein")
-    out, err = capsys.readouterr()
-    assert 'NCBI returned no protein results' in err
-
 
 def test_ncbiclient_fetch_summaries(hf, monkeypatch):
     def patch_entrez_fetch_summaries(*args, **kwargs):
@@ -579,16 +569,7 @@ def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    if os.name == "nt":
-        assert hf.string2hash(out) == "b431f4f8a05f5a0c14de2d0826859bca"
-    else:
-        assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
-
-    # Error
-    monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
-    client.fetch_sequences("ncbi_prot")
-    out, err = capsys.readouterr()
-    assert "\n\tNCBI query interrupted by user\n" in err
+    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
 
 
 # ENSEMBL
