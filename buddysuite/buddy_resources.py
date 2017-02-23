@@ -1931,7 +1931,13 @@ pb_flags = {"collapse_polytomies": {"flag": "cpt",
                                  "help": "Create a binary tree by splitting polytomies randomly"},
             "unroot": {"flag": "ur",
                                "action": "store_true",
-                               "help": "Remove any roots"}
+                               "help": "Remove any roots"},
+            "descending_order": {"flag": "do",
+                                 "action": "store_true",
+                                 "help": "sort the child nodes in order of the number of their children, in decending order"},
+            "ascending_order": {"flag": "ao",
+                                 "action": "store_true",
+                                 "help": "sort the child nodes in order of the number of their children, in ascending order"},
             }
 
 pb_modifiers = {"in_format": {"flag": "f",
