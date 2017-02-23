@@ -124,14 +124,18 @@ def decode_accessions(phylobuddy):
     # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
     return phylobuddy
 
-
+"""
 def descending_order(phylobuddy):
+    for tree in phylobuddy.trees:
+        tree.ladderize(ascending=False)
     return phylobuddy
 
 
 def ascending_order(phylobuddy):
+    for tree in phylobuddy.trees:
+        tree.ladderize(ascending=True)
     return phylobuddy
-"""
+
 
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
@@ -1180,6 +1184,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Ascending Order
+    if in_args.ascending_order:
+        phylobuddy = ascending_order(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("ascending_order")
+
     # Collapse polytomies
     if in_args.collapse_polytomies:
         args = in_args.collapse_polytomies[0]
@@ -1205,6 +1215,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
         _print_trees(consensus_tree(phylobuddy, frequency))
         _exit("consensus_tree")
+
+    # Descending Order
+    if in_args.descending_order:
+        phylobuddy = descending_order(phylobuddy)
+        _print_trees(phylobuddy)
+        _exit("ascending_order")
 
     # Display trees
     if in_args.display_trees:
