@@ -1898,7 +1898,7 @@ pb_flags = {"collapse_polytomies": {"flag": "cpt",
                                  "choices": ["ascending", "descending"],
                                  "default": "ascending",
                                  "help": "sort the child nodes in order of the number of their children "
-                                 "in either ascending or decending order. (default: ascending)"}
+                                 "in either ascending or decending order. (default: ascending)"},
             "list_ids": {"flag": "li",
                          "action": "append",
                          "nargs": "?",
