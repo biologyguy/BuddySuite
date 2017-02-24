@@ -1184,12 +1184,6 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Ascending Order
-    if in_args.ascending_order:
-        phylobuddy = ascending_order(phylobuddy)
-        _print_trees(phylobuddy)
-        _exit("ascending_order")
-
     # Collapse polytomies
     if in_args.collapse_polytomies:
         args = in_args.collapse_polytomies[0]
@@ -1215,12 +1209,6 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
         _print_trees(consensus_tree(phylobuddy, frequency))
         _exit("consensus_tree")
-
-    # Descending Order
-    if in_args.descending_order:
-        phylobuddy = descending_order(phylobuddy)
-        _print_trees(phylobuddy)
-        _exit("ascending_order")
 
     # Display trees
     if in_args.display_trees:
@@ -1340,6 +1328,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         br._stderr(hash_table, in_args.quiet)
         _print_trees(phylobuddy)
         _exit("hash_ids")
+
+    # Ladderize
+    if in_args.ladderize:
+        phylobuddy = ladderize(phylobuddy, in_args.ladderize)
+        _print_trees(phylobuddy)
+        _exit("ascending_order")
 
     # List ids
     if in_args.list_ids:
