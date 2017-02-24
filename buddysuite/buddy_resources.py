@@ -1932,12 +1932,12 @@ pb_flags = {"collapse_polytomies": {"flag": "cpt",
             "unroot": {"flag": "ur",
                                "action": "store_true",
                                "help": "Remove any roots"},
-            "descending_order": {"flag": "do",
-                                 "action": "store_true",
-                                 "help": "sort the child nodes in order of the number of their children, in decending order"},
-            "ascending_order": {"flag": "ao",
-                                 "action": "store_true",
-                                 "help": "sort the child nodes in order of the number of their children, in ascending order"},
+            "ladderize": {"flag": "ld",
+                                 "action": "store",
+                                 "nargs": "?",
+                                 "choices": ["ascending", "descending"],
+                                 "default": "ascending",
+                                 "help": "sort the child nodes in order of the number of their children in either ascending or decending order. (default: ascending)"}
             }
 
 pb_modifiers = {"in_format": {"flag": "f",

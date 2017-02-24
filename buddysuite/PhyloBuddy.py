@@ -125,16 +125,6 @@ def decode_accessions(phylobuddy):
     return phylobuddy
 
 """
-def descending_order(phylobuddy):
-    for tree in phylobuddy.trees:
-        tree.ladderize(ascending=False)
-    return phylobuddy
-
-
-def ascending_order(phylobuddy):
-    for tree in phylobuddy.trees:
-        tree.ladderize(ascending=True)
-    return phylobuddy
 
 
 # - Compare two trees, and add colour to the nodes that differ. [ ]
@@ -791,6 +781,16 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
                 node.taxon.label = hashes.new_hash(str(node.taxon.label))
 
     phylobuddy.hash_map = hashes.hash_map
+    return phylobuddy
+
+
+def ladderize(phylobuddy, sort_order="ascending"):
+    ascending=True
+    if sort_order != "ascending":
+        ascending = False
+
+    for tree in phylobuddy.trees:
+        tree.ladderize(ascending)
     return phylobuddy
 
 
