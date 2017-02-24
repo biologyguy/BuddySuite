@@ -470,17 +470,66 @@ def consensus_tree(phylobuddy, frequency=.5):
     return phylobuddy
 
 
-def display_trees(phylobuddy):
+def display_trees(phylobuddy, canvas_w=600, canvas_h=600):
     """
     Displays trees in an ETE GUI window, one-by-one.
     :param phylobuddy: PhyloBuddy object
     :return: None
     """
-    if "DISPLAY" not in os.environ:
-        raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
+    #if "DISPLAY" not in os.environ:
+    #    raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
 
-    for _tree in phylobuddy.trees:
-        _convert_to_ete(_tree).show()
+    import webbrowser
+    tmp_dir = br.TempDir()
+    shutil.copyfile("dependencies/jsphylosvg-min.js", tmp_dir.path + "/jsphylosvg-min.js")
+    shutil.copyfile("dependencies/raphael-min.js", tmp_dir.path + "/raphael-min.js")
+    tmp_file = tmp_dir.subfile("index.html")
+
+    js_trees = ""
+    svg_canvases = ""
+    for indx, tree in enumerate(phylobuddy.trees):
+        tree = PhyloBuddy([tree], _out_format="newick")
+        tree = str(tree).strip()[5:]
+        js_trees += """
+    var dataObject{0} = {{ newick: '{1}' }};
+    phylocanvas = new Smits.PhyloCanvas(
+        dataObject{0},
+        'svgCanvas{0}',
+        {2}, {3}
+    );
+    var svgSource{0} = phylocanvas.getSvgSource();
+        """.format(indx, tree, canvas_w, canvas_h)
+        svg_canvases += '<div id="svgCanvas%s"> </div>\n' % indx
+    print(js_trees)
+
+    with open(tmp_file, "w") as ofile:
+        ofile.write("""
+<html>
+<head>
+    <script type="text/javascript" src="./raphael-min.js" ></script>
+    <script type="text/javascript" src="./jsphylosvg-min.js"></script>
+    <script type="text/javascript">
+        window.onload = function(){
+                %s
+        };
+    </script>
+</head>
+<body>
+%s
+
+Hello!<br />
+</body>
+</html>
+""" % (js_trees, svg_canvases))
+
+    if os.name == "nt":  # File path specification different between operating systems
+        file_location = tmp_file
+    else:
+        file_location = "file:///" + tmp_file
+    webbrowser.open_new_tab(file_location)
+    # for _tree in phylobuddy.trees:
+    #    #_convert_to_ete(_tree).show()
+    input("Switching to web browser. Hit any key to exit.\n")
     return True
 
 
