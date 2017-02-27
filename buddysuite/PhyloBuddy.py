@@ -470,7 +470,7 @@ def consensus_tree(phylobuddy, frequency=.5):
     return phylobuddy
 
 
-def display_trees(phylobuddy, canvas_w=600, canvas_h=600):
+def display_trees(phylobuddy):
     """
     Displays trees in an ETE GUI window, one-by-one.
     :param phylobuddy: PhyloBuddy object
@@ -480,14 +480,26 @@ def display_trees(phylobuddy, canvas_w=600, canvas_h=600):
     #    raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
 
     import webbrowser
+    canvas_w = 800  # I have arbitrarily set this value
+
     tmp_dir = br.TempDir()
-    shutil.copyfile("dependencies/jsphylosvg-min.js", tmp_dir.path + "/jsphylosvg-min.js")
-    shutil.copyfile("dependencies/raphael-min.js", tmp_dir.path + "/raphael-min.js")
+
+    dependencies_dir = os.path.abspath(__file__).split(os.sep)[:-1]
+    dependencies_dir = os.sep + os.path.join(*dependencies_dir) + os.sep + "dependencies"
+
+    if os.path.isfile(dependencies_dir + os.sep + "raphael-min.js") \
+            and os.path.isfile(dependencies_dir + os.sep + "jsphylosvg-min.js"):
+        shutil.copyfile(dependencies_dir + os.sep + "jsphylosvg-min.js", tmp_dir.path + os.sep + "jsphylosvg-min.js")
+        shutil.copyfile(dependencies_dir + os.sep + "raphael-min.js", tmp_dir.path + os.sep + "raphael-min.js")
+    else:
+        raise FileNotFoundError("Javascript libraries not found. Try reinstalling BuddySuite:\n\t$: buddysuite -setup")
+
     tmp_file = tmp_dir.subfile("index.html")
 
     js_trees = ""
     svg_canvases = ""
     for indx, tree in enumerate(phylobuddy.trees):
+        canvas_h = (len(list(tree.leaf_node_iter())) * 100) / 6  # This changes depending on how big the tree is
         tree = PhyloBuddy([tree], _out_format="newick")
         tree = str(tree).strip()[5:]
         js_trees += """
@@ -500,7 +512,6 @@ def display_trees(phylobuddy, canvas_w=600, canvas_h=600):
     var svgSource{0} = phylocanvas.getSvgSource();
         """.format(indx, tree, canvas_w, canvas_h)
         svg_canvases += '<div id="svgCanvas%s"> </div>\n' % indx
-    print(js_trees)
 
     with open(tmp_file, "w") as ofile:
         ofile.write("""
@@ -516,8 +527,6 @@ def display_trees(phylobuddy, canvas_w=600, canvas_h=600):
 </head>
 <body>
 %s
-
-Hello!<br />
 </body>
 </html>
 """ % (js_trees, svg_canvases))
@@ -1267,6 +1276,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                 br._stderr("Unable to display trees because PyQt4 is not installed.\n"
                            "If conda is installed, try $: conda install pyqt=4\n")
             _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
+        except FileNotFoundError as err:
+            _raise_error(err, "display_tree", "Javascript libraries not found")
         _exit("display_trees")
 
     # Distance
