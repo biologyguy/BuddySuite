@@ -401,6 +401,17 @@ def test_hash_ids_edges(monkeypatch, pb_resources, hf, pb_odd_resources):
     tester = Pb.hash_ids(pb_resources.get_one("o n"))
     assert hf.buddy2hash(tester) == "48b1b2b0e1f7012ea1a964269300ac6b"
 
+
+# ###################### 'ld', '--ladderize' ###################### #
+def test_ladderize(pb_resources, hf):
+    tester = pb_resources.get_one("m k")
+    tester = Pb.ladderize(tester)
+    assert hf.buddy2hash(tester) == "63ee71da75031d09f953932a1f0195b5"
+
+    tester = Pb.ladderize(tester, ascending=False)
+    assert hf.buddy2hash(tester) == "0dfa9fbb23428d2992b982776777428c"
+
+
 # ###################### 'li', '--list_ids' ###################### #
 hashes = [('m k', '514675543e958d5177f248708405224d'), ('m n', '229e5d7cd8bb2bfc300fd45ec18e8424'),
           ('m l', '514675543e958d5177f248708405224d')]

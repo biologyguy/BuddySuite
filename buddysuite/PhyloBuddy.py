@@ -784,11 +784,7 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
     return phylobuddy
 
 
-def ladderize(phylobuddy, sort_order="ascending"):
-    ascending=True
-    if sort_order != "ascending":
-        ascending = False
-
+def ladderize(phylobuddy, ascending=True):
     for tree in phylobuddy.trees:
         tree.ladderize(ascending)
     return phylobuddy
@@ -1331,7 +1327,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Ladderize
     if in_args.ladderize:
-        phylobuddy = ladderize(phylobuddy, in_args.ladderize)
+        ascending = True if not in_args.ladderize[0] or "rev" not in in_args.ladderize[0].lower() else False
+        phylobuddy = ladderize(phylobuddy, ascending)
         _print_trees(phylobuddy)
         _exit("ascending_order")
 
