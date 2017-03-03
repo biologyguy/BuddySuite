@@ -662,6 +662,35 @@ def make_copy(seqbuddy):
     return _copy
 
 
+def _prepare_restriction_sites(parameters):
+    min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
+    for param in parameters:
+        try:
+            param = int(param)
+        except ValueError:
+            pass
+        if type(param) == int:
+            if not min_cuts:
+                min_cuts = param
+            elif not max_cuts:
+                max_cuts = param if param >= min_cuts else min_cuts
+                min_cuts = param if param <= min_cuts else min_cuts
+            elif param > max_cuts:
+                max_cuts = param
+            elif param < min_cuts:
+                min_cuts = param
+
+        elif param in ['alpha', 'position']:
+            order = param
+        else:
+            _enzymes.append(param)
+
+    _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
+    max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
+    min_cuts = 1 if not min_cuts else min_cuts
+    return _enzymes, order, min_cuts, max_cuts
+
+
 # ################################################ MAIN API FUNCTIONS ################################################ #
 def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
     """
@@ -4372,35 +4401,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Find restriction sites
     if in_args.find_restriction_sites:
-        min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
 
-        in_args.find_restriction_sites = in_args.find_restriction_sites[0]
-        for param in in_args.find_restriction_sites:
-            try:
-                param = int(param)
-            except ValueError:
-                pass
-            if type(param) == int:
-                if not min_cuts:
-                    min_cuts = param
-                elif not max_cuts:
-                    max_cuts = param if param >= min_cuts else min_cuts
-                    min_cuts = param if param <= min_cuts else min_cuts
-                elif param > max_cuts:
-                    max_cuts = param
-                elif param < min_cuts:
-                    min_cuts = param
-
-            elif param in ['alpha', 'position']:
-                order = param
-            else:
-                _enzymes.append(param)
-
-        _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
-        max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
-        min_cuts = 1 if not min_cuts else min_cuts
+        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.find_restriction_sites[0])
 
         clean_seq(seqbuddy)
         try:
