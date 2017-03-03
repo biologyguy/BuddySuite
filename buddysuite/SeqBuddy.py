@@ -1317,6 +1317,7 @@ def concat_seqs(seqbuddy, clean=False):
     new_seq = ""
     concat_ids = []
     features = []
+    letter_annotations = {}
     for rec in seqbuddy.records:
         shift = len(new_seq)
         full_seq_len = len(new_seq) + len(str(rec.seq))
@@ -1326,11 +1327,17 @@ def concat_seqs(seqbuddy, clean=False):
         feature = SeqFeature(location=location, id=rec.id, type=rec.id[:15])
         features.append(feature)
         features += rec.features
+
+        for qual_type, scores in rec.letter_annotations.items():
+            letter_annotations.setdefault(qual_type, [])
+            letter_annotations[qual_type] += scores
+
         concat_ids.append(rec.id)
         new_seq += str(rec.seq)
 
     new_seq = [SeqRecord(Seq(new_seq, alphabet=seqbuddy.alpha),
-                         description="", id="concatination", features=features)]
+                         description="", id="concatination", name="concatination", features=features,
+                         annotations={}, letter_annotations=letter_annotations)]
     seqbuddy = SeqBuddy(new_seq)
     seqbuddy.out_format = "gb"
     return seqbuddy
@@ -1901,6 +1908,9 @@ def extract_regions(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
+        letter_annotations = {}
+        for anno_type in rec.letter_annotations:
+            letter_annotations[anno_type] = rec.letter_annotations[anno_type][new_rec_positions[0]:new_rec_positions[-1]+1]
         new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
@@ -1913,7 +1923,7 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1922,7 +1932,7 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
 
         new_records.append(new_seq)
 
