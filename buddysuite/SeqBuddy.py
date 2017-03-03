@@ -2405,6 +2405,32 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
+def in_silico_digest(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
+    """
+    Find restriction sites and break up sequences accordingly
+    :param seqbuddy: SeqBuddy object
+    :param enzyme_group: "commercial", "all", or a list of specific enzyme names
+    :param min_cuts: The minimum cut threshold
+    :param max_cuts: The maximum cut threshold
+    :param quiet: Suppress stderr
+    :return: New seqbuddy object with sequences fragmented
+    """
+    seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, min_cuts, max_cuts, quiet)
+    new_seqbuddy = make_copy(seqbuddy)
+    new_seqbuddy.records = []
+
+    for indx, rec in enumerate(seqbuddy.records):
+        sub_seqbuddy = SeqBuddy([rec])
+        res_sites = [cut_sites for enzym, cut_sites in seqbuddy_rs.restriction_sites[indx][1].items()]
+        res_sites = sorted([cut_site for sublist in res_sites for cut_site in sublist])
+        seq_pointer = 0
+        for cut in res_sites:
+            fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+            new_seqbuddy.records.append(fragment.records[0])
+            seq_pointer = cut
+    return new_seqbuddy
+
+
 def isoelectric_point(seqbuddy):
     """
     Calculate the isoelectric points
@@ -4597,6 +4623,19 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
         _print_recs(insert_sequence(seqbuddy, sequence, location, regex))
         _exit("insert_seq")
+
+    # In silico digest
+    if in_args.in_silico_digest:
+        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.in_silico_digest[0])
+
+        clean_seq(seqbuddy)
+        try:
+            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
+        except TypeError as e:
+            _raise_error(e, "find_restriction_sites")
+
+        _print_recs(seqbuddy)
+        _exit("in_silico_digest")
 
     # Isoelectric Point
     if in_args.isoelectric_point:

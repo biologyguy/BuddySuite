@@ -1571,6 +1571,13 @@ sb_flags = {"annotate": {"flag": "ano",
                            "nargs": "*",
                            "metavar": ("<sequence>", "<front|rear|index(int)>"),
                            "help": "Insert a sequence at the desired location"},
+            "in_silico_digest": {"flag": "isd",
+                                 "action": "append",
+                                 "nargs": "*",
+                                 "metavar": "",
+                                 "help": "Restriction digest. Args: [enzymes "
+                                         "{specific enzymes, commercial, all}], [Num cuts (int) [num cuts]], "
+                                         "[order {alpha, position}]"},
             "isoelectric_point": {"flag": "ip",
                                   "action": "store_true",
                                   "help": "Calculate isoelectric points"},
