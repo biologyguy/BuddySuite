@@ -44,7 +44,7 @@ def test_hf_res_path(hf):
 # #################################  -  SeqBuddy  -  ################################## #
 def test_sb_resources_init(hf, sb_resources, capsys):
     assert sb_resources
-    for molecule in [('dna', 11), ('rna', 2), ('pep', 8)]:
+    for molecule in [('dna', 11), ('rna', 3), ('pep', 8)]:
         assert molecule[0] in sb_resources.resources
         assert len(sb_resources.resources[molecule[0]]) == molecule[1]
         assert molecule[0] in sb_resources.sb_objs

@@ -55,6 +55,7 @@ class SbResources(object):
 
         self.resources['rna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
             ("fasta", "{path}Mnemiopsis_rna.fa"),
+            ("gb", "{path}Mnemiopsis_rna.gb"),
             ("nexus", "{path}Mnemiopsis_rna.nex")]}
         self.resources['pep'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
             ("fasta", "{path}Mnemiopsis_pep.fa"),
