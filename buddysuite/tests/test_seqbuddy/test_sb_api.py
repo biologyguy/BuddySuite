@@ -976,6 +976,11 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     assert hf.string2hash(str(tester.restriction_sites)) == "0d2e5fdba6fed434495481397a91e56a"
     assert "Warning: FooBR not a known enzyme" in err
 
+    # RNA
+    tester = Sb.find_restriction_sites(sb_resources.get_one("r g"), min_cuts=2, max_cuts=4,
+                                       enzyme_group=["EcoRI", "KspI", "TasI"])
+    assert hf.buddy2hash(tester) == 'f440f8f7cbe21aad026d8cc7f41f98b6'
+
     with pytest.raises(TypeError) as e:
         Sb.find_restriction_sites(sb_resources.get_one("p g"))
     assert str(e.value) == "Unable to identify restriction sites in protein sequences."

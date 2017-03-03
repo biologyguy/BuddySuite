@@ -2180,6 +2180,12 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
+
+    convert_rna = False
+    if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        convert_rna = True
+        rna2dna(seqbuddy)
+
     if max_cuts and min_cuts > max_cuts:
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     max_cuts = 1000000000 if not max_cuts else max_cuts
@@ -2237,6 +2243,8 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
         sites.append((rec.id, rec.res_sites))
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
+    if convert_rna:
+        dna2rna(seqbuddy)
     return seqbuddy
 
 
