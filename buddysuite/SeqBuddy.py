@@ -1910,7 +1910,9 @@ def extract_regions(seqbuddy, positions):
         new_rec_positions = create_residue_list(rec, positions)
         letter_annotations = {}
         for anno_type in rec.letter_annotations:
-            letter_annotations[anno_type] = rec.letter_annotations[anno_type][new_rec_positions[0]:new_rec_positions[-1]+1]
+            letter_annotations[anno_type] = [None for _ in range(len(new_rec_positions))]
+            for indx, anno_pos in enumerate(new_rec_positions):
+                letter_annotations[anno_type][indx] = rec.letter_annotations[anno_type][anno_pos]
         new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
