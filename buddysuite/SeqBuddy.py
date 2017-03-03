@@ -2405,17 +2405,18 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
-def in_silico_digest(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
+def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False):
     """
     Find restriction sites and break up sequences accordingly
     :param seqbuddy: SeqBuddy object
-    :param enzyme_group: "commercial", "all", or a list of specific enzyme names
-    :param min_cuts: The minimum cut threshold
-    :param max_cuts: The maximum cut threshold
+    :param enzyme_group: list of specific enzyme names
     :param quiet: Suppress stderr
     :return: New seqbuddy object with sequences fragmented
     """
-    seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, min_cuts, max_cuts, quiet)
+    if seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Unable to identify restriction sites in protein sequences.")
+
+    seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, quiet)
     new_seqbuddy = make_copy(seqbuddy)
     new_seqbuddy.records = []
 
@@ -2428,6 +2429,8 @@ def in_silico_digest(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet
             fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
             new_seqbuddy.records.append(fragment.records[0])
             seq_pointer = cut
+        final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+        new_seqbuddy.records.append(final_fragment.records[0])
     return new_seqbuddy
 
 
@@ -4628,11 +4631,15 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.in_silico_digest:
         _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.in_silico_digest[0])
 
+        if not in_args.in_silico_digest[0] or _enzymes == ["commercial"]:
+            br._stderr("Error: Please provide a list of enzymes you wish to cut your sequences with.\n")
+            _exit("in_silico_digest")
+
         clean_seq(seqbuddy)
         try:
-            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes), min_cuts, max_cuts)
+            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes))
         except TypeError as e:
-            _raise_error(e, "find_restriction_sites")
+            _raise_error(e, "in_silico_digest")
 
         _print_recs(seqbuddy)
         _exit("in_silico_digest")

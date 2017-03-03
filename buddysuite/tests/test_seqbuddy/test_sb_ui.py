@@ -797,6 +797,26 @@ def test_insert_seqs_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 
+# ######################  '-isd', '--in_silico_digest' ###################### #
+def test_in_silico_digest_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_silico_digest = [[]]
+
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert err == "Error: Please provide a list of enzymes you wish to cut your sequences with.\n"
+
+    test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "5539e56a557e545a4c16550a972acae6"
+    assert err == "Warning: FooBR not a known enzyme\n"
+
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "Unable to identify restriction sites in protein sequences." in str(err)
+
+
 # ######################  '-ip', '--isoelectric_point' ###################### #
 def test_isoelectric_point_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)

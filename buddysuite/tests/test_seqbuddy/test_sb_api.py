@@ -1063,6 +1063,24 @@ def test_insert_seqs_start(sb_resources, hf):
     assert hf.buddy2hash(Sb.insert_sequence(tester, insert, -25)) == '29cab1e72ba95572c3aec469270071e9'
 
 
+# ######################  '-isd', '--in_silico_digest' ###################### #
+def test_in_silico_digest(capsys, sb_resources, hf):
+    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
+    out, err = capsys.readouterr()
+    assert hf.buddy2hash(tester) == '5539e56a557e545a4c16550a972acae6'
+    assert "Warning: FooBR not a known enzyme" in err
+
+    with pytest.raises(TypeError) as e:
+        Sb.in_silico_digest(sb_resources.get_one("p g"))
+    assert str(e.value) == "Unable to identify restriction sites in protein sequences."
+
+    # 2-cutters and non-cutters
+    Sb.in_silico_digest(tester, enzyme_group=["AjuI", "AlwFI"])
+    out, err = capsys.readouterr()
+    assert "Warning: Double-cutters not supported." in err
+    assert "Warning: No-cutters not supported." in err
+
+
 # ######################  '-ip', '--isoelectric_point' ###################### #
 def test_isoelectric_point(sb_resources, hf):
     for tester in sb_resources.get_list("p f g n pr s"):
