@@ -1330,7 +1330,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         ascending = True if not in_args.ladderize[0] or "rev" not in in_args.ladderize[0].lower() else False
         phylobuddy = ladderize(phylobuddy, ascending)
         _print_trees(phylobuddy)
-        _exit("ascending_order")
+        _exit("ladderize")
 
     # List ids
     if in_args.list_ids:
