@@ -2921,7 +2921,7 @@ class PrositeScan(object):
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
         if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
-            email = "buddysuite@nih.gov"
+            email = "buddysuite@gmail.com"
         else:
             email = self.user_deets["email"]
 
