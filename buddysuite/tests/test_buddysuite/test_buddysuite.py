@@ -61,7 +61,7 @@ The maintainers of those resources may attempt to contact you before blocking yo
 [1mBuddySuite is able to automatically send anonymized usage statistics and crash reports to the developers as part of the software improvement program.[m
 
 [1mSuccess! You're all set.[m
-    Email address:     buddysuite@nih.gov
+    Email address:     buddysuite@gmail.com
     Send diagnostics:  True
 
 These choices can be changed at any time by re-running setup.
