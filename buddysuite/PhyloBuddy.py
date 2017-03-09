@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
+VERSION = br.Version("PhyloBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -167,7 +167,11 @@ class PhyloBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(br.utf_encode(_input.read()))
+                input_txt = _input.read()
+                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                    print(input_txt)
+                    sys.exit()
+                temp = StringIO(br.utf_encode(input_txt))
                 _input = temp
             _input.seek(0)
             in_from_handle = _input.read()
@@ -542,7 +546,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
 
     if keep_temp:  # Store files in temp dir in a non-temporary directory
         if os.path.exists(keep_temp):
-            raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being over-written. Please "
+            raise FileExistsError("Execution of %s was halted to prevent files in '%s' from being overwritten. Please "
                                   "choose another location to save temporary files."
                                   % (alias, os.path.split(keep_temp)[-1]))
 
@@ -565,11 +569,13 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 tool = prog[0]
                 break
     if not tool:
-        raise AttributeError("{0} is not a valid alignment tool.".format(alias))
+        raise AttributeError("{0} is not a recognized tree inference tool. "
+                             "Please check your spelling (case sensitive)".format(alias))
 
     if shutil.which(alias) is None:  # Tool must be callable from command line
-        raise ProcessLookupError('#### Could not find {0} in $PATH. ####\nInstallation instructions '
-                                 'may be found at {1}.\n'.format(alias, _get_tree_binaries(tool)))
+        raise ProcessLookupError('#### Could not find {0} on your system. ####\n'
+                                 'Please check that your spelling is correct (case sensitive) or find installation '
+                                 'instructions at {1}.\n'.format(alias, _get_tree_binaries(tool)))
 
     else:
         tmp_dir = br.TempDir()
@@ -1096,9 +1102,10 @@ def argparse_init():
 ''')
 
     br.flags(parser, ("trees", "Supply file path(s) or raw tree string. If piping trees into PhyloBuddy "
-                               "this argument can be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
+                               "this argument must be left blank."), br.pb_flags, br.pb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "PhyloBuddy")
 
     phylobuddy = []
     tree_set = ""
@@ -1145,7 +1152,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1230,6 +1237,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Generate Tree
     if in_args.generate_tree:
+        # ToDo: The extra arguments parameter probably doesn't need to be dependent on the tool parameter being passed
         args = in_args.generate_tree[0]
         if not args:
             for tool in ['raxml', 'phyml', 'fasttree']:

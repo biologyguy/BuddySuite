@@ -37,7 +37,8 @@ $: buddysuite -setup
 
 Further instructions are available in the [installation guide](https://github.com/biologyguy/BuddySuite/wiki/Installation-Guide).
 
-There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics.
+There is also a [Beginners' Guide](https://github.com/biologyguy/BuddySuite/wiki/Beginners-Guide) to show you the basics,
+ as well as a more comprehensive [Tutorial](https://github.com/biologyguy/BuddySuite/wiki/Tutorial).
 
 Each tool in the BuddySuite has been extensively documented in the [wiki](https://github.com/biologyguy/BuddySuite/wiki),
  complete with worked examples and explanations for all arguments/options.
@@ -57,7 +58,7 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
 We are currently working on a [manuscript for peer review](https://github.com/biologyguy/BuddySuite/blob/develop/manuscript/MBE/compile_dir/MBE_article.pdf), but until then
  there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
 
-[DOI: 10.1101/040675](http://dx.doi.org/10.1101/040675)
+[![doi](https://img.shields.io/badge/doi-10.1101.040675-blue.svg?style=flat)](https://doi.org/10.1101/040675)
 
 ## Contact
 Any comments you have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or

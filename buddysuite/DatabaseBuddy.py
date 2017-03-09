@@ -80,7 +80,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
+VERSION = br.Version("DatabaseBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 
 GREY = "\033[90m"
 RED = "\033[91m"
@@ -960,8 +960,8 @@ class NCBIClient(GenericClient):
                     # Note that the database passed in doesn't matter. GIs will pull dna or prot regardless.
                     handle = Entrez.efetch(db="nucleotide", id=query, rettype="gb", retmode="text", retmax=10000)
                 elif tool == "esearch":
-                    count = Entrez.read(Entrez.esearch(db=_type, term=query, rettype="count"))["Count"]
-                    handle = Entrez.esearch(db=_type, term=query, retmax=count)
+                    count = Entrez.read(Entrez.esearch(db=_type, term=re.sub('[\'"]', '', query), rettype="count"))["Count"]
+                    handle = Entrez.esearch(db=_type, term=re.sub('[\'"]', '', query), retmax=count)
                 else:
                     raise ValueError("_mc_query() 'tool' argument must be in 'esummary_taxa', "
                                      "'efetch_gi', 'esummary_seq', or 'efetch_seq'")
@@ -2380,6 +2380,7 @@ def argparse_init():
              br.db_flags, br.db_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "DatabaseBuddy")
 
     dbbuddy = []
     out_format = "summary" if not in_args.out_format else in_args.out_format

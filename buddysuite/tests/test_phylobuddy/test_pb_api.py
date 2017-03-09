@@ -344,12 +344,12 @@ def test_generate_tree_edges(alb_resources, monkeypatch):
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: None)
     with pytest.raises(ProcessLookupError) as err:
         Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
-    assert "ProcessLookupError: #### Could not find Foo in $PATH. ####" in str(err)
+    assert "ProcessLookupError: #### Could not find Foo on your system. ####" in str(err)
 
     monkeypatch.setattr(Pb.Popen, "communicate", lambda *_: ["".encode(), "".encode()])
     with pytest.raises(AttributeError) as err:
         Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
-    assert "Foo is not a valid alignment tool" in str(err)
+    assert "Foo is not a recognized tree inference tool. Please check your spelling (case sensitive)" in str(err)
 
 
 # ###################### 'hi', '--hash_ids' ###################### #

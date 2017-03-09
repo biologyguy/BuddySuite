@@ -7,10 +7,12 @@ from Bio.SeqFeature import FeatureLocation, CompoundLocation
 from Bio.Seq import Seq
 from unittest import mock
 import os
+import re
 import urllib.request
 import suds.client
 import shutil
 import time
+import subprocess
 from collections import OrderedDict
 
 import SeqBuddy as Sb
@@ -217,13 +219,243 @@ def test_bl2_no_binary(sb_resources):
 
 
 # ######################  '-bl', '--blast' ###################### #
-# ToDo: mock output data
-def test_blastn():
-    pass
+class MockPopen(object):
+    def __init__(self, command, shell, stdout=None, stderr=None):
+        self.command = command
+
+    def communicate(self):
+        if self.command[:11] == "makeblastdb":
+            if "nucl" in self.command:
+                output = ["""\
+Building a new DB, current time: 01/25/2017 10:35:34
+New DB name:   Mnemiopsis_cds
+New DB title:  Mnemiopsis_cds.fa
+Sequence type: Nucleotide
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 12 sequences in 0.000432968 seconds.""".encode()]
+            else:
+                output = ["""\
+Building a new DB, current time: 01/25/2017 10:35:34
+New DB name:   {0}{1}Mnemiopsis_pep
+New DB title:  {0}{1}Mnemiopsis_pep.fa
+Sequence type: Protein
+Keep MBits: T
+Maximum file size: 1000000000B
+Adding sequences from FASTA; added 12 sequences in 0.000432968 seconds.""".encode()]
+        elif "blast_error" in self.command:
+            output = ["", "Some sort of Error".encode()]
+        elif self.command[:6] == "blastn":
+            output = ["".encode(), "".encode()]
+            out_dir = re.search("-out (.*out.txt)", self.command)
+            with open(out_dir.group(1), "w") as ofile:
+                ofile.write("Mle-Panxα12\tem1vubDvb9\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panxα12\towIvkyuadd\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panxα2\towIvkyuadd\t100.000\t1314\t0\t0\t1\t1314\t1\t1314\t0.0\t2427\n")
+        elif self.command[:10] == "blastdbcmd":
+            if "em1vubDvb9" in self.command:
+                output = [">em1vubDvb9 cDNA - ML25997a.\nATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC".encode("utf-8")]
+            else:
+                output = [">owIvkyuadd cDNA - ML25998a.\nATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA".encode("utf-8")]
+        else:
+            output = []
+
+        return output
 
 
-def test_blastp():
-    pass
+def test_blast(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+
+    query = sb_resources.get_one("d g")
+    blast = Sb.blast(Sb.make_copy(subject), query)
+    out, err = capsys.readouterr()
+
+    assert "Building a new DB with makeblastdb" in err
+    assert "Sequence type: Nucleotide" in err
+    assert "New DB" not in err
+
+    assert "blastn -num_threads 4 -evalue 0.01" in err
+
+    assert """\
+# ######################## BLAST results ######################## #
+Mle-Panxα12	Mle-Panxα12	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panxα12	Mle-Panxα2	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panxα2	Mle-Panxα2	100.000	1314	0	0	1	1314	1	1314	0.0	2427
+# ############################################################### #""" in err
+    assert str(blast) == """\
+>Mle-Panxα12 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>Mle-Panxα2 cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+    # This is calling the pre-indexed database instead of a sequence file
+    expected_output = """\
+>em1vubDvb9 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>owIvkyuadd cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+    query = "%s%squery_db" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+    query = "%s%squery_db.n" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+    query = "%s%squery_db.nhr" % (tmp_dir.path, os.sep)
+    assert str(Sb.blast(Sb.make_copy(subject), query)) == expected_output
+
+
+def test_blast_quiet(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    blast = Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), quiet=True)
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert str(blast) == """\
+>Mle-Panxα12 cDNA - ML25997a.
+ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
+>Mle-Panxα2 cDNA - ML25998a.
+ATGGTATTGGATCTCATTTCTGGAAGCTTGCATCACACGA
+"""
+
+
+def test_blast_blacklist_args(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query),
+             blast_args="-db foo -query bar -subject baz -out there -outfmt 7 -not_black_listed 54")
+
+    out, err = capsys.readouterr()
+    black_list = ["db", "query", "subject", "out", "outfmt"]
+    for no_no in black_list:
+        assert "Warning: Explicitly setting the blast -%s parameter is not supported in SeqBuddy.\n" % no_no
+
+    assert "blastn -num_threads 4 -evalue 0.01 -not_black_listed 54" in err
+
+
+def test_blast_num_threads(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-num_threads 5")
+    out, err = capsys.readouterr()
+    assert "blastn -num_threads 5 -evalue 0.01 \n" in err
+
+    with pytest.raises(ValueError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-num_threads foo")
+    assert "-num_threads expects an integer." in str(err)
+
+
+def test_blast_evalue(monkeypatch, capsys, sb_resources, hf):
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-evalue 0.1")
+    out, err = capsys.readouterr()
+    assert "blastn -num_threads 4 -evalue 0.1 \n" in err
+
+    with pytest.raises(ValueError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-evalue foo")
+    assert "-evalue expects a number." in str(err)
+
+
+def test_blast_errors(monkeypatch, capsys, sb_resources, hf):
+    # Note that the order of these tests is important because of all the wonky monkeypatching
+    tmp_dir = br.TempDir()
+    for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
+        shutil.copyfile("%sblast%sMnemiopsis_cds.%s" % (hf.resource_path, os.sep, extension),
+                        "%s%squery_db.%s" % (tmp_dir.path, os.sep, extension))
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda _: True)
+    monkeypatch.setattr(br, "TempDir", lambda: tmp_dir)
+    monkeypatch.setattr(Sb, "Popen", MockPopen)
+
+    subject = sb_resources.get_one("d f")
+    subject = Sb.pull_recs(subject, "2")
+    query = sb_resources.get_one("d g")
+
+    with pytest.raises(RuntimeError) as err:
+        Sb.blast(Sb.make_copy(subject), Sb.make_copy(query), blast_args="-blast_error 0.1")
+    assert "Some sort of Error" in str(err)
+
+    os.remove("%s%squery_db.nhr" % (tmp_dir.path, os.sep))
+    with pytest.raises(RuntimeError) as err:
+        Sb.blast(subject, query, blast_args="-delete_nhr 0.1")
+    assert "The .nhr file of your BLASTN database was not found." in str(err)
+
+    query = sb_resources.get_one("p g")
+    with pytest.raises(ValueError) as err:
+        Sb.blast(subject, query)
+    assert "Trying to compare protein to nucleotide." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "makeblastdb" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "makeblastdb not found in system path." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "blastdbcmd" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "blastdbcmd not found in system path." in str(err)
+
+    monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda program: False if program == "blastn" else True)
+    with pytest.raises(SystemError) as err:
+        Sb.blast(subject, query)
+    assert "blastn not found in system path." in str(err)
 
 
 # ######################  '-cs', '--clean_seq'  ###################### #
@@ -526,23 +758,23 @@ def test_back_transcribe_pep_exception(sb_resources):  # Asserts that a TypeErro
 def test_extract_feature_sequences(sb_resources, hf):
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, "CDS")
-    assert hf.buddy2hash(tester) == "7e8a80caf902575c5eb3fc6ba8563956"
+    assert hf.buddy2hash(tester) == "956b6a14e02c9c2a2faa11ffb7e2bbed"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD"])
-    assert hf.buddy2hash(tester) == "13944b21484d5ea22af4fe57cc8074df"
+    assert hf.buddy2hash(tester) == "d23b3ecdd5d432518c20572e7af03dc1"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD", "splice_a"])
-    assert hf.buddy2hash(tester) == "78629d308a89b458fb02e71d5568c978"
+    assert hf.buddy2hash(tester) == "344ffeb8e86442e0ae7e38d5b49072e1"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD2:TMD3"])
-    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+    assert hf.buddy2hash(tester) == "fb54774a4a7d35dfe43e4ae31de0f44b"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD3:TMD2"])
-    assert hf.buddy2hash(tester) == "9bcc134ec898272ca2e18dd4a8651b73"
+    assert hf.buddy2hash(tester) == "fb54774a4a7d35dfe43e4ae31de0f44b"
 
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, ["TMD2:foo"])
@@ -558,10 +790,10 @@ def test_extract_feature_sequences(sb_resources, hf):
 
 
 # ######################  '-er', '--extract_regions' ###################### #
-hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '25ad9670e8a6bac7962ab46fd79251e5'),
+hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a657f6c3d73c67cd5a'),
           ('d n', '4063ab66ced2fafb080ceba88965d2bb'), ('d py', '33e6347792aead3c454bac0e05a292c6'),
           ('d pr', '9a5c491aa293c6cedd48c4c249d55aff'), ('d s', 'cd8d857feba9b6e459b8a9d56f11b7f5'),
-          ('p f', '2586d1e3fc283e6f5876251c1c57efce'), ('p g', 'a9c22659967916dcdae499c06d1aaafb'),
+          ('p f', '2586d1e3fc283e6f5876251c1c57efce'), ('p g', 'a776cd3651db4f0533004be4ff058836'),
           ('p n', '6a27222d8f60ee8496cbe0c41648a116'), ('p py', 'c9a1dd913190f95bba5eca6a89685c75'),
           ('p pr', '6f579144a43dace285356ce6eb326d3b'), ('p s', '727099e0abb89482760eeb20f7edd0cd')]
 
@@ -577,71 +809,71 @@ def test_extract_regions_multiformat(key, next_hash, sb_resources, hf):
 
 def test_extract_regions_singlets(sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "0")
-    assert hf.buddy2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1")
-    assert hf.buddy2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10000000")
-    assert hf.buddy2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), ",1/")
-    assert hf.buddy2hash(tester) == "73e7f4d6eafba9e3fa57cf21be46ca62"
+    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1000000")
-    assert hf.buddy2hash(tester) == "998b272614ceb172ea57137b66d2669d"
+    assert hf.buddy2hash(tester) == "b296c7a78b74e9217f2208c08376037f"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "2,5,9,-5")
-    assert hf.buddy2hash(tester) == "8540d5c2f6d7ef050886f1192da1396f"
+    assert hf.buddy2hash(tester) == "45b9e49b9a218ba402a333f86041c11e"
 
 
 def test_extract_regions_ranges(sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "0:10")
-    assert hf.buddy2hash(tester) == "083702438b2577c414eba3c812443249"
+    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10")
-    assert hf.buddy2hash(tester) == "083702438b2577c414eba3c812443249"
+    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "10:1")
-    assert hf.buddy2hash(tester) == "083702438b2577c414eba3c812443249"
+    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), ":10")
-    assert hf.buddy2hash(tester) == "083702438b2577c414eba3c812443249"
+    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10:")
-    assert hf.buddy2hash(tester) == "e3f2b1995d47a08429767c559f41691c"
+    assert hf.buddy2hash(tester) == "34bef222aabbae8b33a5b59bc5549533"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "40:75,89:100,432:-45")
-    assert hf.buddy2hash(tester) == "6059e115128c8f211f7e41c2745b5d34"
+    assert hf.buddy2hash(tester) == "f58b56407e3594a1c4463924755d237e"
 
 
 def test_extract_regions_mth_of_nth(sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/50")
-    assert hf.buddy2hash(tester) == "869e2e07dfeae4e174aa9bb4c135ff25"
+    assert hf.buddy2hash(tester) == "96ffa4da47420cd51deed2dbf13d2697"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "-1/50")
-    assert hf.buddy2hash(tester) == "0a893feff83f6dc2f1f105c01e162409"
+    assert hf.buddy2hash(tester) == "61c475d4047621ccfbb4be10df8931cb"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/-50")
-    assert hf.buddy2hash(tester) == "4e1f1c8c6caacac7e65dbf152807baa1"
+    assert hf.buddy2hash(tester) == "5df123c113d03f1231650fd713d599b7"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/1")
-    assert hf.buddy2hash(tester) == "87e7701ff6ab2da7b6cd46e5cc48e0a3"
+    assert hf.buddy2hash(tester) == "7a8e25892dada7eb45e48852cbb6b63d"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/25")
-    assert hf.buddy2hash(tester) == "20239fbef24e40b903a75f941b43b9c8"
+    assert hf.buddy2hash(tester) == "db476a12b91bb48582b065f6e18dcb35"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:5/50")
-    assert hf.buddy2hash(tester) == "cdb538506a2db396b8d67d2864f8109f"
+    assert hf.buddy2hash(tester) == "2a3c82874b5c0b93b31a7e24a4667ec7"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "-5:/50")
-    assert hf.buddy2hash(tester) == "368dac090406e6e0fcf6d025f5c0e069"
+    assert hf.buddy2hash(tester) == "03c54a77aefd4eb6beb644d75ae36ac4"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), ":5/50")
-    assert hf.buddy2hash(tester) == "cdb538506a2db396b8d67d2864f8109f"
+    assert hf.buddy2hash(tester) == "2a3c82874b5c0b93b31a7e24a4667ec7"
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10,1/50,-1")
-    assert hf.buddy2hash(tester) == "9204dd879fa59cf35a253fb0ff82758c"
+    assert hf.buddy2hash(tester) == "9bfe465a8051dba6f6c7f176aa1f67ab"
 
 
 def test_extract_regions_edges(sb_resources):
@@ -1219,7 +1451,7 @@ def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
     ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
     with open(out_file.path, "r", encoding="utf-8") as ifile:
         output = ifile.read()
-    assert hf.string2hash(output) == "7ced43edaee481ac149d6ece152c4621"
+    assert hf.string2hash(output) == "e2991bfa6bccafdbf75055d697d9c980"
 
 
 def test_prosite_scan_run(sb_resources, hf, monkeypatch):

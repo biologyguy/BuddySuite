@@ -70,7 +70,7 @@ from Bio.Nexus.Nexus import NexusError
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
+VERSION = br.Version("AlignBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -90,7 +90,11 @@ class AlignBuddy(object):
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
             if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(br.utf_encode(_input.read()))
+                input_txt = _input.read()
+                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                    print(input_txt)
+                    sys.exit()
+                temp = StringIO(br.utf_encode(input_txt))
                 _input = temp
             _input.seek(0)
             in_handle = _input.read()
@@ -213,7 +217,7 @@ class AlignBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         AlignIO.write(self.alignments, ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -405,6 +409,8 @@ class FeatureReMapper(object):
                 if feature:
                     new_features.append(feature)
             new_records[indx].features = new_features
+            new_records[indx].annotations = rec.annotations
+            new_records[indx].dbxrefs = rec.dbxrefs
         return
 
     def _remap(self, feature):
@@ -915,22 +921,23 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 tool = prog
                 break
     if not tool:
-        raise AttributeError("{0} is not a supported alignment tool.".format(alias))
+        raise AttributeError("{0} is not a recognized alignment tool. "
+                             "Please check your spelling (case sensitive)".format(alias))
 
     if keep_temp and os.path.exists(keep_temp):
-        check = br.ask("{0} already exists, so files may be over-written. Proceed [yes]/no?".format(keep_temp))
+        check = br.ask("{0} already exists, so files may be overwritten. Proceed [yes]/no?".format(keep_temp))
         if not check:
             sys.exit()
         keep_temp = os.path.abspath(keep_temp)
 
     if not which(alias):
-        error_msg = '#### Could not find %s in $PATH. ####\n ' \
-                    'Please go to %s to install %s.' % (alias, tool_list[tool]["url"], tool)
+        error_msg = '#### Could not find %s on your system. ####\n ' \
+                    'Please check that your spelling is correct (case sensitive) or go to %s to install %s.' \
+                    % (alias, tool_list[tool]["url"], tool)
         raise SystemError(error_msg)
     else:
         valve = br.SafetyValve(global_reps=10)
         Sb.hash_ids(seqbuddy, 8)
-        alignbuddy = False
         while True:
             valve.step("Generate alignment is failing to create temporary files. Please report this to "
                        "the BuddySuite developers if recurring.")
@@ -1502,10 +1509,12 @@ def argparse_init():
   AlignBuddy.py "/path/to/seq_file" -ga "mafft" -p "--auto --thread 8"
 ''')
 
-    br.flags(parser, ("alignments", "The file(s) you want to start working on"),
+    br.flags(parser, ("alignments", "Supply file path(s) or raw alignments. If piping sequences into AlignBuddy this "
+                                    "argument must be left blank."),
              br.alb_flags, br.alb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "AlignBuddy")
 
     alignbuddy = []
     align_set = ""
@@ -1579,7 +1588,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _exit(_tool, skip=skip_exit):
         if skip:
@@ -1763,6 +1772,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
     # Generate Alignment
     if in_args.generate_alignment:
+        # ToDo: The extra arguments parameter probably doesn't need to be dependent on the tool parameter being passed
         args = in_args.generate_alignment[0]
         if not args:
             for tool in ['mafft', 'pagan', 'muscle', 'clustalo', 'clustalomega', 'prank', 'clustalw2', 'clustalw']:
@@ -1796,7 +1806,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                 alignbuddy.set_format(in_args.out_format)
             _print_aligments(alignbuddy)
         except AttributeError as e:
-            _raise_error(e, "generate_alignment", "is not a supported alignment tool")
+            _raise_error(e, "generate_alignment", "is not a recognized alignment tool")
         except SystemError as e:
             _raise_error(e, "generate_alignment", "Could not find")
         _exit("generate_alignment")

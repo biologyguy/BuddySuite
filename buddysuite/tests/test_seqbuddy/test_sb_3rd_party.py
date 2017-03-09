@@ -14,7 +14,7 @@ import buddy_resources as br
 
 blast_version = Popen("blastn -version", shell=True, stdout=PIPE).communicate()[0].decode()
 blast_version = re.search("[0-9]+\.[0-9]+\.[0-9]+", blast_version).group(0)
-if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0", "2.5.0"]:
+if blast_version not in ["2.2.28", "2.2.29", "2.2.30", "2.2.31", "2.3.0", "2.4.0", "2.5.0", "2.6.0"]:
     raise ValueError("Untested Blast version (%s). Please update the tests as necessary "
                      "(each version of blast seems to do something a little different...)" % blast_version)
 
@@ -25,7 +25,6 @@ def test_bl2seq(sb_resources, hf):
     assert hf.string2hash(str(result)) in ['87dbd3baeb59285ad25e6473c87bb5bb', '8280eb4010208db891020a96ad783edb']
 
     result = Sb.bl2seq(sb_resources.get_one("p f"))
-    # ToDo: there is an issue with blast 2.3 or higher with inconsistent output here. Need to fix it...
     assert hf.string2hash(str(result)) in ['248d4c53d7947c4c8dfd7c415bfbfbf2', '33b393de45d0d628a217bf9107ec9719',
                                            'ca7105bf6646c1ab3f07efeea57a69df']
 
@@ -43,7 +42,7 @@ def test_blastn(sb_resources, sb_odd_resources, hf, monkeypatch):
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("d f")
         Sb.blast(tester, "Mnemiopsis_cds.nhr")
-    assert "The .nhr file of your blast database was not found" in str(e.value)
+    assert "The .nhr file of your BLASTN database was not found" in str(e.value)
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
     with pytest.raises(SystemError) as e:
@@ -59,7 +58,7 @@ def test_blastp(sb_resources, sb_odd_resources, hf, monkeypatch):
     with pytest.raises(RuntimeError) as e:
         tester = sb_resources.get_one("p f")
         Sb.blast(tester, "Mnemiopsis_pep.phr")
-    assert "The .phr file of your blast database was not found" in str(e.value)
+    assert "The .phr file of your BLASTP database was not found" in str(e.value)
 
     monkeypatch.setattr(Sb, "_check_for_blast_bin", lambda *_: False)
     with pytest.raises(SystemError) as e:
@@ -82,7 +81,7 @@ def test_makeblastdb(monkeypatch, sb_resources, hf):
     monkeypatch.setattr(Sb, "_check_for_blast_bin", mock_check_blast_bin)
     with pytest.raises(SystemError) as err:
         Sb.blast(subject, query)
-    assert "blastdbcmd not found in system path." in str(err)
+    assert "makeblastdb not found in system path." in str(err)
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##

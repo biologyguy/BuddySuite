@@ -407,7 +407,7 @@ def test_screw_formats_inplace_ui(capsys, pb_odd_resources):
     tester = Pb.PhyloBuddy(temp_file.path)
     Pb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
-    assert "File over-written at:" in err
+    assert "File overwritten at:" in err
     check_file = os.path.isfile("%s.nex" % temp_file.path)
     assert check_file
 
@@ -417,7 +417,7 @@ def test_screw_formats_inplace_ui(capsys, pb_odd_resources):
     tester = Pb.PhyloBuddy("%s.nex" % temp_file.path)
     Pb.command_line_ui(test_in_args, tester, skip_exit=True)
     out, err = capsys.readouterr()
-    assert "File over-written at:" in err
+    assert "File overwritten at:" in err
     check_file = os.path.isfile("%s.nwk" % temp_file.path)
     assert check_file
 

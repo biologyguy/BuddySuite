@@ -250,7 +250,7 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
 def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
-    assert hf.buddy2hash(tester) == "f894ff6060ec5c2904f48ba0c5cdc8fd"
+    assert hf.buddy2hash(tester) == "ff3d1e474b1b1b76fdda02ebcb225cff"
 
 
 def test_generate_alignments_edges1(sb_resources):
@@ -258,14 +258,14 @@ def test_generate_alignments_edges1(sb_resources):
 
     with pytest.raises(AttributeError) as e:
         Alb.generate_msa(tester, "foo")
-    assert "foo is not a supported alignment tool." in str(e)
+    assert "foo is not a recognized alignment tool. Please check your spelling" in str(e)
 
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         del os.environ['PATH']
         with pytest.raises(SystemError) as err:
             Alb.generate_msa(tester, "mafft")
-        assert "#### Could not find mafft in $PATH. ####" in str(err)
+        assert "#### Could not find mafft on your system. ####" in str(err)
 
 
 args = [("prank", "-f=phylipi"), (clustalo_bin, "--outfmt=foo"), (clustalw_bin, "-output=foo"),

@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.2", br.contributors, {"year": 2016, "month": 12, "day": 14})
+VERSION = br.Version("SeqBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -185,7 +185,11 @@ class SeqBuddy(object):
         # Handles
         if str(type(sb_input)) == "<class '_io.TextIOWrapper'>":
             if not sb_input.seekable():  # Deal with input streams (e.g., stdout pipes)
-                temp = StringIO(br.utf_encode(sb_input.read()))
+                input_txt = sb_input.read()
+                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                    print(input_txt)
+                    sys.exit()
+                temp = StringIO(br.utf_encode(input_txt))
                 sb_input = temp
             sb_input.seek(0)
             in_handle = sb_input.read()
@@ -335,7 +339,7 @@ class SeqBuddy(object):
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
-                                   "Format changed to fasta to accommodate proper printing of records.\n")
+                                   "Format changed to fasta to accommodate proper printing of records.\n\n")
                         SeqIO.write(self.records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
@@ -1025,6 +1029,9 @@ def bl2seq(seqbuddy):
     lock = Lock()
     tmp_dir = br.TempDir()
 
+    # Remove any gaps
+    seqbuddy = clean_seq(seqbuddy, skip_list=["*"])
+
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
@@ -1063,15 +1070,15 @@ def bl2seq(seqbuddy):
 
 def blast(subject, query, **kwargs):
     """
-    ToDo: - Sort out makeblastdb download
-          - Allow mixed sequence types (blastx?)
     Runs a BLAST search against a specified database or query SeqBuddy obj, returning all significant matches.
     :param subject: SeqBuddy object
     :param query: Another SeqBuddy object, or the location of the BLAST database to run the sequences against
     :param kwargs:  - quiet -> [True|False]
-                    - blast_args -> [<any extra blast command line arguments>] !!TODO!!
+                    - blast_args -> [<any extra blast command line arguments>]
     :return: A SeqBuddy object containing all of the BLAST database matches
     """
+    # ToDo: Allow mixed sequence types (blastx?)
+    # ToDo: Implement the 'keep' flag so the Databases can be saved.
 
     kwargs["quiet"] = False if "quiet" not in kwargs or not kwargs["quiet"] else True
 
@@ -1084,21 +1091,24 @@ def blast(subject, query, **kwargs):
 
     extensions = {"blastp": ["phr", "pin", "pog", "psd", "psi", "psq"],
                   "blastn": ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]}
+    tmp_dir = br.TempDir()
 
     if query.__class__.__name__ == "SeqBuddy":
         if not _check_for_blast_bin("makeblastdb"):
-            raise SystemError("blastdbcmd not found in system path.")
-        query_sb = hash_ids(query)
-        temp_dir = br.TempDir()
-        query_sb.write("%s%squery.fa" % (temp_dir.path, os.path.sep), out_format="fasta")
+            raise SystemError("makeblastdb not found in system path.")
+        if subject.alpha != query.alpha:
+            raise ValueError("Trying to compare protein to nucleotide.")
+        query_sb = hash_ids(query, r_seed=12345)
+        query_sb = clean_seq(query_sb, skip_list="*")
+        query_sb.write("%s%squery.fa" % (tmp_dir.path, os.path.sep), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
         makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}{2}query.fa -out {1}{2}query_db "
-                            "-parse_seqids".format(dbtype, temp_dir.path, os.path.sep), shell=True,
+                            "-parse_seqids".format(dbtype, tmp_dir.path, os.path.sep), shell=True,
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
         br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])
-        query = "%s%squery_db" % (temp_dir.path, os.path.sep)
+        query = "%s%squery_db" % (tmp_dir.path, os.path.sep)
 
     else:
         query_sb = None
@@ -1112,16 +1122,14 @@ def blast(subject, query, **kwargs):
 
     query = os.path.abspath(query)
 
-    # ToDo Check NCBI++ tools are a conducive version (2.2.29 and above, I think [maybe .28])
     # Check that complete blastdb is present and was made with the -parse_seqids flag
     for extension in extensions[blast_bin]:
         if not os.path.isfile("%s.%s" % (query, extension)):
-            raise RuntimeError("The .%s file of your blast database was not found. Ensure the -parse_seqids flag was "
-                               "used with makeblastdb." % extension)
+            raise RuntimeError("The .%s file of your %s database was not found. Ensure the -parse_seqids flag was "
+                               "used with makeblastdb." % (extension, blast_bin.upper()))
 
     subject = clean_seq(subject)  # in case there are gaps or something in the sequences
 
-    tmp_dir = br.TempDir()
     with open("%s%stmp.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         SeqIO.write(subject.records, ofile, "fasta")
 
@@ -1137,9 +1145,9 @@ def blast(subject, query, **kwargs):
                 kwargs["blast_args"] = re.sub("-%s .*-" % no_no, "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-%s .*$" % no_no, "", kwargs["blast_args"])
 
-        num_threads_search = re.search("-num_threads ([0-9]+)", kwargs["blast_args"])
-        if num_threads_search:
+        if "-num_threads" in kwargs["blast_args"]:
             try:
+                num_threads_search = re.search("-num_threads ([^-]*)", kwargs["blast_args"])
                 num_threads = int(num_threads_search.group(1))
                 kwargs["blast_args"] = re.sub("-num_threads .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-num_threads .*$", "", kwargs["blast_args"])
@@ -1147,9 +1155,9 @@ def blast(subject, query, **kwargs):
             except ValueError:
                 raise ValueError("-num_threads expects an integer.")
 
-        evalue_search = re.search("-evalue ([0-9]+\.?[0-9]*)", kwargs["blast_args"])
-        if evalue_search:
+        if "-evalue" in kwargs["blast_args"]:
             try:
+                evalue_search = re.search("-evalue ([^-]*)", kwargs["blast_args"])
                 evalue = float(evalue_search.group(1))
                 kwargs["blast_args"] = re.sub("-evalue .*-", "-", kwargs["blast_args"])
                 kwargs["blast_args"] = re.sub("-evalue .*$", "", kwargs["blast_args"])
@@ -1164,8 +1172,8 @@ def blast(subject, query, **kwargs):
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
-    br._stderr("Running...\n%s\n############################################################\n\n" %
-            re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
+    br._stderr("Running...\n%s\n\n" %
+               re.sub("-db.*-num_threads", "-num_threads", blast_command), quiet=kwargs["quiet"])
     blast_output = Popen(blast_command, shell=True, stdout=PIPE, stderr=PIPE).communicate()
     blast_output = blast_output[1].decode("utf-8")
 
@@ -1199,6 +1207,13 @@ def blast(subject, query, **kwargs):
     if query_sb:
         new_seqs.hash_map = query_sb.hash_map
         new_seqs.reverse_hashmap()
+
+        for key, value in new_seqs.hash_map.items():
+            blast_results = re.sub(key, value, blast_results)
+
+    br._stderr("# ######################## BLAST results ######################## #\n%s"
+               "# ############################################################### #\n\n" % blast_results,
+               quiet=kwargs["quiet"])
     return new_seqs
 
 
@@ -1854,7 +1869,8 @@ def extract_regions(seqbuddy, positions):
                     remapper.extend(False)
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1862,7 +1878,8 @@ def extract_regions(seqbuddy, positions):
                 new_seq.append(seq[indx])
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-            new_seq = SeqRecord(new_seq, rec.id, rec.name, rec.description)
+            new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
+                                annotations=rec.annotations)
 
         new_records.append(new_seq)
 
@@ -2910,7 +2927,7 @@ class PrositeScan(object):
             spans = re.findall('([0-9]+ - [0-9]+)', feature)
             for span in spans:
                 span = span.split(" ")
-                feature = SeqFeature(FeatureLocation(int(span[0]), int(span[2])), type=feat_type)
+                feature = SeqFeature(FeatureLocation(int(span[0]) - 1, int(span[2])), type=feat_type)
                 feature_list.append(feature)
 
         temp_seq = SeqBuddy([_rec], out_format="gb")
@@ -2950,7 +2967,7 @@ class PrositeScan(object):
         for indx, rec in enumerate(seqbuddy_copy.records):
             for match in rec.buddy_data['find_patterns']["\*"]:
                 rec_2 = self.seqbuddy.records[indx]
-                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match + 1:]
+                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match:]
                 rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
 
         if seqbuddy_copy.alpha != IUPAC.protein:
@@ -3023,8 +3040,10 @@ def pull_recs(seqbuddy, regex, description=False):
     regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
-        if re.search(regex, rec.id) or re.search(regex, rec.name) \
-                or (description and re.search(regex, rec.description)):
+        if re.search(regex, rec.id) or re.search(regex, rec.name):
+            matched_records.append(rec)
+            continue
+        if description and (re.search(regex, rec.description) or re.search(regex, str(rec.annotations))):
             matched_records.append(rec)
     seqbuddy.records = matched_records
     return seqbuddy
@@ -3308,7 +3327,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
                     new_seq[new_seq_indx] = "N"
                 new_seq_indx += 1
 
-        new_seq = "".join(new_seq) if new_seq[-1] != "" else "".join(new_seq[:-1])
+        new_seq = "".join(new_seq) if new_seq and new_seq[-1] != "" else "".join(new_seq[:-1])
         new_seq = Seq(new_seq, IUPAC.protein)
         rec.seq = new_seq
         rec.features = []
@@ -3642,7 +3661,7 @@ def uppercase(seqbuddy):
 # ################################################# COMMAND LINE UI ################################################## #
 def argparse_init():
     # Catching params to prevent weird collisions with 3rd party arguments
-    if '--blast' in sys.argv:  # Only plast at the moment, but other flags may come up in the future.
+    if '--blast' in sys.argv:  # Only blast at the moment, but other flags may come up in the future.
         sys.argv[sys.argv.index('--blast')] = '-bl'
     if '-bl' in sys.argv:
         sb_flag_indx = sys.argv.index('-bl')
@@ -3679,10 +3698,11 @@ def argparse_init():
 ''',)
 
     br.flags(parser, ("sequence", "Supply file path(s) or raw sequence. If piping sequences "
-                                  "into SeqBuddy this argument can be left blank."),
+                                  "into SeqBuddy this argument must be left blank."),
              br.sb_flags, br.sb_modifiers, VERSION)
 
     in_args = parser.parse_args()
+    br.check_garbage_flags(in_args, "SeqBuddy")
 
     seqbuddy = []
     seq_set = ""
@@ -3732,7 +3752,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         else:
             with open(os.path.abspath(file_path), "w", encoding="utf-8") as _ofile:
                 _ofile.write(_output)
-            br._stderr("File over-written at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
+            br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
         if pass_through:
@@ -3878,7 +3898,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             except br.GuessError:
                 blast_res = blast(seqbuddy, args[0], quiet=in_args.quiet, blast_args=params)
             except ValueError as e:
-                _raise_error(e, "blast", ["num_threads expects an integer.", ""])
+                _raise_error(e, "blast", ["num_threads expects an integer.", "evalue expects a number",
+                                          "Trying to compare protein to nucleotide"])
 
             if len(blast_res) > 0:
                 _print_recs(blast_res)
