@@ -1,5 +1,9 @@
-# Records are "error hash: [version reported, version fixed]
+# Records are a dict "error hash: [version reported, version fixed]
+# If error has been reported but not resolved, insert "None" in the 'version fixed' position
+# Identified error, not resolved:   "b12b879e8cd954ef5a4a074b524f8a23":["1.2.5","None"]
+# Resolved error:                   "fa4c2c0bfac785e973a5e970421a2eda":["1.1","1.2"]
 {
     "db5b13ef3b40eb9adf64f93e74ee9f06":["1.1","1.2"],
-    "fa4c2c0bfac785e973a5e970421a2eda":["1.1","1.2"]
+    "fa4c2c0bfac785e973a5e970421a2eda":["1.1","1.2"],
+    "b12b879e8cd954ef5a4a074b524f8a23":["1.2.5","None"]
 }
