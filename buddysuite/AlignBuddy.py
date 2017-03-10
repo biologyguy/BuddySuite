@@ -70,7 +70,7 @@ from Bio.Nexus.Nexus import NexusError
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
+VERSION = br.Version("AlignBuddy", 1, "2.6", br.contributors, {"year": 2017, "month": 3, "day": 10})
 
 
 # #################################################### ALIGNBUDDY #################################################### #
@@ -1660,7 +1660,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                         group_pattern = "%s$" % ("." * abs(group_int))
 
                 except ValueError:
-                    group_pattern = args[0]
+                    group_pattern = br.clean_regex(args[0], in_args.quiet)
+                    group_pattern = None if not group_pattern else group_pattern[0]
 
             else:
                 group_pattern = None
@@ -1674,7 +1675,8 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                         align_pattern = "^%s" % ("." * abs(align_int))
 
                 except ValueError:
-                    align_pattern = args[1]
+                    align_pattern = br.clean_regex(args[1], in_args.quiet)
+                    align_pattern = "" if not align_pattern else align_pattern[0]
 
             else:
                 align_pattern = ""
@@ -1710,6 +1712,11 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                         args.append(line.strip())
             else:
                 args.append(arg)
+
+        args = br.clean_regex(args, in_args.quiet)
+        if not args:  # If all regular expression are malformed, exit out gracefully
+            _print_aligments(alignbuddy)
+            _exit("delete_records")
 
         pulled = pull_records(make_copy(alignbuddy), args)
         alignbuddy = delete_records(alignbuddy, args)
@@ -1755,7 +1762,9 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
     # Extact features
     if in_args.extract_feature_sequences:
-        alignbuddy = extract_feature_sequences(alignbuddy, in_args.extract_feature_sequences[0])
+        patterns = br.clean_regex(in_args.extract_feature_sequences[0], in_args.quiet)
+        if patterns:
+            alignbuddy = extract_feature_sequences(alignbuddy, patterns)
         _print_aligments(alignbuddy)
         _exit("extract_feature_sequences")
 
@@ -1899,12 +1908,19 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
                 description = True
                 del args[indx]
                 break
-        _print_aligments(pull_records(alignbuddy, args, description))
+        args = br.clean_regex(args, in_args.quiet)
+        if args:
+            alignbuddy = pull_records(alignbuddy, args, description)
+        _print_aligments(alignbuddy)
         _exit("pull_records")
 
     # Rename IDs
     if in_args.rename_ids:
         args = in_args.rename_ids[0]
+        if not br.clean_regex(args[0], in_args.quiet):
+            _print_aligments(alignbuddy)  # Exit gracefully if regex is malformed
+            _exit("rename_ids")
+
         if len(args) not in [2, 3]:
             _raise_error(AttributeError("rename_ids requires two or three argments: "
                                         "query, replacement, [max replacements]"), "rename_ids")

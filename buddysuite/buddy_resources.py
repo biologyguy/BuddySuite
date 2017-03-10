@@ -34,12 +34,13 @@ from configparser import ConfigParser, NoOptionError
 import json
 import traceback
 import re
+import sre_compile
 from ftplib import FTP, all_errors
 from hashlib import md5
 from urllib import request
 from urllib.error import URLError, HTTPError, ContentTooShortError
 from multiprocessing import Process, cpu_count
-from time import time
+from time import time, sleep
 from math import floor
 from tempfile import TemporaryDirectory
 from shutil import copytree, rmtree, copyfile
@@ -67,13 +68,23 @@ class Timer(object):
 
 
 class RunTime(object):
-    def __init__(self, prefix="", postfix="", out_type="stdout"):
+    def __init__(self, prefix=None, postfix=None, out_type="stdout", _sleep=0, final_clear=False):
+        """
+        Sets up a dynamic counter that lets the user know how long a job has been going for
+        :param prefix: Some arbitrary text to go in front of the counter message
+        :param postfix:  Some arbitrary text to go behind the counter message
+        :param out_type: Either "stdout" or "stderr". Cannot be sys.stdout/err directly, for pickling reasons
+        :param _sleep: Pause the loop for however many seconds
+        :param final_clear: If set to True, the counter message will be deleted before moving on
+        """
         if out_type not in ["stdout", "stderr"]:
-            raise AttributeError("Only 'stdout' and 'stderr' are valid options for 'out_type'")
+            raise ValueError("The 'out_type' parameter must be either 'stdout' or 'stderr', not %s." % out_type)
         self.out_type = out_type
-        self.prefix = prefix
-        self.postfix = postfix
+        self.prefix = prefix if prefix else ""
+        self.postfix = postfix if postfix else ""
         self.running_process = None
+        self.sleep = _sleep
+        self.final_clear = final_clear
 
     def _run(self, check_file_path):
         out_type = sys.stdout if self.out_type == "stdout" else sys.stderr
@@ -81,15 +92,21 @@ class RunTime(object):
         start_time = round(time())
         elapsed = 0
         while True:
-            with open("%s" % check_file_path, "r", encoding="utf-8") as ifile:
+            prefix = self.prefix if not hasattr(self.prefix, '__call__') else self.prefix()
+            postfix = self.postfix if not hasattr(self.postfix, '__call__') else self.postfix()
+            with open("%s" % check_file_path, "r") as ifile:
                 if round(time()) - start_time == elapsed:
                     continue
                 elif ifile.read() == "Running":
-                    d_print.write("%s%s%s" % (self.prefix, pretty_time(elapsed), self.postfix))
+                    d_print.write("%s%s%s" % (prefix, pretty_time(elapsed), postfix))
                     elapsed = round(time()) - start_time
                 else:
-                    d_print.write("%s%s%s\n" % (self.prefix, pretty_time(elapsed), self.postfix))
+                    if not self.final_clear:
+                        d_print.write("%s%s%s\n" % (prefix, pretty_time(elapsed), postfix))
+                    else:
+                        d_print.clear()
                     break
+            sleep(self.sleep)
         return
 
     def start(self):
@@ -1368,9 +1385,36 @@ def isfile_override(path):
 if os.name == "nt":
     os.path.isfile = isfile_override
 
+
+def clean_regex(patterns, quiet=False):
+    """
+    Ensure that user provided regular expression are valid
+    :param patterns: either a single str regex or list of regexes
+    :param quiet: Suppress stderr
+    :return:
+    """
+    patterns = [patterns] if type(patterns) == str else patterns
+    failures = []
+    failure_str = ""
+    for indx, regex_test in enumerate(patterns):
+        try:
+            re.compile(regex_test)
+        except sre_compile.error as err:
+            if not failures:
+                failure_str += "##### Regular expression failures #####\n"
+            failure_str += "%s --> %s\n" % (regex_test, str(err))
+            failures.append(indx)
+    if failures:
+        failure_str += "#######################################\n\n"
+        failures = sorted(failures, reverse=True)
+        for indx in failures:
+            del patterns[indx]
+    _stderr(failure_str, quiet)
+    return patterns
+
 # #################################################### VARIABLES ##################################################### #
 
-contributors = [Contributor("Stephen", "Bond", commits=1033, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=1040, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
                 Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),

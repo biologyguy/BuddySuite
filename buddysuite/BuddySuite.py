@@ -44,19 +44,19 @@ def setup():  # ToDo: Check permissions?
     print("\033[1mWelcome to BuddySuite!\033[m\nLet's configure your installation:\n")
 
     install_dir, toss = os.path.split(buddysuite.__file__)
-    os.makedirs("%s/buddy_data" % install_dir, exist_ok=True)
-    if not os.path.isfile("%s/buddy_data/config.ini" % install_dir):
-        open("%s/buddy_data/config.ini" % install_dir, "w").close()
+    os.makedirs("%s%sbuddy_data" % (install_dir, os.sep), exist_ok=True)
+    if not os.path.isfile("{0}{1}buddy_data{1}config.ini".format(install_dir, os.sep)):
+        open("{0}{1}buddy_data{1}config.ini".format(install_dir, os.sep), "w").close()
 
-    if not os.path.isfile("%s/buddy_data/cmd_history" % install_dir):
-        open("%s/buddy_data/cmd_history" % install_dir, "w").close()
+    if not os.path.isfile("{0}{1}buddy_data{1}cmd_history".format(install_dir, os.sep)):
+        open("{0}{1}buddy_data{1}cmd_history".format(install_dir, os.sep), "w").close()
 
-    if not os.path.isfile("%s/buddy_data/buddysuite_usage.json" % install_dir):
-        with open("%s/buddy_data/buddysuite_usage.json" % install_dir, "w") as ofile:
+    if not os.path.isfile("{0}{1}buddy_data{1}buddysuite_usage.json".format(install_dir, os.sep)):
+        with open("{0}{1}buddy_data{1}buddysuite_usage.json".format(install_dir, os.sep), "w") as ofile:
             ofile.write("{}")
 
     config = ConfigParser()
-    config.read("%s/buddy_data/config.ini" % install_dir)
+    config.read("{0}{1}buddy_data{1}config.ini".format(install_dir, os.sep))
     options = {"email": None,
                "diagnostics": None,
                "user_hash": None,
@@ -76,9 +76,9 @@ def setup():  # ToDo: Check permissions?
           "BuddySuite.\nThe maintainers of those resources may attempt to contact you before "
           "blocking your IP if you are not adhering to their usage limitations.\033[m")
 
-    if options['email'] in [None, "buddysuite@nih.gov"]:
+    if options['email'] in [None, "buddysuite@gmail.com"]:
         email = input("Email address (optional): ")
-        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@nih.gov"
+        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@gmail.com"
     else:
         email = input("Update email address (currently '%s'): " % options['email'])
         email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) and email not in ['', options['email']] \
@@ -103,7 +103,7 @@ def setup():  # ToDo: Check permissions?
 
     # Write config file
     config['DEFAULT'] = options
-    with open("%s/buddy_data/config.ini" % install_dir, 'w') as config_file:
+    with open("{0}{1}buddy_data{1}config.ini".format(install_dir, os.sep), 'w') as config_file:
         config.write(config_file)
 
     print("""\

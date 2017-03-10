@@ -793,6 +793,7 @@ def test_extract_feature_sequences(sb_resources, hf):
 hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a657f6c3d73c67cd5a'),
           ('d n', '4063ab66ced2fafb080ceba88965d2bb'), ('d py', '33e6347792aead3c454bac0e05a292c6'),
           ('d pr', '9a5c491aa293c6cedd48c4c249d55aff'), ('d s', 'cd8d857feba9b6e459b8a9d56f11b7f5'),
+          ('d q', "c312424429d3204f2e2c4cd42907d3d5"),
           ('p f', '2586d1e3fc283e6f5876251c1c57efce'), ('p g', 'a776cd3651db4f0533004be4ff058836'),
           ('p n', '6a27222d8f60ee8496cbe0c41648a116'), ('p py', 'c9a1dd913190f95bba5eca6a89685c75'),
           ('p pr', '6f579144a43dace285356ce6eb326d3b'), ('p s', '727099e0abb89482760eeb20f7edd0cd')]
@@ -801,10 +802,10 @@ hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a6
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_extract_regions_multiformat(key, next_hash, sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one(key), "50:300")
-    assert hf.buddy2hash(tester) == next_hash
+    assert hf.buddy2hash(tester) == next_hash, print(tester)
 
     tester = Sb.extract_regions(sb_resources.get_one(key), "300:50")
-    assert hf.buddy2hash(tester) == next_hash
+    assert hf.buddy2hash(tester) == next_hash, print(tester)
 
 
 def test_extract_regions_singlets(sb_resources, hf):
@@ -874,6 +875,17 @@ def test_extract_regions_mth_of_nth(sb_resources, hf):
 
     tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10,1/50,-1")
     assert hf.buddy2hash(tester) == "9bfe465a8051dba6f6c7f176aa1f67ab"
+
+
+def test_extract_regions_fastq(sb_resources, hf):
+    tester = Sb.extract_regions(sb_resources.get_one("d q"), "2,5,9,-5")
+    assert hf.buddy2hash(tester) == "5fded3dfa757a5ed90de0461c5095d7b", print(tester)
+
+    tester = Sb.extract_regions(sb_resources.get_one("d q"), "10:45,60:75,90:-5")
+    assert hf.buddy2hash(tester) == "e014aa8b4d8cf9447d4a45cc4a1ada9c", print(tester)
+
+    tester = Sb.extract_regions(sb_resources.get_one("d q"), "1:3,1/20,-1")
+    assert hf.buddy2hash(tester) == "4258dfc66a07e849ac9c396aa2763c71", print(tester)
 
 
 def test_extract_regions_edges(sb_resources):
@@ -975,6 +987,11 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     assert hf.buddy2hash(tester) == 'c42b3bf0367557383000b897432fed2d'
     assert hf.string2hash(str(tester.restriction_sites)) == "0d2e5fdba6fed434495481397a91e56a"
     assert "Warning: FooBR not a known enzyme" in err
+
+    # RNA
+    tester = Sb.find_restriction_sites(sb_resources.get_one("r g"), min_cuts=2, max_cuts=4,
+                                       enzyme_group=["EcoRI", "KspI", "TasI"])
+    assert hf.buddy2hash(tester) == 'f440f8f7cbe21aad026d8cc7f41f98b6'
 
     with pytest.raises(TypeError) as e:
         Sb.find_restriction_sites(sb_resources.get_one("p g"))

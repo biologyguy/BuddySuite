@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
+VERSION = br.Version("SeqBuddy", 1, "2.6", br.contributors, {"year": 2017, "month": 3, "day": 10})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -1276,6 +1276,7 @@ def concat_seqs(seqbuddy, clean=False):
     new_seq = ""
     concat_ids = []
     features = []
+    letter_annotations = {}
     for rec in seqbuddy.records:
         shift = len(new_seq)
         full_seq_len = len(new_seq) + len(str(rec.seq))
@@ -1285,11 +1286,17 @@ def concat_seqs(seqbuddy, clean=False):
         feature = SeqFeature(location=location, id=rec.id, type=rec.id[:15])
         features.append(feature)
         features += rec.features
+
+        for qual_type, scores in rec.letter_annotations.items():
+            letter_annotations.setdefault(qual_type, [])
+            letter_annotations[qual_type] += scores
+
         concat_ids.append(rec.id)
         new_seq += str(rec.seq)
 
     new_seq = [SeqRecord(Seq(new_seq, alphabet=seqbuddy.alpha),
-                         description="", id="concatination", features=features)]
+                         description="", id="concatination", name="concatination", features=features,
+                         annotations={}, letter_annotations=letter_annotations)]
     seqbuddy = SeqBuddy(new_seq)
     seqbuddy.out_format = "gb"
     return seqbuddy
@@ -1858,6 +1865,11 @@ def extract_regions(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
+        letter_annotations = {}
+        for anno_type in rec.letter_annotations:
+            letter_annotations[anno_type] = [None for _ in range(len(new_rec_positions))]
+            for indx, anno_pos in enumerate(new_rec_positions):
+                letter_annotations[anno_type][indx] = rec.letter_annotations[anno_type][anno_pos]
         new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
@@ -1870,7 +1882,7 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1879,7 +1891,7 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
 
         new_records.append(new_seq)
 
@@ -2180,6 +2192,12 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
+
+    convert_rna = False
+    if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        convert_rna = True
+        rna2dna(seqbuddy)
+
     if max_cuts and min_cuts > max_cuts:
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     max_cuts = 1000000000 if not max_cuts else max_cuts
@@ -2237,6 +2255,8 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
         sites.append((rec.id, rec.res_sites))
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
+    if convert_rna:
+        dna2rna(seqbuddy)
     return seqbuddy
 
 
@@ -2901,7 +2921,7 @@ class PrositeScan(object):
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
         if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
-            email = "buddysuite@nih.gov"
+            email = "buddysuite@gmail.com"
         else:
             email = self.user_deets["email"]
 
@@ -3827,6 +3847,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             if not feature_attrs["qualifiers"]:
                 feature_attrs["qualifiers"] = None
+            feature_attrs["pattern"] = br.clean_regex(feature_attrs["pattern"], in_args.quiet)
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
         try:
@@ -3976,7 +3997,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Delete features
     if in_args.delete_features:
-        for next_pattern in in_args.delete_features:
+        patterns = br.clean_regex(in_args.delete_features, in_args.quiet)
+        for next_pattern in patterns:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
         _exit("delete_features")
@@ -4010,6 +4032,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                         search_terms.append(line.strip())
             else:
                 search_terms.append(arg)
+
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if not search_terms:  # If all regular expression are malformed, exit out gracefully
+            _print_recs(seqbuddy)
+        _exit("delete_records")
 
         deleted_seqs = []
         for next_pattern in search_terms:
@@ -4133,7 +4160,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Extact features
     if in_args.extract_feature_sequences:
-        seqbuddy = extract_feature_sequences(seqbuddy, in_args.extract_feature_sequences[0])
+        patterns = br.clean_regex(in_args.extract_feature_sequences[0], in_args.quiet)
+        if patterns:
+            seqbuddy = extract_feature_sequences(seqbuddy, patterns)
         _print_recs(seqbuddy)
         _exit("extract_feature_sequences")
 
@@ -4206,8 +4235,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         if ambig:
             del in_args.find_pattern[in_args.find_pattern.index("ambig")]
 
-        find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
-        for pattern in in_args.find_pattern:
+        patterns = br.clean_regex(in_args.find_pattern, in_args.quiet)
+        if patterns:
+            find_pattern(seqbuddy, *patterns, ambig=ambig)
+        for pattern in patterns:
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
@@ -4346,6 +4377,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                         split_patterns.append(arg)
 
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
+        sp = br.clean_regex(sp, check_quiet)
+        if not sp:
+            in_args.quiet = check_quiet
+            _raise_error(ValueError("Split pattern(s) malformed. No files created."), "group_by_prefix")
 
         taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
         if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy):
@@ -4375,9 +4410,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             else:
                 regexes.append(arg)
 
+        regexes = br.clean_regex(regexes, check_quiet)
         if not regexes:
             in_args.quiet = False
-            _raise_error(ValueError("You must provide at least one regular expression."), "group_by_regex")
+            _raise_error(ValueError("You must provide at least one valid regular expression."), "group_by_regex")
 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
@@ -4729,7 +4765,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs(seqbuddy, search_terms, description))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs(seqbuddy, search_terms, description)
+        _print_recs(seqbuddy)
         _exit("pull_records")
 
     # Pull records with feature
@@ -4743,7 +4782,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs_with_feature(seqbuddy, search_terms))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
         _exit("pull_records_with_feature")
 
     # Purge
@@ -4773,6 +4815,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             _raise_error(AttributeError("Please provide at least a query and a replacement string"), "rename_ids")
 
         query, replace = args[0:2]
+        if not br.clean_regex(query, in_args.quiet):
+            _raise_error(ValueError("Malformed regular expression."), "rename_ids")
         num = 0
         store = False
 
@@ -4796,7 +4840,10 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     if in_args.replace_subseq:
         args = in_args.replace_subseq[0]
         args = args[:2] if len(args) > 1 else args
+        if not br.clean_regex(args[0], in_args.quiet):
+            _raise_error(ValueError("Max replacements argument must be an integer"), "replace_subseq")
         _print_recs(replace_subsequence(seqbuddy, *args))
+        _exit("replace_subseq")
 
     # Reverse complement
     if in_args.reverse_complement:

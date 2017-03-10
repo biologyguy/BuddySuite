@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2.5", br.contributors, {"year": 2017, "month": 2, "day": 3})
+VERSION = br.Version("PhyloBuddy", 1, "2.6", br.contributors, {"year": 2017, "month": 3, "day": 10})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -1214,9 +1214,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             br._stderr("Error: Your system is non-graphical, so display_trees can not work. "
                        "Please use print_trees instead.")
         except ImportError as err:
-            if "No module named 'PyQt4.QtGui'" in str(err):
+            if "No module named 'PyQt4'" in str(err):
                 br._stderr("Unable to display trees because PyQt4 is not installed.\n"
-                           "If conda is installed, try $: conda install pyqt=4.11.4\n")
+                           "If conda is installed, try $: conda install pyqt=4\n")
             _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
         _exit("display_trees")
 
@@ -1370,18 +1370,23 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Prune taxa
     if in_args.prune_taxa:
-        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
+        patterns = br.clean_regex(in_args.prune_taxa[0], in_args.quiet)
+        prune_taxa(phylobuddy, *patterns)
         _print_trees(phylobuddy)
         _exit("prune_taxa")
 
     # Rename IDs
     if in_args.rename_ids:
-        _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
+        patterns = br.clean_regex(in_args.rename_ids[0], in_args.quiet)
+        if patterns:
+            _print_trees(rename(phylobuddy, patterns[0], in_args.rename_ids[1]))
+        else:
+            _print_trees(phylobuddy)
         _exit("rename_ids")
 
     # Root
     if in_args.root:
-        root_nodes = in_args.root[0]
+        root_nodes = br.clean_regex(in_args.root[0], in_args.quiet)
         if root_nodes:
             root(phylobuddy, *root_nodes)
         else:

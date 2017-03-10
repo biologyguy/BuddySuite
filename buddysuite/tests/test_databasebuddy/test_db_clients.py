@@ -207,11 +207,6 @@ A0A0H5SBJ0
     client.query_uniprot("inx15", [{"format": "list"}])
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
-    monkeypatch.setattr(Db, 'urlopen', mock_raise_keyboardinterrupt)
-    client.query_uniprot("inx15", [{"format": "list"}])
-    out, err = capsys.readouterr()
-    assert "\n\tUniProt query interrupted by user\n" in err
-
     params = {"format": "tab", "columns": "id,entry name,length,organism-id,organism,protein names,comments"}
     client.query_uniprot("ABXEF9", params)
 
@@ -425,57 +420,52 @@ def test_ncbiclient_mc_query(hf, monkeypatch):
     client = Db.NCBIClient(dbbuddy)
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_taxa)
-    client._mc_query("649,734,1009,2302", ["esummary_taxa"])
-    assert hf.string2hash(client.results_file.read()) == "acfb85bbdf7c2f8ea7e925c5bfcaaf06"
-    client.results_file.clear()
-
-    monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_gis)
-    client._mc_query("XP_010103297.1,XP_010103298.1,XP_010103299.1", ["efetch_gi"])
-    assert client.results_file.read() == "703125407\n703125412\n67586143\n### END ###\n"
+    client._mc_query("649,734,1009,2302", ["esummary_taxa", "ncbi_prot"])
+    assert hf.string2hash(client.results_file.read()) == "fbdbce1b86fc348f1a0d98b2feabfbf3"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "esummary", patch_entrez_esummary_seq)
-    client._mc_query("703125407,703125412,67586143", ["esummary_seq"])
-    assert hf.string2hash(client.results_file.read()) == "e6ba80b5fe2f35002ac2227ca7791c17"
+    client._mc_query("XP_010103297.1,XP_010103298.1,AAY72386.1", ["esummary_seq", "ncbi_prot"])
+    assert hf.string2hash(client.results_file.read()) == "6f52b744599ffd860955180e6bfda3f5"
     client.results_file.clear()
 
     monkeypatch.setattr(Db.Entrez, "efetch", patch_entrez_efetch_seq)
-    client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
+    client._mc_query("703125407,703125412,67586143", ["efetch_seq", "ncbi_prot"])
     assert hf.string2hash(client.results_file.read()) == "0154d7bd9d47ca6abac00f25428b9e7e"
 
     monkeypatch.undo()
     monkeypatch.setattr(Db, "sleep", lambda _: True)
     with pytest.raises(ValueError) as err:
-        client._mc_query("703125407", ["foo"])
-    assert "'tool' argument must be in 'esummary_taxa', 'efetch_gi', 'esummary_seq', or 'efetch_seq'" in str(err)
+        client._mc_query("703125407", ["foo", "ncbi_prot"])
+    assert "'tool' argument must be in 'esummary_taxa', 'esummary_seq', or 'efetch_seq'" in str(err)
 
     with pytest.raises(ValueError) as err:
         client._mc_query("703125407", ["foo", "Bar"])
     assert "Unknown type 'Bar', choose between 'nucleotide' and 'protein" in str(err)
 
     monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_httperror)
-    client._mc_query("703125407,703125412,67586143", ["efetch_seq"])
+    client._mc_query("703125407,703125412,67586143", ["efetch_seq", "ncbi_prot"])
     assert "NCBI request failed: 703125407,703125412,67586143\nHTTP Error 101: Fake HTTPError from Mock\n//" \
            in client.http_errors_file.read()
 
     assert "Service unavailable" not in client.http_errors_file.read()
     monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_503_httperror)
-    client._mc_query("703125407", ["efetch_seq"])
+    client._mc_query("703125407", ["efetch_seq", "ncbi_prot"])
     assert "Service unavailable" in client.http_errors_file.read()
 
     monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_connectionreseterror)
-    client._mc_query("703125407", ["efetch_seq"])
+    client._mc_query("703125407", ["efetch_seq", "ncbi_prot"])
     assert "NCBI request failed: 703125407\nFake ConnectionResetError from Mock: [Errno 54] Connection reset by peer"\
            in client.http_errors_file.read()
 
     assert "are you connected to the internet?" not in client.http_errors_file.read()
     monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_urlerror_8)
-    client._mc_query("703125407", ["efetch_seq"])
+    client._mc_query("703125407", ["efetch_seq", "ncbi_prot"])
     assert "are you connected to the internet?" in client.http_errors_file.read()
 
     assert "<urlopen error Fake URLError from Mock>" not in client.http_errors_file.read()
     monkeypatch.setattr(Db.Entrez, "efetch", mock_raise_urlerror)
-    client._mc_query("703125407", ["efetch_seq"])
+    client._mc_query("703125407", ["efetch_seq", "ncbi_prot"])
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
 
@@ -500,7 +490,7 @@ def test_ncbiclient_search_ncbi(hf, monkeypatch, capsys):
     monkeypatch.setattr(Db.Entrez, "esearch", patch_entrez_esearch)
     monkeypatch.setattr(Db.NCBIClient, "fetch_summaries", lambda _: True)
     monkeypatch.setattr(Db, "sleep", lambda _: True)
-    dbbuddy = Db.DbBuddy("909549231")
+    dbbuddy = Db.DbBuddy("XP_012618499.1")
     client = Db.NCBIClient(dbbuddy)
     dbbuddy.search_terms = []
     client.search_ncbi("protein")
@@ -508,34 +498,23 @@ def test_ncbiclient_search_ncbi(hf, monkeypatch, capsys):
 
     dbbuddy.search_terms = ["casp9"]
     client.search_ncbi("protein")
-    for accn in ["909549231", "909549227", "909549224", "909546647", "306819620"]:
+    for accn in ["XP_012618499.1", "O88738.2", "O88879.3", "Q9NR09.2", "Q13075.3"]:
         assert accn in dbbuddy.records
 
-    monkeypatch.setattr(Db.Entrez, "esearch", mock_raise_keyboardinterrupt)
-    client.search_ncbi("protein")
-    out, err = capsys.readouterr()
-    assert 'NCBI returned no protein results' in err
 
-
-def test_ncbiclient_fetch_summaries(hf, monkeypatch):
+def test_ncbiclient_fetch_summaries(hf, monkeypatch, capsys):
     def patch_entrez_fetch_summaries(*args, **kwargs):
         print("patch_entrez_fetch_summaries\nargs: %s\nkwargs: %s" % (args, kwargs))
-        if kwargs["func_args"] == ["esummary_seq"]:
+        if "esummary_seq" in kwargs["func_args"]:
             test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % hf.resource_path
             with open(test_file, "r") as ifile:
                 client.results_file.write(ifile.read().strip())
                 client.results_file.write('\n### END ###\n')
-        elif kwargs["func_args"] == ["esummary_taxa"]:
+        elif "esummary_taxa" in kwargs["func_args"]:
             test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % hf.resource_path
             with open(test_file, "r") as ifile:
                 client.results_file.write(ifile.read().strip())
                 client.results_file.write('\n### END ###\n')
-        elif kwargs["func_args"] == ["efetch_gi"]:
-            client.results_file.write("""703125407
-703125412
-67586143
-### END ###
-""")
         return
 
     # No records to fetch
@@ -545,13 +524,13 @@ def test_ncbiclient_fetch_summaries(hf, monkeypatch):
     assert not client.dbbuddy.records
 
     monkeypatch.setattr(Db.NCBIClient, "_mc_query", patch_entrez_fetch_summaries)
-    dbbuddy = Db.DbBuddy("XP_010103297,XP_010103298.1,67586143,257467473")
+    dbbuddy = Db.DbBuddy("XP_010103297,XP_010103298.1,AAY72386.1")
     client = Db.NCBIClient(dbbuddy)
+    capsys.readouterr()
     client.fetch_summaries("ncbi_prot")
-    for accn, rec in dbbuddy.records.items():
-        assert rec.gi in [703125407, 703125412, 67586143, 257467473]
+
     assert dbbuddy.records["AAY72386.1"].summary["organism"] == "Unclassified"
-    assert hf.string2hash(str(dbbuddy)) == "0cf7c9ccf058cf3b50d2aab7ecb1f953"
+    assert hf.string2hash(str(dbbuddy)) == "3a5e3379b12afe4044d2ece852ab2556"
 
 
 def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
@@ -579,16 +558,7 @@ def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    if os.name == "nt":
-        assert hf.string2hash(out) == "b431f4f8a05f5a0c14de2d0826859bca"
-    else:
-        assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
-
-    # Error
-    monkeypatch.setattr(Db.NCBIClient, "_mc_query", mock_raise_keyboardinterrupt)
-    client.fetch_sequences("ncbi_prot")
-    out, err = capsys.readouterr()
-    assert "\n\tNCBI query interrupted by user\n" in err
+    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
 
 
 # ENSEMBL
