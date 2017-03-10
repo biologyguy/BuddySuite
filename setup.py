@@ -61,7 +61,7 @@ ENTRY_POINTS = {
 }
 
 setup(name='buddysuite',
-      version='1.2.6',
+      version='1.2.7',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
       long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding="utf-8").read(),
