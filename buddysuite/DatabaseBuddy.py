@@ -1553,6 +1553,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         _errors = {"KeyError": [], "ValueError": []}
         current_count = len(self.dbbuddy.records)
+        line = br.clean_regex(line)
         for _filter in line:
             for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
                 _errors[_key] += _value

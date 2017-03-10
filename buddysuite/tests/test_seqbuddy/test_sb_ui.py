@@ -680,7 +680,7 @@ def test_group_by_regex_ui(capsys, sb_odd_resources):
     test_in_args.group_by_regex = [[TEMP_DIR.path]]
     with pytest.raises(ValueError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "You must provide at least one regular expression." in str(err)
+    assert "You must provide at least one valid regular expression." in str(err)
 
     test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
     Sb.command_line_ui(test_in_args, tester, True)

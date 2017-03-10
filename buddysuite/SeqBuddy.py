@@ -3984,6 +3984,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             if not feature_attrs["qualifiers"]:
                 feature_attrs["qualifiers"] = None
+            feature_attrs["pattern"] = br.clean_regex(feature_attrs["pattern"], in_args.quiet)
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
         try:
@@ -4133,7 +4134,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Delete features
     if in_args.delete_features:
-        for next_pattern in in_args.delete_features:
+        patterns = br.clean_regex(in_args.delete_features, in_args.quiet)
+        for next_pattern in patterns:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
         _exit("delete_features")
@@ -4167,6 +4169,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                         search_terms.append(line.strip())
             else:
                 search_terms.append(arg)
+
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if not search_terms:  # If all regular expression are malformed, exit out gracefully
+            _print_recs(seqbuddy)
+        _exit("delete_records")
 
         deleted_seqs = []
         for next_pattern in search_terms:
@@ -4290,7 +4297,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Extact features
     if in_args.extract_feature_sequences:
-        seqbuddy = extract_feature_sequences(seqbuddy, in_args.extract_feature_sequences[0])
+        patterns = br.clean_regex(in_args.extract_feature_sequences[0], in_args.quiet)
+        if patterns:
+            seqbuddy = extract_feature_sequences(seqbuddy, patterns)
         _print_recs(seqbuddy)
         _exit("extract_feature_sequences")
 
@@ -4386,8 +4395,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         if ambig:
             del in_args.find_pattern[in_args.find_pattern.index("ambig")]
 
-        find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
-        for pattern in in_args.find_pattern:
+        patterns = br.clean_regex(in_args.find_pattern, in_args.quiet)
+        if patterns:
+            find_pattern(seqbuddy, *patterns, ambig=ambig)
+        for pattern in patterns:
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
@@ -4501,6 +4512,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                         split_patterns.append(arg)
 
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
+        sp = br.clean_regex(sp, check_quiet)
+        if not sp:
+            in_args.quiet = check_quiet
+            _raise_error(ValueError("Split pattern(s) malformed. No files created."), "group_by_prefix")
 
         taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
         if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy):
@@ -4530,9 +4545,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 regexes.append(arg)
 
+        regexes = br.clean_regex(regexes, check_quiet)
         if not regexes:
             in_args.quiet = False
-            _raise_error(ValueError("You must provide at least one regular expression."), "group_by_regex")
+            _raise_error(ValueError("You must provide at least one valid regular expression."), "group_by_regex")
 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
@@ -4911,7 +4927,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs(seqbuddy, search_terms, description))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs(seqbuddy, search_terms, description)
+        _print_recs(seqbuddy)
         _exit("pull_records")
 
     # Pull records with feature
@@ -4925,7 +4944,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs_with_feature(seqbuddy, search_terms))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
         _exit("pull_records_with_feature")
 
     # Purge
@@ -4955,6 +4977,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(AttributeError("Please provide at least a query and a replacement string"), "rename_ids")
 
         query, replace = args[0:2]
+        if not br.clean_regex(query, in_args.quiet):
+            _raise_error(ValueError("Malformed regular expression."), "rename_ids")
         num = 0
         store = False
 
@@ -4978,7 +5002,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.replace_subseq:
         args = in_args.replace_subseq[0]
         args = args[:2] if len(args) > 1 else args
+        if not br.clean_regex(args[0], in_args.quiet):
+            _raise_error(ValueError("Max replacements argument must be an integer"), "replace_subseq")
         _print_recs(replace_subsequence(seqbuddy, *args))
+        _exit("replace_subseq")
 
     # Reverse complement
     if in_args.reverse_complement:
