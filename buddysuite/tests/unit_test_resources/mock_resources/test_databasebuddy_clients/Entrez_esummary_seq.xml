@@ -1,20 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE eSummaryResult PUBLIC "-//NLM//DTD esummary v1 20041029//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20041029/esummary-v1.dtd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE eSummaryResult PUBLIC "-//NLM//DTD esummary v1 20041029//EN" "https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20041029/esummary-v1.dtd">
 <eSummaryResult>
 <DocSum>
-	<Id>703125407</Id>
-	<Item Name="Caption" Type="String">XP_010103297</Item>
-	<Item Name="Title" Type="String">Proline-rich receptor-like protein kinase PERK1 [Morus notabilis]</Item>
-	<Item Name="Extra" Type="String">gi|703125407|ref|XP_010103297.1||gnl|REF_WGS:ATGF|L484_014337[703125407]</Item>
-	<Item Name="Gi" Type="Integer">703125407</Item>
-	<Item Name="CreateDate" Type="String">2014/11/04</Item>
-	<Item Name="UpdateDate" Type="String">2014/11/04</Item>
-	<Item Name="Flags" Type="Integer">512</Item>
-	<Item Name="TaxId" Type="Integer">981085</Item>
-	<Item Name="Length" Type="Integer">571</Item>
+	<Id>67586143</Id>
+	<Item Name="Caption" Type="String">AAY72386</Item>
+	<Item Name="Title" Type="String">Sequence 1 from patent US 6890721</Item>
+	<Item Name="Extra" Type="String">gi|67586143|gb|AAY72386.1||pat|US|6890721|1[67586143]</Item>
+	<Item Name="Gi" Type="Integer">67586143</Item>
+	<Item Name="CreateDate" Type="String">2005/06/13</Item>
+	<Item Name="UpdateDate" Type="String">2005/06/13</Item>
+	<Item Name="Flags" Type="Integer">0</Item>
+	<Item Name="TaxId" Type="Integer">0</Item>
+	<Item Name="Length" Type="Integer">416</Item>
 	<Item Name="Status" Type="String">live</Item>
 	<Item Name="ReplacedBy" Type="String"></Item>
 	<Item Name="Comment" Type="String"><![CDATA[  ]]></Item>
+	<Item Name="AccessionVersion" Type="String">AAY72386.1</Item>
 </DocSum>
 
 <DocSum>
@@ -31,22 +32,24 @@
 	<Item Name="Status" Type="String">live</Item>
 	<Item Name="ReplacedBy" Type="String"></Item>
 	<Item Name="Comment" Type="String"><![CDATA[  ]]></Item>
+	<Item Name="AccessionVersion" Type="String">XP_010103298.1</Item>
 </DocSum>
 
 <DocSum>
-	<Id>67586143foo</Id>
-	<Item Name="Caption" Type="String">AAY72386</Item>
-	<Item Name="Title" Type="String">Sequence 1 from patent US 6890721</Item>
-	<Item Name="Extra" Type="String">gi|67586143|gb|AAY72386.1||pat|US|6890721|1[67586143]</Item>
-	<Item Name="Gi" Type="Integer">67586143</Item>
-	<Item Name="CreateDate" Type="String">2005/06/13</Item>
-	<Item Name="UpdateDate" Type="String">2005/06/13</Item>
-	<Item Name="Flags" Type="Integer">0</Item>
-	<Item Name="TaxId" Type="Integer">0</Item>
-	<Item Name="Length" Type="Integer">416</Item>
+	<Id>703125407</Id>
+	<Item Name="Caption" Type="String">XP_010103297</Item>
+	<Item Name="Title" Type="String">Proline-rich receptor-like protein kinase PERK1 [Morus notabilis]</Item>
+	<Item Name="Extra" Type="String">gi|703125407|ref|XP_010103297.1||gnl|REF_WGS:ATGF|L484_014337[703125407]</Item>
+	<Item Name="Gi" Type="Integer">703125407</Item>
+	<Item Name="CreateDate" Type="String">2014/11/04</Item>
+	<Item Name="UpdateDate" Type="String">2014/11/04</Item>
+	<Item Name="Flags" Type="Integer">512</Item>
+	<Item Name="TaxId" Type="Integer">981085</Item>
+	<Item Name="Length" Type="Integer">571</Item>
 	<Item Name="Status" Type="String">live</Item>
 	<Item Name="ReplacedBy" Type="String"></Item>
 	<Item Name="Comment" Type="String"><![CDATA[  ]]></Item>
+	<Item Name="AccessionVersion" Type="String">XP_010103297.1</Item>
 </DocSum>
 
 </eSummaryResult>
