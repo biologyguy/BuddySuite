@@ -19,7 +19,7 @@ def test_globals():
     assert Db.RECORD_SYNOS == ["r", "rec", "recs", "records", "main", "filtered"]
     assert Db.SEARCH_SYNOS == ["st", "search", "search-terms", "search_terms", "terms"]
     assert Db.DATABASES == ["ncbi_nuc", "ncbi_prot", "uniprot", "ensembl"]
-    assert Db.RETRIEVAL_TYPES == ["protein", "nucleotide", "gi_num"]
+    assert Db.RETRIEVAL_TYPES == ["protein", "nucleotide"]
     assert Db.FORMATS == ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq",
                           "fastq-sanger", "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd",
                           "phylip", "seqxml", "stockholm", "tab", "qual"]
@@ -120,11 +120,6 @@ def test_check_type_nuc():
         assert Db.check_type(_input) == "nucleotide"
 
 
-def test_check_type_gi():
-    for _input in ["g", "gi", "gn", "gin", "gi_num", "ginum", "gi_number"]:
-        assert Db.check_type(_input) == "gi_num"
-
-
 def test_check_type_default(capsys):
     assert not Db.check_type(None)
     assert Db.check_type("foo") == "protein"
@@ -136,7 +131,6 @@ def test_check_type_default(capsys):
 def test_record_instantiation():
     rec = Db.Record("Foo")
     assert rec.accession == "Foo"
-    assert not rec.gi
     assert not rec.version
     assert not rec.record
     assert not rec.summary
@@ -243,17 +237,6 @@ def test_record_guess_genbank_mga():
         assert rec.type == "protein"
 
 
-def test_record_guess_genbank_gi():
-    randomly_generated_from_regex = ["13545654", "1445", "9876513546531", "154351", "135464316", "4684315", "21240"]
-    for accn in randomly_generated_from_regex:
-        rec = Db.Record(accn)
-        rec.guess_database()
-        assert rec.database == "ncbi_nuc"
-        assert rec.type == "gi_num"
-        assert str(rec.gi) == accn
-        assert rec.accession == accn
-
-
 def test_record_search(sb_resources):
     summary = {"ACCN": "F6SBJ1", "DB": "uniprot", "entry_name": "F6SBJ1_HORSE", "length": "451",
                "organism-id": "9796", "organism": "Equus caballus (Horse)", "protein_names": "Caspase",
@@ -325,11 +308,10 @@ def test_record_update():
                            ("organism-id", "9796"), ("organism", "Equus caballus (Horse)"),
                            ("protein_names", "Caspase"), ("comments", "Caution (1); Sequence similarities (1)"),
                            ("record", "summary")])
-    new_rec = Db.Record("F6SBJ1", gi=None, _version=None, _record=None, summary=summary, _size=451,
+    new_rec = Db.Record("F6SBJ1", _version=None, _record=None, summary=summary, _size=451,
                         _database="uniprot", _type="protein", _search_term="casp9")
     rec.update(new_rec)
     assert rec.accession == "F6SBJ1"
-    assert not rec.gi
     assert not rec.version
     assert not rec.record
     assert list(rec.summary) == ["ACCN", "DB", "entry_name", "length", "organism-id",
