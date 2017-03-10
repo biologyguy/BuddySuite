@@ -1370,18 +1370,23 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Prune taxa
     if in_args.prune_taxa:
-        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
+        patterns = br.clean_regex(in_args.prune_taxa[0], in_args.quiet)
+        prune_taxa(phylobuddy, *patterns)
         _print_trees(phylobuddy)
         _exit("prune_taxa")
 
     # Rename IDs
     if in_args.rename_ids:
-        _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
+        patterns = br.clean_regex(in_args.rename_ids[0], in_args.quiet)
+        if patterns:
+            _print_trees(rename(phylobuddy, patterns[0], in_args.rename_ids[1]))
+        else:
+            _print_trees(phylobuddy)
         _exit("rename_ids")
 
     # Root
     if in_args.root:
-        root_nodes = in_args.root[0]
+        root_nodes = br.clean_regex(in_args.root[0], in_args.quiet)
         if root_nodes:
             root(phylobuddy, *root_nodes)
         else:

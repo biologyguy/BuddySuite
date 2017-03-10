@@ -34,6 +34,7 @@ from configparser import ConfigParser, NoOptionError
 import json
 import traceback
 import re
+import sre_compile
 from ftplib import FTP, all_errors
 from hashlib import md5
 from urllib import request
@@ -1367,6 +1368,33 @@ def isfile_override(path):
 
 if os.name == "nt":
     os.path.isfile = isfile_override
+
+
+def clean_regex(patterns, quiet=False):
+    """
+    Ensure that user provided regular expression are valid
+    :param patterns: either a single str regex or list of regexes
+    :param quiet: Suppress stderr
+    :return:
+    """
+    patterns = [patterns] if type(patterns) == str else patterns
+    failures = []
+    failure_str = ""
+    for indx, regex_test in enumerate(patterns):
+        try:
+            re.compile(regex_test)
+        except sre_compile.error as err:
+            if not failures:
+                failure_str += "##### Regular expression failures #####\n"
+            failure_str += "%s --> %s\n" % (regex_test, str(err))
+            failures.append(indx)
+    if failures:
+        failure_str += "#######################################\n\n"
+        failures = sorted(failures, reverse=True)
+        for indx in failures:
+            del patterns[indx]
+    _stderr(failure_str, quiet)
+    return patterns
 
 # #################################################### VARIABLES ##################################################### #
 

@@ -1120,3 +1120,23 @@ def test_std_errors(capfd, monkeypatch):
     br._stdout("Hello std_out α", quiet=False)
     out, err = capfd.readouterr()
     assert out == "Hello std_out α"
+
+
+def test_utf_encode():
+    assert br.utf_encode("Hello hello") == "Hello hello"
+
+
+def test_clean_regex(capsys):
+    patterns = ["[1-4]This is fine", '[a-\\w]', '()(?(1)a|b']
+    assert br.clean_regex(patterns) == ["[1-4]This is fine"]
+    out, err = capsys.readouterr()
+    assert err == """\
+##### Regular expression failures #####
+[a-\w] --> bad character range a-\w at position 1
+()(?(1)a|b --> missing ), unterminated subpattern at position 2
+#######################################
+
+"""
+    assert br.clean_regex(patterns, quiet=True) == ["[1-4]This is fine"]
+    out, err = capsys.readouterr()
+    assert err == ""
