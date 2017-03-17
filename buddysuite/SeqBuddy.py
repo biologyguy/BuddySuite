@@ -4173,7 +4173,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         search_terms = br.clean_regex(search_terms, in_args.quiet)
         if not search_terms:  # If all regular expression are malformed, exit out gracefully
             _print_recs(seqbuddy)
-        _exit("delete_records")
+            _exit("delete_records")
 
         deleted_seqs = []
         for next_pattern in search_terms:
