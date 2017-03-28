@@ -1380,7 +1380,7 @@ def count_codons(seqbuddy):
                 else:
                     try:
                         data_table[codon] = [codontable[codon], 1, 0.0]
-                    except KeyError:
+                    except (KeyError, CodonTable.TranslationError):
                         br._stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
