@@ -76,6 +76,12 @@ from Bio.Nexus.Trees import TreeError
 
 # ##################################################### WISH LIST #################################################### #
 '''
+def add_metadata(seqbuddy, metadata, rec_regex=None):
+    """
+    Add non-feature annotations to records (i.e., organism, comments, description, etc.)
+    """
+    return seqbuddy
+
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
     :param matrix:
@@ -1648,12 +1654,13 @@ def delete_metadata(seqbuddy):
     return seqbuddy
 
 
-def delete_records(seqbuddy, patterns):
+def delete_records(seqbuddy, patterns, description=False):
     """
     Deletes records with IDs matching a regex pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: A single regex pattern, or list of patterns, to search with
     :type patterns: list str
+    :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
     if type(patterns) == str:
@@ -1667,7 +1674,7 @@ def delete_records(seqbuddy, patterns):
     patterns = "|".join(patterns)
 
     retained_records = []
-    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns).records]
+    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns, description=description).records]
     for rec in seqbuddy.records:
         if rec.id in deleted:
             continue
@@ -4147,6 +4154,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         except ValueError:
             columns = 1
 
+        # Toggle on/off full search in record (including metadata)
+        if "full" in in_args.delete_records:
+            description = True
+            del in_args.delete_records[in_args.delete_records.index("full")]
+        else:
+            description = False
         search_terms = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
@@ -4163,9 +4176,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
         deleted_seqs = []
         for next_pattern in search_terms:
-            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
+            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern, description).records
 
-        seqbuddy = delete_records(seqbuddy, search_terms)
+        seqbuddy = delete_records(seqbuddy, search_terms, description)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1

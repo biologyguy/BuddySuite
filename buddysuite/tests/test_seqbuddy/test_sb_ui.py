@@ -409,6 +409,11 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert hf.string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
+    test_in_args.delete_records = ["full", "ML2"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "59e42a85336158c6c290d08899d9f2e7"
+
     temp_file = br.TempFile()
     with open(temp_file.path, "w", encoding="utf-8") as ofile:
         ofile.write("α1\nα2")
