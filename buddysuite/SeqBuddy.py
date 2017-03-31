@@ -2746,22 +2746,15 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     return nuclseqbuddy
 
 
-def max_records(seqbuddy):
+def max_records(seqbuddy, number=1):
     """
     Removes all sequences of length less than the maximum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_max = 0
-    max_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_max:
-            max_rec.append(rec)
-        elif cur_len > cur_max:
-            max_rec = [rec]
-            cur_max = cur_len
-    seqbuddy.records = max_rec
+    records = sorted(seqbuddy.records, key=lambda x: len(x.seq), reverse=True)
+    seqbuddy.records = records[:number]
     return seqbuddy
 
 
@@ -2806,22 +2799,15 @@ def merge(*seqbuddy):
     return seqbuddy
 
 
-def min_records(seqbuddy):
+def min_records(seqbuddy, number=1):
     """
     Removes all sequences of length greater than the minimum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_min = len(seqbuddy.records[0])
-    min_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_min:
-            min_rec.append(rec)
-        elif cur_len < cur_min:
-            min_rec = [rec]
-            cur_min = cur_len
-    seqbuddy.records = min_rec
+    records = sorted(seqbuddy.records, key=lambda x: len(x.seq))
+    seqbuddy.records = records[:number]
     return seqbuddy
 
 
@@ -4804,7 +4790,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Max record length
     if in_args.max_recs:
-        _print_recs(max_records(seqbuddy))
+        num_returned = 1 if not in_args.max_recs[0] else in_args.max_recs[0]
+        _print_recs(max_records(seqbuddy, num_returned))
         _exit("max_recs")
 
     # Merge together multiple files into a single file
@@ -4816,9 +4803,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(e, "merge")
         _exit("merge")
 
-    # Max record length
+    # Min record length
     if in_args.min_recs:
-        _print_recs(min_records(seqbuddy))
+        num_returned = 1 if not in_args.min_recs[0] else in_args.min_recs[0]
+        _print_recs(min_records(seqbuddy, num_returned))
         _exit("min_recs")
 
     # Molecular Weight

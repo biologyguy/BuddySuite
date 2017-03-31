@@ -1264,14 +1264,8 @@ def test_max_recs(sb_resources):
     tester = Sb.max_records(sb_resources.get_one("p f"))
     assert tester.records[0].id == "Mle-Panxα7A"
 
-    tester.records += [copy(tester.records[0]), copy(tester.records[0])]
-    tester.records[1].id = "Foo"
-    tester.records[1].seq = Seq(str(tester.records[1].seq)[:-10], tester.records[1].seq.alphabet)
-    tester.records[2].id = "Bar"
-    tester = Sb.max_records(tester)
-    assert len(tester) == 2, print(tester)
-    assert tester.records[0].id == "Mle-Panxα7A"
-    assert tester.records[1].id == "Bar"
+    tester = Sb.max_records(sb_resources.get_one("p f"), 3)
+    assert len(tester.records) == 3
 
 
 # #####################  '-mg', '--merge' ###################### ##
@@ -1291,14 +1285,8 @@ def test_min_recs(sb_resources):
     tester = Sb.min_records(sb_resources.get_one("p f"))
     assert tester.records[0].id == "Mle-Panxα10B"
 
-    tester.records += [copy(tester.records[0]), copy(tester.records[0])]
-    tester.records[1].id = "Foo"
-    tester.records[1].seq = Seq(str(tester.records[1].seq) + "MMM", tester.records[1].seq.alphabet)
-    tester.records[2].id = "Bar"
-    tester = Sb.min_records(tester)
-    assert len(tester) == 2, print(tester)
-    assert tester.records[0].id == "Mle-Panxα10B"
-    assert tester.records[1].id == "Bar"
+    tester = Sb.min_records(sb_resources.get_one("p f"), 3)
+    assert len(tester.records) == 3
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
