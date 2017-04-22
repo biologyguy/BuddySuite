@@ -124,14 +124,8 @@ def decode_accessions(phylobuddy):
     # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
     return phylobuddy
 
-
-def descending_order(phylobuddy):
-    return phylobuddy
-
-
-def ascending_order(phylobuddy):
-    return phylobuddy
 """
+
 
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
@@ -790,6 +784,16 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
     return phylobuddy
 
 
+def ladderize(phylobuddy, sort_order="ascending"):
+    ascending=True
+    if sort_order != "ascending":
+        ascending = False
+
+    for tree in phylobuddy.trees:
+        tree.ladderize(ascending)
+    return phylobuddy
+
+
 def list_ids(phylobuddy):
     """
     Returns a dictionary of tree names and node labels
@@ -1324,6 +1328,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         br._stderr(hash_table, in_args.quiet)
         _print_trees(phylobuddy)
         _exit("hash_ids")
+
+    # Ladderize
+    if in_args.ladderize:
+        phylobuddy = ladderize(phylobuddy, in_args.ladderize)
+        _print_trees(phylobuddy)
+        _exit("ascending_order")
 
     # List ids
     if in_args.list_ids:
