@@ -26,7 +26,6 @@ In fact, DO NOT USE THIS AT ALL UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!! You'
 
 import sys
 import os
-import buddysuite.buddy_resources as br
 from datetime import date
 from hashlib import md5
 from subprocess import run
@@ -67,7 +66,7 @@ if __name__ == '__main__':
 
     in_args = parser.parse_args()
 
-    root, dirs, reports = next(br.walklevel(in_args.report_folder))
+    root, dirs, reports = next(os.walk(in_args.report_folder))
 
     if in_args.errors:
         error_reports = []
@@ -93,7 +92,7 @@ if __name__ == '__main__':
                     file_paths.append(report)
                     with open(report, "r", encoding="utf-8") as ifile:
                         content = ifile.read()
-                        _hash = md5(content.encode()).hexdigest()
+                        _hash = md5(re.sub("#.*\n", "", content).encode()).hexdigest()
 
                     if _hash in resolved:
                         continue
