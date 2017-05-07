@@ -711,6 +711,13 @@ def test_delete_records2(sb_resources, hf):
         Sb.delete_records(sb_resources.get_one("d f"), dict)
     assert "'patterns' must be a list or a string." in str(e.value)
 
+    # Doesn't find anything to delete
+    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=False)
+    assert len(tester.records) == len(sb_resources.get_one("p g").records)
+
+    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=True)
+    assert hf.buddy2hash(tester) == "59e42a85336158c6c290d08899d9f2e7", print(tester)
+
 
 # #####################  '-drp', '--delete_repeats' ###################### ##
 def test_delete_repeats(sb_odd_resources):
@@ -1264,14 +1271,8 @@ def test_max_recs(sb_resources):
     tester = Sb.max_records(sb_resources.get_one("p f"))
     assert tester.records[0].id == "Mle-Panxα7A"
 
-    tester.records += [copy(tester.records[0]), copy(tester.records[0])]
-    tester.records[1].id = "Foo"
-    tester.records[1].seq = Seq(str(tester.records[1].seq)[:-10], tester.records[1].seq.alphabet)
-    tester.records[2].id = "Bar"
-    tester = Sb.max_records(tester)
-    assert len(tester) == 2, print(tester)
-    assert tester.records[0].id == "Mle-Panxα7A"
-    assert tester.records[1].id == "Bar"
+    tester = Sb.max_records(sb_resources.get_one("p f"), 3)
+    assert len(tester.records) == 3
 
 
 # #####################  '-mg', '--merge' ###################### ##
@@ -1291,14 +1292,8 @@ def test_min_recs(sb_resources):
     tester = Sb.min_records(sb_resources.get_one("p f"))
     assert tester.records[0].id == "Mle-Panxα10B"
 
-    tester.records += [copy(tester.records[0]), copy(tester.records[0])]
-    tester.records[1].id = "Foo"
-    tester.records[1].seq = Seq(str(tester.records[1].seq) + "MMM", tester.records[1].seq.alphabet)
-    tester.records[2].id = "Bar"
-    tester = Sb.min_records(tester)
-    assert len(tester) == 2, print(tester)
-    assert tester.records[0].id == "Mle-Panxα10B"
-    assert tester.records[1].id == "Bar"
+    tester = Sb.min_records(sb_resources.get_one("p f"), 3)
+    assert len(tester.records) == 3
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
@@ -1594,6 +1589,14 @@ hashes = [('d f', '5b4154c2662b66d18776cdff5af89fc0'), ('d g', 'e196fdc5765ba2c4
 def test_pull_recs(key, next_hash, sb_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one(key), 'α2')
     assert hf.buddy2hash(tester) == next_hash
+
+
+def test_pull_recs2(sb_resources, hf):
+    tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=False)
+    assert len(tester.records) == 0
+
+    tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=True)
+    assert hf.buddy2hash(tester) == "f879d0a65b73cce2a4ab26c5ffe9f35a"
 
 # ######################  '-pr', '--pull_records_with_feature' ###################### #
 hashes = [('p g', '83d15851d489e89761c8faa31e5263f2'), ('d g', '36757409966ede91ab19deb56045d584')]

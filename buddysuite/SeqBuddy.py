@@ -76,6 +76,12 @@ from Bio.Nexus.Trees import TreeError
 
 # ##################################################### WISH LIST #################################################### #
 '''
+def add_metadata(seqbuddy, metadata, rec_regex=None):
+    """
+    Add non-feature annotations to records (i.e., organism, comments, description, etc.)
+    """
+    return seqbuddy
+
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
     :param matrix:
@@ -1039,7 +1045,7 @@ def bl2seq(seqbuddy):
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("%s -query %s -subject %s -outfmt 6" %
+        _blast_res = Popen("%s -query '%s' -subject '%s' -outfmt 6" %
                            (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
@@ -1209,7 +1215,7 @@ def blast(subject, query, **kwargs):
     else:
         kwargs["blast_args"] = ""
 
-    blast_command = "{0} -db {1} -query {2}tmp.fa -out {2}out.txt " \
+    blast_command = "{0} -db '{1}' -query {2}tmp.fa -out {2}out.txt " \
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
@@ -1238,7 +1244,7 @@ def blast(subject, query, **kwargs):
 
     with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db '%s' -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
@@ -1380,7 +1386,7 @@ def count_codons(seqbuddy):
                 else:
                     try:
                         data_table[codon] = [codontable[codon], 1, 0.0]
-                    except KeyError:
+                    except (KeyError, CodonTable.TranslationError):
                         br._stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
@@ -1648,12 +1654,13 @@ def delete_metadata(seqbuddy):
     return seqbuddy
 
 
-def delete_records(seqbuddy, patterns):
+def delete_records(seqbuddy, patterns, description=False):
     """
     Deletes records with IDs matching a regex pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: A single regex pattern, or list of patterns, to search with
     :type patterns: list str
+    :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
     if type(patterns) == str:
@@ -1667,7 +1674,7 @@ def delete_records(seqbuddy, patterns):
     patterns = "|".join(patterns)
 
     retained_records = []
-    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns).records]
+    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns, description=description).records]
     for rec in seqbuddy.records:
         if rec.id in deleted:
             continue
@@ -2746,22 +2753,15 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     return nuclseqbuddy
 
 
-def max_records(seqbuddy):
+def max_records(seqbuddy, number=1):
     """
     Removes all sequences of length less than the maximum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_max = 0
-    max_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_max:
-            max_rec.append(rec)
-        elif cur_len > cur_max:
-            max_rec = [rec]
-            cur_max = cur_len
-    seqbuddy.records = max_rec
+    records = sorted(seqbuddy.records, key=lambda x: len(x.seq), reverse=True)
+    seqbuddy.records = records[:number]
     return seqbuddy
 
 
@@ -2806,22 +2806,15 @@ def merge(*seqbuddy):
     return seqbuddy
 
 
-def min_records(seqbuddy):
+def min_records(seqbuddy, number=1):
     """
     Removes all sequences of length greater than the minimum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_min = len(seqbuddy.records[0])
-    min_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_min:
-            min_rec.append(rec)
-        elif cur_len < cur_min:
-            min_rec = [rec]
-            cur_min = cur_len
-    seqbuddy.records = min_rec
+    records = sorted(seqbuddy.records, key=lambda x: len(x.seq))
+    seqbuddy.records = records[:number]
     return seqbuddy
 
 
@@ -3984,6 +3977,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             if not feature_attrs["qualifiers"]:
                 feature_attrs["qualifiers"] = None
+            feature_attrs["pattern"] = br.clean_regex(feature_attrs["pattern"], in_args.quiet)
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
         try:
@@ -4133,7 +4127,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Delete features
     if in_args.delete_features:
-        for next_pattern in in_args.delete_features:
+        patterns = br.clean_regex(in_args.delete_features, in_args.quiet)
+        for next_pattern in patterns:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
         _exit("delete_features")
@@ -4159,6 +4154,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         except ValueError:
             columns = 1
 
+        # Toggle on/off full search in record (including metadata)
+        if "full" in in_args.delete_records:
+            description = True
+            del in_args.delete_records[in_args.delete_records.index("full")]
+        else:
+            description = False
         search_terms = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
@@ -4168,11 +4169,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             else:
                 search_terms.append(arg)
 
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if not search_terms:  # If all regular expression are malformed, exit out gracefully
+            _print_recs(seqbuddy)
+            _exit("delete_records")
+
         deleted_seqs = []
         for next_pattern in search_terms:
-            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
+            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern, description).records
 
-        seqbuddy = delete_records(seqbuddy, search_terms)
+        seqbuddy = delete_records(seqbuddy, search_terms, description)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
@@ -4290,7 +4296,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Extact features
     if in_args.extract_feature_sequences:
-        seqbuddy = extract_feature_sequences(seqbuddy, in_args.extract_feature_sequences[0])
+        patterns = br.clean_regex(in_args.extract_feature_sequences[0], in_args.quiet)
+        if patterns:
+            seqbuddy = extract_feature_sequences(seqbuddy, patterns)
         _print_recs(seqbuddy)
         _exit("extract_feature_sequences")
 
@@ -4386,8 +4394,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         if ambig:
             del in_args.find_pattern[in_args.find_pattern.index("ambig")]
 
-        find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
-        for pattern in in_args.find_pattern:
+        patterns = br.clean_regex(in_args.find_pattern, in_args.quiet)
+        if patterns:
+            find_pattern(seqbuddy, *patterns, ambig=ambig)
+        for pattern in patterns:
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
@@ -4501,6 +4511,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                         split_patterns.append(arg)
 
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
+        sp = br.clean_regex(sp, check_quiet)
+        if not sp:
+            in_args.quiet = check_quiet
+            _raise_error(ValueError("Split pattern(s) malformed. No files created."), "group_by_prefix")
 
         taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
         if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy):
@@ -4530,9 +4544,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 regexes.append(arg)
 
+        regexes = br.clean_regex(regexes, check_quiet)
         if not regexes:
             in_args.quiet = False
-            _raise_error(ValueError("You must provide at least one regular expression."), "group_by_regex")
+            _raise_error(ValueError("You must provide at least one valid regular expression."), "group_by_regex")
 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
@@ -4788,7 +4803,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Max record length
     if in_args.max_recs:
-        _print_recs(max_records(seqbuddy))
+        num_returned = 1 if not in_args.max_recs[0] else in_args.max_recs[0]
+        _print_recs(max_records(seqbuddy, num_returned))
         _exit("max_recs")
 
     # Merge together multiple files into a single file
@@ -4800,9 +4816,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(e, "merge")
         _exit("merge")
 
-    # Max record length
+    # Min record length
     if in_args.min_recs:
-        _print_recs(min_records(seqbuddy))
+        num_returned = 1 if not in_args.min_recs[0] else in_args.min_recs[0]
+        _print_recs(min_records(seqbuddy, num_returned))
         _exit("min_recs")
 
     # Molecular Weight
@@ -4911,7 +4928,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs(seqbuddy, search_terms, description))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs(seqbuddy, search_terms, description)
+        _print_recs(seqbuddy)
         _exit("pull_records")
 
     # Pull records with feature
@@ -4925,7 +4945,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs_with_feature(seqbuddy, search_terms))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
         _exit("pull_records_with_feature")
 
     # Purge
@@ -4955,6 +4978,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(AttributeError("Please provide at least a query and a replacement string"), "rename_ids")
 
         query, replace = args[0:2]
+        if not br.clean_regex(query, in_args.quiet):
+            _raise_error(ValueError("Malformed regular expression."), "rename_ids")
         num = 0
         store = False
 
@@ -4978,7 +5003,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.replace_subseq:
         args = in_args.replace_subseq[0]
         args = args[:2] if len(args) > 1 else args
+        if not br.clean_regex(args[0], in_args.quiet):
+            _raise_error(ValueError("Max replacements argument must be an integer"), "replace_subseq")
         _print_recs(replace_subsequence(seqbuddy, *args))
+        _exit("replace_subseq")
 
     # Reverse complement
     if in_args.reverse_complement:

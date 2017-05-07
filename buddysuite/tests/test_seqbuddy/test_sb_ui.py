@@ -409,6 +409,11 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert hf.string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
+    test_in_args.delete_records = ["full", "ML2"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "59e42a85336158c6c290d08899d9f2e7"
+
     temp_file = br.TempFile()
     with open(temp_file.path, "w", encoding="utf-8") as ofile:
         ofile.write("α1\nα2")
@@ -680,7 +685,7 @@ def test_group_by_regex_ui(capsys, sb_odd_resources):
     test_in_args.group_by_regex = [[TEMP_DIR.path]]
     with pytest.raises(ValueError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "You must provide at least one regular expression." in str(err)
+    assert "You must provide at least one valid regular expression." in str(err)
 
     test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
     Sb.command_line_ui(test_in_args, tester, True)
@@ -980,11 +985,17 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, hf):
 # #####################  '-max', '--max_recs' ###################### ##
 def test_max_recs_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.max_recs = True
+    test_in_args.max_recs = [False]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
 
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "79e2eded9fb788df40bf4254392ace44"
+
+    test_in_args.max_recs = [3]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "e68accb5daed2459693d7872d2291b9f"
 
 
 # ######################  '-mg', '--merge' ###################### #
@@ -1005,11 +1016,17 @@ def test_merge_ui(capsys, sb_resources, sb_odd_resources, hf):
 # #####################  '-min', '--min_recs' ###################### ##
 def test_min_recs_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.min_recs = True
+    test_in_args.min_recs = [False]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
 
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "e40fe7ee465f49cda27f86dbdd479f26"
+
+    test_in_args.min_recs = [3]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "c0f472512cfa64f6c64d5daa6591101f", print(out)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
