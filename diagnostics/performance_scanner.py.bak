@@ -141,7 +141,7 @@ if __name__ == '__main__':
                     tool.options = re.sub("__.+__", tmp_dir.path, tool.options)
 
             if in_args.verbose:
-                print(("\033[92m%s\033[39m" % tool))
+                print("\033[92m%s\033[39m" % tool)
                 pipe = ""
             else:
                 sys.stdout.write("%s: " % tool.flag)
@@ -156,4 +156,4 @@ if __name__ == '__main__':
             sys.stdout.write("%s\n" % round(timer / int(in_args.iterations), 3))
 
             if in_args.verbose and in_args.pause:
-                eval(input("\033[91mPress 'return' to continue\033[39m"))
+                input("\033[91mPress 'return' to continue\033[39m")

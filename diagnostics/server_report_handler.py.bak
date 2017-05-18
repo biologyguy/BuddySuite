@@ -82,7 +82,7 @@ if __name__ == '__main__':
             error_json = json.loads(error_string)  # Convert JSON into a data table
 
             resolved = []
-            for key, values in list(error_json.items()):
+            for key, values in error_json.items():
                 report_ver, fixed_ver = values
                 if fixed_ver != "":
                     resolved.append(key)
