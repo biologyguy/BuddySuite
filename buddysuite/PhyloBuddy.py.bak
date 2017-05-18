@@ -23,16 +23,16 @@ PhyloBuddy is a general wrapper for popular phylogenetic programs, handles forma
 """
 
 # ##################################################### IMPORTS ###################################################### #
-
+from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import AlignBuddy as Alb
+    import buddy_resources as br
+    import AlignBuddy as Alb
 except ImportError:
     try:
-        from . import buddysuite.buddy_resources as br
-        from . import buddysuite.AlignBuddy as Alb
+        import buddysuite.buddy_resources as br
+        import buddysuite.AlignBuddy as Alb
     except AttributeError:
         from . import buddy_resources as br
         from . import AlignBuddy as Alb
@@ -707,7 +707,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
 
             phylobuddy = PhyloBuddy(output)
 
-            for _hash, _id in list(sub_alignbuddy.hash_map.items()):
+            for _hash, _id in sub_alignbuddy.hash_map.items():
                 rename(phylobuddy, _hash, _id)
 
             if keep_temp:
@@ -715,7 +715,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 for file in files:
                     with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
                         contents = ifile.read()
-                    for _hash, _id in list(sub_alignbuddy.hash_map.items()):
+                    for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
                     with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
                         ofile.write(contents)
@@ -862,7 +862,7 @@ def root(phylobuddy, *root_nodes):
         if _root_nodes:
             all_nodes = []
             for regex in root_nodes:
-                for indx, id_list in list(list_ids(PhyloBuddy([_tree])).items()):
+                for indx, id_list in list_ids(PhyloBuddy([_tree])).items():
                     for next_id in id_list:
                         if re.search(regex, next_id):
                             all_nodes.append(next_id)
@@ -1317,7 +1317,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         for indx, tree_map in enumerate(phylobuddy.hash_map):
             if len(phylobuddy.hash_map) > 1:
                 hash_table += "# Tree %s\n" % (indx + 1)
-            for _hash, orig_id in list(tree_map.items()):
+            for _hash, orig_id in tree_map.items():
                 hash_table += "%s\t%s\n" % (_hash, orig_id)
             hash_table += "\n"
         hash_table = "%s\n######################\n\n" % hash_table.strip()

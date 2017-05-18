@@ -29,12 +29,12 @@ import random
 import string
 
 try:
-    from . import buddysuite
-    from . import buddy_resources as br
+    import buddysuite
+    import buddy_resources as br
 except ImportError:
     try:
-        from . import buddysuite
-        from . import buddysuite.buddy_resources as br
+        import buddysuite
+        import buddysuite.buddy_resources as br
     except AttributeError:
         from . import buddysuite
         from . import buddy_resources as br
@@ -77,10 +77,10 @@ def setup():  # ToDo: Check permissions?
           "blocking your IP if you are not adhering to their usage limitations.\033[m")
 
     if options['email'] in [None, "buddysuite@gmail.com"]:
-        email = eval(input("Email address (optional): "))
+        email = input("Email address (optional): ")
         email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@gmail.com"
     else:
-        email = eval(input("Update email address (currently '%s'): " % options['email']))
+        email = input("Update email address (currently '%s'): " % options['email'])
         email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) and email not in ['', options['email']] \
             else options['email']
     options['email'] = email
@@ -106,7 +106,7 @@ def setup():  # ToDo: Check permissions?
     with open("{0}{1}buddy_data{1}config.ini".format(install_dir, os.sep), 'w') as config_file:
         config.write(config_file)
 
-    print(("""\
+    print("""\
 
 \033[1mSuccess! You're all set.\033[m
     Email address:     %s
@@ -114,7 +114,7 @@ def setup():  # ToDo: Check permissions?
 
 These choices can be changed at any time by re-running setup.
 Enjoy the BuddySuite!
-""" % (options['email'], options['diagnostics'])))
+""" % (options['email'], options['diagnostics']))
     return
 
 
@@ -147,14 +147,14 @@ def uninstall():
 
 
 def version():
-    from .buddysuite import SeqBuddy
-    from .buddysuite import AlignBuddy
-    from .buddysuite import PhyloBuddy
-    from .buddysuite import DatabaseBuddy
-    print(("SeqBuddy: %s" % SeqBuddy.VERSION.short()))
-    print(("AlignBuddy: %s" % AlignBuddy.VERSION.short()))
-    print(("PhyloBuddy: %s" % PhyloBuddy.VERSION.short()))
-    print(("DatabaseBuddy: %s\n" % DatabaseBuddy.VERSION.short()))
+    from buddysuite import SeqBuddy
+    from buddysuite import AlignBuddy
+    from buddysuite import PhyloBuddy
+    from buddysuite import DatabaseBuddy
+    print("SeqBuddy: %s" % SeqBuddy.VERSION.short())
+    print("AlignBuddy: %s" % AlignBuddy.VERSION.short())
+    print("PhyloBuddy: %s" % PhyloBuddy.VERSION.short())
+    print("DatabaseBuddy: %s\n" % DatabaseBuddy.VERSION.short())
 
 
 def tools():
@@ -174,11 +174,11 @@ def tools():
 
 
 def count():
-    print(("SeqBuddy: %s" % len(br.sb_flags)))
-    print(("AlignBuddy: %s" % len(br.alb_flags)))
-    print(("PhyloBuddy: %s" % len(br.pb_flags)))
-    print(("DatabaseBuddy: %s" % len(br.db_flags)))
-    print(("Total: %s\n" % sum([len(x) for x in [br.sb_flags, br.alb_flags, br.pb_flags, br.db_flags]])))
+    print("SeqBuddy: %s" % len(br.sb_flags))
+    print("AlignBuddy: %s" % len(br.alb_flags))
+    print("PhyloBuddy: %s" % len(br.pb_flags))
+    print("DatabaseBuddy: %s" % len(br.db_flags))
+    print("Total: %s\n" % sum([len(x) for x in [br.sb_flags, br.alb_flags, br.pb_flags, br.db_flags]]))
 
 
 def main():

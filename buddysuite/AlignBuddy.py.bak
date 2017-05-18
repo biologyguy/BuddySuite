@@ -24,16 +24,16 @@ and allows maintenance of rich feature annotation following alignment.
 """
 
 # ##################################################### IMPORTS ###################################################### #
-
+from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import SeqBuddy as Sb
+    import buddy_resources as br
+    import SeqBuddy as Sb
 except ImportError:
     try:
-        from . import buddysuite.buddy_resources as br
-        from . import buddysuite.SeqBuddy as Sb
+        import buddysuite.buddy_resources as br
+        import buddysuite.SeqBuddy as Sb
     except AttributeError:
         from . import buddy_resources as br
         from . import SeqBuddy as Sb
@@ -588,14 +588,14 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
                     raise ValueError("Replicate matches '%s' in Alignment #%s" % (match, indx + 1))
                 concat_groups[match][indx] = rec
 
-        for group, seqs in list(concat_groups.items()):
+        for group, seqs in concat_groups.items():
             if not seqs[indx]:
                 concat_groups[group][indx] = SeqRecord(Seq("-" * align.get_alignment_length(),
                                                            alphabet=alignbuddy.alpha))
 
     new_records = [SeqRecord(Seq("", alphabet=alignbuddy.alpha), id=group, features=[]) for group in concat_groups]
     indx = 0
-    for group, seqs in list(concat_groups.items()):
+    for group, seqs in concat_groups.items():
         new_length = 0
         for rec in seqs:
             new_records[indx].seq = Seq(str(new_records[indx].seq) + str(rec.seq),
@@ -606,7 +606,7 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
         indx += 1
 
     group_indx = 0
-    for group, seqs in list(concat_groups.items()):
+    for group, seqs in concat_groups.items():
         new_length = 0
         align_features = []
         for rec_indx, rec in enumerate(seqs):
@@ -651,7 +651,7 @@ def consensus_sequence(alignbuddy):
                 residue = rec.seq[indx]
                 residues.setdefault(residue, 0)
                 residues[residue] += 1
-            residues = sorted(list(residues.items()), key=lambda x: x[1], reverse=True)
+            residues = sorted(residues.items(), key=lambda x: x[1], reverse=True)
             if len(residues) == 1 or residues[0][1] != residues[1][1]:
                 new_seq += residues[0][0]
             else:
@@ -915,7 +915,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
 
     tool = check_lower(alias)
     if not tool:
-        for prog, args in list(tool_list.items()):
+        for prog, args in tool_list.items():
             version = Popen("%s%s" % (alias, args["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
             if re.search(args['check'], version[0].decode()) or re.search(args['check'], version[1].decode()):
                 tool = prog
@@ -1071,7 +1071,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 # ToDo: Change remap_gapped_features to multicore
                 br.remap_gapped_features(seqbuddy_recs, alignbuddy.records())
 
-                for _hash, sb_rec in list(seqbuddy.hash_map.items()):
+                for _hash, sb_rec in seqbuddy.hash_map.items():
                     rename(alignbuddy, _hash, sb_rec)
 
                 if keep_temp:
@@ -1080,7 +1080,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                         for next_file in files:
                             with open("%s%s%s" % (root, os.path.sep, next_file), "r", encoding="utf-8") as ifile:
                                 contents = ifile.read()
-                            for _hash, sb_rec in list(seqbuddy.hash_map.items()):
+                            for _hash, sb_rec in seqbuddy.hash_map.items():
                                 contents = re.sub(_hash, sb_rec, contents)
                             with open("%s%s%s" % (root, os.path.sep, next_file), "w", encoding="utf-8") as ofile:
                                 ofile.write(contents)
@@ -1121,10 +1121,10 @@ def hash_ids(alignbuddy, hash_length=10, r_seed=None):
         alignbuddy_copy = make_copy(alignbuddy)
         re_apply_hash_map = True
         records = alignbuddy_copy.records_dict()
-        reverse_hashmap_ids = [rec_id for _hash, rec_id in list(alignbuddy.hash_map.items())]
-        reverse_hashmap_hashes = [_hash for _hash, rec_id in list(alignbuddy.hash_map.items())]
+        reverse_hashmap_ids = [rec_id for _hash, rec_id in alignbuddy.hash_map.items()]
+        reverse_hashmap_hashes = [_hash for _hash, rec_id in alignbuddy.hash_map.items()]
 
-        for rec_id, rec_list in list(records.items()):
+        for rec_id, rec_list in records.items():
             if rec_id not in reverse_hashmap_ids:
                 re_apply_hash_map = False
                 break
@@ -1141,7 +1141,7 @@ def hash_ids(alignbuddy, hash_length=10, r_seed=None):
     for alignment in alignbuddy.alignments:
         temp_seqbuddy = Sb.SeqBuddy(list(alignment))
         Sb.hash_ids(temp_seqbuddy, hash_length, r_seed=r_seed)
-        for _hash, _id in list(temp_seqbuddy.hash_map.items()):
+        for _hash, _id in temp_seqbuddy.hash_map.items():
             hash_map[_hash] = _id
     alignbuddy.hash_map = hash_map
     return alignbuddy
@@ -1843,7 +1843,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
         hash_ids(alignbuddy, hash_length)
 
         hash_table = "# Hash table\n"
-        for _hash, orig_id in list(alignbuddy.hash_map.items()):
+        for _hash, orig_id in alignbuddy.hash_map.items():
             hash_table += "%s\t%s\n" % (_hash, orig_id)
         hash_table += "\n"
 

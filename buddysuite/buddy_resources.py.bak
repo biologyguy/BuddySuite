@@ -21,7 +21,7 @@ repository: https://github.com/biologyguy/BuddySuite
 Description: Collection of resources used by all BuddySuite tools,
              including dictionaries of the commands available for each Buddy tool
 """
-
+from __future__ import print_function
 import sys
 if int(sys.version_info[0]) < 3:
     print("Error: Attempting to run BuddySuite with Python %s. Python 3+ required." % sys.version_info[0])
@@ -562,7 +562,7 @@ def ask(input_prompt, default="yes", timeout=0):
         else:
             signal.signal(signal.SIGALRM, kill)
             signal.alarm(timeout)
-            _response = eval(input(input_prompt))
+            _response = input(input_prompt)
             signal.alarm(0)
             while True:
                 if _response.lower() in yes_list:
@@ -572,7 +572,7 @@ def ask(input_prompt, default="yes", timeout=0):
                 else:
                     print("Response not understood. Valid options are 'yes' and 'no'.")
                     signal.alarm(timeout)
-                    _response = eval(input(input_prompt))
+                    _response = input(input_prompt)
                     signal.alarm(0)
 
     except TimeoutError:
@@ -753,7 +753,7 @@ def config_values():
                                         "buddysuite{0}buddy_data{0}config.ini".format(os.path.sep))
         config = ConfigParser()
         config.read(config_file)
-        for _key, value in list(options.items()):
+        for _key, value in options.items():
             try:
                 if _key in ['diagnostics']:
                     options[_key] = config.getboolean('DEFAULT', _key)
@@ -808,7 +808,7 @@ def error_report(trace_back, permission=False):
 
         version_str = re.search("# [A-Z]?[a-z]+Buddy: (.*)", trace_back).group(1)
 
-        if error_hash in list(error_json.keys()):  # Check if error is known (if it's in the data table)
+        if error_hash in error_json.keys():  # Check if error is known (if it's in the data table)
             if error_json[error_hash][1] == "None" or error_json[error_hash][1] == version_str:  # If error not resolved
                 message += "This is a known bug since version %s, " \
                            "but it has not been resolved yet.\n" % error_json[error_hash][0]
@@ -877,24 +877,24 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
         positional.add_argument(_positional[0], help=_positional[1], nargs="*", default=[sys.stdin])
 
     if _flags:
-        _flags = OrderedDict(sorted(list(_flags.items()), key=lambda x: x[0]))
+        _flags = OrderedDict(sorted(_flags.items(), key=lambda x: x[0]))
         parser_flags = parser.add_argument_group(title="\033[1mAvailable commands\033[m")
-        for func, _in_args in list(_flags.items()):
+        for func, _in_args in _flags.items():
             args = ("-%s" % _in_args["flag"], "--%s" % func)
             kwargs = {}
-            for cmd, val in list(_in_args.items()):
+            for cmd, val in _in_args.items():
                 if cmd == 'flag':
                     continue
                 kwargs[cmd] = val
             parser_flags.add_argument(*args, **kwargs)
 
     if _modifiers:
-        _modifiers = OrderedDict(sorted(list(_modifiers.items()), key=lambda x: x[0]))
+        _modifiers = OrderedDict(sorted(_modifiers.items(), key=lambda x: x[0]))
         parser_modifiers = parser.add_argument_group(title="\033[1mModifying options\033[m")
-        for func, _in_args in list(_modifiers.items()):
+        for func, _in_args in _modifiers.items():
             args = ("-%s" % _in_args["flag"], "--%s" % func)
             kwargs = {}
-            for cmd, val in list(_in_args.items()):
+            for cmd, val in _in_args.items():
                 if cmd == 'flag':
                     continue
                 kwargs[cmd] = val
@@ -987,7 +987,7 @@ def phylip_sequential_read(sequence, relaxed=True):
 
     temp_file = TempFile()
     aligns = []
-    for _key, seqs in list(align_dict.items()):
+    for _key, seqs in align_dict.items():
         records = []
         seqs = re.sub("[\n\t]", " ", seqs).strip()
         while seqs != "":

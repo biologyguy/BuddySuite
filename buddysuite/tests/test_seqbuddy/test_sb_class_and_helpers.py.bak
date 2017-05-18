@@ -134,8 +134,8 @@ def test_print_hashmap(sb_resources, hf):
     Sb.hash_ids(tester)
     test_hashes = ["FEhFs96uVr", "5dOVoJsEaC", "muOhKHqlRK", "99id32X9JY", "hflijfeJXB", "0m9x7xeSqC", "qwgaHU3fms",
                    "uD7zXF2uEp", "btvnHXOJbc", "GiHvUV1n55", "dJm5uViNsC", "to4ctKvNG7", "VN579cevl3"]
-    orig_ids = [rec_id for _hash, rec_id in list(tester.hash_map.items())]
-    tester.hash_map = OrderedDict(list(zip(test_hashes, orig_ids)))
+    orig_ids = [rec_id for _hash, rec_id in tester.hash_map.items()]
+    tester.hash_map = OrderedDict(zip(test_hashes, orig_ids))
     assert hf.string2hash(tester.print_hashmap()) == "ab38a224d002a5b227265b8211c9f7bc"
 
 

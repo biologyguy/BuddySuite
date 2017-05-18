@@ -27,16 +27,16 @@ Collection of functions that do fun stuff with sequences. Pull them into a scrip
 # from pprint import pprint
 # import pdb
 # import time
-
+from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
-    from . import AlignBuddy as Alb
+    import buddy_resources as br
+    import AlignBuddy as Alb
 except ImportError:
     try:
-        from . import buddysuite.buddy_resources as br
-        from . import buddysuite.AlignBuddy as Alb
+        import buddysuite.buddy_resources as br
+        import buddysuite.AlignBuddy as Alb
     except AttributeError:
         from . import buddy_resources as br
         from . import AlignBuddy as Alb
@@ -365,7 +365,7 @@ class SeqBuddy(object):
         sb_copy = find_repeats(make_copy(self))
         if len(sb_copy.repeat_ids) > 0:
             raise RuntimeError("There are repeat IDs in self.records\n%s" %
-                               ", ".join([key for key, recs in list(sb_copy.repeat_ids.items())]))
+                               ", ".join([key for key, recs in sb_copy.repeat_ids.items()]))
 
         records_dict = OrderedDict()
         for rec in self.records:
@@ -386,13 +386,13 @@ class SeqBuddy(object):
     def print_hashmap(self):
         output = ""
         if self.hash_map:
-            for _hash, orig_id in list(self.hash_map.items()):
+            for _hash, orig_id in self.hash_map.items():
                 output += "%s\t%s\n" % (_hash, orig_id)
         return output
 
     def reverse_hashmap(self):
         if self.hash_map:
-            for _hash, seq_id in list(self.hash_map.items()):
+            for _hash, seq_id in self.hash_map.items():
                 rename(self, _hash, seq_id)
         return
 
@@ -1058,11 +1058,11 @@ def bl2seq(seqbuddy):
         output_dict.setdefault(subj, {})
         output_dict[subj][query] = [float(ident), int(length), float(evalue), float(bit_score)]
 
-    for key, value in list(output_dict.items()):
-        output_dict[key] = [(x, y) for x, y in list(output_dict[key].items())]
+    for key, value in output_dict.items():
+        output_dict[key] = [(x, y) for x, y in output_dict[key].items()]
         output_dict[key] = OrderedDict(sorted(output_dict[key], key=lambda l: l[0]))
 
-    output_dict = [(key, value) for key, value in list(output_dict.items())]
+    output_dict = [(key, value) for key, value in output_dict.items()]
     output_dict = OrderedDict(sorted(output_dict, key=lambda l: l[0]))
 
     return output_dict
@@ -1208,7 +1208,7 @@ def blast(subject, query, **kwargs):
         new_seqs.hash_map = query_sb.hash_map
         new_seqs.reverse_hashmap()
 
-        for key, value in list(new_seqs.hash_map.items()):
+        for key, value in new_seqs.hash_map.items():
             blast_results = re.sub(key, value, blast_results)
 
     br._stderr("# ######################## BLAST results ######################## #\n%s"
@@ -1287,7 +1287,7 @@ def concat_seqs(seqbuddy, clean=False):
         features.append(feature)
         features += rec.features
 
-        for qual_type, scores in list(rec.letter_annotations.items()):
+        for qual_type, scores in rec.letter_annotations.items():
             letter_annotations.setdefault(qual_type, [])
             letter_annotations[qual_type] += scores
 
@@ -1344,7 +1344,7 @@ def count_codons(seqbuddy):
             sequence = sequence[3:]
         for codon in data_table:
             data_table[codon][2] = round(data_table[codon][1] / float(num_codons) * 100, 3)
-        output[rec.id] = OrderedDict(sorted(list(data_table.items()), key=lambda x: x[0]))
+        output[rec.id] = OrderedDict(sorted(data_table.items(), key=lambda x: x[0]))
     for rec in seqbuddy.records:
         try:
             rec.buddy_data['Codon_frequency'] = output[rec.id]
@@ -1367,7 +1367,7 @@ def count_residues(seqbuddy):
             resid_count[char] += 1
 
         seq_len = len(rec)
-        for residue, count in list(resid_count.items()):
+        for residue, count in resid_count.items():
             resid_count[residue] = [count, count / seq_len]
 
         if seqbuddy.alpha is IUPAC.protein:
@@ -1837,11 +1837,11 @@ def extract_regions(seqbuddy, positions):
                             raise ValueError
 
                         for i in range(range_start, range_end + 1):
-                            singlets += list(range(i - 1, rec_len, end))
+                            singlets += range(i - 1, rec_len, end)
 
                     else:
                         start = process_single(int(start), end)
-                        singlets += list(range(start - 1, rec_len, end))
+                        singlets += range(start - 1, rec_len, end)
 
                 # Ranges
                 elif ":" in _position:
@@ -1849,7 +1849,7 @@ def extract_regions(seqbuddy, positions):
                     start = 1 if not start else process_single(int(start), rec_len)
                     end = process_single(-1, rec_len) if not end else process_single(int(end), rec_len)
                     start, end = sorted([start, end])
-                    singlets += list(range(start - 1, end))
+                    singlets += range(start - 1, end)
 
                 # Fail...
                 else:
@@ -2014,7 +2014,7 @@ def find_orfs(seqbuddy, include_feature=True, include_buddy_data=True):
         buddy_data = {'+': [], '-': []}
         feature_indicies = []
         for indx, feature in enumerate(rec.features):
-            if 'regex' in list(feature.qualifiers.keys()) and feature.qualifiers['regex'] == pattern:
+            if 'regex' in feature.qualifiers.keys() and feature.qualifiers['regex'] == pattern:
                 if include_feature:
                     feature.type = "orf"
                     strand = "+" if feature.strand == +1 else "-"
@@ -2142,7 +2142,7 @@ def find_repeats(seqbuddy):
     # Then look for replicate sequences
     flip_uniqe = {}
     del_keys = []
-    for key, value in list(unique_seqs.items()):  # find and remove duplicates in/from the unique list
+    for key, value in unique_seqs.items():  # find and remove duplicates in/from the unique list
         value = str(value.seq)
         if value not in flip_uniqe:
             flip_uniqe[value] = [key]
@@ -2160,7 +2160,7 @@ def find_repeats(seqbuddy):
         if key in unique_seqs:
             del (unique_seqs[key])
 
-    for key, value in list(repeat_ids.items()):  # find duplicates in the repeat ID list
+    for key, value in repeat_ids.items():  # find duplicates in the repeat ID list
         for rep_seq in value:
             rep_seq = str(rep_seq.seq)
             if rep_seq not in flip_uniqe:
@@ -2237,7 +2237,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
         rec.res_sites = {}
         analysis = Analysis(batch, rec.seq)
         result = analysis.with_sites()
-        for key, value in list(result.items()):
+        for key, value in result.items():
             if key.cut_twice():
                 br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
                 pass
@@ -2251,7 +2251,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                     br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
                     pass
                 rec.res_sites[key] = value
-        rec.res_sites = OrderedDict(sorted(list(rec.res_sites.items()), key=lambda x: x[0]))
+        rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
         sites.append((rec.id, rec.res_sites))
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
@@ -2339,7 +2339,7 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     else:
         recs_to_update = seqbuddy.to_dict()
 
-    for seq_id, rec in list(recs_to_update.items()):
+    for seq_id, rec in recs_to_update.items():
         if location >= 0:
             new_seq = str(rec.seq)[:location] + sequence + str(rec.seq)[location:]
         elif location == -1:
@@ -2458,7 +2458,7 @@ def make_ids_unique(seqbuddy, sep="", padding=0):
         ids[rec.id].append(rec)
 
     records = []
-    for key, recs in list(ids.items()):
+    for key, recs in ids.items():
         if len(recs) > 1:
             for indx, rec in enumerate(recs):
                 if re.match(rec.id, rec.description):
@@ -2515,7 +2515,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
         nucl_dict = nucl_copy.to_dict()
 
         record_map = []
-        for seq_id, nucl_rec in list(nucl_dict.items()):
+        for seq_id, nucl_rec in nucl_dict.items():
             if seq_id not in prot_dict:
                 stderr_written = True
                 br._stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
@@ -2523,7 +2523,7 @@ def map_features_nucl2prot(nuclseqbuddy, protseqbuddy, mode="key", quiet=False):
             else:
                 record_map.append((nucl_rec, prot_dict[seq_id]))
 
-        for seq_id, prot_rec in list(prot_dict.items()):
+        for seq_id, prot_rec in prot_dict.items():
             if seq_id not in nucl_dict:
                 stderr_written = True
                 br._stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
@@ -2601,7 +2601,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
         nucl_dict = nucl_copy.to_dict()
 
         record_map = []
-        for seq_id, prot_rec in list(prot_dict.items()):
+        for seq_id, prot_rec in prot_dict.items():
             if seq_id not in nucl_dict:
                 stderr_written = True
                 br._stderr("Warning: %s is in the protein file, but not in the cDNA file\n" % seq_id, quiet)
@@ -2609,7 +2609,7 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
             else:
                 record_map.append((prot_rec, nucl_dict[seq_id]))
 
-        for seq_id, dna_rec in list(nucl_dict.items()):
+        for seq_id, dna_rec in nucl_dict.items():
             if seq_id not in prot_dict:
                 stderr_written = True
                 br._stderr("Warning: %s is in the cDNA file, but not in the protein file\n" % seq_id, quiet)
@@ -2676,13 +2676,13 @@ def merge(*seqbuddy):
 
     seq_dict = {}
     for sb in seqbuddy:
-        for seq_id, rec in list(sb.to_dict().items()):
+        for seq_id, rec in sb.to_dict().items():
             if seq_id not in seq_dict:
                 seq_dict[seq_id] = rec
             else:
                 seq_dict[seq_id] = merge_records(seq_dict[seq_id], rec)
 
-    seqbuddy = SeqBuddy([rec for _id, rec in list(seq_dict.items())], in_format=seqbuddy[0].in_format,
+    seqbuddy = SeqBuddy([rec for _id, rec in seq_dict.items()], in_format=seqbuddy[0].in_format,
                         out_format=seqbuddy[0].out_format, alpha=seqbuddy[0].alpha)
     seqbuddy = order_ids(seqbuddy)
     seqbuddy = order_features_by_position(seqbuddy)
@@ -3104,7 +3104,7 @@ def purge(seqbuddy, threshold):
     """
     keep_dict = {}
     purged = []
-    for query_id, match_list in list(bl2seq(seqbuddy).items()):
+    for query_id, match_list in bl2seq(seqbuddy).items():
         if query_id in purged:
             continue
         else:
@@ -3447,7 +3447,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     if len(seqbuddy):  # len() is in case job ids are passed in, but not all sequences are covered
         hash_ids(seqbuddy)
-        for _hash, rec_id in list(seqbuddy.hash_map.items()):
+        for _hash, rec_id in seqbuddy.hash_map.items():
             hash_map[_hash] = rec_id
 
         jobs.append({"type": "new", "hash_map": OrderedDict(), "records": []})
@@ -3497,7 +3497,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
     # Need to match up all hashed ids in seqbuddy_copy for downstream stuff
     records = []
-    for _hash, rec_id in list(hash_map.items()):
+    for _hash, rec_id in hash_map.items():
         for indx, rec in enumerate(seqbuddy_copy.records):
             if rec.id == rec_id:
                 rec.id = _hash
@@ -3633,7 +3633,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             for file in files:
                 with open("%s%s%s" % (_root, os.path.sep, file), "r", encoding="utf-8") as ifile:
                     contents = ifile.read()
-                for _hash, _id in list(hash_map.items()):
+                for _hash, _id in hash_map.items():
                     contents = re.sub(_hash, _id, contents)
                 with open("%s%s%s" % (_root, os.path.sep, file), "w", encoding="utf-8") as ofile:
                     ofile.write(contents)
@@ -3658,7 +3658,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
 
-    for _hash, seq_id in list(hash_map.items()):
+    for _hash, seq_id in hash_map.items():
         rename(seqbuddy, _hash, seq_id)
 
     printer.write("************** Complete **************")
@@ -3893,9 +3893,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             output_dict = bl2seq(seqbuddy)
             br._stdout("#query\tsubject\t%_ident\tlength\tevalue\tbit_score\n")
             ids_already_seen = []
-            for query_id, query_values in list(output_dict.items()):
+            for query_id, query_values in output_dict.items():
                 ids_already_seen.append(query_id)
-                query_values = [(key, value) for key, value in list(query_values.items())]
+                query_values = [(key, value) for key, value in query_values.items()]
                 query_values = sorted(query_values, key=lambda l: l[0])
                 for subj_id, subj_values in query_values:
                     if subj_id in ids_already_seen:
@@ -3987,7 +3987,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         count_residues(seqbuddy)
         for rec in seqbuddy.records:
             br._stdout("%s\n" % str(rec.id))
-            for residue, counts in list(rec.buddy_data["res_count"].items()):
+            for residue, counts in rec.buddy_data["res_count"].items():
                 try:
                     br._stdout("{0}:\t{1}\t{2} %\n".format(residue, counts[0], round(counts[1] * 100, 2)))
                 except TypeError:
@@ -4341,7 +4341,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         for tup in seqbuddy.restriction_sites:
             br._stderr("{0}\n".format(tup[0]), in_args.quiet)
             restriction_list = tup[1]
-            restriction_list = [[key, value] for key, value in list(restriction_list.items())]
+            restriction_list = [[key, value] for key, value in restriction_list.items()]
             restriction_list = sorted(restriction_list, key=lambda l: str(l[0])) if order == 'alpha' else \
                 sorted(restriction_list, key=lambda l: l[1])
 
@@ -4563,7 +4563,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
                     if len(feat.qualifiers) > 0:
                         br._stdout('\tQualifiers:\n')
                         qualifs = OrderedDict(sorted(feat.qualifiers.items()))
-                        for key, qual in list(qualifs.items()):
+                        for key, qual in qualifs.items():
                             br._stdout('\t\t{0}: {1}\n'.format(key, str(qual).strip("[]'")))
             else:
                 br._stdout('None\n')

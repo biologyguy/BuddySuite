@@ -14,37 +14,37 @@ def mock_raiseattribute(*args, **kwargs):
 
 
 def test_instantiate_phylobuddy_from_file(pb_resources):
-    for key, _path in list(pb_resources.get("o m k n l", "paths").items()):
+    for key, _path in pb_resources.get("o m k n l", "paths").items():
         in_format = pb_resources.parse_code(key, strict=True)
         in_format = pb_resources.single_letter_codes[in_format["format"][0]]
         assert type(PhyloBuddy(_path, _in_format=in_format)) == PhyloBuddy
 
 
 def test_instantiate_phylobuddy_from_file_guess(pb_resources):
-    for key, _path in list(pb_resources.get("o m k n l", "paths").items()):
+    for key, _path in pb_resources.get("o m k n l", "paths").items():
         assert type(PhyloBuddy(_path)) == PhyloBuddy
 
 
 def test_instantiate_phylobuddy_from_handle(pb_resources):
-    for key, _path in list(pb_resources.get("o m k n l", "paths").items()):
+    for key, _path in pb_resources.get("o m k n l", "paths").items():
         with open(_path, 'r') as ifile:
             assert type(PhyloBuddy(ifile)) == PhyloBuddy
 
 
 def test_instantiate_phylobuddy_from_raw(pb_resources):
-    for key, _path in list(pb_resources.get("o m k n l", "paths").items()):
+    for key, _path in pb_resources.get("o m k n l", "paths").items():
         with open(_path, 'r') as ifile:
             assert type(PhyloBuddy(ifile.read())) == PhyloBuddy
 
 
 def test_instantiate_phylobuddy_from_phylobuddy(pb_resources):
-    for key, pb_obj in list(pb_resources.get("o m k n l").items()):
+    for key, pb_obj in pb_resources.get("o m k n l").items():
         tester = PhyloBuddy(pb_obj)
         assert type(PhyloBuddy(tester)) == PhyloBuddy
 
 
 def test_instantiate_phylobuddy_from_list(pb_resources):
-    for key, pb_obj in list(pb_resources.get("o m k n l").items()):
+    for key, pb_obj in pb_resources.get("o m k n l").items():
         tester = PhyloBuddy(pb_obj)
         assert type(PhyloBuddy(tester.trees)) == PhyloBuddy
 

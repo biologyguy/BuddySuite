@@ -26,14 +26,14 @@ Collection of functions that interact with public sequence databases. Pull them 
 # Standard library
 # import pdb
 # import timeit
-
+from __future__ import print_function
 
 # BuddySuite specific
 try:
-    from . import buddy_resources as br
+    import buddy_resources as br
 except ImportError:
     try:
-        from . import buddysuite.buddy_resources as br
+        import buddysuite.buddy_resources as br
     except AttributeError:
         from . import buddy_resources as br
 
@@ -160,13 +160,13 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                         self.search_terms.append(search_term)
 
     def __hash__(self):
-        _records = tuple([(_key, _value) for _key, _value in list(self.records.items())])
+        _records = tuple([(_key, _value) for _key, _value in self.records.items()])
         return hash(_records) ^ hash(self.out_format)  # The ^ is bitwise XOR, returning a string of bits
 
     def __eq__(self, other):
         if isinstance(other, type(self)) and self.out_format == other.out_format:
-            recs1 = "".join(["%s%s" % (key, rec) for key, rec in list(self.records.items())])
-            recs2 = "".join(["%s%s" % (key, rec) for key, rec in list(other.records.items())])
+            recs1 = "".join(["%s%s" % (key, rec) for key, rec in self.records.items()])
+            recs2 = "".join(["%s%s" % (key, rec) for key, rec in other.records.items()])
             print(recs1)
             if recs1 == recs2:
                 return True
@@ -194,7 +194,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             raise ValueError("The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not %s." % mode)
 
         column_errors = {"KeyError": [], "ValueError": []}
-        for _id, _rec in list(self.trash_bin.items()) if mode == 'restore' else list(self.records.items()):
+        for _id, _rec in self.trash_bin.items() if mode == 'restore' else self.records.items():
             # try:
             if mode == "keep" and not _rec.search(regex):
                 self.trash_bin[_id] = _rec
@@ -215,10 +215,10 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
     def record_breakdown(self):
         _output = {x: [] for x in ["full", "summary", "accession"]}
-        _output["full"] = [_accession for _accession, _rec in list(self.records.items()) if _rec.record]
-        _output["summary"] = [_accession for _accession, _rec in list(self.records.items())
+        _output["full"] = [_accession for _accession, _rec in self.records.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.records.items()
                               if not _rec.record and _rec.summary]
-        _output["accession"] = [_accession for _accession, _rec in list(self.records.items())
+        _output["accession"] = [_accession for _accession, _rec in self.records.items()
                                 if not _rec.record and not _rec.summary]
         return _output
 
@@ -238,10 +238,10 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
 
     def trash_breakdown(self):
         _output = {x: [] for x in ["full", "summary", "accession"]}
-        _output["full"] = [_accession for _accession, _rec in list(self.trash_bin.items()) if _rec.record]
-        _output["summary"] = [_accession for _accession, _rec in list(self.trash_bin.items())
+        _output["full"] = [_accession for _accession, _rec in self.trash_bin.items() if _rec.record]
+        _output["summary"] = [_accession for _accession, _rec in self.trash_bin.items()
                               if not _rec.record and _rec.summary]
-        _output["accession"] = [_accession for _accession, _rec in list(self.trash_bin.items())
+        _output["accession"] = [_accession for _accession, _rec in self.trash_bin.items()
                                 if not _rec.record and not _rec.summary]
         return _output
 
@@ -262,7 +262,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         errors_etc = ""
         if len(self.failures) > 0:
             errors_etc += "# ########################## Failures ########################### #\n"
-            for _hash, failure in list(self.failures.items()):
+            for _hash, failure in self.failures.items():
                 errors_etc += str(failure)
 
         if len(self.record_breakdown()["accession"]) > 0 and _num == len(group):
@@ -306,7 +306,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
                     headings = ["ACCN", "DB", "Type"]
                     if "length" in _rec.summary:
                         headings.append("length")
-                    headings += [heading for heading, _value in list(_rec.summary.items())
+                    headings += [heading for heading, _value in _rec.summary.items()
                                  if heading not in ["comments", "length"]]
                     if "comments" in _rec.summary:
                         headings.append("comments")
@@ -382,7 +382,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
         else:
             # Make sure IDs are not too long for GenBank format
             if self.out_format in ["gb", "genbank"]:
-                for _accession, _rec in list(group.items()):
+                for _accession, _rec in group.items():
                     if len(_accession) > 16:
                         br._stderr("Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n")
                         self.out_format = "embl"
@@ -543,7 +543,7 @@ class Record(object):
             if re.search(regex, str(param), flags=flags):
                 return True
 
-        for _key, _value in list(self.summary.items()):
+        for _key, _value in self.summary.items():
             if re.search(regex, _key, flags=flags) or re.search(regex, str(_value), flags=flags):
                 return True
 
@@ -771,7 +771,7 @@ class UniProtRestClient(GenericClient):
             request_params = request_params[0]
         search_term = re.sub(" ", "+", search_term)
         request_string = ""
-        for _param, _value in list(request_params.items()):
+        for _param, _value in request_params.items():
             _value = re.sub(" ", "+", _value)
             request_string += "&{0}={1}".format(_param, _value)
 
@@ -869,7 +869,7 @@ class UniProtRestClient(GenericClient):
 
     def fetch_proteins(self):
         self.results_file.clear()
-        _records = [_rec for _accession, _rec in list(self.dbbuddy.records.items()) if
+        _records = [_rec for _accession, _rec in self.dbbuddy.records.items() if
                     _rec.database == "uniprot" and not _rec.record]
 
         if not _records:
@@ -1009,7 +1009,7 @@ class NCBIClient(GenericClient):
         if not accns:
             br._stderr("NCBI returned no %s results\n\n" % _type)
             return
-        for accn, rec in list(self.dbbuddy.records.items()):
+        for accn, rec in self.dbbuddy.records.items():
             if rec.accession in accns:
                 del accns[accns.index(str(rec.accession))]
         database = 'ncbi_nuc' if _type == 'nucleotide' else 'ncbi_prot'
@@ -1025,7 +1025,7 @@ class NCBIClient(GenericClient):
         """
         _type = "protein" if database == "ncbi_prot" else "nucleotide"
         self.results_file.clear()
-        accns = [accn for accn, rec in list(self.dbbuddy.records.items()) if rec.database == database]
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == database]
         if not accns:
             return
         accn_searches = self.group_terms_for_url(accns)
@@ -1106,7 +1106,7 @@ class NCBIClient(GenericClient):
                     else summary["ScientificName"]
 
         # Apply the taxa names that were downloaded
-        for accn, rec in list(records.items()):
+        for accn, rec in records.items():
             if rec.summary["TaxId"] in taxa:
                 rec.summary["organism"] = taxa[rec.summary["TaxId"]]
             else:
@@ -1114,7 +1114,7 @@ class NCBIClient(GenericClient):
         br._stderr("\t%s records received.\n" % len(records))
 
         # Update the dbbuddy object with all the new info
-        for accn, rec in list(records.items()):
+        for accn, rec in records.items():
             if str(accn) in self.dbbuddy.records:  # GI only records
                 del self.dbbuddy.records[str(accn)]
             if rec.accession.split(".")[0] in self.dbbuddy.records:  # Un-versioned accns
@@ -1127,7 +1127,7 @@ class NCBIClient(GenericClient):
 
     def fetch_sequences(self, database):  # database in ["nucleotide", "protein"]
         db = "ncbi_nuc" if database == "nucleotide" else "ncbi_prot"
-        accns = [accn for accn, _rec in list(self.dbbuddy.records.items()) if _rec.database == db]
+        accns = [accn for accn, _rec in self.dbbuddy.records.items() if _rec.database == db]
         if not accns:
             return
         self.results_file.clear()
@@ -1148,7 +1148,7 @@ class NCBIClient(GenericClient):
             if rec.id not in records:
                 records[rec.id] = rec
         br._stderr("\tDone\n")
-        for accn, rec in list(records.items()):
+        for accn, rec in records.items():
             self.dbbuddy.records[accn].record = rec
             version = re.search("^.*?\.([0-9]+)$", accn)
             if version:
@@ -1190,7 +1190,7 @@ class EnsemblRestClient(GenericClient):
         try:
             if "data" in kwargs:
                 data = '{'
-                for key, value in list(kwargs["data"].items()):
+                for key, value in kwargs["data"].items():
                     data += '"%s": %s, ' % (key, value)
                 data = "%s}" % data.strip(", ")
                 data = re.sub("'", '"', data)
@@ -1235,7 +1235,7 @@ class EnsemblRestClient(GenericClient):
 
     def search_ensembl(self):
         self.results_file.clear()
-        species = [name for name, info in list(self.species.items())]
+        species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             br._stderr("Searching Ensembl for %s...\n" % search_term)
             br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
@@ -1281,7 +1281,7 @@ class EnsemblRestClient(GenericClient):
                 br._stderr("Ensembl returned no results\n")
 
     def fetch_summaries(self):
-        accns = [accn for accn, rec in list(self.dbbuddy.records.items()) if rec.database == "ensembl"]
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         data = {}
         for group in [accns[i:i+50] for i in range(0, len(accns), 50)]:  # Max 50 accessions per request
             query = self.perform_rest_action("lookup/id",
@@ -1293,7 +1293,7 @@ class EnsemblRestClient(GenericClient):
         if not data:
             return
 
-        for accn, results in list(data.items()):
+        for accn, results in data.items():
             if not results:
                 continue
             size = abs(results["start"] - results["end"])
@@ -1314,7 +1314,7 @@ class EnsemblRestClient(GenericClient):
         return
 
     def fetch_nucleotide(self):
-        accns = [accn for accn, rec in list(self.dbbuddy.records.items()) if rec.database == "ensembl"]
+        accns = [accn for accn, rec in self.dbbuddy.records.items() if rec.database == "ensembl"]
         if len(accns) > 0:
             br._stderr("Fetching sequence from Ensembl...\n")
             runtime = br.RunTime(prefix="\t")
@@ -1441,14 +1441,14 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def dump_session(self):
         # Need to remove Lock()s to pickle
-        for client in [client for db, client in list(self.dbbuddy.server_clients.items()) if client]:
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
             client.lock = False
         self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
         dill.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
         self.crash_file.close()
         self.undo = True
-        for client in [client for db, client in list(self.dbbuddy.server_clients.items()) if client]:
+        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
             client.lock = Lock()
 
     def default(self, line):
@@ -1467,8 +1467,8 @@ Further details about each command can be accessed by typing 'help <command>'
     def get_headings(self):
         headings = ["ACCN", "DB", "Type", "record"]
         if len(self.dbbuddy.records) > 0:
-            for _accn, _rec in list(self.dbbuddy.records.items()):
-                for heading, _value in list(_rec.summary.items()):
+            for _accn, _rec in self.dbbuddy.records.items():
+                for heading, _value in _rec.summary.items():
                     if heading not in headings:
                         headings.append(heading)
         return headings
@@ -1485,8 +1485,8 @@ Further details about each command can be accessed by typing 'help <command>'
                 action = "Specify a search string to be used as a filter (records will be removed): "
             else:
                 action = "Specify a string to search the trash bin with: "
-            line = eval(input("%s%s%s" %
-                         (RED, action, self.terminal_default)))
+            line = input("%s%s%s" %
+                         (RED, action, self.terminal_default))
 
         # If the user doesn't supply a string, do nothing
         if not line:
@@ -1518,7 +1518,7 @@ Further details about each command can be accessed by typing 'help <command>'
         current_count = len(self.dbbuddy.records)
         line = br.clean_regex(line)
         for _filter in line:
-            for _key, _value in list(self.dbbuddy.filter_records(_filter, mode=mode).items()):
+            for _key, _value in self.dbbuddy.filter_records(_filter, mode=mode).items():
                 _errors[_key] += _value
             _stdout(tabbed.format(_filter, abs(current_count - len(self.dbbuddy.records))),
                     format_out=self.terminal_default)
@@ -1536,7 +1536,7 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_bash(self, line):
         _stdout("", format_out=CYAN)
         if not line:
-            line = eval(input("Bash> "))
+            line = input("Bash> ")
         # Need to strip out leading/trailing quotes for this to work
         line = re.sub('^["](.*)["]$', r"\1", line)
         line = re.sub("^['](.*)[']$", r"\1", line)
@@ -1555,7 +1555,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_database(self, line):
         if not line:
-            line = eval(input("%sSpecify database:%s " % (RED, self.terminal_default)))
+            line = input("%sSpecify database:%s " % (RED, self.terminal_default))
         line = re.sub("['\"]", "", line.strip())
         line = re.sub("\t+", " ", line)
         line = re.sub(", *", " ", line)
@@ -1670,7 +1670,7 @@ Further details about each command can be accessed by typing 'help <command>'
         else:
             _stdout("The following failures have occured\n", format_in=[UNDERLINE, GREEN],
                     format_out=self.terminal_default)
-            for _hash, _values in list(self.dbbuddy.failures.items()):
+            for _hash, _values in self.dbbuddy.failures.items():
                 _stdout("%s\n\n" % _values, format_out=self.terminal_default)
 
     def do_fetch(self, *_):
@@ -1683,7 +1683,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
         amount_seq_requested = 0
         new_records_fetched = []
-        for _accn, _rec in list(self.dbbuddy.records.items()):
+        for _accn, _rec in self.dbbuddy.records.items():
             if not _rec.record and _rec.size:  # Not fetching sequence if the full record already exists
                 amount_seq_requested += _rec.size
                 new_records_fetched.append(_accn)
@@ -1708,7 +1708,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_format(self, line):
         if not line:
-            line = eval(input("%sSpecify format:%s " % (GREEN, self.terminal_default)))
+            line = input("%sSpecify format:%s " % (GREEN, self.terminal_default))
 
         if line not in FORMATS:
             _stdout("Sorry, {1}'{2}'{0} is not a valid format. Please select from the "
@@ -1723,7 +1723,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_load(self, line=None, quiet=False):
         if not line:
-            line = eval(input("%sWhere is the dump_file?%s " % (RED, self.terminal_default)))
+            line = input("%sWhere is the dump_file?%s " % (RED, self.terminal_default))
         try:
             with open(os.path.abspath(line), "rb") as ifile:
                 dbbuddy = dill.load(ifile)
@@ -1735,7 +1735,7 @@ Further details about each command can be accessed by typing 'help <command>'
                 self.dbbuddy.databases = dbbuddy.databases
                 self.dbbuddy.memory_footprint = dbbuddy.memory_footprint
 
-            for _db, client in list(self.dbbuddy.server_clients.items()):
+            for _db, client in self.dbbuddy.server_clients.items():
                 if client:
                     client.http_errors_file = br.TempFile()
                     client.results_file = br.TempFile()
@@ -1770,7 +1770,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_save(self, line=None):
         if not line:
-            line = eval(input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default)))
+            line = input("%sWhere would you like your session saved?%s " % (RED, self.terminal_default))
 
         # Create directory if necessary
         line = os.path.abspath(line)
@@ -1805,7 +1805,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_search(self, line):
         if not line:
-            line = eval(input("%sSpecify search string(s):%s " % (RED, self.terminal_default)))
+            line = input("%sSpecify search string(s):%s " % (RED, self.terminal_default))
 
         # Do this on a temp dbbuddy obj so searches are not repeated
         temp_buddy = DbBuddy(line)
@@ -1815,11 +1815,11 @@ Further details about each command can be accessed by typing 'help <command>'
             if _term not in self.dbbuddy.search_terms:
                 self.dbbuddy.search_terms.append(_term)
 
-        for _accn, _rec in list(temp_buddy.records.items()):
+        for _accn, _rec in temp_buddy.records.items():
             if _accn not in self.dbbuddy.records:
                 self.dbbuddy.records[_accn] = _rec
 
-        for _hash, failure in list(temp_buddy.failures.items()):
+        for _hash, failure in temp_buddy.failures.items():
             _stdout("%s\n" % failure, format_in=RED, format_out=self.terminal_default)
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
@@ -1889,7 +1889,7 @@ Further details about each command can be accessed by typing 'help <command>'
         def sub_sort(records, _sort_columns, _rev=False):
             heading = _sort_columns[0]
             subgroups = {}
-            for accn, _rec in list(records.items()):
+            for accn, _rec in records.items():
                 if heading.lower() == "accn":
                     subgroups.setdefault(_rec.accession, {})
                     subgroups[_rec.accession][accn] = _rec
@@ -1915,20 +1915,20 @@ Further details about each command can be accessed by typing 'help <command>'
                         subgroups[_rec.summary[heading]][accn] = _rec
 
                 try:  # If the column is numbers sort numerically, otherwise alphabetically
-                    subgroups = OrderedDict(sorted(list(subgroups.items()), key=lambda _x: int(_x[0]), reverse=_rev))
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
                 except ValueError:
-                    subgroups = OrderedDict(sorted(list(subgroups.items()), key=lambda _x: _x[0], reverse=_rev))
+                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
 
             final_order = OrderedDict()
-            for subgroup, _recs in list(subgroups.items()):
+            for subgroup, _recs in subgroups.items():
                 if len(_recs) == 1:
-                    _recs = [_rec for accn, _rec in list(_recs.items())]
+                    _recs = [_rec for accn, _rec in _recs.items()]
                     final_order[_recs[0].accession] = _recs[0]
                 else:
                     if len(_sort_columns) > 1:
                         _recs = sub_sort(_recs, _sort_columns[1:], _rev)
 
-                    for x, y in list(_recs.items()):
+                    for x, y in _recs.items():
                         final_order[x] = y
             return final_order
 
@@ -1954,7 +1954,7 @@ Further details about each command can be accessed by typing 'help <command>'
 
     def do_write(self, line=None):
         if not line:
-            line = eval(input("%sWhere would you like your records written?%s " % (RED, self.terminal_default)))
+            line = input("%sWhere would you like your records written?%s " % (RED, self.terminal_default))
 
         # Ensure the specified directory exists
         line = os.path.abspath(line)
@@ -2393,7 +2393,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
         output = ""
         if len(dbbuddy.records) > 0:
             records_by_db = {}
-            for accn, record in list(dbbuddy.records.items()):
+            for accn, record in dbbuddy.records.items():
                 records_by_db.setdefault(record.database, [])
                 records_by_db[record.database].append(accn)
 

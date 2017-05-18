@@ -154,7 +154,7 @@ class SbResources(object):
         return output
 
     def get_list(self, code="", mode="objs"):
-        return [value for key, value in list(self.get(code=code, mode=mode).items())]
+        return [value for key, value in self.get(code=code, mode=mode).items()]
 
     def get_one(self, code, mode="objs"):
         output = self.get_list(code, mode)
@@ -320,7 +320,7 @@ class AlbResources(object):
         return output
 
     def get_list(self, code="", mode="objs"):
-        return [value for key, value in list(self.get(code=code, mode=mode).items())]
+        return [value for key, value in self.get(code=code, mode=mode).items()]
 
     def get_one(self, code, mode="objs"):
         if len(code.split()) != 3:
@@ -429,7 +429,7 @@ class PbResources(object):
         return output
 
     def get_list(self, code="", mode="objs"):
-        return [value for key, value in list(self.get(code=code, mode=mode).items())]
+        return [value for key, value in self.get(code=code, mode=mode).items()]
 
     def get_one(self, code, mode="objs"):
         if len(code.split()) != 2:
