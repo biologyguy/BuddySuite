@@ -3649,7 +3649,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     delay = 1
     while len(results) + len(failed) != len(jobs):
         if wait:
-            delay *= 1.5 if delay < 300 else delay
+            delay = 1.5 * delay if delay < 300 else delay
             for i in range(round(delay)):
                 slash = ["/", "—", "\\", "|"]
                 printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s " %
@@ -3658,7 +3658,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
         wait = True
         for indx, jobid in enumerate(job_ids):
-            printer.write("Checking job %s of %s" % (len(results) + len(failed) + 1, len(jobs)))
+            printer.write("Checking job %s of %s (remaining)" % (indx + 1, len(jobs) - len(results) - len(failed)))
             myclient = Client(wsdl_url, cache=None)
             ret_value = myclient.service.checkjob(jobid)
             if len(ret_value) >= 1:
@@ -3781,19 +3781,23 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
     else:
         for indx, rec in enumerate(seqbuddy.records):
+            printer.write("Merging sequence features --> %s of %s" % (indx, len(seqbuddy)))
             matches = stop_positions[rec.id]
             for match in matches:
                 new_seq = str(rec.seq)[:match] + "*" + str(rec.seq)[match + 1:]
                 rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-
+        printer.write("Merging sequence features --> Executing merge()")
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
 
+    printer.write("Restoring original sequence names")
     for _hash, seq_id in hash_map.items():
         rename(seqbuddy, _hash, seq_id)
 
+    printer.write("Sorting sequences by ID")
+    seqbuddy = order_ids(seqbuddy)
+
     printer.write("************** Complete **************")
     printer.new_line(2)
-    seqbuddy = order_ids(seqbuddy)
     return seqbuddy
 
 
