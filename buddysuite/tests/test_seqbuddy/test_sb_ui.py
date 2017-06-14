@@ -97,7 +97,7 @@ in_args = parser.parse_args([])
 def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "fasta"])
     temp_in_args, seqbuddy = Sb.argparse_init()
-    assert hf.buddy2hash(seqbuddy) == "25073539df4a982b7f99c72dd280bb8f"
+    assert hf.buddy2hash(seqbuddy) == "6a9b3b554aa9ddb90ea62967bd26d5b7"
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "foo"])
     with pytest.raises(SystemExit):
@@ -286,13 +286,13 @@ def test_concat_seqs_ui(capsys, sb_resources, hf):
     test_in_args.concat_seqs = [True]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7421c27be7b41aeedea73ff41869ac47"
+    assert hf.string2hash(out) == "4bba7fbae1fd7a675ef5dda95683fba0"
 
     test_in_args.concat_seqs = ["clean"]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d n'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "15b9c79dea034cef74e3a622bd357705"
+    assert hf.string2hash(out) == "0cdb1444c80ee8492d2449618179110e"
 
 
 # ######################  '-cc', '--count_codons' ###################### #
@@ -375,7 +375,7 @@ def test_delete_metadata_ui(capsys, sb_resources, hf):
     test_in_args.delete_metadata = True
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "544ab887248a398d6dd1aab513bae5b1"
+    assert hf.string2hash(out) == "ad7ca097144843b8c13856e2a40afe09", print(out)
 
 
 # ######################  '-dr', '--delete_records' ###################### #
@@ -528,14 +528,14 @@ def test_find_pattern_ui(capsys, sb_resources, hf):
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert hf.string2hash(out) == "ec43ce98c9ae577614403933b2c5f37a"
+    assert hf.string2hash(out) == "a13217987f5dd23f6fab71eb733271ff"
     assert hf.string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
 
     test_in_args.find_pattern = ["ATGGN{6}", "ambig"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert hf.string2hash(out) == "ac9adb42fbfa9cf22f033e9a02130985"
+    assert hf.string2hash(out) == "22b29f5d3aa45d7a2c7c5f3fdff2e210"
     assert hf.string2hash(err) == "f54ddf323e0d8fecb2ef52084d048531"
 
 
@@ -576,7 +576,7 @@ def test_find_restriction_sites_ui(capsys, sb_resources, hf):
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "b06ef2b0a4814fc43a0688f05825486a"
+    assert hf.string2hash(out) == "793f1dce2c4b1c94ab1051f2e34ea0a4", print(out)
     assert hf.string2hash(err) == "a240a6db9dfc1f2257faa80bc4b1445b"
 
     with pytest.raises(TypeError) as err:
@@ -845,18 +845,18 @@ def test_map_features_nucl2prot_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_resources.get_one("p f", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5216ef85afec36d5282578458a41169a"
+    assert hf.string2hash(out) == "a31e54081bf7cf594a1a48ddb298d748"
 
     test_in_args.sequence = [sb_resources.get_one("p f", mode='paths'), sb_resources.get_one("d g", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5216ef85afec36d5282578458a41169a"
+    assert hf.string2hash(out) == "a31e54081bf7cf594a1a48ddb298d748"
 
     test_in_args.sequence = [sb_resources.get_one("p f", mode='paths'), sb_resources.get_one("d g", mode='paths')]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4f86356e79fa4beb79961ce37b5aa19a"
+    assert hf.string2hash(out) == "719f6dea73ab53ed7132c377161cf04b"
 
     with pytest.raises(RuntimeError) as err:
         test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_odd_resources['duplicate']]
@@ -881,18 +881,18 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.sequence = [sb_resources.get_one("d f", mode='paths'), sb_resources.get_one("p g", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3ebc92ca11505489cab2453d2ebdfcf2"
+    assert hf.string2hash(out) == "47a7b6cf12399a3c58995d53b334a0c4"
 
     test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("d f", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3ebc92ca11505489cab2453d2ebdfcf2"
+    assert hf.string2hash(out) == "47a7b6cf12399a3c58995d53b334a0c4"
 
     test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("d f", mode='paths')]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "bbbfc9ebc83d3abe3bb3160a38d208e3"
+    assert hf.string2hash(out) == "732bcf4b5ef169a80ea599c158a18f3e", print(out)
 
     with pytest.raises(RuntimeError) as err:
         temp_file = br.TempFile()
@@ -1031,7 +1031,7 @@ def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
     test_in_args.out_format = "fasta"
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c10d136c93f41db280933d5b3468f187"
+    assert hf.string2hash(out) == "6128d0e54a017a5c9515db329c6f1130", print(out)
 
     monkeypatch.setattr(Sb.PrositeScan, "run", mock_raise_urlerror_8)
     with pytest.raises(urllib.error.URLError):
@@ -1221,7 +1221,7 @@ def test_reverse_transcribe_ui(capsys, sb_resources, hf):
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
-hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "26718f0a656116bfd0a7f6c03d270ecf"),
+hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "37e1cdddc8386c8afe5b10787f24efe0"),
           ("nexus", "2822cc00c2183a0d01e3b79388d344b3"), ("phylip", "6a4d62e1ee130b324cce48323c6d1d41"),
           ("phylip-relaxed", "4c2c5900a57aad343cfdb8b35a8f8442"), ("phylipss", "089cfb52076e63570597a74b2b000660"),
           ("phylipsr", "58a74f5e08afa0335ccfed0bdd94d3f2"), ("stockholm", "8c0f5e2aea7334a0f2774b0366d6da0b"),
@@ -1235,7 +1235,7 @@ def test_screw_formats_ui(_format, next_hash, capsys, sb_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one('d n'), "α[2-9]")
     Sb.command_line_ui(test_in_args, Sb.make_copy(tester), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == next_hash
+    assert hf.string2hash(out) == next_hash, print(out)
 
 
 def test_screw_formats_ui2(sb_resources):
@@ -1270,12 +1270,12 @@ def test_select_frame_ui(capsys, sb_resources, hf):
     test_in_args.select_frame = 2
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "08fe54a87249f5fb9ba22ff6d0053787"
+    assert hf.string2hash(out) == "49c176dec7cc43890a059e0f0f4a9de4"
 
     test_in_args.select_frame = 3
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "cfe2d405487d69dceb2a11dd44ceec59"
+    assert hf.string2hash(out) == "826d5ae1d4f0ab295d9e39e33999e35f"
 
     test_in_args.select_frame = 1
     Sb.command_line_ui(test_in_args, tester, True)
@@ -1345,7 +1345,7 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "fddbd57599efc6e6f6b49e3911fa1101"
+    assert hf.string2hash(out) == "07394a3ce130d6bf6f2280adae9063e9"
 
     test_in_args.out_format = False
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(sb_odd_resources["ambiguous_rna"]), True)
@@ -1400,12 +1400,12 @@ def test_transmembrane_domains_ui(capsys, sb_resources, hf, monkeypatch):
     monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("p f"))
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "854566b485af0f277294bbfb15f7dd0a"
+    assert hf.string2hash(out) == "dffab18027b2c445e442b423d9e999f0"
 
     monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("d e"))
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e0507aee006a0fb5f1bb99cdb47f3381"
+    assert hf.string2hash(out) == "49538c8715fd18595cf0f209137d8610"
 
     test_in_args.transmembrane_domains = [None]
     monkeypatch.setattr(Sb, "transmembrane_domains", mock_importerror)

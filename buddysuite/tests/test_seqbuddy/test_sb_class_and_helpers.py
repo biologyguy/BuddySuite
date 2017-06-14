@@ -104,15 +104,15 @@ def test_to_string(sb_resources, hf, capsys):
     out, err = capsys.readouterr()
     assert "Warning: Phylip format returned a 'repeat name' error, probably due to truncation" in err
 
-    tester = Sb.SeqBuddy(">fooooooooooooooobar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n>fooooooooooooooobaz\nATGATGATGTAGT\n",
-                      out_format="phylip")
+    tester = Sb.SeqBuddy(">fooooooooooooooobar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n"
+                         ">fooooooooooooooobaz\nATGATGATGTAGT\n", out_format="phylip")
     assert hf.string2hash(str(tester)) == "d8b82d5eea15918aac180e5d1095d5ca"
     out, err = capsys.readouterr()
     assert "Attempting phylip-relaxed." in err
 
     tester = Sb.SeqBuddy(">fooooooooooooooobaaaaaaaaaaaaaaaaaar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n",
-                      out_format="gb")
-    assert hf.string2hash(str(tester)) == "473777dd047b46ef727a4b680247e374"
+                         out_format="gb")
+    assert hf.string2hash(str(tester)) == "e10a8872a05242a32f2f29c309d150f9", print(str(tester))
     out, err = capsys.readouterr()
     assert "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL." in err
 
@@ -126,7 +126,8 @@ def test_write(sb_resources, hf):
 
     tester.write("%s/sequences.fa" % temp_dir.path, out_format="fasta")
     with open("%s/sequences.fa" % temp_dir.path, encoding="utf-8") as ifile:
-        assert hf.string2hash(ifile.read()) == "25073539df4a982b7f99c72dd280bb8f"
+        data = ifile.read()
+        assert hf.string2hash(data) == "6a9b3b554aa9ddb90ea62967bd26d5b7"
 
 
 def test_print_hashmap(sb_resources, hf):

@@ -516,12 +516,12 @@ def test_complement_pep_exception(sb_resources):  # Asserts that a TypeError wil
 
 
 # ######################  '-cts', '--concat_seqs' ###################### #
-hashes = [('d f', '2e46edb78e60a832a473397ebec3d187'), ('d g', '7421c27be7b41aeedea73ff41869ac47'),
-          ('d n', '494988ffae2ef3072c1619eca8a0ff3b'), ('d py', '710cad348c5560446daf2c916ff3b3e4'),
-          ('d pr', '494988ffae2ef3072c1619eca8a0ff3b'), ('d s', '494988ffae2ef3072c1619eca8a0ff3b'),
-          ('p f', '46741638cdf7abdf53c55f79738ee620'), ('p g', '8d0bb4e5004fb6a1a0261c30415746b5'),
-          ('p n', '2651271d7668081cde8012db4f9a6574'), ('p py', '7846b2d080f09b60efc6ee43cd6d8502'),
-          ('p pr', '5d1f8db03d6be30a7d77b00a0fba0b43'), ('p s', '2651271d7668081cde8012db4f9a6574')]
+hashes = [('d f', '177c8a4bb83271a4380d98075455a436'), ('d g', '4bba7fbae1fd7a675ef5dda95683fba0'),
+          ('d n', '81457d1d0089ec13ce3cbecd08a86489'), ('d py', 'c900e968aa9adae8865be374bd814954'),
+          ('d pr', '81457d1d0089ec13ce3cbecd08a86489'), ('d s', '81457d1d0089ec13ce3cbecd08a86489'),
+          ('p f', '4e56305350df0775b623f3f88dde71fc'), ('p g', 'fcc7414f710b6321547248668268bec7'),
+          ('p n', '58834d7fb61ca6b106f8cc68a6bcfcf0'), ('p py', '7e4819287236bf41b95b7952cbcbbd05'),
+          ('p pr', '1312e411c015f1e1e8339b0c6b492676'), ('p s', '58834d7fb61ca6b106f8cc68a6bcfcf0')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
@@ -530,15 +530,15 @@ def test_concat_seqs(key, next_hash, sb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
-hashes = [('d g', '7421c27be7b41aeedea73ff41869ac47'), ('d n', '2e46edb78e60a832a473397ebec3d187'),
-          ('p g', '9cb5443d90e64693ad1bd74f29169ac5'), ('p py', 'e902a4faf44ebd28a43ca8103df7b828')]
+hashes = [('d g', '4bba7fbae1fd7a675ef5dda95683fba0'), ('d n', '177c8a4bb83271a4380d98075455a436'),
+          ('p g', 'e2fabdbdfac33e4af80ad1831524df59'), ('p py', '2d25d6ce7b4391faff110a74d27f074f')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_concat_seqs_clean(key, next_hash, sb_resources, hf):
     tester = Sb.concat_seqs(sb_resources.get_one(key), clean=True)
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == next_hash
+    assert hf.buddy2hash(tester) == next_hash, print(tester)
 
 
 # ##################### '-cc', 'count_codons' ###################### ##
@@ -673,10 +673,10 @@ def test_delete_large(sb_resources, hf):
 
 
 # ######################  '-dm', '--delete_metadata' ###################### #
-hashes = [('d f', 'aa92396a9bb736ae6a669bdeaee36038'), ('d g', '544ab887248a398d6dd1aab513bae5b1'),
+hashes = [('d f', 'aa92396a9bb736ae6a669bdeaee36038'), ('d g', 'ad7ca097144843b8c13856e2a40afe09'),
           ('d n', 'cb1169c2dd357771a97a02ae2160935d'), ('d py', '503e23720beea201f8fadf5dabda75e4'),
           ('d pr', '52c23bd793c9761b7c0f897d3d757c12'), ('d s', 'a50943ccd028b6f5fa658178fa8cf54d'),
-          ('p f', 'bac5dc724b1fee092efccd2845ff2513'), ('p g', '858e8475f7bc6e6a24681083a8635ef9'),
+          ('p f', 'bac5dc724b1fee092efccd2845ff2513'), ('p g', '945327e8f1e483bb99f78540f507c4e1'),
           ('p n', '17ff1b919cac899c5f918ce8d71904f6'), ('p py', '968ed9fa772e65750f201000d7da670f'),
           ('p pr', 'ce423d5b99d5917fbef6f3b47df40513'), ('p s', 'e224c16f6c27267b5f104c827e78df33')]
 
@@ -710,6 +710,13 @@ def test_delete_records2(sb_resources, hf):
         Sb.delete_records(sb_resources.get_one("d f"), dict)
     assert "'patterns' must be a list or a string." in str(e.value)
 
+    # Doesn't find anything to delete
+    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=False)
+    assert len(tester.records) == len(sb_resources.get_one("p g").records)
+
+    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=True)
+    assert hf.buddy2hash(tester) == "59e42a85336158c6c290d08899d9f2e7", print(tester)
+
 
 # #####################  '-drp', '--delete_repeats' ###################### ##
 def test_delete_repeats(sb_odd_resources):
@@ -729,7 +736,7 @@ def test_delete_small(sb_resources, hf):
 
 # ######################  '-d2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
 hashes = [('d f', 'd2db9b02485e80323c487c1dd6f1425b', 'b831e901d8b6b1ba52bad797bad92d14'),
-          ('d g', '9ef3a2311a80f05f21b289ff7f401fff', '2e02a8e079267bd9add3c39f759b252c'),
+          ('d g', '360ad6806711e37a0a8aa5208536656b', '2e02a8e079267bd9add3c39f759b252c'),
           ('d n', 'f3bd73151645359af5db50d2bdb6a33d', 'cb1169c2dd357771a97a02ae2160935d'),
           ('d py', 'e55bd18b6d82a7fc3150338173e57e6a', '503e23720beea201f8fadf5dabda75e4'),
           ('d pr', 'a083e03b4e0242fa3c23afa80424d670', '52c23bd793c9761b7c0f897d3d757c12'),
@@ -905,13 +912,13 @@ def test_find_cpg(sb_resources, hf):
 def test_find_orf(sb_resources, hf):
     tester = Sb.SeqBuddy("ATGAAATTTCCCGGGTAG", in_format='raw', out_format='gb')
     tester = Sb.find_orfs(tester)
-    assert hf.buddy2hash(tester) == "a9b8d1e17474184534f018d022c31c2a"
+    assert hf.buddy2hash(tester) == "b34b2f3197b81ce6838a70a9784b79c2"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
     assert hf.buddy2hash(tester) == "7aee4906f59842b13ba086fbb32e524d"
 
     tester.out_format = "fasta"
-    assert hf.buddy2hash(tester) == "b831e901d8b6b1ba52bad797bad92d14"
+    assert hf.buddy2hash(tester) == "9f912b59d69b82f72295e9e325f6f87a"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"), include_feature=False)
     assert hf.buddy2hash(tester) == "908744b00d9f3392a64b4b18f0db9fee"
@@ -920,11 +927,21 @@ def test_find_orf(sb_resources, hf):
     assert hf.buddy2hash(tester) == "d2db9b02485e80323c487c1dd6f1425b"
 
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == "2998cb6379a50ddb74deee05075430c0"
+    assert hf.buddy2hash(tester) == "91e5934e1c688a35efaa4c98b1650701"
 
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == "67e447f8e2eb2b50d4a22a0670984227"
+    assert hf.buddy2hash(tester) == "456da121b26cb567d363b39765ca0dce"
+
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
+    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
+
+    tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
+    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
+
+    with pytest.raises(ValueError) as err:
+        Sb.find_orfs(tester, min_size=2)
+    assert "Open reading frames cannot be smaller than 6 residues." in str(err)
 
     tester = sb_resources.get_one("p g")
     with pytest.raises(TypeError) as err:
@@ -935,19 +952,19 @@ def test_find_orf(sb_resources, hf):
 # #####################  '-fp', '--find_pattern' ###################### ##
 def test_find_pattern(sb_resources, hf):
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGT")
-    assert hf.buddy2hash(tester) == "ca129f98c6c719d50f0cf43eaf6dc90a"
+    assert hf.buddy2hash(tester) == "f2a07ced2523081ba54249ae30775a40"
     tester.out_format = "fasta"
-    assert hf.buddy2hash(tester) == "6f23f80b52ffb736bbecc9f4c72d8fab"
+    assert hf.buddy2hash(tester) == "9160702ded16a80db79886d9de1abdf2"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T")
-    assert hf.buddy2hash(tester) == "9ec8561c264bff6f7166855d60457df1"
+    assert hf.buddy2hash(tester) == "57d80590f2e6596d33d5af936a584617"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg")
-    assert hf.buddy2hash(tester) == "ec43ce98c9ae577614403933b2c5f37a"
+    assert hf.buddy2hash(tester) == "a13217987f5dd23f6fab71eb733271ff"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg", include_feature=False)
     assert hf.buddy2hash(tester) == "2e02a8e079267bd9add3c39f759b252c"
     tester = Sb.find_pattern(sb_resources.get_one("p g"), "[bz]{2}x{50,100}[bz]{2}", ambig=True)
-    assert hf.buddy2hash(tester) == "339ff26803a2d12267d873458d40bca2"
+    assert hf.buddy2hash(tester) == "2436bf821ec894230a77f532d5b7a50a"
     tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGN{6}", ambig=True)
-    assert hf.buddy2hash(tester) == "ac9adb42fbfa9cf22f033e9a02130985"
+    assert hf.buddy2hash(tester) == "22b29f5d3aa45d7a2c7c5f3fdff2e210"
     tester = Sb.find_pattern(sb_resources.get_one("r f"), "AUGGN{6}", ambig=True)
     assert hf.buddy2hash(tester) == "b7abcb4334232e38dfbac9f46234501a"
 
@@ -968,15 +985,15 @@ def test_find_repeats(sb_odd_resources):
 def test_restriction_sites_no_args(sb_resources, hf):
     # No arguments passed in = commercial REs and any number of cut sites
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"))
-    assert hf.buddy2hash(tester) == 'a48fc20dc07b6bf03b0cef32ed27c5d2'
-    assert hf.string2hash(str(tester.restriction_sites)) == "646d1026fc5b245ad7130dab3f027489"
+    assert hf.buddy2hash(tester) == '5d0c81eb76eeb0c1eb37fd937ccef5e2'
+    assert hf.string2hash(str(tester.restriction_sites)) == "27a3bdae9c771320dbc5b1ff1e3debce"
 
 
 def test_restriction_sites_all_emzymes(sb_resources, hf):
     # All enzymes
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), enzyme_group=["all"])
-    assert hf.buddy2hash(tester) == '52a175a264a2c101dca7dcbc9e8d01f0'
-    assert hf.string2hash(str(tester.restriction_sites)) == "3c2d3fbabfeae48c9ec4cbfa7f67afb1"
+    assert hf.buddy2hash(tester) == '4583086c3e8212b5ce2ab5ac3cbb7c4b'
+    assert hf.string2hash(str(tester.restriction_sites)) == "19cdc8204f9f352b722576680c5f9f74"
 
 
 def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
@@ -1069,6 +1086,24 @@ def test_insert_seqs_start(sb_resources, hf):
     assert hf.buddy2hash(Sb.insert_sequence(tester, insert, -25)) == '29cab1e72ba95572c3aec469270071e9'
 
 
+# ######################  '-isd', '--in_silico_digest' ###################### #
+def test_in_silico_digest(capsys, sb_resources, hf):
+    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
+    out, err = capsys.readouterr()
+    assert hf.buddy2hash(tester) == '5539e56a557e545a4c16550a972acae6'
+    assert "Warning: FooBR not a known enzyme" in err
+
+    with pytest.raises(TypeError) as e:
+        Sb.in_silico_digest(sb_resources.get_one("p g"))
+    assert str(e.value) == "Unable to identify restriction sites in protein sequences."
+
+    # 2-cutters and non-cutters
+    Sb.in_silico_digest(tester, enzyme_group=["AjuI", "AlwFI"])
+    out, err = capsys.readouterr()
+    assert "Warning: Double-cutters not supported." in err
+    assert "Warning: No-cutters not supported." in err
+
+
 # ######################  '-ip', '--isoelectric_point' ###################### #
 def test_isoelectric_point(sb_resources, hf):
     for tester in sb_resources.get_list("p f g n pr s"):
@@ -1116,9 +1151,9 @@ def test_make_ids_unique(sb_odd_resources, hf):
 
 # ######################  '-fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
-hashes = [('p f', '5216ef85afec36d5282578458a41169a'), ('p g', 'a8f7c129cf57a746c20198bf0a6b9cf4'),
-          ('p n', 'bb0c9da494b5418fb87862dab2a66cfa'), ('p py', '3c0e3ec45abd774813a274fda1b4a5f2'),
-          ('p pr', 'a7f6c4bb410f17cfc3e8966ccbe3e065'), ('p s', '1b8c44f4ace877b568c0915033980bed')]
+hashes = [('p f', 'a31e54081bf7cf594a1a48ddb298d748'), ('p g', 'a8f7c129cf57a746c20198bf0a6b9cf4'),
+          ('p n', 'dc9ba63eabe524e7721c72523e288dab'), ('p py', 'fe0e5174ccfd87f97e90dcff6e7a94e6'),
+          ('p pr', '0c40a1e59634b67f0ef13515024b72fb'), ('p s', 'a128d1b61939d2aee7fed1f1225d19e9')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
@@ -1130,7 +1165,7 @@ def test_map_features_nucl2prot(key, next_hash, sb_resources, hf):
     if key == "p f":
         tester = Sb.map_features_nucl2prot(sb_resources.get_one("d f"), sb_resources.get_one(key))
         tester.out_format = "gb"
-        assert hf.buddy2hash(tester) == "854566b485af0f277294bbfb15f7dd0a"
+        assert hf.buddy2hash(tester) == "dffab18027b2c445e442b423d9e999f0"
 
 
 def test_map_features_nucl2prot_2(capsys, sb_resources, hf):
@@ -1139,7 +1174,7 @@ def test_map_features_nucl2prot_2(capsys, sb_resources, hf):
     tester = Sb.annotate(tester, "foo", [(20, 40), (50, 60)], pattern="α9")
     mapped = Sb.map_features_nucl2prot(Sb.make_copy(tester), sb_resources.get_one("p f"))
     mapped.out_format = "gb"
-    assert hf.buddy2hash(mapped) == "807025489aadf98d851501f49d463e4a"
+    assert hf.buddy2hash(mapped) == "35c20722fa38101356a3c11accc02691"
     out, err = capsys.readouterr()
     assert hf.string2hash(err) == "6c840e4acaaf4328672ca164f854000a"
 
@@ -1176,9 +1211,9 @@ def test_map_features_nucl2prot_2(capsys, sb_resources, hf):
     assert "The two input files do not contain the same number of sequences" in str(e.value)
 
 # ######################  '-fp2n', '--map_features_prot2nucl' ###################### #
-hashes = [('d f', '3ebc92ca11505489cab2453d2ebdfcf2'), ('d g', 'feceaf5e17935afb100b4b6030e27fee'),
-          ('d n', 'bfd36942768cf65c473b3aaebb83e4fa'), ('d py', '9ba4af4e5dd0bf4a445d173604b92996'),
-          ('d pr', 'c178763aa9596e341bbbc088f1f791c9'), ('d s', '84cc7ecb54603c5032737e5263a52bd3')]
+hashes = [('d f', '47a7b6cf12399a3c58995d53b334a0c4'), ('d g', 'feceaf5e17935afb100b4b6030e27fee'),
+          ('d n', '7bdacec654710d4280c8c1d3239b1ada'), ('d py', '91e29792e174e97a9c2d49b296bf33a2'),
+          ('d pr', 'cba3651d35e33ad363f0cef1c1596f96'), ('d s', '9c88f299ebf8f4bf50f0f9e2655394fe')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
@@ -1194,7 +1229,7 @@ def test_map_features_prot2nucl_2(capsys, sb_resources, hf):
     prot_tester = Sb.annotate(prot_tester, "foo", [(20, 40), (50, 60)], pattern="α9")
     mapped = Sb.map_features_prot2nucl(Sb.make_copy(prot_tester), sb_resources.get_one("d f"))
     mapped.out_format = "gb"
-    assert hf.buddy2hash(mapped) == "552b31b8a7068d12d6c55c7e5d293c54"
+    assert hf.buddy2hash(mapped) == "12bfe195548fde9e539a3426c9f0dc40", print(mapped)
     out, err = capsys.readouterr()
     assert err == "Warning: size mismatch between aa and nucl seqs for Mle-Panxα7A --> 450, 1875\n"
 
@@ -1248,7 +1283,7 @@ def test_molecular_weight(sb_resources, sb_odd_resources, hf):
     tester = Sb.molecular_weight(sb_resources.get_one("d g"))
     assert tester.molecular_weights['masses_ds'][0] == 743477.1
     assert tester.molecular_weights['masses_ss'][0] == 371242.6
-    assert hf.buddy2hash(tester) == "e080cffef0ec6c5e8eada6f57bbc35f9"
+    assert hf.buddy2hash(tester) == "08c8ab50e6b66adb8e579df3c923c2bc"
     # Ambiguous DNA
     tester = Sb.molecular_weight(Sb.SeqBuddy(sb_odd_resources['ambiguous_dna']))
     assert tester.molecular_weights['masses_ds'][0] == 743477.08
@@ -1468,7 +1503,7 @@ def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
     ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
     with open(out_file.path, "r", encoding="utf-8") as ifile:
         output = ifile.read()
-    assert hf.string2hash(output) == "e2991bfa6bccafdbf75055d697d9c980"
+    assert hf.string2hash(output) == "e76ec3879d9366a1d19e1f9e88edb4d9", print(output)
 
 
 def test_prosite_scan_run(sb_resources, hf, monkeypatch):
@@ -1535,6 +1570,14 @@ hashes = [('d f', '5b4154c2662b66d18776cdff5af89fc0'), ('d g', 'e196fdc5765ba2c4
 def test_pull_recs(key, next_hash, sb_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one(key), 'α2')
     assert hf.buddy2hash(tester) == next_hash
+
+
+def test_pull_recs2(sb_resources, hf):
+    tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=False)
+    assert len(tester.records) == 0
+
+    tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=True)
+    assert hf.buddy2hash(tester) == "f879d0a65b73cce2a4ab26c5ffe9f35a"
 
 # ######################  '-pr', '--pull_records_with_feature' ###################### #
 hashes = [('p g', '83d15851d489e89761c8faa31e5263f2'), ('d g', '36757409966ede91ab19deb56045d584')]
@@ -1638,7 +1681,7 @@ def test_reverse_complement_pep_exception(sb_resources):  # Asserts a TypeError 
 # ######################  '-sfr', '--select_frame' ###################### #
 hashes = [('d f', 1, "b831e901d8b6b1ba52bad797bad92d14"), ('d f', 2, "2de033b2bf2327f2795fe425db0bd78f"),
           ('d f', 3, "1c29898d4964e0d1b03207d7e67e1958"), ('d g', 1, "908744b00d9f3392a64b4b18f0db9fee"),
-          ('d g', 2, "08fe54a87249f5fb9ba22ff6d0053787"), ('d g', 3, "cfe2d405487d69dceb2a11dd44ceec59"),
+          ('d g', 2, "49c176dec7cc43890a059e0f0f4a9de4"), ('d g', 3, "826d5ae1d4f0ab295d9e39e33999e35f"),
           ('d n', 1, "cb1169c2dd357771a97a02ae2160935d"), ('d n', 2, "87d784f197b55f812d2fc82774da43d1"),
           ('d n', 3, "5d6d2f337ecdc6f9a85e981c975f3e08")]
 
@@ -1733,7 +1776,7 @@ def test_translate6frames(sb_resources, hf):
     assert hf.buddy2hash(tester) == '95cf24202007399e6ccd6e6f33ae012e'
 
     tester = Sb.translate6frames(sb_resources.get_one("d g"))
-    assert hf.buddy2hash(tester) == '0b5daa810e1589c3973e1436c40baf08'
+    assert hf.buddy2hash(tester) == 'a32f067e0c0de5928dbcc211bb961532'
 
 
 def test_translate6frames_pep_exception(sb_resources):
@@ -1741,7 +1784,7 @@ def test_translate6frames_pep_exception(sb_resources):
         Sb.translate6frames(sb_resources.get_one("p f"))
 
 # ######################  '-tr', '--translate' ###################### #
-hashes = [('d f', '06893e14839dc0448e6f522c1b8f8957'), ('d g', 'e8840e22096e933ce10dbd91036f3fa5'),
+hashes = [('d f', '06893e14839dc0448e6f522c1b8f8957'), ('d g', '78a53e66bb4b8f6c26fa2ae0fb29f0ab'),
           ('d n', 'f3339e0193c10427f017dd8f6bd81d7e'), ('r f', '06893e14839dc0448e6f522c1b8f8957'),
           ('r n', 'f3339e0193c10427f017dd8f6bd81d7e')]
 
@@ -1774,7 +1817,7 @@ def test_translate_edges_and_exceptions(capsys, sb_resources, hf):
 
     tester = Sb.select_frame(sb_resources.get_one("d g"), 3)
     tester = Sb.translate_cds(tester)
-    assert hf.buddy2hash(tester) == "68ca15f5ac737e4a4ca65a67ad2dc897"
+    assert hf.buddy2hash(tester) == "85c3bd973cfb683f222388b1529e787f"
     out, err = capsys.readouterr()
     assert hf.string2hash(err) == "9e2a0b4b03f54c209d3a9111792762df"
 

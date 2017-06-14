@@ -558,7 +558,7 @@ def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
+    assert hf.string2hash(out) == "33378c2437d55fe100b31a9579a6ba63"
 
 
 # ENSEMBL
@@ -668,7 +668,7 @@ def test_ensembl_perform_rest_action(monkeypatch, hf):
     # Fetch sequence from accn numbers
     data = client.perform_rest_action("sequence/id", data={"ids": ["ENSPTRG00000014529"]},
                                       headers={"Content-type": "text/x-seqxml+xml"})
-    assert hf.string2hash(next(data).format("embl")) == "f4bb7d1ec812824b51f14d152e156f8f"
+    assert hf.string2hash(next(data).format("embl")) == "3de34d5aafabd3e70c84095686bebe0c"
 
     # Unrecognized endpoint header
     with pytest.raises(ValueError) as err:
