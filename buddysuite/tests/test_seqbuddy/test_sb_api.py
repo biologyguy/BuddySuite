@@ -710,13 +710,6 @@ def test_delete_records2(sb_resources, hf):
         Sb.delete_records(sb_resources.get_one("d f"), dict)
     assert "'patterns' must be a list or a string." in str(e.value)
 
-    # Doesn't find anything to delete
-    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=False)
-    assert len(tester.records) == len(sb_resources.get_one("p g").records)
-
-    tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=True)
-    assert hf.buddy2hash(tester) == "59e42a85336158c6c290d08899d9f2e7", print(tester)
-
 
 # #####################  '-drp', '--delete_repeats' ###################### ##
 def test_delete_repeats(sb_odd_resources):
@@ -912,7 +905,7 @@ def test_find_cpg(sb_resources, hf):
 def test_find_orf(sb_resources, hf):
     tester = Sb.SeqBuddy("ATGAAATTTCCCGGGTAG", in_format='raw', out_format='gb')
     tester = Sb.find_orfs(tester)
-    assert hf.buddy2hash(tester) == "b34b2f3197b81ce6838a70a9784b79c2"
+    assert hf.buddy2hash(tester) == "4c512dee4ed684832bffeb60836e55d2"
 
     tester = Sb.find_orfs(sb_resources.get_one("d g"))
     assert hf.buddy2hash(tester) == "7aee4906f59842b13ba086fbb32e524d"
@@ -927,21 +920,11 @@ def test_find_orf(sb_resources, hf):
     assert hf.buddy2hash(tester) == "d2db9b02485e80323c487c1dd6f1425b"
 
     tester.out_format = "gb"
-    assert hf.buddy2hash(tester) == "91e5934e1c688a35efaa4c98b1650701"
+    assert hf.buddy2hash(tester) == "32ad74476994cb73cb7fefff384f28ae"
 
     tester = Sb.find_orfs(sb_resources.get_one("r f"), include_feature=False)
     tester.out_format = "gb"
     assert hf.buddy2hash(tester) == "456da121b26cb567d363b39765ca0dce"
-
-    tester = Sb.find_orfs(sb_resources.get_one("d g"), min_size=500)
-    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
-
-    tester = Sb.find_orfs(sb_resources.get_one("d g"), rev_comp=False)
-    assert hf.buddy2hash(tester) == "4f8a1825e1a1e2e1f2e18b5ce887c1a8"
-
-    with pytest.raises(ValueError) as err:
-        Sb.find_orfs(tester, min_size=2)
-    assert "Open reading frames cannot be smaller than 6 residues." in str(err)
 
     tester = sb_resources.get_one("p g")
     with pytest.raises(TypeError) as err:
@@ -1084,24 +1067,6 @@ def test_insert_seqs_start(sb_resources, hf):
 
     tester = sb_resources.get_one("d f")
     assert hf.buddy2hash(Sb.insert_sequence(tester, insert, -25)) == '29cab1e72ba95572c3aec469270071e9'
-
-
-# ######################  '-isd', '--in_silico_digest' ###################### #
-def test_in_silico_digest(capsys, sb_resources, hf):
-    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
-    out, err = capsys.readouterr()
-    assert hf.buddy2hash(tester) == '5539e56a557e545a4c16550a972acae6'
-    assert "Warning: FooBR not a known enzyme" in err
-
-    with pytest.raises(TypeError) as e:
-        Sb.in_silico_digest(sb_resources.get_one("p g"))
-    assert str(e.value) == "Unable to identify restriction sites in protein sequences."
-
-    # 2-cutters and non-cutters
-    Sb.in_silico_digest(tester, enzyme_group=["AjuI", "AlwFI"])
-    out, err = capsys.readouterr()
-    assert "Warning: Double-cutters not supported." in err
-    assert "Warning: No-cutters not supported." in err
 
 
 # ######################  '-ip', '--isoelectric_point' ###################### #
