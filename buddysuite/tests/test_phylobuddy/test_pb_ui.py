@@ -181,7 +181,7 @@ def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
         out, err = capsys.readouterr()
 
-    assert "Error: Your system is non-graphical, so display_trees can not work." in err
+    assert "Error: Your system does not appear to be graphical." in err
 
 
 # ###################### 'dis', '--distance' ###################### #
