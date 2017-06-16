@@ -15,12 +15,15 @@ import DatabaseBuddy as Db
 
 # This file (conftest.py) must be in the same directory as unit_test_resources
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'unit_test_resources') + os.path.sep
+DBSAVE = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save%s.db" % \
+         (RESOURCE_PATH, "".join(str(i) for i in sys.version_info[0:2]))
 
 
 # #################################  -  Helper class  -  ################################## #
 class HelperMethods(object):
     def __init__(self):
         self.resource_path = RESOURCE_PATH
+        self.dbsave = DBSAVE
 
     @staticmethod
     def buddy2hash(buddy):

@@ -220,27 +220,27 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
 
     # 'keep' (default)
     capsys.readouterr()
     liveshell.filter("(organism) Mouse")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "9774790626857cd05298b4e9c5e09836"
+    with open("temp.del", "w") as ofile:
+        assert hf.string2hash(out) == "8c8bc0d638e981c71c41407337bb134d", ofile.write(out)
 
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "836e1b6810b2e349634face7b19d4999"
+    assert hf.string2hash(out) == "375874594a3748a3e13ad713610882c4"
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "746d5e86ff1d3b23707977e0e41fd210"
+    assert hf.string2hash(out) == "dbd45b5b47c9052112bdc8bc511081b4"
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
@@ -258,24 +258,24 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "fdcfcc6d32d726cba592e5c9d0bfdf44"
+    assert hf.string2hash(out) == "21cf3142c80dd611b350283b118a14bf"
 
     monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
     liveshell.filter(None, mode="restore")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "a3249f5616e3ec863d911638e7f82ed8"
+    assert hf.string2hash(out) == "cd47b70b98f663c462fe5af5a2e1f729"
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "ef0ef9f16687530cadea9a465ff92634"
+    assert hf.string2hash(out) == "f6ca34607e0c5562edfd54135854b793"
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4aa2b9aaf54bbcb874e17621da1a43c5"
+    assert hf.string2hash(out) == "c4da39b3c33123ed5347a96f9e75995f"
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
@@ -541,23 +541,22 @@ def test_liveshell_do_load(monkeypatch, capsys, hf):
     dbbuddy.server_clients["uniprot"] = Db.UniProtRestClient(dbbuddy)
     dbbuddy.server_clients["uniprot"].http_errors_file.write("Hello!")
 
-    db_session = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    monkeypatch.setattr("builtins.input", lambda _: db_session)
+    monkeypatch.setattr("builtins.input", lambda _: hf.dbsave)
     liveshell.do_load(None)
     out, err = capsys.readouterr()
     assert "Session loaded from file.\n\n" in out
 
     assert dbbuddy.server_clients["uniprot"].http_errors_file.read() == ""
     headings = liveshell.get_headings()
-    for heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
-                    'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
-                    'object_type', 'strand', 'assembly_name', 'name']:
-        assert heading in headings
+    for heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'TaxId', 'organism',
+                    'protein_names', 'comments', 'status', 'name', 'biotype',
+                    'object_type', 'strand', 'assembly_name']:
+        assert heading in headings, print(heading, headings)
 
     for heading in headings:
-        assert heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'organism-id', 'organism',
-                           'protein_names', 'comments', 'gi_num', 'TaxId', 'status', 'name', 'biotype',
-                           'object_type', 'strand', 'assembly_name', 'name']
+        assert heading in ['ACCN', 'DB', 'Type', 'record', 'entry_name', 'length', 'TaxId', 'organism',
+                           'protein_names', 'comments', 'status', 'name', 'biotype',
+                           'object_type', 'strand', 'assembly_name']
 
     monkeypatch.setattr("builtins.input", lambda _: "/no/file/here")
     liveshell.do_load(None)
@@ -709,8 +708,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
     capsys.readouterr()
 
     # Warning message if nothing to show
@@ -721,7 +719,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     # Specify columns and number of records
     liveshell.do_show("ACCN organism 3")
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "43f5edc18717e2f7df08818d2ed32b78"
+    assert hf.string2hash(out) == "615c84b691f49f4aeceb92b2dc211ff4"
 
     # Large group, say 'no' to display
     monkeypatch.setattr(br, "ask", lambda *_, **kwargs: False)
@@ -733,7 +731,9 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     monkeypatch.setattr(br, "ask", lambda *_, **kwargs: True)
     liveshell.do_show(None)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "edc78c2e17543392933c87d833d8a2ea"
+    # ENSEMBL order gets messed up, so just sort the characters
+    with open("temp.del", "w") as ofile:
+        assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
 
     # Try sequence format on LiveShell with only summary data
     dbbuddy.out_format = "fasta"
@@ -747,7 +747,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.DbBuddy, "print", lambda *_, **kwargs: True)
     liveshell.do_show(None)
     out, err = capsys.readouterr()
-    assert "Warning: 1405 records are only summary data, so will not be displayed in fasta format. " \
+    assert "Warning: 1722 records are only summary data, so will not be displayed in fasta format. " \
            "Use 'fetch' to retrieve all sequence data." in err
 
     # Raise errors
@@ -786,8 +786,7 @@ def test_liveshell_do_sort(monkeypatch, capsys, hf):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
     capsys.readouterr()
 
     # Default sort on accession
@@ -838,20 +837,15 @@ def test_liveshell_do_sort(monkeypatch, capsys, hf):
     assert after_sort != protein_names
     assert after_sort == sorted(protein_names)
 
-    gi_num = [rec.summary['gi_num'] for accn, rec in dbbuddy.records.items() if 'gi_num' in rec.summary]
-    liveshell.do_sort("gi_num")
-    after_sort = [rec.summary['gi_num'] for accn, rec in dbbuddy.records.items() if 'gi_num' in rec.summary]
-    assert after_sort != gi_num
-    assert after_sort == sorted(gi_num)
-
     # Sort on multi-column
     dbbuddy.records["A0A0N8ESW5"].record = True
     dbbuddy.records["XP_011997944.1"].record = True
-    liveshell.do_sort("record organism gi_num")
+    liveshell.do_sort("record organism length ACCN")
     capsys.readouterr()
     liveshell.do_show("10")
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c05f7a103d2b50d767407817f43a1828"
+    with open("temp.del", "w") as ofile:
+        assert hf.string2hash(out) == "47747589b285aaccb0ee34891d97bd57", ofile.write(out)
 
 
 def test_liveshell_do_status(monkeypatch, capsys):
@@ -886,8 +880,7 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
     capsys.readouterr()
     tmp_dir = br.TempDir()
 
@@ -896,9 +889,9 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
     liveshell.do_write(None)
     assert os.path.isfile("%s/save1" % tmp_dir.path)
     with open("%s/save1" % tmp_dir.path, "r") as ifile:
-        assert len(ifile.read()) == 249980
+        assert len(ifile.read()) == 290678
     out, err = capsys.readouterr()
-    assert re.search("1407 summary records.*written to.*save1", out)
+    assert re.search("1724 summary records.*written to.*save1", out)
 
     # write ids/accns
     dbbuddy.out_format = "ids"
@@ -907,9 +900,9 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
     liveshell.do_write("%s/save2" % tmp_dir.path)
     assert os.path.isfile("%s/save2" % tmp_dir.path)
     with open("%s/save2" % tmp_dir.path, "r") as ifile:
-        assert len(ifile.read()) == 18661
+        assert len(ifile.read()) == 22719
     out, err = capsys.readouterr()
-    assert re.search("1407 accessions.*written to.*save2", out)
+    assert re.search("1724 accessions.*written to.*save2", out)
 
     # Abort summary
     monkeypatch.setattr(br, "ask", lambda _: False)
@@ -950,8 +943,7 @@ def test_liveshell_do_undo(monkeypatch, capsys, hf):
     out, err = capsys.readouterr()
     assert "There is currently no undo history (only a single undo is possible).\n\n" in out
 
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
 
     assert not dbbuddy.trash_bin
     liveshell.do_remove("P00520")
@@ -1009,8 +1001,7 @@ def test_liveshell_complete_keep_remove_resort_trash_show_sort(monkeypatch, hf):
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
-    load_file = "%s/mock_resources/test_databasebuddy_clients/dbbuddy_save.db" % hf.resource_path
-    liveshell.do_load(load_file)
+    liveshell.do_load(hf.dbsave)
 
     # Keep
     assert liveshell.complete_keep("d") == ['(DB) ']

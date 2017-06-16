@@ -790,7 +790,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
     qualifiers = [qualifiers] if isinstance(qualifiers, str) else qualifiers
 
     if isinstance(qualifiers, list):
-        qual_dict = {}
+        qual_dict = OrderedDict()
         for qual in qualifiers:
             qual = qual.split("=")
             qual_dict[qual[0]] = "=".join(qual[1:])
@@ -2172,7 +2172,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
                                                    type='match', strand=+1,
-                                                   qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
+                                                   qualifiers=OrderedDict([('regex', pattern_backup),
+                                                                           ('added_by', 'SeqBuddy')])))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -2840,7 +2841,7 @@ def molecular_weight(seqbuddy):
                                    'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
                                    'X': 'X', 'N': 'N', '-': '-', '.': '.'}
     dna = False
-    output = {'masses_ss': [], 'masses_ds': [], 'ids': []}
+    output = OrderedDict([('masses_ss', []), ('masses_ds', []), ('ids', [])])
     aa_dict = amino_acid_weights
     if seqbuddy.alpha == IUPAC.protein:
         aa_dict = amino_acid_weights
@@ -2870,7 +2871,7 @@ def molecular_weight(seqbuddy):
                                "{2}.".format(value, rec.id, str(seqbuddy.alpha)))
         output['masses_ss'].append(round(rec.mass_ss, 3))
 
-        qualifiers = {}
+        qualifiers = OrderedDict()
         if seqbuddy.alpha == IUPAC.protein:
             qualifiers["peptide_value"] = round(rec.mass_ss, 3)
         elif dna:
