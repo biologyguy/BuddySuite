@@ -1238,7 +1238,10 @@ class EnsemblRestClient(GenericClient):
         species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
             br._stderr("Searching Ensembl for %s...\n" % search_term)
-            br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
+            # br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
+            # TODO: fix multicore --> Many REST requests are failing unless a single request is sent at a time
+            for i in species:
+                self._mc_search(i, [search_term])
             self.parse_error_file()
             results = self.results_file.read().split("\n### END ###")
             counter = 0
@@ -1888,7 +1891,7 @@ Further details about each command can be accessed by typing 'help <command>'
     def do_sort(self, line=None):
         def sub_sort(records, _sort_columns, _rev=False):
             heading = _sort_columns[0]
-            subgroups = {}
+            subgroups = OrderedDict()
             for accn, _rec in records.items():
                 if heading.lower() == "accn":
                     subgroups.setdefault(_rec.accession, {})

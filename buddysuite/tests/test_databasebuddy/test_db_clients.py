@@ -716,7 +716,8 @@ def test_search_ensembl(monkeypatch, capsys, hf):
 
     test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
-    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
+    # monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
+    monkeypatch.setattr(Db.EnsemblRestClient, "_mc_search", patch_search_ensembl_empty)
 
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
     client = Db.EnsemblRestClient(dbbuddy)
@@ -727,10 +728,11 @@ def test_search_ensembl(monkeypatch, capsys, hf):
     assert err == "Searching Ensembl for Panx3...\nEnsembl returned no results\n"
     assert not client.dbbuddy.records["ENSLAFG00000006034"].record
 
-    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
+    # monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
+    monkeypatch.setattr(Db.EnsemblRestClient, "_mc_search", patch_search_ensembl_results)
     client.search_ensembl()
     assert hf.string2hash(str(client.dbbuddy)) == "95dc1ecce077bef84cdf2d85ce154eef"
-    assert len(client.dbbuddy.records) == 44
+    assert len(client.dbbuddy.records) == 44, print(str(client.dbbuddy))
     assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
 
 
