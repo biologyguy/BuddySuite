@@ -1,0 +1,6 @@
+Every python version will save binary formats slightly different, so dbbuddy save states
+must be made for each version supported. This needs to be done for ALL versions every
+time a new version is added.
+
+Simply launch databasebuddy under the Python version in question, and do a search for casp9.
+Unit tests will need to be updated because the number of sequences will probably change.
