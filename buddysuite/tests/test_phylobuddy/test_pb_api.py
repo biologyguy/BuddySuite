@@ -72,7 +72,7 @@ def test_display_trees(monkeypatch, pb_resources):
     try:
         assert Pb.display_trees(pb_resources.get_one("o k"))
     except SystemError as err:
-        assert "This system is not graphical, so display_trees() will not work." in str(err)
+        assert "This system does not appear to be graphical, so display_trees() will not work." in str(err)
 
 
 def test_display_trees_error(pb_resources):
