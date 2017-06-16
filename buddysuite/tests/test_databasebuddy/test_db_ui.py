@@ -227,8 +227,7 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     liveshell.filter("(organism) Mouse")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(out) == "8c8bc0d638e981c71c41407337bb134d", ofile.write(out)
+    assert hf.string2hash(out) == "8c8bc0d638e981c71c41407337bb134d"
 
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
@@ -732,8 +731,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     liveshell.do_show(None)
     out, err = capsys.readouterr()
     # ENSEMBL order gets messed up, so just sort the characters
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
+    assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
 
     # Try sequence format on LiveShell with only summary data
     dbbuddy.out_format = "fasta"
@@ -844,8 +842,7 @@ def test_liveshell_do_sort(monkeypatch, capsys, hf):
     capsys.readouterr()
     liveshell.do_show("10")
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(out) == "47747589b285aaccb0ee34891d97bd57", ofile.write(out)
+    assert hf.string2hash(out) == "47747589b285aaccb0ee34891d97bd57"
 
 
 def test_liveshell_do_status(monkeypatch, capsys):

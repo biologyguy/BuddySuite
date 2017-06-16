@@ -1254,7 +1254,7 @@ def test_molecular_weight(sb_resources, sb_odd_resources, hf):
     tester = Sb.molecular_weight(sb_resources.get_one("d g"))
     assert tester.molecular_weights['masses_ds'][0] == 743477.1
     assert tester.molecular_weights['masses_ss'][0] == 371242.6
-    assert hf.buddy2hash(tester) == "08c8ab50e6b66adb8e579df3c923c2bc", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "08c8ab50e6b66adb8e579df3c923c2bc"
     # Ambiguous DNA
     tester = Sb.molecular_weight(Sb.SeqBuddy(sb_odd_resources['ambiguous_dna']))
     assert tester.molecular_weights['masses_ds'][0] == 743477.08

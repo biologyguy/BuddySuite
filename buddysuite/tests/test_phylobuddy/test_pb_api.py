@@ -163,31 +163,31 @@ def test_raxml(alb_resources, hf, monkeypatch):
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml')
-    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
     # quiet
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', quiet=True)
-    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
     # params
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-w path{0}to{0}nowhere".format(os.path.sep), quiet=True)
-    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
     # slight edges
     tester = alb_resources.get_one("o p n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml-HPC', tmp_dir.path, quiet=True)
-    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab"
 
     # bootstraps
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-b 1234 -N 4", quiet=True)
-    assert hf.buddy2hash(tester) == "b8a3b6068aa06bd8a70fcc9bda0efad9", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "b8a3b6068aa06bd8a70fcc9bda0efad9"
 
     # keep
     tester = alb_resources.get_one("o d n")
@@ -208,7 +208,7 @@ def test_raxml(alb_resources, hf, monkeypatch):
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-N 3", quiet=True)
-    assert hf.buddy2hash(tester) == "e8ce19bba744f0188df2ebb4ffced4d8", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "e8ce19bba744f0188df2ebb4ffced4d8"
 
     # bipartitions
     shutil.copy("{0}mock_resources{1}test_raxml_inputs{1}bipartitions{1}RAxML_bipartitions.result".format(RES_PATH,
@@ -235,25 +235,25 @@ def test_phyml(alb_resources, hf, monkeypatch):
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'phyml')
-    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e"
 
     # quiet
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'phyml', quiet=True)
-    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e"
 
     # params
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'phyml', "--sequential", quiet=True)
-    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e"
 
     # slight edges
     tester = alb_resources.get_one("o p n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'phyml-foo', tmp_dir.path, quiet=True)
-    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "9fbcfe1d565b9fd23e2c5fca86019f8e"
 
     # keep
     tester = alb_resources.get_one("o d n")
@@ -284,25 +284,25 @@ def test_fasttree(alb_resources, hf, monkeypatch):
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'fasttree')
-    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3"
 
     # quiet
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'fasttree', quiet=True)
-    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3"
 
     # params
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'fasttree', "-pseudo", quiet=True)
-    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "4b2ab8c39f27b9871f9a370ca7d0c4b3"
 
     # slight edges
     tester = alb_resources.get_one("m p s")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'fasttree-foo', quiet=True)
-    assert hf.buddy2hash(tester) == "7692ee7edb8df4f91d2bdca6c3767796", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "7692ee7edb8df4f91d2bdca6c3767796"
 
     # keep
     tester = alb_resources.get_one("o d n")

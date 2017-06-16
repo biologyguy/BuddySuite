@@ -828,7 +828,7 @@ def test_phylip_sequential_read(alb_odd_resources, hf, capsys):
     records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physr".format(RESOURCE_PATH),
                                              "r", encoding="utf-8").read())
     buddy = Alb.AlignBuddy(records, out_format="phylipsr")
-    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68", buddy.write("temp.del")
+    assert hf.buddy2hash(buddy) == "c5fb6a5ce437afa1a4004e4f8780ad68"
 
     records = br.phylip_sequential_read(open("{0}Mnemiopsis_cds.physs".format(RESOURCE_PATH),
                                              "r", encoding="utf-8").read(), relaxed=False)

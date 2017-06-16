@@ -364,21 +364,21 @@ def test_clustalomega(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega')
-    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', quiet=True)
-    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "23d7c9fa33454ed551a5896e532cf552", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "23d7c9fa33454ed551a5896e532cf552"
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=foobar", quiet=True)
-    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f5afdc7c76ab822bdc95230329766aba"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -404,21 +404,21 @@ def test_clustalw2(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2')
-    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', quiet=True)
-    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e"
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=foobar", quiet=True)
-    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "955440b5139c8e6d7d3843b7acab8446"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -457,11 +457,11 @@ def test_pagan(sb_resources, hf, monkeypatch):
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec"
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f foobar", quiet=True)
-    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "da1c6bb365e2da8cb4e7fad32d7dafdb"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -487,21 +487,21 @@ def test_prank(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank')
-    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f"
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', quiet=True)
-    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f"
 
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "4dcaa948e109487ee12512b6ac02183c", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "4dcaa948e109487ee12512b6ac02183c"
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=foobar", quiet=True)
-    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "eff3e6728b5126e285a422863567294f"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -527,12 +527,12 @@ def test_muscle(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle')
-    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f"
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', quiet=True)
-    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "5ec18f3e0c9f5cf96944a1abb130232f"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
@@ -559,12 +559,12 @@ def test_mafft(sb_resources, hf, monkeypatch):
     # basic
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft')
-    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904"
 
     # quiet
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft', quiet=True)
-    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f94e0fd591dad83bd94201f0af038904"
 
     # keep
     monkeypatch.setattr(Sb, "hash_ids", mock_hash_ids)
