@@ -147,7 +147,7 @@ def ascending_order(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "2.6", br.contributors, {"year": 2017, "month": 3, "day": 10})
+VERSION = br.Version("PhyloBuddy", 1, "2.7", br.contributors, {"year": 2017, "month": 6, "day": 16})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -477,7 +477,8 @@ def display_trees(phylobuddy):
     :return: None
     """
     if "DISPLAY" not in os.environ:
-        raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
+        raise SystemError("This system does not appear to be graphical, "
+                          "so display_trees() will not work. Try using trees_to_ascii()")
 
     for _tree in phylobuddy.trees:
         _convert_to_ete(_tree).show()
@@ -1211,13 +1212,17 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         try:
             display_trees(phylobuddy)
         except SystemError:
-            br._stderr("Error: Your system is non-graphical, so display_trees can not work. "
-                       "Please use print_trees instead.")
-        except ImportError as err:
+            if sys.platform == "darwin":
+                br._stderr("Error: Your system does not appear to be graphical. "
+                           "Try installing XQuartz (https://www.xquartz.org/), or use print_trees instead.")
+            else:
+                br._stderr("Error: Your system does not appear to be graphical, so display_trees can not work. "
+                           "Please use print_trees instead.")
+        except (ImportError, ModuleNotFoundError) as err:
             if "No module named 'PyQt4'" in str(err):
                 br._stderr("Unable to display trees because PyQt4 is not installed.\n"
                            "If conda is installed, try $: conda install pyqt=4\n")
-            _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
+            _raise_error(err, "display_tree", "No module named 'PyQt4'")
         _exit("display_trees")
 
     # Distance

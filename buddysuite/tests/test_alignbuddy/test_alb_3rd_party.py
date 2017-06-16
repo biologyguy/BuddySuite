@@ -149,7 +149,7 @@ def test_clustalw_multi_param(sb_resources, hf):
 clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
 clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True,
                          stdout=PIPE).communicate()[0].decode().strip()
-if clustalo_version not in ["1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
+if clustalo_version not in ["1.2.3", "1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
     raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
 
 
@@ -171,7 +171,8 @@ def test_clustalomega_inputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d s")
     tester = Alb.generate_msa(tester, clustalo_bin)
-    assert hf.buddy2hash(tester) in ['d6654e3db3818cc3427cb9241113fdfa', 'aeb2c5926843402cf620299802946224']
+    assert hf.buddy2hash(tester) in ['8983529dd432dc9bb7f9b1a8acb64b18', 'd6654e3db3818cc3427cb9241113fdfa',
+                                     'aeb2c5926843402cf620299802946224']
 
 
 def test_clustalomega_outputs1(sb_resources, hf):
@@ -198,7 +199,8 @@ def test_clustalomega_outputs3(sb_resources, hf):
 def test_clustalomega_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal --iter=1')
-    assert hf.buddy2hash(tester) in ['25480f7a9340ff643bb7eeb326e8f981', '9c55bb8be0cc89c5346d8f699e97cc87']
+    assert hf.buddy2hash(tester) in ['cac11c9b4e2381f4d62af940028d7fe4', '25480f7a9340ff643bb7eeb326e8f981',
+                                     '9c55bb8be0cc89c5346d8f699e97cc87']
 
 
 # ##########   MAFFT   ########## #

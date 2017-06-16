@@ -558,7 +558,7 @@ def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     dbbuddy.print()
     out, err = capsys.readouterr()
     out = re.sub(".*?sec.*?\n", "", out)
-    assert hf.string2hash(out) == "40b60e455df6ba092dbf96dc028ca82f"
+    assert hf.string2hash(out) == "33378c2437d55fe100b31a9579a6ba63"
 
 
 # ENSEMBL
@@ -668,7 +668,7 @@ def test_ensembl_perform_rest_action(monkeypatch, hf):
     # Fetch sequence from accn numbers
     data = client.perform_rest_action("sequence/id", data={"ids": ["ENSPTRG00000014529"]},
                                       headers={"Content-type": "text/x-seqxml+xml"})
-    assert hf.string2hash(next(data).format("embl")) == "f4bb7d1ec812824b51f14d152e156f8f"
+    assert hf.string2hash(next(data).format("embl")) == "3de34d5aafabd3e70c84095686bebe0c"
 
     # Unrecognized endpoint header
     with pytest.raises(ValueError) as err:
@@ -716,7 +716,8 @@ def test_search_ensembl(monkeypatch, capsys, hf):
 
     test_files = "%s/mock_resources/test_databasebuddy_clients/" % hf.resource_path
     monkeypatch.setattr(Db.EnsemblRestClient, "perform_rest_action", patch_ensembl_perform_rest_action)
-    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
+    # monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_empty)
+    monkeypatch.setattr(Db.EnsemblRestClient, "_mc_search", patch_search_ensembl_empty)
 
     dbbuddy = Db.DbBuddy(", ".join(ACCNS[7:]))
     client = Db.EnsemblRestClient(dbbuddy)
@@ -727,10 +728,11 @@ def test_search_ensembl(monkeypatch, capsys, hf):
     assert err == "Searching Ensembl for Panx3...\nEnsembl returned no results\n"
     assert not client.dbbuddy.records["ENSLAFG00000006034"].record
 
-    monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
+    # monkeypatch.setattr(br, "run_multicore_function", patch_search_ensembl_results)
+    monkeypatch.setattr(Db.EnsemblRestClient, "_mc_search", patch_search_ensembl_results)
     client.search_ensembl()
     assert hf.string2hash(str(client.dbbuddy)) == "95dc1ecce077bef84cdf2d85ce154eef"
-    assert len(client.dbbuddy.records) == 44
+    assert len(client.dbbuddy.records) == 44, print(str(client.dbbuddy))
     assert client.dbbuddy.records["ENSLAFG00000006034"].database == "ensembl"
 
 

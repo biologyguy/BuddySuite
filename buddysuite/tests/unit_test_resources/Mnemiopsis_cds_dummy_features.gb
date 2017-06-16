@@ -42,66 +42,66 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..143,144..292,293..407,408..528,529..675,676..862,
                      863..1875)
+                     /created_by="User"
                      /label="ML218922a"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            88..150
      TMD2            403..465
      TMD3            631..723
      splice_donor    853..862
+                     /created_by="User"
                      /label="Donor"
-                     /created_by="User"
      splice_acceptor complement(863..872)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(871..880)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(874..883)
+                     /created_by="User"
                      /label="Acceptor"
                      /modified_by="User"
-                     /created_by="User"
      splice_acceptor complement(881..890)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD4            916..1008
      splice_acceptor complement(1053..1062)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1056..1065)
+                     /created_by="User"
                      /label="Acceptor"
                      /modified_by="User"
-                     /created_by="User"
      splice_acceptor complement(1061..1070)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1162..1171)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1169..1178)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1174..1183)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1195..1204)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1365..1374)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1369..1378)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(1372..1381)
+                     /created_by="User"
                      /label="Acceptor"
-                     /created_by="User"
      splice_donor    1413..1422
-                     /label="Donor"
                      /created_by="User"
+                     /label="Donor"
      splice_donor    1541..1550
-                     /label="Donor"
                      /created_by="User"
+                     /label="Donor"
 ORIGIN
         1 atgggggtgg aaattctgtt tcccataatc aacagagcca ccgctccgat caagtctgtt
        61 aacatcgacg atttgagtag tcagctcaac cgaactttta tgttttactt atcgctgact
@@ -146,8 +146,8 @@ SOURCE
             .
 FEATURES             Location/Qualifiers
      CDS             order(1..572,573..1341)
-                     /label="ML078817"
                      /created_by="User"
+                     /label="ML078817"
      TMD1            91..153
      TMD2            373..435
      TMD3            625..687
@@ -188,9 +188,9 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..151,152..334,335..456,457..549,550..726,727..845,
                      846..1036,1037..1236)
+                     /created_by="User"
                      /label="ML036514a"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            85..147
      TMD2            394..456
      TMD3            652..714
@@ -229,8 +229,8 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..61,62..151,152..277,278..377,378..526,527..680,
                      681..850,851..923,924..1048,1049..1209)
-                     /label="ML25997a"
                      /created_by="User"
+                     /label="ML25997a"
      TMD1            82..144
      TMD2            391..453
      TMD3            643..705
@@ -269,12 +269,12 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..32,33..148,149..310,311..435,436..625,626..760,
                      761..907,908..1023,1024..1197)
-                     /label="ML25999a"
                      /created_by="User"
+                     /label="ML25999a"
      TMD1            82..144
      splice_acceptor complement(311..320)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD2            364..426
      TMD3            616..678
      TMD4            868..960
@@ -347,14 +347,14 @@ SOURCE
             .
 FEATURES             Location/Qualifiers
      gene            <1..180
-                     /label="ML07312a"
                      /created_by="User"
+                     /label="ML07312a"
      CDS             order(1..180,181..277,278..377,378..469,470..560,561..768,
                      769..853,854..1191,1192..1251)
+                     /Innexin_02
+                     /created_by="User"
                      /label="Innexin 02"
                      /modified_by="User"
-                     /created_by="User"
-                     /Innexin_02
      TMD1            82..144
      TMD2            391..453
      TMD3            640..702
@@ -393,29 +393,29 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..127,128..277,278..377,378..513,514..676,677..768,
                      769..850,851..1221)
+                     /created_by="User"
                      /label="ML25993"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            82..144
      splice_acceptor complement(315..324)
+                     /created_by="User"
                      /label="Acceptor"
                      /modified_by="User"
-                     /created_by="User"
      TMD2            391..453
      splice_acceptor complement(434..443)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(455..464)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD3            643..705
      splice_acceptor complement(851..860)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD4            895..987
      splice_donor    991..1000
-                     /label="Donor"
                      /created_by="User"
+                     /label="Donor"
 ORIGIN
         1 atgttattgg agatattagc gaacttcaaa ggagcgacac ctttcaaaga aatagttcta
        61 gatgacaagt gggaccagat taaccgatgt tacatgttcc tgctgtgtgt gattttcgga
@@ -449,49 +449,49 @@ SOURCE
             .
 FEATURES             Location/Qualifiers
      CDS             order(1..84,85..237,238..371,372..724,725..1060,1061..1077)
+                     /created_by="User"
                      /label="ML32831a"
-                     /created_by="User"
      splice_donor    75..84
-                     /label="Donor"
                      /created_by="User"
+                     /label="Donor"
      splice_acceptor complement(85..94)
+                     /created_by="User"
                      /label="36%"
                      /modified_by="User"
-                     /created_by="User"
      splice_acceptor complement(98..107)
+                     /created_by="User"
                      /label="7%"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            118..180
      splice_acceptor complement(126..135)
+                     /created_by="User"
                      /label="20%"
-                     /created_by="User"
      splice_donor    228..237
+                     /created_by="User"
                      /label
-                     /created_by="User"
      splice_acceptor complement(238..247)
-                     /label="26%"
                      /created_by="User"
+                     /label="26%"
      splice_donor    362..371
+                     /created_by="User"
                      /label="67%"
                      /modified_by="User"
-                     /created_by="User"
      splice_acceptor complement(372..381)
+                     /created_by="User"
                      /label="42%"
-                     /created_by="User"
      splice_acceptor complement(389..398)
-                     /label="31%"
                      /created_by="User"
+                     /label="31%"
      TMD2            523..585
      splice_donor    715..724
+                     /created_by="User"
                      /label="72%"
                      /modified_by="User"
-                     /created_by="User"
      TMD3            778..822
      TMD4            826..870
      splice_donor    1051..1060
-                     /label="90%"
                      /created_by="User"
+                     /label="90%"
 ORIGIN
         1 atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac
        61 aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat
@@ -522,9 +522,9 @@ SOURCE
             .
 FEATURES             Location/Qualifiers
      CDS             order(1..148,149..283,284..405,406..1218)
+                     /created_by="User"
                      /label="ML223536a"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            82..144
      TMD2            397..459
      TMD3            652..714
@@ -562,48 +562,48 @@ SOURCE
             .
 FEATURES             Location/Qualifiers
      CDS             order(1..144,145..307,308..555,556..688,689..810,811..1314)
+                     /created_by="User"
                      /label
                      /modified_by="User"
-                     /created_by="User"
      TMD1            85..147
      splice_donor    135..144
+                     /created_by="User"
                      /label="Donor"
-                     /created_by="User"
      splice_acceptor complement(145..154)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(152..161)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(183..192)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(185..194)
+                     /created_by="User"
                      /label="Acceptor"
                      /modified_by="User"
-                     /created_by="User"
      splice_donor    298..307
+                     /created_by="User"
                      /label="Donor"
-                     /created_by="User"
      splice_acceptor complement(348..357)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(352..361)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(376..385)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(388..397)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      splice_acceptor complement(392..401)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD2            421..483
      splice_acceptor complement(495..504)
-                     /label="Acceptor"
                      /created_by="User"
+                     /label="Acceptor"
      TMD3            682..744
      TMD4            931..1023
 ORIGIN
@@ -641,65 +641,65 @@ SOURCE
 FEATURES             Location/Qualifiers
      CDS             order(1..84,85..237,238..312,313..412,413..584,585..937,
                      938..1273,1274..1290)
+                     /created_by="User"
                      /label="ML32831a"
                      /modified_by="User"
-                     /created_by="User"
      splice_donor    75..84
-                     /label="Donor"
                      /created_by="User"
+                     /label="Donor"
      splice_acceptor complement(85..94)
+                     /created_by="User"
                      /label="36%"
                      /modified_by="User"
-                     /created_by="User"
      splice_acceptor complement(98..107)
+                     /created_by="User"
                      /label="7%"
                      /modified_by="User"
-                     /created_by="User"
      TMD1            118..180
      splice_acceptor complement(126..135)
+                     /created_by="User"
                      /label="20%"
-                     /created_by="User"
      splice_donor    228..237
+                     /created_by="User"
                      /label
-                     /created_by="User"
      splice_acceptor complement(238..247)
+                     /created_by="User"
                      /label="26%"
-                     /created_by="User"
      splice_acceptor complement(355..364)
+                     /created_by="User"
                      /label="18%"
-                     /created_by="User"
      splice_acceptor complement(358..367)
-                     /label="17%"
                      /created_by="User"
+                     /label="17%"
      splice_donor    403..412
+                     /created_by="User"
                      /label="91%"
                      /modified_by="User"
-                     /created_by="User"
      splice_donor    <413..415
-                     /label="34%"
                      /created_by="User"
+                     /label="34%"
      TMD2            478..540
      splice_acceptor complement(487..496)
+                     /created_by="User"
                      /label="7%"
-                     /created_by="User"
      splice_donor    575..584
+                     /created_by="User"
                      /label="71%"
-                     /created_by="User"
      splice_acceptor complement(585..594)
+                     /created_by="User"
                      /label="42%"
-                     /created_by="User"
      splice_acceptor complement(602..611)
-                     /label="31%"
                      /created_by="User"
+                     /label="31%"
      TMD3            730..792
      splice_donor    928..937
+                     /created_by="User"
                      /label="72%"
                      /modified_by="User"
-                     /created_by="User"
      TMD4            991..1083
      splice_donor    1264..1273
-                     /label="90%"
                      /created_by="User"
+                     /label="90%"
 ORIGIN
         1 atgcgtttat cagaaaagtc tacatcacac gattgcaaag cttgcatcac acgatcgcac
        61 aacgaagatt gtgctaggag atggggtata acgatagatg acgggtggga tcaactcaat

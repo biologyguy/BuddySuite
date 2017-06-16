@@ -157,7 +157,7 @@ def incremental_rename(query, replace):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "2.6", br.contributors, {"year": 2017, "month": 3, "day": 10})
+VERSION = br.Version("SeqBuddy", 1, "2.7", br.contributors, {"year": 2017, "month": 6, "day": 16})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
                   "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
@@ -743,7 +743,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
     qualifiers = [qualifiers] if isinstance(qualifiers, str) else qualifiers
 
     if isinstance(qualifiers, list):
-        qual_dict = {}
+        qual_dict = OrderedDict()
         for qual in qualifiers:
             qual = qual.split("=")
             qual_dict[qual[0]] = "=".join(qual[1:])
@@ -998,7 +998,7 @@ def bl2seq(seqbuddy):
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("%s -query %s -subject %s -outfmt 6" %
+        _blast_res = Popen("%s -query '%s' -subject '%s' -outfmt 6" %
                            (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
@@ -1168,7 +1168,7 @@ def blast(subject, query, **kwargs):
     else:
         kwargs["blast_args"] = ""
 
-    blast_command = "{0} -db {1} -query {2}tmp.fa -out {2}out.txt " \
+    blast_command = "{0} -db '{1}' -query {2}tmp.fa -out {2}out.txt " \
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
@@ -1197,7 +1197,7 @@ def blast(subject, query, **kwargs):
 
     with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db '%s' -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
@@ -1339,7 +1339,7 @@ def count_codons(seqbuddy):
                 else:
                     try:
                         data_table[codon] = [codontable[codon], 1, 0.0]
-                    except KeyError:
+                    except (KeyError, CodonTable.TranslationError):
                         br._stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
@@ -2096,7 +2096,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
                                                    type='match', strand=+1,
-                                                   qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
+                                                   qualifiers=OrderedDict([('regex', pattern_backup),
+                                                                           ('added_by', 'SeqBuddy')])))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -2711,7 +2712,7 @@ def molecular_weight(seqbuddy):
                                    'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
                                    'X': 'X', 'N': 'N', '-': '-', '.': '.'}
     dna = False
-    output = {'masses_ss': [], 'masses_ds': [], 'ids': []}
+    output = OrderedDict([('masses_ss', []), ('masses_ds', []), ('ids', [])])
     aa_dict = amino_acid_weights
     if seqbuddy.alpha == IUPAC.protein:
         aa_dict = amino_acid_weights
@@ -2741,7 +2742,7 @@ def molecular_weight(seqbuddy):
                                "{2}.".format(value, rec.id, str(seqbuddy.alpha)))
         output['masses_ss'].append(round(rec.mass_ss, 3))
 
-        qualifiers = {}
+        qualifiers = OrderedDict()
         if seqbuddy.alpha == IUPAC.protein:
             qualifiers["peptide_value"] = round(rec.mass_ss, 3)
         elif dna:
@@ -4036,7 +4037,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         search_terms = br.clean_regex(search_terms, in_args.quiet)
         if not search_terms:  # If all regular expression are malformed, exit out gracefully
             _print_recs(seqbuddy)
-        _exit("delete_records")
+            _exit("delete_records")
 
         deleted_seqs = []
         for next_pattern in search_terms:

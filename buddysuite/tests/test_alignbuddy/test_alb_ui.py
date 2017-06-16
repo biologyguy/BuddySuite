@@ -190,37 +190,37 @@ def test_concat_alignments_ui(capsys, alb_resources, hf):
     tester.set_format("genbank")
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "d21940f3dad2295dd647f632825d8541"
+    assert hf.string2hash(out) == "86349e715f41e0bdd91bbd1dc0914769"
 
     test_in_args.concat_alignments = [["(.).(.)-Panx(.)"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5ac908ebf7918a45664a31da480fda58"
+    assert hf.string2hash(out) == "cd2b6594b22c431aea67fa45899f933a"
 
     test_in_args.concat_alignments = [["...", "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
 
     test_in_args.concat_alignments = [[3, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
 
     test_in_args.concat_alignments = [[-9, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "9d2886afc640d35618754e05223032a2"
+    assert hf.string2hash(out) == "aaa9d9b717a5f79cfdf5d2666fb0f687"
 
     test_in_args.concat_alignments = [[3, 3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4e4101f9b5a6d44d524a9783a8c4004b"
+    assert hf.string2hash(out) == "2f37a4e395162032bf43fab291c882f4"
 
     test_in_args.concat_alignments = [[3, -3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5d9d9ac8fae604be74c436e5f0b5b6db"
+    assert hf.string2hash(out) == "7fa8cd803df82414a5e1e190916456d8"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("p o g"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -282,7 +282,7 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "34c7d45c3f279df93ba82840f4320a5a"
+    assert hf.string2hash(out) == "d30529911c2ffdfb49152797225e3ff0"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -295,27 +295,27 @@ def test_extact_feature_sequences_ui(capsys, alb_resources, hf):
     test_in_args.extract_feature_sequences = [["CDS"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
+    assert hf.string2hash(out) == "842d9c911a33c0fd0484383eabefb0fe"
 
     test_in_args.extract_feature_sequences = [["TMD"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "eb878a1b14b73dd6148291f630ba98d8"
+    assert hf.string2hash(out) == "cc7a1c6a22f721ec0668fc8ea6b23429"
 
     test_in_args.extract_feature_sequences = [["TMD1", "splice_a"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "f086752f8915872dc2260486142f643b"
+    assert hf.string2hash(out) == "497d536b1be9a90ef0ef75281d0c867f"
 
     test_in_args.extract_feature_sequences = [["TMD2:TMD3"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "78d674f258e634ef0737db1cc6067be6"
+    assert hf.string2hash(out) == "07773f4fb1dc430c0c3ce6cd5a799439"
 
     test_in_args.extract_feature_sequences = [["foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "0ef69def122bd6923bc9ca02e2a19233"
+    assert hf.string2hash(out) == "ac15492b38ca2ac4baa63e63a9b747f7"
 
 
 # ##################### '-er', '--extract_regions' ###################### ##
@@ -324,7 +324,7 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
     test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "891bdc3af63c6ddc96a507939e2d771a"
+    assert hf.string2hash(out) == "7e202f9f6caaf83c558631a3577af20a"
 
     test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
@@ -343,7 +343,7 @@ def test_generate_alignment_ui(capsys, monkeypatch, sb_resources, alb_resources,
     test_in_args.out_format = "gb"
     Alb.command_line_ui(test_in_args, Alb.AlignBuddy, skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
+    assert hf.string2hash(out) == "842d9c911a33c0fd0484383eabefb0fe"
 
 
 @pytest.mark.generate_alignments
@@ -438,7 +438,7 @@ def test_map_features2alignment_ui(capsys, alb_resources, sb_resources, hf):
     test_in_args.mapfeat2align = [sb_resources.get_one("d g", "paths")]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "9fece109249f4d787c13e6fb2742843d"
+    assert hf.string2hash(out) == "c1359470ad0916902c4e96facd088378"
 
 
 # ##############################################  '-ns', '--num_seqs'  ############################################### #
@@ -534,7 +534,7 @@ def test_reverse_transcribe_ui(capsys, alb_resources, hf):
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
-hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3f530f70e2765f9ab2"),
+hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "28c76bfc1ae74b2a55c3044287e074a8"),
           ("nexus", "49bf9b3f56104e4f19048523d725f025"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
           ("phylipr", "5064c1d6ae6192a829972b7ec0f129ed"), ("phylipss", "4bd927145de635c429b2917e0a1db176"),
           ("phylipsr", "b46b57ede57f12c3c3b906681882f81a"), ("stockholm", "5d9a03d9e1b4bf72d991257d3a696306"),
@@ -653,7 +653,7 @@ def test_translate_ui(capsys, alb_resources, hf):
     test_in_args.translate = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "625f68463c93310015c6f43100c6b96e"
+    assert hf.string2hash(out) == "542794541324d74ff636eaf4ee5e6b1a"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
@@ -666,12 +666,12 @@ def test_trimal_ui(capsys, alb_resources, hf):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
+    assert hf.string2hash(out) == "b5cb0f31ab3bed2cf93fb9c1eac52be7"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
+    assert hf.string2hash(out) == "b5cb0f31ab3bed2cf93fb9c1eac52be7"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)
