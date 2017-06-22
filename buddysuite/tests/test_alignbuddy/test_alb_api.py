@@ -687,6 +687,20 @@ def test_map_features2alignment(key, next_hash, alb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash, tester.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
+# ###########################################  '-pi', '--percent_id' ############################################ #
+def test_percent_id(alb_resources, hf):
+    alignbuddy = alb_resources.get_one("o p s")
+    alignbuddy = Alb.percent_id(alignbuddy)
+
+    assert alignbuddy.alignments[0].percent_ids
+    assert alignbuddy.alignments[0].percent_ids["Mle-Panxα12"]["Mle-Panxα8"] == 0.47877358490566035
+
+    alignbuddy = alb_resources.get_one("o d s")
+    Alb.percent_id(alignbuddy)
+    assert alignbuddy.alignments[0].percent_ids
+    assert alignbuddy.alignments[0].percent_ids["Mle-Panxα9"]["Mle-Panxα11"] == 0.5563725490196079
+
+
 # ###########################################  '-oi', '--order_ids' ############################################ #
 hashes = [('o d g', '8f1846922f3c4d955c42964ba0c24649', '982e66fa5eeba8de5c570a770042ec10'),
           ('o d n', '132757da01b3caf174d024efdb2c3acd', '286bac7a213997924203622c3357457c'),

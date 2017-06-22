@@ -249,8 +249,12 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             elif max_processes < 1:
                 max_processes = 1
 
-        max_processes = max_processes if max_processes < len(iterable) else len(iterable)
-
+        if hasattr(iterable, '__len__'):  # In case a generator is being passed in
+            max_processes = max_processes if max_processes < len(iterable) else len(iterable)
+            iter_len = len(iterable)
+        else:
+            max_processes = max_processes
+            iter_len = "???"
         running_processes = 0
         child_list = []
         start_time = round(time())
@@ -260,7 +264,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             d_print.write("Running function %s() on %s cores\n" % (function.__name__, max_processes))
         # fire up the multi-core!!
         if not quiet:
-            d_print.write("\tJob 0 of %s" % len(iterable))
+            d_print.write("\tJob 0 of %s" % iter_len)
 
         for next_iter in iterable:
             if type(iterable) is dict:
@@ -272,7 +276,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                 if running_processes < max_processes:
                     # Start new process
                     if not quiet:
-                        d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
+                        d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
                     if func_args:
                         p = Process(target=function, args=(next_iter, func_args))
@@ -297,14 +301,14 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                         if not quiet:
                             if (start_time + elapsed) < round(time()):
                                 elapsed = round(time()) - start_time
-                                d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
+                                d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
                         if running_processes < max_processes:
                             break
 
         # wait for remaining processes to complete --> this is the same code as the processor wait loop above
         if not quiet:
-            d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
+            d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
         while len(child_list) > 0:
             for i in range(len(child_list)):
@@ -318,11 +322,11 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             if not quiet:
                 if (start_time + elapsed) < round(time()):
                     elapsed = round(time()) - start_time
-                    d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (len(iterable), pretty_time(elapsed),
+                    d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
                                                                                len(child_list)))
 
         if not quiet:
-            d_print.write("\tDONE: %s jobs in %s\n" % (len(iterable), pretty_time(elapsed)))
+            d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
         return
 
@@ -1868,6 +1872,9 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                            "choices": ["rev"],
                            "help": "Sort all sequences in an alignment by id in alpha-numeric order. "
                                    "Pass in the word 'rev' to reverse order"},
+             "percent_id": {"flag": "pi",
+                             "action": "store_true",
+                             "help": "Print a matrix of percent id among sequences in the alignment"},
              "pull_records": {"flag": "pr",
                               "nargs": "+",
                               "action": "append",

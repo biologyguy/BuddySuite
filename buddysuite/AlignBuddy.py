@@ -1265,6 +1265,31 @@ def order_ids(alignbuddy, reverse=False):
     return alignbuddy
 
 
+def percent_id(alignbuddy):
+    """
+    Pairwise comparison of all sequences in the alignment, returning a matrix of percent match (exact).
+    Note that the matrix itself is appended to the alignment objects, and does not alter the actual sequences at all
+    :param alignbuddy:
+    :return:
+    """
+    for alignment in alignbuddy.alignments:
+        matrix = OrderedDict()
+        for i, rec1 in enumerate(alignment):
+            matrix.setdefault(rec1.id, OrderedDict())
+            for rec2 in alignment[i+1:]:
+                matrix.setdefault(rec2.id, OrderedDict())
+                regex = "^%s$|^%s$" % (rec1.id, rec2.id)
+                comp = pull_records(make_copy(alignbuddy), regex).records()
+                len_align = len(comp[0].seq)
+                id_counter = 0
+                for pair in zip(list(comp[0].seq), list(comp[1].seq)):
+                    id_counter += 1 if len(set(pair)) == 1 else 0
+                matrix[rec1.id][rec2.id] = id_counter / len_align
+                matrix[rec2.id][rec1.id] = id_counter / len_align
+        alignment.percent_ids = matrix
+    return alignbuddy
+
+
 def pull_records(alignbuddy, regex, description=False):
     """
     Retrieves rows with names/IDs matching a search pattern
@@ -1962,6 +1987,26 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
         reverse = True if in_args.order_ids[0] else False
         _print_aligments(order_ids(alignbuddy, reverse=reverse))
         _exit("order_ids")
+
+    # Percent IDs
+    if in_args.percent_id:
+        alignbuddy = percent_id(alignbuddy)
+        output = ""
+        for indx, alignment in enumerate(alignbuddy.alignments):
+            output += "### Alignment %s ###\n\t" % (indx + 1)
+            for id1 in alignment.percent_ids:
+                output += "%s\t" % id1
+
+            output = output.strip() + "\n"
+            for id1 in alignment.percent_ids:
+                output += "%s\t" % id1
+                for id2 in alignment.percent_ids:
+                    output += "\t" if id1 == id2 else "%s\t" % round(alignment.percent_ids[id1][id2], 3)
+                output = output.strip() + "\n"
+            output = output.strip() + "\n\n"
+        output = output.strip() + "\n"
+        print(output)
+        _exit("percent_ids")
 
     # Pull records
     if in_args.pull_records:
