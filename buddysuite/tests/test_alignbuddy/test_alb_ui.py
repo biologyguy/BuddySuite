@@ -487,6 +487,19 @@ def test_order_ids_ui(capsys, alb_resources, hf):
     assert hf.string2hash(out) == "d4dcdc5059fd82c6b9cc44a66770b801"
 
 
+# ##################### '-pi', '--percent_id' ###################### ##
+def test_percent_id_ui(capsys, alb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.percent_id = True
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "8d8a52ebeacf68069773784162cf6d54"
+
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "55553113f5ee206041f085488029d4b5"
+
+
 # ##################### '-pr', '--pull_records' ###################### ##
 def test_pull_records_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
