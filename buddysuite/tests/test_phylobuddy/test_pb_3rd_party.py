@@ -29,7 +29,8 @@ def test_raxml_inputs_nuc(alb_resources, hf):
     tester = Pb.generate_tree(tester, 'raxml')
     assert hf.buddy2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
                                      '706ba436f8657ef3aee7875217dd07c0', '1cede6c576bb88125e2387d850f813ab',
-                                     '3280f0b404d62fbedd2e6090cfd6fedc', 'b954440b4baa338eb4a63b0a5a7f7942']
+                                     '3280f0b404d62fbedd2e6090cfd6fedc', 'b954440b4baa338eb4a63b0a5a7f7942',
+                                     '629fa27f6e636c137257abc6a8a40956']
 
 
 def test_raxml_inputs_quiet(alb_resources, hf):
@@ -37,7 +38,8 @@ def test_raxml_inputs_quiet(alb_resources, hf):
     tester = Pb.generate_tree(tester, 'raxml', quiet=True)
     assert hf.buddy2hash(tester) in ['7569f9f6c7f8079579bfb77291b99616', '4e083fc6d8b4f4342674efd93d5e313c',
                                      '706ba436f8657ef3aee7875217dd07c0', '1cede6c576bb88125e2387d850f813ab',
-                                     '3280f0b404d62fbedd2e6090cfd6fedc', 'b954440b4baa338eb4a63b0a5a7f7942']
+                                     '3280f0b404d62fbedd2e6090cfd6fedc', 'b954440b4baa338eb4a63b0a5a7f7942',
+                                     '629fa27f6e636c137257abc6a8a40956']
 
 
 def test_raxml_inputs_pep(alb_resources, hf):
@@ -54,7 +56,7 @@ def test_raxml_multi_param(alb_resources, hf):
     assert hf.buddy2hash(tester) in ['08fa932a0cbb33d936ef4c8aef3c0095', '53ea2002e19d1d88c684f0ddc02de187',
                                      '02e5ea7b756b68b8622636ba7e28e15b', 'c24b5e9c1899246b9a459a61efe0aad5',
                                      '1999ef930c0d6cadbe5844b7c6355029', 'ead385a55d3cad48ecfdd1ebddb00b8b',
-                                     'ae6e53a6e7c03786928b087a15e0435e']
+                                     'ae6e53a6e7c03786928b087a15e0435e', '135f244c3de9ba417fe685715fef6807']
 
 
 def test_raxml_multiple_searches(alb_resources, hf):
@@ -62,7 +64,8 @@ def test_raxml_multiple_searches(alb_resources, hf):
     tester = Pb.generate_tree(tester, 'raxml', '-N 3')
     assert hf.buddy2hash(tester) in ['76356987f7e2368cdf13c42567cb7453', 'ee223e46a9f9753203553e6fd7473ec9',
                                      'b3a8359c62e9d29b952782df53a4782a', '807de55171690b2af1b724d86390cbc7',
-                                     '46e0a6d38e3c44b93a04d2b5b7f4aca1', 'ecf0cabfab48bc2449ca3e43645b3d36']
+                                     '46e0a6d38e3c44b93a04d2b5b7f4aca1', 'ecf0cabfab48bc2449ca3e43645b3d36',
+                                     'ce60f6627ff665994f0c6836d7469632']
 
 
 # def test_raxml_multiple_trees(alb_resources, hf):
