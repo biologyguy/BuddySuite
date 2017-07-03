@@ -121,6 +121,24 @@ def test_consensus(alb_resources, hf, key, next_hash):
     assert hf.buddy2hash(tester) == next_hash
 
 
+# ######################################  '-dinv', '--delete_invariant_sites' ####################################### #
+def test_delete_invariant_sites(alb_resources, hf, alb_odd_resources):
+    tester = Alb.AlignBuddy(alb_odd_resources['dna']['single']['ambiguous'])
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "27233a416437eabc72aa5d57cb695036"
+
+    tester = alb_resources.get_one("o p py")
+    tester = Alb.delete_invariant_sites(tester, consider_ambiguous=False)
+    assert hf.buddy2hash(tester) == "f0b16bb8133bfc9e29ad43bdfc4ad2ee"
+
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "c13031016c1f7382e808bd4e68d8f406"
+
+    tester.alignments.append([])  # Catch empty alignment
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "c13031016c1f7382e808bd4e68d8f406"
+
+
 # ###########################################  '-dr', '--delete_records' ############################################ #
 hashes = [('o d g', 'c22d5cbef500d8baed8cead1d5fe9628'), ('o d n', '355a98dad5cf382797eb907e83940978'),
           ('o d py', 'fe9a2776558f3fe9a1732c777c4bc9ac'), ('o d s', '35dc92c4f4697fb508eb1feca43d9d75'),

@@ -245,6 +245,16 @@ def test_consensus_ui(capsys, alb_resources, hf):
     assert hf.string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
 
 
+# ######################################  '-dinv', '--delete_invariant_sites' ####################################### #
+def test_delete_invariant_sites_ui(capsys, hf, alb_odd_resources):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_invariant_sites = [[]]
+    tester = Alb.AlignBuddy(alb_odd_resources['dna']['single']['ambiguous'])
+    Alb.command_line_ui(test_in_args, tester, skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "27233a416437eabc72aa5d57cb695036"
+
+
 # ##################### '-dr', '--delete_records' ###################### ##
 def test_delete_records_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)

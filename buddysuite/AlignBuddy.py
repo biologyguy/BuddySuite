@@ -666,6 +666,74 @@ def consensus_sequence(alignbuddy):
     return alignbuddy
 
 
+def delete_invariant_sites(alignbuddy, consider_ambiguous=True):
+    """
+    Deletes columns where all residues are the same, either explicitly or ambiguously.
+    :param alignbuddy: AlignBuddy object
+    :param consider_ambiguous: Specify how ambiguous residues are treated ('True' means they can overlap
+    the standard code and may be deleted)
+    :return: The modified AlignBuddy object
+    :rtype: AlignBuddy
+    """
+    from Bio.Data import IUPACData
+    nucs = {'A', 'U', 'C', 'G'} if alignbuddy.alpha == IUPAC.ambiguous_rna else {'A', 'T', 'C', 'G'}
+    ambiguiity_codes = IUPACData.ambiguous_rna_values if alignbuddy.alpha == IUPAC.ambiguous_rna \
+        else IUPACData.ambiguous_dna_values
+
+    for alignment_index, alignment in enumerate(alignbuddy.alignments):
+        keep_columns = []
+        if not alignment:
+            continue  # Prevent crash if the alignment doesn't have any records in it
+
+        for col_indx in range(alignment.get_alignment_length()):
+            col = set([i.upper() for i in alignment[:, col_indx]])
+
+            # Fully invariant columns discarded
+            if len(col) == 1:
+                continue
+
+            # Simplest scenario, there are differences in the column and we don't care about ambiguous residues
+            elif not consider_ambiguous:
+                keep_columns.append(col_indx)
+                continue
+
+            # Everything else takes ambiguity into consideration
+            # Discard fully ambiguous residues
+            for i in ["X", "-", ".", "*"]:
+                col.discard(i)
+            if alignbuddy.alpha != IUPAC.protein:
+                col.discard("N")
+
+            # Again, fully invariant columns discarded
+            if len(col) <= 1:
+                pass
+            elif alignbuddy.alpha == IUPAC.protein:
+                # No partially ambiguous protein characters considered
+                keep_columns.append(col_indx)
+            # Now it gets trickier... There are many ambiguities possible in nucleotide seqs
+            elif len(nucs - col) <= 2:
+                # At least two standard residues are present
+                keep_columns.append(col_indx)
+            else:
+                # If we've gotten this far, then there must be at least one ambiguous character
+                # Go through each standard residue to see if all col residues can be matched to it
+                invariant = False
+                for i in nucs:
+                    counter = 0
+                    for j in col:
+                        if i in ambiguiity_codes[j]:
+                            counter += 1
+                    if counter == len(col):
+                        invariant = True
+                        break
+                if not invariant:
+                    keep_columns.append(col_indx)
+        keep_columns = [str(i + 1) for i in keep_columns]
+        alignment = extract_regions(AlignBuddy([alignment]), ",".join(keep_columns)).alignments[0]
+        alignbuddy.alignments[alignment_index] = alignment
+    return alignbuddy
+
+
 def delete_records(alignbuddy, regex):
     """
     Deletes rows with names/IDs matching a search pattern
@@ -1778,6 +1846,14 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
     if in_args.consensus:
         _print_aligments(consensus_sequence(alignbuddy))
         _exit("consensus")
+
+    # Delete invariant sites
+    if in_args.delete_invariant_sites:
+        ambig = False if in_args.delete_invariant_sites[0] \
+                        and in_args.delete_invariant_sites[0].startswith("amb") else True
+        alignbuddy = delete_invariant_sites(alignbuddy, ambig)
+        _print_aligments(alignbuddy)
+        _exit("delete_invariant_sites")
 
     # Delete records
     if in_args.delete_records:
