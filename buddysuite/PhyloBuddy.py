@@ -677,7 +677,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
-                if re.search('-b ([0-9]+)', params):
+                if re.search('-b [0-9]+', params) or re.search('-x [0-9]+', params):
                     with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
