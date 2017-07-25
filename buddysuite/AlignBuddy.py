@@ -871,6 +871,16 @@ def extract_feature_sequences(alignbuddy, patterns):
                 for feat in rec.features:
                     if re.search(pat, feat.type):
                         matches.append([int(feat.location.start), int(feat.location.end)])
+                    else:
+                        breakout = False
+                        for qual_type, quals in feat.qualifiers.items():
+                            for qual in quals:
+                                if re.search(pat, qual):
+                                    matches.append([int(feat.location.start), int(feat.location.end)])
+                                    breakout = True
+                                    break
+                            if breakout:
+                                break
             if matches:
                 matches = sorted(matches, key=lambda x: x[0])
                 start, end = matches[0]

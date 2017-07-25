@@ -1765,10 +1765,14 @@ def extract_feature_sequences(seqbuddy, patterns):
     :return: Modified SeqBuddy object
     :rtype: SeqBuddy
     """
-    def check_single_patterns(_feature):
-        for pat in single_patterns:
-            if re.search(pat, _feature.type):
-                return True
+    def check_pattern(_feature, _pattern):
+        if re.search(_pattern, _feature.type):
+            return True
+        else:
+            for qual_type, quals in feature.qualifiers.items():
+                for qual in quals:
+                    if re.search(_pattern, qual):
+                        return True
         return False
 
     if type(patterns) == str:
@@ -1786,7 +1790,8 @@ def extract_feature_sequences(seqbuddy, patterns):
     for rec in seqbuddy.records:
         keep_ranges = []
         for feature in rec.features:
-            if check_single_patterns(feature):
+            check_single_patterns = [check_pattern(feature, pat) for pat in single_patterns]
+            if True in check_single_patterns:
                 if type(feature.location) == CompoundLocation:
                     keep_ranges += [[int(x.start), int(x.end)] for x in feature.location.parts]
                 else:
@@ -1795,11 +1800,11 @@ def extract_feature_sequences(seqbuddy, patterns):
             start, end = len(rec.seq), 0
             pat1, pat2 = False, False
             for feature in rec.features:
-                if re.search(rang_pat[0], feature.type):
+                if check_pattern(feature, rang_pat[0]):
                     start = int(feature.location.start) if int(feature.location.start) < start else start
                     end = int(feature.location.end) if int(feature.location.end) > end else end
                     pat1 = True
-                if re.search(rang_pat[1], feature.type):
+                if check_pattern(feature, rang_pat[1]):
                     start = int(feature.location.start) if int(feature.location.start) < start else start
                     end = int(feature.location.end) if int(feature.location.end) > end else end
                     pat2 = True
