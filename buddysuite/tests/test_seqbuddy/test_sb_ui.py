@@ -838,6 +838,20 @@ def test_isoelectric_point_ui(capsys, sb_resources, hf):
     assert err == "ID\tpI\n"
 
 
+# ######################  '-kt', '--keep_taxa' ###################### #
+def test_keep_taxa_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.keep_taxa = [["Lobata"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "9d82eb23e33fd015e934a06265fbf25f"
+
+    test_in_args.keep_taxa = [["leidyi"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "5c97a37b42e189b5155e45ee78974822"
+
+
 # ######################  '-li', '--list_ids' ###################### #
 def test_list_ids_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)

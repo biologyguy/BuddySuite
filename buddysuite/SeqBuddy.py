@@ -2485,6 +2485,40 @@ def isoelectric_point(seqbuddy):
     return seqbuddy
 
 
+def keep_taxa(seqbuddy, taxa):
+    """
+    Pull out records that are annotated with a particular taxon
+    :param seqbuddy:
+    :param taxa: List of exact matches for taxonomic designation (will sift through entire taxon tree)
+    :return:
+    """
+    if type(taxa) == str:
+        taxa = [taxa]
+
+    taxa = [t.lower() for t in taxa]
+    keep_list = []
+    for rec in seqbuddy.records:
+        if 'taxonomy' in rec.annotations:
+            taxonomy = [x.lower() for x in rec.annotations['taxonomy']]
+            breakout = False
+            for taxon in taxa:
+                if taxon in taxonomy:
+                    keep_list.append(rec)
+                    breakout = True
+                    break
+            if breakout:
+                continue
+
+        if 'organism' in rec.annotations:
+            for taxon in taxa:
+                if taxon in rec.annotations['organism'].lower():
+                    keep_list.append(rec)
+                    break
+
+    seqbuddy.records = keep_list
+    return seqbuddy
+
+
 def lowercase(seqbuddy):
     """
     Converts all sequence characters to lowercase.
@@ -4700,6 +4734,12 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         for rec in seqbuddy.records:
             br._stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
         _exit("isoelectric_point")
+
+    # keep taxon
+    if in_args.keep_taxa:
+        seqbuddy = keep_taxa(seqbuddy, in_args.keep_taxa[0])
+        _print_recs(seqbuddy)
+        _exit("keep_taxa")
 
     # List features
     if in_args.list_features:
