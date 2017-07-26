@@ -252,7 +252,7 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
 def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
-    assert hf.buddy2hash(tester) == "ff3d1e474b1b1b76fdda02ebcb225cff"
+    assert hf.buddy2hash(tester) == "a4ab6b2a2ddda38a4d04abc18c54d18b"
 
 
 def test_generate_alignments_edges1(sb_resources):

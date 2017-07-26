@@ -197,7 +197,7 @@ def test_back_translate_ui(capsys, sb_resources, hf):
     test_in_args.back_translate = [["human", "o"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "b6bcb4e5104cb202db0ec4c9fc2eaed2"
+    assert hf.string2hash(out) == "0899fb80a7c7cdd0abb3c839ff9c41b6"
 
     with pytest.raises(TypeError)as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
@@ -412,7 +412,7 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     test_in_args.delete_records = ["full", "ML2"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "59e42a85336158c6c290d08899d9f2e7"
+    assert hf.string2hash(out) == "64049b9afd347f4507e264847e5f0500"
 
     temp_file = br.TempFile()
     with open(temp_file.path, "w", encoding="utf-8") as ofile:
@@ -807,14 +807,15 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.in_silico_digest = [[]]
 
-    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
+    Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert err == "Error: Please provide a list of enzymes you wish to cut your sequences with.\n"
 
     test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
-    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5539e56a557e545a4c16550a972acae6"
+    assert hf.string2hash(out) == "7a136d11d0fd17b9833bf26724a794e5", print(tester)
     assert err == "Warning: FooBR not a known enzyme\n"
 
     with pytest.raises(TypeError) as err:
@@ -1126,7 +1127,7 @@ def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
 
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     test_in_args.out_format = "fasta"
     Sb.command_line_ui(test_in_args, seqbuddy, True)
@@ -1490,12 +1491,12 @@ def test_transmembrane_domains_ui(capsys, sb_resources, hf, monkeypatch):
 
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     test_in_args.transmembrane_domains = ["Some random job id"]
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("p f"))
     Sb.command_line_ui(test_in_args, seqbuddy, True)

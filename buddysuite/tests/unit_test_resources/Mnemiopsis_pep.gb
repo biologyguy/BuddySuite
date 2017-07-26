@@ -4,8 +4,9 @@ ACCESSION   Mle-Panxα12
 VERSION     Mle-Panxα12
 KEYWORDS    .
 SOURCE      
-  ORGANISM  . . .
-            .
+  ORGANISM  Mnemiopsis leidyi
+            Eukaryota; Opisthokonta; Metazoa; Eumetazoa; Ctenophora; 
+            Tentaculata; Lobata; Bolinopsidae; Mnemiopsis
 FEATURES             Location/Qualifiers
      CDS             1..403
                      /created_by="User"
@@ -29,8 +30,9 @@ ACCESSION   Mle-Panxα9
 VERSION     Mle-Panxα9
 KEYWORDS    .
 SOURCE      
-  ORGANISM  . . .
-            .
+  ORGANISM  Mnemiopsis leidyi
+            Eukaryota; Opisthokonta; Metazoa; Eumetazoa; Ctenophora;
+            Tentaculata; Lobata; Bolinopsidae; Mnemiopsis
 FEATURES             Location/Qualifiers
      CDS             1..401
                      /created_by="User"
@@ -58,7 +60,7 @@ ACCESSION   Mle-Panxα10B
 VERSION     Mle-Panxα10B
 KEYWORDS    .
 SOURCE      
-  ORGANISM  . . .
+  ORGANISM  Mnemiopsis leidyi
             .
 FEATURES             Location/Qualifiers
      CDS             1..359

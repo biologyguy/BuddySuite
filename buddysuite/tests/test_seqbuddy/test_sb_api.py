@@ -143,7 +143,7 @@ def test_annotate_out_of_range(sb_resources, hf):
 def test_annotate_protein(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Sb.annotate(tester, 'misc_feature', (1, 100))
-    assert hf.buddy2hash(tester) == '93a248cacdaa1a58697c16827fe8709d'
+    assert hf.buddy2hash(tester) == 'e350f5d02a970332344715a6822c4ab5'
 
 
 def test_annotate_unrec_strand(capsys, sb_resources):
@@ -166,13 +166,13 @@ def test_ave_seq_length_pep(sb_resources):
 # ######################  '-btr', '--back_translate' ###################### #
 # Only fasta and genbank
 hashes = [('p f', 'human', '1b14489a78bfe8255c777138877b9648', '5e42effd0bb67445200263f4bf59dbeb'),
-          ('p g', 'human', 'b6bcb4e5104cb202db0ec4c9fc2eaed2', '24aac218bb81fe7c6d6e5224035f2efd'),
+          ('p g', 'human', '0899fb80a7c7cdd0abb3c839ff9c41b6', 'c717f0c902793d39490ae9f73e53990b'),
           ('p f', 'yeast', '859ecfb88095f51bfaee6a1d1abeb50f', '114b6c4f0a29db275d7832318870bcae'),
-          ('p g', 'yeast', 'ba5c286b79a3514fba0b960ff81af25b', '6349360ff0d24c3876b8970828ee2ea9'),
+          ('p g', 'yeast', 'a98c276af6ed064feb84f9eee8676449', 'ccab4e7618f9b04704c3fd6e52cca47f'),
           ('p f', 'ecoli', '952a91a4506afb57f27136aa1f2a8af9', '592d09df34a6c34caa2d0ff9dbc54930'),
-          ('p g', 'ecoli', '40c4a3e08c811b6bf3be8bedcb5d65a0', 'ee0cc1ac1a3577c25e7d46d3b227fc7b'),
+          ('p g', 'ecoli', '64bb1cfb9be3bd96affa13de525e3867', '5a06b4d87e487bb9c460589d920f9837'),
           ('p f', 'mouse', '3a3ee57f8dcde25c99a655494b218928', 'eb29f87da4d022e276e19a71aa03c469'),
-          ('p g', 'mouse', 'bc9f1ec6ec92c30b5053cd9bb6bb6f53', 'f4f6f8b14446417f112187f15d1f5d8c')]
+          ('p g', 'mouse', 'ef5420f9f0b459b9cff1bd2ebb1a3c64', '193e2d7dde93c93d8d83ea40cd99fb25')]
 
 
 @pytest.mark.parametrize("key,organism,opt_hash,rand_hash", hashes)
@@ -716,7 +716,7 @@ def test_delete_records2(sb_resources, hf):
     assert len(tester.records) == len(sb_resources.get_one("p g").records)
 
     tester = Sb.delete_records(sb_resources.get_one("p g"), 'ML2', description=True)
-    assert hf.buddy2hash(tester) == "59e42a85336158c6c290d08899d9f2e7", print(tester)
+    assert hf.buddy2hash(tester) == "64049b9afd347f4507e264847e5f0500"
 
 
 # #####################  '-drp', '--delete_repeats' ###################### ##
@@ -763,46 +763,24 @@ def test_back_transcribe_pep_exception(sb_resources):  # Asserts that a TypeErro
 
 
 # ######################  '-efs', '--extract_feature_sequences' ###################### #
-def test_extract_feature_sequences(sb_resources, hf):
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, "CDS")
-    assert hf.buddy2hash(tester) == "956b6a14e02c9c2a2faa11ffb7e2bbed"
+hashes = [('CDS', '956b6a14e02c9c2a2faa11ffb7e2bbed'), (["TMD"], 'd23b3ecdd5d432518c20572e7af03dc1'),
+          (["TMD", "splice_a"], '344ffeb8e86442e0ae7e38d5b49072e1'), (["TMD2:TMD3"], 'fb54774a4a7d35dfe43e4ae31de0f44b'),
+          (["TMD3:TMD2"], 'fb54774a4a7d35dfe43e4ae31de0f44b'), (["TMD2:foo"], '3cdbd5c8790f12871f8e04e40e315c93'),
+          ("foo", '3cdbd5c8790f12871f8e04e40e315c93'), ([], '3cdbd5c8790f12871f8e04e40e315c93')]
 
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, ["TMD"])
-    assert hf.buddy2hash(tester) == "d23b3ecdd5d432518c20572e7af03dc1"
 
+@pytest.mark.parametrize("args,next_hash", hashes)
+def test_extract_feature_sequences(args, next_hash, sb_resources, hf):
     tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, ["TMD", "splice_a"])
-    assert hf.buddy2hash(tester) == "344ffeb8e86442e0ae7e38d5b49072e1"
-
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, ["TMD2:TMD3"])
-    assert hf.buddy2hash(tester) == "fb54774a4a7d35dfe43e4ae31de0f44b"
-
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, ["TMD3:TMD2"])
-    assert hf.buddy2hash(tester) == "fb54774a4a7d35dfe43e4ae31de0f44b"
-
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, ["TMD2:foo"])
-    assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
-
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, "foo")
-    assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
-
-    tester = sb_resources.get_one("d g")
-    tester = Sb.extract_feature_sequences(tester, [])
-    assert hf.buddy2hash(tester) == "3cdbd5c8790f12871f8e04e40e315c93"
-
+    tester = Sb.extract_feature_sequences(tester, args)
+    assert hf.buddy2hash(tester) == next_hash
 
 # ######################  '-er', '--extract_regions' ###################### #
 hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a657f6c3d73c67cd5a'),
           ('d n', '4063ab66ced2fafb080ceba88965d2bb'), ('d py', '33e6347792aead3c454bac0e05a292c6'),
           ('d pr', '9a5c491aa293c6cedd48c4c249d55aff'), ('d s', 'cd8d857feba9b6e459b8a9d56f11b7f5'),
           ('d q', "c312424429d3204f2e2c4cd42907d3d5"),
-          ('p f', '2586d1e3fc283e6f5876251c1c57efce'), ('p g', 'a776cd3651db4f0533004be4ff058836'),
+          ('p f', '2586d1e3fc283e6f5876251c1c57efce'), ('p g', 'cf5da50e9fdb3690d8d2732492c187e9'),
           ('p n', '6a27222d8f60ee8496cbe0c41648a116'), ('p py', 'c9a1dd913190f95bba5eca6a89685c75'),
           ('p pr', '6f579144a43dace285356ce6eb326d3b'), ('p s', '727099e0abb89482760eeb20f7edd0cd')]
 
@@ -810,90 +788,52 @@ hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a6
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_extract_regions_multiformat(key, next_hash, sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one(key), "50:300")
-    assert hf.buddy2hash(tester) == next_hash, print(tester)
+    assert hf.buddy2hash(tester) == next_hash
 
     tester = Sb.extract_regions(sb_resources.get_one(key), "300:50")
-    assert hf.buddy2hash(tester) == next_hash, print(tester)
+    assert hf.buddy2hash(tester) == next_hash
+
+hashes = [('0', 'a67e8747d5c7fb9e4077b5d9675009b8'), ('1', 'a67e8747d5c7fb9e4077b5d9675009b8'),
+          ('-10000000', 'a67e8747d5c7fb9e4077b5d9675009b8'), (',1/', 'a67e8747d5c7fb9e4077b5d9675009b8'),
+          ('1000000', '22822e8d5c7b9d087b3c80303dd3bcf0'), ('2,5,9,-5', '989c67ea5e2c1036b36b546004076109')]
 
 
-def test_extract_regions_singlets(sb_resources, hf):
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "0")
-    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
+@pytest.mark.parametrize("args,next_hash", hashes)
+def test_extract_regions_singlets(args, next_hash, sb_resources, hf):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), args)
+    assert hf.buddy2hash(tester) == next_hash
 
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1")
-    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10000000")
-    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), ",1/")
-    assert hf.buddy2hash(tester) == "0c42744a90a3d61cddf72e53f0ae2ffd"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1000000")
-    assert hf.buddy2hash(tester) == "b296c7a78b74e9217f2208c08376037f"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "2,5,9,-5")
-    assert hf.buddy2hash(tester) == "45b9e49b9a218ba402a333f86041c11e"
+hashes = [('0:10', '5873fb4b611edf38f652c756c3861c05'), ('1:10', '5873fb4b611edf38f652c756c3861c05'),
+          ('10:1', '5873fb4b611edf38f652c756c3861c05'), (':10', '5873fb4b611edf38f652c756c3861c05'),
+          ('-10:', '7869fea073804e8d023201024783bd2b'), ('40:75,89:100,432:-45', '487da42bfd6484620f3574890234b849')]
 
 
-def test_extract_regions_ranges(sb_resources, hf):
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "0:10")
-    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
+@pytest.mark.parametrize("args,next_hash", hashes)
+def test_extract_regions_ranges(args, next_hash, sb_resources, hf):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), args)
+    assert hf.buddy2hash(tester) == next_hash
 
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10")
-    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "10:1")
-    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), ":10")
-    assert hf.buddy2hash(tester) == "f09673e798cbaf6233f543862118dd70"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-10:")
-    assert hf.buddy2hash(tester) == "34bef222aabbae8b33a5b59bc5549533"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "40:75,89:100,432:-45")
-    assert hf.buddy2hash(tester) == "f58b56407e3594a1c4463924755d237e"
+hashes = [('1/50', '40a5e3b46fbd4467a2ec0deab675292f'), ('-1/50', '1bae9ec3fe61eba3f47343111228c124'),
+          ('1/-50', 'fc63bd3abb0a062ba8c2145b9391692b'), ('50/1', '0a8462e72f64fcd22544bb153b51b2b6'),
+          ('50/25', 'a829efaf6997f6fa099930968ed543fa'), ('1:5/50', '7abf1717abc47c93dcee30b724ce0714'),
+          ('-5:/50', '25d9ae5a167d9b1d828f710c2d4a5257'), (':5/50', '7abf1717abc47c93dcee30b724ce0714'),
+          ('1:10,1/50,-1', '371f31b2d61d515f09aafb9f9105652c')]
 
 
-def test_extract_regions_mth_of_nth(sb_resources, hf):
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/50")
-    assert hf.buddy2hash(tester) == "96ffa4da47420cd51deed2dbf13d2697"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-1/50")
-    assert hf.buddy2hash(tester) == "61c475d4047621ccfbb4be10df8931cb"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1/-50")
-    assert hf.buddy2hash(tester) == "5df123c113d03f1231650fd713d599b7"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/1")
-    assert hf.buddy2hash(tester) == "7a8e25892dada7eb45e48852cbb6b63d"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "50/25")
-    assert hf.buddy2hash(tester) == "db476a12b91bb48582b065f6e18dcb35"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:5/50")
-    assert hf.buddy2hash(tester) == "2a3c82874b5c0b93b31a7e24a4667ec7"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "-5:/50")
-    assert hf.buddy2hash(tester) == "03c54a77aefd4eb6beb644d75ae36ac4"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), ":5/50")
-    assert hf.buddy2hash(tester) == "2a3c82874b5c0b93b31a7e24a4667ec7"
-
-    tester = Sb.extract_regions(sb_resources.get_one("p g"), "1:10,1/50,-1")
-    assert hf.buddy2hash(tester) == "9bfe465a8051dba6f6c7f176aa1f67ab"
+@pytest.mark.parametrize("args,next_hash", hashes)
+def test_extract_regions_mth_of_nth(args, next_hash, sb_resources, hf):
+    tester = Sb.extract_regions(sb_resources.get_one("p g"), args)
+    assert hf.buddy2hash(tester) == next_hash
 
 
-def test_extract_regions_fastq(sb_resources, hf):
-    tester = Sb.extract_regions(sb_resources.get_one("d q"), "2,5,9,-5")
-    assert hf.buddy2hash(tester) == "5fded3dfa757a5ed90de0461c5095d7b", print(tester)
+hashes = [('2,5,9,-5', '5fded3dfa757a5ed90de0461c5095d7b'), ('10:45,60:75,90:-5', 'e014aa8b4d8cf9447d4a45cc4a1ada9c'),
+          ('1:3,1/20,-1', '4258dfc66a07e849ac9c396aa2763c71')]
 
-    tester = Sb.extract_regions(sb_resources.get_one("d q"), "10:45,60:75,90:-5")
-    assert hf.buddy2hash(tester) == "e014aa8b4d8cf9447d4a45cc4a1ada9c", print(tester)
 
-    tester = Sb.extract_regions(sb_resources.get_one("d q"), "1:3,1/20,-1")
-    assert hf.buddy2hash(tester) == "4258dfc66a07e849ac9c396aa2763c71", print(tester)
+@pytest.mark.parametrize("args,next_hash", hashes)
+def test_extract_regions_fastq(args, next_hash, sb_resources, hf):
+    tester = Sb.extract_regions(sb_resources.get_one("d q"), args)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 def test_extract_regions_edges(sb_resources):
@@ -956,18 +896,19 @@ def test_find_pattern(sb_resources, hf):
     assert hf.buddy2hash(tester) == "f2a07ced2523081ba54249ae30775a40"
     tester.out_format = "fasta"
     assert hf.buddy2hash(tester) == "9160702ded16a80db79886d9de1abdf2"
-    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T")
-    assert hf.buddy2hash(tester) == "57d80590f2e6596d33d5af936a584617"
-    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg")
-    assert hf.buddy2hash(tester) == "a13217987f5dd23f6fab71eb733271ff"
-    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATg{2}T", "tga.{1,6}tg", include_feature=False)
-    assert hf.buddy2hash(tester) == "2e02a8e079267bd9add3c39f759b252c"
-    tester = Sb.find_pattern(sb_resources.get_one("p g"), "[bz]{2}x{50,100}[bz]{2}", ambig=True)
-    assert hf.buddy2hash(tester) == "2436bf821ec894230a77f532d5b7a50a"
-    tester = Sb.find_pattern(sb_resources.get_one("d g"), "ATGGN{6}", ambig=True)
-    assert hf.buddy2hash(tester) == "22b29f5d3aa45d7a2c7c5f3fdff2e210"
-    tester = Sb.find_pattern(sb_resources.get_one("r f"), "AUGGN{6}", ambig=True)
-    assert hf.buddy2hash(tester) == "b7abcb4334232e38dfbac9f46234501a"
+
+hashes = [("d g", ['ATg{2}T'], {}, '57d80590f2e6596d33d5af936a584617'),
+          ("d g", ["ATg{2}T", "tga.{1,6}tg"], {}, 'a13217987f5dd23f6fab71eb733271ff'),
+          ("d g", ["ATg{2}T", "tga.{1,6}tg"], {'include_feature': False}, '2e02a8e079267bd9add3c39f759b252c'),
+          ("p g", ['[bz]{2}x{50,100}[bz]{2}'], {'ambig': True}, '0e8d9d1a4c9a20f140acbad901292246'),
+          ("d g", ['ATGGN{6}'], {'ambig': True}, '22b29f5d3aa45d7a2c7c5f3fdff2e210'),
+          ("r f", ['AUGGN{6}'], {'ambig': True}, 'b7abcb4334232e38dfbac9f46234501a')]
+
+
+@pytest.mark.parametrize("key,args,kwargs,next_hash", hashes)
+def test_find_pattern2(key, args, kwargs, next_hash, sb_resources, hf):
+    tester = Sb.find_pattern(sb_resources.get_one(key), *args, **kwargs)
+    assert hf.buddy2hash(tester) == next_hash
 
 
 # #####################  '-frp', '--find_repeats' ###################### ##
@@ -1117,7 +1058,7 @@ def test_isoelectric_point(sb_resources, hf):
         tester = Sb.isoelectric_point(Sb.clean_seq(tester))
         assert tester.to_dict()["Mle-Panxα12"].features[-1].qualifiers["value"] == 6.0117797852
         if tester.out_format == "gb":
-            assert hf.buddy2hash(tester) == "8bc299e31f436d192bf8cf8b7af671a8"
+            assert hf.buddy2hash(tester) == "39342fedfb3e43d6dea3e455e7e8bbb6", print(tester)
 
         with pytest.raises(TypeError):
             Sb.isoelectric_point(sb_resources.get_one("d f"))
@@ -1131,7 +1072,7 @@ hashes = [('d f', '25073539df4a982b7f99c72dd280bb8f', 'b831e901d8b6b1ba52bad797b
           ('d pr', '6e5542f41d17ff33afb530b4d07408a3', '52c23bd793c9761b7c0f897d3d757c12'),
           ('d s', 'b82538a4630810c004dc8a4c2d5165ce', '228e36a30e8433e4ee2cd78c3290fa6b'),
           ('p f', 'c10d136c93f41db280933d5b3468f187', '14227e77440e75dd3fbec477f6fd8bdc'),
-          ('p g', '7a8e25892dada7eb45e48852cbb6b63d', '7a8e25892dada7eb45e48852cbb6b63d'),
+          ('p g', '0a8462e72f64fcd22544bb153b51b2b6', '0a8462e72f64fcd22544bb153b51b2b6'),
           ('p n', '8b6737fe33058121fd99d2deee2f9a76', '17ff1b919cac899c5f918ce8d71904f6'),
           ('p py', '968ed9fa772e65750f201000d7da670f', 'aacda2f5d4077f23926400f74afa2f46'),
           ('p pr', 'ce423d5b99d5917fbef6f3b47df40513', 'e3dc2e0347f40fffec45d053f4f34c96'),
@@ -1158,7 +1099,7 @@ def test_make_ids_unique(sb_odd_resources, hf):
 
 # ######################  '-fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
-hashes = [('p f', 'a31e54081bf7cf594a1a48ddb298d748'), ('p g', 'a8f7c129cf57a746c20198bf0a6b9cf4'),
+hashes = [('p f', 'a31e54081bf7cf594a1a48ddb298d748'), ('p g', '98386831f03b40dbcbe52a6f5685a475'),
           ('p n', 'dc9ba63eabe524e7721c72523e288dab'), ('p py', 'fe0e5174ccfd87f97e90dcff6e7a94e6'),
           ('p pr', '0c40a1e59634b67f0ef13515024b72fb'), ('p s', 'a128d1b61939d2aee7fed1f1225d19e9')]
 
@@ -1192,10 +1133,10 @@ def test_map_features_nucl2prot_2(capsys, sb_resources, hf):
     Sb.rename(dna_tester, "α4", "A4")
 
     Sb.map_features_nucl2prot(Sb.make_copy(dna_tester), prot_tester, mode="list")
-    assert hf.buddy2hash(prot_tester) == "9fdb606ea65d6c050540a94137ae6e0d"
+    assert hf.buddy2hash(prot_tester) == "f7beb0fd652a9d1910ead5bf79120173"
 
     Sb.map_features_nucl2prot(Sb.make_copy(dna_tester), prot_tester, mode="key")
-    assert hf.buddy2hash(prot_tester) == "9fdb606ea65d6c050540a94137ae6e0d"
+    assert hf.buddy2hash(prot_tester) == "f7beb0fd652a9d1910ead5bf79120173"
     out, err = capsys.readouterr()
     assert hf.string2hash(err) == "6fd2b5f2a7a3995d3f49c4919c3358b0"
 
@@ -1322,7 +1263,7 @@ def test_molecular_weight(sb_resources, sb_odd_resources, hf):
     # Protein
     tester = Sb.molecular_weight(sb_resources.get_one("p g"))
     assert tester.molecular_weights['masses_ss'][0] == 45692.99
-    assert hf.buddy2hash(tester) == "fb1a66b7eb576c0584fc7988c45b6a18"
+    assert hf.buddy2hash(tester) == "6e3b7b4fda2e126d4c0214133f34209a"
 
     tester = sb_resources.get_one("d f")
     seq = str(tester.records[0].seq)
@@ -1354,7 +1295,7 @@ hashes = [('d f', 'b831e901d8b6b1ba52bad797bad92d14', 'b831e901d8b6b1ba52bad797b
           ('d pr', '52c23bd793c9761b7c0f897d3d757c12', '52c23bd793c9761b7c0f897d3d757c12'),
           ('d s', '228e36a30e8433e4ee2cd78c3290fa6b', '228e36a30e8433e4ee2cd78c3290fa6b'),
           ('p f', '14227e77440e75dd3fbec477f6fd8bdc', '14227e77440e75dd3fbec477f6fd8bdc'),
-          ('p g', 'd0297078b4c480a49b6da5b719310d0e', 'c6a788d8ea916964605ac2942c459c9b'),
+          ('p g', 'ae394ce8a346e2294a6981015a372916', 'd96a10c51bbfabb935164ca834997554'),
           ('p n', '17ff1b919cac899c5f918ce8d71904f6', '17ff1b919cac899c5f918ce8d71904f6'),
           ('p py', '968ed9fa772e65750f201000d7da670f', '968ed9fa772e65750f201000d7da670f'),
           ('p pr', 'ce423d5b99d5917fbef6f3b47df40513', 'ce423d5b99d5917fbef6f3b47df40513'),
@@ -1377,7 +1318,7 @@ hashes = [('d f', 'b831e901d8b6b1ba52bad797bad92d14', 'b831e901d8b6b1ba52bad797b
           ('d pr', '52c23bd793c9761b7c0f897d3d757c12', '52c23bd793c9761b7c0f897d3d757c12'),
           ('d s', '228e36a30e8433e4ee2cd78c3290fa6b', '228e36a30e8433e4ee2cd78c3290fa6b'),
           ('p f', '14227e77440e75dd3fbec477f6fd8bdc', '14227e77440e75dd3fbec477f6fd8bdc'),
-          ('p g', '7a8e25892dada7eb45e48852cbb6b63d', '9e7c2571db1386bba5983365ae235e1b'),
+          ('p g', '0a8462e72f64fcd22544bb153b51b2b6', '121ba21504e09c97cedb4f1fc4cf40bb'),
           ('p n', '17ff1b919cac899c5f918ce8d71904f6', '17ff1b919cac899c5f918ce8d71904f6'),
           ('p py', '968ed9fa772e65750f201000d7da670f', '968ed9fa772e65750f201000d7da670f'),
           ('p pr', 'ce423d5b99d5917fbef6f3b47df40513', 'ce423d5b99d5917fbef6f3b47df40513'),
@@ -1552,7 +1493,7 @@ def test_prosite_scan_run(sb_resources, hf, monkeypatch):
     Sb.delete_features(seqbuddy, "splice")
     ps_scan = Sb.PrositeScan(seqbuddy)
     seqbuddy = ps_scan.run()
-    assert hf.buddy2hash(seqbuddy) == "e8cd292ada589ddde4747bd9f9ebfb17"
+    assert hf.buddy2hash(seqbuddy) == "f2479409b2fd17e0fd51add0d32cab05"
 
 
 # #####################  '-prr', '--pull_random_recs' ###################### ##
@@ -1602,10 +1543,10 @@ def test_pull_recs2(sb_resources, hf):
     assert len(tester.records) == 0
 
     tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=True)
-    assert hf.buddy2hash(tester) == "f879d0a65b73cce2a4ab26c5ffe9f35a"
+    assert hf.buddy2hash(tester) == "466acff4d79969ea30cfd94e1f996a27"
 
 # ######################  '-pr', '--pull_records_with_feature' ###################### #
-hashes = [('p g', '83d15851d489e89761c8faa31e5263f2'), ('d g', '36757409966ede91ab19deb56045d584')]
+hashes = [('p g', '8c41bd906501628f987a055ec829c9b6'), ('d g', '36757409966ede91ab19deb56045d584')]
 
 
 @pytest.mark.parametrize("key, next_hash", hashes)
@@ -1737,7 +1678,7 @@ def test_select_frame_edges(sb_resources, hf):
 hashes = [('d f', 'a86372ed83afc8ba31001919335017bc'), ('d g', '1222dd65c103fa15a50352670dc95f82'),
           ('d n', 'ba022b722620d8688c1f70d535142a5b'), ('d py', '14068e77f8c78f98ff9462116c6781f6'),
           ('d pr', '175821885e688971a818548ff67d0226'), ('d s', '70ba6a80a50c3a99ee3fbb6f5e47c11f'),
-          ('p f', '5194c37d5388792119ec988bd7acfbf5'), ('p g', '287e753f85837630d243553959953609'),
+          ('p f', '5194c37d5388792119ec988bd7acfbf5'), ('p g', '73396d34998512d1fef4ae6a27c74e49'),
           ('p n', 'e19f273ea91434427c8c3f585fabf1fc'), ('p py', 'fab43d82a2974e8ed0a8b983278ebdd7'),
           ('p pr', 'b6a632a612b1249f29a88383b86d1c1c'), ('p s', 'd34648a0c505644fcd4d29045c9fa502')]
 
