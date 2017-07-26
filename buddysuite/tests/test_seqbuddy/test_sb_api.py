@@ -735,6 +735,18 @@ def test_delete_small(sb_resources, hf):
     assert hf.buddy2hash(tester) == '196adf08d4993c51050289e5167dacdf'
 
 
+# ######################  '-dt', '--delete_taxa' ###################### #
+def test_delete_taxa(sb_resources, hf):
+    tester = Sb.delete_taxa(sb_resources.get_one("p g"), "Lobata")
+    assert hf.buddy2hash(tester) == "129c253374dd6171620884c92bece557"
+
+    tester = Sb.delete_taxa(sb_resources.get_one("p g"), ["Lobata"])
+    assert hf.buddy2hash(tester) == "129c253374dd6171620884c92bece557"
+
+    tester = Sb.delete_taxa(sb_resources.get_one("p g"), ["leidyi", "Homo"])
+    assert hf.buddy2hash(tester) == "96d74ce4bba524b4847fb2363f51e112"
+
+
 # ######################  '-d2r', '--transcribe' and 'r2d', '--back_transcribe' ###################### #
 hashes = [('d f', 'd2db9b02485e80323c487c1dd6f1425b', 'b831e901d8b6b1ba52bad797bad92d14'),
           ('d g', '360ad6806711e37a0a8aa5208536656b', '2e02a8e079267bd9add3c39f759b252c'),

@@ -454,6 +454,20 @@ def test_delete_small_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "196adf08d4993c51050289e5167dacdf"
 
     
+# ######################  '-dt', '--delete_taxa' ###################### #
+def test_delete_taxa_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_taxa = [["Lobata"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "129c253374dd6171620884c92bece557"
+
+    test_in_args.delete_taxa = [["leidyi"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "96d74ce4bba524b4847fb2363f51e112"
+
+
 # ######################  '-efs', '--extract_feature_sequences' ###################### #
 def test_extact_feature_sequences_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)

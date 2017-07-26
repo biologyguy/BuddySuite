@@ -167,8 +167,6 @@ def keep_features(seqbuddy, regex(s)):
 '''
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
 # - Add support for selecting individual sequences to modify (as a global ability for any tool)
-# - Add FASTQ support... More generally, support letter annotation mods
-# - Get BuddySuite into PyPi
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
@@ -1738,6 +1736,43 @@ def delete_small(seqbuddy, min_value):
         if len(str(rec.seq)) >= min_value:
             retained_records.append(rec)
     seqbuddy.records = retained_records
+    return seqbuddy
+
+
+def delete_taxa(seqbuddy, taxa):
+    """
+    Pull out records that are annotated with a particular taxon
+    :param seqbuddy:
+    :param taxa: List of exact matches for taxonomic designation (will sift through entire taxon tree)
+    :return:
+    """
+    if type(taxa) == str:
+        taxa = [taxa]
+
+    taxa = [t.lower() for t in taxa]
+    keep_list = []
+    for rec in seqbuddy.records:
+        delete = False
+        if 'taxonomy' in rec.annotations:
+            taxonomy = [x.lower() for x in rec.annotations['taxonomy']]
+            breakout = False
+            for taxon in taxa:
+                if taxon in taxonomy:
+                    delete = True
+                    breakout = True
+                    break
+            if breakout:
+                continue
+
+        if 'organism' in rec.annotations:
+            for taxon in taxa:
+                if taxon in rec.annotations['organism'].lower():
+                    delete = True
+                    break
+        if not delete:
+            keep_list.append(rec)
+
+    seqbuddy.records = keep_list
     return seqbuddy
 
 
@@ -4310,6 +4345,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     if in_args.delete_small:
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
         _exit("delete_small")
+
+    # Delete taxa
+    if in_args.delete_taxa:
+        seqbuddy = delete_taxa(seqbuddy, in_args.delete_taxa[0])
+        _print_recs(seqbuddy)
+        _exit("delete_taxa")
 
     # degenerate_sequence
     if in_args.degenerate_sequence:
