@@ -1097,7 +1097,7 @@ class NCBIClient(GenericClient):
         self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
-        results = [x for x in results if x]
+        results = [x for x in results if x and "<ERROR>Empty id list" not in x]
 
         taxa = {}
         for result in results:
