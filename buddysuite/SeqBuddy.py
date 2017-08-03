@@ -1766,7 +1766,8 @@ def delete_taxa(seqbuddy, taxa):
 
         if 'organism' in rec.annotations:
             for taxon in taxa:
-                if taxon in rec.annotations['organism'].lower():
+                organism = rec.annotations['organism'].lower().split()
+                if taxon in organism:
                     delete = True
                     break
         if not delete:
@@ -2546,7 +2547,8 @@ def keep_taxa(seqbuddy, taxa):
 
         if 'organism' in rec.annotations:
             for taxon in taxa:
-                if taxon in rec.annotations['organism'].lower():
+                organism = rec.annotations['organism'].lower().split()
+                if taxon in organism:
                     keep_list.append(rec)
                     break
 
@@ -3076,6 +3078,38 @@ def order_ids_randomly(seqbuddy, r_seed=None):
         output = []
 
     seqbuddy.records = output
+    return seqbuddy
+
+
+def prepend_organism(seqbuddy):
+    prefix_map = OrderedDict()
+    conflicts = ""
+    for rec in seqbuddy.records:
+        prefix = "Unkn"
+        if "organism" in rec.annotations and rec.annotations['organism'] \
+                and re.sub("[. ]", "", rec.annotations['organism']):
+            organism = rec.annotations['organism'].split()[:2]
+            if len(organism) > 1:
+                prefix = organism[0][:1] + organism[1][:3]
+            elif len(organism) == 1:
+                prefix = organism[0][:4]
+        if prefix != "Unkn":
+            if prefix in prefix_map:
+                if prefix_map[prefix] != " ".join(organism):
+                    conflict = "%s - %s\n" % (prefix_map[prefix], " ".join(organism))
+                    conflicts += conflict if conflict not in conflicts else ""
+                    continue
+            else:
+                prefix_map[prefix] = " ".join(organism)
+
+        prefix += "-"
+        rec.id = prefix + rec.id
+        rec.name = prefix + rec.name
+
+    if conflicts:
+        raise ValueError("Multiple species would return the same prefix\n%s" % conflicts)
+
+    seqbuddy.prefix_map = prefix_map
     return seqbuddy
 
 
@@ -4971,6 +5005,28 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.order_ids_randomly:
         _print_recs(order_ids_randomly(seqbuddy))
         _exit("order_ids_randomly")
+
+    # Prepend organism
+    if in_args.prepend_organism:
+        try:
+            seqbuddy = prepend_organism(seqbuddy)
+        except ValueError as err:
+            _raise_error(err, "prepend_organism", check_string="Multiple species")
+
+        prefix_map = sorted(["%s: %s" % (prefix, organism) for prefix, organism in seqbuddy.prefix_map.items()])
+
+        if prefix_map:
+            br._stderr("# ######################## Prefix Mapping ######################## #\n", in_args.quiet)
+            br._stderr("%s\n" % "\n".join(prefix_map), in_args.quiet)
+            br._stderr("# ################################################################ #\n\n", in_args.quiet)
+
+        else:
+            br._stderr("# ######################## Prefix Mapping ###################### #\n", in_args.quiet)
+            br._stderr("# No organism information was identified in the supplied records #\n", in_args.quiet)
+            br._stderr("# ############################################################## #\n\n", in_args.quiet)
+
+        _print_recs(seqbuddy)
+        _exit("prepend_organism")
 
     # Prosite Scan
     if in_args.prosite_scan:

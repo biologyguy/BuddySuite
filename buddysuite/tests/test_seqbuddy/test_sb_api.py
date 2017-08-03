@@ -1415,6 +1415,36 @@ def test_order_ids_randomly2(sb_resources, hf):
     assert hf.buddy2hash(tester) == "bb75e7fc15f131e31271ea5006241615", print(tester)
 
 
+# #####################  '-ppo', '--prepend_organism' ###################### ##
+def test_prepend_organism(sb_resources, hf):
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus robustis"
+    tester = Sb.prepend_organism(tester)
+    tester.out_format = "fasta"
+    assert hf.buddy2hash(tester) == "12af6bc1c299f3aa1034825ceacb51a3", print(tester)
+    assert len(tester.prefix_map) == 2
+    assert "Mlei" in tester.prefix_map
+    assert "Trob" in tester.prefix_map
+
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus"
+    tester = Sb.prepend_organism(tester)
+    tester.out_format = "fasta"
+    assert hf.buddy2hash(tester) == "c0c13e6224893ba1700ae4811d667b44", print(tester)
+    assert len(tester.prefix_map) == 2
+    assert "Mlei" in tester.prefix_map
+    assert "Test" in tester.prefix_map
+
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Moby leily"
+    with pytest.raises(ValueError) as err:
+        Sb.prepend_organism(tester)
+    assert str(err.value) == """\
+Multiple species would return the same prefix
+Mnemiopsis leidyi - Moby leily
+"""
+
+
 # #####################  '-psc', '--prosite_scan' ###################### ##
 def test_prosite_scan_init(sb_resources):
     seqbuddy = sb_resources.get_one("d f")

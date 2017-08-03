@@ -1146,6 +1146,45 @@ def test_order_ids_randomly_ui(capsys, sb_resources, hf):
     assert hf.buddy2hash(tester) == hf.buddy2hash(Sb.order_ids(sb_resources.get_one('d f')))
 
 
+# ####################  '-ppo', '--prepend_organism' ##################### #
+def test_prepend_organism_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.prepend_organism = True
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus robustis"
+    tester.out_format = "fasta"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "12af6bc1c299f3aa1034825ceacb51a3"
+    assert err == """\
+# ######################## Prefix Mapping ######################## #
+Mlei: Mnemiopsis leidyi
+Trob: Testus robustis
+# ################################################################ #
+
+"""
+
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "d59573f741e3620503f70cc782faf9b6"
+    assert err == """\
+# ######################## Prefix Mapping ###################### #
+# No organism information was identified in the supplied records #
+# ############################################################## #
+
+"""
+
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Moby leily"
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    #out, err = capsys.readouterr()
+    assert str(err.value) == """\
+Multiple species would return the same prefix
+Mnemiopsis leidyi - Moby leily
+"""
+
+
 # ######################  '-psc', '--prosite_scan' ###################### #
 def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
     monkeypatch.setattr(Sb.PrositeScan, "run", lambda _: sb_resources.get_one("p g"))
