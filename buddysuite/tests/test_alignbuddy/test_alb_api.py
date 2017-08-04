@@ -351,32 +351,50 @@ class MockPopen(object):
         self.kwargs = kwargs
         if "my_mucsle" in args[0]:
             self.output = ["Robert C. Edgar".encode("utf-8"), "".encode("utf-8")]
-        elif "-h" in args[0] or "-v" in args[0]:
-            self.output = ["Nothing".encode("utf-8"), "here".encode("utf-8")]
+        elif "clustalo" in args[0] and "-h" in args[0]:
+            stdout = "Clustal Omega - 1.2.3 (AndreaGiacomo)"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "clustalo" in args[0]:
             self.output = [None, None]
+        elif "clustalw2" in args[0] and "-help" in args[0]:
+            stdout = "CLUSTAL 2.1 Multiple Sequence Alignments"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "clustalw2" in args[0]:
             _file = "{1}mock_resources{0}test_clustalw2{0}stdout.txt".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), ""]
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "mafft" in args[0] and "--help" in args[0]:
+            stdout = "MAFFT v7.310"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "mafft" in args[0]:
             _file = "{1}mock_resources{0}test_mafft{0}result".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), '']
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "muscle" in args[0] and "-version" in args[0]:
+            stdout = "MUSCLE v3.8.31 by Robert C. Edgar"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "muscle" in args[0]:
             _file = "{1}mock_resources{0}test_muscle{0}result".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), '']
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "pagan" in args[0] and "-v" in args[0]:
+            stdout = "This is PAGAN v.0.61."
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "pagan" in args[0]:
             _file = "{1}mock_resources{0}test_pagan{0}stdout.txt".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
             self.output = [stdout, ""]
+        elif "prank" in args[0] and "-help" in args[0]:
+            stdout = "prank v.140603. Minimal usage: 'prank sequence_file'"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "prank" in args[0]:
             self.output = [None, None]
+        elif "-h" in args[0] or "-v" in args[0]:
+            self.output = ["Nothing".encode("utf-8"), "here".encode("utf-8")]
 
     def communicate(self):
         return self.output

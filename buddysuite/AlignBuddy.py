@@ -85,7 +85,8 @@ class AlignBuddy(object):
         in_handle = None
         raw_seq = None
         in_file = None
-        self.hash_map = OrderedDict()  # This variable is only filled if the hash_ids() fuction is called.
+        self.hash_map = OrderedDict()  # This is only filled if hash_ids() is called.
+        self.align_tool = OrderedDict()  # This is only filled if generate_msa() is called
 
         # Handles
         if str(type(_input)) == "<class '_io.TextIOWrapper'>":
@@ -1013,17 +1014,19 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         params = ''
 
     # Figure out what tool is being used
-    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+ ",
+    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
                            "url": "http://mafft.cbrc.jp/alignment/software/"},
-                 'prank': {"ver": " -help", "check": "prank v\.[0-9]+",
+                 'prank': {"ver": " -help", "check": "prank v[0-9]*\.[0-9]+", "ver_num": "v([0-9]*\.[0-9]+)",
                            "url": "http://wasabiapp.org/software/prank/prank_installation/"},
-                 'pagan': {"ver": " -v", "check": "This is PAGAN",
+                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": "v\.([0-9]+\.[0-9]+)",
                            "url": "http://wasabiapp.org/software/pagan/pagan_installation/"},
-                 'muscle': {"ver": " -version", "check": "Robert C. Edgar",
+                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": "v([0-9]+\.[0-9]+\.[0-9]+)",
                             "url": "http://www.drive5.com/muscle/downloads.htm"},
                  'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
+                              "ver_num": "CLUSTAL ([0-9]+\.[0-9]+) ",
                               "url": "http://www.clustal.org/clustal2/#Download"},
                  'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
+                              "ver_num": "Omega - ([0-9]+\.[0-9]+)",
                               "url": "http://www.clustal.org/omega/#Download"}}
 
     def check_lower(input_str):
@@ -1131,6 +1134,8 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
 
                 try:
                     if tool in ['prank', 'pagan', 'clustalo']:
+                        if tool == 'pagan' and len(seqbuddy) < 4:
+                            raise ValueError("PAGAN cannot run when less than 4 sequences are passed in.")
                         if quiet:
                             output = Popen(command, shell=True, universal_newlines=True,
                                            stdout=PIPE, stderr=PIPE).communicate()
@@ -1213,6 +1218,12 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
 
             except FileNotFoundError:
                 pass
+        version = Popen("%s%s" % (alias, tool_list[tool]["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+        version = version[0].decode() + "\n" + version[1].decode()
+        version = re.search(tool_list[tool]['ver_num'], version)
+
+        alignbuddy.align_tool["tool"] = tool.upper()
+        alignbuddy.align_tool["version"] = version
 
         br._stderr("Returning to AlignBuddy...\n\n", quiet)
         return alignbuddy
