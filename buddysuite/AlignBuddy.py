@@ -1220,7 +1220,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 pass
         version = Popen("%s%s" % (alias, tool_list[tool]["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
         version = version[0].decode() + "\n" + version[1].decode()
-        version = re.search(tool_list[tool]['ver_num'], version)
+        version = re.search(tool_list[tool]['ver_num'], version).group(1)
 
         alignbuddy.align_tool["tool"] = tool.upper()
         alignbuddy.align_tool["version"] = version
