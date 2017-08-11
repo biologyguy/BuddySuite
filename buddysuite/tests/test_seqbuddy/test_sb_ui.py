@@ -424,6 +424,27 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
 
 
+# ######################  '-drf', '--delete_recs_with_feature' ###################### #
+def test_delete_recs_with_feature_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_recs_with_feature = ["splice_.+"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "fc91bfaed2df6926983144637cf0ba0f"
+
+    test_in_args.delete_recs_with_feature = ["CDS", "splice_.+"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "54c53fc6317a6c0a88468cb6eca258ee"
+
+    temp_file = br.TempFile()
+    temp_file.write("CDS\nsplice_.+")
+    test_in_args.delete_recs_with_feature = [temp_file.path]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "54c53fc6317a6c0a88468cb6eca258ee"
+
+
 # ######################  '-drp', '--delete_repeats' ###################### #
 def test_delete_repeats_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args = deepcopy(in_args)

@@ -1682,6 +1682,33 @@ def delete_records(seqbuddy, patterns, description=False):
     return seqbuddy
 
 
+def delete_recs_with_feature(seqbuddy, regex):
+    """
+    Remove sequences with feature names/IDs matching a search pattern
+    :param seqbuddy: SeqBuddy object
+    :param regex: List of regex expressions or single regex
+    :type regex: str list
+    :return: The modified SeqBuddy object
+    """
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
+    keep_records = []
+    for rec in seqbuddy.records:
+        retain = True
+        for feat in rec.features:
+            if re.search(regex, feat.type) or re.search(regex, feat.id):
+                retain = False
+                break
+        if retain:
+            keep_records.append(rec)
+    seqbuddy.records = keep_records
+    return seqbuddy
+
+
 def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
     """
     Deletes records with repeated IDs/seqs
@@ -4311,6 +4338,23 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             br._stderr("# ################################################################ #\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("delete_records")
+
+    # Delete records with feature
+    if in_args.delete_recs_with_feature:
+        search_terms = []
+        for arg in in_args.delete_recs_with_feature:
+            if os.path.isfile(arg):
+                with open(arg, "r", encoding="utf-8") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = delete_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
+        _exit("delete_recs_with_feature")
 
     # Delete repeats
     if in_args.delete_repeats:

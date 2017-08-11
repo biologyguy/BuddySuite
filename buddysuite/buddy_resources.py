@@ -1522,6 +1522,11 @@ sb_flags = {"annotate": {"flag": "ano",
                                "help": "Remove records from a file (deleted IDs are sent to stderr). "
                                        "Regular expressions are understood, and an int as the final argument will"
                                        "specify number of columns for deleted IDs"},
+            "delete_recs_with_feature": {"flag": "drf",
+                                         "action": "store",
+                                         "nargs": "+",
+                                         "metavar": "<regex>",
+                                         "help": "Remove all the records with ids containing a given string"},
             "delete_repeats": {"flag": "drp",
                                "action": "append",
                                "nargs": "*",

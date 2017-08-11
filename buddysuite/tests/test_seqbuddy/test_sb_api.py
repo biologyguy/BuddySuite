@@ -719,6 +719,16 @@ def test_delete_records2(sb_resources, hf):
     assert hf.buddy2hash(tester) == "64049b9afd347f4507e264847e5f0500"
 
 
+# ######################  '-drf', '--delete_recs_with_feature' ###################### #
+hashes = [('p g', 'c486218295ec6d6d1a9c47023d952d40'), ('d g', 'fc91bfaed2df6926983144637cf0ba0f')]
+
+
+@pytest.mark.parametrize("key, next_hash", hashes)
+def test_delete_recs_with_feature(key, next_hash, sb_resources, hf):
+    tester = Sb.delete_recs_with_feature(sb_resources.get_one(key), 'splice_.')
+    assert hf.buddy2hash(tester) == next_hash, print(tester)
+
+
 # #####################  '-drp', '--delete_repeats' ###################### ##
 def test_delete_repeats(sb_odd_resources):
     tester = Sb.SeqBuddy(sb_odd_resources["duplicate"])
@@ -1599,7 +1609,7 @@ def test_pull_recs2(sb_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=True)
     assert hf.buddy2hash(tester) == "466acff4d79969ea30cfd94e1f996a27"
 
-# ######################  '-pr', '--pull_records_with_feature' ###################### #
+# ######################  '-prf', '--pull_records_with_feature' ###################### #
 hashes = [('p g', '8c41bd906501628f987a055ec829c9b6'), ('d g', '36757409966ede91ab19deb56045d584')]
 
 
