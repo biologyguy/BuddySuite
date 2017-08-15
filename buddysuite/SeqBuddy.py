@@ -1698,7 +1698,11 @@ def delete_recs_with_feature(seqbuddy, regex):
     regex = "|".join(regex)
     keep_records = []
     for rec in seqbuddy.records:
-        retain = True
+        if re.search(regex, rec.description):
+            continue
+        else:
+            retain = True
+
         for feat in rec.features:
             if re.search(regex, feat.type) or re.search(regex, feat.id):
                 retain = False
@@ -3350,6 +3354,9 @@ def pull_recs_with_feature(seqbuddy, regex):
     regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
+        if re.search(regex, rec.description):
+            matched_records.append(rec)
+            continue
         for feat in rec.features:
             if re.search(regex, feat.type) or re.search(regex, feat.id):
                 matched_records.append(rec)
