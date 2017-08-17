@@ -2552,12 +2552,13 @@ def isoelectric_point(seqbuddy):
     return seqbuddy
 
 
-def keep_taxa(seqbuddy, taxa):
+def keep_taxa(seqbuddy, taxa, match_all=False):
     """
     Pull out records that are annotated with a particular taxon
     :param seqbuddy:
     :param taxa: List of exact matches for taxonomic designation (will sift through entire taxon tree)
-    :return:
+    :param match_all: When True, only accept record if all taxanomic levels are met
+    return:
     """
     if type(taxa) == str:
         taxa = [taxa]
@@ -2567,21 +2568,23 @@ def keep_taxa(seqbuddy, taxa):
     for rec in seqbuddy.records:
         if 'taxonomy' in rec.annotations:
             taxonomy = [x.lower() for x in rec.annotations['taxonomy']]
-            breakout = False
-            for taxon in taxa:
-                if taxon in taxonomy:
-                    keep_list.append(rec)
-                    breakout = True
-                    break
-            if breakout:
-                continue
+            if 'organism' in rec.annotations:
+                organism = rec.annotations['organism'].split()[1:]
+                taxonomy += organism
 
-        if 'organism' in rec.annotations:
+            append2keeplist = True if match_all else False
             for taxon in taxa:
-                organism = rec.annotations['organism'].lower().split()
-                if taxon in organism:
-                    keep_list.append(rec)
-                    break
+                if match_all:
+                    if taxon not in taxonomy:
+                        append2keeplist = False
+                        break
+                else:
+                    if taxon in taxonomy:
+                        append2keeplist = True
+                        break
+
+            if append2keeplist:
+                keep_list.append(rec)
 
     seqbuddy.records = keep_list
     return seqbuddy

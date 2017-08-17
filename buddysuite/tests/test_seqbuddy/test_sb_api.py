@@ -1089,14 +1089,22 @@ def test_isoelectric_point(sb_resources, hf):
 # ######################  '-kt', '--keep_taxa' ###################### #
 def test_keep_taxa(sb_resources, hf):
     tester = Sb.keep_taxa(sb_resources.get_one("p g"), "Lobata")
-    assert hf.buddy2hash(tester) == "9d82eb23e33fd015e934a06265fbf25f"
+    assert len(tester) == 2
 
-    tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["Lobata"])
-    assert hf.buddy2hash(tester) == "9d82eb23e33fd015e934a06265fbf25f"
+    tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["leidyi"])
+    assert len(tester) == 3
+
+    tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["Homo"])
+    assert len(tester) == 0
 
     tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["leidyi", "Homo"])
-    assert hf.buddy2hash(tester) == "5c97a37b42e189b5155e45ee78974822"
+    assert len(tester) == 3
 
+    tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["Lobata", "Homo"], match_all=True)
+    assert len(tester) == 0
+
+    tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["Lobata", "leidyi"], match_all=True)
+    assert len(tester) == 2
 
 # ######################  '-lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
 hashes = [('d f', '25073539df4a982b7f99c72dd280bb8f', 'b831e901d8b6b1ba52bad797bad92d14'),
