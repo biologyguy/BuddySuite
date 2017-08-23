@@ -274,6 +274,18 @@ def test_tempdir_init():
     assert not len(test_dir.subfiles)
 
 
+def test_tempdir_copy_to():
+    test_dir = br.TempDir()
+    assert test_dir.copy_to(RESOURCE_PATH + "Mnemiopsis_cds.fa") == test_dir.path + os.path.sep + "Mnemiopsis_cds.fa"
+    assert os.path.isfile(test_dir.path + os.path.sep + "Mnemiopsis_cds.fa")
+
+    assert test_dir.copy_to(RESOURCE_PATH + "topcons") == test_dir.path + os.path.sep + "topcons"
+    assert os.path.isdir(test_dir.path + os.path.sep + "topcons")
+    assert os.path.isfile(test_dir.path + os.path.sep + "topcons" + os.path.sep + "rst_MFhyxO.zip")
+
+    assert not test_dir.copy_to("/path/to/nowhere.foo")
+
+
 def test_tempdir_subdirs():
     test_dir = br.TempDir()
     subdir = test_dir.subdir("test")

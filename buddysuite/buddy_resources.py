@@ -343,6 +343,17 @@ class TempDir(object):
         yield tmp_dir
         rmtree(self.path)
 
+    def copy_to(self, src):
+        full_path = os.path.abspath(src)
+        end_path = os.path.split(full_path)[1]
+        if os.path.isdir(src):
+            copytree(src, self.path + os.path.sep + end_path)
+        elif os.path.isfile(src):
+            copyfile(src, self.path + os.path.sep + end_path)
+        else:
+            return False
+        return self.path + os.path.sep + end_path
+
     def subdir(self, dir_name=None):
         if not dir_name:
             dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
