@@ -347,12 +347,12 @@ class TempDir(object):
         full_path = os.path.abspath(src)
         end_path = os.path.split(full_path)[1]
         if os.path.isdir(src):
-            copytree(src, self.path + os.path.sep + end_path)
+            copytree(src, os.path.join(self.path, end_path))
         elif os.path.isfile(src):
-            copyfile(src, self.path + os.path.sep + end_path)
+            copyfile(src, os.path.join(self.path, end_path))
         else:
             return False
-        return self.path + os.path.sep + end_path
+        return os.path.join(self.path, end_path)
 
     def subdir(self, dir_name=None):
         if not dir_name:
@@ -360,7 +360,7 @@ class TempDir(object):
             while dir_name in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
                 dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        subdir_path = "%s%s%s" % (self.path, os.path.sep, dir_name)
+        subdir_path = os.path.join(self.path, dir_name)
         if not os.path.exists(subdir_path):
             os.mkdir(subdir_path)
         if dir_name not in self.subdirs:
@@ -370,7 +370,7 @@ class TempDir(object):
     def del_subdir(self, _dir):
         path, _dir = os.path.split(_dir)
         del self.subdirs[self.subdirs.index(_dir)]
-        rmtree("%s%s%s" % (self.path, os.path.sep, _dir))
+        rmtree(os.path.join(self.path, _dir))
         return
 
     def subfile(self, file_name=None):
@@ -380,18 +380,18 @@ class TempDir(object):
             while file_name in files:  # Catch the very unlikely case that a duplicate occurs
                 file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        open("%s%s%s" % (self.path, os.path.sep, file_name), "w", encoding="utf-8").close()
+        open(os.path.join(self.path, file_name), "w", encoding="utf-8").close()
         self.subfiles.append(file_name)
-        return "%s%s%s" % (self.path, os.path.sep, file_name)
+        return os.path.join(self.path, file_name)
 
     def del_subfile(self, _file):
         path, _file = os.path.split(_file)
         del self.subfiles[self.subfiles.index(_file)]
-        os.remove("%s%s%s" % (self.path, os.path.sep, _file))
+        os.remove(os.path.join(self.path, _file))
         return
 
     def save(self, location, keep_hash=False):
-        location = location if not keep_hash else "%s%s%s" % (location, os.path.sep, os.path.split(self.path)[-1])
+        location = location if not keep_hash else os.path.join(location, os.path.split(self.path)[-1])
         if os.path.isdir(location):
             print("Save Error: Indicated output folder already exists in TempDir.save(%s)" % location, file=sys.stderr)
             return False
@@ -406,7 +406,7 @@ class TempFile(object):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
-        self.path = "%s%s%s" % (self._tmp_dir.path, os.path.sep, dir_hash)
+        self.path = os.path.join(self._tmp_dir.path, dir_hash)
         open(self.path, "w", encoding="utf-8").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
@@ -520,7 +520,7 @@ def copydir(source, dest):
         files = []
         dirs = []
         for thing in contents:
-            thing_path = "%s%s%s" % (_dir, os.path.sep, thing)
+            thing_path = os.path.join(_dir, thing)
             if os.path.isdir(thing_path):
                 dirs.append(thing_path)
             else:
@@ -535,7 +535,7 @@ def copydir(source, dest):
         os.makedirs(dest)
     for path in file_paths:
         _path, _file = os.path.split(path)
-        copyfile(path, "%s%s%s" % (dest, os.path.sep, _file))
+        copyfile(path, os.path.join(dest, _file))
 
 
 def ask(input_prompt, default="yes", timeout=0):
@@ -648,7 +648,7 @@ class Usage(object):
         self.config = config_values()
         usage_file = None
         if self.config["diagnostics"] and self.config["data_dir"]:
-            usage_file = "%s%sbuddysuite_usage.json" % (self.config["data_dir"], os.path.sep)
+            usage_file = os.path.join(self.config["data_dir"], "buddysuite_usage.json")
             try:
                 if not os.path.isfile(usage_file):
                     with open(usage_file, "w", encoding="utf-8") as ofile:
@@ -765,7 +765,7 @@ def config_values():
                "shortcuts": ""}
     try:
         config_file = resource_filename(Requirement.parse("buddysuite"),
-                                        "buddysuite{0}buddy_data{0}config.ini".format(os.path.sep))
+                                        os.path.join("buddysuite", "buddy_data", "config.ini"))
         config = ConfigParser()
         config.read(config_file)
         for _key, value in options.items():
@@ -777,7 +777,8 @@ def config_values():
             except KeyError:
                 options[_key] = value
         options["shortcuts"] = options["shortcuts"].split(",")
-        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite%sbuddy_data" % os.path.sep)
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"),
+                                                os.path.join("buddysuite", "buddy_data"))
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
     except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed
