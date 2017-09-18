@@ -78,7 +78,7 @@ def test_raxml_multiple_searches(alb_resources, hf):
 # ######### PhyML ######### #
 phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
 phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
-if phyml_version not in ["20120412", "20160207", "3.2.20160701", "20111216", "3.2.20160531"]:
+if phyml_version not in ["20111216", "20120412", "20131022", "20160207", "3.2.20160701", "3.2.20160531"]:
     raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 
@@ -88,7 +88,7 @@ def test_phyml_dna(alb_resources, hf):
     tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
     assert hf.buddy2hash(tester) in ['b61e75e4706d35e92f2208d438f52771', 'b0bdb3f5bf1fb2e44bef3c16f80c38f2',
                                      'b9d3f11e332c3589110322e939aa41cc', '754c38fab99c01c68a68c0a59248d242',
-                                     '3ca772c34cdcf0a22c09e1592aba9ebf']
+                                     '3ca772c34cdcf0a22c09e1592aba9ebf', 'd7ae1badd31d48487276495bad4522e5']
 
 
 def test_phyml_pep(alb_resources, hf):
@@ -97,7 +97,7 @@ def test_phyml_pep(alb_resources, hf):
     tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
     assert hf.buddy2hash(tester) in ['7caa5c641fa83085c2980efca875112a', '2bf0a204b2de7bc5132aa7073ecfb011',
                                      '981d16e8f02989a8642095016c88af90', 'd8ee3631002b6603d08272c2b44fd21c',
-                                     '03acc8e899955f7e838852d7d71049ad']
+                                     '03acc8e899955f7e838852d7d71049ad', 'abe46f3bac533ad2f510bd4657aa9505']
 
 
 # ######### FastTree ######### #

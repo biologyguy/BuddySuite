@@ -53,7 +53,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from copy import deepcopy
-from random import sample, randint, random, Random
+from random import sample, Random
 from math import floor, ceil, log
 from subprocess import Popen, PIPE
 from multiprocessing import Lock
@@ -2450,7 +2450,6 @@ def hash_ids(seqbuddy, hash_length=10, r_seed=None):
 
     rand_gen = Random() if not r_seed else Random(r_seed)
     for i in range(len(seqbuddy)):
-        new_hash = ""
         seq_ids.append(seqbuddy.records[i].id)
         while True:
             chars = string.ascii_letters + string.digits
@@ -3115,7 +3114,10 @@ def order_ids_randomly(seqbuddy, r_seed=None):
     return seqbuddy
 
 
-def prepend_organism(seqbuddy):
+def prepend_organism(seqbuddy, length=4):
+    length = round(length)
+    if length < 2:
+        raise ValueError("Prefix length must be > 2")
     prefix_map = OrderedDict()
     conflicts = ""
     for rec in seqbuddy.records:
@@ -3124,9 +3126,9 @@ def prepend_organism(seqbuddy):
                 and re.sub("[. ]", "", rec.annotations['organism']):
             organism = rec.annotations['organism'].split()[:2]
             if len(organism) > 1:
-                prefix = organism[0][:1] + organism[1][:3]
+                prefix = organism[0][:1] + organism[1][:length-1]
             elif len(organism) == 1:
-                prefix = organism[0][:4]
+                prefix = organism[0][:length]
         if prefix != "Unkn":
             if prefix in prefix_map:
                 if prefix_map[prefix] != " ".join(organism):
@@ -3612,7 +3614,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Record %s is protein." % rec.id)
 
-        new_seq = [""] * ceil(len(rec) / 3)
+        new_seq = [""] * int(ceil(len(rec) / 3))
         new_seq_indx = 0
         old_seq = str(rec.seq)
         for codon in [old_seq[::1][i:i + 3][::1] for i in range(0, len(old_seq), 3)][::1]:
@@ -4795,8 +4797,9 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
         if 32 ** hash_length <= len(seqbuddy) * 2:
             holder = ceil(log(len(seqbuddy) * 2, 32))
-            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
-                       "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. "
+                       "This is too small to properly cover all sequences, "
+                       "so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
 
         hash_ids(seqbuddy, hash_length)
@@ -5063,9 +5066,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     # Prepend organism
     if in_args.prepend_organism:
         try:
-            seqbuddy = prepend_organism(seqbuddy)
+            length = in_args.prepend_organism[0]
+            seqbuddy = prepend_organism(seqbuddy) if length is None else prepend_organism(seqbuddy, length)
         except ValueError as err:
-            _raise_error(err, "prepend_organism", check_string="Multiple species")
+            _raise_error(err, "prepend_organism", check_string=["Multiple species", "Prefix length must be"])
 
         prefix_map = sorted(["%s: %s" % (prefix, organism) for prefix, organism in seqbuddy.prefix_map.items()])
 
@@ -5331,14 +5335,15 @@ def main():
     except SystemExit:
         return False
     except Exception as _e:
-        function = ""
+        func = ""
         for next_arg in vars(initiation[0]):
             if getattr(initiation[0], next_arg) and next_arg in br.sb_flags:
-                function = next_arg
+                func = next_arg
                 break
-        br.send_traceback("SeqBuddy", function, _e, VERSION)
+        br.send_traceback("SeqBuddy", func, _e, VERSION)
         return False
     return True
+
 
 if __name__ == '__main__':
     main()

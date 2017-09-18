@@ -1170,7 +1170,7 @@ def test_order_ids_randomly_ui(capsys, sb_resources, hf):
 # ####################  '-ppo', '--prepend_organism' ##################### #
 def test_prepend_organism_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.prepend_organism = True
+    test_in_args.prepend_organism = [None]
     tester = sb_resources.get_one("p g")
     tester.records[4].annotations["organism"] = "Testus robustis"
     tester.out_format = "fasta"
@@ -1195,11 +1195,31 @@ Trob: Testus robustis
 
 """
 
+    test_in_args.prepend_organism = [0]
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert str(err.value) == "Prefix length must be > 2"
+
+    test_in_args.prepend_organism = [5]
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus robustis"
+    tester.out_format = "fasta"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "f671a53b36ce36b06837b8a1d8039625"
+    assert err == """\
+# ######################## Prefix Mapping ######################## #
+Mleid: Mnemiopsis leidyi
+Trobu: Testus robustis
+# ################################################################ #
+
+"""
+
+    test_in_args.prepend_organism = [4]
     tester = sb_resources.get_one("p g")
     tester.records[4].annotations["organism"] = "Moby leily"
     with pytest.raises(ValueError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    #out, err = capsys.readouterr()
     assert str(err.value) == """\
 Multiple species would return the same prefix
 Mnemiopsis leidyi - Moby leily

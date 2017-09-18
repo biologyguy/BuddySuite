@@ -12,9 +12,7 @@ import urllib.request
 import suds.client
 import shutil
 import time
-import subprocess
 from collections import OrderedDict
-from copy import copy
 
 import SeqBuddy as Sb
 import buddy_resources as br
@@ -162,6 +160,7 @@ def test_ave_seq_length_dna(sb_resources):
 def test_ave_seq_length_pep(sb_resources):
     for seqbuddy in sb_resources.get_list("p f g n pr s"):
         assert round(Sb.ave_seq_length(seqbuddy, clean=True), 2) == 427.38
+
 
 # ######################  '-btr', '--back_translate' ###################### #
 # Only fasta and genbank
@@ -414,7 +413,7 @@ def test_blast_evalue(monkeypatch, capsys, sb_resources, hf):
     assert "-evalue expects a number." in str(err)
 
 
-def test_blast_errors(monkeypatch, capsys, sb_resources, hf):
+def test_blast_errors(monkeypatch, sb_resources, hf):
     # Note that the order of these tests is important because of all the wonky monkeypatching
     tmp_dir = br.TempDir()
     for extension in ["nhr", "nin", "nog", "nsd", "nsi", "nsq"]:
@@ -493,11 +492,14 @@ def test_clean_seq_rna(sb_odd_resources, hf):
     assert hf.buddy2hash(tester) == "8ae19ab51b04076112d2f649353a4a79"
 
 
-def test_clean_seq_align(sb_resources, hf):
+def test_clean_seq_align(sb_resources, capsys):
     # Alignment formats are converted to fasta to prevent errors with sequence lengths
     for tester in sb_resources.get_list("d n py pr s"):
-        tester = Sb.clean_seq(tester)
-        hf.buddy2hash(tester) == "aa92396a9bb736ae6a669bdeaee36038"
+        str(Sb.clean_seq(tester))
+        out, err = capsys.readouterr()
+        assert err == "Warning: Alignment format detected but sequences are different lengths. " \
+                      "Format changed to fasta to accommodate proper printing of records.\n\n", print(err)
+
 
 # ######################  '-cmp', '--complement' ###################### #
 hashes = [('d f', 'e4a358ca57aca0bbd220dc6c04c88795'), ('d g', '3366fcc6ead8f1bba4a3650e21db4ec3'),
@@ -786,7 +788,8 @@ def test_back_transcribe_pep_exception(sb_resources):  # Asserts that a TypeErro
 
 # ######################  '-efs', '--extract_feature_sequences' ###################### #
 hashes = [('CDS', '956b6a14e02c9c2a2faa11ffb7e2bbed'), (["TMD"], 'd23b3ecdd5d432518c20572e7af03dc1'),
-          (["TMD", "splice_a"], '344ffeb8e86442e0ae7e38d5b49072e1'), (["TMD2:TMD3"], 'fb54774a4a7d35dfe43e4ae31de0f44b'),
+          (["TMD", "splice_a"], '344ffeb8e86442e0ae7e38d5b49072e1'),
+          (["TMD2:TMD3"], 'fb54774a4a7d35dfe43e4ae31de0f44b'),
           (["TMD3:TMD2"], 'fb54774a4a7d35dfe43e4ae31de0f44b'), (["TMD2:foo"], '3cdbd5c8790f12871f8e04e40e315c93'),
           ("foo", '3cdbd5c8790f12871f8e04e40e315c93'), ([], '3cdbd5c8790f12871f8e04e40e315c93')]
 
@@ -796,6 +799,7 @@ def test_extract_feature_sequences(args, next_hash, sb_resources, hf):
     tester = sb_resources.get_one("d g")
     tester = Sb.extract_feature_sequences(tester, args)
     assert hf.buddy2hash(tester) == next_hash
+
 
 # ######################  '-er', '--extract_regions' ###################### #
 hashes = [('d f', '8c2fac57aedf6b0dab3d0f5bcf88e99f'), ('d g', '4211d7ea855794a657f6c3d73c67cd5a'),
@@ -815,6 +819,7 @@ def test_extract_regions_multiformat(key, next_hash, sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one(key), "300:50")
     assert hf.buddy2hash(tester) == next_hash
 
+
 hashes = [('0', 'a67e8747d5c7fb9e4077b5d9675009b8'), ('1', 'a67e8747d5c7fb9e4077b5d9675009b8'),
           ('-10000000', 'a67e8747d5c7fb9e4077b5d9675009b8'), (',1/', 'a67e8747d5c7fb9e4077b5d9675009b8'),
           ('1000000', '22822e8d5c7b9d087b3c80303dd3bcf0'), ('2,5,9,-5', '989c67ea5e2c1036b36b546004076109')]
@@ -825,6 +830,7 @@ def test_extract_regions_singlets(args, next_hash, sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one("p g"), args)
     assert hf.buddy2hash(tester) == next_hash
 
+
 hashes = [('0:10', '5873fb4b611edf38f652c756c3861c05'), ('1:10', '5873fb4b611edf38f652c756c3861c05'),
           ('10:1', '5873fb4b611edf38f652c756c3861c05'), (':10', '5873fb4b611edf38f652c756c3861c05'),
           ('-10:', '7869fea073804e8d023201024783bd2b'), ('40:75,89:100,432:-45', '487da42bfd6484620f3574890234b849')]
@@ -834,6 +840,7 @@ hashes = [('0:10', '5873fb4b611edf38f652c756c3861c05'), ('1:10', '5873fb4b611edf
 def test_extract_regions_ranges(args, next_hash, sb_resources, hf):
     tester = Sb.extract_regions(sb_resources.get_one("p g"), args)
     assert hf.buddy2hash(tester) == next_hash
+
 
 hashes = [('1/50', '40a5e3b46fbd4467a2ec0deab675292f'), ('-1/50', '1bae9ec3fe61eba3f47343111228c124'),
           ('1/-50', 'fc63bd3abb0a062ba8c2145b9391692b'), ('50/1', '0a8462e72f64fcd22544bb153b51b2b6'),
@@ -918,6 +925,7 @@ def test_find_pattern(sb_resources, hf):
     assert hf.buddy2hash(tester) == "f2a07ced2523081ba54249ae30775a40"
     tester.out_format = "fasta"
     assert hf.buddy2hash(tester) == "9160702ded16a80db79886d9de1abdf2"
+
 
 hashes = [("d g", ['ATg{2}T'], {}, '57d80590f2e6596d33d5af936a584617'),
           ("d g", ["ATg{2}T", "tga.{1,6}tg"], {}, 'a13217987f5dd23f6fab71eb733271ff'),
@@ -1087,7 +1095,7 @@ def test_isoelectric_point(sb_resources, hf):
 
 
 # ######################  '-kt', '--keep_taxa' ###################### #
-def test_keep_taxa(sb_resources, hf):
+def test_keep_taxa(sb_resources):
     tester = Sb.keep_taxa(sb_resources.get_one("p g"), "Lobata")
     assert len(tester) == 2
 
@@ -1105,6 +1113,7 @@ def test_keep_taxa(sb_resources, hf):
 
     tester = Sb.keep_taxa(sb_resources.get_one("p g"), ["Lobata", "leidyi"], match_all=True)
     assert len(tester) == 2
+
 
 # ######################  '-lc', '--lowercase' and 'uc', '--uppercase'  ###################### #
 hashes = [('d f', '25073539df4a982b7f99c72dd280bb8f', 'b831e901d8b6b1ba52bad797bad92d14'),
@@ -1138,6 +1147,7 @@ def test_make_ids_unique(sb_odd_resources, hf):
     tester = Sb.SeqBuddy(sb_odd_resources["duplicate"])
     Sb.make_ids_unique(tester, sep="-", padding=4)
     assert hf.buddy2hash(tester) == "0054df3003ba16287159147f3b85dc7b"
+
 
 # ######################  '-fn2p', '--map_features_nucl2prot' ###################### #
 # Map the genbank DNA file to all protein files, and the fasta DNA file to fasta protein
@@ -1199,6 +1209,7 @@ def test_map_features_nucl2prot_2(capsys, sb_resources, hf):
         Sb.pull_recs(tester, "α[1-8]")
         Sb.map_features_nucl2prot(Sb.make_copy(tester), sb_resources.get_one("p f"), mode="list")
     assert "The two input files do not contain the same number of sequences" in str(e.value)
+
 
 # ######################  '-fp2n', '--map_features_prot2nucl' ###################### #
 hashes = [('d f', '47a7b6cf12399a3c58995d53b334a0c4'), ('d g', 'feceaf5e17935afb100b4b6030e27fee'),
@@ -1313,7 +1324,8 @@ def test_molecular_weight(sb_resources, sb_odd_resources, hf):
     tester.records[0].seq = Seq(seq, alphabet=tester.records[0].seq.alphabet)
     with pytest.raises(KeyError) as err:
         Sb.molecular_weight(tester)
-    assert "Invalid residue \'J\' in record Mle-Panxα9. \'J\' is not valid a valid character in IUPACAmbiguousDNA()." in str(err)
+    assert "Invalid residue \'J\' in record Mle-Panxα9. \'J\' is not valid a valid character in IUPACAmbiguousDNA()." \
+           in str(err)
 
 
 # ######################  '-ns', '--num_seqs' ###################### #
@@ -1328,6 +1340,7 @@ def test_empty_file(sb_odd_resources):
     tester = Sb.SeqBuddy(sb_odd_resources["blank"])
     assert type(tester) == Sb.SeqBuddy
     assert len(tester.records) == 0
+
 
 # ######################  '-ofa', '--order_features_alphabetically' ###################### #
 hashes = [('d f', 'b831e901d8b6b1ba52bad797bad92d14', 'b831e901d8b6b1ba52bad797bad92d14'),
@@ -1453,6 +1466,13 @@ def test_prepend_organism(sb_resources, hf):
     assert "Mlei" in tester.prefix_map
     assert "Test" in tester.prefix_map
 
+    tester = Sb.prepend_organism(tester, 5)
+    tester.out_format = "fasta"
+    assert hf.buddy2hash(tester) == "54921aef13643851e4b097be235044b1", print(tester)
+    assert len(tester.prefix_map) == 2
+    assert "Mleid" in tester.prefix_map
+    assert "Testu" in tester.prefix_map
+
     tester = sb_resources.get_one("p g")
     tester.records[4].annotations["organism"] = "Moby leily"
     with pytest.raises(ValueError) as err:
@@ -1461,6 +1481,11 @@ def test_prepend_organism(sb_resources, hf):
 Multiple species would return the same prefix
 Mnemiopsis leidyi - Moby leily
 """
+
+    with pytest.raises(ValueError) as err:
+        Sb.prepend_organism(tester, 0)
+
+    assert "Prefix length must be > 2" in str(err)
 
 
 # #####################  '-psc', '--prosite_scan' ###################### ##
