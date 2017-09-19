@@ -1266,6 +1266,52 @@ def test_map_features_prot2nucl_2(capsys, sb_resources, hf):
     assert "The two input files do not contain the same number of sequences" in str(e.value)
 
 
+# #####################  make_groups' ###################### ##
+def test_make_groups(sb_odd_resources):
+    tester = Sb.SeqBuddy(sb_odd_resources["cnidaria_pep"])
+    sb_list = Sb.make_groups(tester)
+    assert len(sb_list) == 20
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier == seqbuddy.records[0].id
+
+    sb_list = Sb.make_groups(tester, split_patterns=["u", "h"])
+    assert len(sb_list) == 4
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Hv", "C", "Pp"]
+
+    sb_list = Sb.make_groups(tester, num_chars=1)
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["A", "H", "C", "P", "N"]
+
+    sb_list = Sb.make_groups(tester, split_patterns=["l"], num_chars=3)
+    assert len(sb_list) == 3
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Ae", "C"]
+
+    sb_list = Sb.make_groups(tester, regex="([ACH]).*([βγ])")
+    assert len(sb_list) == 5
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Unknown", "Aβ", "Cβ", "Hβ", "Cγ"]
+
+    sb_list = Sb.make_groups(tester, regex="Ate")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["Ate", "Unknown"]
+
+    sb_list = Sb.make_groups(tester, regex="Panx.(G*)")
+    assert len(sb_list) == 2
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        assert seqbuddy.identifier in ["G", "Unknown"]
+
+
 # #####################  '-max', '--max_recs' ###################### ##
 def test_max_recs(sb_resources):
     tester = Sb.max_records(sb_resources.get_one("p f"))
@@ -1287,7 +1333,7 @@ def test_merge(sb_resources, sb_odd_resources, hf):
     assert "Sequence mismatch for record 'Mle-Panxα1'" in str(e.value)
 
 
-# #####################  '-max', '--max_recs' ###################### ##
+# #####################  '-min', '--min_recs' ###################### ##
 def test_min_recs(sb_resources):
     tester = Sb.min_records(sb_resources.get_one("p f"))
     assert tester.records[0].id == "Mle-Panxα10B"
@@ -1623,6 +1669,7 @@ def test_pull_record_ends(sb_resources, hf):
     with pytest.raises(ValueError):
         Sb.pull_record_ends(sb_resources.get_one("d f"), 'foo')
 
+
 # ######################  '-pr', '--pull_records' ###################### #
 hashes = [('d f', '5b4154c2662b66d18776cdff5af89fc0'), ('d g', 'e196fdc5765ba2c47f97807bafb6768c'),
           ('d n', 'bc7dbc612bc8139eba58bf896b7eaf2f'), ('d py', '7bb4aac2bf50381ef1d27d82b7dd5a53'),
@@ -1641,6 +1688,7 @@ def test_pull_recs2(sb_resources, hf):
 
     tester = Sb.pull_recs(sb_resources.get_one("p g"), 'ML2', description=True)
     assert hf.buddy2hash(tester) == "466acff4d79969ea30cfd94e1f996a27"
+
 
 # ######################  '-prf', '--pull_records_with_feature' ###################### #
 hashes = [('p g', '8c41bd906501628f987a055ec829c9b6'), ('d g', '36757409966ede91ab19deb56045d584')]
@@ -1741,6 +1789,7 @@ def test_reverse_complement_pep_exception(sb_resources):  # Asserts a TypeError 
         Sb.reverse_complement(tester)
     assert str(e.value) == "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required."
 
+
 # ######################  '-sfr', '--select_frame' ###################### #
 hashes = [('d f', 1, "b831e901d8b6b1ba52bad797bad92d14"), ('d f', 2, "2de033b2bf2327f2795fe425db0bd78f"),
           ('d f', 3, "1c29898d4964e0d1b03207d7e67e1958"), ('d g', 1, "908744b00d9f3392a64b4b18f0db9fee"),
@@ -1787,52 +1836,6 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
-# #####################  make_groups' ###################### ##
-def test_make_groups(sb_odd_resources):
-    tester = Sb.SeqBuddy(sb_odd_resources["cnidaria_pep"])
-    sb_list = Sb.make_groups(tester)
-    assert len(sb_list) == 20
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier == seqbuddy.records[0].id
-
-    sb_list = Sb.make_groups(tester, split_patterns=["u", "h"])
-    assert len(sb_list) == 4
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["Unknown", "Hv", "C", "Pp"]
-
-    sb_list = Sb.make_groups(tester, num_chars=1)
-    assert len(sb_list) == 5
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["A", "H", "C", "P", "N"]
-
-    sb_list = Sb.make_groups(tester, split_patterns=["l"], num_chars=3)
-    assert len(sb_list) == 3
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["Unknown", "Ae", "C"]
-
-    sb_list = Sb.make_groups(tester, regex="([ACH]).*([βγ])")
-    assert len(sb_list) == 5
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["Unknown", "Aβ", "Cβ", "Hβ", "Cγ"]
-
-    sb_list = Sb.make_groups(tester, regex="Ate")
-    assert len(sb_list) == 2
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["Ate", "Unknown"]
-
-    sb_list = Sb.make_groups(tester, regex="Panx.(G*)")
-    assert len(sb_list) == 2
-    for seqbuddy in sb_list:
-        assert type(seqbuddy) == Sb.SeqBuddy
-        assert seqbuddy.identifier in ["G", "Unknown"]
-
-
 # ######################  '-tr6', '--translate6frames' ###################### #
 def test_translate6frames(sb_resources, hf):
     tester = Sb.translate6frames(sb_resources.get_one("d f"))
@@ -1845,6 +1848,7 @@ def test_translate6frames(sb_resources, hf):
 def test_translate6frames_pep_exception(sb_resources):
     with pytest.raises(TypeError):
         Sb.translate6frames(sb_resources.get_one("p f"))
+
 
 # ######################  '-tr', '--translate' ###################### #
 hashes = [('d f', '06893e14839dc0448e6f522c1b8f8957'), ('d g', '78a53e66bb4b8f6c26fa2ae0fb29f0ab'),
@@ -1934,9 +1938,9 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
         if os.path.isfile("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id)):
             os.remove("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id))
         shutil.copy("%stopcons%s%s.zip" % (hf.resource_path, os.path.sep, job_id), work_dir.path)
-        for root, dirs, files in br.walklevel(work_dir.path):
+        for root, _dirs, _files in br.walklevel(work_dir.path):
             print(root)
-            print(files)
+            print(_files)
         reporthook(2, 10, 100)
         return
 
