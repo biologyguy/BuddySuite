@@ -1836,6 +1836,66 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
+# ######################  '-tb', '--taxonomic_breakdown' ###################### #
+def test_taxonomic_breakdown(sb_resources):
+    tester = sb_resources.get_one("p g")
+    assert Sb.taxonomic_breakdown(tester) == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+"""
+    assert Sb.taxonomic_breakdown(tester, 7) == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+ | | | | |Tentaculata    2
+ | | | | | |Lobata    2
+"""
+    assert Sb.taxonomic_breakdown(tester, -7) == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+ | | | | |Tentaculata    2
+ | | | | | |Lobata    2
+"""
+    assert Sb.taxonomic_breakdown(tester, 0) == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+ | | | | |Tentaculata    2
+ | | | | | |Lobata    2
+ | | | | | | |Bolinopsidae    2
+ | | | | | | | |Mnemiopsis    2
+ | | | | | | | | |leidyi    2
+"""
+    tester = sb_resources.get_one("p f")
+    assert Sb.taxonomic_breakdown(tester) == """\
+Total: 13
+
+Unknown    13
+"""
+
+
 # ######################  '-tr6', '--translate6frames' ###################### #
 def test_translate6frames(sb_resources, hf):
     tester = Sb.translate6frames(sb_resources.get_one("d f"))

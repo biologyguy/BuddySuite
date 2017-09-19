@@ -1519,6 +1519,57 @@ def test_transcribe_ui(capsys, sb_resources, hf):
     assert "DNA sequence required, not IUPACProtein()." in str(err)
 
 
+# ######################  '-tb', '--taxonomic_breakdown' ###################### #
+def test_taxonomic_breakdown_ui(capsys, sb_resources):
+    test_in_args = deepcopy(in_args)
+    test_in_args.taxonomic_breakdown = [None]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+
+"""
+
+    test_in_args.taxonomic_breakdown = [-2]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+
+"""
+
+    test_in_args.taxonomic_breakdown = [0]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+ | | | | |Tentaculata    2
+ | | | | | |Lobata    2
+ | | | | | | |Bolinopsidae    2
+ | | | | | | | |Mnemiopsis    2
+ | | | | | | | | |leidyi    2
+
+"""
+
+
 # ######################  '-tr', '--translate' ###################### #
 def test_translate_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args = deepcopy(in_args)

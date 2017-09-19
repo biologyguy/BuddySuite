@@ -3541,6 +3541,48 @@ def shuffle_seqs(seqbuddy, r_seed=None):
     return seqbuddy
 
 
+def taxonomic_breakdown(seqbuddy, max_depth=5):
+    max_depth = abs(max_depth)
+    taxonomy_dict = OrderedDict([("rec_ids", [])])
+    seqbuddy = make_copy(seqbuddy)
+    for rec_id, rec in seqbuddy.to_dict().items():
+        if "taxonomy" not in rec.annotations or not rec.annotations['taxonomy']:
+            taxonomy_dict.setdefault("Unknown", OrderedDict([("rec_ids", [])]))
+            taxonomy_dict["rec_ids"].append(rec.id)
+            taxonomy_dict["Unknown"]["rec_ids"].append(rec.id)
+        else:
+            if "organism" in rec.annotations:
+                rec.annotations['organism'] = re.sub("[ ]+", " ", rec.annotations['organism'])
+                if rec.annotations['organism']:
+                    organism = rec.annotations['organism'].split()[1:]
+                    organism = " ".join(organism)
+                    rec.annotations['taxonomy'].append(organism)
+
+            taxonomy_dict = _tb_add_tax(rec_id, rec.annotations['taxonomy'], taxonomy_dict)
+    return _tb_to_string(taxonomy_dict, depth=0, max_depth=max_depth)
+
+
+def _tb_add_tax(rec_id, taxonomy, tax_dict):
+    tax_dict.setdefault("rec_ids", [])
+    tax_dict["rec_ids"].append(rec_id)
+    if len(taxonomy) >= 1:
+        tax_dict.setdefault(taxonomy[0], OrderedDict())
+        tax_dict[taxonomy[0]] = _tb_add_tax(rec_id, taxonomy[1:], tax_dict[taxonomy[0]])
+    return tax_dict
+
+
+def _tb_to_string(tax_dict, depth, max_depth):
+    output = "Total: %s\n\n" % len(tax_dict["rec_ids"]) if depth == 0 else ""
+    if not max_depth or depth < max_depth:
+        del tax_dict["rec_ids"]
+        tax_dict = sorted([(taxon, sub_dict) for taxon, sub_dict in tax_dict.items()],
+                          key=lambda x: len(x[1]))
+        for taxon, sub_dict in tax_dict:
+            output += "{0}{1}    {2}\n".format(" |" * depth, taxon, len(sub_dict['rec_ids']))
+            output += _tb_to_string(sub_dict, depth + 1, max_depth)
+    return output
+
+
 def translate6frames(seqbuddy):
     """
     Translates a nucleotide sequence into a protein sequence across all six reading frames.
@@ -5259,6 +5301,12 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.shuffle_seqs:
         _print_recs(shuffle_seqs(seqbuddy))
         _exit("shuffle_seqs")
+
+    # Taxanomic breakdown
+    if in_args.taxonomic_breakdown:
+        depth = 5 if in_args.taxonomic_breakdown[0] is None else abs(in_args.taxonomic_breakdown[0])
+        print(taxonomic_breakdown(seqbuddy, depth))
+        _exit("taxonomic_breakdown")
 
     # Transcribe
     if in_args.transcribe:
