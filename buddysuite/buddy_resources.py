@@ -48,6 +48,7 @@ import string
 from random import choice
 import signal
 from pkg_resources import Requirement, resource_filename, DistributionNotFound
+from subprocess import Popen, PIPE
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -920,6 +921,37 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
     if version:
         misc.add_argument('-v', '--version', action='version', version=str(version))
+
+
+def identify_msa_program(msa_alias):
+    # Figure out what tool is being used
+    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
+                           "url": "http://mafft.cbrc.jp/alignment/software/", "name": "mafft"},
+                 'prank': {"ver": " -help", "check": "prank v[0-9]*\.[0-9]+", "ver_num": "v([0-9]*\.[0-9]+)",
+                           "url": "http://wasabiapp.org/software/prank/prank_installation/", "name": "prank"},
+                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": "v\.([0-9]+\.[0-9]+)",
+                           "url": "http://wasabiapp.org/software/pagan/pagan_installation/", "name": "pagan"},
+                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": "v([0-9]+\.[0-9]+\.[0-9]+)",
+                            "url": "http://www.drive5.com/muscle/downloads.htm", "name": "muscle"},
+                 'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
+                              "ver_num": "CLUSTAL ([0-9]+\.[0-9]+) ",
+                              "url": "http://www.clustal.org/clustal2/#Download", "name": "clustalw"},
+                 'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
+                              "ver_num": "Omega - ([0-9]+\.[0-9]+)",
+                              "url": "http://www.clustal.org/omega/#Download", "name": "clustalo"}}
+
+    if msa_alias.lower() in tool_list:
+        return tool_list[msa_alias.lower()]
+    else:
+        for prog in tool_list:
+            if prog in msa_alias.lower():
+                return tool_list[prog]
+
+    for prog, args in tool_list.items():
+        version = Popen("%s%s" % (msa_alias, args["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+        if re.search(args['check'], version[0].decode()) or re.search(args['check'], version[1].decode()):
+            return tool_list[prog]
+    return False
 
 
 def parse_format(_format):

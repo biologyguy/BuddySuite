@@ -1014,37 +1014,8 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         params = ''
 
     # Figure out what tool is being used
-    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
-                           "url": "http://mafft.cbrc.jp/alignment/software/"},
-                 'prank': {"ver": " -help", "check": "prank v[0-9]*\.[0-9]+", "ver_num": "v([0-9]*\.[0-9]+)",
-                           "url": "http://wasabiapp.org/software/prank/prank_installation/"},
-                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": "v\.([0-9]+\.[0-9]+)",
-                           "url": "http://wasabiapp.org/software/pagan/pagan_installation/"},
-                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": "v([0-9]+\.[0-9]+\.[0-9]+)",
-                            "url": "http://www.drive5.com/muscle/downloads.htm"},
-                 'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
-                              "ver_num": "CLUSTAL ([0-9]+\.[0-9]+) ",
-                              "url": "http://www.clustal.org/clustal2/#Download"},
-                 'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
-                              "ver_num": "Omega - ([0-9]+\.[0-9]+)",
-                              "url": "http://www.clustal.org/omega/#Download"}}
+    tool = br.identify_msa_program(alias)
 
-    def check_lower(input_str):
-        input_str = str(input_str).lower()
-        if input_str in tool_list:
-            return input_str
-        for x in tool_list:
-            if x in input_str:
-                return x
-        return False
-
-    tool = check_lower(alias)
-    if not tool:
-        for prog, args in tool_list.items():
-            version = Popen("%s%s" % (alias, args["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
-            if re.search(args['check'], version[0].decode()) or re.search(args['check'], version[1].decode()):
-                tool = prog
-                break
     if not tool:
         raise AttributeError("{0} is not a recognized alignment tool. "
                              "Please check your spelling (case sensitive)".format(alias))
@@ -1058,7 +1029,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
     if not which(alias):
         error_msg = '#### Could not find %s on your system. ####\n ' \
                     'Please check that your spelling is correct (case sensitive) or go to %s to install %s.' \
-                    % (alias, tool_list[tool]["url"], tool)
+                    % (alias, tool["url"], tool["name"])
         raise SystemError(error_msg)
     else:
         valve = br.SafetyValve(global_reps=10)
@@ -1118,23 +1089,23 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
 
                 params = ' '.join(params)
 
-                if tool == 'clustalo':
+                if tool["name"] == 'clustalo':
                     command = '{0} {1} -i {2} -o {3}{4}result -v'.format(alias, params, tmp_in, tmp_dir.path, os.sep)
-                elif tool == 'clustalw':
+                elif tool["name"] == 'clustalw':
                     command = '{0} -infile={1} {2} -outfile={3}{4}result'.format(alias, tmp_in, params,
                                                                                  tmp_dir.path, os.sep)
-                elif tool == 'muscle':
+                elif tool["name"] == 'muscle':
                     command = '{0} -in {1} {2}'.format(alias, tmp_in, params)
-                elif tool == 'prank':
+                elif tool["name"] == 'prank':
                     command = '{0} -d={1} {2} -o={3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
-                elif tool == 'pagan':
+                elif tool["name"] == 'pagan':
                     command = '{0} -s {1} {2} -o {3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
-                elif tool == 'mafft':
+                elif tool["name"] == 'mafft':
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
                 try:
-                    if tool in ['prank', 'pagan', 'clustalo']:
-                        if tool == 'pagan' and len(seqbuddy) < 4:
+                    if tool["name"] in ['prank', 'pagan', 'clustalo']:
+                        if tool["name"] == 'pagan' and len(seqbuddy) < 4:
                             raise ValueError("PAGAN cannot run when less than 4 sequences are passed in.")
                         if quiet:
                             output = Popen(command, shell=True, universal_newlines=True,
@@ -1149,13 +1120,14 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                             output = Popen(command, shell=True, stdout=PIPE).communicate()
                         output = output[0].decode("utf-8")
                 except CalledProcessError:
-                    br._stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool), quiet)
+                    br._stderr('\n#### {0} threw an error. Scroll up for more info. ####\n\n'.format(tool["name"]),
+                               quiet)
                     sys.exit()
 
-                if tool.startswith('clustal'):
+                if tool["name"].startswith('clustal'):
                     with open('{0}{1}result'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
-                elif tool == 'prank':
+                elif tool["name"] == 'prank':
                     possible_files = os.listdir(tmp_dir.path)
                     filename = 'result.best.fas'
                     for _file in possible_files:
@@ -1163,16 +1135,16 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                             filename = _file
                     with open('{0}{1}{2}'.format(tmp_dir.path, os.path.sep, filename), "r", encoding="utf-8") as result:
                         output = result.read()
-                elif tool == 'pagan':
+                elif tool["name"] == 'pagan':
                     with open('{0}{1}result.fas'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
                     if os.path.isfile(".%swarnings" % os.path.sep):  # Pagan spits out this file (I've never seen anything in it)
                         os.remove(".%swarnings" % os.path.sep)
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
-                if (tool == 'mafft' and '--clustalout' in params) or \
-                        (tool == 'clustalw' and '-output' not in params) or \
-                        (tool == 'clustalo' and ('clustal' in params or '--outfmt clu' in params or
+                if (tool["name"] == 'mafft' and '--clustalout' in params) or \
+                        (tool["name"] == 'clustalw' and '-output' not in params) or \
+                        (tool["name"] == 'clustalo' and ('clustal' in params or '--outfmt clu' in params or
                          '--outfmt=clu' in params)):
                     # Clustal format extra spaces
                     contents = ''
@@ -1218,11 +1190,11 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
 
             except FileNotFoundError:
                 pass
-        version = Popen("%s%s" % (alias, tool_list[tool]["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+        version = Popen("%s%s" % (alias, tool["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
         version = version[0].decode() + "\n" + version[1].decode()
-        version = re.search(tool_list[tool]['ver_num'], version).group(1)
+        version = re.search(tool['ver_num'], version).group(1)
 
-        alignbuddy.align_tool["tool"] = tool.upper()
+        alignbuddy.align_tool["tool"] = tool["name"].upper()
         alignbuddy.align_tool["version"] = version
 
         br._stderr("Returning to AlignBuddy...\n\n", quiet)

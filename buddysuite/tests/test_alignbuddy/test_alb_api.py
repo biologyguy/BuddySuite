@@ -633,6 +633,7 @@ def test_alignment_edges(monkeypatch, sb_resources):
     shutil.copy("{0}{1}mock_resources{1}test_muscle{1}result".format(RES_PATH, os.path.sep),
                 "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(br, "Popen", MockPopen)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
