@@ -84,6 +84,7 @@ def add_metadata(seqbuddy, metadata, rec_regex=None):
 
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
+    (This may be more appropriate for AlignBuddy)
     :param matrix:
     """
     x = matrix
@@ -153,11 +154,6 @@ def incremental_rename(query, replace):
     x = (query, replace)
     return x
 
-def order_sequences_by_size(seqbuddy, rev=False):
-    """
-    Sort the sequences by size
-    """
-    return
 
 def keep_features(seqbuddy, regex(s)):
     """
@@ -2870,8 +2866,8 @@ def max_records(seqbuddy, number=1):
     :param number: How many records to return?
     :return:
     """
-    records = sorted(seqbuddy.records, key=lambda x: len(x.seq), reverse=True)
-    seqbuddy.records = records[:number]
+    seqbuddy = order_recs_by_len(seqbuddy, rev=True)
+    seqbuddy.records = seqbuddy.records[:number]
     return seqbuddy
 
 
@@ -2923,8 +2919,8 @@ def min_records(seqbuddy, number=1):
     :param number: How many records to return?
     :return:
     """
-    records = sorted(seqbuddy.records, key=lambda x: len(x.seq))
-    seqbuddy.records = records[:number]
+    seqbuddy = order_recs_by_len(seqbuddy)
+    seqbuddy.records = seqbuddy.records[:number]
     return seqbuddy
 
 
@@ -3111,6 +3107,17 @@ def order_ids_randomly(seqbuddy, r_seed=None):
         output = []
 
     seqbuddy.records = output
+    return seqbuddy
+
+
+def order_recs_by_len(seqbuddy, rev=False):
+    """
+    Sort the records by sequence size (smallest to largest)
+    :param seqbuddy: SeqBuddy object
+    :param rev: Sort from largest to smallest
+    :return: The reordered SeqBuddy object
+    """
+    seqbuddy.records = sorted(seqbuddy.records, key=lambda x: len(x.seq), reverse=rev)
     return seqbuddy
 
 
@@ -5104,6 +5111,13 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.order_ids_randomly:
         _print_recs(order_ids_randomly(seqbuddy))
         _exit("order_ids_randomly")
+
+    # Order records by length
+    if in_args.order_recs_by_len:
+        rev = True if in_args.order_recs_by_len[0] and "reverse".startswith(in_args.order_recs_by_len[0].lower()) \
+            else False
+        _print_recs(order_recs_by_len(seqbuddy, rev))
+        _exit("order_seqs_by_size")
 
     # Prepend organism
     if in_args.prepend_organism:

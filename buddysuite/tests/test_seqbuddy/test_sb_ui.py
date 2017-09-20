@@ -1167,6 +1167,20 @@ def test_order_ids_randomly_ui(capsys, sb_resources, hf):
     assert hf.buddy2hash(tester) == hf.buddy2hash(Sb.order_ids(sb_resources.get_one('d f')))
 
 
+# ######################  '-obl', '--order_recs_by_len' ###################### #
+def test_order_recs_by_len_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_recs_by_len = [[]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "bb114c02bfda1d1ad90bfb3375dc3a3b", print(out)
+
+    test_in_args.order_recs_by_len = ["rev"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "e99cf3d600d725e6dbd0cd5a3800face", print(out)
+
+
 # ####################  '-ppo', '--prepend_organism' ##################### #
 def test_prepend_organism_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)

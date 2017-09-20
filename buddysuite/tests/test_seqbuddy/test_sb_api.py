@@ -1492,6 +1492,13 @@ def test_order_ids_randomly2(sb_resources, hf):
     assert hf.buddy2hash(tester) == "bb75e7fc15f131e31271ea5006241615", print(tester)
 
 
+# ######################  '-obl', '--order_recs_by_len' ###################### #
+def test_order_recs_by_len(sb_resources, hf):
+    tester = sb_resources.get_one("p f")
+    assert hf.buddy2hash(Sb.order_recs_by_len(tester)) == "bb114c02bfda1d1ad90bfb3375dc3a3b"
+    assert hf.buddy2hash(Sb.order_recs_by_len(tester, rev=True)) == "e99cf3d600d725e6dbd0cd5a3800face"
+
+
 # #####################  '-ppo', '--prepend_organism' ###################### ##
 def test_prepend_organism(sb_resources, hf):
     tester = sb_resources.get_one("p g")
