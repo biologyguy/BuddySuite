@@ -235,14 +235,29 @@ def test_concat_alignments_ui(capsys, alb_resources, hf):
 # ##################### '-con', '--consensus' ###################### ##
 def test_consensus_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.consensus = True
+
+    test_in_args.consensus = ['SiMpL']
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7b0aa3cca159b276158cf98209be7dab"
+    assert hf.string2hash(out) == "9b69e5fb65ca1512de5a17472d105500"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
+    assert hf.string2hash(out) == "d1a8f7e629a020f5130373d7af65f9d9"
+
+    test_in_args.consensus = ['WeiG']
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "2364532e0ec2465ea27f04acc5d0e61b"
+
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "bf50c95916e9d62c95a460bbc517c053"
+
+    test_in_args.consensus = ['foo']
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "No valid consensus mode" in err
 
 
 # ######################################  '-dinv', '--delete_invariant_sites' ####################################### #

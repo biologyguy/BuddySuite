@@ -1972,21 +1972,21 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
     Sb.delete_features(tester, "splice|TMD")
     capsys.readouterr()
     tester = Sb.transmembrane_domains(tester)
-    assert hf.buddy2hash(tester) == "443462d4a7d7ed3121378fca55491d5c"
+    assert hf.buddy2hash(tester) == "0e199d23cefa502d8fbcd38fabe145f3"
 
     suds_client.service.current_job_id = next(suds_client.service.job_id_generator)
     tester = sb_resources.get_one("p g")
     Sb.pull_recs(tester, "α[56]")
     Sb.delete_features(tester, "splice|TMD")
     tester = Sb.transmembrane_domains(tester)
-    assert hf.buddy2hash(tester) == "eb31602e292e5a056b956f13dbb0d590"
+    assert hf.buddy2hash(tester) == "808d237e1e84f8f6857ab8766cfbaefc"
 
     tester = sb_resources.get_one("p g")
     Sb.pull_recs(tester, "α[56]")
     Sb.delete_features(tester, "splice|TMD")
     capsys.readouterr()
     tester = Sb.transmembrane_domains(tester, job_ids=["rst_lE27A5"])
-    assert hf.buddy2hash(tester) == "eb31602e292e5a056b956f13dbb0d590"
+    assert hf.buddy2hash(tester) == "808d237e1e84f8f6857ab8766cfbaefc"
 
     tester = sb_resources.get_one("p g")
     Sb.pull_recs(tester, "α[56]")
