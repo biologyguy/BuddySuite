@@ -106,19 +106,31 @@ def test_concat_alignments(alb_resources, hf):
 
 
 # ###########################################  '-con', '--consensus' ############################################ #
-hashes = [('o d g', 'bbaf389701418177c41dea7d9696acea'), ('o d n', '560d4fc4be7af5d09eb57a9c78dcbccf'),
-          ('o d py', '01f1181187ffdba4fb08f4011a962642'), ('o d s', '51b5cf4bb7d591c9d04c7f6b6bd70692'),
-          ('o r n', '1123b95374085b5bcd079880b7762801'), ('o p g', '304194cf5342a4b811b6832be41bc42a'),
-          ('o p n', '756a3334c70f9272e2d9cb74dba9ad52'), ('o p py', 'aaf1d5aff561c1769dd267ada2fea8b0'),
-          ('o p s', 'b6f72510eeef6be0752ae86d72a44283'), ('m d py', '0ae422fa0fafbe0f2edab9a042fb7834'),
-          ('m d s', '7b0aa3cca159b276158cf98209be7dab'), ('m p py', '460033d892db36d4750bafc6998d42d0'),
-          ('m p s', '89130797253646e61b78ab7d91ad3fd9')]
+hashes = [('o d g', '36ed26ded1f4e146ad8018a2dc31f0b2'), ('o d n', 'b7a49ccc640b088f2fe7de67bad30f06'),
+          ('o p py', 'c32119f34633d3956b3a1d3ac578869c'), ('m p s', 'd1a8f7e629a020f5130373d7af65f9d9')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_consensus(alb_resources, hf, key, next_hash):
+def test_simple_consensus(alb_resources, hf, key, next_hash):
+    tester = Alb.consensus_sequence(alb_resources.get_one(key), "simple")
+    assert hf.buddy2hash(tester) == next_hash
+
+
+hashes = [('o d g', 'c85a1726c3a6f8c3a402475d4f8fce27'), ('o d n', '15bb6c1959a6a5fee1a385921c39a4f5'),
+          ('o p py', '714bc7c67332fa96ef12cfeada88834c'), ('m p s', 'bf50c95916e9d62c95a460bbc517c053')]
+
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_weighted_consensus(alb_resources, hf, key, next_hash):
     tester = Alb.consensus_sequence(alb_resources.get_one(key))
     assert hf.buddy2hash(tester) == next_hash
+
+
+def test_consensus_error(alb_resources, hf):
+    tester = alb_resources.get_one('o d f')
+    with pytest.raises(ValueError) as err:
+        Alb.consensus_sequence(tester, mode="foo")
+    assert "No valid consensus" in str(err)
 
 
 # ######################################  '-dinv', '--delete_invariant_sites' ####################################### #
@@ -250,6 +262,7 @@ def test_extract_feature_sequences(alb_resources, hf):
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, [])
     assert hf.buddy2hash(tester) == "ac15492b38ca2ac4baa63e63a9b747f7"
+
 
 # ###########################################  'er', '--extract_regions' ############################################ #
 hashes = [('o d g', 'd06c46d7458f8b9a90aba14b83cdb329'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
@@ -725,7 +738,7 @@ def test_map_features2alignment(key, next_hash, alb_resources, hf):
 
 
 # ###########################################  '-pi', '--percent_id' ############################################ #
-def test_percent_id(alb_resources, hf):
+def test_percent_id(alb_resources):
     alignbuddy = alb_resources.get_one("o p s")
     alignbuddy = Alb.percent_id(alignbuddy)
 
@@ -766,6 +779,7 @@ def test_order_ids2(alb_resources, hf):
     Alb.rename(alignbuddy, "Mle-Panxα9", "aMle-PanxαBlahh")
     Alb.order_ids(alignbuddy)
     assert hf.buddy2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
+
 
 # ##################### '-pr', '--pull_records' ###################### ##
 hashes = [('o d g', '8488d218201ef84c8fe458576d38e3be'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
@@ -824,6 +838,7 @@ def test_translate2(alb_resources):
     with pytest.raises(TypeError) as e:
         Alb.translate_cds(tester)
     assert "Record 'Mle-Panxα9' is protein." in str(e)
+
 
 # ###########################################  'tm', '--trimal' ############################################ #
 hashes = [('o d psr', '5df948e4b2cb6c0d0740984445655135', '384563eb411713e90cb2fea0c799bf0d'),

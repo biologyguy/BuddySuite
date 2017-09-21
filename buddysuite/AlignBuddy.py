@@ -633,37 +633,98 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
     return alignbuddy
 
 
-def consensus_sequence(alignbuddy):
+def consensus_sequence(alignbuddy, mode="weighted"):
     # ToDo: include an ambiguous mode that will pull the degenerate nucleotide alphabet in the case of frequency ties.
     # ToDo: Retain sequence annotations --> options to include ALL or CONSERVED
     """
     Generates a simple majority-rule consensus sequence
     :param alignbuddy: The AlignBuddy object to be processed
+    :param mode: Simple majority rule or weighted (Henikoff & Henikoff J. Mol. Biol. 1994) [simple, weighted]
     :return: The modified AlignBuddy object (with a single record in each alignment)
     :rtype: AlignBuddy
     """
     consensus_sequences = []
-    for alignment in alignbuddy.alignments:
-        alpha = guess_alphabet(alignment)
-        ambig_char = "X" if alpha == IUPAC.protein else "N"
-        new_seq = ""
-        for indx in range(alignment.get_alignment_length()):
-            residues = {}
+
+    if mode == "weighted":
+        for alignment in alignbuddy.alignments:
+            alpha = guess_alphabet(alignment)
+            ambig_char = "X" if alpha == IUPAC.protein else "N"
+            new_seq = ""
+            scores_all_pos = {}
+            sequence_weights = {}
+            for indx in range(alignment.get_alignment_length()):
+                residues = {}
+                scores_this_pos = {}
+                for rec in alignment:
+                    residue = rec.seq[indx]
+                    residues.setdefault(residue, 0)
+                    residues[residue] += 1
+                num_residues = len(residues)
+                for aminoacid in residues:
+                    s = residues[aminoacid]
+                    score = float(1) / (num_residues * s)
+                    scores_this_pos[aminoacid] = score
+                    scores_all_pos[indx] = scores_this_pos
+
             for rec in alignment:
-                residue = rec.seq[indx]
-                residues.setdefault(residue, 0)
-                residues[residue] += 1
-            residues = sorted(residues.items(), key=lambda x: x[1], reverse=True)
-            if len(residues) == 1 or residues[0][1] != residues[1][1]:
-                new_seq += residues[0][0]
-            else:
-                new_seq += ambig_char
-        new_seq = Seq(new_seq, alphabet=alpha)
-        description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
-        new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
-                            description=description)
-        consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
+                seq_score = 0
+                for indx in range(alignment.get_alignment_length()):
+                    residue_type = str(rec.seq[indx])
+                    residue_score = scores_all_pos[indx][residue_type]
+                    seq_score += residue_score
+                seq_id = rec.id
+                sequence_weights[seq_id] = seq_score
+
+            for indx in range(alignment.get_alignment_length()):
+                aa_vote_tracker = {}
+                for rec in alignment:
+                    seq_id = rec.id
+                    residue = rec.seq[indx]
+                    residue_vote = sequence_weights[seq_id]
+                    aa_vote_tracker.setdefault(residue, 0)
+                    aa_vote_tracker[residue] += residue_vote
+
+                aa_vote_tracker = sorted(aa_vote_tracker.items(), key=lambda x: x[1], reverse=True)
+
+                if len(aa_vote_tracker) == 1 or aa_vote_tracker[0][1] != aa_vote_tracker[1][1]:
+                    new_seq += aa_vote_tracker[0][0]
+
+                else:
+                    new_seq += ambig_char
+
+            new_seq = Seq(new_seq, alphabet=alpha)
+            description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
+            new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
+                                description=description)
+            consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
+
+    elif mode == "simple":
+        for alignment in alignbuddy.alignments:
+            alpha = guess_alphabet(alignment)
+            ambig_char = "X" if alpha == IUPAC.protein else "N"
+            new_seq = ""
+            for indx in range(alignment.get_alignment_length()):
+                residues = {}
+                for rec in alignment:
+                    residue = rec.seq[indx]
+                    residues.setdefault(residue, 0)
+                    residues[residue] += 1
+                residues = sorted(residues.items(), key=lambda x: x[1], reverse=True)
+                if len(residues) == 1 or residues[0][1] != residues[1][1]:
+                    new_seq += residues[0][0]
+                else:
+                    new_seq += ambig_char
+            new_seq = Seq(new_seq, alphabet=alpha)
+            description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
+            new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
+                                description=description)
+            consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
+
+    else:
+        raise ValueError("No valid consensus mode specified (valid modes are 'simple' and 'weighted')")
+
     alignbuddy.alignments = consensus_sequences
+    alignbuddy = trimal(alignbuddy, 'clean')
     return alignbuddy
 
 
@@ -1837,7 +1898,15 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
 
     # Consensus sequence
     if in_args.consensus:
-        _print_aligments(consensus_sequence(alignbuddy))
+        con = "w" if in_args.consensus[0] is None else in_args.consensus[0]
+        con = con.lower()
+        con = "simple" if "simple".startswith(con) else con
+        con = "weighted" if "weighted".startswith(con) else con
+        try:
+            alignbuddy = consensus_sequence(alignbuddy, con)
+        except ValueError as err:
+            _raise_error(err, "consensus", "No valid consensus mode")
+        _print_aligments(alignbuddy)
         _exit("consensus")
 
     # Delete invariant sites
@@ -2223,6 +2292,7 @@ def main():
         br.send_traceback("AlignBuddy", function, _e, VERSION)
         return False
     return True
+
 
 if __name__ == '__main__':
     main()
