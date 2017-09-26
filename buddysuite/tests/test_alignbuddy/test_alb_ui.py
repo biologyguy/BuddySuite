@@ -27,6 +27,7 @@ import pytest
 import os
 import sys
 import argparse
+import re
 from copy import deepcopy
 
 import AlignBuddy as Alb
@@ -59,6 +60,7 @@ def mock_raiseruntimeerror(*args, **kwargs):
 
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
+
 
 parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                  description='''\
@@ -358,7 +360,7 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
 
 
 # ##################### '-fa', '--faux_align' ###################### ##
-def test_faux_align_ui(capsys, alb_resources, hf):
+def test_faux_align_ui(capsys, alb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.faux_align = [None]
     test_in_args.alignments = [alb_resources.get_one("o p g", "paths")]
@@ -421,6 +423,53 @@ def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
     out, err = capsys.readouterr()
     assert "Warning: No input detected so AlignBuddy is aborting..." in err
+
+
+# ######################  '-gh', '--generate_hmm' ###################### #
+def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.generate_hmm = [[]]
+
+    tester = alb_resources.get_one("m p c")
+    Alb.command_line_ui(test_in_args, tester, True)
+
+    out, err = capsys.readouterr()
+    hmm = re.findall("(HMM +A +C +D.+?//)", out, re.DOTALL)
+    assert hf.string2hash(hmm[0]) == "936076129aa1cd610223da00f6ca4c20", print(hmm[0])
+    assert hf.string2hash(hmm[1]) == "dc9a3436f57be80cd1aeb7bbdcbf0fdc"
+
+    tester = alb_resources.get_one("m d c")
+    Alb.command_line_ui(test_in_args, tester, True)
+
+    out, err = capsys.readouterr()
+    hmm = re.findall("(HMM +A +C +G.+?//)", out, re.DOTALL)
+    assert hf.string2hash(hmm[0]) == "262ac3c8746e2526ed6c029dd829dad0"
+    assert hf.string2hash(hmm[1]) == "0e95f5a3caafa2a385c5624c435048da"
+
+    test_in_args.generate_hmm = ["foo"]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+
+    out, err = capsys.readouterr()
+    assert "Could not find foo on your system. Please check your spelling or install HMMER3." in err
+
+    def raise_syserror(*_, **__):
+        raise SystemError("No output detected after running")
+
+    monkeypatch.setattr(Alb, "generate_hmm", raise_syserror)
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+
+    out, err = capsys.readouterr()
+    assert "No output detected after running" in err
+
+    def raise_valueerror(*_, **__):
+        raise ValueError("This is just a check for dealing with unexpected error")
+
+    monkeypatch.setattr(Alb, "generate_hmm", raise_valueerror)
+
+    with pytest.raises(ValueError):
+        Alb.command_line_ui(test_in_args, tester)
 
 
 # ######################  '-hsi', '--hash_ids' ###################### #
@@ -599,6 +648,7 @@ def test_screw_formats_ui(_format, next_hash, capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == next_hash
+
 
 hashes = [("clustal", "cf349d6061c602439b72b51368f694ed"), ("phylip", "2a77f5761d4f51b88cb86b079e564e3b"),
           ("phylipr", "1f172a3beef76e8e3d42698bb2c3c87d"), ("phylipss", "eb82cda31fcb2cf00e11d7e910fde695"),

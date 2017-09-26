@@ -1262,6 +1262,32 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
         return alignbuddy
 
 
+def generate_hmm(alignbuddy, alias="hmmbuild"):
+    """
+    Call hmmerbuild and create an hmm file
+    :param alignbuddy:
+    :param alias: Specify the binary name of hmmbuild
+    :return:
+    """
+    if not which(alias):
+        raise SystemError("Could not find %s on your system. Please check your spelling or install HMMER3." % alias)
+
+    tmp_dir = br.TempDir()
+    for align in alignbuddy.alignments:
+        align_file = tmp_dir.subfile("align.sto")
+        hmm_file = tmp_dir.subfile("align.hmm")
+        with open(align_file, "w") as ofile:
+            AlignIO.write(align, ofile, "stockholm")
+        out, err = Popen("%s %s %s" % (alias, hmm_file, align_file), shell=True, stdout=PIPE, stderr=PIPE).communicate()
+        with open(hmm_file, "r") as ifile:
+            hmm = ifile.read()
+            if not hmm:
+                raise SystemError("No output detected after running %s." % alias)
+            align.hmm = hmm
+            align.hmm_out = out.decode()
+    return alignbuddy
+
+
 def hash_ids(alignbuddy, hash_length=10, r_seed=None):
     """
     Replace all IDs with random hashes
@@ -2046,6 +2072,20 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
         except SystemError as e:
             _raise_error(e, "generate_alignment", "Could not find")
         _exit("generate_alignment")
+
+    # Generate HMM
+    if in_args.generate_hmm:
+        alias = "hmmbuild" if not in_args.generate_hmm[0] else in_args.generate_hmm[0]
+        try:
+            alignbuddy = generate_hmm(alignbuddy, alias)
+        except SystemError as err:
+            _raise_error(err, "generate_hmm", ["Please check your spelling or install HMMER3",
+                                               "No output detected after running"])
+        for align in alignbuddy.alignments:
+            if not in_args.quiet:
+                br._stdout("%s\n" % align.hmm_out)
+            br._stdout("%s\n" % align.hmm)
+        _exit("generate_hmm")
 
     # Hash ids
     if in_args.hash_ids:

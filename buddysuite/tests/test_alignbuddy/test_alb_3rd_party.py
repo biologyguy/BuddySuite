@@ -12,9 +12,19 @@ import os
 from unittest import mock
 from shutil import which
 from subprocess import Popen, PIPE
+import re
 import AlignBuddy as Alb
 import SeqBuddy as Sb
 import buddy_resources as br
+
+
+class MockPopen(object):
+    def __init__(self, *_, **__):
+        self.foo = [_, __]
+
+    @staticmethod
+    def wait(*_, **__):
+        return
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -106,6 +116,7 @@ def test_muscle_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
     assert hf.buddy2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
+
 
 # ##########   CLUSTAL   ########## #
 clustalw_bin = 'clustalw' if which('clustalw') else 'clustalw2'
@@ -279,3 +290,29 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
     tester = sb_resources.get_one("d f")
     tester = Sb.pull_recs(tester, "α[2345]")
     Alb.generate_msa(tester, tool, params, quiet=True)
+
+
+def test_generate_hmm(alb_resources, hf, monkeypatch):
+    tester = alb_resources.get_one("m p c")
+    tester = Alb.generate_hmm(tester)
+    for align in tester.alignments:
+        align.hmm = re.search("(HMM +A +C +D.+//)", align.hmm, re.DOTALL).group(1)
+    assert hf.string2hash(tester.alignments[0].hmm) == "936076129aa1cd610223da00f6ca4c20"
+    assert hf.string2hash(tester.alignments[1].hmm) == "dc9a3436f57be80cd1aeb7bbdcbf0fdc"
+
+    tester = alb_resources.get_one("m d c")
+    tester = Alb.generate_hmm(tester, "hmmbuild")
+    for align in tester.alignments:
+        align.hmm = re.search("(HMM +A +C +G.+//)", align.hmm, re.DOTALL).group(1)
+    assert hf.string2hash(tester.alignments[0].hmm) == "262ac3c8746e2526ed6c029dd829dad0"
+    assert hf.string2hash(tester.alignments[1].hmm) == "0e95f5a3caafa2a385c5624c435048da"
+
+    with pytest.raises(SystemError) as err:
+        Alb.generate_hmm(tester, "foo")
+    assert "Could not find foo on your system." in str(err)
+
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+
+    with pytest.raises(SystemError) as err:
+        Alb.generate_hmm(tester)
+    assert "No output detected after running hmmbuild." in str(err)
