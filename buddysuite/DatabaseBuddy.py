@@ -943,7 +943,7 @@ class NCBIClient(GenericClient):
                     handle = Entrez.esummary(db=db, id=query, retmax=10000)
                 elif tool == "efetch_seq":
                     # Example query of ACCNs: "XP_010103297.1,XP_010103298.1,XP_010103299.1"
-                    handle = Entrez.efetch(db=db, id=query, rettype="gb", retmode="text", retmax=10000)
+                    handle = Entrez.efetch(db=db, id=query, rettype="gbwithparts", retmode="text", retmax=10000)
                 elif tool == "esearch":
                     count = Entrez.read(Entrez.esearch(db=db, term=re.sub('[\'"]', '', query), rettype="count"))["Count"]
                     handle = Entrez.esearch(db=db, term=re.sub('[\'"]', '', query), retmax=count, idtype='acc')
