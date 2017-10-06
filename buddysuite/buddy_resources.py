@@ -1462,6 +1462,7 @@ def clean_regex(patterns, quiet=False):
 
 # #################################################### VARIABLES ##################################################### #
 
+
 contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
@@ -1839,24 +1840,32 @@ sb_flags = {"annotate": {"flag": "ano",
                           "help": "Convert all sequences to uppercase"}}
 
 sb_modifiers = {"alpha": {"flag": "a",
+                          "metavar": "     <alphabet>",
                           "action": "store",
                           "help": "If you want the file read with a specific alphabet"},
                 "in_format": {"flag": "f",
+                              "metavar": " <format>",
                               "action": "store",
                               "help": "If SeqBuddy can't guess the file format, try specifying it directly"},
                 "in_place": {"flag": "i",
                              "action": "store_true",
                              "help": "Rewrite the input file in-place. Be careful!"},
                 "keep_temp": {"flag": "k",
+                              "metavar": " <directory>",
                               "action": "store",
-                              "help": "Save temporary files created by generate_tree in current working directory"},
+                              "help": "If temporary files are created, save them to specified dir."},
                 "out_format": {"flag": "o",
-                               "metavar": "",
+                               "metavar": "<format>",
                                "action": "store",
                                "help": "If you want a specific format output"},
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},
+                "restrict": {"flag": "r",
+                             "action": "append",
+                             "nargs": "+",
+                             "metavar": "  <regex>",
+                             "help": "Specify which records are modified (all are returned still)"},
                 "test": {"flag": "t",
                          "action": "store_true",
                          "help": "Run the function and return any stderr/stdout other than sequences"}}

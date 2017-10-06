@@ -850,7 +850,7 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a136d11d0fd17b9833bf26724a794e5", print(tester)
+    assert hf.string2hash(out) == "7a136d11d0fd17b9833bf26724a794e5"
     assert err == "Warning: FooBR not a known enzyme\n"
 
     with pytest.raises(TypeError) as err:
@@ -1636,7 +1636,7 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, hf):
     tester.records[0].seq.alphabet = IUPAC.protein
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required." in str(err)
+    assert "Record 'Mle-Panxα12_f1' is protein. Nucleic acid sequences required." in str(err)
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)

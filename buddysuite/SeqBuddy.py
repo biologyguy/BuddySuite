@@ -319,16 +319,18 @@ class SeqBuddy(object):
 
         self.records = sequences
         self.memory_footprint = sum([len(rec) for rec in sequences])
+        self.hidden_recs = []  # If anything is in here it will be printed with __str__() or write()
 
     def __str__(self):
-        if len(self.records) == 0:
+        records = self.records + self.hidden_recs
+        if len(records) == 0:
             return "Error: No sequences in object.\n"
 
         # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
         # The following is a work around...
         self.out_format = self.out_format.lower()
         if self.out_format in ["gb", "genbank"]:
-            for rec in self.records:
+            for rec in records:
                 try:
                     if re.search("(\. )+", rec.annotations['organism']):
                         rec.annotations['organism'] = "."
@@ -342,26 +344,26 @@ class SeqBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False, _type="seqbuddy")
 
         elif self.out_format == "raw":
-            output = "\n\n".join([str(rec.seq) for rec in self.records])
+            output = "\n\n".join([str(rec.seq) for rec in records])
         else:
             tmp_dir = br.TempDir()
             with open("%s%sseqs.tmp" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as _ofile:
                 try:
-                    SeqIO.write(self.records, _ofile, self.out_format)
+                    SeqIO.write(records, _ofile, self.out_format)
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
                                    "Format changed to fasta to accommodate proper printing of records.\n\n")
-                        SeqIO.write(self.records, _ofile, "fasta")
+                        SeqIO.write(records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
                                    "Attempting phylip-relaxed.\n")
-                        SeqIO.write(self.records, _ofile, "phylip-relaxed")
+                        SeqIO.write(records, _ofile, "phylip-relaxed")
                     elif "Locus identifier" in str(e) and "is too long" in str(e) \
                             and self.out_format in ["gb", "genbank"]:
                         br._stderr("Warning: Genbank format returned an 'ID too long' error. "
                                    "Format changed to EMBL.\n\n")
-                        SeqIO.write(self.records, _ofile, "embl")
+                        SeqIO.write(records, _ofile, "embl")
                     else:
                         raise e
 
@@ -655,10 +657,14 @@ def make_copy(seqbuddy):
     :return: SeqBuddy object
     """
     alphabet_list = [rec.seq.alphabet for rec in seqbuddy.records]
+    hidden_alphabet_list = [rec.seq.alphabet for rec in seqbuddy.hidden_recs]
     _copy = deepcopy(seqbuddy)
     _copy.alpha = seqbuddy.alpha
     for indx, rec in enumerate(_copy.records):
         rec.seq.alphabet = alphabet_list[indx]
+
+    for indx, rec in enumerate(_copy.hidden_recs):
+        rec.seq.alphabet = hidden_alphabet_list[indx]
     return _copy
 
 
@@ -1338,7 +1344,7 @@ def concat_seqs(seqbuddy, clean=False):
     new_seq = [SeqRecord(Seq(new_seq, alphabet=seqbuddy.alpha),
                          description="", id="concatination", name="concatination", features=features,
                          annotations={}, letter_annotations=letter_annotations)]
-    seqbuddy = SeqBuddy(new_seq)
+    seqbuddy.records = new_seq
     seqbuddy.out_format = "gb"
     return seqbuddy
 
@@ -2013,7 +2019,7 @@ def extract_regions(seqbuddy, positions):
 
         new_records.append(new_seq)
 
-    seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format, alpha=seqbuddy.alpha)
+    seqbuddy.records = new_records
     return seqbuddy
 
 
@@ -3253,7 +3259,7 @@ class PrositeScan(object):
 
         br.run_multicore_function(self.seqbuddy.records, self._mc_run_prosite,
                                   [temp_file.path, Lock()], out_type=sys.stderr, quiet=self.quiet)
-        self.seqbuddy = SeqBuddy(temp_file.path)
+        self.seqbuddy.records = SeqBuddy(temp_file.path).records
         new_records = []
         for rec in seqbuddy_copy.records:
             for indx, rec2 in enumerate(self.seqbuddy.records):
@@ -3625,7 +3631,7 @@ def translate6frames(seqbuddy):
         output += [frame1.records[i], frame2.records[i], frame3.records[i],
                    rframe1.records[i], rframe2.records[i], rframe3.records[i]]
 
-    seqbuddy = SeqBuddy(output, out_format=seqbuddy.out_format)
+    seqbuddy.records = SeqBuddy(output).records
     return seqbuddy
 
 
@@ -3952,7 +3958,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             records.append(cons_seq.records[0])
 
     printer.write("Creating new SeqBuddy object")
-    seqbuddy = SeqBuddy(records)
+    seqbuddy.records = SeqBuddy(records).records
 
     if keep_temp:
         printer.write("Preparing TOPCONS files to be saved")
@@ -4078,6 +4084,10 @@ def argparse_init():
     except br.GuessError as e:
         br._stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
+
+    if in_args.restrict:
+        seqbuddy.hidden_recs = delete_records(make_copy(seqbuddy), in_args.restrict[0]).records
+        seqbuddy = pull_recs(seqbuddy, in_args.restrict[0])
 
     return in_args, seqbuddy
 
