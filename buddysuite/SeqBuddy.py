@@ -187,7 +187,7 @@ class SeqBuddy(object):
         in_handle = None
         raw_sequence = None
         in_file = None
-        self.alpha = alpha
+        self.alpha = alpha if type(alpha) != str else alpha.lower()
         self.hash_map = OrderedDict()  # This is only used by functions that use hash_id()
 
         # SeqBuddy obj
@@ -299,11 +299,11 @@ class SeqBuddy(object):
 
         if self.alpha is None:
             self.alpha = _guess_alphabet(sequences)
-        elif self.alpha in ['protein', 'prot', 'p', 'pep', IUPAC.protein]:
+        elif "protein".startswith(str(self.alpha)) or self.alpha in ['pep', IUPAC.protein]:
             self.alpha = IUPAC.protein
-        elif self.alpha in ['dna', 'd', 'cds', IUPAC.ambiguous_dna]:
+        elif "dna".startswith(str(self.alpha)) or self.alpha in ['cds', IUPAC.ambiguous_dna]:
             self.alpha = IUPAC.ambiguous_dna
-        elif self.alpha in ['rna', 'r', IUPAC.ambiguous_rna]:
+        elif "rna".startswith(str(self.alpha)) or self.alpha == IUPAC.ambiguous_rna:
             self.alpha = IUPAC.ambiguous_rna
         else:
             br._stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
