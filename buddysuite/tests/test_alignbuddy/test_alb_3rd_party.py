@@ -26,6 +26,10 @@ class MockPopen(object):
     def wait(*_, **__):
         return
 
+    @staticmethod
+    def communicate(*_, **__):
+        return ["out".encode(), "err".encode()]
+
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
 
