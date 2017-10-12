@@ -659,8 +659,9 @@ def test_find_restriction_sites_ui(capsys, sb_resources, hf):
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "793f1dce2c4b1c94ab1051f2e34ea0a4", print(out)
-    assert hf.string2hash(err) == "a240a6db9dfc1f2257faa80bc4b1445b"
+    # The 793f1d and a240a6 hash are for BioPython 1.70
+    assert hf.string2hash(out) in ["793f1dce2c4b1c94ab1051f2e34ea0a4", "b2c38f396fa271bac79ebe980c968cf4"]
+    assert hf.string2hash(err) in ["a240a6db9dfc1f2257faa80bc4b1445b", "7fe48f1fb243cecf2833bc67833df55f"]
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
@@ -850,7 +851,9 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a136d11d0fd17b9833bf26724a794e5"
+
+    # The 7a136d11 hash is for BioPython 1.70
+    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "11b17b53d15bd6675d3190c391142cc9"]
     assert err == "Warning: FooBR not a known enzyme\n"
 
     with pytest.raises(TypeError) as err:

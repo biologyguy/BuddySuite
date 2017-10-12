@@ -959,19 +959,23 @@ def test_restriction_sites_no_args(sb_resources, hf):
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"))
     # The output below changes depending on the version of python, not sure why...
     assert hf.buddy2hash(tester) in {"5d0c81eb76eeb0c1eb37fd937ccef5e2": "py3.6",
-                                     "a48fc20dc07b6bf03b0cef32ed27c5d2": "py3.5"}
+                                     "a48fc20dc07b6bf03b0cef32ed27c5d2": "py3.5",
+                                     "4f4d40c002f469873384ea258e359002": "biopython1.71"}
     assert hf.string2hash(str(tester.restriction_sites)) in {"27a3bdae9c771320dbc5b1ff1e3debce": "py3.6",
-                                                             "646d1026fc5b245ad7130dab3f027489": "py3.5"}
+                                                             "646d1026fc5b245ad7130dab3f027489": "py3.5",
+                                                             "afd56bf9e9d73cb1b07062c19af9d97b": "biopython1.71"}
 
 
 def test_restriction_sites_all_emzymes(sb_resources, hf):
     # All enzymes
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), enzyme_group=["all"])
     # The output below changes depending on the version of python, not sure why...
-    assert hf.buddy2hash(tester)in {"4583086c3e8212b5ce2ab5ac3cbb7c4b": "py3.6",
-                                    "cc439bded1b7f6cde0c9f91ad1f01e88": "py3.5"}
+    assert hf.buddy2hash(tester) in {"4583086c3e8212b5ce2ab5ac3cbb7c4b": "py3.6",
+                                     "cc439bded1b7f6cde0c9f91ad1f01e88": "py3.5",
+                                     "75ff1c36ce41fe046813a332b1a090df": "biopython1.71"}
     assert hf.string2hash(str(tester.restriction_sites)) in {"19cdc8204f9f352b722576680c5f9f74": "py3.6",
-                                                             "57b329d60cb4ed80831fcbbcb71c4021": "py3.5"}
+                                                             "57b329d60cb4ed80831fcbbcb71c4021": "py3.5",
+                                                             "d484061983a4e7bd47b566cc67732aa3": "biopython1.71"}
 
 
 def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
@@ -979,8 +983,10 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), min_cuts=2, max_cuts=4,
                                        enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I", "FooBR"])
     out, err = capsys.readouterr()
-    assert hf.buddy2hash(tester) == 'c42b3bf0367557383000b897432fed2d'
-    assert hf.string2hash(str(tester.restriction_sites)) == "0d2e5fdba6fed434495481397a91e56a"
+    # The c42b3bf and 0d2e5fdb hashes are for BioPython 1.70
+    assert hf.buddy2hash(tester) in ['c42b3bf0367557383000b897432fed2d', '04cd62ab44f1479616370d04800fd54a']
+    assert hf.string2hash(str(tester.restriction_sites)) in ["0d2e5fdba6fed434495481397a91e56a",
+                                                             "e16a3aabf4681e7a4d186e7c7685f545"]
     assert "Warning: FooBR not a known enzyme" in err
 
     # RNA
@@ -1068,7 +1074,8 @@ def test_insert_seqs_start(sb_resources, hf):
 def test_in_silico_digest(capsys, sb_resources, hf):
     tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
     out, err = capsys.readouterr()
-    assert hf.buddy2hash(tester) == '5539e56a557e545a4c16550a972acae6'
+    # The 5539e56 hash is for BioPython 1.70
+    assert hf.buddy2hash(tester) in ['5539e56a557e545a4c16550a972acae6', '471c10855edfa106ccda75920d46ee42']
     assert "Warning: FooBR not a known enzyme" in err
 
     with pytest.raises(TypeError) as e:

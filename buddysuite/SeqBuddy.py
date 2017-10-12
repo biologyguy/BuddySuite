@@ -2518,8 +2518,7 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False):
         raise TypeError("Unable to identify restriction sites in protein sequences.")
 
     seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, quiet)
-    new_seqbuddy = make_copy(seqbuddy)
-    new_seqbuddy.records = []
+    new_records = []
 
     for indx, rec in enumerate(seqbuddy.records):
         sub_seqbuddy = SeqBuddy([rec])
@@ -2528,11 +2527,12 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False):
         seq_pointer = 0
         for cut in res_sites:
             fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-            new_seqbuddy.records.append(fragment.records[0])
+            new_records.append(fragment.records[0])
             seq_pointer = cut
         final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
-        new_seqbuddy.records.append(final_fragment.records[0])
-    return new_seqbuddy
+        new_records.append(final_fragment.records[0])
+    seqbuddy.records = new_records
+    return seqbuddy
 
 
 def isoelectric_point(seqbuddy):
