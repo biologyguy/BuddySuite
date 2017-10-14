@@ -233,16 +233,14 @@ def usable_cpu_count():
     return max_processes
 
 
-def run_multicore_function(iterable, function, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
+def run_multicore_function(iterable, func, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
         if func_args and not isinstance(func_args, list):
             raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
-
         d_print = DynamicPrint(out_type)
         if max_processes == 0:
             max_processes = usable_cpu_count()
-
         else:
             cpus = cpu_count()
             if max_processes > cpus:
@@ -262,7 +260,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
         elapsed = 0
         counter = 0
         if not quiet:
-            d_print.write("Running function %s() on %s cores\n" % (function.__name__, max_processes))
+            d_print.write("Running function %s() on %s cores\n" % (func.__name__, max_processes))
         # fire up the multi-core!!
         if not quiet:
             d_print.write("\tJob 0 of %s" % iter_len)
@@ -271,7 +269,7 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             if type(iterable) is dict:
                 next_iter = iterable[next_iter]
             if os.name == "nt":  # Multicore doesn't work well on Windows, so for now just run serial
-                function(next_iter, func_args)
+                func(next_iter, func_args)
                 continue
             while 1:     # Only fork a new process when there is a free processor.
                 if running_processes < max_processes:
@@ -280,9 +278,9 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                         d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
                     if func_args:
-                        p = Process(target=function, args=(next_iter, func_args))
+                        p = Process(target=func, args=(next_iter, func_args))
                     else:
-                        p = Process(target=function, args=(next_iter,))
+                        p = Process(target=func, args=(next_iter,))
                     p.start()
                     child_list.append(p)
                     running_processes += 1
@@ -303,7 +301,6 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                             if (start_time + elapsed) < round(time()):
                                 elapsed = round(time()) - start_time
                                 d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
-
                         if running_processes < max_processes:
                             break
 
@@ -319,13 +316,11 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                     child_list.pop(i)
                     running_processes -= 1
                     break  # need to break out of the for-loop, because the child_list index is changed by pop
-
             if not quiet:
                 if (start_time + elapsed) < round(time()):
                     elapsed = round(time()) - start_time
                     d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
                                                                                len(child_list)))
-
         if not quiet:
             d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
@@ -624,7 +619,7 @@ class Contributor(object):
 
     def name(self):
         _name = " ".join([self.first, self.middle, self.last])
-        _name = re.sub("  ", " ", _name)  # in case there is no middle name
+        _name = re.sub(" {2}", " ", _name)  # in case there is no middle name
         return _name
 
     def __str__(self):
@@ -1165,7 +1160,7 @@ def replacements(input_str, query, replace="", num=0):
     return input_str
 
 
-def send_traceback(tool, function, e, version):
+def send_traceback(tool, func, e, version):
     now = datetime.datetime.now()
     config = config_values()
     tb = ""
@@ -1176,7 +1171,7 @@ def send_traceback(tool, function, e, version):
             _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
     bs_version = "# %s: %s\n" % (tool, version.short())
-    func = "# Function: %s\n" % function
+    func = "# Function: %s\n" % func
     platform = "# Platform: %s\n" % sys.platform
     python = "# Python: %s\n" % re.sub("[\n\r]", "", sys.version)
     user = "# User: %s\n" % config['user_hash']
@@ -1184,7 +1179,7 @@ def send_traceback(tool, function, e, version):
     error = "%s: %s\n\n" % (type(e).__name__, e)
 
     tb = "".join([bs_version, func, python, platform, user, date, error, tb])
-    print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
+    print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, func, tb))
     error_report(tb, config["diagnostics"])
     return
 
@@ -1430,6 +1425,7 @@ def isfile_override(path):
             raise err
     return stat.S_ISREG(st.st_mode)
 
+
 if os.name == "nt":
     os.path.isfile = isfile_override
 
@@ -1487,7 +1483,12 @@ bsi_flags = {"cmd_line": {"flag": "cmd",
 
 bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
-sb_flags = {"annotate": {"flag": "ano",
+sb_flags = {"amend_metadata": {"flag": "amd",
+                               "action": "append",
+                               "nargs": "+",
+                               "metavar": "<attribute> <regex> [substitution_value]",
+                               "help": "Add new attributes to records"},
+            "annotate": {"flag": "ano",
                          "nargs": "*",
                          "metavar": "args",
                          "help": "Add a feature (annotation) to selected sequences. "

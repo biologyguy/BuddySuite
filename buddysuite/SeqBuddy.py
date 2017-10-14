@@ -62,6 +62,7 @@ from hashlib import md5
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from xml.sax import SAXParseException
+import json
 
 # Third party
 from Bio import SeqIO
@@ -76,12 +77,6 @@ from Bio.Nexus.Trees import TreeError
 
 # ##################################################### WISH LIST #################################################### #
 '''
-def add_metadata(seqbuddy, metadata, rec_regex=None):
-    """
-    Add non-feature annotations to records (i.e., organism, comments, description, etc.)
-    """
-    return seqbuddy
-
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
     (This may be more appropriate for AlignBuddy)
@@ -698,6 +693,71 @@ def _prepare_restriction_sites(parameters):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
+def amend_metadata(seqbuddy, attr, regex, sub_value):
+    """
+    Modify or set metadata in SeqRecord objects
+    :param seqbuddy: SeqBuddy object
+    :param attr: The attribute to modify. See below for list of supported attributes
+    :param regex: The regular expression that will be fed into re.sub()
+    :param sub_value: The string to replace the regex match with
+
+    Supported attr types:
+    Strings: description, topology, data_file_division, date, source, organism, comment
+    OrderedDict: structured_comment
+    Lists: accessions, keywords, taxonomy, references, dbxrefs
+    Ints: sequence_version
+    """
+
+    for rec in seqbuddy.records:
+        if attr == "description":
+            rec.description = re.sub(regex, sub_value, rec.description, flags=re.DOTALL)
+        elif attr in ["topology", "data_file_division", "date", "source", "organism", "comment"]:
+            rec.annotations.setdefault(attr, " ")
+            rec.annotations[attr] = re.sub(regex, sub_value, rec.annotations[attr], flags=re.DOTALL)
+            if attr == "comment" and "structured_comment" in rec.annotations:
+                new_structured_comment = OrderedDict()
+                for outer_dict_key, inner_dict in rec.annotations["structured_comment"].items():
+                    new_key = re.sub(regex, sub_value, outer_dict_key, flags=re.DOTALL)
+                    if new_key != outer_dict_key and new_key:
+                        new_structured_comment[new_key] = OrderedDict()
+                    for inner_dict_key, value in inner_dict.items():
+                        new_inner_key = re.sub(regex, sub_value, inner_dict_key, flags=re.DOTALL)
+                        if new_inner_key != inner_dict_key and new_inner_key:
+                            new_structured_comment[new_key][new_inner_key] = re.sub(regex, sub_value, value,
+                                                                                    flags=re.DOTALL)
+                rec.annotations["structured_comment"] = new_structured_comment
+        elif attr == "references":
+            rec.annotations.setdefault("references", [])
+            new_refs = []
+            for ref in rec.annotations["references"]:
+                keep = False
+                for ref_attrib in dir(ref):
+                    if not ref_attrib.startswith("_") and ref_attrib != "location":
+                        setattr(ref, ref_attrib, re.sub(regex, sub_value, getattr(ref, ref_attrib), flags=re.DOTALL))
+                        if getattr(ref, ref_attrib):
+                            keep = True
+                if keep:
+                    new_refs.append(ref)
+            rec.annotations["references"] = new_refs
+        elif attr == "dbxrefs":
+            pass
+        elif attr in dir(rec):
+            if type(getattr(rec, attr)) == str:
+                sub_value = getattr(rec, attr) + str(sub_value)
+                setattr(rec, attr, sub_value)
+            elif type(getattr(rec, attr)) == list:
+                new_list = []
+                for i in getattr(rec, attr):
+                    if type(i) == str:
+                        new_list.append(re.sub(regex, sub_value, i, flags=re.DOTALL))
+                    else:
+                        new_list.append(i)
+                setattr(rec, attr, new_list)
+        else:
+            setattr(rec, attr, sub_value)
+    return seqbuddy
+
+
 def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
     """
     Adds a feature annotation to sequences in the SeqBuddy object
@@ -4141,7 +4201,49 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         sys.exit()
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Add feature
+    # Amend metadata
+    if in_args.amend_metadata:
+        in_args.amend_metadata = in_args.amend_metadata[0]
+        if len(in_args.amend_metadata) < 2:
+            _raise_error(AttributeError("Missing arguments. Please supply <attribute> <value>."),
+                         "amend_metadata")
+
+        attr, regex, sub_value = [in_args.amend_metadata[0], ".*", in_args.amend_metadata[1]] \
+            if len(in_args.amend_metadata) == 2 \
+            else in_args.amend_metadata[:3]
+        _print_recs(amend_metadata(seqbuddy, attr, regex, sub_value))
+        _exit("amend_metadata")
+    """
+    if in_args.list_metadata:
+        for rec in seqbuddy.records:
+            attrs = dir(rec)
+            attrs = [attr for attr in attrs if not attr.startswith("_")
+                     and "bound method" not in str(getattr(rec, attr))
+                     and attr not in ["features", "seq", "id", "name", "annotations", "description"]]
+            br._stdout("id: %s \n" % rec.id)
+            br._stdout("name: %s\n" % rec.name)
+            br._stdout("description: %s\n" % rec.description)
+            br._stdout("annotations:\n")
+            for anno, anno_val in rec.annotations.items():
+                if anno == "references":
+                    for ref in anno_val:
+                        print(str(ref))
+                        for i in dir(ref):
+                            if not i.startswith("_") and i != "location":
+                                print(i, type(i))
+                                #setattr(ref, i, re.sub("^[^E].*", "", str(getattr(ref, i))))
+                                if getattr(ref, i):
+                                    print("yep")
+                        print("\n", str(ref))
+                        break
+
+                br._stdout("  %s: %s\n" % (anno, anno_val))
+            #for attr in attrs:
+            #    br._stdout("%s: %s\n" % (attr, getattr(rec, attr)))
+            br._stdout("\n")
+            break
+    """
+    # Annotate feature
     if in_args.annotate:
         # _type, location, strand=None, qualifiers=None, pattern=None
         genbank_features = ['assembly_gap', 'attenuator', 'C_region', 'CAAT_signal', 'CDS', 'centromere', 'D-loop',
@@ -4483,10 +4585,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
         if len(rep_seq_ids) > 0:
             br._stderr("# ################################################################ #\n\n", in_args.quiet)
-
         else:
             br._stderr("No duplicate records found\n", in_args.quiet)
-
         _print_recs(delete_repeats(seqbuddy, 'seqs'))
         _exit("delete_repeats")
 
@@ -4689,7 +4789,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                 counter += 1
         else:
             br._stdout("#### No records with duplicate sequences ####\n")
-
         _exit("find_repeats")
 
     # Find restriction sites
@@ -4760,7 +4859,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
-
         _exit("group_by_prefix")
 
     # Group sequences by regex. This is really flexible.
@@ -4791,7 +4889,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
-
         _exit("group_by_regex")
 
     # Guess alphabet
@@ -4960,7 +5057,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 br._stdout('None\n')
             br._stdout("\n")
-
         _exit("list_features")
 
     # List identifiers
@@ -5238,7 +5334,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 br._stderr("\n", in_args.quiet)
         br._stderr("##############################\n\n", in_args.quiet)
-
         _print_recs(seqbuddy)
         _exit("purge")
 
@@ -5308,7 +5403,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             os.remove(in_args.sequence[0])
             in_args.sequence[0] = _path
             open(in_args.sequence[0], "w", encoding="utf-8").close()
-
         _print_recs(seqbuddy)
         _exit("screw_formats")
 
@@ -5318,7 +5412,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _print_recs(select_frame(seqbuddy, in_args.select_frame))
         except TypeError as e:
             _raise_error(e, "reverse_complement", "Select frame requires nucleic acid, not protein.")
-
         _exit("select_frame")
 
     # Shuffle Seqs
@@ -5385,7 +5478,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                           "The job seems to have been lost by the server."])
         except FileNotFoundError as e:
             _raise_error(e, "transmembrane_domains", ["File lost.", "SeqBuddy does not have the necessary hash-map"])
-
         _print_recs(seqbuddy)
         _exit("transmembrane_domains")
 
