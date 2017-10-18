@@ -1232,16 +1232,6 @@ Trobu: Testus robustis
 
 """
 
-    test_in_args.prepend_organism = [4]
-    tester = sb_resources.get_one("p g")
-    tester.records[4].annotations["organism"] = "Moby leily"
-    with pytest.raises(ValueError) as err:
-        Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert str(err.value) == """\
-Multiple species would return the same prefix
-Mnemiopsis leidyi - Moby leily
-"""
-
 
 # ######################  '-psc', '--prosite_scan' ###################### #
 def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
