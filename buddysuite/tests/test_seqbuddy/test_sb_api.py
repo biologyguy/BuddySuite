@@ -1535,12 +1535,8 @@ def test_prepend_organism(sb_resources, hf):
 
     tester = sb_resources.get_one("p g")
     tester.records[4].annotations["organism"] = "Moby leily"
-    with pytest.raises(ValueError) as err:
-        Sb.prepend_organism(tester)
-    assert str(err.value) == """\
-Multiple species would return the same prefix
-Mnemiopsis leidyi - Moby leily
-"""
+    tester = Sb.prepend_organism(tester)
+    assert hf.buddy2hash(tester) == "2fd79883e44b2d3a514eddc9cbef4d54", print(tester)
 
     with pytest.raises(ValueError) as err:
         Sb.prepend_organism(tester, 0)
