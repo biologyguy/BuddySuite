@@ -21,6 +21,55 @@ import buddy_resources as br
 TEMPDIR = br.TempDir()
 
 
+# ##################### '-amd', '--amend_metadata' ###################### ##
+def test_amend_metadata_desc(sb_resources, hf, monkeypatch):
+    tester = sb_resources.get_one("p g")
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    tester = Sb.amend_metadata(tester, "description", "foo", "ML")
+    assert hf.buddy2hash(tester) == "988a005283cb6b9de73e18d52631fb79"
+
+
+def test_amend_metadata_topo(sb_resources, hf, monkeypatch, capsys):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    tester = sb_resources.get_one("p g")
+    for value, _hash in [('linear', 'b3feec305beee8243be7f7afb02a909d'),
+                         ('circular', '7ff89b41edab0a10b53629a28092e062'),
+                         ('', '0a8462e72f64fcd22544bb153b51b2b6')]:
+        tester = Sb.amend_metadata(tester, "topology", value, ".*")
+        assert hf.buddy2hash(tester) == _hash
+
+    with pytest.raises(ValueError) as err:
+        Sb.amend_metadata(tester, "topology", "foo_bar", ".*")
+
+    assert "Topology values are limited to ['', 'linear', 'circular']" in str(err)
+
+
+def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+
+    """
+    There are limited number of values that biopython will accept
+    ['BCT', 'CON', 'ENV', 'EST', 'FUN', 'GSS', 'HTC', 'HTG', 'HUM', 
+     'INV', 'MAM', 'MUS', 'PAT', 'PHG', 'PLN', 'PRI', 'PRO', 'ROD', 
+     'STS', 'SYN', 'TGN', 'UNA', 'UNC', 'VRL', 'VRT', 'XXX']
+     """
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "data_file_division", "ROD", ".*")
+    assert hf.buddy2hash(tester) == "a834ade7ffdc453b9c61817c9138a550"
+
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".*")
+    assert hf.buddy2hash(tester) == "6d767ae1bdda9ce23ce99cfae35a1a74"
+
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "date", "21-APR-2000", ".*")
+    assert hf.buddy2hash(tester) == "3695432066ca4c61727aa139d40a7b8e"
+
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "date", "FOO", ".*")
+    assert hf.buddy2hash(tester) == "28b8f6425b92755f2936883837b1c452"
+
+
 # ##################### '-ano', '--annotate' ###################### ##
 def test_annotate_pattern(sb_resources, hf):
     tester = sb_resources.get_one("d g")

@@ -693,25 +693,30 @@ def _prepare_restriction_sites(parameters):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
-def amend_metadata(seqbuddy, attr, regex, sub_value):
+def amend_metadata(seqbuddy, attr, sub_value, regex):
     """
-    Modify or set metadata in SeqRecord objects
+    Modify, delete, or set metadata in SeqRecord objects
     :param seqbuddy: SeqBuddy object
     :param attr: The attribute to modify. See below for list of supported attributes
-    :param regex: The regular expression that will be fed into re.sub()
     :param sub_value: The string to replace the regex match with
+    :param regex: The regular expression that will be fed into re.sub()
 
     Supported attr types:
-    Strings: description, topology, data_file_division, date, source, organism, comment
-    OrderedDict: structured_comment
-    Lists: accessions, keywords, taxonomy, references, dbxrefs
-    Ints: sequence_version
+        Strings: description, topology, data_file_division, date, source, organism, comment
+        OrderedDict: structured_comment
+        Lists: accessions, keywords, taxonomy, references, dbxrefs
+        Ints: sequence_version
     """
-
+    regex = "|".join(br.clean_regex(regex))
     for rec in seqbuddy.records:
         if attr == "description":
             rec.description = re.sub(regex, sub_value, rec.description, flags=re.DOTALL)
-        elif attr in ["topology", "data_file_division", "date", "source", "organism", "comment"]:
+        elif attr == "topology":
+            if sub_value not in ['', 'linear', 'circular']:
+                raise ValueError("Topology values are limited to ['', 'linear', 'circular']")
+            rec.annotations.setdefault(attr, " ")
+            rec.annotations[attr] = sub_value
+        elif attr in ["data_file_division", "date", "source", "organism", "comment", "origin"]:
             rec.annotations.setdefault(attr, " ")
             rec.annotations[attr] = re.sub(regex, sub_value, rec.annotations[attr], flags=re.DOTALL)
             if attr == "comment" and "structured_comment" in rec.annotations:
@@ -4203,15 +4208,18 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     # ############################################## COMMAND LINE LOGIC ############################################## #
     # Amend metadata
     if in_args.amend_metadata:
-        in_args.amend_metadata = in_args.amend_metadata[0]
-        if len(in_args.amend_metadata) < 2:
-            _raise_error(AttributeError("Missing arguments. Please supply <attribute> <value>."),
-                         "amend_metadata")
+        args = in_args.amend_metadata[0]
+        if len(args) == 1:
+            attr, sub_value, regex = args[0], "", ".*"
+        elif len(args) == 2:
+            attr, sub_value, regex = args[0], args[1], ".*"
+        else:
+            attr, sub_value, regex = args[:3]
 
-        attr, regex, sub_value = [in_args.amend_metadata[0], ".*", in_args.amend_metadata[1]] \
-            if len(in_args.amend_metadata) == 2 \
-            else in_args.amend_metadata[:3]
-        _print_recs(amend_metadata(seqbuddy, attr, regex, sub_value))
+        try:
+            _print_recs(amend_metadata(seqbuddy, attr, sub_value, regex))
+        except ValueError as err:
+            _raise_error(err, "amend_metadata", "Topology values are limited to")
         _exit("amend_metadata")
     """
     if in_args.list_metadata:
