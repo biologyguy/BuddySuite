@@ -3197,33 +3197,48 @@ def prepend_organism(seqbuddy, length=4):
     if length < 2:
         raise ValueError("Prefix length must be > 2")
     prefix_map = OrderedDict()
-    conflicts = ""
+    new_prefix_map = {}
+
     for rec in seqbuddy.records:
-        prefix = "Unkn"
         if "organism" in rec.annotations and rec.annotations['organism'] \
                 and re.sub("[. ]", "", rec.annotations['organism']):
             organism = rec.annotations['organism'].split()[:2]
+            org_name = " ".join(organism)
             if len(organism) > 1:
                 prefix = organism[0][:1] + organism[1][:length-1]
             elif len(organism) == 1:
                 prefix = organism[0][:length]
-        if prefix != "Unkn":
             if prefix in prefix_map:
-                if prefix_map[prefix] != " ".join(organism):
-                    conflict = "%s - %s\n" % (prefix_map[prefix], " ".join(organism))
-                    conflicts += conflict if conflict not in conflicts else ""
+                if org_name not in prefix_map[prefix]:
+                    prefix_map[prefix].append(org_name)
                     continue
             else:
-                prefix_map[prefix] = " ".join(organism)
+                prefix_map[prefix] = [org_name]
 
-        prefix += "-"
-        rec.id = prefix + rec.id
-        rec.name = prefix + rec.name
+    for prefix in prefix_map:
+        species = prefix_map[prefix]
+        if len(species) > 1:
+            for species_name in species:
+                new_prefix = prefix + str(species.index(species_name) + 1)
+                new_prefix_map[species_name] = new_prefix
+        else:
+            species_name = species[0]
+            new_prefix_map[species_name] = prefix
 
-    if conflicts:
-        raise ValueError("Multiple species would return the same prefix\n%s" % conflicts)
+    for rec in seqbuddy.records:
+        if "organism" in rec.annotations and rec.annotations['organism'] \
+                and re.sub("[. ]", "", rec.annotations['organism']):
+            organism_name = " ".join(rec.annotations['organism'].split()[:2])
+            if organism_name in new_prefix_map:
+                final_prefix = new_prefix_map[organism_name] + "-"
+                rec.id = final_prefix + rec.id
+                rec.name = final_prefix + rec.name
+        else:
+            rec.id = "Unkn-" + rec.id
+            rec.name = "Unkn-" + rec.name
 
-    seqbuddy.prefix_map = prefix_map
+    new_prefix_map = {v: k for k, v in new_prefix_map.items()}
+    seqbuddy.prefix_map = new_prefix_map
     return seqbuddy
 
 
