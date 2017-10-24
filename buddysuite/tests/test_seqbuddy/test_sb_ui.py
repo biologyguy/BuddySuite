@@ -872,12 +872,13 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
     assert err == "Error: Please provide a list of enzymes you wish to cut your sequences with.\n"
 
+    tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
     test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
 
     # The 7a136d11 hash is for BioPython 1.70
-    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "11b17b53d15bd6675d3190c391142cc9"]
+    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "0626acbc0337e0173881f4d77f71df08"], print(out)
     assert err == "Warning: FooBR not a known enzyme\n"
 
     with pytest.raises(TypeError) as err:

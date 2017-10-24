@@ -960,7 +960,7 @@ def test_send_traceback(capsys, monkeypatch):
 \033[mTestBuddy::FailedFunc has crashed with the following traceback:\033[91m
 
 # TestBuddy: 1.2
-# Function: FailedFunc""" in out
+# Function: FailedFunc""" in out, print(out)
 
     assert """\
 # TestBuddy: 1.2

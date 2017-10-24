@@ -1658,7 +1658,7 @@ def test_prepend_organism(sb_resources, hf):
     tester.records[4].annotations["organism"] = "Testus robustis"
     tester = Sb.prepend_organism(tester)
     tester.out_format = "fasta"
-    assert hf.buddy2hash(tester) == "12af6bc1c299f3aa1034825ceacb51a", print(tester)
+    assert hf.buddy2hash(tester) == "12af6bc1c299f3aa1034825ceacb51a3", print(tester)
     assert len(tester.prefix_map) == 2
     assert "Mlei" in tester.prefix_map
     assert "Trob" in tester.prefix_map

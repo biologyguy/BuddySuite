@@ -435,16 +435,33 @@ def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
 
     out, err = capsys.readouterr()
     hmm = re.findall("(HMM +A +C +D.+?//)", out, re.DOTALL)
-    assert hf.string2hash(hmm[0]) == "936076129aa1cd610223da00f6ca4c20", print(hmm[0])
-    assert hf.string2hash(hmm[1]) == "dc9a3436f57be80cd1aeb7bbdcbf0fdc"
+    assert "COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  3.43272" \
+           "  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958  4.30351  3.11199" in hmm[0]
+    assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  3.48106" \
+           "  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321  4.24683  3.17591" in hmm[1]
 
     tester = alb_resources.get_one("m d c")
     Alb.command_line_ui(test_in_args, tester, True)
 
     out, err = capsys.readouterr()
     hmm = re.findall("(HMM +A +C +G.+?//)", out, re.DOTALL)
-    assert hf.string2hash(hmm[0]) == "262ac3c8746e2526ed6c029dd829dad0"
-    assert hf.string2hash(hmm[1]) == "0e95f5a3caafa2a385c5624c435048da"
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.37149  1.47979  1.42806  1.27722
+          1.38629  1.38629  1.38629  1.38629
+          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
+      1   0.06560  3.99042  3.73531  3.85677      1 A - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0]
+
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.26618  1.65166  1.51488  1.18245
+          0.93669  1.43354  1.84356  1.55419
+          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
+      1   0.60107  2.55837  1.28853  2.31598     85 a - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1]
 
     test_in_args.generate_hmm = ["foo"]
     with pytest.raises(SystemExit):

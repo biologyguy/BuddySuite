@@ -1171,14 +1171,14 @@ def send_traceback(tool, func, e, version):
             _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
     bs_version = "# %s: %s\n" % (tool, version.short())
-    func = "# Function: %s\n" % func
+    full_func = "# Function: %s\n" % func
     platform = "# Platform: %s\n" % sys.platform
     python = "# Python: %s\n" % re.sub("[\n\r]", "", sys.version)
     user = "# User: %s\n" % config['user_hash']
     date = "# Date: %s\n\n" % now.strftime('%Y-%m-%d')
     error = "%s: %s\n\n" % (type(e).__name__, e)
 
-    tb = "".join([bs_version, func, python, platform, user, date, error, tb])
+    tb = "".join([bs_version, full_func, python, platform, user, date, error, tb])
     print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, func, tb))
     error_report(tb, config["diagnostics"])
     return
