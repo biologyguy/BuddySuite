@@ -149,6 +149,30 @@ def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     assert temp_in_args.guess_format
 
 
+# ##################### '-amd', '--amend_metadata' ###################### ##
+def test_amend_metadata_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.amend_metadata = [["organism"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "43080bb647e47418c20b27a4799147bc"
+
+    test_in_args.amend_metadata = [["organism", "Mnemiopsis"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "0bb918283b5dc1e78173fb0fd1c9c355"
+
+    test_in_args.amend_metadata = [["organism", "Foo", "Mnemiopsis"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "b723be0a97ddb4f94ddb6e08f1121387"
+
+    test_in_args.amend_metadata = [["topology", "Foo"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Topology values are limited to ['', 'linear', 'circular']" in err
+
+
 # ##################### '-ano', '--annotate' ###################### ##
 def test_annotate_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)

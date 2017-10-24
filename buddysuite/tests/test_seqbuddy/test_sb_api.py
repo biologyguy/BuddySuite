@@ -3,7 +3,7 @@
 
 """ tests basic functionality of AlignBuddy class """
 import pytest
-from Bio.SeqFeature import FeatureLocation, CompoundLocation
+from Bio.SeqFeature import FeatureLocation, CompoundLocation, Reference
 from Bio.Seq import Seq
 from unittest import mock
 import os
@@ -53,6 +53,7 @@ def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
      'INV', 'MAM', 'MUS', 'PAT', 'PHG', 'PLN', 'PRI', 'PRO', 'ROD', 
      'STS', 'SYN', 'TGN', 'UNA', 'UNC', 'VRL', 'VRT', 'XXX']
      """
+    # data_file_division
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "data_file_division", "ROD", ".*")
     assert hf.buddy2hash(tester) == "a834ade7ffdc453b9c61817c9138a550"
@@ -61,6 +62,7 @@ def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
     tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".*")
     assert hf.buddy2hash(tester) == "6d767ae1bdda9ce23ce99cfae35a1a74"
 
+    # date
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "date", "21-APR-2000", ".*")
     assert hf.buddy2hash(tester) == "3695432066ca4c61727aa139d40a7b8e"
@@ -68,6 +70,101 @@ def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "date", "FOO", ".*")
     assert hf.buddy2hash(tester) == "28b8f6425b92755f2936883837b1c452"
+
+    # source
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "source", "Mnemiopsis", ".*")
+    assert hf.buddy2hash(tester) == "ff0d55dc060e28e47440a07414ea62bf"
+
+    # organism
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "organism", "Foo", "leidyi")
+    assert hf.buddy2hash(tester) == "0494f26e437928e8af96ba6e7cbfb7cf"
+
+    # comment
+    tester = sb_resources.get_one("p g")
+    structured_comment = OrderedDict()
+    structured_comment["Hello there"] = OrderedDict()
+    structured_comment["Hello there"]["something inner"] = "My text for testing"
+    tester.records[0].annotations["structured_comment"] = structured_comment
+    tester = Sb.amend_metadata(tester, "comment", "data", "text")
+    assert hf.buddy2hash(tester) == "5f919a25b9735e47ccc0f492328120c0"
+
+
+def test_amend_metadata_refs(sb_resources, hf, monkeypatch):
+    tester = sb_resources.get_one("p g")
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    reference = Reference()
+    reference.authors = "Bond SR, Keat KE, Barreira SN, Baxevanis AD"
+    reference.title = "BuddySuite: Command-Line Toolkits for Manipulating Sequences, Alignments, and Phylogenetic Trees"
+    reference.journal = "Mol Biol Evol."
+    reference.pubmed_id = '28333216'
+    reference.comment = 'Hurray for published papers!'
+    for rec in tester.records:
+        rec.annotations["references"] = [reference]
+    tester = Sb.amend_metadata(tester, "references", "https://github.com/biologyguy/BuddySuite", "Hurray.*")
+    assert hf.buddy2hash(tester) == "b131fd4a1781403a9b870ac4bde2cf3d"
+
+    tester = Sb.amend_metadata(tester, "references", "", "")
+    assert hf.buddy2hash(tester) == "0a8462e72f64fcd22544bb153b51b2b6"
+
+
+def test_amend_metadata_list_attr(sb_resources, hf, monkeypatch):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+
+    # taxonomy
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "taxonomy", "Eukaryota Opisthokonta Metazoa Eumetazoa Ctenophora Tentaculata"
+                                                   " Lobata Bolinopsidae Mnemiopsis", ".*")
+    assert hf.buddy2hash(tester) == "cdc30e7ec65c525bac898bbfaa75a0b7"
+
+    tester = Sb.amend_metadata(tester, "taxonomy", "FooBar", "Eukaryota")
+    assert hf.buddy2hash(tester) == "bb80f495ade4e8a8f62253642f350d22"
+
+    # keywords
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "keywords", "Something Else", ".*")
+    assert hf.buddy2hash(tester) == "bda9a1405d954aa2542d9017ba5c0796"
+
+    tester.records[0].annotations["keywords"] = []
+    tester = Sb.amend_metadata(tester, "keywords", "FooBar", "Else")
+    assert hf.buddy2hash(tester) == "809663ca6a6f92772a02301b0ab901a7"
+
+
+def test_amend_metadata_dbxrefs(sb_resources, hf, monkeypatch):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "dbxrefs", "Project:1234 Project:4321", ".*")
+    assert hf.buddy2hash(tester) == "342286427f1dc495131610a9c02587cf"
+
+    tester.records[0].dbxrefs = []
+    tester = Sb.amend_metadata(tester, "dbxrefs", "Activity", "Project")
+    assert hf.buddy2hash(tester) == "65d5213aebe744763d3662eb57bbd514"
+
+
+def test_amend_metadata_version(sb_resources, hf, monkeypatch):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "version", 5, ".*")
+    assert hf.buddy2hash(tester) == "d83c18c44529700eaa3ab32da3ec8d08"
+
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "sequence_version", 5, ".*")
+    assert hf.buddy2hash(tester) == "d83c18c44529700eaa3ab32da3ec8d08"
+
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "sequence_version", "foo", ".*")
+    assert hf.buddy2hash(tester) == "0a8462e72f64fcd22544bb153b51b2b6"
+
+
+def test_amend_metadata_arb_attr(sb_resources, hf, monkeypatch):
+    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
+    tester = sb_resources.get_one("p g")
+    tester = Sb.amend_metadata(tester, "id", "Hech", "Mle")
+    assert hf.buddy2hash(tester) == "c0a9461be6cb3b7e6ad76200f009c4ab"
+
+    tester = Sb.amend_metadata(tester, "foobar", "Some stuff", ".*")
+    assert tester.records[0].foobar == "Some stuff"
 
 
 # ##################### '-ano', '--annotate' ###################### ##
@@ -1561,7 +1658,7 @@ def test_prepend_organism(sb_resources, hf):
     tester.records[4].annotations["organism"] = "Testus robustis"
     tester = Sb.prepend_organism(tester)
     tester.out_format = "fasta"
-    assert hf.buddy2hash(tester) == "12af6bc1c299f3aa1034825ceacb51a3", print(tester)
+    assert hf.buddy2hash(tester) == "12af6bc1c299f3aa1034825ceacb51a", print(tester)
     assert len(tester.prefix_map) == 2
     assert "Mlei" in tester.prefix_map
     assert "Trob" in tester.prefix_map

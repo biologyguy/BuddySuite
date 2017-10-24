@@ -709,55 +709,85 @@ def amend_metadata(seqbuddy, attr, sub_value, regex):
     """
     regex = "|".join(br.clean_regex(regex))
     for rec in seqbuddy.records:
-        if attr == "description":
+        if attr in ["description", "definition"]:
             rec.description = re.sub(regex, sub_value, rec.description, flags=re.DOTALL)
         elif attr == "topology":
             if sub_value not in ['', 'linear', 'circular']:
                 raise ValueError("Topology values are limited to ['', 'linear', 'circular']")
             rec.annotations.setdefault(attr, " ")
             rec.annotations[attr] = sub_value
-        elif attr in ["data_file_division", "date", "source", "organism", "comment", "origin"]:
+        elif attr in ["data_file_division", "date", "source", "organism", "comment"]:
             rec.annotations.setdefault(attr, " ")
             rec.annotations[attr] = re.sub(regex, sub_value, rec.annotations[attr], flags=re.DOTALL)
             if attr == "comment" and "structured_comment" in rec.annotations:
                 new_structured_comment = OrderedDict()
                 for outer_dict_key, inner_dict in rec.annotations["structured_comment"].items():
                     new_key = re.sub(regex, sub_value, outer_dict_key, flags=re.DOTALL)
-                    if new_key != outer_dict_key and new_key:
+                    if new_key:
                         new_structured_comment[new_key] = OrderedDict()
-                    for inner_dict_key, value in inner_dict.items():
-                        new_inner_key = re.sub(regex, sub_value, inner_dict_key, flags=re.DOTALL)
-                        if new_inner_key != inner_dict_key and new_inner_key:
-                            new_structured_comment[new_key][new_inner_key] = re.sub(regex, sub_value, value,
-                                                                                    flags=re.DOTALL)
+                        for inner_dict_key, value in inner_dict.items():
+                            new_inner_key = re.sub(regex, sub_value, inner_dict_key, flags=re.DOTALL)
+                            if new_inner_key:
+                                new_structured_comment[new_key][new_inner_key] = re.sub(regex, sub_value, value,
+                                                                                        flags=re.DOTALL)
                 rec.annotations["structured_comment"] = new_structured_comment
         elif attr == "references":
-            rec.annotations.setdefault("references", [])
-            new_refs = []
-            for ref in rec.annotations["references"]:
-                keep = False
-                for ref_attrib in dir(ref):
-                    if not ref_attrib.startswith("_") and ref_attrib != "location":
+            if not sub_value and not regex:
+                rec.annotations["references"] = []
+            elif regex and regex != ".*":
+                rec.annotations.setdefault("references", [])
+                new_refs = []
+                for ref in rec.annotations["references"]:
+                    for ref_attrib in [x for x in dir(ref) if not x.startswith("_") and x != "location"]:
                         setattr(ref, ref_attrib, re.sub(regex, sub_value, getattr(ref, ref_attrib), flags=re.DOTALL))
-                        if getattr(ref, ref_attrib):
-                            keep = True
-                if keep:
+
                     new_refs.append(ref)
-            rec.annotations["references"] = new_refs
-        elif attr == "dbxrefs":
-            pass
+                rec.annotations["references"] = new_refs
+        elif attr in ["taxonomy", "accessions", "keywords"]:
+            # Check to see if the user is trying to send in a whole new list
+            if type(sub_value) == str:
+                sub_value = sub_value.split() if sub_value else [""]
+            if len(sub_value) == 1 and regex != ".*":
+                sub_value = sub_value[0]
+                rec.annotations.setdefault(attr, [])
+                if not rec.annotations[attr]:
+                    new_list = [sub_value]
+                else:
+                    new_list = []
+                    for value in rec.annotations[attr]:
+                        new_list.append(re.sub(regex, sub_value, value, flags=re.DOTALL))
+                new_list = [x for x in new_list if x]
+            else:
+                new_list = sub_value
+            rec.annotations[attr] = new_list
+        elif attr in ["dbxrefs", "dblink"]:
+            # Check to see if the user is trying to send in a whole new list
+            if type(sub_value) == str:
+                sub_value = sub_value.split() if sub_value else [""]
+            if len(sub_value) == 1 and regex != ".*":
+                sub_value = sub_value[0]
+                if not rec.dbxrefs:
+                    new_list = [sub_value]
+                else:
+                    new_list = []
+                    for value in rec.dbxrefs:
+                        new_list.append(re.sub(regex, sub_value, value, flags=re.DOTALL))
+                new_list = [x for x in new_list if x]
+            else:
+                new_list = sub_value
+            rec.dbxrefs = new_list
+        elif attr in ["version", "sequence_version"]:
+            try:
+                rec.annotations[attr] = int(sub_value)
+                # rec.id must be updated manually, because it is built during rec instantiation
+                rec_id_split = rec.id.split(".")
+                rec.id = ".".join(rec_id_split[:-1]) if len(rec_id_split) > 1 else rec_id_split[0]
+                rec.id += ".%i" % rec.annotations[attr]
+            except ValueError:
+                pass
         elif attr in dir(rec):
             if type(getattr(rec, attr)) == str:
-                sub_value = getattr(rec, attr) + str(sub_value)
-                setattr(rec, attr, sub_value)
-            elif type(getattr(rec, attr)) == list:
-                new_list = []
-                for i in getattr(rec, attr):
-                    if type(i) == str:
-                        new_list.append(re.sub(regex, sub_value, i, flags=re.DOTALL))
-                    else:
-                        new_list.append(i)
-                setattr(rec, attr, new_list)
+                setattr(rec, attr, re.sub(regex, sub_value, getattr(rec, attr)))
         else:
             setattr(rec, attr, sub_value)
     return seqbuddy
@@ -4232,40 +4262,11 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             attr, sub_value, regex = args[:3]
 
         try:
-            _print_recs(amend_metadata(seqbuddy, attr, sub_value, regex))
+            _print_recs(amend_metadata(seqbuddy, attr.lower(), sub_value, regex))
         except ValueError as err:
             _raise_error(err, "amend_metadata", "Topology values are limited to")
         _exit("amend_metadata")
-    """
-    if in_args.list_metadata:
-        for rec in seqbuddy.records:
-            attrs = dir(rec)
-            attrs = [attr for attr in attrs if not attr.startswith("_")
-                     and "bound method" not in str(getattr(rec, attr))
-                     and attr not in ["features", "seq", "id", "name", "annotations", "description"]]
-            br._stdout("id: %s \n" % rec.id)
-            br._stdout("name: %s\n" % rec.name)
-            br._stdout("description: %s\n" % rec.description)
-            br._stdout("annotations:\n")
-            for anno, anno_val in rec.annotations.items():
-                if anno == "references":
-                    for ref in anno_val:
-                        print(str(ref))
-                        for i in dir(ref):
-                            if not i.startswith("_") and i != "location":
-                                print(i, type(i))
-                                #setattr(ref, i, re.sub("^[^E].*", "", str(getattr(ref, i))))
-                                if getattr(ref, i):
-                                    print("yep")
-                        print("\n", str(ref))
-                        break
 
-                br._stdout("  %s: %s\n" % (anno, anno_val))
-            #for attr in attrs:
-            #    br._stdout("%s: %s\n" % (attr, getattr(rec, attr)))
-            br._stdout("\n")
-            break
-    """
     # Annotate feature
     if in_args.annotate:
         # _type, location, strand=None, qualifiers=None, pattern=None
