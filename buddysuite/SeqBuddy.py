@@ -2468,7 +2468,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                     batch.add(res)
 
         elif enzyme == "all":
-            for res in AllEnzymes:
+            for res in sorted([x for x in AllEnzymes], key=lambda x: str(x)):
                 if str(res) not in blacklist:
                     batch.add(res)
 
@@ -2479,13 +2479,17 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                 br._stderr("Warning: %s not a known enzyme\n" % enzyme, quiet=quiet)
 
     sites = []
+    no_cutters_found = False
+    double_cutters_found = False
     for rec in seqbuddy.records:
         rec.res_sites = {}
         analysis = Analysis(batch, rec.seq)
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
-                br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
+                if not double_cutters_found:
+                    br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
+                    double_cutters_found = True
                 pass
             elif min_cuts <= len(value) <= max_cuts:
                 try:
@@ -2494,7 +2498,9 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
                         rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
                 except TypeError:
-                    br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
+                    if not no_cutters_found:
+                        br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
+                        no_cutters_found = True
                     pass
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
