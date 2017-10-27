@@ -472,73 +472,28 @@ def consensus_tree(phylobuddy, frequency=.5):
 
 def display_trees(phylobuddy):
     """
-    Displays trees in an ETE GUI window, one-by-one.
+    Displays trees in a web browser window, one-by-one.
     :param phylobuddy: PhyloBuddy object
     :return: None
     """
-    #if "DISPLAY" not in os.environ:
-    #    raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
+    if "DISPLAY" not in os.environ:
+        raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
 
     import webbrowser
-    canvas_w = 800  # I have arbitrarily set this value
-
+    from Bio import Phylo
+    import pylab
     tmp_dir = br.TempDir()
-
-    dependencies_dir = os.path.abspath(__file__).split(os.sep)[:-1]
-    dependencies_dir = os.sep + os.path.join(*dependencies_dir) + os.sep + "dependencies"
-
-    if os.path.isfile(dependencies_dir + os.sep + "raphael-min.js") \
-            and os.path.isfile(dependencies_dir + os.sep + "jsphylosvg-min.js"):
-        shutil.copyfile(dependencies_dir + os.sep + "jsphylosvg-min.js", tmp_dir.path + os.sep + "jsphylosvg-min.js")
-        shutil.copyfile(dependencies_dir + os.sep + "raphael-min.js", tmp_dir.path + os.sep + "raphael-min.js")
-    else:
-        raise FileNotFoundError("Javascript libraries not found. Try reinstalling BuddySuite:\n\t$: buddysuite -setup")
-
-    tmp_file = tmp_dir.subfile("index.html")
-
-    js_trees = ""
-    svg_canvases = ""
-    for indx, tree in enumerate(phylobuddy.trees):
-        canvas_h = (len(list(tree.leaf_node_iter())) * 100) / 6  # This changes depending on how big the tree is
-        tree = PhyloBuddy([tree], _out_format="newick")
-        tree = str(tree).strip()[5:]
-        js_trees += """
-    var dataObject{0} = {{ newick: '{1}' }};
-    phylocanvas = new Smits.PhyloCanvas(
-        dataObject{0},
-        'svgCanvas{0}',
-        {2}, {3}
-    );
-    var svgSource{0} = phylocanvas.getSvgSource();
-        """.format(indx, tree, canvas_w, canvas_h)
-        svg_canvases += '<div id="svgCanvas%s"> </div>\n' % indx
-
-    with open(tmp_file, "w") as ofile:
-        ofile.write("""
-<html>
-<head>
-    <script type="text/javascript" src="./raphael-min.js" ></script>
-    <script type="text/javascript" src="./jsphylosvg-min.js"></script>
-    <script type="text/javascript">
-        window.onload = function(){
-                %s
-        };
-    </script>
-</head>
-<body>
-%s
-</body>
-</html>
-""" % (js_trees, svg_canvases))
-
-    if os.name == "nt":  # File path specification different between operating systems
-        file_location = tmp_file
-    else:
-        file_location = "file:///" + tmp_file
-    webbrowser.open_new_tab(file_location)
-    # for _tree in phylobuddy.trees:
-    #    #_convert_to_ete(_tree).show()
-    input("Switching to web browser. Hit any key to exit.\n")
+    tree_file = tmp_dir.subfile('tree.svg')
+    for tree in Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
+        Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False)
+        pylab.axis('off')
+        pylab.savefig(tree_file, format='svg', bbox_inches='tight', dpi=300)
+        if os.name == "nt":  # File path specification different between operating systems
+            file_location = tree_file
+        else:
+            file_location = "file:///" + tree_file
+        webbrowser.open_new_tab(file_location)
+        input("Switching to web browser. Hit any key to continue.\n")
     return True
 
 

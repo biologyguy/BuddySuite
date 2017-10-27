@@ -38,6 +38,7 @@ DEPENDENCIES = [
     'biopython',
     'dendropy',
     'ete3',
+    'matplotlib',
 ]
 
 KEYWORDS = [
