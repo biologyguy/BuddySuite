@@ -11,6 +11,7 @@ import ftplib
 import urllib.request
 import argparse
 import json
+import shutil
 from hashlib import md5
 from time import sleep
 import datetime
@@ -29,6 +30,16 @@ RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 
 # Mock resources
+class MockPopen(object):
+    def __init__(self, *args, **kwargs):
+        self.kwargs = kwargs
+        if "my_mucsle" in args[0]:
+            self.output = ["Robert C. Edgar".encode("utf-8"), "".encode("utf-8")]
+
+    def communicate(self):
+        return self.output
+
+
 class MockLocation(object):
     def __init__(self):
         self.start = 0
@@ -272,6 +283,18 @@ def test_tempdir_init():
     assert os.path.exists(test_dir.path)
     assert not len(test_dir.subdirs)
     assert not len(test_dir.subfiles)
+
+
+def test_tempdir_copy_to():
+    test_dir = br.TempDir()
+    assert test_dir.copy_to(RESOURCE_PATH + "Mnemiopsis_cds.fa") == test_dir.path + os.path.sep + "Mnemiopsis_cds.fa"
+    assert os.path.isfile(test_dir.path + os.path.sep + "Mnemiopsis_cds.fa")
+
+    assert test_dir.copy_to(RESOURCE_PATH + "topcons") == test_dir.path + os.path.sep + "topcons"
+    assert os.path.isdir(test_dir.path + os.path.sep + "topcons")
+    assert os.path.isfile(test_dir.path + os.path.sep + "topcons" + os.path.sep + "rst_MFhyxO.zip")
+
+    assert not test_dir.copy_to("/path/to/nowhere.foo")
 
 
 def test_tempdir_subdirs():
@@ -779,6 +802,30 @@ def test_flags(capsys, hf):
     assert hf.string2hash(out) == "9ea2d4ac842b1712687034ea0abf497b"
 
 
+def test_identify_msa_program(monkeypatch, sb_resources, hf):
+    mafft = {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
+             "name": "mafft", "url": "http://mafft.cbrc.jp/alignment/software/"}
+    assert br.identify_msa_program("MaFfT") == mafft
+    assert br.identify_msa_program("my_MaFfT") == mafft
+    assert br.identify_msa_program("MaFfT_foo") == mafft
+
+    assert br.identify_msa_program("foobar") is False
+
+    mock_tmp_dir = br.TempDir()
+    shutil.copy("{0}{1}mock_resources{1}test_muscle{1}result".format(hf.resource_path, os.path.sep),
+                "%s%s" % (mock_tmp_dir.path, os.path.sep))
+    monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(br, "Popen", MockPopen)
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
+
+    # Weird binary given, but muscle found
+    tester = sb_resources.get_one("d f")
+    with pytest.raises(br.GuessError) as err:
+        Alb.generate_msa(tester, "my_mucsle")
+    assert "Could not determine format from raw input" in str(err)
+
+
 def test_parse_format():
     assert br.parse_format("CLUSTAL") == "clustal"
     assert br.parse_format("clustal") == "clustal"
@@ -913,7 +960,7 @@ def test_send_traceback(capsys, monkeypatch):
 \033[mTestBuddy::FailedFunc has crashed with the following traceback:\033[91m
 
 # TestBuddy: 1.2
-# Function: FailedFunc""" in out
+# Function: FailedFunc""" in out, print(out)
 
     assert """\
 # TestBuddy: 1.2
@@ -1124,3 +1171,23 @@ def test_std_errors(capfd, monkeypatch):
     br._stdout("Hello std_out α", quiet=False)
     out, err = capfd.readouterr()
     assert out == "Hello std_out α"
+
+
+def test_utf_encode():
+    assert br.utf_encode("Hello hello") == "Hello hello"
+
+
+def test_clean_regex(capsys):
+    patterns = ["[1-4]This is fine", '[a-\\w]', '()(?(1)a|b']
+    assert br.clean_regex(patterns) == ["[1-4]This is fine"]
+    out, err = capsys.readouterr()
+    assert err == """\
+##### Regular expression failures #####
+[a-\w] --> bad character range a-\w at position 1
+()(?(1)a|b --> missing ), unterminated subpattern at position 2
+#######################################
+
+"""
+    assert br.clean_regex(patterns, quiet=True) == ["[1-4]This is fine"]
+    out, err = capsys.readouterr()
+    assert err == ""

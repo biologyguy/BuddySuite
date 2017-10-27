@@ -27,6 +27,7 @@ import pytest
 import os
 import sys
 import argparse
+import re
 from copy import deepcopy
 
 import AlignBuddy as Alb
@@ -59,6 +60,7 @@ def mock_raiseruntimeerror(*args, **kwargs):
 
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
+
 
 parser = argparse.ArgumentParser(prog="alignBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                  description='''\
@@ -190,37 +192,37 @@ def test_concat_alignments_ui(capsys, alb_resources, hf):
     tester.set_format("genbank")
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "d21940f3dad2295dd647f632825d8541"
+    assert hf.string2hash(out) == "86349e715f41e0bdd91bbd1dc0914769"
 
     test_in_args.concat_alignments = [["(.).(.)-Panx(.)"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5ac908ebf7918a45664a31da480fda58"
+    assert hf.string2hash(out) == "cd2b6594b22c431aea67fa45899f933a"
 
     test_in_args.concat_alignments = [["...", "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
 
     test_in_args.concat_alignments = [[3, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
+    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
 
     test_in_args.concat_alignments = [[-9, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "9d2886afc640d35618754e05223032a2"
+    assert hf.string2hash(out) == "aaa9d9b717a5f79cfdf5d2666fb0f687"
 
     test_in_args.concat_alignments = [[3, 3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4e4101f9b5a6d44d524a9783a8c4004b"
+    assert hf.string2hash(out) == "2f37a4e395162032bf43fab291c882f4"
 
     test_in_args.concat_alignments = [[3, -3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5d9d9ac8fae604be74c436e5f0b5b6db"
+    assert hf.string2hash(out) == "7fa8cd803df82414a5e1e190916456d8"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("p o g"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -235,14 +237,39 @@ def test_concat_alignments_ui(capsys, alb_resources, hf):
 # ##################### '-con', '--consensus' ###################### ##
 def test_consensus_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.consensus = True
+
+    test_in_args.consensus = ['SiMpL']
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7b0aa3cca159b276158cf98209be7dab"
+    assert hf.string2hash(out) == "9b69e5fb65ca1512de5a17472d105500"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "89130797253646e61b78ab7d91ad3fd9"
+    assert hf.string2hash(out) == "d1a8f7e629a020f5130373d7af65f9d9"
+
+    test_in_args.consensus = ['WeiG']
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "2364532e0ec2465ea27f04acc5d0e61b"
+
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "bf50c95916e9d62c95a460bbc517c053"
+
+    test_in_args.consensus = ['foo']
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "No valid consensus mode" in err
+
+
+# ######################################  '-dinv', '--delete_invariant_sites' ####################################### #
+def test_delete_invariant_sites_ui(capsys, hf, alb_odd_resources):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_invariant_sites = [[]]
+    tester = Alb.AlignBuddy(alb_odd_resources['dna']['single']['ambiguous'])
+    Alb.command_line_ui(test_in_args, tester, skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "27233a416437eabc72aa5d57cb695036"
 
 
 # ##################### '-dr', '--delete_records' ###################### ##
@@ -282,7 +309,7 @@ def test_enforce_triplets_ui(capsys, alb_resources, hf):
     test_in_args.enforce_triplets = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "34c7d45c3f279df93ba82840f4320a5a"
+    assert hf.string2hash(out) == "d30529911c2ffdfb49152797225e3ff0"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p c"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -295,27 +322,27 @@ def test_extact_feature_sequences_ui(capsys, alb_resources, hf):
     test_in_args.extract_feature_sequences = [["CDS"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
+    assert hf.string2hash(out) == "842d9c911a33c0fd0484383eabefb0fe"
 
     test_in_args.extract_feature_sequences = [["TMD"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "eb878a1b14b73dd6148291f630ba98d8"
+    assert hf.string2hash(out) == "cc7a1c6a22f721ec0668fc8ea6b23429"
 
     test_in_args.extract_feature_sequences = [["TMD1", "splice_a"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "f086752f8915872dc2260486142f643b"
+    assert hf.string2hash(out) == "497d536b1be9a90ef0ef75281d0c867f"
 
     test_in_args.extract_feature_sequences = [["TMD2:TMD3"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "78d674f258e634ef0737db1cc6067be6"
+    assert hf.string2hash(out) == "07773f4fb1dc430c0c3ce6cd5a799439"
 
     test_in_args.extract_feature_sequences = [["foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "0ef69def122bd6923bc9ca02e2a19233"
+    assert hf.string2hash(out) == "ac15492b38ca2ac4baa63e63a9b747f7"
 
 
 # ##################### '-er', '--extract_regions' ###################### ##
@@ -324,7 +351,7 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
     test_in_args.extract_regions = [["100:200", "250", ":10/50"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "891bdc3af63c6ddc96a507939e2d771a"
+    assert hf.string2hash(out) == "7e202f9f6caaf83c558631a3577af20a"
 
     test_in_args.extract_regions = [["100:200", "250", ":10/foo"]]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), True)
@@ -333,7 +360,7 @@ def test_extract_regions_ui(capsys, alb_resources, hf):
 
 
 # ##################### '-fa', '--faux_align' ###################### ##
-def test_faux_align_ui(capsys, alb_resources, hf):
+def test_faux_align_ui(capsys, alb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.faux_align = [None]
     test_in_args.alignments = [alb_resources.get_one("o p g", "paths")]
@@ -355,7 +382,7 @@ def test_generate_alignment_ui(capsys, monkeypatch, sb_resources, alb_resources,
     test_in_args.out_format = "gb"
     Alb.command_line_ui(test_in_args, Alb.AlignBuddy, skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2a42c56df314609d042bdbfa742871a3"
+    assert hf.string2hash(out) == "842d9c911a33c0fd0484383eabefb0fe"
 
 
 @pytest.mark.generate_alignments
@@ -396,6 +423,70 @@ def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy)
     out, err = capsys.readouterr()
     assert "Warning: No input detected so AlignBuddy is aborting..." in err
+
+
+# ######################  '-gh', '--generate_hmm' ###################### #
+def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
+    test_in_args = deepcopy(in_args)
+    test_in_args.generate_hmm = [[]]
+
+    tester = alb_resources.get_one("m p c")
+    Alb.command_line_ui(test_in_args, tester, True)
+
+    out, err = capsys.readouterr()
+    hmm = re.findall("(HMM +A +C +D.+?//)", out, re.DOTALL)
+    assert "COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  3.43272" \
+           "  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958  4.30351  3.11199" in hmm[0]
+    assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  3.48106" \
+           "  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321  4.24683  3.17591" in hmm[1]
+
+    tester = alb_resources.get_one("m d c")
+    Alb.command_line_ui(test_in_args, tester, True)
+
+    out, err = capsys.readouterr()
+    hmm = re.findall("(HMM +A +C +G.+?//)", out, re.DOTALL)
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.37149  1.47979  1.42806  1.27722
+          1.38629  1.38629  1.38629  1.38629
+          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
+      1   0.06560  3.99042  3.73531  3.85677      1 A - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0]
+
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.26618  1.65166  1.51488  1.18245
+          0.93669  1.43354  1.84356  1.55419
+          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
+      1   0.60107  2.55837  1.28853  2.31598     85 a - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1]
+
+    test_in_args.generate_hmm = ["foo"]
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+
+    out, err = capsys.readouterr()
+    assert "Could not find foo on your system. Please check your spelling or install HMMER3." in err
+
+    def raise_syserror(*_, **__):
+        raise SystemError("No output detected after running")
+
+    monkeypatch.setattr(Alb, "generate_hmm", raise_syserror)
+    with pytest.raises(SystemExit):
+        Alb.command_line_ui(test_in_args, tester)
+
+    out, err = capsys.readouterr()
+    assert "No output detected after running" in err
+
+    def raise_valueerror(*_, **__):
+        raise ValueError("This is just a check for dealing with unexpected error")
+
+    monkeypatch.setattr(Alb, "generate_hmm", raise_valueerror)
+
+    with pytest.raises(ValueError):
+        Alb.command_line_ui(test_in_args, tester)
 
 
 # ######################  '-hsi', '--hash_ids' ###################### #
@@ -450,7 +541,7 @@ def test_map_features2alignment_ui(capsys, alb_resources, sb_resources, hf):
     test_in_args.mapfeat2align = [sb_resources.get_one("d g", "paths")]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "9fece109249f4d787c13e6fb2742843d"
+    assert hf.string2hash(out) == "c1359470ad0916902c4e96facd088378"
 
 
 # ##############################################  '-ns', '--num_seqs'  ############################################### #
@@ -485,6 +576,19 @@ def test_order_ids_ui(capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "d4dcdc5059fd82c6b9cc44a66770b801"
+
+
+# ##################### '-pi', '--percent_id' ###################### ##
+def test_percent_id_ui(capsys, alb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.percent_id = True
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "8d8a52ebeacf68069773784162cf6d54"
+
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "55553113f5ee206041f085488029d4b5"
 
 
 # ##################### '-pr', '--pull_records' ###################### ##
@@ -546,7 +650,7 @@ def test_reverse_transcribe_ui(capsys, alb_resources, hf):
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
-hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "ceac7a2a57aa8e3f530f70e2765f9ab2"),
+hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "28c76bfc1ae74b2a55c3044287e074a8"),
           ("nexus", "49bf9b3f56104e4f19048523d725f025"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
           ("phylipr", "5064c1d6ae6192a829972b7ec0f129ed"), ("phylipss", "4bd927145de635c429b2917e0a1db176"),
           ("phylipsr", "b46b57ede57f12c3c3b906681882f81a"), ("stockholm", "5d9a03d9e1b4bf72d991257d3a696306"),
@@ -561,6 +665,7 @@ def test_screw_formats_ui(_format, next_hash, capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == next_hash
+
 
 hashes = [("clustal", "cf349d6061c602439b72b51368f694ed"), ("phylip", "2a77f5761d4f51b88cb86b079e564e3b"),
           ("phylipr", "1f172a3beef76e8e3d42698bb2c3c87d"), ("phylipss", "eb82cda31fcb2cf00e11d7e910fde695"),
@@ -665,7 +770,7 @@ def test_translate_ui(capsys, alb_resources, hf):
     test_in_args.translate = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "625f68463c93310015c6f43100c6b96e"
+    assert hf.string2hash(out) == "542794541324d74ff636eaf4ee5e6b1a"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)
@@ -678,12 +783,12 @@ def test_trimal_ui(capsys, alb_resources, hf):
     test_in_args.trimal = [False]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
+    assert hf.string2hash(out) == "b5cb0f31ab3bed2cf93fb9c1eac52be7"
 
     test_in_args.trimal = ["gappyout"]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "75d006d87047e6fde00130a82babb312"
+    assert hf.string2hash(out) == "b5cb0f31ab3bed2cf93fb9c1eac52be7"
 
     test_in_args.trimal = [0.25]
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d psr"), skip_exit=True)

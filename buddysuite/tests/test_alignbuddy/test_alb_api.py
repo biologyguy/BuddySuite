@@ -86,45 +86,75 @@ def test_concat_alignments(alb_resources, hf):
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
+    assert hf.buddy2hash(tester2) == 'cd2b6594b22c431aea67fa45899f933a'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
+    assert hf.buddy2hash(tester2) == 'cd2b6594b22c431aea67fa45899f933a'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "Panx.*")
-    assert hf.buddy2hash(tester2) == 'e754350b0397cf54f531421d1e85774f'
+    assert hf.buddy2hash(tester2) == 'e49b26f695c910a93f93d70563fd9dd9'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "(P)an(x)(.)")
-    assert hf.buddy2hash(tester2) == '5c6653aec09489cadcbed68fbd2f7465'
+    assert hf.buddy2hash(tester2) == '3abfdf2217050ac2170c0de27352a8c6'
 
     shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
-    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
+    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == '685f24ee1fc88860dd9465035040c91e'
 
 
 # ###########################################  '-con', '--consensus' ############################################ #
-hashes = [('o d g', '888a13e13666afb4d3d851ca9150b442'), ('o d n', '560d4fc4be7af5d09eb57a9c78dcbccf'),
-          ('o d py', '01f1181187ffdba4fb08f4011a962642'), ('o d s', '51b5cf4bb7d591c9d04c7f6b6bd70692'),
-          ('o r n', '1123b95374085b5bcd079880b7762801'), ('o p g', '2c038a306713800301b6b4cdbcf61659'),
-          ('o p n', '756a3334c70f9272e2d9cb74dba9ad52'), ('o p py', 'aaf1d5aff561c1769dd267ada2fea8b0'),
-          ('o p s', 'b6f72510eeef6be0752ae86d72a44283'), ('m d py', '0ae422fa0fafbe0f2edab9a042fb7834'),
-          ('m d s', '7b0aa3cca159b276158cf98209be7dab'), ('m p py', '460033d892db36d4750bafc6998d42d0'),
-          ('m p s', '89130797253646e61b78ab7d91ad3fd9')]
+hashes = [('o d g', '36ed26ded1f4e146ad8018a2dc31f0b2'), ('o d n', 'b7a49ccc640b088f2fe7de67bad30f06'),
+          ('o p py', 'c32119f34633d3956b3a1d3ac578869c'), ('m p s', 'd1a8f7e629a020f5130373d7af65f9d9')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
-def test_consensus(alb_resources, hf, key, next_hash):
+def test_simple_consensus(alb_resources, hf, key, next_hash):
+    tester = Alb.consensus_sequence(alb_resources.get_one(key), "simple")
+    assert hf.buddy2hash(tester) == next_hash
+
+
+hashes = [('o d g', 'c85a1726c3a6f8c3a402475d4f8fce27'), ('o d n', '15bb6c1959a6a5fee1a385921c39a4f5'),
+          ('o p py', '714bc7c67332fa96ef12cfeada88834c'), ('m p s', 'bf50c95916e9d62c95a460bbc517c053')]
+
+
+@pytest.mark.parametrize("key,next_hash", hashes)
+def test_weighted_consensus(alb_resources, hf, key, next_hash):
     tester = Alb.consensus_sequence(alb_resources.get_one(key))
     assert hf.buddy2hash(tester) == next_hash
 
 
+def test_consensus_error(alb_resources, hf):
+    tester = alb_resources.get_one('o d f')
+    with pytest.raises(ValueError) as err:
+        Alb.consensus_sequence(tester, mode="foo")
+    assert "No valid consensus" in str(err)
+
+
+# ######################################  '-dinv', '--delete_invariant_sites' ####################################### #
+def test_delete_invariant_sites(alb_resources, hf, alb_odd_resources):
+    tester = Alb.AlignBuddy(alb_odd_resources['dna']['single']['ambiguous'])
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "27233a416437eabc72aa5d57cb695036"
+
+    tester = alb_resources.get_one("o p py")
+    tester = Alb.delete_invariant_sites(tester, consider_ambiguous=False)
+    assert hf.buddy2hash(tester) == "f0b16bb8133bfc9e29ad43bdfc4ad2ee"
+
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "c13031016c1f7382e808bd4e68d8f406"
+
+    tester.alignments.append([])  # Catch empty alignment
+    tester = Alb.delete_invariant_sites(tester)
+    assert hf.buddy2hash(tester) == "c13031016c1f7382e808bd4e68d8f406"
+
+
 # ###########################################  '-dr', '--delete_records' ############################################ #
-hashes = [('o d g', '4ed91c21c917622388a93128152722a7'), ('o d n', '355a98dad5cf382797eb907e83940978'),
+hashes = [('o d g', 'c22d5cbef500d8baed8cead1d5fe9628'), ('o d n', '355a98dad5cf382797eb907e83940978'),
           ('o d py', 'fe9a2776558f3fe9a1732c777c4bc9ac'), ('o d s', '35dc92c4f4697fb508eb1feca43d9d75'),
-          ('o r n', '96e6964115200d46c7cb4eb975718304'), ('o p g', 'ca66e93287373b658c70d424264f4470'),
+          ('o r n', '96e6964115200d46c7cb4eb975718304'), ('o p g', 'ad384f639efda97e300dbe6a70dd9f7c'),
           ('o p n', '1cfaa4109c5db8fbfeaedabdc57af655'), ('o p py', '1d0e7b4d8e89b42b0ef7cc8c40ed1a93'),
           ('o p s', '1578d98739d2aa6196463957c7b408fa'), ('m d py', 'db4ed247b40707e8e1f0622bb420733b'),
           ('m d s', 'de5beddbc7f0a7f8e3dc2d5fd43b7b29'), ('m p py', '31f91f7dc548e4b075bfb0fdd7d5c82c'),
@@ -138,7 +168,7 @@ def test_delete_records(alb_resources, hf, key, next_hash):
 
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
-hashes = [('o d g', '4bf291d91d4b27923ef07c660b011c72', '2a42c56df314609d042bdbfa742871a3'),
+hashes = [('o d g', '81a17d48b752c5a760e98cf8e665d086', '842d9c911a33c0fd0484383eabefb0fe'),
           ('o d n', 'e531dc31f24192f90aa1f4b6195185b0', 'cb1169c2dd357771a97a02ae2160935d'),
           ('o d py', 'e55bd18b6d82a7fc3150338173e57e6a', '503e23720beea201f8fadf5dabda75e4'),
           ('o d s', '45b511f34653e3b984e412182edee3ca', '228e36a30e8433e4ee2cd78c3290fa6b'),
@@ -175,7 +205,7 @@ def test_reverse_transcribe_exceptions(alb_resources):  # Asserts that a TypeErr
 
 
 # ###########################################  '-et', '--enforce_triplets' ########################################### #
-hashes = [('o d g', '34c7d45c3f279df93ba82840f4320a5a'), ('o d n', 'c907d29434fe2b45db60f1a9b70f110d'),
+hashes = [('o d g', 'd30529911c2ffdfb49152797225e3ff0'), ('o d n', 'c907d29434fe2b45db60f1a9b70f110d'),
           ('o d py', 'b6cf61c86588023b58257c9008c862b5'), ('o r n', '0ed7383ab2897f8350c2791739f0b0a4'),
           ('m d py', '669ffc4fa602fb101c559cb576bddee1')]
 
@@ -203,39 +233,40 @@ def test_enforce_triplets_error(alb_resources):
 def test_extract_feature_sequences(alb_resources, hf):
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, "CDS")
-    assert hf.buddy2hash(tester) == "2a42c56df314609d042bdbfa742871a3"
+    assert hf.buddy2hash(tester) == "842d9c911a33c0fd0484383eabefb0fe"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, ["TMD"])
-    assert hf.buddy2hash(tester) == "eb878a1b14b73dd6148291f630ba98d8"
+    assert hf.buddy2hash(tester) == "cc7a1c6a22f721ec0668fc8ea6b23429"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, ["TMD1", "splice_a"])
-    assert hf.buddy2hash(tester) == "f086752f8915872dc2260486142f643b"
+    assert hf.buddy2hash(tester) == "497d536b1be9a90ef0ef75281d0c867f"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, ["TMD2:TMD3"])
-    assert hf.buddy2hash(tester) == "78d674f258e634ef0737db1cc6067be6"
+    assert hf.buddy2hash(tester) == "07773f4fb1dc430c0c3ce6cd5a799439"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, ["TMD3:TMD2"])
-    assert hf.buddy2hash(tester) == "78d674f258e634ef0737db1cc6067be6"
+    assert hf.buddy2hash(tester) == "07773f4fb1dc430c0c3ce6cd5a799439"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, ["TMD2:foo"])
-    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+    assert hf.buddy2hash(tester) == "ac15492b38ca2ac4baa63e63a9b747f7"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, "foo")
-    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+    assert hf.buddy2hash(tester) == "ac15492b38ca2ac4baa63e63a9b747f7"
 
     tester = alb_resources.get_one("o d g")
     tester = Alb.extract_feature_sequences(tester, [])
-    assert hf.buddy2hash(tester) == "0ef69def122bd6923bc9ca02e2a19233"
+    assert hf.buddy2hash(tester) == "ac15492b38ca2ac4baa63e63a9b747f7"
+
 
 # ###########################################  'er', '--extract_regions' ############################################ #
-hashes = [('o d g', 'a92b3a9d08352a3097a8313c8b42e42d'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
-          ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '70d154abd3e20f870def14f596e669bd'),
+hashes = [('o d g', 'd06c46d7458f8b9a90aba14b83cdb329'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
+          ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '19b5ae01128233d622c4a638f00d612e'),
           ('o p n', '5f400edc6f0990c0cd6eb52ae7687e39'), ('o p py', '69c9ad73ae02525150d4682f9dd68093'),
           ('m d py', 'd06ba679c8a686c8f077bb460a4193b0'), ('m p py', '8151eeda36b9a170512709829d70230b')]
 
@@ -248,71 +279,71 @@ def test_extract_regions(key, next_hash, alb_resources, hf):
 
 def test_extract_regions_singlets(alb_resources, hf):
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "0")
-    assert hf.buddy2hash(tester) == "7b0c9b75754b8909a4856f342505b488"
+    assert hf.buddy2hash(tester) == "4e6b813255000b181357dca293c6e9c4"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1")
-    assert hf.buddy2hash(tester) == "7b0c9b75754b8909a4856f342505b488"
+    assert hf.buddy2hash(tester) == "4e6b813255000b181357dca293c6e9c4"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-10000000")
-    assert hf.buddy2hash(tester) == "7b0c9b75754b8909a4856f342505b488"
+    assert hf.buddy2hash(tester) == "4e6b813255000b181357dca293c6e9c4"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), ",1/")
-    assert hf.buddy2hash(tester) == "7b0c9b75754b8909a4856f342505b488"
+    assert hf.buddy2hash(tester) == "4e6b813255000b181357dca293c6e9c4"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1000000")
-    assert hf.buddy2hash(tester) == "b1dd3a26ddb84acba4f36bb920feac25"
+    assert hf.buddy2hash(tester) == "da0849f4fbdf833223d010427f25d5e6"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "2,5,9,-5")
-    assert hf.buddy2hash(tester) == "a382bce1bd68a66c4107b63494a684da"
+    assert hf.buddy2hash(tester) == "f26c7778136905caadbe5f5f368c63f8"
 
 
 def test_extract_regions_ranges(alb_resources, hf):
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "0:10")
-    assert hf.buddy2hash(tester) == "a7d81c7176667138407fa956b36c3124"
+    assert hf.buddy2hash(tester) == "65214ccec8e0be7459b8cac7686949ed"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:10")
-    assert hf.buddy2hash(tester) == "a7d81c7176667138407fa956b36c3124"
+    assert hf.buddy2hash(tester) == "65214ccec8e0be7459b8cac7686949ed"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "10:1")
-    assert hf.buddy2hash(tester) == "a7d81c7176667138407fa956b36c3124"
+    assert hf.buddy2hash(tester) == "65214ccec8e0be7459b8cac7686949ed"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), ":10")
-    assert hf.buddy2hash(tester) == "a7d81c7176667138407fa956b36c3124"
+    assert hf.buddy2hash(tester) == "65214ccec8e0be7459b8cac7686949ed"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-10:")
-    assert hf.buddy2hash(tester) == "1284dc81cdbe791712e0cf1d7c49ba50"
+    assert hf.buddy2hash(tester) == "e1092c191c8a1721d399f0e1a03af015"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "40:75,89:100,432:-45")
-    assert hf.buddy2hash(tester) == "40dbe2d78ca4437b922f7fdb8e83b2cf"
+    assert hf.buddy2hash(tester) == "2fe7d2b15d28a3778b52e30171cea6bf"
 
 
 def test_extract_regions_mth_of_nth(alb_resources, hf):
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1/50")
-    assert hf.buddy2hash(tester) == "b0de1f95d208005b986da1a444598835"
+    assert hf.buddy2hash(tester) == "b4f86edc6869a50b9ac273abaa22b894"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-1/50")
-    assert hf.buddy2hash(tester) == "80987109be8b75ad5d146759047e7a18"
+    assert hf.buddy2hash(tester) == "9c98929737aa6673eba9d6ad1486d50b"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1/-500")
-    assert hf.buddy2hash(tester) == "f501d35f55130d89ab0205271f3750cd"
+    assert hf.buddy2hash(tester) == "76cc5b13425726b6818de1ec8a09d4e8"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "50/1")
-    assert hf.buddy2hash(tester) == "bf8485cbd30ff8986c2f50b677da4332"
+    assert hf.buddy2hash(tester) == "46388b175b31b81f47199ae6327768af"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "50/25")
-    assert hf.buddy2hash(tester) == "869599739a3d79f1d1ac0084df803635"
+    assert hf.buddy2hash(tester) == "4f42e487d6f8917451f7e838ff168663"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:5/50")
-    assert hf.buddy2hash(tester) == "12f567b44f4d79fa907a8f66e7d28536"
+    assert hf.buddy2hash(tester) == "2d0dca7b78db5b5a51f987ca60aa2fd0"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "-5:/50")
-    assert hf.buddy2hash(tester) == "f9072e3a1a3c339c0e2dfdf8444a3639"
+    assert hf.buddy2hash(tester) == "518557f3e66d0e45747deab55cffcace"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), ":5/50")
-    assert hf.buddy2hash(tester) == "12f567b44f4d79fa907a8f66e7d28536"
+    assert hf.buddy2hash(tester) == "2d0dca7b78db5b5a51f987ca60aa2fd0"
 
     tester = Alb.extract_regions(alb_resources.get_one("o p g"), "1:10,1/50,-1")
-    assert hf.buddy2hash(tester) == "51f8135db8e13ff06b0eef87b618dfe2"
+    assert hf.buddy2hash(tester) == "6858e0cca31d254d7336bde3c60f5622"
 
 
 # ###########################################  'fa', '--faux_alignment' ############################################ #
@@ -333,32 +364,50 @@ class MockPopen(object):
         self.kwargs = kwargs
         if "my_mucsle" in args[0]:
             self.output = ["Robert C. Edgar".encode("utf-8"), "".encode("utf-8")]
-        elif "-h" in args[0] or "-v" in args[0]:
-            self.output = ["Nothing".encode("utf-8"), "here".encode("utf-8")]
+        elif "clustalo" in args[0] and "-h" in args[0]:
+            stdout = "Clustal Omega - 1.2.3 (AndreaGiacomo)"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "clustalo" in args[0]:
             self.output = [None, None]
+        elif "clustalw2" in args[0] and "-help" in args[0]:
+            stdout = "CLUSTAL 2.1 Multiple Sequence Alignments"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "clustalw2" in args[0]:
             _file = "{1}mock_resources{0}test_clustalw2{0}stdout.txt".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), ""]
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "mafft" in args[0] and "--help" in args[0]:
+            stdout = "MAFFT v7.310"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "mafft" in args[0]:
             _file = "{1}mock_resources{0}test_mafft{0}result".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), '']
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "muscle" in args[0] and "-version" in args[0]:
+            stdout = "MUSCLE v3.8.31 by Robert C. Edgar"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "muscle" in args[0]:
             _file = "{1}mock_resources{0}test_muscle{0}result".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
-            self.output = [stdout.encode("utf-8"), '']
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
+        elif "pagan" in args[0] and "-v" in args[0]:
+            stdout = "This is PAGAN v.0.61."
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "pagan" in args[0]:
             _file = "{1}mock_resources{0}test_pagan{0}stdout.txt".format(os.path.sep, RES_PATH)
             with open(_file, "r", encoding="utf-8") as ifile:
                 stdout = ifile.read()
             self.output = [stdout, ""]
+        elif "prank" in args[0] and "-help" in args[0]:
+            stdout = "prank v.140603. Minimal usage: 'prank sequence_file'"
+            self.output = [stdout.encode("utf-8"), ''.encode("utf-8")]
         elif "prank" in args[0]:
             self.output = [None, None]
+        elif "-h" in args[0] or "-v" in args[0]:
+            self.output = ["Nothing".encode("utf-8"), "here".encode("utf-8")]
 
     def communicate(self):
         return self.output
@@ -597,6 +646,7 @@ def test_alignment_edges(monkeypatch, sb_resources):
     shutil.copy("{0}{1}mock_resources{1}test_muscle{1}result".format(RES_PATH, os.path.sep),
                 "%s%s" % (mock_tmp_dir.path, os.path.sep))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
+    monkeypatch.setattr(br, "Popen", MockPopen)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
@@ -646,11 +696,11 @@ def test_hash_seq_ids_errors(alb_resources):
 
 
 # #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
-hashes = [('o d g', '2a42c56df314609d042bdbfa742871a3', '2a42c56df314609d042bdbfa742871a3'),
+hashes = [('o d g', '842d9c911a33c0fd0484383eabefb0fe', '842d9c911a33c0fd0484383eabefb0fe'),
           ('o d n', '52e74a09c305d031fc5263d1751e265d', 'cb1169c2dd357771a97a02ae2160935d'),
           ('o d py', 'cfe6cb9c80aebd353cf0378a6d284239', '503e23720beea201f8fadf5dabda75e4'),
           ('o d s', 'b82538a4630810c004dc8a4c2d5165ce', '228e36a30e8433e4ee2cd78c3290fa6b'),
-          ('o p g', 'bf8485cbd30ff8986c2f50b677da4332', 'bf8485cbd30ff8986c2f50b677da4332'),
+          ('o p g', '46388b175b31b81f47199ae6327768af', '46388b175b31b81f47199ae6327768af'),
           ('o p n', '8b6737fe33058121fd99d2deee2f9a76', '17ff1b919cac899c5f918ce8d71904f6'),
           ('o p py', '968ed9fa772e65750f201000d7da670f', 'aacda2f5d4077f23926400f74afa2f46'),
           ('o p s', 'f35cbc6e929c51481e4ec31e95671638', 'c0dce60745515b31a27de1f919083fe9'),
@@ -669,10 +719,10 @@ def test_cases(key, uc_hash, lc_hash, alb_resources, hf):
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
-hashes = [('o p n', '79078260e8725a0d7ccbed9400c78eae'), ('o p pr', '02b977e5b086125255b792788014708a'),
-          ('o p psr', '02b977e5b086125255b792788014708a'), ('o p s', '372daf72435e2f1a06531b5c030995c6'),
-          ('o d n', '9fece109249f4d787c13e6fb2742843d'), ('o d pr', '899c6ab534f7af07e744eb173e94bd50'),
-          ('o d psr', '899c6ab534f7af07e744eb173e94bd50'), ('o d s', '79cf44688165842eba1bb45b3543d458')]
+hashes = [('o p n', '46f48b266b424b5e43d11d589812f1bf'), ('o p pr', 'c377cbacc34121e9460ec048f4c72e1b'),
+          ('o p psr', 'c377cbacc34121e9460ec048f4c72e1b'), ('o p s', '125179d2965d57d4beac5cd91c5fd218'),
+          ('o d n', 'c1359470ad0916902c4e96facd088378'), ('o d pr', 'a61222fad78fd4ddee6108cda8d4bdc7'),
+          ('o d psr', 'a61222fad78fd4ddee6108cda8d4bdc7'), ('o d s', 'de9ed2e4c71c8882ee527e1d0b405016')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
@@ -687,11 +737,25 @@ def test_map_features2alignment(key, next_hash, alb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash, tester.write("error_files%s%s" % (next_hash, os.path.sep))
 
 
+# ###########################################  '-pi', '--percent_id' ############################################ #
+def test_percent_id(alb_resources):
+    alignbuddy = alb_resources.get_one("o p s")
+    alignbuddy = Alb.percent_id(alignbuddy)
+
+    assert alignbuddy.alignments[0].percent_ids
+    assert alignbuddy.alignments[0].percent_ids["Mle-Panxα12"]["Mle-Panxα8"] == 0.47877358490566035
+
+    alignbuddy = alb_resources.get_one("o d s")
+    Alb.percent_id(alignbuddy)
+    assert alignbuddy.alignments[0].percent_ids
+    assert alignbuddy.alignments[0].percent_ids["Mle-Panxα9"]["Mle-Panxα11"] == 0.5563725490196079
+
+
 # ###########################################  '-oi', '--order_ids' ############################################ #
-hashes = [('o d g', '37df4bfa14878fc2772710da243942b6', '7dc190f41c9fb1f96956abd579a00282'),
+hashes = [('o d g', '8f1846922f3c4d955c42964ba0c24649', '982e66fa5eeba8de5c570a770042ec10'),
           ('o d n', '132757da01b3caf174d024efdb2c3acd', '286bac7a213997924203622c3357457c'),
           ('o d py', '3c49bdc1b0fe4e1d6bfc148eb0293e21', 'd6e79a5faeaff396aa7eab0b460c3eb9'),
-          ('o p g', '5b1f35e89b7e93039948e27482bdf305', 'cecaa08ef55b850345ece0bc12fbf5b7'),
+          ('o p g', '80cc4fc343879ce5eb9c0ec0f430d965', '3a00afabf18266b813a99ebc34140d18'),
           ('o p n', '197ba12e799ab2a1dadfe1b254381e00', 'f32fabc627615d25d8cd57553e7281af'),
           ('o p py', 'ffae954adc0d362354e43c1b70d9be29', 'f4c0924087fdb624823d02e909d94e95'),
           ('m d py', 'a44938e26e4b35967ed8e17a0eaebe4c', '9d6b6087d07f7d1fd701591ab7cb576d'),
@@ -716,9 +780,10 @@ def test_order_ids2(alb_resources, hf):
     Alb.order_ids(alignbuddy)
     assert hf.buddy2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
 
+
 # ##################### '-pr', '--pull_records' ###################### ##
-hashes = [('o d g', '45b81626aaf64c32ed2d6558104c1514'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
-          ('o d py', 'd141752c38a892ccca800c637f609608'), ('o p g', '575242880f8fba5368094794a3313291'),
+hashes = [('o d g', '8488d218201ef84c8fe458576d38e3be'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
+          ('o d py', 'd141752c38a892ccca800c637f609608'), ('o p g', '11de462227fb680510227b822f8c375e'),
           ('o p n', '027bbc7e34522f9521f83ee7d03793a1'), ('o p py', '2cd74d7ede4d1fb6e18363567426437e'),
           ('m d py', '7c77c6f3245c21842f4be585714ec6ce'), ('m p py', 'f34fa4c34cfe5c1e6b228949557c9483')]
 
@@ -731,8 +796,8 @@ def test_pull_records(key, next_hash, alb_resources, hf):
 
 
 # ###########################################  '-ri', '--rename_ids' ############################################ #
-hashes = [('o d g', 'c35db8b8353ef2fb468b0981bd960a38'), ('o d n', '243024bfd2f686e6a6e0ef65aa963494'),
-          ('o d py', '98bb9b57f97555d863054ddb526055b4'), ('o p g', '2e4e3c365cd011821bcdc6275a3559af'),
+hashes = [('o d g', '98f69c2d39c9a4ca0cb5f7da026095cd'), ('o d n', '243024bfd2f686e6a6e0ef65aa963494'),
+          ('o d py', '98bb9b57f97555d863054ddb526055b4'), ('o p g', '7a72ab9a2ef49a97ee60862aab1c88c3'),
           ('o p n', '3598e85169ed3bcdbcb676bb2eb6cef0'), ('o p py', 'd49eb4de01d727b9e3ad648d6a04a3c9'),
           ('m d py', 'ddfffd9b999637abf7f5926f017de987'), ('m p py', '0a68229bd13439040f045cd8c72d7cc9')]
 
@@ -745,7 +810,7 @@ def test_rename_ids(key, next_hash, alb_resources, hf):
 
 
 # ###########################################  'tr', '--translate' ############################################ #
-hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', '625f68463c93310015c6f43100c6b96e'),
+hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', '542794541324d74ff636eaf4ee5e6b1a'),
           ('o d n', 'a2586af672ad71f16bbd54f359b323ff'), ('o d py', 'd0d4dd408e559215b2780f4f0ae0c418'),
           ('o d pr', 'f77705e32cd753267916539ee0936e1f'), ('o d pss', 'ede672b15221ec60981287ca1e286c52'),
           ('o d psr', '623fe1634752e812f482cfa7b7ea20ee'), ('o d s', '4ff563c39229d30aa3eda193cb290344'),
@@ -773,6 +838,7 @@ def test_translate2(alb_resources):
     with pytest.raises(TypeError) as e:
         Alb.translate_cds(tester)
     assert "Record 'Mle-Panxα9' is protein." in str(e)
+
 
 # ###########################################  'tm', '--trimal' ############################################ #
 hashes = [('o d psr', '5df948e4b2cb6c0d0740984445655135', '384563eb411713e90cb2fea0c799bf0d'),

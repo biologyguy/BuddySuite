@@ -6,14 +6,14 @@ python:
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq tar python3 python3-pyqt4 bzip2 build-essential phyml clustalo clustalw
-  - wget -q https://repo.continuum.io/miniconda/Miniconda3-4.2.12-Linux-x86_64.sh -O ~/miniconda.sh
+  - wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
   - bash ~/miniconda.sh -b -p /home/travis/miniconda
   - /home/travis/miniconda/bin/conda config --set always_yes yes --set changeps1 no
   - /home/travis/miniconda/bin/conda config --add channels r
   - /home/travis/miniconda/bin/conda config --add channels bioconda
   - /home/travis/miniconda/bin/conda update -q conda
   - /home/travis/miniconda/bin/conda info -a
-  - /home/travis/miniconda/bin/conda install dill scipy numpy six fasttree raxml mafft prank muscle blast
+  - /home/travis/miniconda/bin/conda install dill scipy numpy six fasttree raxml mafft prank muscle blast hmmer
   - /home/travis/miniconda/bin/pip install --upgrade
   - /home/travis/miniconda/bin/pip install py pytest pytest-xdist pytest-cov pytest-colordots ete3 dendropy biopython
   - /home/travis/miniconda/bin/pip install python-coveralls suds-py3

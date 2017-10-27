@@ -53,7 +53,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from copy import deepcopy
-from random import sample, randint, random, Random
+from random import sample, Random
 from math import floor, ceil, log
 from subprocess import Popen, PIPE
 from multiprocessing import Lock
@@ -62,6 +62,7 @@ from hashlib import md5
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from xml.sax import SAXParseException
+import json
 
 # Third party
 from Bio import SeqIO
@@ -78,6 +79,7 @@ from Bio.Nexus.Trees import TreeError
 '''
 def sim_ident(matrix):  # Return the pairwise similarity and identity scores among sequences
     """
+    (This may be more appropriate for AlignBuddy)
     :param matrix:
     """
     x = matrix
@@ -147,11 +149,6 @@ def incremental_rename(query, replace):
     x = (query, replace)
     return x
 
-def order_sequences_by_size(seqbuddy, rev=False):
-    """
-    Sort the sequences by size
-    """
-    return
 
 def keep_features(seqbuddy, regex(s)):
     """
@@ -161,8 +158,6 @@ def keep_features(seqbuddy, regex(s)):
 '''
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
 # - Add support for selecting individual sequences to modify (as a global ability for any tool)
-# - Add FASTQ support... More generally, support letter annotation mods
-# - Get BuddySuite into PyPi
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
@@ -187,7 +182,7 @@ class SeqBuddy(object):
         in_handle = None
         raw_sequence = None
         in_file = None
-        self.alpha = alpha
+        self.alpha = alpha if type(alpha) != str else alpha.lower()
         self.hash_map = OrderedDict()  # This is only used by functions that use hash_id()
 
         # SeqBuddy obj
@@ -299,11 +294,11 @@ class SeqBuddy(object):
 
         if self.alpha is None:
             self.alpha = _guess_alphabet(sequences)
-        elif self.alpha in ['protein', 'prot', 'p', 'pep', IUPAC.protein]:
+        elif "protein".startswith(str(self.alpha)) or self.alpha in ['pep', IUPAC.protein]:
             self.alpha = IUPAC.protein
-        elif self.alpha in ['dna', 'd', 'cds', IUPAC.ambiguous_dna]:
+        elif "dna".startswith(str(self.alpha)) or self.alpha in ['cds', IUPAC.ambiguous_dna]:
             self.alpha = IUPAC.ambiguous_dna
-        elif self.alpha in ['rna', 'r', IUPAC.ambiguous_rna]:
+        elif "rna".startswith(str(self.alpha)) or self.alpha == IUPAC.ambiguous_rna:
             self.alpha = IUPAC.ambiguous_rna
         else:
             br._stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
@@ -319,16 +314,18 @@ class SeqBuddy(object):
 
         self.records = sequences
         self.memory_footprint = sum([len(rec) for rec in sequences])
+        self.hidden_recs = []  # If anything is in here it will be printed with __str__() or write()
 
     def __str__(self):
-        if len(self.records) == 0:
+        records = self.records + self.hidden_recs
+        if len(records) == 0:
             return "Error: No sequences in object.\n"
 
         # There is a weird bug in genbank write() that concatenates dots to the organism name (if set).
         # The following is a work around...
         self.out_format = self.out_format.lower()
         if self.out_format in ["gb", "genbank"]:
-            for rec in self.records:
+            for rec in records:
                 try:
                     if re.search("(\. )+", rec.annotations['organism']):
                         rec.annotations['organism'] = "."
@@ -342,26 +339,26 @@ class SeqBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False, _type="seqbuddy")
 
         elif self.out_format == "raw":
-            output = "\n\n".join([str(rec.seq) for rec in self.records])
+            output = "\n\n".join([str(rec.seq) for rec in records])
         else:
             tmp_dir = br.TempDir()
             with open("%s%sseqs.tmp" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as _ofile:
                 try:
-                    SeqIO.write(self.records, _ofile, self.out_format)
+                    SeqIO.write(records, _ofile, self.out_format)
                 except ValueError as e:
                     if "Sequences must all be the same length" in str(e):
                         br._stderr("Warning: Alignment format detected but sequences are different lengths. "
                                    "Format changed to fasta to accommodate proper printing of records.\n\n")
-                        SeqIO.write(self.records, _ofile, "fasta")
+                        SeqIO.write(records, _ofile, "fasta")
                     elif "Repeated name" in str(e) and self.out_format == "phylip":
                         br._stderr("Warning: Phylip format returned a 'repeat name' error, probably due to truncation. "
                                    "Attempting phylip-relaxed.\n")
-                        SeqIO.write(self.records, _ofile, "phylip-relaxed")
+                        SeqIO.write(records, _ofile, "phylip-relaxed")
                     elif "Locus identifier" in str(e) and "is too long" in str(e) \
                             and self.out_format in ["gb", "genbank"]:
                         br._stderr("Warning: Genbank format returned an 'ID too long' error. "
                                    "Format changed to EMBL.\n\n")
-                        SeqIO.write(self.records, _ofile, "embl")
+                        SeqIO.write(records, _ofile, "embl")
                     else:
                         raise e
 
@@ -655,14 +652,147 @@ def make_copy(seqbuddy):
     :return: SeqBuddy object
     """
     alphabet_list = [rec.seq.alphabet for rec in seqbuddy.records]
+    hidden_alphabet_list = [rec.seq.alphabet for rec in seqbuddy.hidden_recs]
     _copy = deepcopy(seqbuddy)
     _copy.alpha = seqbuddy.alpha
     for indx, rec in enumerate(_copy.records):
         rec.seq.alphabet = alphabet_list[indx]
+
+    for indx, rec in enumerate(_copy.hidden_recs):
+        rec.seq.alphabet = hidden_alphabet_list[indx]
     return _copy
 
 
+def _prepare_restriction_sites(parameters):
+    min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
+    for param in parameters:
+        try:
+            param = int(param)
+        except ValueError:
+            pass
+        if type(param) == int:
+            if not min_cuts:
+                min_cuts = param
+            elif not max_cuts:
+                max_cuts = param if param >= min_cuts else min_cuts
+                min_cuts = param if param <= min_cuts else min_cuts
+            elif param > max_cuts:
+                max_cuts = param
+            elif param < min_cuts:
+                min_cuts = param
+
+        elif param in ['alpha', 'position']:
+            order = param
+        else:
+            _enzymes.append(param)
+
+    _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
+    max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
+    min_cuts = 1 if not min_cuts else min_cuts
+    return _enzymes, order, min_cuts, max_cuts
+
+
 # ################################################ MAIN API FUNCTIONS ################################################ #
+def amend_metadata(seqbuddy, attr, sub_value, regex):
+    """
+    Modify, delete, or set metadata in SeqRecord objects
+    :param seqbuddy: SeqBuddy object
+    :param attr: The attribute to modify. See below for list of supported attributes
+    :param sub_value: The string to replace the regex match with
+    :param regex: The regular expression that will be fed into re.sub()
+
+    Supported attr types:
+        Strings: description, topology, data_file_division, date, source, organism, comment
+        OrderedDict: structured_comment
+        Lists: accessions, keywords, taxonomy, references, dbxrefs
+        Ints: sequence_version
+    """
+    regex = "|".join(br.clean_regex(regex))
+    for rec in seqbuddy.records:
+        if attr in ["description", "definition"]:
+            rec.description = re.sub(regex, sub_value, rec.description, flags=re.DOTALL)
+        elif attr == "topology":
+            if sub_value not in ['', 'linear', 'circular']:
+                raise ValueError("Topology values are limited to ['', 'linear', 'circular']")
+            rec.annotations.setdefault(attr, " ")
+            rec.annotations[attr] = sub_value
+        elif attr in ["data_file_division", "date", "source", "organism", "comment"]:
+            rec.annotations.setdefault(attr, " ")
+            rec.annotations[attr] = re.sub(regex, sub_value, rec.annotations[attr], flags=re.DOTALL)
+            if attr == "comment" and "structured_comment" in rec.annotations:
+                new_structured_comment = OrderedDict()
+                for outer_dict_key, inner_dict in rec.annotations["structured_comment"].items():
+                    new_key = re.sub(regex, sub_value, outer_dict_key, flags=re.DOTALL)
+                    if new_key:
+                        new_structured_comment[new_key] = OrderedDict()
+                        for inner_dict_key, value in inner_dict.items():
+                            new_inner_key = re.sub(regex, sub_value, inner_dict_key, flags=re.DOTALL)
+                            if new_inner_key:
+                                new_structured_comment[new_key][new_inner_key] = re.sub(regex, sub_value, value,
+                                                                                        flags=re.DOTALL)
+                rec.annotations["structured_comment"] = new_structured_comment
+        elif attr == "references":
+            if not sub_value and not regex:
+                rec.annotations["references"] = []
+            elif regex and regex != ".*":
+                rec.annotations.setdefault("references", [])
+                new_refs = []
+                for ref in rec.annotations["references"]:
+                    for ref_attrib in [x for x in dir(ref) if not x.startswith("_") and x != "location"]:
+                        setattr(ref, ref_attrib, re.sub(regex, sub_value, getattr(ref, ref_attrib), flags=re.DOTALL))
+
+                    new_refs.append(ref)
+                rec.annotations["references"] = new_refs
+        elif attr in ["taxonomy", "accessions", "keywords"]:
+            # Check to see if the user is trying to send in a whole new list
+            if type(sub_value) == str:
+                sub_value = sub_value.split() if sub_value else [""]
+            if len(sub_value) == 1 and regex != ".*":
+                sub_value = sub_value[0]
+                rec.annotations.setdefault(attr, [])
+                if not rec.annotations[attr]:
+                    new_list = [sub_value]
+                else:
+                    new_list = []
+                    for value in rec.annotations[attr]:
+                        new_list.append(re.sub(regex, sub_value, value, flags=re.DOTALL))
+                new_list = [x for x in new_list if x]
+            else:
+                new_list = sub_value
+            rec.annotations[attr] = new_list
+        elif attr in ["dbxrefs", "dblink"]:
+            # Check to see if the user is trying to send in a whole new list
+            if type(sub_value) == str:
+                sub_value = sub_value.split() if sub_value else [""]
+            if len(sub_value) == 1 and regex != ".*":
+                sub_value = sub_value[0]
+                if not rec.dbxrefs:
+                    new_list = [sub_value]
+                else:
+                    new_list = []
+                    for value in rec.dbxrefs:
+                        new_list.append(re.sub(regex, sub_value, value, flags=re.DOTALL))
+                new_list = [x for x in new_list if x]
+            else:
+                new_list = sub_value
+            rec.dbxrefs = new_list
+        elif attr in ["version", "sequence_version"]:
+            try:
+                rec.annotations[attr] = int(sub_value)
+                # rec.id must be updated manually, because it is built during rec instantiation
+                rec_id_split = rec.id.split(".")
+                rec.id = ".".join(rec_id_split[:-1]) if len(rec_id_split) > 1 else rec_id_split[0]
+                rec.id += ".%i" % rec.annotations[attr]
+            except ValueError:
+                pass
+        elif attr in dir(rec):
+            if type(getattr(rec, attr)) == str:
+                setattr(rec, attr, re.sub(regex, sub_value, getattr(rec, attr)))
+        else:
+            setattr(rec, attr, sub_value)
+    return seqbuddy
+
+
 def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=None):
     """
     Adds a feature annotation to sequences in the SeqBuddy object
@@ -755,7 +885,7 @@ def annotate(seqbuddy, _type, location, strand=None, qualifiers=None, pattern=No
     qualifiers = [qualifiers] if isinstance(qualifiers, str) else qualifiers
 
     if isinstance(qualifiers, list):
-        qual_dict = {}
+        qual_dict = OrderedDict()
         for qual in qualifiers:
             qual = qual.split("=")
             qual_dict[qual[0]] = "=".join(qual[1:])
@@ -1010,7 +1140,7 @@ def bl2seq(seqbuddy):
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("%s -query %s -subject %s -outfmt 6" %
+        _blast_res = Popen("%s -query '%s' -subject '%s' -outfmt 6" %
                            (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
@@ -1180,7 +1310,7 @@ def blast(subject, query, **kwargs):
     else:
         kwargs["blast_args"] = ""
 
-    blast_command = "{0} -db {1} -query {2}tmp.fa -out {2}out.txt " \
+    blast_command = "{0} -db '{1}' -query {2}tmp.fa -out {2}out.txt " \
                     "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
@@ -1209,7 +1339,7 @@ def blast(subject, query, **kwargs):
 
     with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db %s -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen("blastdbcmd -db '%s' -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
@@ -1288,6 +1418,7 @@ def concat_seqs(seqbuddy, clean=False):
     new_seq = ""
     concat_ids = []
     features = []
+    letter_annotations = {}
     for rec in seqbuddy.records:
         shift = len(new_seq)
         full_seq_len = len(new_seq) + len(str(rec.seq))
@@ -1297,12 +1428,18 @@ def concat_seqs(seqbuddy, clean=False):
         feature = SeqFeature(location=location, id=rec.id, type=rec.id[:15])
         features.append(feature)
         features += rec.features
+
+        for qual_type, scores in rec.letter_annotations.items():
+            letter_annotations.setdefault(qual_type, [])
+            letter_annotations[qual_type] += scores
+
         concat_ids.append(rec.id)
         new_seq += str(rec.seq)
 
     new_seq = [SeqRecord(Seq(new_seq, alphabet=seqbuddy.alpha),
-                         description="", id="concatination", features=features)]
-    seqbuddy = SeqBuddy(new_seq)
+                         description="", id="concatination", name="concatination", features=features,
+                         annotations={}, letter_annotations=letter_annotations)]
+    seqbuddy.records = new_seq
     seqbuddy.out_format = "gb"
     return seqbuddy
 
@@ -1344,7 +1481,7 @@ def count_codons(seqbuddy):
                 else:
                     try:
                         data_table[codon] = [codontable[codon], 1, 0.0]
-                    except KeyError:
+                    except (KeyError, CodonTable.TranslationError):
                         br._stderr("Warning: Codon '{0}' is invalid. Codon will be skipped.\n".format(codon))
             sequence = sequence[3:]
         for codon in data_table:
@@ -1612,12 +1749,13 @@ def delete_metadata(seqbuddy):
     return seqbuddy
 
 
-def delete_records(seqbuddy, patterns):
+def delete_records(seqbuddy, patterns, description=False):
     """
     Deletes records with IDs matching a regex pattern
     :param seqbuddy: SeqBuddy object
     :param patterns: A single regex pattern, or list of patterns, to search with
     :type patterns: list str
+    :param description: Allow search in description string
     :return: The modified SeqBuddy object
     """
     if type(patterns) == str:
@@ -1631,13 +1769,44 @@ def delete_records(seqbuddy, patterns):
     patterns = "|".join(patterns)
 
     retained_records = []
-    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns).records]
+    deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns, description=description).records]
     for rec in seqbuddy.records:
         if rec.id in deleted:
             continue
         else:
             retained_records.append(rec)
     seqbuddy.records = retained_records
+    return seqbuddy
+
+
+def delete_recs_with_feature(seqbuddy, regex):
+    """
+    Remove sequences with feature names/IDs matching a search pattern
+    :param seqbuddy: SeqBuddy object
+    :param regex: List of regex expressions or single regex
+    :type regex: str list
+    :return: The modified SeqBuddy object
+    """
+    if type(regex) == str:
+        regex = [regex]
+    for indx, pattern in enumerate(regex):
+        regex[indx] = ".*" if pattern == "*" else pattern
+
+    regex = "|".join(regex)
+    keep_records = []
+    for rec in seqbuddy.records:
+        if re.search(regex, rec.description):
+            continue
+        else:
+            retain = True
+
+        for feat in rec.features:
+            if re.search(regex, feat.type) or re.search(regex, feat.id):
+                retain = False
+                break
+        if retain:
+            keep_records.append(rec)
+    seqbuddy.records = keep_records
     return seqbuddy
 
 
@@ -1698,6 +1867,44 @@ def delete_small(seqbuddy, min_value):
     return seqbuddy
 
 
+def delete_taxa(seqbuddy, taxa):
+    """
+    Pull out records that are annotated with a particular taxon
+    :param seqbuddy:
+    :param taxa: List of exact matches for taxonomic designation (will sift through entire taxon tree)
+    :return:
+    """
+    if type(taxa) == str:
+        taxa = [taxa]
+
+    taxa = [t.lower() for t in taxa]
+    keep_list = []
+    for rec in seqbuddy.records:
+        delete = False
+        if 'taxonomy' in rec.annotations:
+            taxonomy = [x.lower() for x in rec.annotations['taxonomy']]
+            breakout = False
+            for taxon in taxa:
+                if taxon in taxonomy:
+                    delete = True
+                    breakout = True
+                    break
+            if breakout:
+                continue
+
+        if 'organism' in rec.annotations:
+            for taxon in taxa:
+                organism = rec.annotations['organism'].lower().split()
+                if taxon in organism:
+                    delete = True
+                    break
+        if not delete:
+            keep_list.append(rec)
+
+    seqbuddy.records = keep_list
+    return seqbuddy
+
+
 def dna2rna(seqbuddy):
     """
     Transcribes DNA into RNA
@@ -1722,10 +1929,14 @@ def extract_feature_sequences(seqbuddy, patterns):
     :return: Modified SeqBuddy object
     :rtype: SeqBuddy
     """
-    def check_single_patterns(_feature):
-        for pat in single_patterns:
-            if re.search(pat, _feature.type):
-                return True
+    def check_pattern(_feature, _pattern):
+        if re.search(_pattern, _feature.type):
+            return True
+        else:
+            for qual_type, quals in feature.qualifiers.items():
+                for qual in quals:
+                    if re.search(_pattern, qual):
+                        return True
         return False
 
     if type(patterns) == str:
@@ -1743,7 +1954,8 @@ def extract_feature_sequences(seqbuddy, patterns):
     for rec in seqbuddy.records:
         keep_ranges = []
         for feature in rec.features:
-            if check_single_patterns(feature):
+            check_single_patterns = [check_pattern(feature, pat) for pat in single_patterns]
+            if True in check_single_patterns:
                 if type(feature.location) == CompoundLocation:
                     keep_ranges += [[int(x.start), int(x.end)] for x in feature.location.parts]
                 else:
@@ -1752,11 +1964,11 @@ def extract_feature_sequences(seqbuddy, patterns):
             start, end = len(rec.seq), 0
             pat1, pat2 = False, False
             for feature in rec.features:
-                if re.search(rang_pat[0], feature.type):
+                if check_pattern(feature, rang_pat[0]):
                     start = int(feature.location.start) if int(feature.location.start) < start else start
                     end = int(feature.location.end) if int(feature.location.end) > end else end
                     pat1 = True
-                if re.search(rang_pat[1], feature.type):
+                if check_pattern(feature, rang_pat[1]):
                     start = int(feature.location.start) if int(feature.location.start) < start else start
                     end = int(feature.location.end) if int(feature.location.end) > end else end
                     pat2 = True
@@ -1872,6 +2084,11 @@ def extract_regions(seqbuddy, positions):
     new_records = []
     for rec in seqbuddy.records:
         new_rec_positions = create_residue_list(rec, positions)
+        letter_annotations = {}
+        for anno_type in rec.letter_annotations:
+            letter_annotations[anno_type] = [None for _ in range(len(new_rec_positions))]
+            for indx, anno_pos in enumerate(new_rec_positions):
+                letter_annotations[anno_type][indx] = rec.letter_annotations[anno_type][anno_pos]
         new_seq = []
         if rec.features:  # This is super slow for large records...
             remapper = FeatureReMapper(rec)
@@ -1884,7 +2101,7 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
             new_seq = remapper.remap_features(new_seq)
         else:
             seq = str(rec.seq)
@@ -1893,11 +2110,11 @@ def extract_regions(seqbuddy, positions):
             new_seq = ''.join(new_seq)
             new_seq = Seq(new_seq, alphabet=rec.seq.alphabet)
             new_seq = SeqRecord(new_seq, id=rec.id, name=rec.name, description=rec.description, dbxrefs=rec.dbxrefs,
-                                annotations=rec.annotations)
+                                annotations=rec.annotations, letter_annotations=letter_annotations)
 
         new_records.append(new_seq)
 
-    seqbuddy = SeqBuddy(new_records, out_format=seqbuddy.out_format, alpha=seqbuddy.alpha)
+    seqbuddy.records = new_records
     return seqbuddy
 
 
@@ -2124,7 +2341,8 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
                                                    type='match', strand=+1,
-                                                   qualifiers={'regex': pattern_backup, 'added_by': 'SeqBuddy'}))
+                                                   qualifiers=OrderedDict([('regex', pattern_backup),
+                                                                           ('added_by', 'SeqBuddy')])))
                 if match.start() > 0:
                     new_seq += str(rec.seq[last_match:match.start()])
                 new_seq += str(rec.seq[match.start():match.end()]).upper()
@@ -2220,6 +2438,12 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
+
+    convert_rna = False
+    if seqbuddy.alpha in [IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+        convert_rna = True
+        rna2dna(seqbuddy)
+
     if max_cuts and min_cuts > max_cuts:
         raise ValueError("min_cuts parameter has been set higher than max_cuts.")
     max_cuts = 1000000000 if not max_cuts else max_cuts
@@ -2244,7 +2468,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                     batch.add(res)
 
         elif enzyme == "all":
-            for res in AllEnzymes:
+            for res in sorted([x for x in AllEnzymes], key=lambda x: str(x)):
                 if str(res) not in blacklist:
                     batch.add(res)
 
@@ -2255,13 +2479,17 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                 br._stderr("Warning: %s not a known enzyme\n" % enzyme, quiet=quiet)
 
     sites = []
+    no_cutters_found = False
+    double_cutters_found = False
     for rec in seqbuddy.records:
         rec.res_sites = {}
         analysis = Analysis(batch, rec.seq)
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
-                br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
+                if not double_cutters_found:
+                    br._stderr("Warning: Double-cutters not supported.\n", quiet=quiet)
+                    double_cutters_found = True
                 pass
             elif min_cuts <= len(value) <= max_cuts:
                 try:
@@ -2270,13 +2498,17 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
                         rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
                 except TypeError:
-                    br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
+                    if not no_cutters_found:
+                        br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
+                        no_cutters_found = True
                     pass
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
         sites.append((rec.id, rec.res_sites))
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
+    if convert_rna:
+        dna2rna(seqbuddy)
     return seqbuddy
 
 
@@ -2321,7 +2553,6 @@ def hash_ids(seqbuddy, hash_length=10, r_seed=None):
 
     rand_gen = Random() if not r_seed else Random(r_seed)
     for i in range(len(seqbuddy)):
-        new_hash = ""
         seq_ids.append(seqbuddy.records[i].id)
         while True:
             chars = string.ascii_letters + string.digits
@@ -2376,6 +2607,35 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
+def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False):
+    """
+    Find restriction sites and break up sequences accordingly
+    :param seqbuddy: SeqBuddy object
+    :param enzyme_group: list of specific enzyme names
+    :param quiet: Suppress stderr
+    :return: New seqbuddy object with sequences fragmented
+    """
+    if seqbuddy.alpha == IUPAC.protein:
+        raise TypeError("Unable to identify restriction sites in protein sequences.")
+
+    seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, quiet)
+    new_records = []
+
+    for indx, rec in enumerate(seqbuddy.records):
+        sub_seqbuddy = SeqBuddy([rec])
+        res_sites = [cut_sites for enzym, cut_sites in seqbuddy_rs.restriction_sites[indx][1].items()]
+        res_sites = sorted([cut_site for sublist in res_sites for cut_site in sublist])
+        seq_pointer = 0
+        for cut in res_sites:
+            fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+            new_records.append(fragment.records[0])
+            seq_pointer = cut
+        final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+        new_records.append(final_fragment.records[0])
+    seqbuddy.records = new_records
+    return seqbuddy
+
+
 def isoelectric_point(seqbuddy):
     """
     Calculate the isoelectric points
@@ -2391,6 +2651,44 @@ def isoelectric_point(seqbuddy):
         isoelectric_points[rec.id] = iso_point
         rec.features.append(SeqFeature(location=FeatureLocation(start=0, end=len(rec.seq)), type='pI',
                                        qualifiers={'value': iso_point}))
+    return seqbuddy
+
+
+def keep_taxa(seqbuddy, taxa, match_all=False):
+    """
+    Pull out records that are annotated with a particular taxon
+    :param seqbuddy:
+    :param taxa: List of exact matches for taxonomic designation (will sift through entire taxon tree)
+    :param match_all: When True, only accept record if all taxanomic levels are met
+    return:
+    """
+    if type(taxa) == str:
+        taxa = [taxa]
+
+    taxa = [t.lower() for t in taxa]
+    keep_list = []
+    for rec in seqbuddy.records:
+        if 'taxonomy' in rec.annotations:
+            taxonomy = [x.lower() for x in rec.annotations['taxonomy']]
+            if 'organism' in rec.annotations:
+                organism = rec.annotations['organism'].split()[1:]
+                taxonomy += organism
+
+            append2keeplist = True if match_all else False
+            for taxon in taxa:
+                if match_all:
+                    if taxon not in taxonomy:
+                        append2keeplist = False
+                        break
+                else:
+                    if taxon in taxonomy:
+                        append2keeplist = True
+                        break
+
+            if append2keeplist:
+                keep_list.append(rec)
+
+    seqbuddy.records = keep_list
     return seqbuddy
 
 
@@ -2668,22 +2966,15 @@ def map_features_prot2nucl(protseqbuddy, nuclseqbuddy, mode="key", quiet=False):
     return nuclseqbuddy
 
 
-def max_records(seqbuddy):
+def max_records(seqbuddy, number=1):
     """
     Removes all sequences of length less than the maximum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_max = 0
-    max_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_max:
-            max_rec.append(rec)
-        elif cur_len > cur_max:
-            max_rec = [rec]
-            cur_max = cur_len
-    seqbuddy.records = max_rec
+    seqbuddy = order_recs_by_len(seqbuddy, rev=True)
+    seqbuddy.records = seqbuddy.records[:number]
     return seqbuddy
 
 
@@ -2728,22 +3019,15 @@ def merge(*seqbuddy):
     return seqbuddy
 
 
-def min_records(seqbuddy):
+def min_records(seqbuddy, number=1):
     """
     Removes all sequences of length greater than the minimum sequence length
     :param seqbuddy:
+    :param number: How many records to return?
     :return:
     """
-    cur_min = len(seqbuddy.records[0])
-    min_rec = []
-    for rec in seqbuddy.records:
-        cur_len = len(rec)
-        if cur_len == cur_min:
-            min_rec.append(rec)
-        elif cur_len < cur_min:
-            min_rec = [rec]
-            cur_min = cur_len
-    seqbuddy.records = min_rec
+    seqbuddy = order_recs_by_len(seqbuddy)
+    seqbuddy.records = seqbuddy.records[:number]
     return seqbuddy
 
 
@@ -2769,7 +3053,7 @@ def molecular_weight(seqbuddy):
                                    'S': 'S', 'K': 'M', 'M': 'K', 'D': 'H', 'V': 'B', 'H': 'D', 'B': 'V',
                                    'X': 'X', 'N': 'N', '-': '-', '.': '.'}
     dna = False
-    output = {'masses_ss': [], 'masses_ds': [], 'ids': []}
+    output = OrderedDict([('masses_ss', []), ('masses_ds', []), ('ids', [])])
     aa_dict = amino_acid_weights
     if seqbuddy.alpha == IUPAC.protein:
         aa_dict = amino_acid_weights
@@ -2799,7 +3083,7 @@ def molecular_weight(seqbuddy):
                                "{2}.".format(value, rec.id, str(seqbuddy.alpha)))
         output['masses_ss'].append(round(rec.mass_ss, 3))
 
-        qualifiers = {}
+        qualifiers = OrderedDict()
         if seqbuddy.alpha == IUPAC.protein:
             qualifiers["peptide_value"] = round(rec.mass_ss, 3)
         elif dna:
@@ -2933,6 +3217,67 @@ def order_ids_randomly(seqbuddy, r_seed=None):
     return seqbuddy
 
 
+def order_recs_by_len(seqbuddy, rev=False):
+    """
+    Sort the records by sequence size (smallest to largest)
+    :param seqbuddy: SeqBuddy object
+    :param rev: Sort from largest to smallest
+    :return: The reordered SeqBuddy object
+    """
+    seqbuddy.records = sorted(seqbuddy.records, key=lambda x: len(x.seq), reverse=rev)
+    return seqbuddy
+
+
+def prepend_organism(seqbuddy, length=4):
+    length = round(length)
+    if length < 2:
+        raise ValueError("Prefix length must be > 2")
+    prefix_map = OrderedDict()
+    new_prefix_map = {}
+
+    for rec in seqbuddy.records:
+        if "organism" in rec.annotations and rec.annotations['organism'] \
+                and re.sub("[. ]", "", rec.annotations['organism']):
+            organism = rec.annotations['organism'].split()[:2]
+            org_name = " ".join(organism)
+            if len(organism) > 1:
+                prefix = organism[0][:1] + organism[1][:length-1]
+            elif len(organism) == 1:
+                prefix = organism[0][:length]
+            if prefix in prefix_map:
+                if org_name not in prefix_map[prefix]:
+                    prefix_map[prefix].append(org_name)
+                    continue
+            else:
+                prefix_map[prefix] = [org_name]
+
+    for prefix in prefix_map:
+        species = prefix_map[prefix]
+        if len(species) > 1:
+            for species_name in species:
+                new_prefix = prefix + str(species.index(species_name) + 1)
+                new_prefix_map[species_name] = new_prefix
+        else:
+            species_name = species[0]
+            new_prefix_map[species_name] = prefix
+
+    for rec in seqbuddy.records:
+        if "organism" in rec.annotations and rec.annotations['organism'] \
+                and re.sub("[. ]", "", rec.annotations['organism']):
+            organism_name = " ".join(rec.annotations['organism'].split()[:2])
+            if organism_name in new_prefix_map:
+                final_prefix = new_prefix_map[organism_name] + "-"
+                rec.id = final_prefix + rec.id
+                rec.name = final_prefix + rec.name
+        else:
+            rec.id = "Unkn-" + rec.id
+            rec.name = "Unkn-" + rec.name
+
+    new_prefix_map = {v: k for k, v in new_prefix_map.items()}
+    seqbuddy.prefix_map = new_prefix_map
+    return seqbuddy
+
+
 class PrositeScan(object):
     """
     Search for PROSITE scan motifs in sequences (via REST service)
@@ -2979,7 +3324,7 @@ class PrositeScan(object):
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
         if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
-            email = "buddysuite@nih.gov"
+            email = "buddysuite@gmail.com"
         else:
             email = self.user_deets["email"]
 
@@ -3030,7 +3375,7 @@ class PrositeScan(object):
 
         br.run_multicore_function(self.seqbuddy.records, self._mc_run_prosite,
                                   [temp_file.path, Lock()], out_type=sys.stderr, quiet=self.quiet)
-        self.seqbuddy = SeqBuddy(temp_file.path)
+        self.seqbuddy.records = SeqBuddy(temp_file.path).records
         new_records = []
         for rec in seqbuddy_copy.records:
             for indx, rec2 in enumerate(self.seqbuddy.records):
@@ -3143,6 +3488,9 @@ def pull_recs_with_feature(seqbuddy, regex):
     regex = "|".join(regex)
     matched_records = []
     for rec in seqbuddy.records:
+        if re.search(regex, rec.description):
+            matched_records.append(rec)
+            continue
         for feat in rec.features:
             if re.search(regex, feat.type) or re.search(regex, feat.id):
                 matched_records.append(rec)
@@ -3322,6 +3670,48 @@ def shuffle_seqs(seqbuddy, r_seed=None):
     return seqbuddy
 
 
+def taxonomic_breakdown(seqbuddy, max_depth=5):
+    max_depth = abs(max_depth)
+    taxonomy_dict = OrderedDict([("rec_ids", [])])
+    seqbuddy = make_copy(seqbuddy)
+    for rec_id, rec in seqbuddy.to_dict().items():
+        if "taxonomy" not in rec.annotations or not rec.annotations['taxonomy']:
+            taxonomy_dict.setdefault("Unknown", OrderedDict([("rec_ids", [])]))
+            taxonomy_dict["rec_ids"].append(rec.id)
+            taxonomy_dict["Unknown"]["rec_ids"].append(rec.id)
+        else:
+            if "organism" in rec.annotations:
+                rec.annotations['organism'] = re.sub("[ ]+", " ", rec.annotations['organism'])
+                if rec.annotations['organism']:
+                    organism = rec.annotations['organism'].split()[1:]
+                    organism = " ".join(organism)
+                    rec.annotations['taxonomy'].append(organism)
+
+            taxonomy_dict = _tb_add_tax(rec_id, rec.annotations['taxonomy'], taxonomy_dict)
+    return _tb_to_string(taxonomy_dict, depth=0, max_depth=max_depth)
+
+
+def _tb_add_tax(rec_id, taxonomy, tax_dict):
+    tax_dict.setdefault("rec_ids", [])
+    tax_dict["rec_ids"].append(rec_id)
+    if len(taxonomy) >= 1:
+        tax_dict.setdefault(taxonomy[0], OrderedDict())
+        tax_dict[taxonomy[0]] = _tb_add_tax(rec_id, taxonomy[1:], tax_dict[taxonomy[0]])
+    return tax_dict
+
+
+def _tb_to_string(tax_dict, depth, max_depth):
+    output = "Total: %s\n\n" % len(tax_dict["rec_ids"]) if depth == 0 else ""
+    if not max_depth or depth < max_depth:
+        del tax_dict["rec_ids"]
+        tax_dict = sorted([(taxon, sub_dict) for taxon, sub_dict in tax_dict.items()],
+                          key=lambda x: len(x[1]))
+        for taxon, sub_dict in tax_dict:
+            output += "{0}{1}    {2}\n".format(" |" * depth, taxon, len(sub_dict['rec_ids']))
+            output += _tb_to_string(sub_dict, depth + 1, max_depth)
+    return output
+
+
 def translate6frames(seqbuddy):
     """
     Translates a nucleotide sequence into a protein sequence across all six reading frames.
@@ -3357,7 +3747,7 @@ def translate6frames(seqbuddy):
         output += [frame1.records[i], frame2.records[i], frame3.records[i],
                    rframe1.records[i], rframe2.records[i], rframe3.records[i]]
 
-    seqbuddy = SeqBuddy(output, out_format=seqbuddy.out_format)
+    seqbuddy.records = SeqBuddy(output).records
     return seqbuddy
 
 
@@ -3395,7 +3785,7 @@ def translate_cds(seqbuddy, quiet=False, alignment=False):
         if rec.seq.alphabet == IUPAC.protein:
             raise TypeError("Record %s is protein." % rec.id)
 
-        new_seq = [""] * ceil(len(rec) / 3)
+        new_seq = [""] * int(ceil(len(rec) / 3))
         new_seq_indx = 0
         old_seq = str(rec.seq)
         for codon in [old_seq[::1][i:i + 3][::1] for i in range(0, len(old_seq), 3)][::1]:
@@ -3578,7 +3968,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
     delay = 1
     while len(results) + len(failed) != len(jobs):
         if wait:
-            delay *= 1.5 if delay < 300 else delay
+            delay = 1.5 * delay if delay < 300 else delay
             for i in range(round(delay)):
                 slash = ["/", "—", "\\", "|"]
                 printer.write("Waiting for TOPCONS results (%s of %s jobs complete) %s " %
@@ -3587,7 +3977,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
         wait = True
         for indx, jobid in enumerate(job_ids):
-            printer.write("Checking job %s of %s" % (len(results) + len(failed) + 1, len(jobs)))
+            printer.write("Checking job %s of %s (remaining)" % (indx + 1, len(jobs) - len(results) - len(failed)))
             myclient = Client(wsdl_url, cache=None)
             ret_value = myclient.service.checkjob(jobid)
             if len(ret_value) >= 1:
@@ -3684,7 +4074,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             records.append(cons_seq.records[0])
 
     printer.write("Creating new SeqBuddy object")
-    seqbuddy = SeqBuddy(records)
+    seqbuddy.records = SeqBuddy(records).records
 
     if keep_temp:
         printer.write("Preparing TOPCONS files to be saved")
@@ -3710,19 +4100,23 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
         seqbuddy = map_features_prot2nucl(seqbuddy, seqbuddy_copy)
     else:
         for indx, rec in enumerate(seqbuddy.records):
+            printer.write("Merging sequence features --> %s of %s" % (indx, len(seqbuddy)))
             matches = stop_positions[rec.id]
             for match in matches:
                 new_seq = str(rec.seq)[:match] + "*" + str(rec.seq)[match + 1:]
                 rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
-
+        printer.write("Merging sequence features --> Executing merge()")
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
 
+    printer.write("Restoring original sequence names")
     for _hash, seq_id in hash_map.items():
         rename(seqbuddy, _hash, seq_id)
 
+    printer.write("Sorting sequences by ID")
+    seqbuddy = order_ids(seqbuddy)
+
     printer.write("************** Complete **************")
     printer.new_line(2)
-    seqbuddy = order_ids(seqbuddy)
     return seqbuddy
 
 
@@ -3807,6 +4201,10 @@ def argparse_init():
         br._stderr("GuessError: %s\n" % e, in_args.quiet)
         sys.exit()
 
+    if in_args.restrict:
+        seqbuddy.hidden_recs = delete_records(make_copy(seqbuddy), in_args.restrict[0]).records
+        seqbuddy = pull_recs(seqbuddy, in_args.restrict[0])
+
     return in_args, seqbuddy
 
 
@@ -3859,7 +4257,23 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         sys.exit()
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
-    # Add feature
+    # Amend metadata
+    if in_args.amend_metadata:
+        args = in_args.amend_metadata[0]
+        if len(args) == 1:
+            attr, sub_value, regex = args[0], "", ".*"
+        elif len(args) == 2:
+            attr, sub_value, regex = args[0], args[1], ".*"
+        else:
+            attr, sub_value, regex = args[:3]
+
+        try:
+            _print_recs(amend_metadata(seqbuddy, attr.lower(), sub_value, regex))
+        except ValueError as err:
+            _raise_error(err, "amend_metadata", "Topology values are limited to")
+        _exit("amend_metadata")
+
+    # Annotate feature
     if in_args.annotate:
         # _type, location, strand=None, qualifiers=None, pattern=None
         genbank_features = ['assembly_gap', 'attenuator', 'C_region', 'CAAT_signal', 'CDS', 'centromere', 'D-loop',
@@ -3906,6 +4320,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
             if not feature_attrs["qualifiers"]:
                 feature_attrs["qualifiers"] = None
+            feature_attrs["pattern"] = br.clean_regex(feature_attrs["pattern"], in_args.quiet)
             if not feature_attrs["pattern"]:
                 feature_attrs["pattern"] = None
         try:
@@ -4055,7 +4470,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Delete features
     if in_args.delete_features:
-        for next_pattern in in_args.delete_features:
+        patterns = br.clean_regex(in_args.delete_features, in_args.quiet)
+        for next_pattern in patterns:
             delete_features(seqbuddy, next_pattern)
         _print_recs(seqbuddy)
         _exit("delete_features")
@@ -4081,6 +4497,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         except ValueError:
             columns = 1
 
+        # Toggle on/off full search in record (including metadata)
+        if "full" in in_args.delete_records:
+            description = True
+            del in_args.delete_records[in_args.delete_records.index("full")]
+        else:
+            description = False
         search_terms = []
         for arg in in_args.delete_records:
             if os.path.isfile(arg):
@@ -4090,11 +4512,16 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             else:
                 search_terms.append(arg)
 
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if not search_terms:  # If all regular expression are malformed, exit out gracefully
+            _print_recs(seqbuddy)
+            _exit("delete_records")
+
         deleted_seqs = []
         for next_pattern in search_terms:
-            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern).records
+            deleted_seqs += pull_recs(make_copy(seqbuddy), next_pattern, description).records
 
-        seqbuddy = delete_records(seqbuddy, search_terms)
+        seqbuddy = delete_records(seqbuddy, search_terms, description)
 
         if len(deleted_seqs) > 0 and not in_args.quiet:
             counter = 1
@@ -4114,6 +4541,23 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             br._stderr("# ################################################################ #\n", in_args.quiet)
         _print_recs(seqbuddy)
         _exit("delete_records")
+
+    # Delete records with feature
+    if in_args.delete_recs_with_feature:
+        search_terms = []
+        for arg in in_args.delete_recs_with_feature:
+            if os.path.isfile(arg):
+                with open(arg, "r", encoding="utf-8") as ifile:
+                    for line in ifile:
+                        search_terms.append(line.strip())
+            else:
+                search_terms.append(arg)
+
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = delete_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
+        _exit("delete_recs_with_feature")
 
     # Delete repeats
     if in_args.delete_repeats:
@@ -4171,10 +4615,8 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
         if len(rep_seq_ids) > 0:
             br._stderr("# ################################################################ #\n\n", in_args.quiet)
-
         else:
             br._stderr("No duplicate records found\n", in_args.quiet)
-
         _print_recs(delete_repeats(seqbuddy, 'seqs'))
         _exit("delete_repeats")
 
@@ -4182,6 +4624,12 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     if in_args.delete_small:
         _print_recs(delete_small(seqbuddy, in_args.delete_small))
         _exit("delete_small")
+
+    # Delete taxa
+    if in_args.delete_taxa:
+        seqbuddy = delete_taxa(seqbuddy, in_args.delete_taxa[0])
+        _print_recs(seqbuddy)
+        _exit("delete_taxa")
 
     # degenerate_sequence
     if in_args.degenerate_sequence:
@@ -4212,7 +4660,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
 
     # Extact features
     if in_args.extract_feature_sequences:
-        seqbuddy = extract_feature_sequences(seqbuddy, in_args.extract_feature_sequences[0])
+        patterns = br.clean_regex(in_args.extract_feature_sequences[0], in_args.quiet)
+        if patterns:
+            seqbuddy = extract_feature_sequences(seqbuddy, patterns)
         _print_recs(seqbuddy)
         _exit("extract_feature_sequences")
 
@@ -4308,8 +4758,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         if ambig:
             del in_args.find_pattern[in_args.find_pattern.index("ambig")]
 
-        find_pattern(seqbuddy, *in_args.find_pattern, ambig=ambig)
-        for pattern in in_args.find_pattern:
+        patterns = br.clean_regex(in_args.find_pattern, in_args.quiet)
+        if patterns:
+            find_pattern(seqbuddy, *patterns, ambig=ambig)
+        for pattern in patterns:
             num_matches = 0
             for rec in seqbuddy.records:
                 indices = rec.buddy_data['find_patterns'][pattern]
@@ -4367,40 +4819,14 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                 counter += 1
         else:
             br._stdout("#### No records with duplicate sequences ####\n")
-
         _exit("find_repeats")
 
     # Find restriction sites
     if in_args.find_restriction_sites:
-        min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
 
-        in_args.find_restriction_sites = in_args.find_restriction_sites[0]
-        for param in in_args.find_restriction_sites:
-            try:
-                param = int(param)
-            except ValueError:
-                pass
-            if type(param) == int:
-                if not min_cuts:
-                    min_cuts = param
-                elif not max_cuts:
-                    max_cuts = param if param >= min_cuts else min_cuts
-                    min_cuts = param if param <= min_cuts else min_cuts
-                elif param > max_cuts:
-                    max_cuts = param
-                elif param < min_cuts:
-                    min_cuts = param
-
-            elif param in ['alpha', 'position']:
-                order = param
-            else:
-                _enzymes.append(param)
-
-        _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
-        max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
-        min_cuts = 1 if not min_cuts else min_cuts
+        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.find_restriction_sites[0])
 
         clean_seq(seqbuddy)
         try:
@@ -4448,6 +4874,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                         split_patterns.append(arg)
 
         sp = ["-"] if not split_patterns and not num_chars else split_patterns
+        sp = br.clean_regex(sp, check_quiet)
+        if not sp:
+            in_args.quiet = check_quiet
+            _raise_error(ValueError("Split pattern(s) malformed. No files created."), "group_by_prefix")
 
         taxa_groups = make_groups(seqbuddy, split_patterns=sp, num_chars=num_chars)
         if "".join(split_patterns) != "" and len(taxa_groups) == len(seqbuddy):
@@ -4459,7 +4889,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
-
         _exit("group_by_prefix")
 
     # Group sequences by regex. This is really flexible.
@@ -4477,9 +4906,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 regexes.append(arg)
 
+        regexes = br.clean_regex(regexes, check_quiet)
         if not regexes:
             in_args.quiet = False
-            _raise_error(ValueError("You must provide at least one regular expression."), "group_by_regex")
+            _raise_error(ValueError("You must provide at least one valid regular expression."), "group_by_regex")
 
         taxa_groups = make_groups(seqbuddy, regex=regexes)
 
@@ -4489,7 +4919,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             br._stderr("New file: %s\n" % in_args.sequence[0], check_quiet)
             open(in_args.sequence[0], "w", encoding="utf-8").close()
             _print_recs(next_seqbuddy)
-
         _exit("group_by_regex")
 
     # Guess alphabet
@@ -4554,8 +4983,9 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
         if 32 ** hash_length <= len(seqbuddy) * 2:
             holder = ceil(log(len(seqbuddy) * 2, 32))
-            br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is too small to properly "
-                       "cover all sequences, so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
+            br._stderr("Warning: The hash_length parameter was passed in with the value %s. "
+                       "This is too small to properly cover all sequences, "
+                       "so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
 
         hash_ids(seqbuddy, hash_length)
@@ -4594,6 +5024,23 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         _print_recs(insert_sequence(seqbuddy, sequence, location, regex))
         _exit("insert_seq")
 
+    # In silico digest
+    if in_args.in_silico_digest:
+        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.in_silico_digest[0])
+
+        if not in_args.in_silico_digest[0] or _enzymes == ["commercial"]:
+            br._stderr("Error: Please provide a list of enzymes you wish to cut your sequences with.\n")
+            _exit("in_silico_digest")
+
+        clean_seq(seqbuddy)
+        try:
+            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes))
+        except TypeError as e:
+            _raise_error(e, "in_silico_digest")
+
+        _print_recs(seqbuddy)
+        _exit("in_silico_digest")
+
     # Isoelectric Point
     if in_args.isoelectric_point:
         if seqbuddy.alpha != IUPAC.protein:
@@ -4605,6 +5052,12 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         for rec in seqbuddy.records:
             br._stdout("{0}\t{1}\n".format(rec.id, round(rec.features[-1].qualifiers["value"], 3)))
         _exit("isoelectric_point")
+
+    # keep taxon
+    if in_args.keep_taxa:
+        seqbuddy = keep_taxa(seqbuddy, in_args.keep_taxa[0])
+        _print_recs(seqbuddy)
+        _exit("keep_taxa")
 
     # List features
     if in_args.list_features:
@@ -4634,7 +5087,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 br._stdout('None\n')
             br._stdout("\n")
-
         _exit("list_features")
 
     # List identifiers
@@ -4718,7 +5170,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Max record length
     if in_args.max_recs:
-        _print_recs(max_records(seqbuddy))
+        num_returned = 1 if not in_args.max_recs[0] else in_args.max_recs[0]
+        _print_recs(max_records(seqbuddy, num_returned))
         _exit("max_recs")
 
     # Merge together multiple files into a single file
@@ -4730,9 +5183,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(e, "merge")
         _exit("merge")
 
-    # Max record length
+    # Min record length
     if in_args.min_recs:
-        _print_recs(min_records(seqbuddy))
+        num_returned = 1 if not in_args.min_recs[0] else in_args.min_recs[0]
+        _print_recs(min_records(seqbuddy, num_returned))
         _exit("min_recs")
 
     # Molecular Weight
@@ -4794,6 +5248,36 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         _print_recs(order_ids_randomly(seqbuddy))
         _exit("order_ids_randomly")
 
+    # Order records by length
+    if in_args.order_recs_by_len:
+        rev = True if in_args.order_recs_by_len[0] and "reverse".startswith(in_args.order_recs_by_len[0].lower()) \
+            else False
+        _print_recs(order_recs_by_len(seqbuddy, rev))
+        _exit("order_seqs_by_size")
+
+    # Prepend organism
+    if in_args.prepend_organism:
+        try:
+            length = in_args.prepend_organism[0]
+            seqbuddy = prepend_organism(seqbuddy) if length is None else prepend_organism(seqbuddy, length)
+        except ValueError as err:
+            _raise_error(err, "prepend_organism", check_string=["Multiple species", "Prefix length must be"])
+
+        prefix_map = sorted(["%s: %s" % (prefix, organism) for prefix, organism in seqbuddy.prefix_map.items()])
+
+        if prefix_map:
+            br._stderr("# ######################## Prefix Mapping ######################## #\n", in_args.quiet)
+            br._stderr("%s\n" % "\n".join(prefix_map), in_args.quiet)
+            br._stderr("# ################################################################ #\n\n", in_args.quiet)
+
+        else:
+            br._stderr("# ######################## Prefix Mapping ###################### #\n", in_args.quiet)
+            br._stderr("# No organism information was identified in the supplied records #\n", in_args.quiet)
+            br._stderr("# ############################################################## #\n\n", in_args.quiet)
+
+        _print_recs(seqbuddy)
+        _exit("prepend_organism")
+
     # Prosite Scan
     if in_args.prosite_scan:
         try:
@@ -4841,7 +5325,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs(seqbuddy, search_terms, description))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs(seqbuddy, search_terms, description)
+        _print_recs(seqbuddy)
         _exit("pull_records")
 
     # Pull records with feature
@@ -4855,7 +5342,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 search_terms.append(arg)
 
-        _print_recs(pull_recs_with_feature(seqbuddy, search_terms))
+        search_terms = br.clean_regex(search_terms, in_args.quiet)
+        if search_terms:
+            seqbuddy = pull_recs_with_feature(seqbuddy, search_terms)
+        _print_recs(seqbuddy)
         _exit("pull_records_with_feature")
 
     # Purge
@@ -4874,7 +5364,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             else:
                 br._stderr("\n", in_args.quiet)
         br._stderr("##############################\n\n", in_args.quiet)
-
         _print_recs(seqbuddy)
         _exit("purge")
 
@@ -4885,6 +5374,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _raise_error(AttributeError("Please provide at least a query and a replacement string"), "rename_ids")
 
         query, replace = args[0:2]
+        if not br.clean_regex(query, in_args.quiet):
+            _raise_error(ValueError("Malformed regular expression."), "rename_ids")
         num = 0
         store = False
 
@@ -4908,7 +5399,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.replace_subseq:
         args = in_args.replace_subseq[0]
         args = args[:2] if len(args) > 1 else args
+        if not br.clean_regex(args[0], in_args.quiet):
+            _raise_error(ValueError("Max replacements argument must be an integer"), "replace_subseq")
         _print_recs(replace_subsequence(seqbuddy, *args))
+        _exit("replace_subseq")
 
     # Reverse complement
     if in_args.reverse_complement:
@@ -4939,7 +5433,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             os.remove(in_args.sequence[0])
             in_args.sequence[0] = _path
             open(in_args.sequence[0], "w", encoding="utf-8").close()
-
         _print_recs(seqbuddy)
         _exit("screw_formats")
 
@@ -4949,13 +5442,18 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             _print_recs(select_frame(seqbuddy, in_args.select_frame))
         except TypeError as e:
             _raise_error(e, "reverse_complement", "Select frame requires nucleic acid, not protein.")
-
         _exit("select_frame")
 
     # Shuffle Seqs
     if in_args.shuffle_seqs:
         _print_recs(shuffle_seqs(seqbuddy))
         _exit("shuffle_seqs")
+
+    # Taxanomic breakdown
+    if in_args.taxonomic_breakdown:
+        depth = 5 if in_args.taxonomic_breakdown[0] is None else abs(in_args.taxonomic_breakdown[0])
+        print(taxonomic_breakdown(seqbuddy, depth))
+        _exit("taxonomic_breakdown")
 
     # Transcribe
     if in_args.transcribe:
@@ -5010,7 +5508,6 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                           "The job seems to have been lost by the server."])
         except FileNotFoundError as e:
             _raise_error(e, "transmembrane_domains", ["File lost.", "SeqBuddy does not have the necessary hash-map"])
-
         _print_recs(seqbuddy)
         _exit("transmembrane_domains")
 
@@ -5032,14 +5529,15 @@ def main():
     except SystemExit:
         return False
     except Exception as _e:
-        function = ""
+        func = ""
         for next_arg in vars(initiation[0]):
             if getattr(initiation[0], next_arg) and next_arg in br.sb_flags:
-                function = next_arg
+                func = next_arg
                 break
-        br.send_traceback("SeqBuddy", function, _e, VERSION)
+        br.send_traceback("SeqBuddy", func, _e, VERSION)
         return False
     return True
+
 
 if __name__ == '__main__':
     main()

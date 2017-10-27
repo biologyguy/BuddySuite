@@ -1,25 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "http://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
-<eSearchResult>
-    <Count>456</Count>
-    <RetMax>5</RetMax>
-    <RetStart>0</RetStart>
-    <IdList>
-        <Id>909549231</Id>
-        <Id>909549227</Id>
-        <Id>909549224</Id>
-        <Id>909546647</Id>
-        <Id>306819620</Id>
-    </IdList>
-    <TranslationSet/>
-    <TranslationStack>
-        <TermSet>
-            <Term>perk1[All Fields]</Term>
-            <Field>All Fields</Field>
-            <Count>456</Count>
-            <Explode>N</Explode>
-        </TermSet>
-        <OP>GROUP</OP>
-    </TranslationStack>
-    <QueryTranslation>perk1[All Fields]</QueryTranslation>
-</eSearchResult>
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE eSearchResult PUBLIC "-//NLM//DTD esearch 20060628//EN" "https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd">
+<eSearchResult><Count>558</Count><RetMax>5</RetMax><RetStart>0</RetStart><IdList>
+<Id>XP_012618499.1</Id>
+<Id>O88738.2</Id>
+<Id>O88879.3</Id>
+<Id>Q9NR09.2</Id>
+<Id>Q13075.3</Id>
+</IdList><TranslationSet/><TranslationStack>   <TermSet>    <Term>casp9[All Fields]</Term>    <Field>All Fields</Field>    <Count>558</Count>    <Explode>N</Explode>   </TermSet>   <OP>GROUP</OP>  </TranslationStack><QueryTranslation>casp9[All Fields]</QueryTranslation></eSearchResult>

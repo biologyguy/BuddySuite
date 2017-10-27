@@ -44,7 +44,7 @@ def test_hf_res_path(hf):
 # #################################  -  SeqBuddy  -  ################################## #
 def test_sb_resources_init(hf, sb_resources, capsys):
     assert sb_resources
-    for molecule in [('dna', 11), ('rna', 2), ('pep', 8)]:
+    for molecule in [('dna', 12), ('rna', 3), ('pep', 8)]:
         assert molecule[0] in sb_resources.resources
         assert len(sb_resources.resources[molecule[0]]) == molecule[1]
         assert molecule[0] in sb_resources.sb_objs
@@ -66,11 +66,11 @@ def test_sb_resources_init(hf, sb_resources, capsys):
 def test_sb_resources_parse_code(sb_resources):
     codes = sb_resources.parse_code()
     assert sorted(codes["molecule"]) == ['d', 'p', 'r']
-    assert sorted(codes["format"]) == ['c', 'e', 'f', 'g', 'n', 'pr', 'psr', 'pss', 'py', 's', 'x']
+    assert sorted(codes["format"]) == ['c', 'e', 'f', 'g', 'n', 'pr', 'psr', 'pss', 'py', 'q', 's', 'x']
 
     codes = sb_resources.parse_code("d")
     assert codes["molecule"] == ['d']
-    assert sorted(codes["format"]) == ['c', 'e', 'f', 'g', 'n', 'pr', 'psr', 'pss', 'py', 's', 'x']
+    assert sorted(codes["format"]) == ['c', 'e', 'f', 'g', 'n', 'pr', 'psr', 'pss', 'py', 'q', 's', 'x']
 
     codes = sb_resources.parse_code("c")
     assert sorted(codes["molecule"]) == ['d', 'p', 'r']

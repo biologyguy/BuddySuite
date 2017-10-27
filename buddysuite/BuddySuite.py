@@ -76,9 +76,9 @@ def setup():  # ToDo: Check permissions?
           "BuddySuite.\nThe maintainers of those resources may attempt to contact you before "
           "blocking your IP if you are not adhering to their usage limitations.\033[m")
 
-    if options['email'] in [None, "buddysuite@nih.gov"]:
+    if options['email'] in [None, "buddysuite@gmail.com"]:
         email = input("Email address (optional): ")
-        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@nih.gov"
+        email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) else "buddysuite@gmail.com"
     else:
         email = input("Update email address (currently '%s'): " % options['email'])
         email = email if re.search(r"[^@]+@[^@]+\.[^@]+", email) and email not in ['', options['email']] \

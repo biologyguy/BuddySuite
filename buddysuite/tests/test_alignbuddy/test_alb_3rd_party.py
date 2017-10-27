@@ -12,9 +12,23 @@ import os
 from unittest import mock
 from shutil import which
 from subprocess import Popen, PIPE
+import re
 import AlignBuddy as Alb
 import SeqBuddy as Sb
 import buddy_resources as br
+
+
+class MockPopen(object):
+    def __init__(self, *_, **__):
+        self.foo = [_, __]
+
+    @staticmethod
+    def wait(*_, **__):
+        return
+
+    @staticmethod
+    def communicate(*_, **__):
+        return ["out".encode(), "err".encode()]
 
 
 # ###########################################  'ga', '--generate_alignment' ########################################## #
@@ -107,6 +121,7 @@ def test_muscle_multi_param(sb_resources, hf):
     tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
     assert hf.buddy2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
 
+
 # ##########   CLUSTAL   ########## #
 clustalw_bin = 'clustalw' if which('clustalw') else 'clustalw2'
 
@@ -149,7 +164,7 @@ def test_clustalw_multi_param(sb_resources, hf):
 clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
 clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True,
                          stdout=PIPE).communicate()[0].decode().strip()
-if clustalo_version not in ["1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
+if clustalo_version not in ["1.2.3", "1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
     raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
 
 
@@ -171,7 +186,8 @@ def test_clustalomega_inputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d s")
     tester = Alb.generate_msa(tester, clustalo_bin)
-    assert hf.buddy2hash(tester) in ['d6654e3db3818cc3427cb9241113fdfa', 'aeb2c5926843402cf620299802946224']
+    assert hf.buddy2hash(tester) in ['8983529dd432dc9bb7f9b1a8acb64b18', 'd6654e3db3818cc3427cb9241113fdfa',
+                                     'aeb2c5926843402cf620299802946224']
 
 
 def test_clustalomega_outputs1(sb_resources, hf):
@@ -198,7 +214,8 @@ def test_clustalomega_outputs3(sb_resources, hf):
 def test_clustalomega_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal --iter=1')
-    assert hf.buddy2hash(tester) in ['25480f7a9340ff643bb7eeb326e8f981', '9c55bb8be0cc89c5346d8f699e97cc87']
+    assert hf.buddy2hash(tester) in ['cac11c9b4e2381f4d62af940028d7fe4', '25480f7a9340ff643bb7eeb326e8f981',
+                                     '9c55bb8be0cc89c5346d8f699e97cc87']
 
 
 # ##########   MAFFT   ########## #
@@ -250,7 +267,7 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
 def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
-    assert hf.buddy2hash(tester) == "ff3d1e474b1b1b76fdda02ebcb225cff"
+    assert hf.buddy2hash(tester) == "a4ab6b2a2ddda38a4d04abc18c54d18b"
 
 
 def test_generate_alignments_edges1(sb_resources):
@@ -277,3 +294,45 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
     tester = sb_resources.get_one("d f")
     tester = Sb.pull_recs(tester, "α[2345]")
     Alb.generate_msa(tester, tool, params, quiet=True)
+
+
+hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
+hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
+if hmmer_version not in ["3.1b2"]:
+    raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
+
+
+def test_generate_hmm(alb_resources, hf, monkeypatch):
+    tester = alb_resources.get_one("m p c")
+    tester = Alb.generate_hmm(tester)
+    for align in tester.alignments:
+        align.hmm = re.search("(HMM +A +C +D.+//)", align.hmm, re.DOTALL).group(1)
+    assert "  COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  " \
+           "3.43272  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958  4.30351" in tester.alignments[0].hmm
+    assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  " \
+           "3.48106  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321  4.24683" in tester.alignments[1].hmm
+
+    tester = alb_resources.get_one("m d c")
+    tester = Alb.generate_hmm(tester, "hmmbuild")
+    for align in tester.alignments:
+        align.hmm = re.search("(HMM +A +C +G.+//)", align.hmm, re.DOTALL).group(1)
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.37149  1.47979  1.42806  1.27722
+          1.38629  1.38629  1.38629  1.38629
+          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm
+    assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.26618  1.65166  1.51488  1.18245
+          0.93669  1.43354  1.84356  1.55419
+          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *""" in tester.alignments[1].hmm
+
+    with pytest.raises(SystemError) as err:
+        Alb.generate_hmm(tester, "foo")
+    assert "Could not find foo on your system." in str(err)
+
+    monkeypatch.setattr(Alb, "Popen", MockPopen)
+
+    with pytest.raises(SystemError) as err:
+        Alb.generate_hmm(tester)
+    assert "No output detected after running hmmbuild." in str(err)

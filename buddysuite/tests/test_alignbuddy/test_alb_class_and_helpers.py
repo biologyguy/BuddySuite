@@ -125,13 +125,13 @@ def test_lengths_multi(alb_resources):
     for alignbuddy in alb_resources.get_list("m p py pr pss psr"):
         assert alignbuddy.lengths()[1] == 480
 
-hashes = [('o p g', 'bf8485cbd30ff8986c2f50b677da4332'), ('o p n', '17ff1b919cac899c5f918ce8d71904f6'),
+hashes = [('o p g', '46388b175b31b81f47199ae6327768af'), ('o p n', '17ff1b919cac899c5f918ce8d71904f6'),
           ('o p py', '968ed9fa772e65750f201000d7da670f'), ('o p pr', 'ce423d5b99d5917fbef6f3b47df40513'),
           ('o p pss', '4bd927145de635c429b2917e0a1db176'), ('o p psr', '8ff80c7f0b8fc7f237060f94603c17be'),
           ('o p s', 'c0dce60745515b31a27de1f919083fe9'),
 
           ('o d c', '3c937c9fec251a42f0994caabb64420c'), ('o d f', '98a3a08389284461ea9379c217e99770'),
-          ('o d g', '2a42c56df314609d042bdbfa742871a3'), ('o d n', 'cb1169c2dd357771a97a02ae2160935d'),
+          ('o d g', '842d9c911a33c0fd0484383eabefb0fe'), ('o d n', 'cb1169c2dd357771a97a02ae2160935d'),
           ('o d py', '503e23720beea201f8fadf5dabda75e4'), ('o d pr', '52c23bd793c9761b7c0f897d3d757c12'),
           ('o d pss', '4c0c1c0c63298786e6fb3db1385af4d5'), ('o d psr', 'c5fb6a5ce437afa1a4004e4f8780ad68'),
           ('o d s', '228e36a30e8433e4ee2cd78c3290fa6b'),
@@ -165,12 +165,12 @@ def test_str2(alb_resources, hf, capsys, monkeypatch):
     alignbuddy = alb_resources.get_one("o p g")
     for rec in alignbuddy.records():
         rec.annotations['organism'] = ". . "
-    assert hf.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+    assert hf.string2hash(str(alignbuddy)) == "46388b175b31b81f47199ae6327768af"
 
     alignbuddy = alb_resources.get_one("o p g")
     for rec in alignbuddy.records():
         del rec.annotations['organism']
-    assert hf.string2hash(str(alignbuddy)) == "bf8485cbd30ff8986c2f50b677da4332"
+    assert hf.string2hash(str(alignbuddy)) == "46388b175b31b81f47199ae6327768af"
 
     alignbuddy = alb_resources.get_one("m p c")
     alignbuddy.set_format("genbank")
@@ -211,7 +211,8 @@ def test_write1(alb_resources, hf, key, next_hash):
     alignbuddy = alb_resources.get_one(key)
     alignbuddy.write(temp_file.path)
     with open(temp_file.path, "r", encoding="utf-8") as ifile:
-        tester_hash = hf.string2hash(ifile.read())
+        output = ifile.read()
+        tester_hash = hf.string2hash(output)
     assert tester_hash == next_hash
 
 hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d24000f8b72dd9d25620cff1'),

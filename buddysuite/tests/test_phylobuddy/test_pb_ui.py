@@ -181,7 +181,7 @@ def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
         out, err = capsys.readouterr()
 
-    assert "Error: Your system is non-graphical, so display_trees can not work." in err
+    assert "Error: Your system does not appear to be graphical" in err
 
 
 # ###################### 'dis', '--distance' ###################### #
@@ -277,6 +277,26 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, hf):
     monkeypatch.setattr(Pb, "hash_ids", hash_ids)
     with pytest.raises(ValueError):
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o n"), pass_through=True)
+
+
+# ###################### 'ld', '--ladderize' ###################### #
+def test_ladderize_ui(capsys, pb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.ladderize = [None]
+
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "63ee71da75031d09f953932a1f0195b5"
+
+    test_in_args.ladderize = ['reverse']
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "0dfa9fbb23428d2992b982776777428c"
+
+    test_in_args.ladderize = ['rev']
+    Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "0dfa9fbb23428d2992b982776777428c"
 
 
 # ###################### 'li', '--list_ids' ###################### #

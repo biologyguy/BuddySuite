@@ -101,7 +101,7 @@ in_args = parser.parse_args([])
 def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "fasta"])
     temp_in_args, seqbuddy = Sb.argparse_init()
-    assert hf.buddy2hash(seqbuddy) == "25073539df4a982b7f99c72dd280bb8f"
+    assert hf.buddy2hash(seqbuddy) == "6a9b3b554aa9ddb90ea62967bd26d5b7"
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("d g", "paths"), "-cmp", "-o", "foo"])
     with pytest.raises(SystemExit):
@@ -147,6 +147,30 @@ def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "-gf"])
     temp_in_args, seqbuddy = Sb.argparse_init()
     assert temp_in_args.guess_format
+
+
+# ##################### '-amd', '--amend_metadata' ###################### ##
+def test_amend_metadata_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.amend_metadata = [["organism"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "43080bb647e47418c20b27a4799147bc"
+
+    test_in_args.amend_metadata = [["organism", "Mnemiopsis"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "0bb918283b5dc1e78173fb0fd1c9c355"
+
+    test_in_args.amend_metadata = [["organism", "Foo", "Mnemiopsis"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "b723be0a97ddb4f94ddb6e08f1121387"
+
+    test_in_args.amend_metadata = [["topology", "Foo"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("p g"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Topology values are limited to ['', 'linear', 'circular']" in err
 
 
 # ##################### '-ano', '--annotate' ###################### ##
@@ -197,7 +221,7 @@ def test_back_translate_ui(capsys, sb_resources, hf):
     test_in_args.back_translate = [["human", "o"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "b6bcb4e5104cb202db0ec4c9fc2eaed2"
+    assert hf.string2hash(out) == "0899fb80a7c7cdd0abb3c839ff9c41b6"
 
     with pytest.raises(TypeError)as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
@@ -290,13 +314,13 @@ def test_concat_seqs_ui(capsys, sb_resources, hf):
     test_in_args.concat_seqs = [True]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7421c27be7b41aeedea73ff41869ac47"
+    assert hf.string2hash(out) == "4bba7fbae1fd7a675ef5dda95683fba0"
 
     test_in_args.concat_seqs = ["clean"]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d n'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "15b9c79dea034cef74e3a622bd357705"
+    assert hf.string2hash(out) == "0cdb1444c80ee8492d2449618179110e"
 
 
 # ######################  '-cc', '--count_codons' ###################### #
@@ -379,7 +403,7 @@ def test_delete_metadata_ui(capsys, sb_resources, hf):
     test_in_args.delete_metadata = True
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "544ab887248a398d6dd1aab513bae5b1"
+    assert hf.string2hash(out) == "ad7ca097144843b8c13856e2a40afe09", print(out)
 
 
 # ######################  '-dr', '--delete_records' ###################### #
@@ -409,6 +433,11 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "b831e901d8b6b1ba52bad797bad92d14"
     assert hf.string2hash(err) == "553348fa37d9c67f4ce0c8c53b578481"
 
+    test_in_args.delete_records = ["full", "ML2"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "64049b9afd347f4507e264847e5f0500"
+
     temp_file = br.TempFile()
     with open(temp_file.path, "w", encoding="utf-8") as ofile:
         ofile.write("α1\nα2")
@@ -417,6 +446,27 @@ def test_delete_records_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "eca4f181dae3d7998464ff71e277128f"
     assert hf.string2hash(err) == "7e0929af515502484feb4b1b2c35eaba"
+
+
+# ######################  '-drf', '--delete_recs_with_feature' ###################### #
+def test_delete_recs_with_feature_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_recs_with_feature = ["splice_.+"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "fc91bfaed2df6926983144637cf0ba0f"
+
+    test_in_args.delete_recs_with_feature = ["CDS", "splice_.+"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "54c53fc6317a6c0a88468cb6eca258ee"
+
+    temp_file = br.TempFile()
+    temp_file.write("CDS\nsplice_.+")
+    test_in_args.delete_recs_with_feature = [temp_file.path]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "54c53fc6317a6c0a88468cb6eca258ee"
 
 
 # ######################  '-drp', '--delete_repeats' ###################### #
@@ -449,6 +499,20 @@ def test_delete_small_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "196adf08d4993c51050289e5167dacdf"
 
     
+# ######################  '-dt', '--delete_taxa' ###################### #
+def test_delete_taxa_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.delete_taxa = [["Lobata"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "129c253374dd6171620884c92bece557"
+
+    test_in_args.delete_taxa = [["leidyi"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "96d74ce4bba524b4847fb2363f51e112"
+
+
 # ######################  '-efs', '--extract_feature_sequences' ###################### #
 def test_extact_feature_sequences_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
@@ -571,14 +635,14 @@ def test_find_pattern_ui(capsys, sb_resources, hf):
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert hf.string2hash(out) == "ec43ce98c9ae577614403933b2c5f37a"
+    assert hf.string2hash(out) == "a13217987f5dd23f6fab71eb733271ff"
     assert hf.string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
 
     test_in_args.find_pattern = ["ATGGN{6}", "ambig"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
-    assert hf.string2hash(out) == "ac9adb42fbfa9cf22f033e9a02130985"
+    assert hf.string2hash(out) == "22b29f5d3aa45d7a2c7c5f3fdff2e210"
     assert hf.string2hash(err) == "f54ddf323e0d8fecb2ef52084d048531"
 
 
@@ -619,8 +683,9 @@ def test_find_restriction_sites_ui(capsys, sb_resources, hf):
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "b06ef2b0a4814fc43a0688f05825486a"
-    assert hf.string2hash(err) == "a240a6db9dfc1f2257faa80bc4b1445b"
+    # The 793f1d and a240a6 hash are for BioPython 1.70
+    assert hf.string2hash(out) in ["793f1dce2c4b1c94ab1051f2e34ea0a4", "b2c38f396fa271bac79ebe980c968cf4"]
+    assert hf.string2hash(err) in ["a240a6db9dfc1f2257faa80bc4b1445b", "7fe48f1fb243cecf2833bc67833df55f"]
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
@@ -680,7 +745,7 @@ def test_group_by_regex_ui(capsys, sb_odd_resources):
     test_in_args.group_by_regex = [[TEMP_DIR.path]]
     with pytest.raises(ValueError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "You must provide at least one regular expression." in str(err)
+    assert "You must provide at least one valid regular expression." in str(err)
 
     test_in_args.group_by_regex = [[TEMP_DIR.path, "Ate"]]
     Sb.command_line_ui(test_in_args, tester, True)
@@ -797,6 +862,30 @@ def test_insert_seqs_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "345836c75922e5e2a7367c7f7748b591"
 
 
+# ######################  '-isd', '--in_silico_digest' ###################### #
+def test_in_silico_digest_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.in_silico_digest = [[]]
+
+    tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert err == "Error: Please provide a list of enzymes you wish to cut your sequences with.\n"
+
+    tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
+    test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+
+    # The 7a136d11 hash is for BioPython 1.70
+    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "0626acbc0337e0173881f4d77f71df08"], print(out)
+    assert err == "Warning: FooBR not a known enzyme\n"
+
+    with pytest.raises(TypeError) as err:
+        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
+    assert "Unable to identify restriction sites in protein sequences." in str(err)
+
+
 # ######################  '-ip', '--isoelectric_point' ###################### #
 def test_isoelectric_point_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
@@ -810,6 +899,20 @@ def test_isoelectric_point_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "d1ba12963ee508bc64b64f63464bfb4a"
     assert err == "ID\tpI\n"
+
+
+# ######################  '-kt', '--keep_taxa' ###################### #
+def test_keep_taxa_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.keep_taxa = [["Lobata"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "9d82eb23e33fd015e934a06265fbf25f"
+
+    test_in_args.keep_taxa = [["leidyi"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "5c97a37b42e189b5155e45ee78974822"
 
 
 # ######################  '-li', '--list_ids' ###################### #
@@ -888,18 +991,18 @@ def test_map_features_nucl2prot_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_resources.get_one("p f", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5216ef85afec36d5282578458a41169a"
+    assert hf.string2hash(out) == "a31e54081bf7cf594a1a48ddb298d748"
 
     test_in_args.sequence = [sb_resources.get_one("p f", mode='paths'), sb_resources.get_one("d g", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "5216ef85afec36d5282578458a41169a"
+    assert hf.string2hash(out) == "a31e54081bf7cf594a1a48ddb298d748"
 
     test_in_args.sequence = [sb_resources.get_one("p f", mode='paths'), sb_resources.get_one("d g", mode='paths')]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4f86356e79fa4beb79961ce37b5aa19a"
+    assert hf.string2hash(out) == "719f6dea73ab53ed7132c377161cf04b"
 
     with pytest.raises(RuntimeError) as err:
         test_in_args.sequence = [sb_resources.get_one("d g", mode='paths'), sb_odd_resources['duplicate']]
@@ -924,18 +1027,18 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.sequence = [sb_resources.get_one("d f", mode='paths'), sb_resources.get_one("p g", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3ebc92ca11505489cab2453d2ebdfcf2"
+    assert hf.string2hash(out) == "47a7b6cf12399a3c58995d53b334a0c4"
 
     test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("d f", mode='paths')]
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "3ebc92ca11505489cab2453d2ebdfcf2"
+    assert hf.string2hash(out) == "47a7b6cf12399a3c58995d53b334a0c4"
 
     test_in_args.sequence = [sb_resources.get_one("p g", mode='paths'), sb_resources.get_one("d f", mode='paths')]
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "bbbfc9ebc83d3abe3bb3160a38d208e3"
+    assert hf.string2hash(out) == "732bcf4b5ef169a80ea599c158a18f3e", print(out)
 
     with pytest.raises(RuntimeError) as err:
         temp_file = br.TempFile()
@@ -960,11 +1063,17 @@ def test_map_features_prot2nucl_ui(capsys, sb_resources, sb_odd_resources, hf):
 # #####################  '-max', '--max_recs' ###################### ##
 def test_max_recs_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.max_recs = True
+    test_in_args.max_recs = [False]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
 
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "79e2eded9fb788df40bf4254392ace44"
+
+    test_in_args.max_recs = [3]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "e68accb5daed2459693d7872d2291b9f"
 
 
 # ######################  '-mg', '--merge' ###################### #
@@ -985,11 +1094,17 @@ def test_merge_ui(capsys, sb_resources, sb_odd_resources, hf):
 # #####################  '-min', '--min_recs' ###################### ##
 def test_min_recs_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
-    test_in_args.min_recs = True
+    test_in_args.min_recs = [False]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
 
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "e40fe7ee465f49cda27f86dbdd479f26"
+
+    test_in_args.min_recs = [3]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "c0f472512cfa64f6c64d5daa6591101f", print(out)
 
 
 # ######################  '-mw', '--molecular_weight' ###################### #
@@ -1080,6 +1195,69 @@ def test_order_ids_randomly_ui(capsys, sb_resources, hf):
     assert hf.buddy2hash(tester) == hf.buddy2hash(Sb.order_ids(sb_resources.get_one('d f')))
 
 
+# ######################  '-obl', '--order_recs_by_len' ###################### #
+def test_order_recs_by_len_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.order_recs_by_len = [[]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "bb114c02bfda1d1ad90bfb3375dc3a3b", print(out)
+
+    test_in_args.order_recs_by_len = ["rev"]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "e99cf3d600d725e6dbd0cd5a3800face", print(out)
+
+
+# ####################  '-ppo', '--prepend_organism' ##################### #
+def test_prepend_organism_ui(capsys, sb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.prepend_organism = [None]
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus robustis"
+    tester.out_format = "fasta"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "12af6bc1c299f3aa1034825ceacb51a3"
+    assert err == """\
+# ######################## Prefix Mapping ######################## #
+Mlei: Mnemiopsis leidyi
+Trob: Testus robustis
+# ################################################################ #
+
+"""
+
+    Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "d59573f741e3620503f70cc782faf9b6"
+    assert err == """\
+# ######################## Prefix Mapping ###################### #
+# No organism information was identified in the supplied records #
+# ############################################################## #
+
+"""
+
+    test_in_args.prepend_organism = [0]
+    with pytest.raises(ValueError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert str(err.value) == "Prefix length must be > 2"
+
+    test_in_args.prepend_organism = [5]
+    tester = sb_resources.get_one("p g")
+    tester.records[4].annotations["organism"] = "Testus robustis"
+    tester.out_format = "fasta"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "f671a53b36ce36b06837b8a1d8039625"
+    assert err == """\
+# ######################## Prefix Mapping ######################## #
+Mleid: Mnemiopsis leidyi
+Trobu: Testus robustis
+# ################################################################ #
+
+"""
+
+
 # ######################  '-psc', '--prosite_scan' ###################### #
 def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
     monkeypatch.setattr(Sb.PrositeScan, "run", lambda _: sb_resources.get_one("p g"))
@@ -1089,12 +1267,12 @@ def test_prosite_scan_ui(capsys, sb_resources, hf, monkeypatch):
 
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     test_in_args.out_format = "fasta"
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c10d136c93f41db280933d5b3468f187"
+    assert hf.string2hash(out) == "6128d0e54a017a5c9515db329c6f1130", print(out)
 
     monkeypatch.setattr(Sb.PrositeScan, "run", mock_raise_urlerror_8)
     with pytest.raises(urllib.error.URLError):
@@ -1284,7 +1462,7 @@ def test_reverse_transcribe_ui(capsys, sb_resources, hf):
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
-hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "26718f0a656116bfd0a7f6c03d270ecf"),
+hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "37e1cdddc8386c8afe5b10787f24efe0"),
           ("nexus", "2822cc00c2183a0d01e3b79388d344b3"), ("phylip", "6a4d62e1ee130b324cce48323c6d1d41"),
           ("phylip-relaxed", "4c2c5900a57aad343cfdb8b35a8f8442"), ("phylipss", "089cfb52076e63570597a74b2b000660"),
           ("phylipsr", "58a74f5e08afa0335ccfed0bdd94d3f2"), ("stockholm", "8c0f5e2aea7334a0f2774b0366d6da0b"),
@@ -1298,7 +1476,7 @@ def test_screw_formats_ui(_format, next_hash, capsys, sb_resources, hf):
     tester = Sb.pull_recs(sb_resources.get_one('d n'), "α[2-9]")
     Sb.command_line_ui(test_in_args, Sb.make_copy(tester), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == next_hash
+    assert hf.string2hash(out) == next_hash, print(out)
 
 
 def test_screw_formats_ui2(sb_resources):
@@ -1333,12 +1511,12 @@ def test_select_frame_ui(capsys, sb_resources, hf):
     test_in_args.select_frame = 2
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "08fe54a87249f5fb9ba22ff6d0053787"
+    assert hf.string2hash(out) == "49c176dec7cc43890a059e0f0f4a9de4"
 
     test_in_args.select_frame = 3
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "cfe2d405487d69dceb2a11dd44ceec59"
+    assert hf.string2hash(out) == "826d5ae1d4f0ab295d9e39e33999e35f"
 
     test_in_args.select_frame = 1
     Sb.command_line_ui(test_in_args, tester, True)
@@ -1371,6 +1549,57 @@ def test_transcribe_ui(capsys, sb_resources, hf):
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
     assert "DNA sequence required, not IUPACProtein()." in str(err)
+
+
+# ######################  '-tb', '--taxonomic_breakdown' ###################### #
+def test_taxonomic_breakdown_ui(capsys, sb_resources):
+    test_in_args = deepcopy(in_args)
+    test_in_args.taxonomic_breakdown = [None]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+
+"""
+
+    test_in_args.taxonomic_breakdown = [-2]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+
+"""
+
+    test_in_args.taxonomic_breakdown = [0]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert out == """\
+Total: 13
+
+Unknown    11
+Eukaryota    2
+ |Opisthokonta    2
+ | |Metazoa    2
+ | | |Eumetazoa    2
+ | | | |Ctenophora    2
+ | | | | |Tentaculata    2
+ | | | | | |Lobata    2
+ | | | | | | |Bolinopsidae    2
+ | | | | | | | |Mnemiopsis    2
+ | | | | | | | | |leidyi    2
+
+"""
 
 
 # ######################  '-tr', '--translate' ###################### #
@@ -1408,7 +1637,7 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, hf):
     test_in_args.out_format = "embl"
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "fddbd57599efc6e6f6b49e3911fa1101"
+    assert hf.string2hash(out) == "07394a3ce130d6bf6f2280adae9063e9"
 
     test_in_args.out_format = False
     Sb.command_line_ui(test_in_args, Sb.SeqBuddy(sb_odd_resources["ambiguous_rna"]), True)
@@ -1425,7 +1654,7 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, hf):
     tester.records[0].seq.alphabet = IUPAC.protein
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required." in str(err)
+    assert "Record 'Mle-Panxα12_f1' is protein. Nucleic acid sequences required." in str(err)
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
@@ -1453,22 +1682,22 @@ def test_transmembrane_domains_ui(capsys, sb_resources, hf, monkeypatch):
 
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     test_in_args.transmembrane_domains = ["Some random job id"]
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7a8e25892dada7eb45e48852cbb6b63d"
+    assert hf.string2hash(out) == "0a8462e72f64fcd22544bb153b51b2b6"
 
     monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("p f"))
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "854566b485af0f277294bbfb15f7dd0a"
+    assert hf.string2hash(out) == "dffab18027b2c445e442b423d9e999f0"
 
     monkeypatch.setattr(Sb, "transmembrane_domains", lambda *_, **__: sb_resources.get_one("d e"))
     Sb.command_line_ui(test_in_args, seqbuddy, True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e0507aee006a0fb5f1bb99cdb47f3381"
+    assert hf.string2hash(out) == "49538c8715fd18595cf0f209137d8610"
 
     test_in_args.transmembrane_domains = [None]
     monkeypatch.setattr(Sb, "transmembrane_domains", mock_importerror)

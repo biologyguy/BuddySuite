@@ -124,14 +124,8 @@ def decode_accessions(phylobuddy):
     # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
     return phylobuddy
 
-
-def descending_order(phylobuddy):
-    return phylobuddy
-
-
-def ascending_order(phylobuddy):
-    return phylobuddy
 """
+
 
 # - Compare two trees, and add colour to the nodes that differ. [ ]
 # - Implement sum_bootstrap(), but generalize to any value.
@@ -477,7 +471,8 @@ def display_trees(phylobuddy):
     :return: None
     """
     if "DISPLAY" not in os.environ:
-        raise SystemError("This system is not graphical, so display_trees() will not work. Try using trees_to_ascii()")
+        raise SystemError("This system does not appear to be graphical, "
+                          "so display_trees() will not work. Try using trees_to_ascii()")
 
     import webbrowser
     from Bio import Phylo
@@ -695,7 +690,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if tool == 'raxml':  # Pull tree from written file
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
-                if re.search('-b ([0-9]+)', params):
+                if re.search('-b [0-9]+', params) or re.search('-x [0-9]+', params):
                     with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
@@ -800,6 +795,12 @@ def hash_ids(phylobuddy, hash_length=10, nodes=False, r_seed=None):
                 node.taxon.label = hashes.new_hash(str(node.taxon.label))
 
     phylobuddy.hash_map = hashes.hash_map
+    return phylobuddy
+
+
+def ladderize(phylobuddy, ascending=True):
+    for tree in phylobuddy.trees:
+        tree.ladderize(ascending)
     return phylobuddy
 
 
@@ -1224,15 +1225,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         try:
             display_trees(phylobuddy)
         except SystemError:
-            br._stderr("Error: Your system is non-graphical, so display_trees can not work. "
-                       "Please use print_trees instead.")
-        except ImportError as err:
-            if "No module named 'PyQt4'" in str(err):
-                br._stderr("Unable to display trees because PyQt4 is not installed.\n"
-                           "If conda is installed, try $: conda install pyqt=4\n")
-            _raise_error(err, "display_tree", "No module named 'PyQt4.QtGui'")
-        except FileNotFoundError as err:
-            _raise_error(err, "display_tree", "Javascript libraries not found")
+            if sys.platform == "darwin":
+                br._stderr("Error: Your system does not appear to be graphical. "
+                           "Try installing XQuartz (https://www.xquartz.org/), or use print_trees instead.")
+            else:
+                br._stderr("Error: Your system does not appear to be graphical, so display_trees can not work. "
+                           "Please use print_trees instead.")
         _exit("display_trees")
 
     # Distance
@@ -1340,6 +1338,13 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         _print_trees(phylobuddy)
         _exit("hash_ids")
 
+    # Ladderize
+    if in_args.ladderize:
+        ascending = True if not in_args.ladderize[0] or "rev" not in in_args.ladderize[0].lower() else False
+        phylobuddy = ladderize(phylobuddy, ascending)
+        _print_trees(phylobuddy)
+        _exit("ladderize")
+
     # List ids
     if in_args.list_ids:
         listed_ids = list_ids(phylobuddy)
@@ -1385,18 +1390,23 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Prune taxa
     if in_args.prune_taxa:
-        prune_taxa(phylobuddy, *in_args.prune_taxa[0])
+        patterns = br.clean_regex(in_args.prune_taxa[0], in_args.quiet)
+        prune_taxa(phylobuddy, *patterns)
         _print_trees(phylobuddy)
         _exit("prune_taxa")
 
     # Rename IDs
     if in_args.rename_ids:
-        _print_trees(rename(phylobuddy, in_args.rename_ids[0], in_args.rename_ids[1]))
+        patterns = br.clean_regex(in_args.rename_ids[0], in_args.quiet)
+        if patterns:
+            _print_trees(rename(phylobuddy, patterns[0], in_args.rename_ids[1]))
+        else:
+            _print_trees(phylobuddy)
         _exit("rename_ids")
 
     # Root
     if in_args.root:
-        root_nodes = in_args.root[0]
+        root_nodes = br.clean_regex(in_args.root[0], in_args.quiet)
         if root_nodes:
             root(phylobuddy, *root_nodes)
         else:

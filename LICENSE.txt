@@ -17,10 +17,11 @@ BuddySuite uses copyrighted work and distributes these works under the terms of 
  contributors, and the license under which their work is governed.
 
 **List of Contributors**
-Stephen Bond        2014 - Present          Public Domain
-Karl Keat           June 2015 - Aug 2015    Public Domain
-Jeremy LaBarge      2015 - Present          Public Domain
-Jason Bowen         2016 - Present          Public Domain
-Todd Smith          2016 - Present          Public Domain
-Adam Palmer         2016 - Present          Public Domain
-Dustin J. Mitchell  June 2016               Public Domain
+Stephen Bond          2014 - Present          Public Domain
+Karl Keat             June 2015 - Aug 2015    Public Domain
+Jeremy LaBarge        2015 - Present          Public Domain
+Jason Bowen           2016 - Present          Public Domain
+Todd Smith            2016 - Present          Public Domain
+Adam Palmer           2016 - Present          Public Domain
+Dustin J. Mitchell    June 2016               Public Domain
+Connor T. Skennerton  February 2017           Public Domain

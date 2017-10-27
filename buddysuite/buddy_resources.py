@@ -34,6 +34,7 @@ from configparser import ConfigParser, NoOptionError
 import json
 import traceback
 import re
+import sre_compile
 from ftplib import FTP, all_errors
 from hashlib import md5
 from urllib import request
@@ -47,6 +48,7 @@ import string
 from random import choice
 import signal
 from pkg_resources import Requirement, resource_filename, DistributionNotFound
+from subprocess import Popen, PIPE
 
 from Bio import AlignIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
@@ -231,16 +233,14 @@ def usable_cpu_count():
     return max_processes
 
 
-def run_multicore_function(iterable, function, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
+def run_multicore_function(iterable, func, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
         if func_args and not isinstance(func_args, list):
             raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
-
         d_print = DynamicPrint(out_type)
         if max_processes == 0:
             max_processes = usable_cpu_count()
-
         else:
             cpus = cpu_count()
             if max_processes > cpus:
@@ -248,35 +248,39 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
             elif max_processes < 1:
                 max_processes = 1
 
-        max_processes = max_processes if max_processes < len(iterable) else len(iterable)
-
+        if hasattr(iterable, '__len__'):  # In case a generator is being passed in
+            max_processes = max_processes if max_processes < len(iterable) else len(iterable)
+            iter_len = len(iterable)
+        else:
+            max_processes = max_processes
+            iter_len = "???"
         running_processes = 0
         child_list = []
         start_time = round(time())
         elapsed = 0
         counter = 0
         if not quiet:
-            d_print.write("Running function %s() on %s cores\n" % (function.__name__, max_processes))
+            d_print.write("Running function %s() on %s cores\n" % (func.__name__, max_processes))
         # fire up the multi-core!!
         if not quiet:
-            d_print.write("\tJob 0 of %s" % len(iterable))
+            d_print.write("\tJob 0 of %s" % iter_len)
 
         for next_iter in iterable:
             if type(iterable) is dict:
                 next_iter = iterable[next_iter]
             if os.name == "nt":  # Multicore doesn't work well on Windows, so for now just run serial
-                function(next_iter, func_args)
+                func(next_iter, func_args)
                 continue
             while 1:     # Only fork a new process when there is a free processor.
                 if running_processes < max_processes:
                     # Start new process
                     if not quiet:
-                        d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
+                        d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
                     if func_args:
-                        p = Process(target=function, args=(next_iter, func_args))
+                        p = Process(target=func, args=(next_iter, func_args))
                     else:
-                        p = Process(target=function, args=(next_iter,))
+                        p = Process(target=func, args=(next_iter,))
                     p.start()
                     child_list.append(p)
                     running_processes += 1
@@ -296,14 +300,13 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                         if not quiet:
                             if (start_time + elapsed) < round(time()):
                                 elapsed = round(time()) - start_time
-                                d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
-
+                                d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
                         if running_processes < max_processes:
                             break
 
         # wait for remaining processes to complete --> this is the same code as the processor wait loop above
         if not quiet:
-            d_print.write("\tJob %s of %s (%s)" % (counter, len(iterable), pretty_time(elapsed)))
+            d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
         while len(child_list) > 0:
             for i in range(len(child_list)):
@@ -313,15 +316,13 @@ def run_multicore_function(iterable, function, func_args=False, max_processes=0,
                     child_list.pop(i)
                     running_processes -= 1
                     break  # need to break out of the for-loop, because the child_list index is changed by pop
-
             if not quiet:
                 if (start_time + elapsed) < round(time()):
                     elapsed = round(time()) - start_time
-                    d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (len(iterable), pretty_time(elapsed),
+                    d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
                                                                                len(child_list)))
-
         if not quiet:
-            d_print.write("\tDONE: %s jobs in %s\n" % (len(iterable), pretty_time(elapsed)))
+            d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
         return
 
@@ -338,13 +339,24 @@ class TempDir(object):
         yield tmp_dir
         rmtree(self.path)
 
+    def copy_to(self, src):
+        full_path = os.path.abspath(src)
+        end_path = os.path.split(full_path)[1]
+        if os.path.isdir(src):
+            copytree(src, os.path.join(self.path, end_path))
+        elif os.path.isfile(src):
+            copyfile(src, os.path.join(self.path, end_path))
+        else:
+            return False
+        return os.path.join(self.path, end_path)
+
     def subdir(self, dir_name=None):
         if not dir_name:
             dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
             while dir_name in self.subdirs:  # Catch the very unlikely case that a duplicate occurs
                 dir_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        subdir_path = "%s%s%s" % (self.path, os.path.sep, dir_name)
+        subdir_path = os.path.join(self.path, dir_name)
         if not os.path.exists(subdir_path):
             os.mkdir(subdir_path)
         if dir_name not in self.subdirs:
@@ -354,7 +366,7 @@ class TempDir(object):
     def del_subdir(self, _dir):
         path, _dir = os.path.split(_dir)
         del self.subdirs[self.subdirs.index(_dir)]
-        rmtree("%s%s%s" % (self.path, os.path.sep, _dir))
+        rmtree(os.path.join(self.path, _dir))
         return
 
     def subfile(self, file_name=None):
@@ -364,18 +376,18 @@ class TempDir(object):
             while file_name in files:  # Catch the very unlikely case that a duplicate occurs
                 file_name = "".join([choice(string.ascii_letters + string.digits) for _ in range(10)])
 
-        open("%s%s%s" % (self.path, os.path.sep, file_name), "w", encoding="utf-8").close()
+        open(os.path.join(self.path, file_name), "w", encoding="utf-8").close()
         self.subfiles.append(file_name)
-        return "%s%s%s" % (self.path, os.path.sep, file_name)
+        return os.path.join(self.path, file_name)
 
     def del_subfile(self, _file):
         path, _file = os.path.split(_file)
         del self.subfiles[self.subfiles.index(_file)]
-        os.remove("%s%s%s" % (self.path, os.path.sep, _file))
+        os.remove(os.path.join(self.path, _file))
         return
 
     def save(self, location, keep_hash=False):
-        location = location if not keep_hash else "%s%s%s" % (location, os.path.sep, os.path.split(self.path)[-1])
+        location = location if not keep_hash else os.path.join(location, os.path.split(self.path)[-1])
         if os.path.isdir(location):
             print("Save Error: Indicated output folder already exists in TempDir.save(%s)" % location, file=sys.stderr)
             return False
@@ -390,7 +402,7 @@ class TempFile(object):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
-        self.path = "%s%s%s" % (self._tmp_dir.path, os.path.sep, dir_hash)
+        self.path = os.path.join(self._tmp_dir.path, dir_hash)
         open(self.path, "w", encoding="utf-8").close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
@@ -504,7 +516,7 @@ def copydir(source, dest):
         files = []
         dirs = []
         for thing in contents:
-            thing_path = "%s%s%s" % (_dir, os.path.sep, thing)
+            thing_path = os.path.join(_dir, thing)
             if os.path.isdir(thing_path):
                 dirs.append(thing_path)
             else:
@@ -519,7 +531,7 @@ def copydir(source, dest):
         os.makedirs(dest)
     for path in file_paths:
         _path, _file = os.path.split(path)
-        copyfile(path, "%s%s%s" % (dest, os.path.sep, _file))
+        copyfile(path, os.path.join(dest, _file))
 
 
 def ask(input_prompt, default="yes", timeout=0):
@@ -607,7 +619,7 @@ class Contributor(object):
 
     def name(self):
         _name = " ".join([self.first, self.middle, self.last])
-        _name = re.sub("  ", " ", _name)  # in case there is no middle name
+        _name = re.sub(" {2}", " ", _name)  # in case there is no middle name
         return _name
 
     def __str__(self):
@@ -632,7 +644,7 @@ class Usage(object):
         self.config = config_values()
         usage_file = None
         if self.config["diagnostics"] and self.config["data_dir"]:
-            usage_file = "%s%sbuddysuite_usage.json" % (self.config["data_dir"], os.path.sep)
+            usage_file = os.path.join(self.config["data_dir"], "buddysuite_usage.json")
             try:
                 if not os.path.isfile(usage_file):
                     with open(usage_file, "w", encoding="utf-8") as ofile:
@@ -749,7 +761,7 @@ def config_values():
                "shortcuts": ""}
     try:
         config_file = resource_filename(Requirement.parse("buddysuite"),
-                                        "buddysuite{0}buddy_data{0}config.ini".format(os.path.sep))
+                                        os.path.join("buddysuite", "buddy_data", "config.ini"))
         config = ConfigParser()
         config.read(config_file)
         for _key, value in options.items():
@@ -761,7 +773,8 @@ def config_values():
             except KeyError:
                 options[_key] = value
         options["shortcuts"] = options["shortcuts"].split(",")
-        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"), "buddysuite%sbuddy_data" % os.path.sep)
+        options["data_dir"] = resource_filename(Requirement.parse("buddysuite"),
+                                                os.path.join("buddysuite", "buddy_data"))
         if not os.path.isdir(options["data_dir"]):
             options["data_dir"] = False
     except (DistributionNotFound, KeyError, NoOptionError):  # This occurs when buddysuite isn't installed
@@ -903,6 +916,37 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
     misc.add_argument('-h', '--help', action="help", help="show this help message and exit")
     if version:
         misc.add_argument('-v', '--version', action='version', version=str(version))
+
+
+def identify_msa_program(msa_alias):
+    # Figure out what tool is being used
+    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
+                           "url": "http://mafft.cbrc.jp/alignment/software/", "name": "mafft"},
+                 'prank': {"ver": " -help", "check": "prank v[0-9]*\.[0-9]+", "ver_num": "v([0-9]*\.[0-9]+)",
+                           "url": "http://wasabiapp.org/software/prank/prank_installation/", "name": "prank"},
+                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": "v\.([0-9]+\.[0-9]+)",
+                           "url": "http://wasabiapp.org/software/pagan/pagan_installation/", "name": "pagan"},
+                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": "v([0-9]+\.[0-9]+\.[0-9]+)",
+                            "url": "http://www.drive5.com/muscle/downloads.htm", "name": "muscle"},
+                 'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
+                              "ver_num": "CLUSTAL ([0-9]+\.[0-9]+) ",
+                              "url": "http://www.clustal.org/clustal2/#Download", "name": "clustalw"},
+                 'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
+                              "ver_num": "Omega - ([0-9]+\.[0-9]+)",
+                              "url": "http://www.clustal.org/omega/#Download", "name": "clustalo"}}
+
+    if msa_alias.lower() in tool_list:
+        return tool_list[msa_alias.lower()]
+    else:
+        for prog in tool_list:
+            if prog in msa_alias.lower():
+                return tool_list[prog]
+
+    for prog, args in tool_list.items():
+        version = Popen("%s%s" % (msa_alias, args["ver"]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
+        if re.search(args['check'], version[0].decode()) or re.search(args['check'], version[1].decode()):
+            return tool_list[prog]
+    return False
 
 
 def parse_format(_format):
@@ -1116,7 +1160,7 @@ def replacements(input_str, query, replace="", num=0):
     return input_str
 
 
-def send_traceback(tool, function, e, version):
+def send_traceback(tool, func, e, version):
     now = datetime.datetime.now()
     config = config_values()
     tb = ""
@@ -1127,15 +1171,15 @@ def send_traceback(tool, function, e, version):
             _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line
     bs_version = "# %s: %s\n" % (tool, version.short())
-    func = "# Function: %s\n" % function
+    full_func = "# Function: %s\n" % func
     platform = "# Platform: %s\n" % sys.platform
     python = "# Python: %s\n" % re.sub("[\n\r]", "", sys.version)
     user = "# User: %s\n" % config['user_hash']
     date = "# Date: %s\n\n" % now.strftime('%Y-%m-%d')
     error = "%s: %s\n\n" % (type(e).__name__, e)
 
-    tb = "".join([bs_version, func, python, platform, user, date, error, tb])
-    print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, function, tb))
+    tb = "".join([bs_version, full_func, python, platform, user, date, error, tb])
+    print("\033[m%s::%s has crashed with the following traceback:\033[91m\n\n%s\n\n\033[m" % (tool, func, tb))
     error_report(tb, config["diagnostics"])
     return
 
@@ -1381,10 +1425,39 @@ def isfile_override(path):
             raise err
     return stat.S_ISREG(st.st_mode)
 
+
 if os.name == "nt":
     os.path.isfile = isfile_override
 
+
+def clean_regex(patterns, quiet=False):
+    """
+    Ensure that user provided regular expression are valid
+    :param patterns: either a single str regex or list of regexes
+    :param quiet: Suppress stderr
+    :return:
+    """
+    patterns = [patterns] if type(patterns) == str else patterns
+    failures = []
+    failure_str = ""
+    for indx, regex_test in enumerate(patterns):
+        try:
+            re.compile(regex_test)
+        except sre_compile.error as err:
+            if not failures:
+                failure_str += "##### Regular expression failures #####\n"
+            failure_str += "%s --> %s\n" % (regex_test, str(err))
+            failures.append(indx)
+    if failures:
+        failure_str += "#######################################\n\n"
+        failures = sorted(failures, reverse=True)
+        for indx in failures:
+            del patterns[indx]
+    _stderr(failure_str, quiet)
+    return patterns
+
 # #################################################### VARIABLES ##################################################### #
+
 
 contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
@@ -1410,7 +1483,12 @@ bsi_flags = {"cmd_line": {"flag": "cmd",
 
 bsi_modifiers = {}
 # ##################################################### SEQBUDDY ##################################################### #
-sb_flags = {"annotate": {"flag": "ano",
+sb_flags = {"amend_metadata": {"flag": "amd",
+                               "action": "append",
+                               "nargs": "+",
+                               "metavar": "<attribute> [substitution_value] [regex]",
+                               "help": "Delete, add, or modify record attributes"},
+            "annotate": {"flag": "ano",
                          "nargs": "*",
                          "metavar": "args",
                          "help": "Add a feature (annotation) to selected sequences. "
@@ -1490,6 +1568,11 @@ sb_flags = {"annotate": {"flag": "ano",
                                "help": "Remove records from a file (deleted IDs are sent to stderr). "
                                        "Regular expressions are understood, and an int as the final argument will"
                                        "specify number of columns for deleted IDs"},
+            "delete_recs_with_feature": {"flag": "drf",
+                                         "action": "store",
+                                         "nargs": "+",
+                                         "metavar": "<regex>",
+                                         "help": "Remove all the records with ids containing a given string"},
             "delete_repeats": {"flag": "drp",
                                "action": "append",
                                "nargs": "*",
@@ -1501,6 +1584,11 @@ sb_flags = {"annotate": {"flag": "ano",
                              "metavar": "<threshold (int)>",
                              "type": int,
                              "help": "Delete sequences with length below threshold"},
+            "delete_taxa": {"flag": "dt",
+                            "nargs": "+",
+                            "action": "append",
+                            "metavar": "taxon",
+                            "help": "Remove all records matching given taxa"},
             "extract_feature_sequences": {"flag": "efs",
                                           "action": "append",
                                           "nargs": "+",
@@ -1571,9 +1659,21 @@ sb_flags = {"annotate": {"flag": "ano",
                            "nargs": "*",
                            "metavar": ("<sequence>", "<front|rear|index(int)>"),
                            "help": "Insert a sequence at the desired location"},
+            "in_silico_digest": {"flag": "isd",
+                                 "action": "append",
+                                 "nargs": "*",
+                                 "metavar": "",
+                                 "help": "Restriction digest. Args: [enzymes "
+                                         "{specific enzymes, commercial, all}], [Num cuts (int) [num cuts]], "
+                                         "[order {alpha, position}]"},
             "isoelectric_point": {"flag": "ip",
                                   "action": "store_true",
                                   "help": "Calculate isoelectric points"},
+            "keep_taxa": {"flag": "kt",
+                          "nargs": "+",
+                          "action": "append",
+                          "metavar": "taxon",
+                          "help": "Keep all records matching given taxa"},
             "list_features": {"flag": "lf",
                               "action": "store_true",
                               "help": "Print out all sequence annotations"},
@@ -1603,14 +1703,18 @@ sb_flags = {"annotate": {"flag": "ano",
                                                "and map to cDNA sequences. Both a protein and "
                                                "cDNA file must be passed in"},
             "max_recs": {"flag": "max",
-                         "action": "store_true",
+                         "action": "append",
+                         "nargs": "?",
+                         "type": int,
                          "help": "Return the largest record(s)"},
             "merge": {"flag": "mrg",
                       "action": "store_true",
                       "help": "Merge multiple copies of sequence records together, "
                               "combining their feature lists"},
             "min_recs": {"flag": "min",
-                         "action": "store_true",
+                         "action": "append",
+                         "nargs": "?",
+                         "type": int,
                          "help": "Return the shortest record(s)"},
             "molecular_weight": {"flag": "mw",
                                  "action": "store_true",
@@ -1638,6 +1742,17 @@ sb_flags = {"annotate": {"flag": "ano",
             "order_ids_randomly": {"flag": "oir",
                                    "action": "store_true",
                                    "help": "Randomly reorder the position of each record"},
+            "order_recs_by_len": {"flag": "obl",
+                                  "action": "append",
+                                  "nargs": "?",
+                                  "metavar": "'rev'",
+                                  "help": "Sort records by sequence length (short-to-long)"},
+            "prepend_organism": {"flag": "ppo",
+                                 "action": "append",
+                                 "nargs": "?",
+                                 "type": int,
+                                 "metavar": "Prefix length (default=4)",
+                                 "help": "Prefix all IDs with organism identifier"},
             "prosite_scan": {"flag": "psc",
                              "action": "append",
                              "nargs": "?",
@@ -1701,6 +1816,12 @@ sb_flags = {"annotate": {"flag": "ano",
             "shuffle_seqs": {"flag": "ss",
                              "action": "store_true",
                              "help": "Randomly rearrange the residues in each record"},
+            "taxonomic_breakdown": {"flag": "tb",
+                                    "action": "append",
+                                    "nargs": "?",
+                                    "type": int,
+                                    "metavar": "Depth (int)",
+                                    "help": "Show taxonomic spread of sequences"},
             "transcribe": {"flag": "d2r",
                            "action": "store_true",
                            "help": "Convert DNA sequences to RNA"},
@@ -1720,24 +1841,32 @@ sb_flags = {"annotate": {"flag": "ano",
                           "help": "Convert all sequences to uppercase"}}
 
 sb_modifiers = {"alpha": {"flag": "a",
+                          "metavar": "     <alphabet>",
                           "action": "store",
                           "help": "If you want the file read with a specific alphabet"},
                 "in_format": {"flag": "f",
+                              "metavar": " <format>",
                               "action": "store",
                               "help": "If SeqBuddy can't guess the file format, try specifying it directly"},
                 "in_place": {"flag": "i",
                              "action": "store_true",
                              "help": "Rewrite the input file in-place. Be careful!"},
                 "keep_temp": {"flag": "k",
+                              "metavar": " <directory>",
                               "action": "store",
-                              "help": "Save temporary files created by generate_tree in current working directory"},
+                              "help": "If temporary files are created, save them to specified dir."},
                 "out_format": {"flag": "o",
-                               "metavar": "",
+                               "metavar": "<format>",
                                "action": "store",
                                "help": "If you want a specific format output"},
                 "quiet": {"flag": "q",
                           "action": "store_true",
                           "help": "Suppress stderr messages"},
+                "restrict": {"flag": "r",
+                             "action": "append",
+                             "nargs": "+",
+                             "metavar": "  <regex>",
+                             "help": "Specify which records are modified (all are returned still)"},
                 "test": {"flag": "t",
                          "action": "store_true",
                          "help": "Run the function and return any stderr/stdout other than sequences"}}
@@ -1766,8 +1895,16 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                    "help": "Concatenates two or more alignments using a regex pattern or fixed length "
                                            "prefix to group record ids."},
              "consensus": {"flag": "con",
-                           "action": "store_true",
-                           "help": "Create majority-rule consensus sequences"},
+                           "action": "append",
+                           "nargs": "?",
+                           "metavar": "simple, weighted",
+                           "help": "Create consensus sequences (majority rule or weighted)"},
+             "delete_invariant_sites": {"flag": "dinv",
+                                        "nargs": "?",
+                                        "action": "append",
+                                        "metavar": "'ambiguous'",
+                                        "help": "Remove columns where all residues are identical (include 'ambiguous' "
+                                                "to be more strict)"},
              "delete_records": {"flag": "dr",
                                 "nargs": "+",
                                 "action": "store",
@@ -1799,6 +1936,11 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                                     "metavar": "args",
                                     "help": "Create a new alignment from unaligned sequences. "
                                             "args: [alignment program] [optional params]"},
+             "generate_hmm": {"flag": "gh",
+                              "action": "append",
+                              "nargs": "?",
+                              "metavar": "hmmbuild alias",
+                              "help": "Create hidden Markov models using HMMER3"},
              "hash_ids": {"flag": "hi",
                           "action": "append",
                           "nargs": "?",
@@ -1829,6 +1971,9 @@ alb_flags = {"alignment_lengths": {"flag": "al",
                            "choices": ["rev"],
                            "help": "Sort all sequences in an alignment by id in alpha-numeric order. "
                                    "Pass in the word 'rev' to reverse order"},
+             "percent_id": {"flag": "pi",
+                            "action": "store_true",
+                            "help": "Print a matrix of percent id among sequences in the alignment"},
              "pull_records": {"flag": "pr",
                               "nargs": "+",
                               "action": "append",
@@ -1914,18 +2059,23 @@ pb_flags = {"collapse_polytomies": {"flag": "cpt",
                               "metavar": ("{'raxml', 'phyml', 'fasttree'}", "'program specific arguments'"),
                               "help": "Accept alignment file as input, and perform "
                                       "phylogenetic inference with a third party program"},
-            "list_ids": {"flag": "li",
-                         "action": "append",
-                         "nargs": "?",
-                         "type": int,
-                         "metavar": "Num columns",
-                         "help": "Display all taxa ids"},
             "hash_ids": {"flag": "hi",
                          "action": "append",
                          "nargs": "*",
                          "metavar": "args",
                          "help": "Rename all taxon label IDs (and optionally inner node lables) to fixed length hashes."
                                  " args: [hash length (int)] ['nodes']"},
+            "ladderize": {"flag": "ld",
+                          "action": "append",
+                          "nargs": "?",
+                          "metavar": "'rev'",
+                          "help": "Sort nodes by their number of children"},
+            "list_ids": {"flag": "li",
+                         "action": "append",
+                         "nargs": "?",
+                         "type": int,
+                         "metavar": "Num columns",
+                         "help": "Display all taxa ids"},
             "num_tips": {"flag": "nt",
                          "action": "store_true",
                          "help": "Display the number of tips in each tree"},
