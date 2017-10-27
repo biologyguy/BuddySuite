@@ -30,6 +30,7 @@ from copy import deepcopy
 from unittest import mock
 import ete3
 import shutil
+import webbrowser
 
 import buddy_resources as br
 import PhyloBuddy as Pb
@@ -40,6 +41,7 @@ WRITE_FILE = br.TempFile()
 
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
+
 
 parser = argparse.ArgumentParser(prog="PhyloBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                  description='''\
@@ -164,16 +166,18 @@ def test_display_trees_ui(monkeypatch, pb_resources):
     if 'DISPLAY' in os.environ:
         test_in_args = deepcopy(in_args)
         test_in_args.display_trees = True
-        show = mock.Mock(return_value=True)
-        monkeypatch.setattr(ete3.TreeNode, "show", show)
+        monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
+        monkeypatch.setattr("builtins.input", lambda *_: "")
+        monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
 
 
 def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.display_trees = True
-    show = mock.Mock(return_value=True)
-    monkeypatch.setattr(ete3.TreeNode, "show", show)
+    monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
+    monkeypatch.setattr("builtins.input", lambda *_: "")
+    monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:

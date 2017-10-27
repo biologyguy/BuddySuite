@@ -12,6 +12,7 @@ import ete3
 import os
 import shutil
 import re
+import webbrowser
 from collections import OrderedDict
 from ete3.coretype.tree import TreeError
 
@@ -43,6 +44,7 @@ def test_collapse_polytomies(pb_odd_resources, hf):
         Pb.collapse_polytomies(tester, threshold=0.1, mode='foo')
         assert "Mode must be 'support' or 'length'" in str(err)
 
+
 # ###################### 'ct', '--consensus_tree' ###################### #
 hashes = [('m k', 'acd3fb34cce867c37684244701f9f5bf'), ('m n', 'eede64c804e531cb1c99e4240589b04b'),
           ('m l', '73ac98a1656d1c4a52da16d3f096f8ce'), ('o k', '64f7df66253b104c300d13e344e2f216')]
@@ -53,6 +55,7 @@ def test_consensus_tree(key, next_hash, pb_resources, hf):
     tester = pb_resources.get_one(key)
     tester = Pb.consensus_tree(tester)
     assert hf.buddy2hash(tester) == next_hash, tester.write("error_files%s%s" % (next_hash, os.path.sep))
+
 
 hashes = [('m k', 'baf9b2def2c0fa2ff97d3a16d24b4738'), ('m n', '3ab21ed1202222f17a44fff7b4051aa0'),
           ('m l', 'd680eece99ad907bbc8cd69ceaeb7b8a'), ('o k', '64f7df66253b104c300d13e344e2f216')]
@@ -67,16 +70,19 @@ def test_consensus_tree_95(key, next_hash, pb_resources, hf):
 
 # ###################### 'dt', '--display_trees' ###################### #
 def test_display_trees(monkeypatch, pb_resources):
-    show = mock.Mock(return_value=True)
-    monkeypatch.setattr(ete3.TreeNode, "show", show)
+    monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
+    monkeypatch.setattr("builtins.input", lambda *_: "")
+    monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     try:
         assert Pb.display_trees(pb_resources.get_one("o k"))
     except SystemError as err:
         assert "This system does not appear to be graphical, so display_trees() will not work." in str(err)
 
 
-def test_display_trees_error(pb_resources):
+def test_display_trees_error(pb_resources, monkeypatch):
     # noinspection PyUnresolvedReferences
+    monkeypatch.setattr("builtins.input", lambda *_: "")
+    monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
             del os.environ['DISPLAY']
@@ -95,6 +101,7 @@ def test_distance_wrf(key, next_hash, pb_resources, hf):
     output = str(Pb.distance(tester, method='wrf'))
     assert hf.string2hash(output) == next_hash
 
+
 hashes = [('m k', '49173bc33d89cc3d912a6af0fd51801d'), ('m n', '56574d4305bb5f094363a0fad351fd42'),
           ('m l', '49173bc33d89cc3d912a6af0fd51801d')]
 
@@ -104,6 +111,7 @@ def test_distance_uwrf(key, next_hash, pb_resources, hf):
     tester = pb_resources.get_one(key)
     output = str(Pb.distance(tester, method='uwrf'))
     assert hf.string2hash(output) == next_hash, print(output)
+
 
 hashes = [('m k', 'bae2c660250d42d6ba9bac7d311d6ffb'), ('m n', '0596ee4e2d4e76b27fe20b66a8fbea51'),
           ('m l', 'bae2c660250d42d6ba9bac7d311d6ffb')]
@@ -269,6 +277,7 @@ def test_phyml(alb_resources, hf, monkeypatch):
     else:
         assert hf.string2hash(kept_output) == "5a3559c264cb4c4779f15a515aaf2286"
 
+
 def test_fasttree(alb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
@@ -422,6 +431,7 @@ def test_list_ids(key, next_hash, pb_resources, hf):
     tester = str(Pb.list_ids(pb_resources.get_one(key)))
     assert hf.string2hash(tester) == next_hash
 
+
 # ###################### 'ptr', '--print_trees' ###################### #
 hashes = [('m k', ['16d1fa2a370fc41160bf06532e6f0a04', '1b276812fec15fc5f3ec21e680473994']),
           ('m n', ['16d1fa2a370fc41160bf06532e6f0a04', '1b276812fec15fc5f3ec21e680473994']),
@@ -497,6 +507,7 @@ def test_root_middle(key, next_hashes, pb_resources, hf):
     tester = Pb.root(tester)
     assert hf.buddy2hash(tester) in next_hashes
 
+
 hashes = [('m k', 'f32bdc34bfe127bb0453a80cf7b01302'), ('m n', 'a7003478d75ad76ef61fcdc643ccdab8'),
           ('m l', 'c490e3a937b6ee2073c74119984a896e'), ('o k', 'eacf232776eea70b5de156328e10ecc7'),
           ('o n', '53caffda3fed5b9004b79effc6d29c36'), ('o l', '3137d568fe07d88620c08480a15006d3')]
@@ -507,6 +518,7 @@ def test_root_leaf(key, next_hash, pb_resources, hf):
     tester = pb_resources.get_one(key)
     tester = Pb.root(tester, "firSA25a")
     assert hf.buddy2hash(tester) == next_hash
+
 
 hashes = [('m k', 'edcc2400de6b0a4fb05c0a5159215ecd'), ('m n', '09e4c41d22f43b847677eec8be899a72'),
           ('m l', '89d62bd49d89daa14d2986fe8b826221'), ('o k', 'b6be77f1d16776554c5a61598ddb6899'),

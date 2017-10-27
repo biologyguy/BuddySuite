@@ -44,6 +44,7 @@ import random
 import string
 import re
 import shutil
+import webbrowser
 from math import log, ceil
 from io import StringIO, TextIOWrapper
 from subprocess import Popen, CalledProcessError, check_output, PIPE
@@ -51,7 +52,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 # Third party
-# import Bio.Phylo
+import Bio.Phylo
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio.Alphabet import IUPAC
@@ -470,17 +471,14 @@ def display_trees(phylobuddy):
     :param phylobuddy: PhyloBuddy object
     :return: None
     """
+    import pylab
     if "DISPLAY" not in os.environ:
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
-
-    import webbrowser
-    from Bio import Phylo
-    import pylab
     tmp_dir = br.TempDir()
     tree_file = tmp_dir.subfile('tree.svg')
-    for tree in Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
-        Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False)
+    for tree in Bio.Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
+        Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False)
         pylab.axis('off')
         pylab.savefig(tree_file, format='svg', bbox_inches='tight', dpi=300)
         if os.name == "nt":  # File path specification different between operating systems
