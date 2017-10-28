@@ -8,13 +8,11 @@ import buddy_resources as br
 from .. import __init__
 
 from unittest import mock
-import ete3
 import os
 import shutil
 import re
 import webbrowser
 from collections import OrderedDict
-from ete3.coretype.tree import TreeError
 
 RES_PATH = __init__.RESOURCE_PATH
 HASH_MAP = OrderedDict([('mYSiElpW', 'Mle-Panxα9'), ('wPDsBSFF', 'Mle-Panxα7A'), ('eMBqjkZe', 'Mle-Panxα1'),
@@ -70,7 +68,6 @@ def test_consensus_tree_95(key, next_hash, pb_resources, hf):
 
 # ###################### 'dt', '--display_trees' ###################### #
 def test_display_trees(monkeypatch, pb_resources):
-    monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     try:
@@ -83,9 +80,11 @@ def test_display_trees_error(pb_resources, monkeypatch):
     # noinspection PyUnresolvedReferences
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
+    monkeypatch.setattr(os, "name", "posix")
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
             del os.environ['DISPLAY']
+
         with pytest.raises(SystemError):
             Pb.display_trees(pb_resources.get_one("o k"))
 
@@ -548,7 +547,7 @@ def test_root_mrca2(pb_resources, hf):
 def test_show_unique(pb_odd_resources, pb_resources, hf):
     tester = Pb.PhyloBuddy(pb_odd_resources['compare'])
     Pb.show_unique(tester)
-    assert hf.buddy2hash(tester) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+    assert hf.buddy2hash(tester) == "396e27e3c7c5aa126ec07f31307a288e"
 
     with pytest.raises(AssertionError):  # If only a single tree is present
         tester = Pb.PhyloBuddy(pb_resources.get_one("m k"))
@@ -562,11 +561,7 @@ def test_show_unique_unrooted(monkeypatch, pb_odd_resources, hf):
     tester = Pb.PhyloBuddy(pb_odd_resources['compare'])
     Pb.unroot(tester)
     Pb.show_unique(tester)
-    assert hf.buddy2hash(tester) == "2bba16e2c77102ba150adecc352407a9"
-
-    monkeypatch.setattr(Pb.ete3.TreeNode, 'robinson_foulds', mock_treeerror)
-    with pytest.raises(TreeError):
-        Pb.show_unique(tester)
+    assert hf.buddy2hash(tester) == "50f1d86072989ac61dcf95ee5fc19f7e"
 
 
 # ###################### 'sp', '--split_polytomies' ###################### #

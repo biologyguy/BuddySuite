@@ -56,21 +56,6 @@ import Bio.Phylo
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
 from Bio.Alphabet import IUPAC
-
-try:
-    import ete3
-    from ete3.coretype.tree import TreeError
-except ImportError:
-    print("""\
-ETE3 toolkit not detected on your system. Try running the following:
-
-    pip install --upgrade  https://github.com/jhcepas/ete/archive/3.0.zip
-    pip install six
-
-Or see http://etetoolkit.org/download/ for installation details.
-""")
-    sys.exit()
-
 try:
     import dendropy
 except ImportError:
@@ -117,9 +102,9 @@ if dendropy_ver < 411:
 
 # ##################################################### WISH LIST #################################################### #
 """
-def delete_metadata(_trees):
+def modify_metadata(_trees):
+    # Probably just loop through dendropy nodes and modify node.annotations["<attr>"] 
     return _trees
-
 
 def decode_accessions(phylobuddy):
     # If taxa lables are accessions, reach out to the respective database and resolve them into actual names
@@ -137,8 +122,6 @@ def decode_accessions(phylobuddy):
 # - Prune clade (ie, prune away all tips from the common ancestor of two or more tips)
 # See http://cegg.unige.ch/system/files/nwutils_tutorial.pdf for ideas
 # - Re-implement many or all of Phyultility commands: https://code.google.com/p/phyutility/
-# - Try hard to remove any dependency on PyQt4 (preferably remove ETE3 completely if possible). ete3.NodeStyle() cannot
-# be imported without PyQt4
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
@@ -295,39 +278,6 @@ class PhyloBuddy(object):
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
-def _convert_to_ete(_tree, ignore_color=False):
-    """
-    Converts dendropy trees to ete trees
-    :param _tree: A dendropy Tree object
-    :param ignore_color: Specifies if figtree color metadata should be turned into ETE NodeStyle objects
-    :return: An ETE Tree object
-    """
-    tmp_dir = br.TempDir()
-    with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
-        _ofile.write(re.sub('!color', 'pb_color', _tree.as_string(schema='newick', annotations_as_nhx=True,
-                                                                  suppress_annotations=False, suppress_rooting=True)))
-
-    ete_tree = ete3.TreeNode(newick="%s/tree.tmp" % tmp_dir.path)
-
-    if not ignore_color:  # Converts color annotations from figtree into NodeStyle objects.
-        for node in ete_tree.traverse():
-            if hasattr(node, 'pb_color'):
-                try:
-                    style = ete3.NodeStyle()
-                except AttributeError as e:
-                    if "has no attribute 'NodeStyle'" in str(e):
-                        raise AttributeError("Unable to import NodeStyle... You probably need to install pyqt.")
-                    raise e
-                style['fgcolor'] = node.pb_color
-                style['hz_line_color'] = node.pb_color
-                node.set_style(style)
-    else:
-        for node in ete_tree.traverse():
-            node.del_feature('pb_color')
-
-    return ete_tree
-
-
 def _extract_figtree_metadata(_file_path):
     """
     Removes the figtree block from nexus files
@@ -472,7 +422,8 @@ def display_trees(phylobuddy):
     :return: None
     """
     import pylab
-    if "DISPLAY" not in os.environ:
+    if os.name != "nt" and "DISPLAY" not in os.environ:
+        # We just assume that a Windows machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
     tmp_dir = br.TempDir()
@@ -900,139 +851,41 @@ def root(phylobuddy, *root_nodes):
 
     return phylobuddy
 
-"""
-def show_diff(phylobuddy):  # Doesn't work.
-    sys.exit('show_diff() is not implemented yet.')
-    # if len(_phylobuddy.trees) != 2:
-    #    raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
-    trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
-             _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]
-
-    paths = []
-
-    def get_all_paths(_tree, _path_list=list()):
-        new_list = deepcopy(_path_list)
-        new_list.append(_tree)
-        print(_tree)
-        if not _tree.is_leaf():
-            children = _tree.child_nodes()
-            for child in children:
-                new_list.append(get_all_paths(child, _path_list=new_list))
-        else:
-            paths.append(new_list)
-
-    get_all_paths(phylobuddy.trees[0].seed_node)
-    print(paths)
-
-    data = trees[0].robinson_foulds(trees[1])
-    tree1_only = data[3] - data[4]
-    tree2_only = data[4] - data[3]
-
-    tree1_only_set = set()
-    for tup in tree1_only:
-        for _name in tup:
-            tree1_only_set.add(_name)
-
-    tree2_only_set = set()
-    for tup in tree2_only:
-        for _name in tup:
-            tree2_only_set.add(_name)
-
-    for node in trees[0]:
-        if node.name in tree1_only_set:
-            node.add_feature('pb_color', '#ff0000')
-        else:
-            node.add_feature('pb_color', '#00ff00')
-
-    for node in trees[1]:
-        if node.name in tree2_only_set:
-            node.add_feature('pb_color', '#ff0000')
-        else:
-            node.add_feature('pb_color', '#00ff00')
-
-    tmp_dir = br.TempDir()
-    with open("%s/tree1.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[0].write(features=[])))
-    with open("%s/tree2.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
-        ofile.write(re.sub('pb_color', '!color', trees[1].write(features=[])))
-
-    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
-                     _out_format=phylobuddy.out_format)
-    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
-                     _out_format=phylobuddy.out_format)
-
-    trees = pb1.trees + pb2.trees
-
-    phylobuddy = PhyloBuddy(_input=trees, _in_format=phylobuddy.in_format, _out_format=phylobuddy.out_format)
-
-    return phylobuddy
-"""
-
 
 def show_unique(phylobuddy):
     """
-    Colors all of the nodes that aren't common between two trees
+    Colors shared leaves green and unique leaves red (between two trees)
     :param phylobuddy: PhyloBuddy object
     :return: The labeled PhyloBuddy object
     """
     if len(phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
 
-    trees = [_convert_to_ete(phylobuddy.trees[0], ignore_color=True),
-             _convert_to_ete(phylobuddy.trees[1], ignore_color=True)]  # Need ETE so we can compare them
+    tree1_leaves = [re.sub("'", "", str(node.taxon)) for node in phylobuddy.trees[0] if node.taxon]
+    tree2_leaves = [re.sub("'", "", str(node.taxon)) for node in phylobuddy.trees[1] if node.taxon]
+    unique = []
+    for leaf in tree1_leaves:
+        if leaf not in tree2_leaves and leaf not in unique:
+            unique.append(leaf)
 
-    try:
-        data = trees[0].robinson_foulds(trees[1])
+    for leaf in tree2_leaves:
+        if leaf not in tree1_leaves and leaf not in unique:
+            unique.append(leaf)
 
-    except TreeError as e:
-        if "Unrooted tree found!" in str(e):
-            data = trees[0].robinson_foulds(trees[1], unrooted_trees=True)
-        else:
-            raise e
+    # Add color
+    for node in phylobuddy.trees[0]:
+        if node.taxon:
+            if re.sub("'", "", str(node.taxon)) in unique:
+                node.annotations['!color'] = '#ff0000'
+            else:
+                node.annotations['!color'] = '#00ff00'
 
-    tree1_only = []
-    tree2_only = []
-
-    common_leaves = data[2]
-    for names in data[3]:
-        if len(names) == 1:
-            tree1_only.append(names[0])
-    for names in data[4]:
-        if len(names) == 1:
-            tree2_only.append(names[0])
-
-    for node in trees[0]:  # Colors the nodes
-        if node.name in common_leaves:
-            node.add_feature('pb_color', '#00ff00')
-        else:
-            node.add_feature('pb_color', '#ff0000')
-    for node in trees[1]:
-        if node.name in common_leaves:
-            node.add_feature('pb_color', '#00ff00')
-        else:
-            node.add_feature('pb_color', '#ff0000')
-
-    tmp_dir = br.TempDir()  # Convert back to dendropy
-
-    # Unnamed nodes are still given a 'name' feature, which is breaking downstream stuff
-    def delete_inner_names(input_tree):
-        output = re.sub('pb_color', '!color', input_tree)
-        output = re.sub("name=:", "", output)
-        output = re.sub("name=\]", "]", output)
-        return output
-
-    with open("%s/tree1.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
-        ofile.write(delete_inner_names(trees[0].write(features=[])))
-
-    with open("%s/tree2.tmp" % tmp_dir.path, "w", encoding="utf-8") as ofile:
-        ofile.write(delete_inner_names(trees[1].write(features=[])))
-
-    pb1 = PhyloBuddy(_input="%s/tree1.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
-                     _out_format=phylobuddy.out_format)
-    pb2 = PhyloBuddy(_input="%s/tree2.tmp" % tmp_dir.path, _in_format=phylobuddy.in_format,
-                     _out_format=phylobuddy.out_format)
-
-    phylobuddy.trees = pb1.trees + pb2.trees
+    for node in phylobuddy.trees[1]:
+        if node.taxon:
+            if re.sub("'", "", str(node.taxon)) in unique:
+                node.annotations['!color'] = '#ff0000'
+            else:
+                node.annotations['!color'] = '#00ff00'
 
     return phylobuddy
 

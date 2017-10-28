@@ -2,11 +2,9 @@
 # coding=utf-8
 """ tests basic functionality of PhyloBuddy class """
 import pytest
-import os
 
-from PhyloBuddy import PhyloBuddy, _convert_to_ete, _guess_format
+from PhyloBuddy import PhyloBuddy, _guess_format
 import buddy_resources as br
-import ete3
 
 
 def mock_raiseattribute(*args, **kwargs):
@@ -101,6 +99,7 @@ def test_phylobuddy_edges(pb_odd_resources):
     tester.trees = []
     assert str(tester) == "Error: No trees in object.\n"
 
+
 # ################################################# HELPER FUNCTIONS ################################################# #
 hashes = [('m k', '6843a620b725a3a0e0940d4352f2036f'), ('m n', '543d2fc90ca1f391312d6b8fe896c59c'),
           ('m l', '6ce146e635c20ad62e21a1ed6fddbd3a'), ('o k', '4dfed97b2a23b8957ee5141bf4681fe4'),
@@ -122,22 +121,6 @@ def test_write1(key, next_hash, pb_resources, hf):
     assert hf.string2hash(out) == next_hash
 
 
-"""
-Currently blanking this out, because Python 3.6 is not compatible with PyQt4 at all...
-def test_convert_to_ete(monkeypatch, pb_resources):
-    if os.name == "nt":
-        return
-    tester = pb_resources.get_one("m k")
-    tester.trees[0].seed_node.annotations.add_new("pb_color", '#ff0000')
-    ete_tree = _convert_to_ete(tester.trees[0])
-    assert ete_tree.pb_color == '#ff0000'
-
-    monkeypatch.setattr(ete3, "NodeStyle", mock_raiseattribute)
-    with pytest.raises(AttributeError) as err:
-        _convert_to_ete(tester.trees[0])
-    assert "Unable to import NodeStyle... You probably need to install pyqt." in str(err)
-"""
-
 def test_guess_format(pb_resources):
     guessed_format = _guess_format([])
     assert guessed_format == "newick"
@@ -150,4 +133,3 @@ def test_guess_format(pb_resources):
 
     with pytest.raises(br.GuessError):
         _guess_format(dict)
-

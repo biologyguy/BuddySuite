@@ -28,7 +28,6 @@ import sys
 import argparse
 from copy import deepcopy
 from unittest import mock
-import ete3
 import shutil
 import webbrowser
 
@@ -166,7 +165,6 @@ def test_display_trees_ui(monkeypatch, pb_resources):
     if 'DISPLAY' in os.environ:
         test_in_args = deepcopy(in_args)
         test_in_args.display_trees = True
-        monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
         monkeypatch.setattr("builtins.input", lambda *_: "")
         monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
@@ -175,9 +173,9 @@ def test_display_trees_ui(monkeypatch, pb_resources):
 def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.display_trees = True
-    monkeypatch.setattr(ete3.TreeNode, "show", lambda *_: True)
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
+    monkeypatch.setattr(os, "name", "posix")
     # noinspection PyUnresolvedReferences
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
@@ -453,7 +451,7 @@ def test_show_unique_ui(capsys, pb_resources, hf, pb_odd_resources):
 
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["compare"]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "ea5b0d1fcd7f39cb556c0f5df96281cf"
+    assert hf.string2hash(out) == "396e27e3c7c5aa126ec07f31307a288e"
 
     with pytest.raises(AssertionError) as err:
         Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), pass_through=True)
@@ -534,7 +532,3 @@ def test_error(monkeypatch, capsys, pb_resources, pb_odd_resources):
     Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
     out, err = capsys.readouterr()
     assert "PhyloBuddy object should have exactly 2 trees." in err
-
-    monkeypatch.setattr(Pb, "_convert_to_ete", mock_assertionerror)
-    with pytest.raises(AssertionError):
-        Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["compare"]), skip_exit=True)

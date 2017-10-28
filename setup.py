@@ -37,7 +37,6 @@ DEPENDENCIES = [
     'suds-py3',
     'biopython>=1.69',
     'dendropy',
-    'ete3',
     'matplotlib',
 ]
 
