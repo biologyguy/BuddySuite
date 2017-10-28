@@ -16,7 +16,7 @@ install:
   - /home/travis/miniconda/bin/conda install dill scipy numpy six fasttree raxml mafft prank muscle blast hmmer
   - /home/travis/miniconda/bin/pip install --upgrade
   - /home/travis/miniconda/bin/pip install py pytest pytest-xdist pytest-cov pytest-colordots ete3 dendropy biopython
-  - /home/travis/miniconda/bin/pip install python-coveralls suds-py3
+  - /home/travis/miniconda/bin/pip install python-coveralls suds-py3 matplotlib
   - wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/travis/pagan.tgz
   - tar -xzf /home/travis/pagan.tgz -C /home/travis
   - ln -s /home/travis/pagan/bin/pagan /home/travis/miniconda/bin/pagan
