@@ -473,7 +473,7 @@ def bootstrap(alignbuddy, num_bootstraps=1, r_seed=None):
     :param r_seed: Set a seed value so 'random' numbers are reproducible
     :rtype: AlignBuddy
     """
-    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+    rand_gen = random.Random(r_seed)
 
     new_alignments = []
     for align_indx, alignment in enumerate(alignbuddy.alignments):
@@ -1027,7 +1027,7 @@ def faux_alignment(seqbuddy, size=0, r_seed=None):
     :return:
     """
     from scipy.stats import gamma
-    rand_gen = random.Random() if not r_seed else random.Random(r_seed)
+    rand_gen = random.Random(r_seed)
     gamma_50 = gamma.ppf(0.5, 4)
     gamma_scale = 20 / gamma_50
 
@@ -1775,6 +1775,7 @@ def argparse_init():
         else:
             raise e
 
+    in_args.random_seed = None if not in_args.random_seed else in_args.random_seed
     return in_args, alignbuddy
 
 
@@ -1864,7 +1865,7 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
     # Bootstrap
     if in_args.bootstrap:
         num_bootstraps = in_args.bootstrap[0] if in_args.bootstrap[0] else 1
-        _print_aligments(bootstrap(alignbuddy, num_bootstraps))
+        _print_aligments(bootstrap(alignbuddy, num_bootstraps=num_bootstraps, r_seed=in_args.random_seed))
         _exit("bootstrap")
 
     # Clean Seq
@@ -2042,7 +2043,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
     if in_args.faux_align:
         seqbuddy = create_seqbuddy()
         in_args.faux_align = 0 if not in_args.faux_align[0] else in_args.faux_align[0]
-        _print_aligments(faux_alignment(seqbuddy, in_args.faux_align))
+        _print_aligments(faux_alignment(seqbuddy, in_args.faux_align, r_seed=in_args.random_seed))
         _exit("faux_align")
 
     # Generate Alignment
@@ -2107,7 +2108,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
                        "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
                        (hash_length, holder), in_args.quiet)
             hash_length = holder
-        hash_ids(alignbuddy, hash_length)
+        hash_ids(alignbuddy, hash_length=hash_length, r_seed=in_args.random_seed)
 
         hash_table = "# Hash table\n"
         for _hash, orig_id in alignbuddy.hash_map.items():

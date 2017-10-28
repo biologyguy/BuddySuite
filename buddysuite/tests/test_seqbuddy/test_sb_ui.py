@@ -813,10 +813,10 @@ def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, hf, monkeypatch
     assert hf.string2hash(out) == "9fcc608d3800fed92030801b5bfd156e", print(out)
 
 
-# ######################  '-hsi', '--hash_seq_ids' ###################### #
-def test_hash_seq_ids_ui(capsys, sb_resources):
+# ######################  '-hi', '--hash_ids' ###################### #
+def test_hash_ids_ui(capsys, sb_resources):
     test_in_args = deepcopy(in_args)
-    test_in_args.hash_seq_ids = [None]
+    test_in_args.hash_ids = [None]
     tester = sb_resources.get_one('d f')
     ids = [rec.id for rec in tester.records]
     Sb.command_line_ui(test_in_args, tester, True)
@@ -824,13 +824,13 @@ def test_hash_seq_ids_ui(capsys, sb_resources):
         assert rec.id != ids[indx]
         assert ids[indx] == tester.hash_map[rec.id]
 
-    test_in_args.hash_seq_ids = [0]
+    test_in_args.hash_ids = [0]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert "Warning: The hash_length parameter was passed in with the value 0. This is not a positive integer" in err
 
     tester.records *= 10
-    test_in_args.hash_seq_ids = [1]
+    test_in_args.hash_ids = [1]
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert "cover all sequences, so it has been increased to 2" in err

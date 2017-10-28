@@ -62,7 +62,6 @@ from hashlib import md5
 from io import StringIO, TextIOWrapper
 from collections import OrderedDict
 from xml.sax import SAXParseException
-import json
 
 # Third party
 from Bio import SeqIO
@@ -945,7 +944,7 @@ def back_translate(seqbuddy, mode='random', species=None, r_seed=None):
     :param r_seed: Set the random generator seed value
     :return: Modified SeqBuddy object
     """
-    rand_gen = Random() if not r_seed else Random(r_seed)
+    rand_gen = Random(r_seed)
 
     # Homo sapiens, species=9606
     if mode.upper() not in ['RANDOM', 'R', 'OPTIMIZED', 'O']:
@@ -3183,7 +3182,7 @@ def order_ids_randomly(seqbuddy, r_seed=None):
     :param r_seed: Set the random generator seed value
     :return: The reordered SeqBuddy object
     """
-    rand_gen = Random() if not r_seed else Random(r_seed)
+    rand_gen = Random(r_seed)
 
     if len(seqbuddy) < 2:
         return seqbuddy
@@ -3411,7 +3410,7 @@ def pull_random_recs(seqbuddy, count=1, r_seed=None):
     :param r_seed: Set the random generator seed value
     :return: The original SeqBuddy object with only the selected records remaining
     """
-    rand_gen = Random() if not r_seed else Random(r_seed)
+    rand_gen = Random(r_seed)
     count = abs(count) if abs(count) <= len(seqbuddy) else len(seqbuddy)
     random_recs = []
     for _ in range(count):
@@ -3662,7 +3661,7 @@ def shuffle_seqs(seqbuddy, r_seed=None):
     :param r_seed: Set the random generator seed value
     :return: The shuffled SeqBuddy object
     """
-    rand_gen = Random() if not r_seed else Random(r_seed)
+    rand_gen = Random(r_seed)
     for rec in seqbuddy.records:
         new_seq = list(str(rec.seq))
         rand_gen.shuffle(new_seq)
@@ -4205,6 +4204,7 @@ def argparse_init():
         seqbuddy.hidden_recs = delete_records(make_copy(seqbuddy), in_args.restrict[0]).records
         seqbuddy = pull_recs(seqbuddy, in_args.restrict[0])
 
+    in_args.random_seed = None if not in_args.random_seed else in_args.random_seed
     return in_args, seqbuddy
 
 
@@ -4355,7 +4355,7 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
         if seqbuddy.alpha != IUPAC.protein:
             _raise_error(TypeError("The input sequence needs to be protein, not nucleotide"), "back_translate")
 
-        _print_recs(back_translate(seqbuddy, mode, species))
+        _print_recs(back_translate(seqbuddy, mode=mode, species=species, r_seed=in_args.random_seed))
         _exit("back_translate")
 
     # BL2SEQ
@@ -4968,13 +4968,13 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         _exit("guess_format")
 
     # Hash sequence ids
-    if in_args.hash_seq_ids:
-        if in_args.hash_seq_ids[0] == 0:
+    if in_args.hash_ids:
+        if in_args.hash_ids[0] == 0:
             hash_length = 0
-        elif not in_args.hash_seq_ids[0]:
+        elif not in_args.hash_ids[0]:
             hash_length = 10
         else:
-            hash_length = in_args.hash_seq_ids[0]
+            hash_length = in_args.hash_ids[0]
 
         if hash_length < 1:
             br._stderr("Warning: The hash_length parameter was passed in with the value %s. This is not a positive "
@@ -4988,7 +4988,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                        "so it has been increased to %s.\n\n" % (hash_length, holder), in_args.quiet)
             hash_length = holder
 
-        hash_ids(seqbuddy, hash_length)
+        hash_ids(seqbuddy, hash_length=hash_length, r_seed=in_args.random_seed)
 
         hash_table = "# Hash table\n"
         hash_table += seqbuddy.print_hashmap()
@@ -4996,7 +4996,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
         br._stderr(hash_table, in_args.quiet)
         _print_recs(seqbuddy)
-        _exit("hash_seq_ids")
+        _exit("hash_ids")
 
     # Insert Seq
     if in_args.insert_seq:
@@ -5245,7 +5245,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Order ids randomly
     if in_args.order_ids_randomly:
-        _print_recs(order_ids_randomly(seqbuddy))
+        _print_recs(order_ids_randomly(seqbuddy, r_seed=in_args.random_seed))
         _exit("order_ids_randomly")
 
     # Order records by length
@@ -5300,7 +5300,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     # Pull random records
     if in_args.pull_random_record:
         count = 1 if not in_args.pull_random_record[0] else in_args.pull_random_record[0]
-        _print_recs(pull_random_recs(seqbuddy, count))
+        _print_recs(pull_random_recs(seqbuddy, count=count, r_seed=in_args.random_seed))
         _exit("pull_random_record")
 
     # Pull record ends
@@ -5446,7 +5446,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # Shuffle Seqs
     if in_args.shuffle_seqs:
-        _print_recs(shuffle_seqs(seqbuddy))
+        _print_recs(shuffle_seqs(seqbuddy, r_seed=in_args.random_seed))
         _exit("shuffle_seqs")
 
     # Taxanomic breakdown

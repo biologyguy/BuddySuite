@@ -270,8 +270,8 @@ def test_hash_ids_ui(capsys, monkeypatch, pb_resources, hf):
     assert hf.string2hash(out) != hf.buddy2hash(pb_resources.get_one("m n"))
     assert "Warning: The hash_length parameter was passed in with the value -1" in err
 
-    def hash_ids(*args):
-        if args:
+    def hash_ids(*args, **kwargs):
+        if args or kwargs:
             pass
         raise ValueError("Foo bar")
 

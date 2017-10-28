@@ -902,14 +902,15 @@ def show_unique(phylobuddy):
     return phylobuddy
 
 
-def split_polytomies(phylobuddy):
+def split_polytomies(phylobuddy, r_seed=None):
     """
     Randomly splits polytomies. This function was drawn almost verbatim from the DendroPy Tree.resolve_polytomies()
     method. The main difference is that a very small edge_length is assigned to new nodes when a polytomy is split.
     :param phylobuddy: PhyloBuddy object
+    :param r_seed: Specify a random seed so results can be reproducible
     :return: Modified PhyloBuddy object
     """
-    rng = random.Random()
+    rng = random.Random(r_seed)
     for tree in phylobuddy.trees:
         polytomies = []
         for node in tree.postorder_node_iter():
@@ -1006,6 +1007,7 @@ def argparse_init():
             phylobuddy += tree_set.trees
         phylobuddy = PhyloBuddy(phylobuddy, tree_set.in_format, tree_set.out_format)
 
+    in_args.random_seed = None if not in_args.random_seed else in_args.random_seed
     return in_args, phylobuddy
 
 
@@ -1177,7 +1179,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             hash_length = 10
 
         try:
-            hash_ids(phylobuddy, hash_length, hash_nodes)
+            hash_ids(phylobuddy, hash_length=hash_length, nodes=hash_nodes, r_seed=in_args.random_seed)
         except ValueError as e:
             if "Insufficient number of hashes available" in str(e):
                 holder = ceil(log(num_taxa(phylobuddy) * 2, 32))
@@ -1185,7 +1187,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
                            "This is too small to properly cover all sequences, so it has been increased to %s.\n\n" %
                            (hash_length, holder), in_args.quiet)
                 hash_length = int(holder)
-                hash_ids(phylobuddy, hash_length, hash_nodes)
+                hash_ids(phylobuddy, hash_length=hash_length, nodes=hash_nodes, r_seed=in_args.random_seed)
             else:
                 raise e
 
@@ -1305,7 +1307,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Split polytomies
     if in_args.split_polytomies:
-        split_polytomies(phylobuddy)
+        split_polytomies(phylobuddy, r_seed=in_args.random_seed)
         _print_trees(phylobuddy)
         _exit("split_polytomies")
 
@@ -1328,14 +1330,15 @@ def main():
     except SystemExit:
         return False
     except Exception as _e:
-        function = ""
+        func = ""
         for next_arg in vars(initiation[0]):
             if getattr(initiation[0], next_arg) and next_arg in br.pb_flags:
-                function = next_arg
+                func = next_arg
                 break
-        br.send_traceback("PhyloBuddy", function, _e, VERSION)
+        br.send_traceback("PhyloBuddy", func, _e, VERSION)
         return False
     return True
+
 
 if __name__ == '__main__':
     main()
