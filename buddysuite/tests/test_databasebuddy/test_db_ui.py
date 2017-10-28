@@ -886,6 +886,7 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
 
     # write a summary
     monkeypatch.setattr("builtins.input", lambda _: "%s/save1" % tmp_dir.path)
+    monkeypatch.setattr(br, "ask", lambda _: True)
     liveshell.do_write(None)
     assert os.path.isfile("%s/save1" % tmp_dir.path)
     with open("%s/save1" % tmp_dir.path, "r") as ifile:
@@ -895,7 +896,6 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
 
     # write ids/accns
     dbbuddy.out_format = "ids"
-    monkeypatch.setattr(br, "ask", lambda _: True)
     dbbuddy.records['O14727'].record = Db.Record('O14727', _record=True)
     liveshell.do_write("%s/save2" % tmp_dir.path)
     assert os.path.isfile("%s/save2" % tmp_dir.path)

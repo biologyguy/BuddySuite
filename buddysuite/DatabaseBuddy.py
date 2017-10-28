@@ -1977,12 +1977,11 @@ Further details about each command can be accessed by typing 'help <command>'
 
         breakdown = self.dbbuddy.record_breakdown()
         if self.dbbuddy.out_format in ["ids", "accessions", "summary", "full-summary"]:
-            if breakdown["full"]:
-                confirm = br.ask("%sYou are about to write to a summary format "
-                                 "which does not include sequence. Continue [y]/n?%s" % (RED, self.terminal_default))
-                if not confirm:
-                    _stdout("Abort...\n", format_in=RED, format_out=self.terminal_default)
-                    return
+            confirm = br.ask("%sYou are about to write to a summary format "
+                             "which does not include sequence. Continue [y]/n?%s" % (RED, self.terminal_default))
+            if not confirm:
+                _stdout("Abort...\n", format_in=RED, format_out=self.terminal_default)
+                return
             count = len(breakdown["full"] + breakdown["summary"])
             msg = "accession" if self.dbbuddy.out_format in ["ids", "accessions"] else "summary record"
             msg += "s" if count > 1 else ""
