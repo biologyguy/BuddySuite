@@ -426,10 +426,21 @@ def display_trees(phylobuddy):
         # We just assume that a Windows machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
+
+    label_colors = []
+    indx = 0
+    for tree in phylobuddy.trees:
+        label_colors.append(OrderedDict())
+        for node in tree:
+            if node.taxon and node.annotations.get_value('!color'):
+                label_colors[indx][node.taxon.label] = node.annotations.get_value('!color')
+        indx += 1
+
     tmp_dir = br.TempDir()
     tree_file = tmp_dir.subfile('tree.svg')
+    indx = 0
     for tree in Bio.Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
-        Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False)
+        Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False, label_colors=label_colors[indx])
         pylab.axis('off')
         pylab.savefig(tree_file, format='svg', bbox_inches='tight', dpi=300)
         if os.name == "nt":  # File path specification different between operating systems
@@ -438,6 +449,7 @@ def display_trees(phylobuddy):
             file_location = "file:///" + tree_file
         webbrowser.open_new_tab(file_location)
         input("Switching to web browser. Hit any key to continue.\n")
+        indx += 1
     return True
 
 
@@ -861,8 +873,8 @@ def show_unique(phylobuddy):
     if len(phylobuddy.trees) != 2:
         raise AssertionError("PhyloBuddy object should have exactly 2 trees.")
 
-    tree1_leaves = [re.sub("'", "", str(node.taxon)) for node in phylobuddy.trees[0] if node.taxon]
-    tree2_leaves = [re.sub("'", "", str(node.taxon)) for node in phylobuddy.trees[1] if node.taxon]
+    tree1_leaves = [node.taxon.label for node in phylobuddy.trees[0] if node.taxon]
+    tree2_leaves = [node.taxon.label for node in phylobuddy.trees[1] if node.taxon]
     unique = []
     for leaf in tree1_leaves:
         if leaf not in tree2_leaves and leaf not in unique:
@@ -875,14 +887,14 @@ def show_unique(phylobuddy):
     # Add color
     for node in phylobuddy.trees[0]:
         if node.taxon:
-            if re.sub("'", "", str(node.taxon)) in unique:
+            if node.taxon.label in unique:
                 node.annotations['!color'] = '#ff0000'
             else:
                 node.annotations['!color'] = '#00ff00'
 
     for node in phylobuddy.trees[1]:
         if node.taxon:
-            if re.sub("'", "", str(node.taxon)) in unique:
+            if node.taxon.label in unique:
                 node.annotations['!color'] = '#ff0000'
             else:
                 node.annotations['!color'] = '#00ff00'
