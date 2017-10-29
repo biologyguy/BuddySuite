@@ -568,6 +568,50 @@ def test_print_simple(capsys):
 [96mA0A087WX72      [92muniprot    [91mprot  [93msummary
 [m'''
 
+    dbbuddy.print(_num=[])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(_num=[0])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(_num=[-2])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[96mA0A087WX72      [92muniprot    [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(_num=[1, 3])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mADH10263.1      [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[m'''
+
+    dbbuddy.print(_num=[0, -1, 2])
+    out, err = capsys.readouterr()
+    out = re.sub(" +\n", "\n", out)
+    assert out == '''[m[40m[97m[96mACCN            [92mDB         [91mType  [93mrecord
+[96mNP_001287575.1  [92mncbi_prot  [91mprot  [93msummary
+[96mXP_005165403.2  [92mncbi_prot  [91mprot  [93msummary
+[m'''
+
     dbbuddy.out_format = "ids"
     dbbuddy.print()
     out, err = capsys.readouterr()
@@ -737,7 +781,7 @@ def test_print_full_recs(sb_resources, hf, capsys):
     out = re.sub(" +\n", "\n", out)
 
     assert hf.string2hash(out) == "387e79cafe05c61da226ae6707c4a917"
-    assert err == "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL.\n\n"
+    assert err == "Warning: Genbank format returned 'ID too long' error. Format changed to EMBL.\n\n"
 
 
 def test_print_trash(capsys):
