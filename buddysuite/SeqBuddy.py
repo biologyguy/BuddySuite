@@ -3389,7 +3389,7 @@ class PrositeScan(object):
         for indx, rec in enumerate(seqbuddy_copy.records):
             for match in rec.buddy_data['find_patterns']["\*"]:
                 rec_2 = self.seqbuddy.records[indx]
-                new_seq = str(rec_2.seq)[:match] + "*" + str(rec_2.seq)[match:]
+                new_seq = str(rec_2.seq)[:match[0]] + "*" + str(rec_2.seq)[match[0]:]
                 rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
 
         if seqbuddy_copy.alpha != IUPAC.protein:
@@ -4102,7 +4102,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
             printer.write("Merging sequence features --> %s of %s" % (indx, len(seqbuddy)))
             matches = stop_positions[rec.id]
             for match in matches:
-                new_seq = str(rec.seq)[:match] + "*" + str(rec.seq)[match + 1:]
+                new_seq = str(rec.seq)[:match[0]] + "*" + str(rec.seq)[match[0] + 1:]
                 rec.seq = Seq(new_seq, alphabet=rec.seq.alphabet)
         printer.write("Merging sequence features --> Executing merge()")
         seqbuddy = merge(seqbuddy_copy, seqbuddy)
