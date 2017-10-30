@@ -2336,7 +2336,7 @@ def find_pattern(seqbuddy, *patterns, ambig=False, include_feature=True, include
             new_seq = ""
             last_match = 0
             for match in matches:
-                indices.append(match.start())
+                indices.append([match.start(), match.end()])
                 if include_feature:
                     rec.features.append(SeqFeature(location=FeatureLocation(start=match.start(), end=match.end()),
                                                    type='match', strand=+1,
@@ -4773,7 +4773,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                 if not len(indices):
                     br._stderr("{0}: None\n".format(rec.id), in_args.quiet)
                 else:
-                    br._stderr("{0}: {1}\n".format(rec.id, ", ".join([str(x) for x in indices])), in_args.quiet)
+                    matches = ", ".join(["%s-%s" % (start + 1, end) for start, end in indices])
+                    br._stderr("{0}: {1}\n".format(rec.id, matches), in_args.quiet)
                     num_matches += len(indices)
 
             br._stderr("\n", in_args.quiet)

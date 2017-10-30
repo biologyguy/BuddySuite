@@ -636,14 +636,14 @@ def test_find_pattern_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
 
     assert hf.string2hash(out) == "a13217987f5dd23f6fab71eb733271ff"
-    assert hf.string2hash(err) == "59fbef542d89ac72741c4d0df73d5f5a"
+    assert hf.string2hash(err) == "db13c9e5c65e8df5569bce2e20f32710"
 
     test_in_args.find_pattern = ["ATGGN{6}", "ambig"]
     Sb.command_line_ui(test_in_args, sb_resources.get_one("d g"), True)
     out, err = capsys.readouterr()
 
     assert hf.string2hash(out) == "22b29f5d3aa45d7a2c7c5f3fdff2e210"
-    assert hf.string2hash(err) == "f54ddf323e0d8fecb2ef52084d048531"
+    assert hf.string2hash(err) == "97b8dee760241008a4e17e136d8d1b27"
 
 
 # ######################  '-frp', '--find_repeats' ###################### #
