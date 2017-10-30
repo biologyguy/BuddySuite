@@ -2154,12 +2154,12 @@ db_flags = {"guess_database": {"flag": "gd",
             "live_shell": {"flag": "ls",
                            "action": "store_true",
                            "help": "Interactive database searching. The best tool for sequence discovery."},
-            # "retrieve_accessions": {"flag": "ra",
-            #                        "action": "store_true",
-            #                        "help": "Use search terms to find a list of sequence accession numbers"},
-            # "retrieve_sequences": {"flag": "rs",
-            #                       "action": "store_true",
-            #                       "help": "Get sequences for every included accession"}
+            "retrieve_accessions": {"flag": "ra",
+                                    "action": "store_true",
+                                    "help": "Use search terms to find a list of sequence accession numbers"},
+            "retrieve_sequences": {"flag": "rs",
+                                   "action": "store_true",
+                                   "help": "Get sequences for every included accession"}
             }
 
 db_modifiers = {"database": {"flag": "d",
@@ -2168,6 +2168,7 @@ db_modifiers = {"database": {"flag": "d",
                              "help": "Specify a specific database or database class to search"},
                 "out_format": {"flag": "o",
                                "action": "store",
+                               "choices": [],  # This needs to be set to FORMATS in the main program
                                "help": "If you want a specific format output"},
                 # "quiet": {"flag": "q",
                 #          "action": "store_true",

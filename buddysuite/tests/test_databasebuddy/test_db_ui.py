@@ -4,6 +4,7 @@ import re
 import sys
 import argparse
 from copy import deepcopy
+from collections import OrderedDict
 
 import buddy_resources as br
 import DatabaseBuddy as Db
@@ -1204,18 +1205,84 @@ def test_error(monkeypatch, capsys):
 
 
 @pytest.mark.loose
+def test_retrieve_accessions(monkeypatch):
+    # Don't actually run anything, retrieve_summary() is tested elsewhere
+    monkeypatch.setattr(Db, "retrieve_summary", lambda *_: True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.retrieve_accessions = True
+    dbbuddy = Db.DbBuddy()
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, dbbuddy)
+    assert dbbuddy.out_format == "ids"
+
+    test_in_args.out_format = "genbank"
+    dbbuddy = Db.DbBuddy(_out_format="genbank")
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, dbbuddy)
+    assert dbbuddy.out_format == "ids"
+
+    for out_format in ["ids", "accessions", "full-summary", "summary"]:
+        test_in_args.out_format = out_format
+        dbbuddy = Db.DbBuddy(_out_format=out_format)
+        with pytest.raises(SystemExit):
+            Db.command_line_ui(test_in_args, dbbuddy)
+        assert dbbuddy.out_format == out_format
+
+
+@pytest.mark.loose
+def test_retrieve_sequences(monkeypatch, capsys, sb_resources, hf):
+    # Don't actually run anything, retrieve_summary() is tested elsewhere
+    monkeypatch.setattr(Db, "retrieve_summary", lambda *_: True)
+    monkeypatch.setattr(Db, "retrieve_sequences", lambda *_: True)
+    test_in_args = deepcopy(in_args)
+    test_in_args.retrieve_sequences = True
+
+    dbbuddy = Db.DbBuddy()
+    dbbuddy.failures = OrderedDict([("Foo", ValueError("Blahh")), ("Bar", AttributeError("Blahh"))])
+    dbbuddy.records = sb_resources.get_one("f d").records
+    dbbuddy.records = OrderedDict([(rec.id, rec) for rec in dbbuddy.records])
+    for accn, rec in dbbuddy.records.items():
+        rec.size = len(rec)
+        rec.record = rec
+
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, dbbuddy)
+    out, err = capsys.readouterr()
+    assert dbbuddy.out_format == "fasta"
+    assert hf.string2hash(out) == "39d51b7b08a0d7933c4ab9b8fa88928b"
+    assert err == """\
+# ###################### Failures ###################### #
+Foo
+Blahh
+
+Bar
+Blahh
+# ############################################## #
+
+"""
+
+    monkeypatch.setattr(br, "ask", lambda _, **kwargs: False)
+    for accn, rec in dbbuddy.records.items():
+        rec.size *= 100
+    with pytest.raises(SystemExit):
+        Db.command_line_ui(test_in_args, dbbuddy)
+    out, err = capsys.readouterr()
+    assert out == '\x1b[91mAborted...\n\n\x1b[m\x1b[40m'
+
+
+@pytest.mark.loose
 def test_guess_db(capsys, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_database = True
 
     with pytest.raises(SystemExit):
-        Db.command_line_ui(test_in_args, Db.DbBuddy(), skip_exit=True)
+        Db.command_line_ui(test_in_args, Db.DbBuddy())
 
     out, err = capsys.readouterr()
     assert 'Nothing to return' in out
 
     with pytest.raises(SystemExit):
-        Db.command_line_ui(test_in_args, Db.DbBuddy(",".join(ACCNS) + ",Casp9"), skip_exit=True)
+        Db.command_line_ui(test_in_args, Db.DbBuddy(",".join(ACCNS) + ",Casp9"))
 
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "4b3edb0272b02d8e18ce591304fdea1d"

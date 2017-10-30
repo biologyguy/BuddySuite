@@ -2312,6 +2312,7 @@ def argparse_init():
 ''')
 
     br.db_modifiers["database"]["choices"] = DATABASES
+    br.db_modifiers["out_format"]["choices"] = FORMATS
     br.flags(parser, ("user_input", "Specify accession numbers or search terms, "
                                     "either in a file or as a comma separated list"),
              br.db_flags, br.db_modifiers, VERSION)
@@ -2371,39 +2372,43 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
     if in_args.live_shell:
         launch_live_shell()
 
-    """
-    def _print_recs(_dbbuddy):
-        _dbbuddy.print()
-
-    # Download everything
-    if in_args.download_everything:
-        dbbuddy.out_format = "gb" if not in_args.out_format else in_args.out_format
-        download_everything(dbbuddy)
-
-        if len(dbbuddy.failures) > 0:
-            output = "# ###################### Accession failures ###################### #\n"
-            counter = 1
-            for next_acc in dbbuddy.failures:
-                output += "%s\t" % next_acc
-                if counter % 4 == 0:
-                    output = "%s\n" % output.strip()
-                counter += 1
-            br._stderr("%s\n# ################################################################ #\n\n" % output.strip())
-
-        dbbuddy.print()
-        sys.exit()
-
     # Retrieve Accessions
     if in_args.retrieve_accessions:
-        if not in_args.out_format:
+        if not in_args.out_format or in_args.out_format not in ["ids", "accessions", "full-summary", "summary"]:
             dbbuddy.out_format = "ids"
-        retrieve_accessions(dbbuddy)
+        retrieve_summary(dbbuddy)
         dbbuddy.print()
-        sys.exit()
+        _exit("retrieve_accessions")
 
+    # Retrieve sequences
     if in_args.retrieve_sequences:
-        sys.exit()
-    """
+        if not in_args.out_format:
+            dbbuddy.out_format = "fasta"
+        retrieve_summary(dbbuddy)
+
+        amount_seq_requested = 0
+        for _accn, _rec in dbbuddy.records.items():
+            amount_seq_requested += _rec.size
+
+        if amount_seq_requested > 50000:
+            confirm = br.ask("{0}You are requesting {2}{1}{0} residues of sequence data. "
+                             "Continue (y/[n])?\033[m\033[40m".format(GREEN, br.pretty_number(amount_seq_requested),
+                                                                      YELLOW), default="no")
+            if not confirm:
+                _stdout("Aborted...\n\n", format_in=RED, format_out="\033[m\033[40m")
+                _exit("retrieve_sequences")
+
+        retrieve_sequences(dbbuddy)
+
+        if len(dbbuddy.failures) > 0:
+            output = "# ###################### Failures ###################### #\n"
+            for accn, failure in dbbuddy.failures.items():
+                output += "%s\n%s\n\n" % (accn, failure)
+            br._stderr("%s\n# ############################################## #\n\n" % output.strip())
+
+        dbbuddy.print(quiet=True)
+        _exit("retrieve_sequences")
+
     # Guess database
     if in_args.guess_database:
         output = ""
@@ -2438,7 +2443,7 @@ def command_line_ui(in_args, dbbuddy, skip_exit=False):
             output += "Nothing to return\n"
 
         _stdout(output)
-        sys.exit()
+        _exit("guess_database")
 
     # Default to LiveShell
     launch_live_shell()
@@ -2456,12 +2461,12 @@ def main():
     except SystemExit:
         return False
     except Exception as e:
-        function = ""
+        func = ""
         for next_arg in vars(initiation[0]):
             if getattr(initiation[0], next_arg) and next_arg in br.db_flags:
-                function = next_arg
+                func = next_arg
                 break
-        br.send_traceback("DbBuddy", function, e, VERSION)
+        br.send_traceback("DbBuddy", func, e, VERSION)
         return False
     return True
 
