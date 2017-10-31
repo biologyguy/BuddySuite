@@ -1126,7 +1126,8 @@ def test_restriction_sites_all_emzymes(sb_resources, hf):
 
 def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     # Specify a few REs and limit the number of cuts
-    tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), min_cuts=2, max_cuts=4,
+    tester = sb_resources.get_one("d g")
+    tester = Sb.find_restriction_sites(tester, min_cuts=2, max_cuts=4,
                                        enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I", "FooBR"])
     out, err = capsys.readouterr()
     # The c42b3bf and 0d2e5fdb hashes are for BioPython 1.70
@@ -1135,6 +1136,12 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
                                                              "e16a3aabf4681e7a4d186e7c7685f545"]
     assert "Warning: FooBR not a known enzyme" in err
 
+    # Rerun to ensure that enzymes are not listed again if they are already in the feature list
+    tester = Sb.find_restriction_sites(tester, min_cuts=2, max_cuts=4,
+                                       enzyme_group=["EcoRI", "KspI", "TasI", "Bme1390I", "FooBR"])
+    assert hf.buddy2hash(tester) in ['c42b3bf0367557383000b897432fed2d', '04cd62ab44f1479616370d04800fd54a']
+    assert hf.string2hash(str(tester.restriction_sites)) in ["0d2e5fdba6fed434495481397a91e56a",
+                                                             "e16a3aabf4681e7a4d186e7c7685f545"]
     # RNA
     tester = Sb.find_restriction_sites(sb_resources.get_one("r g"), min_cuts=2, max_cuts=4,
                                        enzyme_group=["EcoRI", "KspI", "TasI"])

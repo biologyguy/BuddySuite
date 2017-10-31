@@ -156,7 +156,6 @@ def keep_features(seqbuddy, regex(s)):
     return
 '''
 # - Allow batch calls. E.g., if 6 files are fed in as input, run the SeqBuddy command independently on each
-# - Add support for selecting individual sequences to modify (as a global ability for any tool)
 # - Check on memory requirements before execution
 # - Execution timer, for long running jobs
 # - Sort out a good way to manage 'lazy' imports (might not be that important)
@@ -2424,7 +2423,6 @@ def find_repeats(seqbuddy):
     return seqbuddy
 
 
-# ToDo: Make sure cut sites are not already in the features list
 def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
@@ -2481,6 +2479,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     no_cutters_found = False
     double_cutters_found = False
     for rec in seqbuddy.records:
+        features = ["%s%s%s" % (feat.type, feat.location.start, feat.location.end) for feat in rec.features]
         rec.res_sites = {}
         analysis = Analysis(batch, rec.seq)
         result = analysis.with_sites()
@@ -2495,7 +2494,8 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                     for zyme in value:
                         cut_start = zyme + key.fst3 - 1
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
-                        rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
+                        if "%s%s%s" % (str(key), cut_start, cut_end) not in features:
+                            rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
                 except TypeError:
                     if not no_cutters_found:
                         br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
