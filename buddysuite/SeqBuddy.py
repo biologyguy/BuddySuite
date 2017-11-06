@@ -662,7 +662,7 @@ def make_copy(seqbuddy):
 
 
 def _prepare_restriction_sites(parameters):
-    min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
+    min_cuts, max_cuts, _enzymes, order, topology = None, None, [], 'position', None
     for param in parameters:
         try:
             param = int(param)
@@ -681,13 +681,17 @@ def _prepare_restriction_sites(parameters):
 
         elif param in ['alpha', 'position']:
             order = param
+        elif param == "circ":
+            topology = "circular"
+        elif param == "lin":
+            topology = "linear"
         else:
             _enzymes.append(param)
 
     _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
     max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
     min_cuts = 1 if not min_cuts else min_cuts
-    return _enzymes, order, min_cuts, max_cuts
+    return _enzymes, order, min_cuts, max_cuts, topology
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -2423,16 +2427,18 @@ def find_repeats(seqbuddy):
     return seqbuddy
 
 
-def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
+def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, topology="linear", quiet=False):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
     :param seqbuddy: SeqBuddy object
     :param enzyme_group: "commercial", "all", or a list of specific enzyme names
     :param min_cuts: The minimum cut threshold
     :param max_cuts: The maximum cut threshold
+    :param topology: linear or circular sequence
     :param quiet: Suppress stderr
     :return: annotated SeqBuddy object, and a dictionary of restriction sites added as the `restriction_sites` attribute
     """
+
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
 
@@ -2479,9 +2485,14 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     no_cutters_found = False
     double_cutters_found = False
     for rec in seqbuddy.records:
+        linear = True
+        if not topology and 'topology' in rec.annotations:
+            linear = False if rec.annotations['topology'] == 'circular' else True
+        elif topology == "circular":
+            linear = False
         features = ["%s%s%s" % (feat.type, feat.location.start, feat.location.end) for feat in rec.features]
         rec.res_sites = {}
-        analysis = Analysis(batch, rec.seq)
+        analysis = Analysis(batch, rec.seq, linear=linear)
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
@@ -2504,6 +2515,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
         sites.append((rec.id, rec.res_sites))
+
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
     if convert_rna:
@@ -4827,11 +4839,11 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
 
-        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.find_restriction_sites[0])
+        _enzymes, order, min_cuts, max_cuts, topology = _prepare_restriction_sites(in_args.find_restriction_sites[0])
 
         clean_seq(seqbuddy)
         try:
-            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, quiet=in_args.quiet)
+            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, topology, quiet=in_args.quiet)
         except TypeError as e:
             _raise_error(e, "find_restriction_sites")
 
@@ -5027,7 +5039,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # In silico digest
     if in_args.in_silico_digest:
-        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.in_silico_digest[0])
+        _enzymes, order, min_cuts, max_cuts, topology = _prepare_restriction_sites(in_args.in_silico_digest[0])
 
         if not in_args.in_silico_digest[0] or _enzymes == ["commercial"]:
             br._stderr("Error: Please provide a list of enzymes you wish to cut your sequences with.\n")

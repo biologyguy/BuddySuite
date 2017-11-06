@@ -1124,7 +1124,9 @@ def test_restriction_sites_all_emzymes(sb_resources, hf):
                                                              "90c8a6d8b17a29a2976b52c02da11b24": "biopython1.71"}
 
 
-def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
+
+
+def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf):
     # Specify a few REs and limit the number of cuts
     tester = sb_resources.get_one("d g")
     tester = Sb.find_restriction_sites(tester, min_cuts=2, max_cuts=4,
@@ -1160,6 +1162,17 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
     assert "Warning: Double-cutters not supported." in err
     assert "Warning: No-cutters not supported." in err
+
+    # circular
+    tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
+    assert hf.buddy2hash(tester) == "e32d97ff2977773cac30db9c9d06efe3"
+    assert hf.string2hash(str(tester.restriction_sites)) == "273def9685d295928025747d9bab971c"
+
+    # circular using genbank annotation
+    print(sb_odd_resources["circular"])
+    tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]), enzyme_group=["EcoRI", "KspI", "TasI"])
+    assert hf.buddy2hash(tester) == "c4b2c1e40376670ddf4a439125efdff8"
+    assert hf.string2hash(str(tester.restriction_sites)) == "5dc22ac89b9aaa25000334865fd1a9c4"
 
 
 # ######################  '-hsi', '--hash_sequence_ids' ###################### #
