@@ -1,0 +1,82 @@
+LOCUS       SCU49845                 800 bp    DNA     circular PLN 14-JUL-2016
+DEFINITION  Saccharomyces cerevisiae TCP1-beta gene, partial cds; and Axl2p
+            (AXL2) and Rev7p (REV7) genes, complete cds.
+ACCESSION   U49845
+VERSION     U49845.1
+KEYWORDS    .
+SOURCE      Saccharomyces cerevisiae (baker's yeast)
+  ORGANISM  Saccharomyces cerevisiae
+            Eukaryota; Fungi; Dikarya; Ascomycota; Saccharomycotina;
+            Saccharomycetes; Saccharomycetales; Saccharomycetaceae;
+            Saccharomyces.
+FEATURES             Location/Qualifiers
+     source          1..800
+                     /organism="Saccharomyces cerevisiae"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:4932"
+                     /chromosome="IX"
+     mRNA            1..206
+                     /product="TCP1-beta"
+     CDS             1..206
+                     /codon_start=3
+                     /product="TCP1-beta"
+                     /protein_id="AAA98665.1"
+                     /translation="SSIYNGISTSGLDLNNGTIADMRQLGIVESYKLKRAVVSSASEAA
+                     EVLLRVDNIIRARPRTANRQHM"
+ORIGIN
+        1 gatcctccat atacaacggt atctccacct caggtttaga tctcaacaac ggaaccattg
+       61 ccgacatgag acagttaggt atcgtcgaga gttacaagct aaaacgagca gtagtcagct
+      121 ctgcatctga agccgctgaa gttctactaa gggtggataa catcatccgt gcaagaccaa
+      181 gaaccgccaa tagacaacat atgtaacata tttaggatat acctcgaaaa taataaaccg
+      241 ccacactgtc attattataa ttagaaacag aacgcaaaaa ttatccacta tataattcaa
+      301 agacgcgaaa aaaaaagaac aacgcgtcat agaacttttg gcaattcgcg tcacaaataa
+      361 attttggcaa cttatgtttc ctcttcgagc agtactcgag cttcttttcc cattcatctc
+      421 tttcttcttc caaagcaacg atccttctac ccatttgctc agagttcaaa tcggcctctt
+      481 tcagtttatc cattgcttcc ttcagtttgg cttcactgtc ttctagctgt tgttctagat
+      541 cctggttttt cttggtgtag ttctcattat tagatctcaa gttattggag tcttcagcca
+      601 attgctttgt atcagacaat tgactctcta acttctccac ttcactgtcg agttgctcgt
+      661 ttttagcgga caaagattta atctcgtttt ctttttcagt gttagattgc tctaattctt
+      721 tgagctgttc tctcagctcc tcatattttt cttgccatga ctcagattct aattttaagc
+      781 tattcaattt ctctttgatc
+//
+LOCUS       SCU49545                 800 bp    DNA     linear   PLN 14-JUL-2016
+DEFINITION  Sacchoromyces cerevisiae TCP1-beta gene, partial cds; and Axl2p
+            (AXL2) and Rev7p (REV7) genes, complete cds.
+ACCESSION   U49825
+VERSION     U49825.1
+KEYWORDS    .
+SOURCE      Saccharomyces cerevisiae (baker's yeast)
+  ORGANISM  Saccharomyces cerevisiae
+            Eukaryota; Fungi; Dikarya; Ascomycota; Saccharomycotina;
+            Saccharomycetes; Saccharomycetales; Saccharomycetaceae;
+            Saccharomyces.
+FEATURES             Location/Qualifiers
+     source          1..800
+                     /organism="Saccharomyces cerevisiae"
+                     /mol_type="genomic DNA"
+                     /db_xref="taxon:4932"
+                     /chromosome="IX"
+     mRNA            1..206
+                     /product="TCP1-beta"
+     CDS             1..206
+                     /codon_start=3
+                     /product="TCP1-beta"
+                     /protein_id="AAA98665.1"
+                     /translation="SSIYNGISTSGLDLNNGTIADMRQLGIVESYKLKRAVVSSASEAA
+                     EVLLRVDNIIRARPRTANRQHM"
+ORIGIN
+        1 gatcctccat atacaacggt atctccacct caggtttaga tctcaacaac ggaaccattg
+       61 ccgacatgag acagttaggt atcgtcgaga gttacaagct aaaacgagca gtagtcagct
+      121 ctgcatctga agccgctgaa gttctactaa gggtggataa catcatccgt gcaagaccaa
+      181 gaaccgccaa tagacaacat atgtaacata tttaggatat acctcgaaaa taataaaccg
+      241 ccacactgtc attattataa ttagaaacag aacgcaaaaa ttatccacta tataattcaa
+      301 agacgcgaaa aaaaaagaac aacgcgtcat agaacttttg gcaattcgcg tcacaaataa
+      361 attttggcaa cttatgtttc ctcttcgagc agtactcgag cttcttttcc cattcatctc
+      421 tttcttcttc caaagcaacg atccttctac ccatttgctc agagttcaaa tcggcctctt
+      481 tcagtttatc cattgcttcc ttcagtttgg cttcactgtc ttctagctgt tgttctagat
+      541 cctggttttt cttggtgtag ttctcattat tagatctcaa gttattggag tcttcagcca
+      601 attgctttgt atcagacaat tgactctcta acttctccac ttcactgtcg agttgctcgt
+      661 ttttagcgga caaagattta atctcgtttt ctttttcagt gttagattgc tctaattctt
+      721 tgagctgttc tctcagctcc tcatattttt cttgccatga ctcagattct aattttaagc
+      781 tattcaattt ctctttgatc
+//
