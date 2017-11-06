@@ -731,7 +731,7 @@ def amend_metadata(seqbuddy, attr, sub_value, regex):
                                                                                         flags=re.DOTALL)
                 rec.annotations["structured_comment"] = new_structured_comment
         elif attr == "references":
-            if not sub_value and not regex:
+            if not sub_value and regex == ".*":
                 rec.annotations["references"] = []
             elif regex and regex != ".*":
                 rec.annotations.setdefault("references", [])
