@@ -10,7 +10,8 @@
 <a href="https://github.com/biologyguy/BuddySuite/wiki/PhyloBuddy"><img src="https://raw.githubusercontent.com/biologyguy/BuddySuite/master/buddysuite/images/PhyloBuddy-logo.gif" width=25%/></a>
 </p>
 <p align="center">Do fun stuff with biological data files. Seriously, biological data is fun stuff :)</p>
-___
+
+----
 
 ## Description
 The BuddySuite modules are 'one-stop-shop' command-line tools for common biological data file
@@ -55,10 +56,29 @@ All of the individual Buddy toolkits are located in the 'buddysuite' directory a
  [developer page](https://github.com/biologyguy/BuddySuite/wiki/Developers) for further information.
 
 ## Citation
-We are currently working on a [manuscript for peer review](https://github.com/biologyguy/BuddySuite/blob/develop/manuscript/MBE/compile_dir/MBE_article.pdf), but until then
- there is a pre-print on bioRxiv that can be cited if you use BuddySuite in your work.
+[![doi](https://img.shields.io/badge/doi-10.1093/molbev/msx089-blue.svg?style=flat)](https://doi.org/10.1093/molbev/msx089)
 
-[![doi](https://img.shields.io/badge/doi-10.1101.040675-blue.svg?style=flat)](https://doi.org/10.1101/040675)
+If you use BuddySuite in your work, we would greatly appreciate references to our manuscript:
+
+```bibtex
+@article{doi:10.1093/molbev/msx089,
+author = {Bond, Stephen R. and Keat, Karl E. and Barreira, Sofia N. and Baxevanis, Andreas D.},
+title = {BuddySuite: Command-Line Toolkits for Manipulating Sequences, Alignments, and Phylogenetic Trees},
+journal = {Molecular Biology and Evolution},
+volume = {34},
+number = {6},
+pages = {1543-1546},
+year = {2017},
+doi = {10.1093/molbev/msx089},
+URL = { + http://dx.doi.org/10.1093/molbev/msx089},
+eprint = {/oup/backfile/content_public/journal/mbe/34/6/10.1093_molbev_msx089/1/msx089.pdf}
+}
+```
+
+Through a series of unfortunate events and a surprisingly unresponsive publishing company, the manuscript is behind a
+ paywall... Thank goodness for [pre-prints on bioRxiv](https://doi.org/10.1101/040675)!
+
+
 
 ## Contact
 Any comments you have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
