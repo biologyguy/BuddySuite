@@ -106,7 +106,7 @@ def test_amend_metadata_refs(sb_resources, hf, monkeypatch):
     assert hf.buddy2hash(tester) == "b131fd4a1781403a9b870ac4bde2cf3d"
 
     tester = Sb.amend_metadata(tester, "references", "", "")
-    assert hf.buddy2hash(tester) == "0a8462e72f64fcd22544bb153b51b2b6"
+    assert hf.buddy2hash(tester) == "b131fd4a1781403a9b870ac4bde2cf3d"
 
 
 def test_amend_metadata_list_attr(sb_resources, hf, monkeypatch):
