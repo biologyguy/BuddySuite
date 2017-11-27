@@ -2624,89 +2624,46 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology="linear"):
     :param seqbuddy: SeqBuddy object
     :param enzyme_group: list of specific enzyme names
     :param quiet: Suppress stderr
-    :param topology: blahh
+    :param topology: circular or linear sequence
     :return: New seqbuddy object with sequences fragmented
     """
-
-
-    #This function calls find_restriction sites,which already has rules for linear/circular depending on annotation
-    #This may create problems
-
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
 
-    if topology == "circular":
-        print("user defined topology as circular")
-    else:
-        print("linear analysis")
-
-
     seqbuddy_rs_lin = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="linear", quiet=quiet)
-    #forces to run find restriction sites in linear mode even if sequence is annotated as circular and user says circular
     seqbuddy_rs_circ = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="circular", quiet=quiet)
-    #forces to run -frs in circular mode no matter what
-
-    #print(seqbuddy_rs)
     new_records = []
-    #print(seqbuddy_rs.restriction_sites)
-    #[('Mle-Panxα9', OrderedDict([(EcoRI, [15])])), ('Mle-Panxα6', OrderedDict())]
-
-    for indx, rec in enumerate(seqbuddy.records): #create tuple (counter, record)
-        sub_seqbuddy = SeqBuddy([rec]) #pulls out one record
-        #print("oyo", sub_seqbuddy, "blah")
-
+    for indx, rec in enumerate(seqbuddy.records):
+        sub_seqbuddy = SeqBuddy([rec])
         res_sites_lin = [cut_sites for enzym, cut_sites in seqbuddy_rs_lin.restriction_sites[indx][1].items()]
         res_sites_circ = [cut_sites for enzym, cut_sites in seqbuddy_rs_circ.restriction_sites[indx][1].items()]
-        #seqbuddy_rs.restriction_sites[indx][1].items()] is a list of tuples (enzyme, cut site)
-        #res_sites is a list of lists of all cut sites for each selected enzyme
-        #print(res_sites)
-        # Enzyme 1 cuts once, enzyme 2 cuts twice: [[58], [8, 44]]
-
-        if len(res_sites_lin) == len(res_sites_circ):
-            print("circular sequence has same number of cuts as linear sequence")
-
-        elif len(res_sites_lin) < len(res_sites_circ):
-            print("circular sequence has more cuts than linear sequence")
-
-        else:
-            print("something's wrong")
-
-
-
-
-
         res_sites_lin = sorted([cut_site for sublist in res_sites_lin for cut_site in sublist])
-        #res_sites is now a list of all cut sites, regardless of enzyme, sorted
-        #print(res_sites)
-        #[8, 44, 58]
-
+        res_sites_circ = sorted([cut_site for sublist in res_sites_circ for cut_site in sublist])
 
         seq_pointer = 0
+        new_fragments = []
+        if topology == "circular" and not res_sites_circ:
+                new_records.append(sub_seqbuddy.records[0])
 
+        elif topology == "circular" and res_sites_circ[0] != 1:
+                for cut in res_sites_circ:
+                    fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                    new_fragments.append(fragment.records[0])
+                    seq_pointer = cut
+                first_fragment = new_fragments[0]
+                final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, "")).records[0]
+                new_fragments[0] = final_fragment + first_fragment
+                new_records.extend(new_fragments)
 
-        for cut in res_sites_lin:
-            fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-                #First fragment is from 0 to first cut site (index cut -1)
-                #fragment is a seqbuddy object. Only the sequence was changed.
-            new_records.append(fragment.records[0])
-                #append fragment buddyobject to list
-
-            seq_pointer = cut
-                #cut is the new 0
-
-
-
-
-        final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
-            #for loop stops at last cut site, not at the end of sequence
-            #last fragment is from last cut site to end of sequence
-        new_records.append(final_fragment.records[0])
-
-
-            # Do something else
+        else:
+            for cut in res_sites_lin:
+                fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                new_records.append(fragment.records[0])
+                seq_pointer = cut
+            final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+            new_records.append(final_fragment.records[0])
 
     seqbuddy.records = new_records
-    #make a new buddy object with all restriction fragments as records
     return seqbuddy
 
 
