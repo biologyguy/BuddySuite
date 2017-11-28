@@ -34,6 +34,8 @@ def sb_odd_resources():
     # A dict of invalid file resources
     resource_list = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
         ('blank', '{path}blank.fa'),
+        ('circular', '{path}circular.gb'),
+        ('circular_digest', '{path}circular_digest.gb'),
         ('figtree', '{path}figtree.nexus'),
         ('unrecognizable', '{path}unrecognizable.phy'),
         ('gibberish', '{path}gibberish.fa'),

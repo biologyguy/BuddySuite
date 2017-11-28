@@ -1,0 +1,216 @@
+LOCUS       no_rs                     60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  no_rs.
+ACCESSION   no_rs
+VERSION     no_rs
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       EcoRI_mid                 60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  EcoRI_mid.
+ACCESSION   EcoRI_mid
+VERSION     EcoRI_mid
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaagaa ttcaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       EcoRI_2                   60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  EcoRI_2.
+ACCESSION   EcoRI_2
+VERSION     EcoRI_2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 caaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaagaatt
+//
+LOCUS       EcoRI_3                   60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  EcoRI_3.
+ACCESSION   EcoRI_3
+VERSION     EcoRI_3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 caaaaaaaaa aaaaaaaaga attcaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaagaatt
+//
+LOCUS       EcorI_4                   60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  EcorI_4.
+ACCESSION   EcorI_4
+VERSION     EcorI_4
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aattcaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       EcoRI_5                   60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  EcoRI_5.
+ACCESSION   EcoRI_5
+VERSION     EcoRI_5
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aattcaaaaa aaaaaaaaaa aagaattcaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       HpaI_1                    60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  HpaI_1.
+ACCESSION   HpaI_1
+VERSION     HpaI_1
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaaaaa aagttaacaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       HpaI_2                    60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  HpaI_2.
+ACCESSION   HpaI_2
+VERSION     HpaI_2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ttaacaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       HpaI_3                    60 bp    DNA     circular UNK 01-JAN-1980
+DEFINITION  HpaI_3.
+ACCESSION   HpaI_3
+VERSION     HpaI_3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ttaacaaaaa aaaaaaaaaa aaaaaaagtt aacaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       no_rs                     60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  no_rs.
+ACCESSION   no_rs
+VERSION     no_rs
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       EcoRI_mid                 60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  EcoRI_mid.
+ACCESSION   EcoRI_mid
+VERSION     EcoRI_mid
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaagaa ttcaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       EcoRI_2                   60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  EcoRI_2.
+ACCESSION   EcoRI_2
+VERSION     EcoRI_2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 caaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaagaatt
+//
+LOCUS       EcoRI_3                   60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  EcoRI_3.
+ACCESSION   EcoRI_3
+VERSION     EcoRI_3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 caaaaaaaaa aaaaaaaaga attcaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaagaatt
+//
+LOCUS       EcorI_4                   60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  EcorI_4.
+ACCESSION   EcorI_4
+VERSION     EcorI_4
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aattcaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       EcoRI_5                   60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  EcoRI_5.
+ACCESSION   EcoRI_5
+VERSION     EcoRI_5
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aattcaaaaa aaaaaaaaaa aagaattcaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       HpaI_1                    60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  HpaI_1.
+ACCESSION   HpaI_1
+VERSION     HpaI_1
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 aaaaaaaaaa aaaaaaaaaa aagttaacaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa
+//
+LOCUS       HpaI_2                    60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  HpaI_2.
+ACCESSION   HpaI_2
+VERSION     HpaI_2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ttaacaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaaa aaaaaaaaag
+//
+LOCUS       HpaI_3                    60 bp    DNA     linear   UNK 01-JAN-1980
+DEFINITION  HpaI_3.
+ACCESSION   HpaI_3
+VERSION     HpaI_3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ttaacaaaaa aaaaaaaaaa aaaaaaagtt aacaaaaaaa aaaaaaaaaa aaaaaaaaag
+//

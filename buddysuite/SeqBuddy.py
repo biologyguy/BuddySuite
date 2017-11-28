@@ -681,9 +681,9 @@ def _prepare_restriction_sites(parameters):
 
         elif param in ['alpha', 'position']:
             order = param
-        elif param == "circ":
+        elif "circular".startswith(param):
             topology = "circular"
-        elif param == "lin":
+        elif "linear".startswith(param):
             topology = "linear"
         else:
             _enzymes.append(param)
@@ -2618,7 +2618,7 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
-def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology="linear"):
+def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology=None):
     """
     Find restriction sites and break up sequences accordingly
     :param seqbuddy: SeqBuddy object
@@ -2633,6 +2633,7 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology="linear"):
     seqbuddy_rs_lin = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="linear", quiet=quiet)
     seqbuddy_rs_circ = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="circular", quiet=quiet)
     new_records = []
+    cut_type = ""
     for indx, rec in enumerate(seqbuddy.records):
         sub_seqbuddy = SeqBuddy([rec])
         res_sites_lin = [cut_sites for enzym, cut_sites in seqbuddy_rs_lin.restriction_sites[indx][1].items()]
@@ -2640,27 +2641,54 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology="linear"):
         res_sites_lin = sorted([cut_site for sublist in res_sites_lin for cut_site in sublist])
         res_sites_circ = sorted([cut_site for sublist in res_sites_circ for cut_site in sublist])
 
+        if topology == "circular":
+            cut_type = "circular"
+        elif topology == "linear":
+            cut_type = "linear"
+        elif not topology:
+            if "topology" in rec.annotations:
+                cut_type = rec.annotations["topology"]
+            else:
+                cut_type = "linear"
+        else:
+            raise ValueError("Invalid topology. Accepted values are None, 'circular' and 'linear' ")
+
         seq_pointer = 0
         new_fragments = []
-        if topology == "circular" and not res_sites_circ:
+        if cut_type == "circular":
+            if not res_sites_circ:
+                if "topology" in rec.annotations and rec.annotations["topology"] == "linear":
+                    rec.annotations["topology"] = "circular"
                 new_records.append(sub_seqbuddy.records[0])
 
-        elif topology == "circular" and res_sites_circ[0] != 1:
+            elif res_sites_circ[0] != 1:
                 for cut in res_sites_circ:
-                    fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                              , "topology", "linear", "")
                     new_fragments.append(fragment.records[0])
                     seq_pointer = cut
-                first_fragment = new_fragments[0]
-                final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, "")).records[0]
-                new_fragments[0] = final_fragment + first_fragment
+                new_fragments[0] = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                                                  , "topology", "linear", "").records[0] + new_fragments[0]
                 new_records.extend(new_fragments)
 
-        else:
+            elif res_sites_circ[0] == 1:
+                for cut in res_sites_lin:
+                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                              , "topology", "linear", "")
+                    new_records.append(fragment.records[0])
+                    seq_pointer = cut
+                    new_records.append(amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                                                      , "topology", "linear", "").records[0])
+
+        elif cut_type == "linear":
             for cut in res_sites_lin:
-                fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                          , "topology", "linear", "")
                 new_records.append(fragment.records[0])
                 seq_pointer = cut
             final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+            if res_sites_lin:
+                final_fragment = amend_metadata(final_fragment, "topology", "linear", "")
             new_records.append(final_fragment.records[0])
 
     seqbuddy.records = new_records
@@ -5069,6 +5097,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         try:
             seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes), topology=topology)
         except TypeError as e:
+            _raise_error(e, "in_silico_digest")
+        except ValueError as e:
             _raise_error(e, "in_silico_digest")
 
         _print_recs(seqbuddy)
