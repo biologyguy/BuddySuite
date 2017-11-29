@@ -1169,10 +1169,9 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf
     assert hf.string2hash(str(tester.restriction_sites)) == "273def9685d295928025747d9bab971c"
 
     # circular using genbank annotation
-    print(sb_odd_resources["circular"])
     tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]), enzyme_group=["EcoRI", "KspI", "TasI"])
-    assert hf.buddy2hash(tester) == "c4b2c1e40376670ddf4a439125efdff8"
-    assert hf.string2hash(str(tester.restriction_sites)) == "5dc22ac89b9aaa25000334865fd1a9c4"
+    assert hf.buddy2hash(tester) == "6f032158c44ea7e4c52ee8843e270dfe"
+    assert hf.string2hash(str(tester.restriction_sites)) == "4594f7ffa3b8afc2c070c1f33cbe128c"
 
 
 # ######################  '-hsi', '--hash_sequence_ids' ###################### #
@@ -1237,22 +1236,33 @@ def test_insert_seqs_start(sb_resources, hf):
 
 
 # ######################  '-isd', '--in_silico_digest' ###################### #
-def test_in_silico_digest(capsys, sb_resources, hf):
+def test_in_silico_digest(capsys, sb_resources, sb_odd_resources, hf):
     tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
     out, err = capsys.readouterr()
     # The 5539e56 hash is for BioPython 1.70
-    assert hf.buddy2hash(tester) in ['5539e56a557e545a4c16550a972acae6', '471c10855edfa106ccda75920d46ee42']
+    assert hf.buddy2hash(tester) in ['5539e56a557e545a4c16550a972acae6', '2b54cacf0279bcd74d76e510c6bcb828']
     assert "Warning: FooBR not a known enzyme" in err
 
     with pytest.raises(TypeError) as e:
         Sb.in_silico_digest(sb_resources.get_one("p g"))
     assert str(e.value) == "Unable to identify restriction sites in protein sequences."
 
+    with pytest.raises(ValueError) as e:
+        Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI"], topology="cirt")
+    assert str(e.value) == "Invalid topology. Accepted values are None, 'circular' and 'linear' "
+
     # 2-cutters and non-cutters
     Sb.in_silico_digest(tester, enzyme_group=["AjuI", "AlwFI"])
     out, err = capsys.readouterr()
     assert "Warning: Double-cutters not supported." in err
     assert "Warning: No-cutters not supported." in err
+
+    # Circular cuts
+    tester = Sb.SeqBuddy(sb_odd_resources["circular_digest"])
+    tester = Sb.in_silico_digest(tester, enzyme_group=["EcoRI", "HpaI"], topology="circular")
+    assert hf.buddy2hash(tester) == '7b4a311446f845cb7d0b401fec908f03'
+
+
 
 
 # ######################  '-ip', '--isoelectric_point' ###################### #

@@ -878,8 +878,8 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
 
     # The 7a136d11 hash is for BioPython 1.70
-    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "0626acbc0337e0173881f4d77f71df08"], print(out)
-    assert err == "Warning: FooBR not a known enzyme\n"
+    assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "528f990a41774aa3b2d261d5347f4a24"], print(out)
+    assert err == "Warning: FooBR not a known enzyme\nWarning: FooBR not a known enzyme\n"
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
