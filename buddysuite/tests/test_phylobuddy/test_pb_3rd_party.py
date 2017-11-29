@@ -78,7 +78,8 @@ def test_raxml_multiple_searches(alb_resources, hf):
 # ######### PhyML ######### #
 phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
 phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
-if phyml_version not in ["20111216", "20120412", "20131022", "20160207", "3.2.20160701", "3.2.20160531"]:
+if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
+                         "3.2.20160701", "3.2.20160531", "3.3.20170530"]:
     raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 
@@ -86,24 +87,32 @@ def test_phyml_dna(alb_resources, hf):
     # Nucleotide
     tester = alb_resources.get_one("o d py")
     tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
-    assert hf.buddy2hash(tester) in ['b61e75e4706d35e92f2208d438f52771', 'b0bdb3f5bf1fb2e44bef3c16f80c38f2',
-                                     'b9d3f11e332c3589110322e939aa41cc', '754c38fab99c01c68a68c0a59248d242',
-                                     '3ca772c34cdcf0a22c09e1592aba9ebf', 'd7ae1badd31d48487276495bad4522e5']
+    assert hf.buddy2hash(tester) in {'b61e75e4706d35e92f2208d438f52771': "",
+                                     'b0bdb3f5bf1fb2e44bef3c16f80c38f2': "",
+                                     'b9d3f11e332c3589110322e939aa41cc': "",
+                                     '754c38fab99c01c68a68c0a59248d242': "",
+                                     '3ca772c34cdcf0a22c09e1592aba9ebf': "",
+                                     'd7ae1badd31d48487276495bad4522e5': "",
+                                     'e84fb949f1a6ed0296cda4e5a8422423': "3.3.20170530"}, print(tester)
 
 
 def test_phyml_pep(alb_resources, hf):
     # Peptide
     tester = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
-    assert hf.buddy2hash(tester) in ['7caa5c641fa83085c2980efca875112a', '2bf0a204b2de7bc5132aa7073ecfb011',
-                                     '981d16e8f02989a8642095016c88af90', 'd8ee3631002b6603d08272c2b44fd21c',
-                                     '03acc8e899955f7e838852d7d71049ad', 'abe46f3bac533ad2f510bd4657aa9505']
+    assert hf.buddy2hash(tester) in {'7caa5c641fa83085c2980efca875112a': "",
+                                     '2bf0a204b2de7bc5132aa7073ecfb011': "",
+                                     '981d16e8f02989a8642095016c88af90': "",
+                                     'd8ee3631002b6603d08272c2b44fd21c': "",
+                                     '03acc8e899955f7e838852d7d71049ad': "",
+                                     'abe46f3bac533ad2f510bd4657aa9505': "",
+                                     '06f5ec5db5e1a27c07e4e8b5f5850685': "3.3.20170530"}, print(tester)
 
 
 # ######### FastTree ######### #
 fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()
 fasttree_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
-if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9"]:
+if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9", "2.1.10"]:
     raise ValueError("Untested FastTree version (%s). Please update the tests as necessary." % fasttree_version)
 
 
