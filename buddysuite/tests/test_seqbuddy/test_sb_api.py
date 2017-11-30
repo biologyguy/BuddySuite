@@ -1165,7 +1165,7 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf
 
     # circular
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
-    assert hf.buddy2hash(tester) == "e32d97ff2977773cac30db9c9d06efe3"
+    assert hf.buddy2hash(tester) == "e32d97ff2977773cac30db9c9d06efe3", print(tester)
     assert hf.string2hash(str(tester.restriction_sites)) == "273def9685d295928025747d9bab971c"
 
     # circular using genbank annotation
