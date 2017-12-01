@@ -687,9 +687,24 @@ def test_find_restriction_sites_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) in ["793f1dce2c4b1c94ab1051f2e34ea0a4", "b2c38f396fa271bac79ebe980c968cf4"]
     assert hf.string2hash(err) in ["a240a6db9dfc1f2257faa80bc4b1445b", "7fe48f1fb243cecf2833bc67833df55f"]
 
+    # Test protein sequence provided instead of nucleotide
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
     assert "Unable to identify restriction sites in protein sequences." in str(err)
+
+    # Test topology set as linear
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha", "lin"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "793f1dce2c4b1c94ab1051f2e34ea0a4"
+
+    # Test topology set as circular
+    test_in_args = deepcopy(in_args)
+    test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha", "circ"]]
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "729f7fb0d18da69c8847e1cfa4362806"
 
 
 # ######################  '-gbp', '--group_by_prefix' ###################### #
@@ -867,11 +882,13 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.in_silico_digest = [[]]
 
+    # Test no enzymes provided
     tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert err == "Error: Please provide a list of enzymes you wish to cut your sequences with.\n"
 
+    # Test unknown enzymes
     tester = Sb.SeqBuddy(sb_resources.get_one('d g').records[:2])
     test_in_args.in_silico_digest = [["NheI", "XhoI", "TseI", "FooBR"]]
     Sb.command_line_ui(test_in_args, tester, True)
@@ -881,6 +898,7 @@ def test_in_silico_digest_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) in ["7a136d11d0fd17b9833bf26724a794e5", "528f990a41774aa3b2d261d5347f4a24"], print(out)
     assert err == "Warning: FooBR not a known enzyme\nWarning: FooBR not a known enzyme\n"
 
+    # Test protein sequence instead of nucleotide
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
     assert "Unable to identify restriction sites in protein sequences." in str(err)

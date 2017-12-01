@@ -1123,7 +1123,17 @@ def test_restriction_sites_all_emzymes(sb_resources, hf):
                                                              "57b329d60cb4ed80831fcbbcb71c4021": "py3.5",
                                                              "90c8a6d8b17a29a2976b52c02da11b24": "biopython1.71"}
 
+def test_restriction_sites_circular(sb_resources, sb_odd_resources, hf):
 
+    # circular
+    tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
+    assert hf.buddy2hash(tester) == "bae6ae3f0c5c1cb445fac0757d7cb3ac"
+    assert hf.string2hash(str(tester.restriction_sites)) == "4fe2965a8ec37011cb3be4e9cbebcd4c"
+
+    # circular using genbank annotation
+    tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]), enzyme_group=["EcoRI", "KspI", "TasI"])
+    assert hf.buddy2hash(tester) == "6f032158c44ea7e4c52ee8843e270dfe"
+    assert hf.string2hash(str(tester.restriction_sites)) == "4594f7ffa3b8afc2c070c1f33cbe128c"
 
 
 def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf):
@@ -1162,16 +1172,6 @@ def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf
     out, err = capsys.readouterr()
     assert "Warning: Double-cutters not supported." in err
     assert "Warning: No-cutters not supported." in err
-
-    # circular
-    tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
-    assert hf.buddy2hash(tester) == "bae6ae3f0c5c1cb445fac0757d7cb3ac"
-    assert hf.string2hash(str(tester.restriction_sites)) == "4fe2965a8ec37011cb3be4e9cbebcd4c"
-
-    # circular using genbank annotation
-    tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]), enzyme_group=["EcoRI", "KspI", "TasI"])
-    assert hf.buddy2hash(tester) == "6f032158c44ea7e4c52ee8843e270dfe"
-    assert hf.string2hash(str(tester.restriction_sites)) == "4594f7ffa3b8afc2c070c1f33cbe128c"
 
 
 # ######################  '-hsi', '--hash_sequence_ids' ###################### #
@@ -1237,7 +1237,7 @@ def test_insert_seqs_start(sb_resources, hf):
 
 # ######################  '-isd', '--in_silico_digest' ###################### #
 def test_in_silico_digest(capsys, sb_resources, sb_odd_resources, hf):
-    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"])
+    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"], topology="linear")
     out, err = capsys.readouterr()
     # The 5539e56 hash is for BioPython 1.70
     assert hf.buddy2hash(tester) in ['5539e56a557e545a4c16550a972acae6', '2b54cacf0279bcd74d76e510c6bcb828']
@@ -1262,7 +1262,9 @@ def test_in_silico_digest(capsys, sb_resources, sb_odd_resources, hf):
     tester = Sb.in_silico_digest(tester, enzyme_group=["EcoRI", "HpaI"], topology="circular")
     assert hf.buddy2hash(tester) == '7b4a311446f845cb7d0b401fec908f03'
 
-
+    tester = Sb.SeqBuddy(sb_odd_resources["circular_digest"])
+    tester = Sb.in_silico_digest(tester, enzyme_group=["EcoRI", "HpaI"])
+    assert hf.buddy2hash(tester) == 'e7b43b83d52c2a3a1ab53ef35c7918a4'
 
 
 # ######################  '-ip', '--isoelectric_point' ###################### #

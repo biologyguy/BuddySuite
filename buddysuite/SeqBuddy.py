@@ -2427,7 +2427,7 @@ def find_repeats(seqbuddy):
     return seqbuddy
 
 
-def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, topology="linear", quiet=False):
+def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, topology=None, quiet=False):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
     :param seqbuddy: SeqBuddy object
@@ -2633,7 +2633,6 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology=None):
     seqbuddy_rs_lin = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="linear", quiet=quiet)
     seqbuddy_rs_circ = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="circular", quiet=quiet)
     new_records = []
-    cut_type = ""
     for indx, rec in enumerate(seqbuddy.records):
         sub_seqbuddy = SeqBuddy([rec])
         res_sites_lin = [cut_sites for enzym, cut_sites in seqbuddy_rs_lin.restriction_sites[indx][1].items()]
@@ -4292,6 +4291,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
+        """
+        Custom error handling for Seqbuddy UI
+        :param _err: python exception object
+        :param tool: name of tool that the error is being raised from
+        :param check_string: expected error message
+        :return:
+        """
         if pass_through:
             raise _err
         if check_string:
@@ -4893,7 +4899,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         try:
             find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, topology, quiet=in_args.quiet)
         except TypeError as e:
-            _raise_error(e, "find_restriction_sites")
+            _raise_error(e, "find_restriction_sites", check_string='Unable to identify restriction')
 
         br._stderr('# ### Restriction Sites (indexed at cut-site) ### #\n', in_args.quiet)
         for tup in seqbuddy.restriction_sites:
@@ -5097,9 +5103,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         try:
             seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes), topology=topology)
         except TypeError as e:
-            _raise_error(e, "in_silico_digest")
-        except ValueError as e:
-            _raise_error(e, "in_silico_digest")
+            _raise_error(e, "in_silico_digest", check_string='Unable to identify restriction')
 
         _print_recs(seqbuddy)
         _exit("in_silico_digest")
