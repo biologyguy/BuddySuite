@@ -156,8 +156,8 @@ def test_sb_resources_get_one(sb_resources):
 
 
 def test_sb_odd_resources(sb_odd_resources):
-    assert len(sb_odd_resources) == 13
-    for key in ["blank", "figtree", "unrecognizable", "gibberish", "phylipss_cols", "duplicate",
+    assert len(sb_odd_resources) == 15
+    for key in ["blank", "circular", "circular_digest", "figtree", "unrecognizable", "gibberish", "phylipss_cols", "duplicate",
                 "ambiguous_dna", "ambiguous_rna", "blastn", "blastp", "dummy_feats", "cnidaria_pep", "mixed"]:
         assert key in sb_odd_resources
 

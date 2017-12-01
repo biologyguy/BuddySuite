@@ -662,7 +662,7 @@ def make_copy(seqbuddy):
 
 
 def _prepare_restriction_sites(parameters):
-    min_cuts, max_cuts, _enzymes, order = None, None, [], 'position'
+    min_cuts, max_cuts, _enzymes, order, topology = None, None, [], 'position', None
     for param in parameters:
         try:
             param = int(param)
@@ -681,13 +681,17 @@ def _prepare_restriction_sites(parameters):
 
         elif param in ['alpha', 'position']:
             order = param
+        elif "circular".startswith(param):
+            topology = "circular"
+        elif "linear".startswith(param):
+            topology = "linear"
         else:
             _enzymes.append(param)
 
     _enzymes = ["commercial"] if len(_enzymes) == 0 else _enzymes
     max_cuts = min_cuts if min_cuts and not max_cuts else max_cuts
     min_cuts = 1 if not min_cuts else min_cuts
-    return _enzymes, order, min_cuts, max_cuts
+    return _enzymes, order, min_cuts, max_cuts, topology
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
@@ -2423,16 +2427,18 @@ def find_repeats(seqbuddy):
     return seqbuddy
 
 
-def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, quiet=False):
+def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None, topology=None, quiet=False):
     """
     Finds the restriction sites in the sequences in the SeqBuddy object
     :param seqbuddy: SeqBuddy object
     :param enzyme_group: "commercial", "all", or a list of specific enzyme names
     :param min_cuts: The minimum cut threshold
     :param max_cuts: The maximum cut threshold
+    :param topology: linear or circular sequence
     :param quiet: Suppress stderr
     :return: annotated SeqBuddy object, and a dictionary of restriction sites added as the `restriction_sites` attribute
     """
+
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
 
@@ -2479,9 +2485,14 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
     no_cutters_found = False
     double_cutters_found = False
     for rec in seqbuddy.records:
+        linear = True
+        if not topology and 'topology' in rec.annotations:
+            linear = False if rec.annotations['topology'] == 'circular' else True
+        elif topology == "circular":
+            linear = False
         features = ["%s%s%s" % (feat.type, feat.location.start, feat.location.end) for feat in rec.features]
         rec.res_sites = {}
-        analysis = Analysis(batch, rec.seq)
+        analysis = Analysis(batch, rec.seq, linear=linear)
         result = analysis.with_sites()
         for key, value in result.items():
             if key.cut_twice():
@@ -2504,6 +2515,7 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                 rec.res_sites[key] = value
         rec.res_sites = OrderedDict(sorted(rec.res_sites.items(), key=lambda x: x[0]))
         sites.append((rec.id, rec.res_sites))
+
     order_features_alphabetically(seqbuddy)
     seqbuddy.restriction_sites = sites
     if convert_rna:
@@ -2606,31 +2618,78 @@ def insert_sequence(seqbuddy, sequence, location=0, regexes=None):
     return seqbuddy
 
 
-def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False):
+def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology=None):
     """
     Find restriction sites and break up sequences accordingly
     :param seqbuddy: SeqBuddy object
     :param enzyme_group: list of specific enzyme names
     :param quiet: Suppress stderr
+    :param topology: circular or linear sequence
     :return: New seqbuddy object with sequences fragmented
     """
     if seqbuddy.alpha == IUPAC.protein:
         raise TypeError("Unable to identify restriction sites in protein sequences.")
 
-    seqbuddy_rs = find_restriction_sites(make_copy(seqbuddy), enzyme_group, quiet)
+    seqbuddy_rs_lin = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="linear", quiet=quiet)
+    seqbuddy_rs_circ = find_restriction_sites(make_copy(seqbuddy), enzyme_group, topology="circular", quiet=quiet)
     new_records = []
-
     for indx, rec in enumerate(seqbuddy.records):
         sub_seqbuddy = SeqBuddy([rec])
-        res_sites = [cut_sites for enzym, cut_sites in seqbuddy_rs.restriction_sites[indx][1].items()]
-        res_sites = sorted([cut_site for sublist in res_sites for cut_site in sublist])
+        res_sites_lin = [cut_sites for enzym, cut_sites in seqbuddy_rs_lin.restriction_sites[indx][1].items()]
+        res_sites_circ = [cut_sites for enzym, cut_sites in seqbuddy_rs_circ.restriction_sites[indx][1].items()]
+        res_sites_lin = sorted([cut_site for sublist in res_sites_lin for cut_site in sublist])
+        res_sites_circ = sorted([cut_site for sublist in res_sites_circ for cut_site in sublist])
+
+        if topology == "circular":
+            cut_type = "circular"
+        elif topology == "linear":
+            cut_type = "linear"
+        elif not topology:
+            if "topology" in rec.annotations:
+                cut_type = rec.annotations["topology"]
+            else:
+                cut_type = "linear"
+        else:
+            raise ValueError("Invalid topology. Accepted values are None, 'circular' and 'linear' ")
+
         seq_pointer = 0
-        for cut in res_sites:
-            fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-            new_records.append(fragment.records[0])
-            seq_pointer = cut
-        final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
-        new_records.append(final_fragment.records[0])
+        new_fragments = []
+        if cut_type == "circular":
+            if not res_sites_circ:
+                if "topology" in rec.annotations and rec.annotations["topology"] == "linear":
+                    rec.annotations["topology"] = "circular"
+                new_records.append(sub_seqbuddy.records[0])
+
+            elif res_sites_circ[0] != 1:
+                for cut in res_sites_circ:
+                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                              , "topology", "linear", "")
+                    new_fragments.append(fragment.records[0])
+                    seq_pointer = cut
+                new_fragments[0] = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                                                  , "topology", "linear", "").records[0] + new_fragments[0]
+                new_records.extend(new_fragments)
+
+            elif res_sites_circ[0] == 1:
+                for cut in res_sites_lin:
+                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                              , "topology", "linear", "")
+                    new_records.append(fragment.records[0])
+                    seq_pointer = cut
+                    new_records.append(amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                                                      , "topology", "linear", "").records[0])
+
+        elif cut_type == "linear":
+            for cut in res_sites_lin:
+                fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                                          , "topology", "linear", "")
+                new_records.append(fragment.records[0])
+                seq_pointer = cut
+            final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+            if res_sites_lin:
+                final_fragment = amend_metadata(final_fragment, "topology", "linear", "")
+            new_records.append(final_fragment.records[0])
+
     seqbuddy.records = new_records
     return seqbuddy
 
@@ -4232,6 +4291,13 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
             br._stderr("File overwritten at:\n%s\n" % os.path.abspath(file_path), in_args.quiet)
 
     def _raise_error(_err, tool, check_string=None):
+        """
+        Custom error handling for Seqbuddy UI
+        :param _err: python exception object
+        :param tool: name of tool that the error is being raised from
+        :param check_string: expected error message
+        :return:
+        """
         if pass_through:
             raise _err
         if check_string:
@@ -4827,13 +4893,13 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         if not in_args.out_format:
             seqbuddy.out_format = "gb"
 
-        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.find_restriction_sites[0])
+        _enzymes, order, min_cuts, max_cuts, topology = _prepare_restriction_sites(in_args.find_restriction_sites[0])
 
         clean_seq(seqbuddy)
         try:
-            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, quiet=in_args.quiet)
+            find_restriction_sites(seqbuddy, tuple(_enzymes), min_cuts, max_cuts, topology, quiet=in_args.quiet)
         except TypeError as e:
-            _raise_error(e, "find_restriction_sites")
+            _raise_error(e, "find_restriction_sites", check_string='Unable to identify restriction')
 
         br._stderr('# ### Restriction Sites (indexed at cut-site) ### #\n', in_args.quiet)
         for tup in seqbuddy.restriction_sites:
@@ -5027,7 +5093,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
     # In silico digest
     if in_args.in_silico_digest:
-        _enzymes, order, min_cuts, max_cuts = _prepare_restriction_sites(in_args.in_silico_digest[0])
+        _enzymes, order, min_cuts, max_cuts, topology = _prepare_restriction_sites(in_args.in_silico_digest[0])
 
         if not in_args.in_silico_digest[0] or _enzymes == ["commercial"]:
             br._stderr("Error: Please provide a list of enzymes you wish to cut your sequences with.\n")
@@ -5035,9 +5101,9 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
 
         clean_seq(seqbuddy)
         try:
-            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes))
+            seqbuddy = in_silico_digest(seqbuddy, tuple(_enzymes), topology=topology)
         except TypeError as e:
-            _raise_error(e, "in_silico_digest")
+            _raise_error(e, "in_silico_digest", check_string='Unable to identify restriction')
 
         _print_recs(seqbuddy)
         _exit("in_silico_digest")
