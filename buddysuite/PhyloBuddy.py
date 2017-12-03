@@ -210,12 +210,12 @@ class PhyloBuddy(object):
             self.trees = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-            with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
+            with open(os.path.join(tmp_dir.path, "tree.tmp"), "w", encoding="utf-8") as _ofile:
                 in_from_handle = clean_newick(in_from_handle)
                 _ofile.write(in_from_handle)
 
             # Removes figtree data so parser doesn't die
-            figtree = _extract_figtree_metadata("%s/tree.tmp" % tmp_dir.path)
+            figtree = _extract_figtree_metadata(os.path.join(tmp_dir.path, "tree.tmp"))
             if figtree:
                 in_from_handle = figtree[0]
 #                with open("%s/tree.tmp" % tmp_dir.path, "w", encoding="utf-8") as _ofile:
@@ -548,7 +548,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
 
     else:
         tmp_dir = br.TempDir()
-        tmp_in = "{0}/pb_input.aln".format(tmp_dir.path)
+        tmp_in = os.path.join(tmp_dir.path, "pb_input.aln")
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
             parameters = params
@@ -578,7 +578,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             sub_alignbuddy = Alb.clean_seq(sub_alignbuddy)
             sub_alignbuddy.set_format('phylipss') if tool == "phyml" else sub_alignbuddy.set_format('phylipi')
 
-            sub_alignbuddy.write("{0}/pb_input.aln".format(tmp_dir.path))  # Most tree builders require an input file
+            sub_alignbuddy.write(os.path.join(tmp_dir.path, "pb_input.aln"))  # Most tree builders require an input file
 
             if tool == 'raxml':
                 params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
@@ -630,11 +630,11 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                     else:
                         Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
                     file_found = False
-                    for path in ["%s/%s" % (tmp_dir.path, x) for x in ['RAxML_bestTree.result',
-                                                                       'RAxML_bootstrap.result',
-                                                                       'RAxML_bipartitions.result',
-                                                                       'pb_input.aln_phyml_tree',
-                                                                       'pb_input.aln_phyml_tree.txt']]:
+                    for path in [os.path.join(tmp_dir.path, x) for x in ['RAxML_bestTree.result',
+                                                                         'RAxML_bootstrap.result',
+                                                                         'RAxML_bipartitions.result',
+                                                                         'pb_input.aln_phyml_tree',
+                                                                         'pb_input.aln_phyml_tree.txt']]:
                         if os.path.isfile(path):
                             file_found = True
                             break
@@ -652,22 +652,22 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 num_runs = re.search('-[#N] ([0-9]+)', params)
                 num_runs = 0 if not num_runs else int(num_runs.group(1))
                 if re.search('-b [0-9]+', params) or re.search('-x [0-9]+', params):
-                    with open('{0}/RAxML_bootstrap.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                    with open(os.path.join(tmp_dir.path, "RAxML_bootstrap.result"), "r", encoding="utf-8") as result:
                         output += result.read()
-                elif os.path.isfile('{0}/RAxML_bipartitions.result'.format(tmp_dir.path)):
-                    with open('{0}/RAxML_bipartitions.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                elif os.path.isfile(os.path.join(tmp_dir.path, "RAxML_bipartitions.result")):
+                    with open(os.path.join(tmp_dir.path, "RAxML_bipartitions.result"), "r", encoding="utf-8") as result:
                         output += result.read()
-                elif os.path.isfile('{0}/RAxML_bestTree.result'.format(tmp_dir.path)):
-                    with open('{0}/RAxML_bestTree.result'.format(tmp_dir.path), "r", encoding="utf-8") as result:
+                elif os.path.isfile(os.path.join(tmp_dir.path, "RAxML_bestTree.result")):
+                    with open(os.path.join(tmp_dir.path, "RAxML_bestTree.result"), "r", encoding="utf-8") as result:
                         output += result.read()
                 elif num_runs > 1:
                     for tree_indx in range(num_runs):
-                        with open('{0}/RAxML_result.result.RUN.{1}'.format(tmp_dir.path, tree_indx),
+                        with open(os.path.join(tmp_dir.path, "RAxML_result.result.RUN.{}".format(tree_indx)),
                                   "r", encoding="utf-8") as result:
                             output += result.read()
 
             elif tool == 'phyml':
-                phyml_out = '{0}/pb_input.aln_phyml_tree'.format(tmp_dir.path)
+                phyml_out = os.path.join(tmp_dir.path, "pb_input.aln_phyml_tree")
                 phyml_out += '.txt' if not os.path.isfile(phyml_out) else ''
                 with open(phyml_out, "r", encoding="utf-8") as result:
                     output += result.read()
@@ -682,11 +682,11 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if keep_temp:
                 _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
-                    with open("%s/%s" % (_root, file), "r", encoding="utf-8") as ifile:
+                    with open(os.path.join(_root, file), "r", encoding="utf-8") as ifile:
                         contents = ifile.read()
                     for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
-                    with open("%s/%s" % (_root, file), "w", encoding="utf-8") as ofile:
+                    with open(os.path.join(_root, file), "w", encoding="utf-8") as ofile:
                         ofile.write(contents)
             phylo_objs += phylobuddy.trees
 

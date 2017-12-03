@@ -1142,7 +1142,7 @@ def bl2seq(seqbuddy):
         if subject.id == _query.id:
             return
 
-        _blast_res = Popen("%s -query '%s' -subject '%s' -outfmt 6" %
+        _blast_res = Popen('%s -query "%s" -subject "%s" -outfmt 6' %
                            (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
         _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
 
@@ -1156,7 +1156,7 @@ def bl2seq(seqbuddy):
                                                     _blast_res[3], _blast_res[10], _blast_res[11].strip())
 
         with lock:
-            with open("%s%sblast_results.txt" % (tmp_dir.path, os.path.sep), "a", encoding="utf-8") as _ofile:
+            with open(os.path.join(tmp_dir.path, "blast_results.txt"), "a", encoding="utf-8") as _ofile:
                 _ofile.write(_result)
         return
 
@@ -1179,7 +1179,7 @@ def bl2seq(seqbuddy):
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
     seqs_copy = seqbuddy.records[:]
-    subject_file = "%s%ssubject.fa" % (tmp_dir.path, os.path.sep)
+    subject_file = os.path.join(tmp_dir.path, "subject.fa")
     for subject in seqbuddy.records:
         with open(subject_file, "w", encoding="utf-8") as ifile:
             SeqIO.write(subject, ifile, "fasta")
@@ -1187,7 +1187,7 @@ def bl2seq(seqbuddy):
         br.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
         seqs_copy = seqs_copy[1:]
 
-    with open("%s%sblast_results.txt" % (tmp_dir.path, os.path.sep), "r", encoding="utf-8") as _ifile:
+    with open(os.path.join(tmp_dir.path, "blast_results.txt"), "r", encoding="utf-8") as _ifile:
         output_list = _ifile.read().strip().split("\n")
 
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
@@ -1244,10 +1244,12 @@ def blast(subject, query, **kwargs):
             raise ValueError("Trying to compare protein to nucleotide.")
         query_sb = hash_ids(query, r_seed=12345)
         query_sb = clean_seq(query_sb, skip_list="*")
-        query_sb.write("%s%squery.fa" % (tmp_dir.path, os.path.sep), out_format="fasta")
+        query_sb.write(os.path.join(tmp_dir.path, "query.fa"), out_format="fasta")
         dbtype = "prot" if subject.alpha == IUPAC.protein else "nucl"
-        makeblastdb = Popen("makeblastdb -dbtype {0} -in {1}{2}query.fa -out {1}{2}query_db "
-                            "-parse_seqids".format(dbtype, tmp_dir.path, os.path.sep), shell=True,
+        query_path = os.path.join(tmp_dir.path, "query.fa")
+        query_db_path = os.path.join(tmp_dir.path, "query_db")
+        makeblastdb = Popen('makeblastdb -dbtype {0} -in "{1}" -out "{2}" '
+                            '-parse_seqids'.format(dbtype, query_path, query_db_path), shell=True,
                             stdout=PIPE).communicate()[0].decode()
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
@@ -1312,8 +1314,8 @@ def blast(subject, query, **kwargs):
     else:
         kwargs["blast_args"] = ""
 
-    blast_command = "{0} -db '{1}' -query {2}tmp.fa -out {2}out.txt " \
-                    "-outfmt 6 -num_threads {3} -evalue {4} {5}".format(blast_bin, query, tmp_dir.path + os.path.sep,
+    blast_command = '{0} -db "{1}" -query {2}tmp.fa -out {2}out.txt ' \
+                    '-outfmt 6 -num_threads {3} -evalue {4} {5}'.format(blast_bin, query, tmp_dir.path + os.path.sep,
                                                                         num_threads, evalue, kwargs["blast_args"])
 
     br._stderr("Running...\n%s\n\n" %
@@ -1341,7 +1343,8 @@ def blast(subject, query, **kwargs):
 
     with open("%s%sseqs.fa" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as ofile:
         for hit_id in hit_ids:
-            hit = Popen("blastdbcmd -db '%s' -entry \"lcl|%s\"" % (query, hit_id), stdout=PIPE, shell=True).communicate()
+            hit = Popen('blastdbcmd -db "%s" -entry \"lcl|%s\"' % (query, hit_id),
+                        stdout=PIPE, shell=True).communicate()
             hit = hit[0].decode("utf-8")
             hit = re.sub("lcl\|", "", hit)
             ofile.write("%s\n" % hit)
