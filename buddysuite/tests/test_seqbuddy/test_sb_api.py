@@ -395,9 +395,9 @@ Adding sequences from FASTA; added 12 sequences in 0.000432968 seconds.""".encod
             output = ["".encode(), "".encode()]
             out_dir = re.search("-out (.*out.txt)", self.command)
             with open(out_dir.group(1), "w") as ofile:
-                ofile.write("Mle-Panxα12\tem1vubDvb9\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
-                            "Mle-Panxα12\towIvkyuadd\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
-                            "Mle-Panxα2\towIvkyuadd\t100.000\t1314\t0\t0\t1\t1314\t1\t1314\t0.0\t2427\n")
+                ofile.write("Mle-Panx12\tem1vubDvb9\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panx12\towIvkyuadd\t100.000\t1209\t0\t0\t1\t1209\t1\t1209\t0.0\t2233\n"
+                            "Mle-Panx2\towIvkyuadd\t100.000\t1314\t0\t0\t1\t1314\t1\t1314\t0.0\t2427\n")
         elif self.command[:10] == "blastdbcmd":
             if "em1vubDvb9" in self.command:
                 output = [">em1vubDvb9 cDNA - ML25997a.\nATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC".encode("utf-8")]
@@ -434,10 +434,14 @@ def test_blast(monkeypatch, capsys, sb_resources, hf):
 
     assert """\
 # ######################## BLAST results ######################## #
-Mle-Panxα12	Mle-Panxα12	100.000	1209	0	0	1	1209	1	1209	0.0	2233
-Mle-Panxα12	Mle-Panxα2	100.000	1209	0	0	1	1209	1	1209	0.0	2233
-Mle-Panxα2	Mle-Panxα2	100.000	1314	0	0	1	1314	1	1314	0.0	2427
-# ############################################################### #""" in err
+Mle-Panx12	""" in err, print(re.findall("Mle-Panx12.*", str(err)))
+
+    assert """\
+# ######################## BLAST results ######################## #
+Mle-Panx12	Mle-Panxα12	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panx12	Mle-Panxα2	100.000	1209	0	0	1	1209	1	1209	0.0	2233
+Mle-Panx2	Mle-Panxα2	100.000	1314	0	0	1	1314	1	1314	0.0	2427
+# ############################################################### #""" in err, print(str(err))
     assert str(blast) == """\
 >Mle-Panxα12 cDNA - ML25997a.
 ATGGTTATTGACATCCTCTCCGGTTTTAAGGGGATCACGC
@@ -503,7 +507,7 @@ def test_blast_blacklist_args(monkeypatch, capsys, sb_resources, hf):
     query = sb_resources.get_one("d g")
 
     Sb.blast(Sb.make_copy(subject), Sb.make_copy(query),
-             blast_args="-db foo -query bar -subject baz -out there -outfmt 7 -not_black_listed 54")
+             blast_args='-db foo -query bar -subject baz -out there -outfmt 7 -not_black_listed 54')
 
     out, err = capsys.readouterr()
     black_list = ["db", "query", "subject", "out", "outfmt"]

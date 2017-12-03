@@ -426,6 +426,7 @@ def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
 
 
 # ######################  '-gh', '--generate_hmm' ###################### #
+@br.skip_windows
 def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.generate_hmm = [[]]

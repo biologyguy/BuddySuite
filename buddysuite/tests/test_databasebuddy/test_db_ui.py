@@ -1240,6 +1240,9 @@ def test_retrieve_sequences(monkeypatch, capsys, sb_resources, hf):
     dbbuddy = Db.DbBuddy()
     dbbuddy.failures = OrderedDict([("Foo", ValueError("Blahh")), ("Bar", AttributeError("Blahh"))])
     dbbuddy.records = sb_resources.get_one("f d").records
+    for rec in dbbuddy.records:
+        rec.id = re.sub("α", "", rec.id)
+        rec.description = re.sub("α", "", rec.description)
     dbbuddy.records = OrderedDict([(rec.id, rec) for rec in dbbuddy.records])
     for accn, rec in dbbuddy.records.items():
         rec.size = len(rec)
@@ -1249,7 +1252,7 @@ def test_retrieve_sequences(monkeypatch, capsys, sb_resources, hf):
         Db.command_line_ui(test_in_args, dbbuddy)
     out, err = capsys.readouterr()
     assert dbbuddy.out_format == "fasta"
-    assert hf.string2hash(out) == "39d51b7b08a0d7933c4ab9b8fa88928b"
+    assert hf.string2hash(out) == "5438dd48c22fd7b6cf2d3da637d333b6"
     assert err == """\
 # ###################### Failures ###################### #
 Foo

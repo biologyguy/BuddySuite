@@ -35,6 +35,7 @@ class MockPopen(object):
 
 # ##########   PAGAN   ########## #
 # This is tested for PAGAN version 0.61. NOTE: Do not split these up. Only one instance of Pagan can run at a time
+@br.skip_windows
 def test_pagan(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -73,6 +74,7 @@ def test_pagan(sb_resources, hf):
 
 # ##########   PRANK   ########## #
 # PRANK is not deterministic, so just test that something reasonable is returned
+@br.skip_windows
 def test_prank_inputs(sb_resources):
     # FASTA
     tester = Sb.pull_recs(sb_resources.get_one("d f"), 'α1')
@@ -80,6 +82,7 @@ def test_prank_inputs(sb_resources):
     assert tester.out_format == 'fasta'
 
 
+@br.skip_windows
 def test_prank_outputs1(sb_resources):
     # NEXUS
     tester = Sb.pull_recs(sb_resources.get_one("d f"), 'α1')
@@ -87,6 +90,7 @@ def test_prank_outputs1(sb_resources):
     assert tester.out_format == 'nexus'
 
 
+@br.skip_windows
 def test_prank_outputs2(sb_resources):
     # PHYLIPI
     tester = Sb.pull_recs(sb_resources.get_one("d f"), 'α1')
@@ -94,6 +98,7 @@ def test_prank_outputs2(sb_resources):
     assert tester.out_format == 'phylip-relaxed'
 
 
+@br.skip_windows
 def test_prank_outputs3(sb_resources):
     # PHYLIPS
     tester = Sb.pull_recs(sb_resources.get_one("d f"), 'α1')
@@ -102,6 +107,7 @@ def test_prank_outputs3(sb_resources):
 
 
 # ##########   MUSCLE   ########## #
+@br.skip_windows
 def test_muscle_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -109,6 +115,7 @@ def test_muscle_inputs(sb_resources, hf):
     assert hf.buddy2hash(tester) == '5ec18f3e0c9f5cf96944a1abb130232f'
 
 
+@br.skip_windows
 def test_muscle_outputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -116,6 +123,7 @@ def test_muscle_outputs(sb_resources, hf):
     assert hf.buddy2hash(tester) == '91542667cef761ccaf39d8cb4e877944'
 
 
+@br.skip_windows
 def test_muscle_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'muscle', '-clw -diags')
@@ -126,6 +134,7 @@ def test_muscle_multi_param(sb_resources, hf):
 clustalw_bin = 'clustalw' if which('clustalw') else 'clustalw2'
 
 
+@br.skip_windows
 def test_clustalw_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -133,6 +142,7 @@ def test_clustalw_inputs(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446', 'efc9b04f73c72036aa230a8d72da228b']
 
 
+@br.skip_windows
 def test_clustalw_outputs1(sb_resources, hf):
     # NEXUS
     tester = sb_resources.get_one("d f")
@@ -140,6 +150,7 @@ def test_clustalw_outputs1(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e', '7ca92360f0787164664843c895dd98f2']
 
 
+@br.skip_windows
 def test_clustalw_outputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d f")
@@ -147,6 +158,7 @@ def test_clustalw_outputs2(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['a9490f124039c6a2a6193d27d3d01205', 'd3cc272a45fbde4b759460faa8e63ebc']
 
 
+@br.skip_windows
 def test_clustalw_outputs3(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -154,6 +166,7 @@ def test_clustalw_outputs3(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['955440b5139c8e6d7d3843b7acab8446', 'efc9b04f73c72036aa230a8d72da228b']
 
 
+@br.skip_windows
 def test_clustalw_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=phylip -noweights')
@@ -161,13 +174,20 @@ def test_clustalw_multi_param(sb_resources, hf):
 
 
 # ##########   CLUSTAL Omega   ########## #
-clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
-clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True,
-                         stdout=PIPE).communicate()[0].decode().strip()
-if clustalo_version not in ["1.2.3", "1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
-    raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
+@br.skip_windows
+def get_clustalo_version():
+    clustalo_bin = 'clustalo' if which('clustalo') else 'clustalomega'
+    clustalo_version = Popen("{0} --version".format(clustalo_bin), shell=True,
+                             stdout=PIPE).communicate()[0].decode().strip()
+    if clustalo_version not in ["1.2.3", "1.2.2", "1.2.1", "1.2.0", "1.0.3"]:
+        raise ValueError("Untested CLustalO version (%s). Please update the tests as necessary." % clustalo_version)
+    return clustalo_bin
 
 
+clustalo_bin = get_clustalo_version()
+
+
+@br.skip_windows
 def test_clustalomega_inputs1(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -175,6 +195,7 @@ def test_clustalomega_inputs1(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['f5afdc7c76ab822bdc95230329766aba', 'e2f0efc90372b23a1c753629d43a79c4']
 
 
+@br.skip_windows
 def test_clustalomega_inputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d py")
@@ -182,6 +203,7 @@ def test_clustalomega_inputs2(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['8299780bf9485b89a2f3462ead666142', '5d808493da6c0f43a572b2a9257dce4f']
 
 
+@br.skip_windows
 def test_clustalomega_inputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d s")
@@ -190,6 +212,7 @@ def test_clustalomega_inputs3(sb_resources, hf):
                                      'aeb2c5926843402cf620299802946224']
 
 
+@br.skip_windows
 def test_clustalomega_outputs1(sb_resources, hf):
     # CLUSTAL
     tester = sb_resources.get_one("d f")
@@ -197,6 +220,7 @@ def test_clustalomega_outputs1(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['970f6e4389f77a30563763937a3d32bc', '50c48b43089f528714c7933cd0f3f91c']
 
 
+@br.skip_windows
 def test_clustalomega_outputs2(sb_resources, hf):
     # PHYLIP
     tester = sb_resources.get_one("d f")
@@ -204,6 +228,7 @@ def test_clustalomega_outputs2(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['692c6af848bd90966f15908903894dbd', '75ec68313368dac249b40fe63b26777e']
 
 
+@br.skip_windows
 def test_clustalomega_outputs3(sb_resources, hf):
     # STOCKHOLM
     tester = sb_resources.get_one("d f")
@@ -211,6 +236,7 @@ def test_clustalomega_outputs3(sb_resources, hf):
     assert hf.buddy2hash(tester) in ['4c24975c033abcf15911a61cb9663a97', 'c115d474a16c23ca4219fa3d2fc9f154']
 
 
+@br.skip_windows
 def test_clustalomega_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalo_bin, '--outfmt=clustal --iter=1')
@@ -219,6 +245,7 @@ def test_clustalomega_multi_param(sb_resources, hf):
 
 
 # ##########   MAFFT   ########## #
+@br.skip_windows
 def test_mafft_inputs(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
@@ -226,6 +253,7 @@ def test_mafft_inputs(sb_resources, hf):
     assert hf.buddy2hash(tester) == 'f94e0fd591dad83bd94201f0af038904'
 
 
+@br.skip_windows
 def test_mafft_outputs(sb_resources, hf):
     # CLUSTAL
     tester = sb_resources.get_one("d f")
@@ -233,12 +261,14 @@ def test_mafft_outputs(sb_resources, hf):
     assert hf.buddy2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
 
 
+@br.skip_windows
 def test_mafft_multi_param(sb_resources, hf):
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'mafft', '--clustalout --noscore')
     assert hf.buddy2hash(tester) == 'd6046c77e2bdb5683188e5de653affe5'
 
 
+@br.skip_windows
 def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     tester = sb_resources.get_one("d f")
     temp_dir = br.TempDir()
@@ -264,12 +294,14 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
     assert os.path.isfile("{0}{1}ga_temp_files{1}tmp.fa".format(temp_dir.path, os.sep))
 
 
+@br.skip_windows
 def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
     assert hf.buddy2hash(tester) == "a4ab6b2a2ddda38a4d04abc18c54d18b"
 
 
+@br.skip_windows
 def test_generate_alignments_edges1(sb_resources):
     tester = sb_resources.get_one("d f")
 
@@ -285,10 +317,16 @@ def test_generate_alignments_edges1(sb_resources):
         assert "#### Could not find mafft on your system. ####" in str(err)
 
 
-args = [("prank", "-f=phylipi"), (clustalo_bin, "--outfmt=foo"), (clustalw_bin, "-output=foo"),
-        ("prank", "-f=nexus"), ("prank", "-f=foo")]
+@br.skip_windows
+def get_args():
+    return [("prank", "-f=phylipi"), (clustalo_bin, "--outfmt=foo"), (clustalw_bin, "-output=foo"),
+            ("prank", "-f=nexus"), ("prank", "-f=foo")]
 
 
+args = get_args()
+
+
+@br.skip_windows
 @pytest.mark.parametrize("tool,params", args)
 def test_generate_alignments_edges2(tool, params, sb_resources):
     tester = sb_resources.get_one("d f")
@@ -296,12 +334,18 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
     Alb.generate_msa(tester, tool, params, quiet=True)
 
 
-hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
-hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
-if hmmer_version not in ["3.1b2"]:
-    raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
+@br.skip_windows
+def get_hmmer_version():
+    hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
+    hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
+    if hmmer_version not in ["3.1b2"]:
+        raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
 
 
+get_hmmer_version()
+
+
+@br.skip_windows
 def test_generate_hmm(alb_resources, hf, monkeypatch):
     tester = alb_resources.get_one("m p c")
     tester = Alb.generate_hmm(tester)

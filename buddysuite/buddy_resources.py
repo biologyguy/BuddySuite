@@ -58,14 +58,17 @@ from Bio.Alphabet import IUPAC
 # ################################################## MYFUNCS ################################################### #
 class Timer(object):
     def __init__(self):
-        self.current_time = round(time())
+        self.current_time = time()
 
     def start(self):
-        self.current_time = round(time())
+        self.current_time = time()
         return
 
+    def split(self):
+        return time() - self.current_time
+
     def end(self):
-        return pretty_time(round(time()) - self.current_time)
+        return pretty_time(round(time() - self.current_time))
 
 
 class RunTime(object):
@@ -751,6 +754,14 @@ Contributors:
 %s
 ''' % (self.name, self.major, self.minor, self.release_date, self.contributors_string())
         return _output
+
+
+# #################################################### DECORATORS #################################################### #
+def skip_windows(func):
+    def quick_return():
+        return
+
+    return func if os.name != "nt" else quick_return
 
 
 # #################################################### FUNCTIONS ##################################################### #

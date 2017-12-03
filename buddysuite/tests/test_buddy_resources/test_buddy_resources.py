@@ -206,9 +206,8 @@ def test_usable_cpu_count(monkeypatch):
     monkeypatch.setattr(br, 'cpu_count', cpu_func)
     assert br.usable_cpu_count() == 1
 
-# skipping run_multicore function for now
 
-
+@br.skip_windows
 def test_run_multicore_function(monkeypatch, hf):
     temp_file = br.TempFile()
     temp_path = temp_file.path

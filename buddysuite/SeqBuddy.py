@@ -1250,7 +1250,7 @@ def blast(subject, query, **kwargs):
         query_db_path = os.path.join(tmp_dir.path, "query_db")
         makeblastdb = Popen('makeblastdb -dbtype {0} -in "{1}" -out "{2}" '
                             '-parse_seqids'.format(dbtype, query_path, query_db_path), shell=True,
-                            stdout=PIPE).communicate()[0].decode()
+                            stdout=PIPE).communicate()[0].decode("utf-8")
         makeblastdb = re.sub("New DB .*\n", "", makeblastdb.strip())
         makeblastdb = re.sub("Building a new DB", "Building a new DB with makeblastdb", makeblastdb)
         br._stderr("%s\n\n" % makeblastdb, quiet=kwargs["quiet"])

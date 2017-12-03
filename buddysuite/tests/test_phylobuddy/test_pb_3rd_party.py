@@ -18,12 +18,18 @@ import buddy_resources as br
 
 # ######################  'gt', '--generate_trees' ###################### #
 # ######### RAxML ########### #
-raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
-raxml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
-if raxml_version not in ["7.6.6", "8.2.4", "8.2.8", "8.2.9", "8.2.10"]:
-    raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
+@br.skip_windows
+def get_raxml_version():
+    raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
+    raxml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
+    if raxml_version not in ["7.6.6", "8.2.4", "8.2.8", "8.2.9", "8.2.10"]:
+        raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
 
 
+get_raxml_version()
+
+
+@br.skip_windows
 def test_raxml_inputs_nuc(alb_resources, hf):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml')
@@ -33,6 +39,7 @@ def test_raxml_inputs_nuc(alb_resources, hf):
                                      '629fa27f6e636c137257abc6a8a40956', '878e1ca74539e9b969c539bd8743c27e']
 
 
+@br.skip_windows
 def test_raxml_inputs_quiet(alb_resources, hf):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', quiet=True)
@@ -42,6 +49,7 @@ def test_raxml_inputs_quiet(alb_resources, hf):
                                      '629fa27f6e636c137257abc6a8a40956', '878e1ca74539e9b969c539bd8743c27e']
 
 
+@br.skip_windows
 def test_raxml_inputs_pep(alb_resources, hf):
     tester = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(tester, 'raxml')
@@ -50,6 +58,7 @@ def test_raxml_inputs_pep(alb_resources, hf):
                                      'caff20f9bb5192a799ec18db0faa8569', '31218fd9e1b803df09fce22eee8da62e']
 
 
+@br.skip_windows
 def test_raxml_multi_param(alb_resources, hf):
     tester = alb_resources.get_one("o d n")
     tester = Pb.generate_tree(tester, 'raxml', '-m GTRCAT -p 112358 -K MK -N 3')
@@ -60,6 +69,7 @@ def test_raxml_multi_param(alb_resources, hf):
                                      '886a9d841e68c2fd4c6052ad85c4eaf7']
 
 
+@br.skip_windows
 def test_raxml_multiple_searches(alb_resources, hf):
     tester = alb_resources.get_one("o d py")
     tester = Pb.generate_tree(tester, 'raxml', '-N 3')
@@ -76,13 +86,19 @@ def test_raxml_multiple_searches(alb_resources, hf):
 
 
 # ######### PhyML ######### #
-phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
-phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
-if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
-                         "3.2.20160701", "3.2.20160531", "3.3.20170530"]:
-    raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
+@br.skip_windows
+def get_phyml_version():
+    phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
+    phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
+    if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
+                             "3.2.20160701", "3.2.20160531", "3.3.20170530"]:
+        raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 
+get_phyml_version()
+
+
+@br.skip_windows
 def test_phyml_dna(alb_resources, hf):
     # Nucleotide
     tester = alb_resources.get_one("o d py")
@@ -96,6 +112,7 @@ def test_phyml_dna(alb_resources, hf):
                                      'e84fb949f1a6ed0296cda4e5a8422423': "3.3.20170530"}, print(tester)
 
 
+@br.skip_windows
 def test_phyml_pep(alb_resources, hf):
     # Peptide
     tester = alb_resources.get_one("o p py")
@@ -110,12 +127,18 @@ def test_phyml_pep(alb_resources, hf):
 
 
 # ######### FastTree ######### #
-fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()
-fasttree_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
-if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9", "2.1.10"]:
-    raise ValueError("Untested FastTree version (%s). Please update the tests as necessary." % fasttree_version)
+@br.skip_windows
+def get_fasttree_version():
+    fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()
+    fasttree_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
+    if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9", "2.1.10"]:
+        raise ValueError("Untested FastTree version (%s). Please update the tests as necessary." % fasttree_version)
 
 
+get_fasttree_version()
+
+
+@br.skip_windows
 def test_fasttree_inputs(alb_resources, hf):
     temp_dir = br.TempDir()
     # Nucleotide
@@ -142,6 +165,7 @@ def test_fasttree_inputs(alb_resources, hf):
 #    assert hf.buddy2hash(tester) == 'c6f02fe52d111a89120878d36b8fc506'
 
 
+@br.skip_windows
 def test_generate_trees_edge_cases(alb_resources):
     temp_file = br.TempFile()
     tester = alb_resources.get_one("o d n")
