@@ -83,8 +83,14 @@ def test_parse_phylip_format():
 
 def test_timer():
     timer = br.Timer()
+    assert type(timer.start_time) == float
+    start_time = float(timer.start_time)
     timer.start()
+    assert timer.start_time > start_time
     sleep(1)
+    split = timer.split()
+    assert type(split) == float
+    assert split > 1
     assert timer.end() == '1 sec'
 
 

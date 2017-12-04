@@ -58,17 +58,17 @@ from Bio.Alphabet import IUPAC
 # ################################################## MYFUNCS ################################################### #
 class Timer(object):
     def __init__(self):
-        self.current_time = time()
+        self.start_time = time()
 
     def start(self):
-        self.current_time = time()
+        self.start_time = time()
         return
 
     def split(self):
-        return time() - self.current_time
+        return time() - self.start_time
 
     def end(self):
-        return pretty_time(round(time() - self.current_time))
+        return pretty_time(round(time() - self.start_time))
 
 
 class RunTime(object):
