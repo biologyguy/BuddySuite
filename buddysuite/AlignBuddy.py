@@ -210,6 +210,9 @@ class AlignBuddy(object):
         elif self.out_format == "phylipss":
             output = br.phylip_sequential_out(self, relaxed=False)
 
+        elif self.out_format.startswith("nexus"):
+            output = br.nexus_out(self, self.out_format)
+
         else:
             tmp_file = br.TempFile()
             with open(tmp_file.path, "w", encoding="utf-8") as ofile:
@@ -1784,10 +1787,17 @@ def command_line_ui(in_args, alignbuddy, skip_exit=False, pass_through=False):  
     def _print_aligments(_alignbuddy):
         try:
             _output = str(_alignbuddy)
-        except ValueError as err:
-            br._stderr("ValueError: %s\n" % str(err))
+        except ValueError as _err:
+            br._stderr("ValueError: %s\n" % str(_err))
             return False
-
+        except TypeError as _err:  # Catching biopython/nexus issue
+            if " unexpected keyword argument 'interleave'" in str(_err) and _alignbuddy.out_format.startswith("nexus"):
+                br._stderr("WARNING: Attempting to write NEXUS format '%s' with an old version of "
+                           "BioPython. Switching to default nexus.\n" % _alignbuddy.out_format, in_args.quiet)
+                _alignbuddy.out_format = "nexus"
+                _output = str(_alignbuddy)
+            else:
+                raise _err
         if in_args.test:
             br._stderr("*** Test passed ***\n", in_args.quiet)
 

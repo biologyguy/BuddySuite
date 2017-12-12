@@ -401,21 +401,22 @@ class TempDir(object):
 
 class TempFile(object):
     # I really don't like the behavior of tempfile.[Named]TemporaryFile(), so hack TemporaryDirectory() via TempDir()
-    def __init__(self, mode="w", byte_mode=False):
+    def __init__(self, mode="w", byte_mode=False, encoding="utf-8"):
         self._tmp_dir = TempDir()  # This needs to be a persistent (ie self.) variable, or the directory will be deleted
         path, dir_hash = os.path.split(self._tmp_dir.path)
         self.name = dir_hash
         self.path = os.path.join(self._tmp_dir.path, dir_hash)
-        open(self.path, "w", encoding="utf-8").close()
+        open(self.path, "w", encoding=encoding).close()
         self.handle = None
         self.bm = "b" if byte_mode else ""
         self.mode = mode
+        self.encoding = encoding
 
     def open(self, mode=None):
         mode = "%s%s" % (self.mode, self.bm) if not mode else "%s%s" % (mode, self.bm)
         if self.handle:
             self.close()
-        self.handle = open(self.path, mode)
+        self.handle = open(self.path, mode, encoding=self.encoding)
 
     def close(self):
         if self.handle:
@@ -449,7 +450,7 @@ class TempFile(object):
         if already_open:
             position = self.handle.tell()
             self.close()
-        with open(self.path, "r%s" % self.bm) as ifile:
+        with open(self.path, "r%s" % self.bm, encoding=self.encoding) as ifile:
             content = ifile.read()
         if already_open:
             self.open(mode="a")
@@ -463,7 +464,7 @@ class TempFile(object):
         return
 
     def save(self, location):
-        with open(location, "w%s" % self.bm) as ofile:
+        with open(location, "w%s" % self.bm, encoding=self.encoding) as ofile:
             ofile.write(self.read())
         return
 
@@ -961,29 +962,63 @@ def identify_msa_program(msa_alias):
 
 
 def parse_format(_format):
-    available_formats = ["clustal", "embl", "fasta", "genbank", "gb", "nexus", "stockholm",
+    available_formats = ("clustal", "embl", "fasta", "genbank", "gb", "nexus", "nexuss",
+                         "nexusi", "nexus-sequential", "nexus-interleaved", "stockholm",
                          "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
                          "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
                          "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
-                         "phylipss", "phylip-sequential-strict", "nexml", "newick"]
+                         "phylipss", "phylip-sequential-strict", "nexml", "newick")
 
     _format = _format.lower()
-    if _format in ["phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"]:
+    if _format in ("phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"):
         return "phylip"
 
-    if _format in ["phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"]:
+    if _format in ("phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"):
         return "phylip-relaxed"
 
-    if _format in ["phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"]:
+    if _format in ("phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"):
         return "phylipsr"
 
-    if _format in ["phylipss", "phylip-sequential-strict"]:
+    if _format in ("phylipss", "phylip-sequential-strict"):
         return "phylipss"
+
+    if _format in ("nexuss", "nexus-sequential"):
+        return "nexuss"
+
+    if _format in ("nexusi", "nexus-interleaved"):
+        return "nexusi"
 
     if _format not in available_formats:
         raise TypeError("Format type '%s' is not recognized/supported" % _format)
 
     return _format
+
+
+def nexus_out(record_src, out_format):
+    if hasattr(record_src, "alignments"):
+        if len(record_src.alignments) > 1:
+            raise ValueError("NEXUS format does not support multiple alignments in one file.\n")
+        alignment = record_src.alignments[0]
+    elif hasattr(record_src, "records"):
+        alignment = AlignIO.MultipleSeqAlignment(record_src.records, alphabet=record_src.alpha)
+    elif type(record_src) in (list, tuple):
+        alignment = AlignIO.MultipleSeqAlignment(list(record_src))
+    else:
+        raise AttributeError("`record_src` input type '%s' not support by nexus_out.\n" % type(record_src))
+
+    tmp_file = TempFile()
+    writer = AlignIO.NexusIO.NexusWriter(tmp_file.get_handle("w"))
+    if out_format == "nexus":
+        writer.write_alignment(alignment)
+    elif out_format == "nexuss":
+        writer.write_alignment(alignment, interleave=False)
+    elif out_format == "nexusi":
+        writer.write_alignment(alignment, interleave=True)
+    else:
+        raise AttributeError("Unknown NEXUS format '%s'." % out_format)
+    output = tmp_file.read()
+    tmp_file.close()
+    return output
 
 
 def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):

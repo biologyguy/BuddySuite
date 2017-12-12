@@ -164,8 +164,8 @@ def keep_features(seqbuddy, regex(s)):
 # ###################################################### GLOBALS ##################################################### #
 VERSION = br.Version("SeqBuddy", 1, "3.b1", br.contributors, {"year": 2016, "month": 11, "day": 1})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
-                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "phylip-relaxed",
-                  "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
+                  "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "nexuss", "nexusi", "phylip",
+                  "phd", "phylip-relaxed", "phylipss", "phylipsr", "raw", "seqxml", "sff", "stockholm", "tab", "qual"]
 
 
 # ##################################################### SEQBUDDY ##################################################### #
@@ -335,6 +335,9 @@ class SeqBuddy(object):
 
         elif self.out_format == "phylipss":
             output = br.phylip_sequential_out(self, relaxed=False, _type="seqbuddy")
+
+        elif self.out_format.startswith("nexus"):
+            output = br.nexus_out(self, self.out_format)
 
         elif self.out_format == "raw":
             output = "\n\n".join([str(rec.seq) for rec in records])
@@ -4273,15 +4276,26 @@ def argparse_init():
 def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # ToDo: Convert to a class
     # ############################################ INTERNAL FUNCTIONS ################################################ #
     def _print_recs(_seqbuddy):
+        try:
+            _output = str(_seqbuddy)
+        except TypeError as _err:  # Catching biopython/nexus issue
+            if " unexpected keyword argument 'interleave'" in str(_err) and _seqbuddy.out_format.startswith("nexus"):
+                br._stderr("WARNING: Attempting to write NEXUS format '%s' with an old version of "
+                           "BioPython. Switching to default nexus.\n" % _seqbuddy.out_format, in_args.quiet)
+                _seqbuddy.out_format = "nexus"
+                _output = str(_seqbuddy)
+            else:
+                raise _err
+
         if in_args.test:
             br._stderr("*** Test passed ***\n", in_args.quiet)
             pass
 
         elif in_args.in_place:
-            _in_place(str(_seqbuddy), in_args.sequence[0])
+            _in_place(_output, in_args.sequence[0])
 
         else:
-            br._stdout("{0}\n".format(str(_seqbuddy).rstrip()))
+            br._stdout("{0}\n".format(_output.rstrip()))
 
     def _in_place(_output, file_path):
         if not os.path.exists(file_path):

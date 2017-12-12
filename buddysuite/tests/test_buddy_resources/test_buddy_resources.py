@@ -12,6 +12,7 @@ import urllib.request
 import argparse
 import json
 import shutil
+import Bio
 from hashlib import md5
 from time import sleep
 import datetime
@@ -773,6 +774,13 @@ ZeroDivisionError: division by zero
     br.error_report(fake_error, True)
 
 
+def test_preparse_flags():
+    sys.argv = ['buddy_resources.py', "-v", "-foo", "blahh", "-c", "-ns", "57684", "--blast", "--bar"]
+    br.preparse_flags()
+    print(sys.argv)
+    assert sys.argv == ['buddy_resources.py', '-v', ' -foo', 'blahh', '-c', '-ns', "57684", '--blast', " --bar"]
+
+
 def test_flags(capsys, hf):
     contributors = list()
     contributors.append(br.Contributor("Bud", "Suite", "D", commits=10, github="buddysuite"))
@@ -839,16 +847,55 @@ def test_parse_format():
     assert br.parse_format("phylipr") == "phylip-relaxed"
     assert br.parse_format("phylips") == "phylipsr"
     assert br.parse_format("phylipss") == "phylipss"
+    assert br.parse_format("nexus-interleaved") == "nexusi"
+    assert br.parse_format("nexusi") == "nexusi"
+    assert br.parse_format("nexus-sequential") == "nexuss"
+    assert br.parse_format("nexuss") == "nexuss"
 
     with pytest.raises(TypeError):
         br.parse_format("buddy")
 
 
-def test_preparse_flags():
-    sys.argv = ['buddy_resources.py', "-v", "-foo", "blahh", "-c", "-ns", "57684", "--blast", "--bar"]
-    br.preparse_flags()
-    print(sys.argv)
-    assert sys.argv == ['buddy_resources.py', '-v', ' -foo', 'blahh', '-c', '-ns', "57684", '--blast', " --bar"]
+def test_nexus_out(alb_resources, sb_resources, hf):
+    # Do not run tests until BioPython v1.71 has been released
+    if float(Bio.__version__) < 1.71:
+        return
+    else:
+        assert 0, print("This whole if/else block can be deleted now that BioPython v1.71 is out.")
+    # AlignBuddy input
+    buddy = alb_resources.get_one("o p py")
+    nexus = br.nexus_out(buddy, "nexus")
+    assert hf.string2hash(nexus) == "49bf9b3f56104e4f19048523d725f025"
+
+    nexus = br.nexus_out(buddy, "nexusi")
+    assert hf.string2hash(nexus) == "b8ceaaffd5fd4c3b34dbec829a6f9bf1"
+
+    nexus = br.nexus_out(buddy, "nexuss")
+    assert hf.string2hash(nexus) == "49bf9b3f56104e4f19048523d725f025"
+
+    # SeqBuddy input
+    buddy = sb_resources.get_one("p pr")
+    nexus = br.nexus_out(buddy, "nexusi")
+    assert hf.string2hash(nexus) == "542acd54f66f86088f30e52449215245"
+
+    # List input
+    nexus = br.nexus_out(buddy.records, "nexuss")
+    assert hf.string2hash(nexus) == "fa8430bd8b073bd283856561818e7b56"
+
+    # Errors
+    with pytest.raises(ValueError) as err:
+        buddy = alb_resources.get_one("m p py")
+        br.nexus_out(buddy, "nexus")
+    assert "NEXUS format does not support multiple alignments in one file." in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        br.nexus_out("Incorrect input", "nexus")
+    assert "`record_src` input type '<class 'str'>' not support by nexus_out." in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        buddy = sb_resources.get_one("p pr")
+        br.nexus_out(buddy, "unknown_nexus")
+    assert "Unknown NEXUS format 'unknown_nexus'." in str(err)
 
 
 def test_phylip_sequential_out(alb_resources, sb_resources):
