@@ -1022,19 +1022,19 @@ def nexus_out(record_src, out_format):
 def phylip_sequential_out(record_src, relaxed=True):
     output = ""
     if hasattr(record_src, "alignments"):
-        alignments = record_src.alignments
+        records = record_src.alignments
     elif hasattr(record_src, "records"):
-        alignments = [AlignIO.MultipleSeqAlignment(record_src.records, alphabet=record_src.alpha)]
+        records = [record_src.records]
     elif type(record_src) in (list, tuple):
-        alignments = [AlignIO.MultipleSeqAlignment(list(record_src))]
+        records = [list(record_src)]
     else:
         raise AttributeError("`record_src` input type '%s' not support by nexus_out.\n" % type(record_src))
 
-    for alignment in alignments:
+    for rec_set in records:
         ids = []
         id_check = []
         aln_len = 0
-        for rec in alignment:
+        for rec in rec_set:
             if rec.id in id_check:
                 raise PhylipError("Malformed Phylip --> Repeat id '%s'" % rec.id)
             id_check.append(rec.id)
@@ -1042,13 +1042,13 @@ def phylip_sequential_out(record_src, relaxed=True):
                 aln_len = len(str(rec.seq))
 
         max_id_len = 0
-        for rec in alignment:
+        for rec in rec_set:
             if len(str(rec.seq)) != aln_len:
                 raise PhylipError("Malformed Phylip --> The length of record '%s' is incorrect" % rec.id)
             max_id_len = len(rec.id) if len(rec.id) > max_id_len else max_id_len
 
-        output += " %s %s" % (len(alignment), aln_len)
-        for rec in alignment:
+        output += " %s %s" % (len(rec_set), aln_len)
+        for rec in rec_set:
             if relaxed:
                 seq_id = re.sub('[ \t]+', '_', rec.id)
                 output += "\n%s%s" % (seq_id.ljust(max_id_len + 2), rec.seq)
