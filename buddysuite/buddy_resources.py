@@ -416,7 +416,8 @@ class TempFile(object):
         mode = "%s%s" % (self.mode, self.bm) if not mode else "%s%s" % (mode, self.bm)
         if self.handle:
             self.close()
-        self.handle = open(self.path, mode, encoding=self.encoding)
+        encoding = None if self.bm or "b" in mode else self.encoding
+        self.handle = open(self.path, mode, encoding=encoding)
 
     def close(self):
         if self.handle:
@@ -450,7 +451,8 @@ class TempFile(object):
         if already_open:
             position = self.handle.tell()
             self.close()
-        with open(self.path, "r%s" % self.bm, encoding=self.encoding) as ifile:
+        encoding = None if self.bm else self.encoding
+        with open(self.path, "r%s" % self.bm, encoding=encoding) as ifile:
             content = ifile.read()
         if already_open:
             self.open(mode="a")
@@ -464,7 +466,8 @@ class TempFile(object):
         return
 
     def save(self, location):
-        with open(location, "w%s" % self.bm, encoding=self.encoding) as ofile:
+        encoding = None if self.bm else self.encoding
+        with open(location, "w%s" % self.bm, encoding=encoding) as ofile:
             ofile.write(self.read())
         return
 
