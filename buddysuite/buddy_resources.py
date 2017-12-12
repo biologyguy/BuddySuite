@@ -964,7 +964,7 @@ def identify_msa_program(msa_alias):
     return False
 
 
-def parse_format(_format):
+def parse_format(fmt_check):
     available_formats = ("clustal", "embl", "fasta", "genbank", "gb", "nexus", "nexuss",
                          "nexusi", "nexus-sequential", "nexus-interleaved", "stockholm",
                          "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
@@ -972,29 +972,24 @@ def parse_format(_format):
                          "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
                          "phylipss", "phylip-sequential-strict", "nexml", "newick")
 
-    _format = _format.lower()
-    if _format in ("phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"):
-        return "phylip"
+    fmt_check = fmt_check.lower()
+    if fmt_check in ("phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"):
+        fmt_check = "phylip"
+    elif fmt_check in ("phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"):
+        fmt_check = "phylip-relaxed"
+    elif fmt_check in ("phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"):
+        fmt_check = "phylipsr"
+    elif fmt_check in ("phylipss", "phylip-sequential-strict"):
+        fmt_check = "phylipss"
+    elif fmt_check in ("nexuss", "nexus-sequential"):
+        fmt_check = "nexuss"
+    elif fmt_check in ("nexusi", "nexus-interleaved"):
+        fmt_check = "nexusi"
 
-    if _format in ("phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr"):
-        return "phylip-relaxed"
+    if fmt_check not in available_formats:
+        raise TypeError("Format type '%s' is not recognized/supported" % fmt_check)
 
-    if _format in ("phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed"):
-        return "phylipsr"
-
-    if _format in ("phylipss", "phylip-sequential-strict"):
-        return "phylipss"
-
-    if _format in ("nexuss", "nexus-sequential"):
-        return "nexuss"
-
-    if _format in ("nexusi", "nexus-interleaved"):
-        return "nexusi"
-
-    if _format not in available_formats:
-        raise TypeError("Format type '%s' is not recognized/supported" % _format)
-
-    return _format
+    return fmt_check
 
 
 def nexus_out(record_src, out_format):
