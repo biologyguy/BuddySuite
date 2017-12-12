@@ -86,12 +86,13 @@ def test_timer():
     timer = br.Timer()
     assert type(timer.start_time) == float
     start_time = float(timer.start_time)
+    sleep(0.1)
     timer.start()
     assert timer.start_time > start_time
     sleep(1)
     split = timer.split()
     assert type(split) == float
-    assert split > 1
+    assert split >= 1
     assert timer.end() == '1 sec'
 
 
@@ -920,7 +921,7 @@ def test_phylip_sequential_out(alb_resources, sb_resources):
 
     buddy = sb_resources.get_one("d f")
     with pytest.raises(br.PhylipError):
-        br.phylip_sequential_out(buddy, _type="seq")
+        br.phylip_sequential_out(buddy)
 
 
 def test_phylip_sequential_read(alb_odd_resources, hf, capsys):
