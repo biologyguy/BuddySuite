@@ -204,6 +204,7 @@ class AlignBuddy(object):
         if self.out_format in multiple_alignments_unsupported and len(self.alignments) > 1:
             raise ValueError("%s format does not support multiple alignments in one file.\n" % self.out_format)
 
+        output = ""
         if self.out_format == "phylipsr":
             output = br.phylip_sequential_out(self)
 
@@ -211,9 +212,16 @@ class AlignBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False)
 
         elif self.out_format.startswith("nexus"):
-            output = br.nexus_out(self, self.out_format)
-
-        else:
+            try:
+                output = br.nexus_out(self, self.out_format)
+            except ValueError as e:
+                if "Sequences must all be the same length" in str(e):
+                    br._stderr("Warning: Alignment format detected but sequences are different lengths. "
+                               "Format changed to fasta to accommodate proper printing of records.\n\n")
+                    self.out_format = "fasta"
+                else:
+                    raise e
+        if not output:
             tmp_file = br.TempFile()
             with open(tmp_file.path, "w", encoding="utf-8") as ofile:
                 try:

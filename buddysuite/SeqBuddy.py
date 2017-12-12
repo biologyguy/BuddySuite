@@ -330,6 +330,7 @@ class SeqBuddy(object):
                 except KeyError:
                     pass
 
+        output = ""
         if self.out_format == "phylipsr":
             output = br.phylip_sequential_out(self)
 
@@ -337,11 +338,19 @@ class SeqBuddy(object):
             output = br.phylip_sequential_out(self, relaxed=False)
 
         elif self.out_format.startswith("nexus"):
-            output = br.nexus_out(self, self.out_format)
-
+            try:
+                output = br.nexus_out(self, self.out_format)
+            except ValueError as e:
+                if "Sequences must all be the same length" in str(e):
+                    br._stderr("Warning: Alignment format detected but sequences are different lengths. "
+                               "Format changed to fasta to accommodate proper printing of records.\n\n")
+                    self.out_format = "fasta"
+                else:
+                    raise e
         elif self.out_format == "raw":
             output = "\n\n".join([str(rec.seq) for rec in records])
-        else:
+
+        if not output:
             tmp_dir = br.TempDir()
             with open("%s%sseqs.tmp" % (tmp_dir.path, os.path.sep), "w", encoding="utf-8") as _ofile:
                 try:
