@@ -331,10 +331,10 @@ class SeqBuddy(object):
                     pass
 
         if self.out_format == "phylipsr":
-            output = br.phylip_sequential_out(self, _type="seqbuddy")
+            output = br.phylip_sequential_out(self)
 
         elif self.out_format == "phylipss":
-            output = br.phylip_sequential_out(self, relaxed=False, _type="seqbuddy")
+            output = br.phylip_sequential_out(self, relaxed=False)
 
         elif self.out_format.startswith("nexus"):
             output = br.nexus_out(self, self.out_format)

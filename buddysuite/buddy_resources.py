@@ -1021,12 +1021,16 @@ def nexus_out(record_src, out_format):
     return output
 
 
-def phylip_sequential_out(_input, relaxed=True, _type="alignbuddy"):
+def phylip_sequential_out(record_src, relaxed=True):
     output = ""
-    if _type == "alignbuddy":
-        alignments = _input.alignments
+    if hasattr(record_src, "alignments"):
+        alignments = record_src.alignments
+    elif hasattr(record_src, "records"):
+        alignments = [AlignIO.MultipleSeqAlignment(record_src.records, alphabet=record_src.alpha)]
+    elif type(record_src) in (list, tuple):
+        alignments = [AlignIO.MultipleSeqAlignment(list(record_src))]
     else:
-        alignments = [_input.records]
+        raise AttributeError("`record_src` input type '%s' not support by nexus_out.\n" % type(record_src))
 
     for alignment in alignments:
         ids = []
