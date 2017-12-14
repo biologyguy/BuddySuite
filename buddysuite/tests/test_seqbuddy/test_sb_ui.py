@@ -1355,12 +1355,16 @@ def test_pull_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "cd0c1b1406559c1bc2eea1acd1928c3d"
 
     temp_file = br.TempFile()
-    with open(temp_file.path, "w", encoding="utf-8") as ofile:
-        ofile.write("α1\nα2")
+    temp_file.write("α1\nα2")
     test_in_args.pull_records = [temp_file.path]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "cd8d7284f039233e090c16e8aa6b5035"
+
+    temp_file.clear()
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
+    out, err = capsys.readouterr()
+    assert out == "Error: No sequences in object.\n"
 
 
 # ######################  '-prf', '--pull_records_with_feature' ###################### #

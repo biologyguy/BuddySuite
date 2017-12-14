@@ -5410,8 +5410,10 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
             description = False
 
         search_terms = []
+        regex_file = False
         for arg in in_args.pull_records:
             if os.path.isfile(arg):
+                regex_file = True
                 with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
                         search_terms.append(line.strip())
@@ -5421,6 +5423,8 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         search_terms = br.clean_regex(search_terms, in_args.quiet)
         if search_terms:
             seqbuddy = pull_recs(seqbuddy, search_terms, description)
+        elif regex_file:  # If an empty regex file is passed in then return no records
+            seqbuddy.records = []
         _print_recs(seqbuddy)
         _exit("pull_records")
 
