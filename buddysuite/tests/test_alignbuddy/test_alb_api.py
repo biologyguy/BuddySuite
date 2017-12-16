@@ -751,6 +751,20 @@ def test_percent_id(alb_resources):
     assert alignbuddy.alignments[0].percent_ids["Mle-Panxα9"]["Mle-Panxα11"] == 0.5563725490196079
 
 
+# ###########################################  '-pfm', '--pos_freq_mat' ############################################ #
+def test_position_frequency_matrix(alb_resources):
+    for alignbuddy in alb_resources.get_list("o p d r n"):
+        Alb.position_frequency_matrix(alignbuddy)
+        for align, length in zip(alignbuddy.alignments, alignbuddy.lengths()):
+            assert len(align.pfm) == length
+            if alignbuddy.alpha == IUPAC.ambiguous_dna:
+                assert align.pfm[-1]["-"] == 0.769231
+            if alignbuddy.alpha == IUPAC.ambiguous_rna:
+                assert align.pfm[-1]["-"] == 0.769231
+            if alignbuddy.alpha == IUPAC.protein:
+                assert align.pfm[-1]["-"] == 0.692308
+
+
 # ###########################################  '-oi', '--order_ids' ############################################ #
 hashes = [('o d g', '8f1846922f3c4d955c42964ba0c24649', '982e66fa5eeba8de5c570a770042ec10'),
           ('o d n', '132757da01b3caf174d024efdb2c3acd', '286bac7a213997924203622c3357457c'),
