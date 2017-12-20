@@ -2521,7 +2521,8 @@ def find_restriction_sites(seqbuddy, enzyme_group=(), min_cuts=1, max_cuts=None,
                         cut_start = zyme + key.fst3 - 1
                         cut_end = zyme + key.fst5 + abs(key.ovhg) - 1
                         if "%s%s%s" % (str(key), cut_start, cut_end) not in features:
-                            rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end), type=str(key)))
+                            rec.features.append(SeqFeature(FeatureLocation(start=cut_start, end=cut_end),
+                                                           type=str(key)))
                 except TypeError:
                     if not no_cutters_found:
                         br._stderr("Warning: No-cutters not supported.\n", quiet=quiet)
@@ -2677,27 +2678,27 @@ def in_silico_digest(seqbuddy, enzyme_group=(), quiet=False, topology=None):
 
             elif res_sites_circ[0] != 1:
                 for cut in res_sites_circ:
-                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-                                              , "topology", "linear", "")
+                    sb_copy = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                    fragment = amend_metadata(sb_copy, "topology", "linear", "")
                     new_fragments.append(fragment.records[0])
                     seq_pointer = cut
-                new_fragments[0] = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
-                                                  , "topology", "linear", "").records[0] + new_fragments[0]
+                sb_copy = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                new_fragments[0] = amend_metadata(sb_copy, "topology", "linear", "").records[0] + new_fragments[0]
                 new_records.extend(new_fragments)
 
             elif res_sites_circ[0] == 1:
                 for cut in res_sites_lin:
-                    fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-                                              , "topology", "linear", "")
+                    sb_copy = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                    fragment = amend_metadata(sb_copy, "topology", "linear", "")
                     new_records.append(fragment.records[0])
                     seq_pointer = cut
-                    new_records.append(amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
-                                                      , "topology", "linear", "").records[0])
+                    sb_copy = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))
+                    new_records.append(amend_metadata(sb_copy, "topology", "linear", "").records[0])
 
         elif cut_type == "linear":
             for cut in res_sites_lin:
-                fragment = amend_metadata(extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
-                                          , "topology", "linear", "")
+                sb_copy = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, cut - 1))
+                fragment = amend_metadata(sb_copy, "topology", "linear", "")
                 new_records.append(fragment.records[0])
                 seq_pointer = cut
             final_fragment = extract_regions(make_copy(sub_seqbuddy), "%s:%s" % (seq_pointer, ""))

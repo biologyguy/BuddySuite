@@ -78,6 +78,7 @@ def mock_raisesystemexit(*args, **kwargs):
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
+
 parser = argparse.ArgumentParser(prog="SeqBuddy", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                  description='''\
 \033[1mSeqBuddy\033[m
@@ -678,7 +679,7 @@ def test_find_repeats_ui(capsys, sb_resources, sb_odd_resources, hf):
 
 
 # ######################  '-frs', '--find_restriction_sites' ###################### #
-def test_find_restriction_sites_ui(capsys, sb_resources, hf):
+def test_find_restriction_sites_ui(capsys, sb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.find_restriction_sites = [["MaeI", "BseRI", "BccI", "MboII", 3, 4, 2, 5, "alpha"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
@@ -1575,7 +1576,7 @@ def test_shuffle_seqs_ui(capsys, sb_resources, hf):
 
 
 # ######################  '-sfn', '--split_by_file_number' ###################### #
-def test_split_by_file_number(capsys, sb_resources):
+def test_split_by_file_number(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one('d f'))
     test_in_args = deepcopy(in_args)
     os.chdir(TEMP_DIR.path)
@@ -1641,7 +1642,7 @@ def test_split_by_file_number(capsys, sb_resources):
 
 
 # ######################  '-ssn', '--split_by_seq_number' ###################### #
-def test_split_by_seq_number(capsys, sb_resources):
+def test_split_by_seq_number(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one('d f'))
     test_in_args = deepcopy(in_args)
     os.chdir(TEMP_DIR.path)

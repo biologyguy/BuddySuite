@@ -2068,7 +2068,7 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
 
 
 # ##################### '-sfn', 'split_by_file_number' ###################### ##
-def test_split_by_file_number(sb_resources, hf):
+def test_split_by_file_number(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
     # File number % Seq number != 0
     sb_list = Sb.split_by_file_number(tester, file_number=3)
@@ -2100,7 +2100,7 @@ def test_split_by_file_number(sb_resources, hf):
 
 
 # ##################### '-ssn', 'split_by_seq_number' ###################### ##
-def test_split_by_seq_number(sb_resources, hf):
+def test_split_by_seq_number(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
     sb_list = Sb.split_by_seq_number(tester, seq_number=3)
     assert len(sb_list) == 5
