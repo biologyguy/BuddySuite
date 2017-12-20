@@ -1507,12 +1507,16 @@ def clean_regex(patterns, quiet=False):
 # #################################################### VARIABLES ##################################################### #
 
 
-contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
+contributors = [Contributor("Stephen", "Bond", commits=1149, github="https://github.com/biologyguy"),
                 Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
                 Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
+                Contributor("Paul", "Gonzalez", commits=13, github="https://github.com/paulgzlz"),
                 Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
+                Contributor("Connor", "Skennerton", commits=6, github="https://github.com/ctSkennerton"),
                 Contributor("Jason", "Bowen", commits=6, github="https://github.com/jwbowen"),
                 Contributor("Todd", "Smith", commits=5, github="https://github.com/etiology"),
+                Contributor("Sofia", "Barreira", commits=2, github="https://github.com/alicarea"),
+                Contributor("Alex", "Jones", commits=2, github="https://github.com/alexanjm"),
                 Contributor("Adam", "Palmer", commits=2, github="https://github.com/apalm112"),
                 Contributor("Helena", "Mendes-Soares", commits=1, github="https://github.com/mendessoares")]
 
