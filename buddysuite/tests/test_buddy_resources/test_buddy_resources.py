@@ -859,7 +859,7 @@ def test_parse_format():
 
 def test_nexus_out(alb_resources, sb_resources, hf):
     # Do not run tests until BioPython v1.71 has been released
-    if float(Bio.__version__) < 1.71:
+    if float(".".join(Bio.__version__.split(".")[:2])) < 1.71:
         return
     else:
         assert 0, print("This whole if/else block can be deleted now that BioPython v1.71 is out.")
