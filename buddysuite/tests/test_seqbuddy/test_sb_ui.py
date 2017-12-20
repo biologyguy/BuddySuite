@@ -1567,21 +1567,25 @@ def test_split_by_file_number(capsys, sb_resources):
     os.chdir(TEMP_DIR.path)
     os.makedirs('sfn_output_files')
     os.chdir('sfn_output_files')
+    file_name_list = []
+    for idx in range(3):
+        file_name = 'split_seq_' + str(idx) + ".fa"
+        file_name_list.append(file_name)
 
     # Test when no directory is given
     test_in_args.split_by_file_number = [[3]]
     Sb.command_line_ui(test_in_args, tester, skip_exit=True)
     for root, dirs, files in (os.walk('../sfn_output_files')):
-        for idx, file in enumerate(files):
-            assert file == 'split_seq_' + str(idx) + ".fa"
+        for file in files:
+            assert file in file_name_list
 
     # Test when a directory is given
     os.makedirs('sfn_test_dir_1')
-    test_in_args.split_by_file_number = [[5, 'sfn_test_dir_1']]
+    test_in_args.split_by_file_number = [[3, 'sfn_test_dir_1']]
     Sb.command_line_ui(test_in_args, tester, skip_exit=True)
     for root, dirs, files in (os.walk('sfn_test_dir_1')):
-        for idx, file in enumerate(files):
-            assert file == 'split_seq_' + str(idx) + ".fa"
+        for file in files:
+            assert file in file_name_list
 
     # Test when more than two arguments are given
     test_in_args.split_by_file_number = [[5, 12, 4]]
@@ -1610,12 +1614,16 @@ def test_split_by_file_number(capsys, sb_resources):
     # Test using the input file name to create output file names
     test_in_args.sequence[0] = 'Sequence_name.fa'
     open('Sequence_name.fa', 'w').close()
+    file_name_list = []
+    for idx in range(3):
+        file_name = 'Sequence_name_' + str(idx) + ".fa"
+        file_name_list.append(file_name)
     os.makedirs('sfn_test_dir_2')
     test_in_args.split_by_file_number = [[3, 'sfn_test_dir_2']]
     Sb.command_line_ui(test_in_args, tester, skip_exit=True)
     for root, dirs, files in (os.walk('sfn_test_dir_2')):
-        for idx, file in enumerate(files):
-            assert file == "Sequence_name_" + str(idx) + ".fa"
+        for file in files:
+            assert file in file_name_list
 
 
 # ######################  '-d2r', '--transcribe' ###################### #
