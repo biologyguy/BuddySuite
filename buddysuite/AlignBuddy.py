@@ -1449,6 +1449,39 @@ def percent_id(alignbuddy):
     return alignbuddy
 
 
+def position_frequency_matrix(alignbuddy):
+    """
+    Count the frequency of each residue at each position.
+    :param alignbuddy:
+    :return:
+    """
+    for alignment, length in zip(alignbuddy.alignments, alignbuddy.lengths()):
+        if alignbuddy.alpha == IUPAC.ambiguous_dna:
+            residues = {res for res in IUPAC.unambiguous_dna.letters}
+        elif alignbuddy.alpha == IUPAC.ambiguous_rna:
+            residues = {res for res in IUPAC.unambiguous_rna.letters}
+        else:
+            residues = {res for res in IUPAC.protein.letters}
+
+        columns = [{} for _ in range(length)]
+        for col_indx in range(length):
+            for res in alignment[:, col_indx]:
+                residues.add(res)
+                columns[col_indx].setdefault(res, 0)
+                columns[col_indx][res] += 1
+
+        residues = sorted(residues)
+        non_alpha = [char for char in residues if char.isalpha() is False]
+        residues = residues[len(non_alpha):] + non_alpha
+        pfm = [OrderedDict([(res, 0) for res in residues]) for _ in range(length)]
+        num_seqs = len(alignment)
+        for indx, col in enumerate(columns):
+            for res, count in col.items():
+                pfm[indx][res] = round(count / num_seqs, 6)
+        setattr(alignment, "pfm", pfm)
+    return alignbuddy
+
+
 def pull_records(alignbuddy, regex, description=False):
     """
     Retrieves rows with names/IDs matching a search pattern
@@ -2204,6 +2237,22 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
         output = output.strip() + "\n"
         print(output)
         _exit("percent_ids")
+
+    # Position Frequency Matrix
+    if in_args.pos_freq_mat:
+        position_frequency_matrix(alignbuddy)
+        output = ""
+        for indx, alignment in enumerate(alignbuddy.alignments):
+            output += "### Alignment %s ###\n" % (indx + 1)
+            matrix = [["{0:.3f}".format(pos[res]) for pos in alignment.pfm] for res in alignment.pfm[0]]
+            matrix = ["\t".join(res) for res in matrix]
+            counter = 0
+            for res in alignment.pfm[0]:
+                output += "%s\t%s\n" % (res, matrix[counter])
+                counter += 1
+            output += "\n"
+        br._stdout(output)
+        _exit("pos_freq_mat")
 
     # Pull records
     if in_args.pull_records:

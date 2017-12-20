@@ -592,6 +592,16 @@ def test_percent_id_ui(capsys, alb_resources, hf):
     assert hf.string2hash(out) == "55553113f5ee206041f085488029d4b5"
 
 
+# ###########################################  '-pfm', '--pos_freq_mat' ############################################ #
+def test_position_frequency_matrix_ui(capsys, alb_resources, hf):
+    test_in_args = deepcopy(in_args)
+    test_in_args.pos_freq_mat = True
+
+    Alb.command_line_ui(test_in_args, alb_resources.get_one("m p s"), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "a229988a3fdae4f089b91f5047ad816d", print(out)
+
+
 # ##################### '-pr', '--pull_records' ###################### ##
 def test_pull_records_ui(capsys, alb_resources, hf):
     test_in_args = deepcopy(in_args)
