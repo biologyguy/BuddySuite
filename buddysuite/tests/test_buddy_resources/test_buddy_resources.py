@@ -733,7 +733,7 @@ def test_error_report(monkeypatch):
     fake_error = """\
 # SeqBuddy: 1.2b6
 # Function: order_ids
-# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
+# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Apple LLVM 4.2 (clang-425.0.28)]
 # Platform: darwin
 # User: hashless
 # Date: 2016-10-03
