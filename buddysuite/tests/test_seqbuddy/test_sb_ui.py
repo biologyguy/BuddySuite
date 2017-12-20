@@ -706,9 +706,9 @@ MaeI	713, 1181""" in err
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
     assert """FEATURES             Location/Qualifiers
-     LpnPI           75..78
-     LpnPI           81..84
-     LpnPI           118..121""" in out
+     LpnPI           66..69
+     LpnPI           103..106
+     LpnPI           146..149""" in out
 
     # Test topology set as circular
     test_in_args = deepcopy(in_args)
@@ -716,10 +716,10 @@ MaeI	713, 1181""" in err
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
     assert """FEATURES             Location/Qualifiers
-     LpnPI           1347..1350
-     LpnPI           75..78
-     LpnPI           81..84
-     LpnPI           118..121""" in out
+     LpnPI           1227..1230
+     LpnPI           66..69
+     LpnPI           103..106
+     LpnPI           146..149""" in out
 
 
 # ######################  '-gbp', '--group_by_prefix' ###################### #

@@ -1154,14 +1154,16 @@ def test_restriction_sites_circular(sb_resources, sb_odd_resources, hf):
 
     # circular
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
-    assert """LpnPI           1347..1350
-     LpnPI           75..78
-     LpnPI           81..84
-     LpnPI           118..121
-     LpnPI           216..219
+    assert """LpnPI           1227..1230
+     LpnPI           66..69
+     LpnPI           103..106
+     LpnPI           146..149
+     LpnPI           167..170
      LpnPI           223..226
-     LpnPI           250..253
-     LpnPI           305..308""" in str(tester)
+     LpnPI           281..284
+     LpnPI           308..311
+     LpnPI           320..323
+     LpnPI           397..400""" in str(tester)
 
     res_sites = [x for x in tester.restriction_sites if x[0] == "Mle-Panxα1"][0][1]
     new_res_dict = {}
