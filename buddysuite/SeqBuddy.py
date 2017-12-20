@@ -3743,6 +3743,40 @@ def shuffle_seqs(seqbuddy, r_seed=None):
     return seqbuddy
 
 
+def split_by_file_number(seqbuddy, file_number):
+    """
+    Splits SeqBuddy object with multiple records into set number of SeqBuddy objects
+    :param seqbuddy: SeqBuddy object
+    :param file_number: number of output Seqbuddy objects
+    :return: A list of seqbuddy objects
+    """
+    counter = 1
+    indx = 0
+    uneven_counter = 1
+    new_seqbuddies = dict()
+    new_seqbuddies[indx] = []
+    quotient = len(seqbuddy.records) // file_number
+    remainder = len(seqbuddy.records) % file_number
+    for rec in seqbuddy.records:
+        seq_number = quotient + 1 if uneven_counter <= remainder else quotient
+        if counter <= seq_number:
+            new_seqbuddies[indx].append(rec)
+            counter += 1
+        elif counter > seq_number:
+            indx += 1
+            uneven_counter += 1
+            new_seqbuddies[indx] = []
+            new_seqbuddies[indx].append(rec)
+            counter = 2
+
+    split_buddies = []
+    for key in new_seqbuddies:
+        new_buddy = make_copy(seqbuddy)
+        new_buddy.records = new_seqbuddies[key]
+        split_buddies.append(new_buddy)
+    return split_buddies
+
+
 def taxonomic_breakdown(seqbuddy, max_depth=5):
     max_depth = abs(max_depth)
     taxonomy_dict = OrderedDict([("rec_ids", [])])
@@ -5546,7 +5580,48 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         _print_recs(shuffle_seqs(seqbuddy, r_seed=in_args.random_seed))
         _exit("shuffle_seqs")
 
-    # Taxanomic breakdown
+    # Split by file number
+    if in_args.split_by_file_number:
+        file_num = 0
+        output_path = ""
+        if len(in_args.split_by_file_number[0]) > 2:
+            _raise_error(AttributeError("Please provide one or two arguments"), "split_by_file_number")
+        if os.path.isfile(str(in_args.sequence[0])):
+            input_file_name = in_args.sequence[0]
+        else:
+            input_file_name = "split_seq.fa"
+        for arg in in_args.split_by_file_number[0]:
+            try:
+                arg = int(arg)
+            except ValueError:
+                pass
+            if type(arg) == int:
+                if file_num == 0:
+                    file_num = arg
+                else:
+                    _raise_error(AttributeError("Please provide only one number of files."),
+                                 "split_by_file_number")
+            elif os.path.isdir(arg):
+                output_path = arg
+            elif type(arg) == str:
+                _raise_error(AttributeError(str(arg) + " is not an existing directory."), "split_by_file_number")
+        input_file_name = os.path.splitext(input_file_name)[0] + "_"
+        if output_path:
+            out_dir = output_path
+        else:
+            out_dir = os.getcwd()
+        if file_num < 1:
+            _raise_error(AttributeError("Please provide a valid number of output files.\n"), "split_by_file_number")
+        else:
+            for idx, sb in enumerate(split_by_file_number(seqbuddy, file_num)):
+                output_file_name = "%s%s%s.%s" % (out_dir, os.path.sep, input_file_name + str(idx),
+                                                  br.format_to_extension[sb.out_format])
+                br._stderr("New file: %s\n" % output_file_name, in_args.quiet)
+                sb.write(output_file_name)
+        _exit("split_by_file_number")
+
+
+    # Taxonomic breakdown
     if in_args.taxonomic_breakdown:
         depth = 5 if in_args.taxonomic_breakdown[0] is None else abs(in_args.taxonomic_breakdown[0])
         print(taxonomic_breakdown(seqbuddy, depth))

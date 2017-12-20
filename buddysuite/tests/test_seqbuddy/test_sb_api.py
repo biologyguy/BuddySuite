@@ -2028,6 +2028,38 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
+# ##################### '-sfn', 'split_by_file_number' ###################### ##
+def test_split_by_file_number(sb_resources, hf):
+    tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
+    # File number % Seq number != 0
+    sb_list = Sb.split_by_file_number(tester, file_number=3)
+    assert len(sb_list) == 3
+    counter = 0
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        for record in seqbuddy.records:
+            assert record.id == tester.records[counter].id
+            assert record.seq == tester.records[counter].seq
+            counter += 1
+
+    # File number % Seq number == 0
+    tester = Sb.SeqBuddy(sb_resources.get_one("p g"))
+    sb_list = Sb.split_by_file_number(tester, file_number=13)
+    assert len(sb_list) == 13
+    counter = 0
+    for seqbuddy in sb_list:
+        assert type(seqbuddy) == Sb.SeqBuddy
+        for record in seqbuddy.records:
+            assert record.id == tester.records[counter].id
+            assert record.seq == tester.records[counter].seq
+            counter += 1
+
+    # File number > Seq number
+    tester = Sb.SeqBuddy(sb_resources.get_one("d py"))
+    sb_list = Sb.split_by_file_number(tester, file_number=13)
+    assert len(sb_list) == 8
+
+
 # ######################  '-tb', '--taxonomic_breakdown' ###################### #
 def test_taxonomic_breakdown(sb_resources):
     tester = sb_resources.get_one("p g")
