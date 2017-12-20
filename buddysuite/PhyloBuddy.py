@@ -125,7 +125,7 @@ def decode_accessions(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "3.b1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("PhyloBuddy", 1, "3.0", br.contributors, {"year": 2017, "month": 12, "day": 20})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
