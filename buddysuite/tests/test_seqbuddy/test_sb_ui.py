@@ -1560,6 +1560,64 @@ def test_shuffle_seqs_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) != "b831e901d8b6b1ba52bad797bad92d14"
 
 
+# ######################  '-sfn', '--split_by_file_number' ###################### #
+def test_split_by_file_number(capsys, sb_resources):
+    tester = Sb.SeqBuddy(sb_resources.get_one('d f'))
+    test_in_args = deepcopy(in_args)
+    os.chdir(TEMP_DIR.path)
+    os.makedirs('sfn_output_files')
+    os.chdir('sfn_output_files')
+
+    # Test when no directory is given
+    test_in_args.split_by_file_number = [[3]]
+    Sb.command_line_ui(test_in_args, tester, skip_exit=True)
+    for root, dirs, files in (os.walk('../sfn_output_files')):
+        for idx, file in enumerate(files):
+            assert file == 'split_seq_' + str(idx) + ".fa"
+
+    # Test when a directory is given
+    os.makedirs('sfn_test_dir_1')
+    test_in_args.split_by_file_number = [[5, 'sfn_test_dir_1']]
+    Sb.command_line_ui(test_in_args, tester, skip_exit=True)
+    for root, dirs, files in (os.walk('sfn_test_dir_1')):
+        for idx, file in enumerate(files):
+            assert file == 'split_seq_' + str(idx) + ".fa"
+
+    # Test when more than two arguments are given
+    test_in_args.split_by_file_number = [[5, 12, 4]]
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Please provide one or two arguments" in str(err)
+
+    # Test when two arguments are given, but both are integers
+    test_in_args.split_by_file_number = [[5, 12]]
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Please provide only one number of files" in str(err)
+
+    # Test when the given directory does not exist
+    test_in_args.split_by_file_number = [[7, 'doobedoobedoo']]
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "doobedoobedoo is not an existing directory." in str(err)
+
+    # Test when the number of files is not valid
+    test_in_args.split_by_file_number = [[-2, 'sfn_test_dir_1']]
+    with pytest.raises(AttributeError) as err:
+        Sb.command_line_ui(test_in_args, tester, pass_through=True)
+    assert "Please provide a valid number of output files." in str(err)
+
+    # Test using the input file name to create output file names
+    test_in_args.sequence[0] = 'Sequence_name.fa'
+    open('Sequence_name.fa', 'w').close()
+    os.makedirs('sfn_test_dir_2')
+    test_in_args.split_by_file_number = [[3, 'sfn_test_dir_2']]
+    Sb.command_line_ui(test_in_args, tester, skip_exit=True)
+    for root, dirs, files in (os.walk('sfn_test_dir_2')):
+        for idx, file in enumerate(files):
+            assert file == "Sequence_name_" + str(idx) + ".fa"
+
+
 # ######################  '-d2r', '--transcribe' ###################### #
 def test_transcribe_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
