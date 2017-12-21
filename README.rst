@@ -81,10 +81,10 @@ If you use BuddySuite in your work, we would greatly appreciate references to ou
    doi = {10.1093/molbev/msx089},
    URL = { + http://dx.doi.org/10.1093/molbev/msx089},
    eprint = {/oup/backfile/content_public/journal/mbe/34/6/10.1093_molbev_msx089/1/msx089.pdf}
-}
+   }
 
 Through a series of unfortunate events and a surprisingly unresponsive publishing company, the manuscript is behind a
- paywall... Thank goodness for `pre-prints on bioRxiv <https://doi.org/10.1101/040675`__ !
+paywall... Thank goodness for `pre-prints on bioRxiv <https://doi.org/10.1101/040675>`__ !
 
 |DOI|
 
