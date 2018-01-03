@@ -718,11 +718,11 @@ class Usage(object):
 
 
 class Version(object):
-    def __init__(self, name, major, minor, _contributors, release_date=None):
+    def __init__(self, name, major, minor, contributors, release_date=None):
         self.name = name
         self.major = major
         self.minor = minor
-        self.contributors = _contributors  # This needs to be a list of Contributor objects
+        self.contributors = contributors  # This needs to be a list of Contributor objects
         if not release_date:
             self.release_date = datetime.date.today()
         else:
@@ -749,10 +749,12 @@ class Version(object):
 %s %s.%s (%s)
 
 Public Domain Notice
+--------------------
 This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+--------------------
 
 Contributors:
 %s

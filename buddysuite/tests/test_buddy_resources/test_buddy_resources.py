@@ -644,11 +644,21 @@ def test_version():
     version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
     assert version.short() == "3.5"
     assert version.contributors_string() == "Bud D Suite  buddysuite\nSweet Water  sweetwater"
-    version_string = re.sub("[\n| ]", "", str(version))
-    assert version_string == "BudddySuite3.5(2016-07-13)PublicDomainNoticeThisisfreesoftware;seethesourcefordetailed" \
-                             "copyingconditions.ThereisNOwarranty;notevenforMERCHANTABILITYorFITNESSFORAPARTICULAR" \
-                             "PURPOSE.Questions/comments/concernscanbedirectedtoSteveBond,steve.bond@nih.gov" \
-                             "Contributors:BudDSuitebuddysuiteSweetWatersweetwater"
+    assert str(version) == """\
+BudddySuite 3.5 (2016-07-13)
+
+Public Domain Notice
+--------------------
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+--------------------
+
+Contributors:
+Bud D Suite  buddysuite
+Sweet Water  sweetwater
+""", print(str(version))
 
 
 def test_config_values(monkeypatch):
