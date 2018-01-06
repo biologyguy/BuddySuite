@@ -422,7 +422,7 @@ def display_trees(phylobuddy):
     :return: None
     """
     import pylab
-    if os.name != "nt" and "DISPLAY" not in os.environ:
+    if os.name != "nt" and sys.platform != "darwin" and "DISPLAY" not in os.environ:
         # We just assume that a Windows machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
