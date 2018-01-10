@@ -102,7 +102,7 @@ get_phyml_version()
 def test_phyml_dna(alb_resources, hf):
     # Nucleotide
     tester = alb_resources.get_one("o d py")
-    tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345')
+    tester = Pb.generate_tree(tester, 'phyml', '-m GTR --r_seed 12345', r_seed=12345)
     assert hf.buddy2hash(tester) in {'b61e75e4706d35e92f2208d438f52771': "",
                                      'b0bdb3f5bf1fb2e44bef3c16f80c38f2': "",
                                      'b9d3f11e332c3589110322e939aa41cc': "",
@@ -116,7 +116,7 @@ def test_phyml_dna(alb_resources, hf):
 def test_phyml_pep(alb_resources, hf):
     # Peptide
     tester = alb_resources.get_one("o p py")
-    tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345')
+    tester = Pb.generate_tree(tester, 'phyml', '-m Blosum62 --r_seed 12345', r_seed=12345)
     assert hf.buddy2hash(tester) in {'7caa5c641fa83085c2980efca875112a': "",
                                      '2bf0a204b2de7bc5132aa7073ecfb011': "",
                                      '981d16e8f02989a8642095016c88af90': "",
@@ -163,6 +163,40 @@ def test_fasttree_inputs(alb_resources, hf):
 #    tester = alb_resources.get_one("m d pr")
 #    tester = Pb.generate_tree(tester, 'FastTree', '-seed 12345 -wag -fastest -log %s' % temp_file.path)
 #    assert hf.buddy2hash(tester) == 'c6f02fe52d111a89120878d36b8fc506'
+
+
+# ######### IQ-TREE ######### #
+@br.skip_windows
+def get_iqtree_version():
+    iqtree_version = Popen("iqtree -h", shell=True, stderr=PIPE, stdout=PIPE).communicate()[0].decode()
+    iqtree_version = re.search("version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
+    if iqtree_version not in ["1.5.5", "1.6.1"]:
+        raise ValueError("Untested IQ-TREE version (%s). Please update the tests as necessary." % iqtree_version)
+
+
+get_iqtree_version()
+
+
+@br.skip_windows
+def test_iqtree_inputs(alb_resources, hf, capsys):
+    temp_dir = br.TempDir()
+    # Nucleotide
+    alignbuddy = alb_resources.get_one("o d py")
+
+    tester = Pb.generate_tree(alignbuddy, 'iqtree', '-m JC -seed 12345 -nt 1', r_seed=12345)
+    capsys.readouterr()
+    assert hf.buddy2hash(tester) in {'08d1c7473503e52af5750caa79db1a0e': "1.5.5",
+                                     '476efd414108a677c8ae0b8dba55c677': "1.6.1"}, print(tester)
+
+    alignbuddy = alb_resources.get_one("o p py")
+    tester = Pb.generate_tree(alignbuddy, 'iqtree', '-m LG -seed 12345 -nt 1',
+                              keep_temp=os.path.join(temp_dir.path, "new_dir"), r_seed=12345)
+    assert hf.buddy2hash(tester) in {'4b4c79ddcae0836db33bc118f0b17292': '1.5.5',
+                                     '2abb71ad0bc5b61bcf1437e2485669b4': "1.6.1"}, print(tester)
+
+    root, dirs, files = next(os.walk(os.path.join(temp_dir.path, 'new_dir')))
+    assert sorted(files) == ['pb_input.aln', 'pb_input.aln.bionj', 'pb_input.aln.ckp.gz',
+                             'pb_input.aln.iqtree', 'pb_input.aln.log', 'pb_input.aln.mldist', 'pb_input.aln.treefile']
 
 
 @br.skip_windows

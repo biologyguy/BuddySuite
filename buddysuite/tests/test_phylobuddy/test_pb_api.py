@@ -81,6 +81,8 @@ def test_display_trees_error(pb_resources, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     monkeypatch.setattr(os, "name", "posix")
+    monkeypatch.setattr(Pb.sys, "platform", "blahh")
+
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
             del os.environ['DISPLAY']
