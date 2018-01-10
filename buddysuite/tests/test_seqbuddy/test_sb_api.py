@@ -1163,7 +1163,7 @@ def test_restriction_sites_circular(sb_resources, sb_odd_resources, hf):
      LpnPI           281..284
      LpnPI           308..311
      LpnPI           320..323
-     LpnPI           397..400""" in str(tester), print(tester)
+     LpnPI           397..400""" in str(tester)
 
     res_sites = [x for x in tester.restriction_sites if x[0] == "Mle-Panxα1"][0][1]
     new_res_dict = {}

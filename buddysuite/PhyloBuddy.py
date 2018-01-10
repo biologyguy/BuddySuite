@@ -125,7 +125,7 @@ def decode_accessions(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "4b", br.contributors, {"year": 2017, "month": 12, "day": 20})
+VERSION = br.Version("PhyloBuddy", 1, "4b", br.contributor_list, {"year": 2017, "month": 12, "day": 20})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -422,7 +422,7 @@ def display_trees(phylobuddy):
     :return: None
     """
     import pylab
-    if os.name != "nt" and "DISPLAY" not in os.environ:
+    if os.name != "nt" and sys.platform != "darwin" and "DISPLAY" not in os.environ:
         # We just assume that a Windows machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
