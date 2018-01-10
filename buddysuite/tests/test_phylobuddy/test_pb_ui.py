@@ -177,6 +177,7 @@ def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     monkeypatch.setattr(os, "name", "posix")
     # noinspection PyUnresolvedReferences
+    monkeypatch.setattr(sys, "platform", "blahh")
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
             del os.environ['DISPLAY']
