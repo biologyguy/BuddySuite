@@ -631,6 +631,10 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                     params += ' -st DNA'
                 else:
                     params += ' -st AA'
+
+                if "-nt" not in params:
+                    params += ' -nt AUTO'
+
                 command = '{0} -s {1} {2}'.format(alias, tmp_in, params)
                 os.chdir(tmp_dir.path)
             output = ''
