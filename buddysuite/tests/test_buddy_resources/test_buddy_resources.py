@@ -531,6 +531,12 @@ def test_ask_unix(monkeypatch):
         assert not br.ask("test", default="no")
 
 
+def test_num_sorted():
+    test_list = ["aaab_10_56", "aaab_10", "aaab_3", "aaab_10_1", "aab_10.56", "aab.3", "aab_10.1", "aab.10"]
+    assert br.num_sorted(test_list) == ["aaab_3", "aaab_10", "aaab_10_1", "aaab_10_56",
+                                        "aab.3", "aab.10", "aab_10.1", "aab_10.56"], print(br.num_sorted(test_list))
+
+
 def test_guesserror():
     with pytest.raises(br.GuessError):
         error = br.GuessError("test")

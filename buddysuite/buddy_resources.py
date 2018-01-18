@@ -597,6 +597,19 @@ def ask(input_prompt, default="yes", timeout=0):
         return False
 
 
+def num_sorted(input_list):
+    """
+    Sort a list of strings in the way that takes embedded numbers into account
+    """
+    def convert(text):
+        return int(text) if text.isdigit() else text
+
+    def alpha_num_key(key):
+        return [convert(c) for c in re.split('([0-9]+)', key)]
+
+    return sorted(input_list, key=alpha_num_key)
+
+
 # ##################################################### CLASSES ###################################################### #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
