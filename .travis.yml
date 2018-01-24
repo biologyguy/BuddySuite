@@ -13,9 +13,11 @@ install:
   - /home/travis/miniconda/bin/conda config --add channels bioconda
   - /home/travis/miniconda/bin/conda update -q conda
   - /home/travis/miniconda/bin/conda info -a
-  - /home/travis/miniconda/bin/conda install dill scipy numpy six fasttree raxml mafft prank muscle blast hmmer
+  - /home/travis/miniconda/bin/conda install -q dill scipy numpy six fasttree raxml mafft prank muscle blast hmmer iqtree
   - /home/travis/miniconda/bin/pip install pip --upgrade
   - /home/travis/miniconda/bin/pip install py pytest pytest-xdist pytest-cov pytest-colordots dendropy biopython
+  - wget -q https://raw.githubusercontent.com/biopython/biopython/master/Bio/Restriction/Restriction_Dictionary.py -O /home/travis/miniconda/lib/python3.6/site-packages/Bio/Restriction/Restriction_Dictionary.py
+  - wget -q https://raw.githubusercontent.com/biopython/biopython/master/Bio/Restriction/Restriction.py -O /home/travis/miniconda/lib/python3.6/site-packages/Bio/Restriction/Restriction.py
   - /home/travis/miniconda/bin/pip install python-coveralls suds-py3 matplotlib
   - wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/travis/pagan.tgz
   - tar -xzf /home/travis/pagan.tgz -C /home/travis

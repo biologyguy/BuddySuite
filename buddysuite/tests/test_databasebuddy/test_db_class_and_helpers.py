@@ -27,10 +27,12 @@ def test_globals():
     assert type(Db.VERSION) == br.Version
     assert """\
 Public Domain Notice
+--------------------
 This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+--------------------
 
 Contributors:
 """ in str(Db.VERSION)

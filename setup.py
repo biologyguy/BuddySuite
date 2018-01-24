@@ -22,6 +22,7 @@ class CleanCommand(Command):
     def run():
         os.system('rm -vrf ./build ./dist ./*.pyc ./*.tgz ./*.egg-info')
 
+
 PACKAGES = [
     'buddysuite',
 ]
@@ -61,7 +62,7 @@ ENTRY_POINTS = {
 }
 
 setup(name='buddysuite',
-      version='1.3.beta',
+      version='1.4.0',
       description='BuddySuite is a collection of command line utilities written in Python for '
                   'working with biological data.',
       long_description=open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding="utf-8").read(),

@@ -1104,43 +1104,82 @@ def test_find_repeats(sb_odd_resources):
 
 
 # ######################  '-frs', '--find_restriction_sites' ###################### #
-def test_restriction_sites_no_args(sb_resources, hf):
+def test_restriction_sites_no_args(sb_resources):
     # No arguments passed in = commercial REs and any number of cut sites
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"))
-    # The output below changes depending on the version of python, not sure why...
-    assert hf.buddy2hash(tester) in {"5d0c81eb76eeb0c1eb37fd937ccef5e2": "py3.6",
-                                     "a48fc20dc07b6bf03b0cef32ed27c5d2": "py3.5",
-                                     "a6125be63bbc9052f18cab93f839e06d": "biopython1.71"}
-    assert hf.string2hash(str(tester.restriction_sites)) in {"27a3bdae9c771320dbc5b1ff1e3debce": "py3.6",
-                                                             "646d1026fc5b245ad7130dab3f027489": "py3.5",
-                                                             "5d478789d753641e0966d8071b1f0cca": "biopython1.71"}
+    assert """AciI            232..235
+     AciI            317..320
+     AciI            462..465
+     AciI            511..514
+     AciI            641..644
+     AciI            758..761
+     AciI            788..791
+     AciI            1095..1098
+     AciI            1112..1115
+     AciI            1133..1136
+     AciI            1205..1208
+     AciI            1210..1213""" in str(tester)
+
+    new_res_dict = {}
+    for key, value in tester.restriction_sites[-1][1].items():
+        new_res_dict[str(key)] = value
+    assert new_res_dict["AciI"] == [233, 318, 463, 512, 642, 759, 789,
+                                    1096, 1113, 1134, 1206, 1211]
 
 
-def test_restriction_sites_all_emzymes(sb_resources, hf):
+def test_restriction_sites_all_emzymes(sb_resources):
     # All enzymes
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), enzyme_group=["all"])
-    # The output below changes depending on the version of python, not sure why...
-    assert hf.buddy2hash(tester) in {"4583086c3e8212b5ce2ab5ac3cbb7c4b": "py3.6",
-                                     "cc439bded1b7f6cde0c9f91ad1f01e88": "py3.5",
-                                     "37c39877b0ed818635c8c5bfc3c1f516": "biopython1.71"}
-    assert hf.string2hash(str(tester.restriction_sites)) in {"19cdc8204f9f352b722576680c5f9f74": "py3.6",
-                                                             "57b329d60cb4ed80831fcbbcb71c4021": "py3.5",
-                                                             "90c8a6d8b17a29a2976b52c02da11b24": "biopython1.71"}
+    assert """AciI            232..235
+     AciI            317..320
+     AciI            462..465
+     AciI            511..514
+     AciI            641..644
+     AciI            758..761
+     AciI            788..791
+     AciI            1095..1098
+     AciI            1112..1115
+     AciI            1133..1136
+     AciI            1205..1208
+     AciI            1210..1213""" in str(tester)
+
+    new_res_dict = {}
+    for key, value in tester.restriction_sites[-1][1].items():
+        new_res_dict[str(key)] = value
+    assert new_res_dict["AciI"] == [233, 318, 463, 512, 642, 759, 789,
+                                    1096, 1113, 1134, 1206, 1211]
+
 
 def test_restriction_sites_circular(sb_resources, sb_odd_resources, hf):
 
     # circular
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
-    assert hf.buddy2hash(tester) == "bae6ae3f0c5c1cb445fac0757d7cb3ac"
-    assert hf.string2hash(str(tester.restriction_sites)) == "4fe2965a8ec37011cb3be4e9cbebcd4c"
+    assert """LpnPI           1227..1230
+     LpnPI           66..69
+     LpnPI           103..106
+     LpnPI           146..149
+     LpnPI           167..170
+     LpnPI           223..226
+     LpnPI           281..284
+     LpnPI           308..311
+     LpnPI           320..323
+     LpnPI           397..400""" in str(tester)
+
+    res_sites = [x for x in tester.restriction_sites if x[0] == "Mle-Panxα1"][0][1]
+    new_res_dict = {}
+    for key, value in res_sites.items():
+        new_res_dict[str(key)] = value
+    assert new_res_dict["LpnPI"] == [1333, 61, 67, 104, 202, 209, 236, 291, 304, 349, 446, 488, 506, 515, 589, 598,
+                                     697, 810, 811, 1001, 1046, 1058, 1072, 1085, 1110, 1205, 1237, 1256, 1296, 1319]
 
     # circular using genbank annotation
-    tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]), enzyme_group=["EcoRI", "KspI", "TasI"])
+    tester = Sb.find_restriction_sites(Sb.SeqBuddy(sb_odd_resources["circular"]),
+                                       enzyme_group=["EcoRI", "KspI", "TasI"])
     assert hf.buddy2hash(tester) == "6f032158c44ea7e4c52ee8843e270dfe"
     assert hf.string2hash(str(tester.restriction_sites)) == "4594f7ffa3b8afc2c070c1f33cbe128c"
 
 
-def test_restriction_sites_limit_cuts(capsys, sb_resources, sb_odd_resources, hf):
+def test_restriction_sites_limit_cuts(capsys, sb_resources, hf):
     # Specify a few REs and limit the number of cuts
     tester = sb_resources.get_one("d g")
     tester = Sb.find_restriction_sites(tester, min_cuts=2, max_cuts=4,
@@ -1241,10 +1280,11 @@ def test_insert_seqs_start(sb_resources, hf):
 
 # ######################  '-isd', '--in_silico_digest' ###################### #
 def test_in_silico_digest(capsys, sb_resources, sb_odd_resources, hf):
-    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"], topology="linear")
+    tester = Sb.in_silico_digest(sb_resources.get_one("d g"), enzyme_group=["NheI", "XhoI", "TseI", "FooBR"],
+                                 topology="linear")
     out, err = capsys.readouterr()
-    # The 5539e56 hash is for BioPython 1.70
-    assert hf.buddy2hash(tester) in ['5539e56a557e545a4c16550a972acae6', '2b54cacf0279bcd74d76e510c6bcb828']
+    tester.records = [rec for rec in tester.records if rec.name == "Mle-Panxα10A"]
+    assert hf.buddy2hash(tester) == "3466f95a9c7959c3697a60d8992f0277"
     assert "Warning: FooBR not a known enzyme" in err
 
     with pytest.raises(TypeError) as e:
@@ -1256,6 +1296,7 @@ def test_in_silico_digest(capsys, sb_resources, sb_odd_resources, hf):
     assert str(e.value) == "Invalid topology. Accepted values are None, 'circular' and 'linear' "
 
     # 2-cutters and non-cutters
+    tester = sb_resources.get_one("d g")
     Sb.in_silico_digest(tester, enzyme_group=["AjuI", "AlwFI"])
     out, err = capsys.readouterr()
     assert "Warning: Double-cutters not supported." in err

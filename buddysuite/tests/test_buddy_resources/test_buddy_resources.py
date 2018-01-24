@@ -531,6 +531,12 @@ def test_ask_unix(monkeypatch):
         assert not br.ask("test", default="no")
 
 
+def test_num_sorted():
+    test_list = ["aaab_10_56", "aaab_10", "aaab_3", "aaab_10_1", "aab_10.56", "aab.3", "aab_10.1", "aab.10"]
+    assert br.num_sorted(test_list) == ["aaab_3", "aaab_10", "aaab_10_1", "aaab_10_56",
+                                        "aab.3", "aab.10", "aab_10.1", "aab_10.56"], print(br.num_sorted(test_list))
+
+
 def test_guesserror():
     with pytest.raises(br.GuessError):
         error = br.GuessError("test")
@@ -644,11 +650,21 @@ def test_version():
     version = br.Version("BudddySuite", "3", "5", contributors, release_date={"day": 13, "month": 7, "year": 2016})
     assert version.short() == "3.5"
     assert version.contributors_string() == "Bud D Suite  buddysuite\nSweet Water  sweetwater"
-    version_string = re.sub("[\n| ]", "", str(version))
-    assert version_string == "BudddySuite3.5(2016-07-13)PublicDomainNoticeThisisfreesoftware;seethesourcefordetailed" \
-                             "copyingconditions.ThereisNOwarranty;notevenforMERCHANTABILITYorFITNESSFORAPARTICULAR" \
-                             "PURPOSE.Questions/comments/concernscanbedirectedtoSteveBond,steve.bond@nih.gov" \
-                             "Contributors:BudDSuitebuddysuiteSweetWatersweetwater"
+    assert str(version) == """\
+BudddySuite 3.5 (2016-07-13)
+
+Public Domain Notice
+--------------------
+This is free software; see the source for detailed copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+--------------------
+
+Contributors:
+Bud D Suite  buddysuite
+Sweet Water  sweetwater
+""", print(str(version))
 
 
 def test_config_values(monkeypatch):
@@ -733,7 +749,7 @@ def test_error_report(monkeypatch):
     fake_error = """\
 # SeqBuddy: 1.2b6
 # Function: order_ids
-# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)]
+# Python: 3.5.2 |Anaconda custom (x86_64)| (default, Jul  2 2016, 17:52:12) [GCC 4.2.1 Apple LLVM 4.2 (clang-425.0.28)]
 # Platform: darwin
 # User: hashless
 # Date: 2016-10-03
@@ -859,7 +875,7 @@ def test_parse_format():
 
 def test_nexus_out(alb_resources, sb_resources, hf):
     # Do not run tests until BioPython v1.71 has been released
-    if float(Bio.__version__) < 1.71:
+    if float(".".join(Bio.__version__.split(".")[:2])) < 1.71:
         return
     else:
         assert 0, print("This whole if/else block can be deleted now that BioPython v1.71 is out.")

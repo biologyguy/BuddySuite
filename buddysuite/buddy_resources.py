@@ -597,6 +597,19 @@ def ask(input_prompt, default="yes", timeout=0):
         return False
 
 
+def num_sorted(input_list):
+    """
+    Sort a list of strings in the way that takes embedded numbers into account
+    """
+    def convert(text):
+        return int(text) if text.isdigit() else text
+
+    def alpha_num_key(key):
+        return [convert(c) for c in re.split('([0-9]+)', key)]
+
+    return sorted(input_list, key=alpha_num_key)
+
+
 # ##################################################### CLASSES ###################################################### #
 class GuessError(Exception):
     """Raised when input format cannot be guessed"""
@@ -718,11 +731,11 @@ class Usage(object):
 
 
 class Version(object):
-    def __init__(self, name, major, minor, _contributors, release_date=None):
+    def __init__(self, name, major, minor, contributors, release_date=None):
         self.name = name
         self.major = major
         self.minor = minor
-        self.contributors = _contributors  # This needs to be a list of Contributor objects
+        self.contributors = contributors  # This needs to be a list of Contributor objects
         if not release_date:
             self.release_date = datetime.date.today()
         else:
@@ -749,10 +762,12 @@ class Version(object):
 %s %s.%s (%s)
 
 Public Domain Notice
+--------------------
 This is free software; see the source for detailed copying conditions.
 There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.
 Questions/comments/concerns can be directed to Steve Bond, steve.bond@nih.gov
+--------------------
 
 Contributors:
 %s
@@ -1507,14 +1522,18 @@ def clean_regex(patterns, quiet=False):
 # #################################################### VARIABLES ##################################################### #
 
 
-contributors = [Contributor("Stephen", "Bond", commits=892, github="https://github.com/biologyguy"),
-                Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
-                Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
-                Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
-                Contributor("Jason", "Bowen", commits=6, github="https://github.com/jwbowen"),
-                Contributor("Todd", "Smith", commits=5, github="https://github.com/etiology"),
-                Contributor("Adam", "Palmer", commits=2, github="https://github.com/apalm112"),
-                Contributor("Helena", "Mendes-Soares", commits=1, github="https://github.com/mendessoares")]
+contributor_list = [Contributor("Stephen", "Bond", commits=1149, github="https://github.com/biologyguy"),
+                    Contributor("Karl", "Keat", commits=392, github="https://github.com/KarlKeat"),
+                    Contributor("Jeremy", "Labarge", commits=26, github="https://github.com/biojerm"),
+                    Contributor("Paul", "Gonzalez", commits=13, github="https://github.com/paulgzlz"),
+                    Contributor("Dustin", "Mitchell", commits=12, github="https://github.com/djmitche"),
+                    Contributor("Connor", "Skennerton", commits=6, github="https://github.com/ctSkennerton"),
+                    Contributor("Jason", "Bowen", commits=6, github="https://github.com/jwbowen"),
+                    Contributor("Todd", "Smith", commits=5, github="https://github.com/etiology"),
+                    Contributor("Sofia", "Barreira", commits=2, github="https://github.com/alicarea"),
+                    Contributor("Alex", "Jones", commits=2, github="https://github.com/alexanjm"),
+                    Contributor("Adam", "Palmer", commits=2, github="https://github.com/apalm112"),
+                    Contributor("Helena", "Mendes-Soares", commits=1, github="https://github.com/mendessoares")]
 
 # NOTE: If this is added to, be sure to update the unit test!
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
@@ -1865,13 +1884,13 @@ sb_flags = {"amend_metadata": {"flag": "amd",
                              "action": "store_true",
                              "help": "Randomly rearrange the residues in each record"},
             "split_by_x_files": {"flag": "sxf",
-                                     "action": "append",
-                                     "nargs": "*",
-                                     "help": "Splits with set number of output files"},
+                                 "action": "append",
+                                 "nargs": "*",
+                                 "help": "Splits with set number of output files"},
             "split_by_x_seqs": {"flag": "sxs",
-                                    "action": "append",
-                                    "nargs": "*",
-                                    "help": "Splits with set number of records per file"},
+                                "action": "append",
+                                "nargs": "*",
+                                "help": "Splits with set number of records per file"},
             "taxonomic_breakdown": {"flag": "tb",
                                     "action": "append",
                                     "nargs": "?",

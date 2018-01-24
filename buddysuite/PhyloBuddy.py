@@ -125,7 +125,7 @@ def decode_accessions(phylobuddy):
 
 # ##################################################### GLOBALS ###################################################### #
 CONFIG = br.config_values()
-VERSION = br.Version("PhyloBuddy", 1, "3.b1", br.contributors, {"year": 2016, "month": 11, "day": 1})
+VERSION = br.Version("PhyloBuddy", 1, "4b", br.contributor_list, {"year": 2017, "month": 12, "day": 20})
 OUTPUT_FORMATS = ["newick", "nexus", "nexml"]
 PHYLO_INFERENCE_TOOLS = ["raxml", "phyml", "fasttree"]
 
@@ -422,7 +422,7 @@ def display_trees(phylobuddy):
     :return: None
     """
     import pylab
-    if os.name != "nt" and "DISPLAY" not in os.environ:
+    if os.name != "nt" and sys.platform != "darwin" and "DISPLAY" not in os.environ:
         # We just assume that a Windows machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
@@ -497,16 +497,17 @@ def distance(phylobuddy, method='weighted_robinson_foulds'):
     return output
 
 
-def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
+def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r_seed=None):
     # ToDo: Break the function up for each program being wrapped. There's WAY too much going on here...
     # ToDo: Multiple alignments are not un-hashing correctly (at least in raxml)
     """
     Calls tree building tools to generate trees
     :param alignbuddy: The AlignBuddy object containing the alignments for building the trees
-    :param alias: The tree building tool to be used (raxml/phyml/fasttree)
+    :param alias: The tree building tool to be used (raxml/phyml/fasttree/iqtree)
     :param params: Additional parameters to be passed to the tree building tool
     :param keep_temp: Determines if/where the temporary files will be kept
     :param quiet: Suppress all output form alignment programs
+    :param r_seed: Set random seed used for name hashing
     :return: A PhyloBuddy object containing the trees produced.
     """
 
@@ -529,10 +530,13 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
         tool = "phyml"
     elif "fasttree" in alias.lower():
         tool = "fasttree"
+    elif "iqtree" in alias.lower():
+        tool = "iqtree"
     else:
         for prog in [('raxml', " -v", "This is RAxML version"),
                      ('phyml', " --version", "This is PhyML version"),
-                     ('fasttree', "", "Usage for FastTree version")]:
+                     ('fasttree', "", "Usage for FastTree version"),
+                     ('iqtree', " -h", "IQ-TREE")]:
             version = Popen("%s%s" % (alias, prog[1]), shell=True, stderr=PIPE, stdout=PIPE).communicate()
             if prog[2] in version[0].decode() or prog[2] in version[1].decode():
                 tool = prog[0]
@@ -548,7 +552,8 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
 
     else:
         tmp_dir = br.TempDir()
-        tmp_in = os.path.join(tmp_dir.path, "pb_input.aln")
+        tmp_in = tmp_dir.subfile("pb_input.aln")
+        cwd = os.getcwd()
 
         def remove_invalid_params(_dict):  # Helper method for blacklisting flags
             parameters = params
@@ -567,8 +572,6 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if os.path.exists(token):
                 params[indx] = os.path.abspath(token)
         params = ' '.join(params)
-        r_seed = re.search("r_seed ([0-9]+)", params)
-        r_seed = None if not r_seed else int(r_seed.group(1))
 
         phylo_objs = []
         for alignment in alignbuddy.alignments:  # Need to loop through one tree at a time
@@ -621,20 +624,33 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 else:
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
+            elif tool == "iqtree":
+                params = remove_invalid_params({"-s": True, "-st": True})
+                if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
+                                            IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+                    params += ' -st DNA'
+                else:
+                    params += ' -st AA'
+
+                if "-nt" not in params:
+                    params += ' -nt AUTO'
+
+                command = '{0} -s {1} {2}'.format(alias, tmp_in, params)
+                os.chdir(tmp_dir.path)
             output = ''
 
             try:
-                if tool in ['raxml', 'phyml']:  # If tool writes to file
+                if tool in ['raxml', 'phyml', 'iqtree']:  # If tool writes to file
                     if quiet:
                         Popen(command, shell=True, universal_newlines=True, stdout=PIPE, stderr=PIPE).communicate()
                     else:
-                        Popen(command, shell=True, universal_newlines=True, stdout=sys.stderr).wait()
+                        Popen(command, shell=True, universal_newlines=True, stdout=sys.__stderr__).wait()
                     file_found = False
-                    for path in [os.path.join(tmp_dir.path, x) for x in ['RAxML_bestTree.result',
-                                                                         'RAxML_bootstrap.result',
-                                                                         'RAxML_bipartitions.result',
-                                                                         'pb_input.aln_phyml_tree',
-                                                                         'pb_input.aln_phyml_tree.txt']]:
+                    outfiles = {'raxml': ['RAxML_bestTree.result', 'RAxML_bootstrap.result',
+                                          'RAxML_bipartitions.result'],
+                                'phyml': ['pb_input.aln_phyml_tree', 'pb_input.aln_phyml_tree.txt'],
+                                'iqtree': ['pb_input.aln.treefile']}
+                    for path in [os.path.join(tmp_dir.path, x) for x in outfiles[tool]]:
                         if os.path.isfile(path):
                             file_found = True
                             break
@@ -671,6 +687,12 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
                 phyml_out += '.txt' if not os.path.isfile(phyml_out) else ''
                 with open(phyml_out, "r", encoding="utf-8") as result:
                     output += result.read()
+            elif tool == 'iqtree':
+                with open(os.path.join(tmp_dir.path, 'pb_input.aln.treefile'), "r") as result:
+                    output += result.read()
+
+            os.chdir(cwd)
+
             if keep_temp:  # Store temp files
                 shutil.copytree(tmp_dir.path, keep_temp)
 
@@ -682,7 +704,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False):
             if keep_temp:
                 _root, dirs, files = next(br.walklevel(keep_temp))
                 for file in files:
-                    with open(os.path.join(_root, file), "r", encoding="utf-8") as ifile:
+                    with open(os.path.join(_root, file), "r", encoding="utf-8", errors='ignore') as ifile:
                         contents = ifile.read()
                     for _hash, _id in sub_alignbuddy.hash_map.items():
                         contents = re.sub(_hash, _id, contents)
