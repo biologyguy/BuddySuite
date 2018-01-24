@@ -2028,11 +2028,11 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
     assert hf.buddy2hash(tester) == next_hash
 
 
-# ##################### '-sfn', 'split_by_file_number' ###################### ##
-def test_split_by_file_number(sb_resources, hf):
+# ##################### '-sxf', 'split_by_x_files' ###################### ##
+def test_split_by_x_files(sb_resources, hf):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
     # File number % Seq number != 0
-    sb_list = Sb.split_by_file_number(tester, file_number=3)
+    sb_list = Sb.split_by_x_files(tester, file_number=3)
     assert len(sb_list) == 3
     counter = 0
     for seqbuddy in sb_list:
@@ -2044,7 +2044,7 @@ def test_split_by_file_number(sb_resources, hf):
 
     # File number % Seq number == 0
     tester = Sb.SeqBuddy(sb_resources.get_one("p g"))
-    sb_list = Sb.split_by_file_number(tester, file_number=13)
+    sb_list = Sb.split_by_x_files(tester, file_number=13)
     assert len(sb_list) == 13
     counter = 0
     for seqbuddy in sb_list:
@@ -2056,14 +2056,14 @@ def test_split_by_file_number(sb_resources, hf):
 
     # File number > Seq number
     tester = Sb.SeqBuddy(sb_resources.get_one("d py"))
-    sb_list = Sb.split_by_file_number(tester, file_number=13)
+    sb_list = Sb.split_by_x_files(tester, file_number=13)
     assert len(sb_list) == 8
 
 
-# ##################### '-ssn', 'split_by_seq_number' ###################### ##
-def test_split_by_seq_number(sb_resources, hf):
+# ##################### '-sxs', 'split_by_x_seqs' ###################### ##
+def test_split_by_x_seqs(sb_resources, hf):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
-    sb_list = Sb.split_by_seq_number(tester, seq_number=3)
+    sb_list = Sb.split_by_x_seqs(tester, seq_number=3)
     assert len(sb_list) == 5
     counter = 0
     for seqbuddy in sb_list:

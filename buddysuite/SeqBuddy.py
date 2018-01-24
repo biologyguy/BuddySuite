@@ -3743,7 +3743,7 @@ def shuffle_seqs(seqbuddy, r_seed=None):
     return seqbuddy
 
 
-def split_by_file_number(seqbuddy, file_number):
+def split_by_x_files(seqbuddy, file_number):
     """
     Splits SeqBuddy object with multiple records into set number of SeqBuddy objects
     :param seqbuddy: SeqBuddy object
@@ -3777,7 +3777,7 @@ def split_by_file_number(seqbuddy, file_number):
     return split_buddies
 
 
-def split_by_seq_number(seqbuddy, seq_number):
+def split_by_x_seqs(seqbuddy, seq_number):
     """
     Splits SeqBuddy object with multiple records into multiple SeqBuddy objects containing set number of records
     :param seqbuddy: SeqBuddy object
@@ -5610,16 +5610,16 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         _exit("shuffle_seqs")
 
     # Split by file number
-    if in_args.split_by_file_number:
+    if in_args.split_by_x_files:
         file_num = 0
         output_path = ""
-        if len(in_args.split_by_file_number[0]) > 2:
-            _raise_error(AttributeError("Please provide one or two arguments"), "split_by_file_number")
+        if len(in_args.split_by_x_files[0]) > 2:
+            _raise_error(AttributeError("Please provide one or two arguments"), "split_by_x_files")
         if os.path.isfile(str(in_args.sequence[0])):
             input_file_name = in_args.sequence[0]
         else:
             input_file_name = "split_seq.fa"
-        for arg in in_args.split_by_file_number[0]:
+        for arg in in_args.split_by_x_files[0]:
             try:
                 arg = int(arg)
             except ValueError:
@@ -5629,37 +5629,37 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                     file_num = arg
                 else:
                     _raise_error(AttributeError("Please provide only one number of files."),
-                                 "split_by_file_number")
+                                 "split_by_x_files")
             elif os.path.isdir(arg):
                 output_path = arg
             elif type(arg) == str:
-                _raise_error(AttributeError(str(arg) + " is not an existing directory."), "split_by_file_number")
+                _raise_error(AttributeError(str(arg) + " is not an existing directory."), "split_by_x_files")
         input_file_name = os.path.splitext(input_file_name)[0] + "_"
         if output_path:
             out_dir = output_path
         else:
             out_dir = os.getcwd()
         if file_num < 1:
-            _raise_error(AttributeError("Please provide a valid number of output files.\n"), "split_by_file_number")
+            _raise_error(AttributeError("Please provide a valid number of output files.\n"), "split_by_x_files")
         else:
-            for idx, sb in enumerate(split_by_file_number(seqbuddy, file_num)):
+            for idx, sb in enumerate(split_by_x_files(seqbuddy, file_num)):
                 output_file_name = "%s%s%s.%s" % (out_dir, os.path.sep, input_file_name + str(idx),
                                                   br.format_to_extension[sb.out_format])
                 br._stderr("New file: %s\n" % output_file_name, in_args.quiet)
                 sb.write(output_file_name)
-        _exit("split_by_file_number")
+        _exit("split_by_x_files")
 
     # Split by seq number
-    if in_args.split_by_seq_number:
+    if in_args.split_by_x_seqs:
         seq_num = 0
         output_path = ""
-        if len(in_args.split_by_seq_number[0]) > 2:
-            _raise_error(AttributeError("Please provide one or two arguments"), "split_by_seq_number")
+        if len(in_args.split_by_x_seqs[0]) > 2:
+            _raise_error(AttributeError("Please provide one or two arguments"), "split_by_x_seqs")
         if os.path.isfile(str(in_args.sequence[0])):
             input_file_name = in_args.sequence[0]
         else:
             input_file_name = "split_seq.fa"
-        for arg in in_args.split_by_seq_number[0]:
+        for arg in in_args.split_by_x_seqs[0]:
             try:
                 arg = int(arg)
             except ValueError:
@@ -5669,25 +5669,25 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                     seq_num = arg
                 else:
                     _raise_error(AttributeError("Please provide only one number of sequences."),
-                                 "split_by_seq_number")
+                                 "split_by_x_seqs")
             elif os.path.isdir(arg):
                 output_path = arg
             elif type(arg) == str:
-                _raise_error(AttributeError(str(arg) + " is not an existing directory."), "split_by_seq_number")
+                _raise_error(AttributeError(str(arg) + " is not an existing directory."), "split_by_x_seqs")
         input_file_name = os.path.splitext(input_file_name)[0] + "_"
         if output_path:
             out_dir = output_path
         else:
             out_dir = os.getcwd()
         if seq_num < 1:
-            _raise_error(AttributeError("Please provide a valid number of sequences."), "split_by_seq_number")
+            _raise_error(AttributeError("Please provide a valid number of sequences."), "split_by_x_seqs")
         else:
-            for idx, sb in enumerate(split_by_seq_number(seqbuddy, seq_num)):
+            for idx, sb in enumerate(split_by_x_seqs(seqbuddy, seq_num)):
                 output_file_name = "%s%s%s.%s" % (out_dir, os.path.sep, input_file_name + str(idx),
                                                   br.format_to_extension[sb.out_format])
                 br._stderr("New file: %s\n" % output_file_name, in_args.quiet)
                 sb.write(output_file_name)
-        _exit("split_by_seq_number")
+        _exit("split_by_x_seqs")
 
     # Taxonomic breakdown
     if in_args.taxonomic_breakdown:
