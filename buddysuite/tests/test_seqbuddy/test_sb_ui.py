@@ -1370,7 +1370,7 @@ def test_pull_records_ui(capsys, sb_resources, hf):
     assert hf.string2hash(out) == "cd0c1b1406559c1bc2eea1acd1928c3d"
 
     temp_file = br.TempFile()
-    temp_file.write("α1\nα2")
+    temp_file.write("α1\n\nα2\n")
     test_in_args.pull_records = [temp_file.path]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()

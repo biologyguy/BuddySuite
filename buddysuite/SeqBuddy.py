@@ -5513,7 +5513,9 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                 regex_file = True
                 with open(arg, "r", encoding="utf-8") as ifile:
                     for line in ifile:
-                        search_terms.append(line.strip())
+                        line = line.strip()
+                        if line:
+                            search_terms.append(line.strip())
             else:
                 search_terms.append(arg)
 
