@@ -421,11 +421,41 @@ def display_trees(phylobuddy):
     :param phylobuddy: PhyloBuddy object
     :return: None
     """
-    import pylab
     if os.name != "nt" and sys.platform != "darwin" and "DISPLAY" not in os.environ:
-        # We just assume that a Windows machine is graphical
+        # We just assume that a Windows/Mac machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
+    try:
+        import pylab
+    except RuntimeError as err:
+        if "The Mac OS X backend will not be able to function correctly" in str(err):
+            message = """\
+It looks like you are on a Mac with an incorrect backend
+for matplotlib. This can probably be fixed by amending your 
+matplotlibrc file. Would you like PhyloBuddy try to do this 
+automatically? y/[n]: """
+            if br.ask(message, default="no"):
+                home = os.path.expanduser('~')
+                os.makedirs(os.path.join(home, ".matplotlib"), exist_ok=True)
+                if os.path.isfile(os.path.join(home, ".matplotlib", "matplotlibrc")):
+                    with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "r") as ifile:
+                        matplotlibrc = ifile.read().strip()
+                else:
+                    matplotlibrc = ""
+
+                with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "a") as ofile:
+                    ofile.write("# Backend set by PhyloBuddy\nbackend: TkAgg\n%s" % matplotlibrc)
+
+                br._stderr("\n%s amended.\nPlease re-run your command.\n" % os.path.join(home, ".matplotlib",
+                                                                                       "matplotlibrc"))
+            else:
+                br._stderr("\nOriginal error message:\n\n" + str(err) + "\n\nStack Overflow may help you out:\n"
+                           "https://stackoverflow.com/questions/21784641/installation-issue-with-"
+                           "matplotlib-python\n\n")
+            sys.exit()
+
+        else:
+            raise err
 
     label_colors = []
     indx = 0
