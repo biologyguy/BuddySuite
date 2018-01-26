@@ -3356,29 +3356,18 @@ class PrositeScan(object):
     """
     Search for PROSITE scan motifs in sequences (via REST service)
     :param seqbuddy: Input seqbuddy object
-    :param common_match: This will include things like post-translational modification sites
     :param quiet: Suppress all stderr
     :return:
     """
-    def __init__(self, seqbuddy, common_match=True, quiet=False):
-        import platform
-
+    def __init__(self, seqbuddy, quiet=False, r_seed=None):
         self.seqbuddy = seqbuddy
-        self.common_match = common_match
         self.quiet = quiet
-        self.base_url = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
-        self.check_interval = 10
-        urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
-        client_revision = '$Revision: ???? $'
-        client_version = '1.0'
-        if len(client_revision) > 11:
-            client_version = client_revision[11:-2]
+        self.r_seed = r_seed
+        self.base_url = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
+        self.check_interval = 30
+
         # Prepend client specific agent string.
-        user_agent = 'EBI-Sample-Client/%s (%s; Python %s; %s) %s' % (
-            client_version, os.path.basename(__file__),
-            platform.python_version(), platform.system(),
-            urllib_agent
-        )
+        user_agent = "SeqBuddy v%s" % VERSION.short()
         self.http_headers = {'User-Agent': user_agent}
         self.user_deets = br.config_values()
 
@@ -3397,61 +3386,92 @@ class PrositeScan(object):
 
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
-        if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
-            email = "buddysuite@gmail.com"
-        else:
-            email = self.user_deets["email"]
+        try:
+            if not self.user_deets["email"] or not re.search(r".+@.+\..+", self.user_deets["email"]):
+                email = "buddysuite@gmail.com"
+            else:
+                email = self.user_deets["email"]
 
-        params = {'sequence': str(_rec.seq).upper(), 'email': email, 'commonMatch': self.common_match,
-                  'database': 'prosite', 'scanControl': 'both', 'stype': 'protein'}
-        # Submit the job
-        request_data = urllib.parse.urlencode(params)
-        request_data = request_data.encode("utf-8")
-        job_id = self._rest_request('%s/run/' % self.base_url, request_data)
-        # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
-        result = 'PENDING'
-        while result == 'RUNNING' or result == 'PENDING':
-            result = self._rest_request('%s/status/%s' % (self.base_url, job_id))
-            if result == 'RUNNING' or result == 'PENDING':
-                time.sleep(self.check_interval)
+            params = {'sequence': str(_rec.seq).upper(),
+                      'email': email,
+                      'goterms': False,
+                      'pathways': False,
+                      'appl': "PrositeProfiles"}
 
-        result = self._rest_request('%s/result/%s/out' % (self.base_url, job_id))
-        feature_list = []
-        for feature in result.split(">")[1:]:
-            feat_type = re.match('EMBOSS_001 : (.*)', feature)
-            feat_type = feat_type.groups(0)[0].split(" ")[1]
-            feat_type = feat_type[:15]  # Need to limit the feature length, because gb format breaks otherwise
-            spans = re.findall('([0-9]+ - [0-9]+)', feature)
-            for span in spans:
-                span = span.split(" ")
-                feature = SeqFeature(FeatureLocation(int(span[0]) - 1, int(span[2])), type=feat_type)
+            # Submit the job
+            request_data = urllib.parse.urlencode(params)
+            request_data = request_data.encode("utf-8")
+            job_id = self._rest_request('%s/run/' % self.base_url, request_data)
+            # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
+            result = 'PENDING'
+            while result == 'RUNNING' or result == 'PENDING':
+                result = self._rest_request('%s/status/%s' % (self.base_url, job_id))
+                if result == 'RUNNING' or result == 'PENDING':
+                    time.sleep(self.check_interval)
+
+            attempt = 1
+            while True:
+                try:
+                    result = self._rest_request('%s/result/%s/tsv' % (self.base_url, job_id)).strip()
+                    break
+                except urllib.error.HTTPError as err:
+                    if attempt > 5:
+                        br._stderr("Error: Bad request for record %s\n" % _rec.id, quiet=self.quiet)
+                        return
+                    elif err.getcode() == 400:
+                        attempt += 1
+                        time.sleep(1)
+                    else:
+                        raise err
+
+            feature_list = []
+            for feature in result.split("\n"):
+                feature = feature.split("\t")
+                start = feature[6]
+                end = feature[7]
+                feature_description = feature[-1]
+                feature = SeqFeature(FeatureLocation(int(start) - 1, int(end)), type="Region",
+                                     qualifiers={"note": feature_description})
                 feature_list.append(feature)
 
-        temp_seq = SeqBuddy([_rec], out_format="gb")
-        temp_seq.records[0].features = feature_list
-        temp_seq = order_features_by_position(temp_seq)
+            temp_seq = SeqBuddy([_rec], out_format="gb")
+            temp_seq.records[0].features = feature_list
+            temp_seq = order_features_by_position(temp_seq)
 
-        with lock:
-            with open(out_file_path, "a", encoding="utf-8") as out_file:
-                out_file.write("%s\n" % str(temp_seq))
+            with lock:
+                with open(out_file_path, "a", encoding="utf-8") as out_file:
+                    out_file.write("%s\n" % str(temp_seq))
+        except KeyboardInterrupt:
+            with lock:
+                br._stderr("%s killed with KeyboardInterrupt\n" % _rec.id, quiet=self.quiet)
         return
 
     def run(self):
         self._rest_request(self.base_url)  # Confirm internet connection prior to multi-core loop
 
         temp_file = br.TempFile()
-        hash_ids(self.seqbuddy)
+        hash_ids(self.seqbuddy, r_seed=self.r_seed)
         clean_seq(self.seqbuddy, skip_list="*")  # Clean once to make sure no wonky characters (no alignments)
-        seqbuddy_copy = make_copy(self.seqbuddy)
-        clean_seq(self.seqbuddy)  # Clean again to strip *'s (added back in later) @TODO clean seq after translating
+        seqbuddy_nucl_copy = None
+
         if self.seqbuddy.alpha != IUPAC.protein:
+            seqbuddy_nucl_copy = make_copy(self.seqbuddy)
             translate_cds(self.seqbuddy)
 
-        br.run_multicore_function(self.seqbuddy.records, self._mc_run_prosite,
-                                  [temp_file.path, Lock()], out_type=sys.stderr, quiet=self.quiet)
+        seqbuddy_prot_copy = make_copy(self.seqbuddy)
+        clean_seq(self.seqbuddy)  # Clean again to strip *'s (added back in later)
+
+        lock = Lock()
+        try:
+            br.run_multicore_function(self.seqbuddy.records, self._mc_run_prosite, [temp_file.path, lock],
+                                      max_processes=30, out_type=sys.stderr, quiet=self.quiet)
+        except KeyboardInterrupt:
+            # Allow the user to grab whatever is finished and move on
+            pass
+
         self.seqbuddy.records = SeqBuddy(temp_file.path).records
         new_records = []
-        for rec in seqbuddy_copy.records:
+        for rec in seqbuddy_prot_copy.records:
             for indx, rec2 in enumerate(self.seqbuddy.records):
                 if rec.id == rec2.id:
                     new_records.append(rec2)
@@ -3460,18 +3480,32 @@ class PrositeScan(object):
 
         self.seqbuddy.records = new_records
 
-        find_pattern(seqbuddy_copy, "\*", include_feature=False)
-        for indx, rec in enumerate(seqbuddy_copy.records):
-            for match in rec.buddy_data['find_patterns']["\*"]:
-                rec_2 = self.seqbuddy.records[indx]
-                new_seq = str(rec_2.seq)[:match[0]] + "*" + str(rec_2.seq)[match[0]:]
-                rec_2.seq = Seq(new_seq, alphabet=rec_2.seq.alphabet)
+        find_pattern(seqbuddy_prot_copy, "\*", include_feature=False)
+        for rec in seqbuddy_prot_copy.records:
+            for rec2 in self.seqbuddy.records:
+                if rec.id == rec2.id:
+                    for match in rec.buddy_data['find_patterns']["\*"]:
+                        new_seq = str(rec2.seq)[:match[0]] + "*" + str(rec2.seq)[match[0]:]
+                        rec2.seq = Seq(new_seq, alphabet=rec2.seq.alphabet)
+                        for f_indx, feat in enumerate(rec2.features):
+                            if feat.location.start >= match[0]:
+                                feat_loc = FeatureLocation(start=feat.location.start + 1, end=feat.location.end + 1)
+                            elif feat.location.end > match[0]:
+                                feat_loc = FeatureLocation(start=feat.location.start, end=feat.location.end + 1)
+                            else:
+                                feat_loc = feat.location
 
-        if seqbuddy_copy.alpha != IUPAC.protein:
-            self.seqbuddy = map_features_prot2nucl(self.seqbuddy, seqbuddy_copy)
+                            rec2.features[f_indx] = SeqFeature(location=feat_loc,
+                                                               type=feat.type,
+                                                               strand=feat.strand,
+                                                               qualifiers=feat.qualifiers)
+
+        if seqbuddy_nucl_copy:
+            self.seqbuddy = map_features_prot2nucl(self.seqbuddy, seqbuddy_nucl_copy)
         else:
-            self.seqbuddy = merge(seqbuddy_copy, self.seqbuddy)
-        self.seqbuddy.hash_map = seqbuddy_copy.hash_map
+            self.seqbuddy = merge(seqbuddy_prot_copy, self.seqbuddy)
+
+        self.seqbuddy.hash_map = seqbuddy_prot_copy.hash_map
         self.seqbuddy.reverse_hashmap()
         self.seqbuddy = order_ids(self.seqbuddy)
         return self.seqbuddy
@@ -5438,8 +5472,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     # Prosite Scan
     if in_args.prosite_scan:
         try:
-            common_match = False if in_args.prosite_scan[0] and in_args.prosite_scan[0].lower() == "strict" else True
-            ps_scan = PrositeScan(seqbuddy, common_match=common_match, quiet=in_args.quiet)
+            ps_scan = PrositeScan(seqbuddy, quiet=in_args.quiet, r_seed=in_args.random_seed)
             seqbuddy = ps_scan.run()
         except urllib.error.URLError as err:
             if "Errno 8" in str(err):

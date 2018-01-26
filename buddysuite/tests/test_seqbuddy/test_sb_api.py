@@ -3,7 +3,7 @@
 
 """ tests basic functionality of AlignBuddy class """
 import pytest
-from Bio.SeqFeature import FeatureLocation, CompoundLocation, Reference
+from Bio.SeqFeature import FeatureLocation, CompoundLocation, Reference, SeqFeature
 from Bio.Seq import Seq
 from unittest import mock
 import os
@@ -1772,12 +1772,12 @@ def test_prosite_scan_init(sb_resources):
     seqbuddy = sb_resources.get_one("d f")
     ps_scan = Sb.PrositeScan(seqbuddy)
     assert hash(ps_scan.seqbuddy) == hash(seqbuddy)
-    assert ps_scan.common_match
     assert not ps_scan.quiet
-    assert ps_scan.base_url == 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
-    assert ps_scan.check_interval == 10
+    assert ps_scan.r_seed is None
+    assert ps_scan.base_url == 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
+    assert ps_scan.check_interval == 30
     assert len(ps_scan.http_headers) == 1
-    assert 'User-Agent' in ps_scan.http_headers
+    assert 'User-Agent' in ps_scan.http_headers, print(ps_scan.http_headers)
     for key in ['data_dir', 'diagnostics', 'email', 'user_hash']:
         assert key in ps_scan.user_deets
 
@@ -1796,7 +1796,8 @@ def test_prosite_scan_rest_request(sb_resources, monkeypatch):
     assert ps_scan._rest_request("http://www.foo.bar") == "Hello world\nhttp://www.foo.bar\nNone"
 
 
-def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
+def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch, capsys):
+
     def status():
         for next_status in ["RUNNING", "PENDING", "FINISHED"]:
             yield next_status
@@ -1809,27 +1810,12 @@ def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
             file_text = next(status_obj)
         elif "result" in url:
             file_text = """\
->EMBOSS_001 : PS00001 ASN_GLYCOSYLATION N-glycosylation site.
-    329 - 332  NNTA
->EMBOSS_001 : PS00004 CAMP_PHOSPHO_SITE cAMP- and cGMP-dependent protein kinase phosphorylation site.
-    111 - 114  RRgS
-    137 - 140  KKmT
->EMBOSS_001 : PS00005 PKC_PHOSPHO_SITE Protein kinase C phosphorylation site.
-        4 - 6  SeK
-      56 - 58  TvR
->EMBOSS_001 : PS00006 CK2_PHOSPHO_SITE Casein kinase II phosphorylation site.
-    197 - 200  SigD
-    241 - 244  SgiE
->EMBOSS_001 : PS00008 MYRISTYL N-myristoylation site.
-      62 - 67  GSviSC
-      74 - 79  GStfAE
->EMBOSS_001 : PS51013 PANNEXIN Pannexin family profile.
-     28 - 353  WGITIDDGWDQLNRSFMFGLLVVMGTTVTVRQYTGSVISCDGFKKFGS---TFAEDYCWT L=0
- QGQYTVLEGYDQP-------NQNIPCPVPRPPSRRGSTLNTMSQTQGFLHNPV--ESDQE
- LKKMTDKAA------TWLFYKFDLYMSEQSLLASLTNKHG-------LGLSVVFVKILYA
- AVSFGCFLLTADMFSiGDFKTYGSEWINKLKLeDNLATEEKDKLFPKMVACEV-KRWGAS
- GIEEEQGMCVLAPNVINQYLFLILWFCLVFVMFCNIVSIFASLIKLLFTYG-----SYRR
- LLSTAFLRDDSAIKHMYFNVGSSGRLILHVLANNTAPRVFEDILLTLAPKLIQRKLR
+XP_009950933.1\tdd1675f26044a927878cc3d92ea431e5\t565\tProSiteProfiles\tPS50835\tIg-like domain profile.\t\
+21\t111\t6.542\tT\t25-01-2018\tIPR007110\tImmunoglobulin-like domain
+XP_009950933.1\tdd1675f26044a927878cc3d92ea431e5\t565\tProSiteProfiles\tPS50835\tIg-like domain profile.\t\
+134\t186\t8.157\tT\t25-01-2018\tIPR007110\tImmunoglobulin-like domain
+XP_009950933.1\tdd1675f26044a927878cc3d92ea431e5\t565\tProSiteProfiles\tPS50104\tTIR domain profile.\t\
+382\t403\t34.751\tT\t25-01-2018\tIPR000157\tToll/interleukin-1 receptor homology (TIR) domain
 """
         else:
             raise RuntimeError("This shouldn't ever happen", self, args)
@@ -1839,37 +1825,108 @@ def test_prosite_scan_mc_run_prosite(sb_resources, hf, monkeypatch):
     monkeypatch.setattr(Sb.PrositeScan, "_rest_request", mock_rest_request)
     monkeypatch.setattr(Sb.time, "sleep", lambda _: True)
     out_file = br.TempFile()
-    seqbuddy = sb_resources.get_one("d f")
-    Sb.pull_recs(seqbuddy, "Mle-Panxα10B")
+    seqbuddy = sb_resources.get_one("p f")
+    seqbuddy.records = [seqbuddy.records[0]]
     ps_scan = Sb.PrositeScan(seqbuddy)
     ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
-    with open(out_file.path, "r", encoding="utf-8") as ifile:
-        output = ifile.read()
-    assert hf.string2hash(output) == "e76ec3879d9366a1d19e1f9e88edb4d9", print(output)
+    output = out_file.read()
+    assert hf.string2hash(output) == "8ad55e8a179dc4de67ed09a738cac814", print(output)
+
+    def raise_attrib_error(_, url, *__):
+        if "result" in url:
+            raise AttributeError("Just raising something.")
+        else:
+            return "DONE"
+
+    monkeypatch.setattr(Sb.PrositeScan, "_rest_request", raise_attrib_error)
+    with pytest.raises(AttributeError) as err:
+        ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
+
+    assert "Just raising something." in str(err)
+
+    def raise_keyboard_error(_, url, *__):
+        if "result" in url:
+            raise KeyboardInterrupt("Interrupted!")
+        else:
+            return "DONE"
+
+    monkeypatch.setattr(Sb.PrositeScan, "_rest_request", raise_keyboard_error)
+    ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
+    out, err = capsys.readouterr()
+    assert "Mle-Panxα12 killed with KeyboardInterrupt" in err, print(out, err)
+
+    def raise_http_error(_, url, *__):
+        if "result" in url:
+            raise urllib.error.HTTPError("", 400, "blahh", {}, br.TempFile())
+        else:
+            return "DONE"
+
+    monkeypatch.setattr(Sb.PrositeScan, "_rest_request", raise_http_error)
+    ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
+    out, err = capsys.readouterr()
+    assert "Error: Bad request for record Mle-Panxα12" in err
+
+    def raise_http_error(_, url, *__):
+        if "result" in url:
+            raise urllib.error.HTTPError("", 200, "Weird 200 error", {}, br.TempFile())
+        else:
+            return "DONE"
+
+    monkeypatch.setattr(Sb.PrositeScan, "_rest_request", raise_http_error)
+    with pytest.raises(urllib.error.HTTPError) as err:
+        ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
+    assert "Weird 200 error" in str(err), print(err)
 
 
-def test_prosite_scan_run(sb_resources, hf, monkeypatch):
-    def mock_mc_run_prosite(self, _rec, args):
-        print(self)
+def test_prosite_scan_run(sb_resources, hf, monkeypatch, capsys):
+    def mock_mc_run_prosite(_, _rec, args):
         out_file_path, lock = args
         temp_seq = Sb.SeqBuddy([_rec], out_format="gb")
-        Sb.annotate(temp_seq, "Foo", "1-100")
+        feature1 = SeqFeature(FeatureLocation(0, 100), type="Region", qualifiers={"note": "Foo"})
+        feature2 = SeqFeature(FeatureLocation(150, 200), type="Region", qualifiers={"note": "Bar"})
+        temp_seq.records[0].features = [feature1, feature2]
         with lock:
             with open(out_file_path, "a") as out_file:
                 out_file.write("%s\n" % str(temp_seq))
 
     monkeypatch.setattr(Sb.PrositeScan, "_mc_run_prosite", mock_mc_run_prosite)
     seqbuddy = sb_resources.get_one("d g")
-    Sb.delete_features(seqbuddy, "splice")
+    seqbuddy.records = [seqbuddy.records[0], seqbuddy.records[3]]
+
     ps_scan = Sb.PrositeScan(seqbuddy)
     seqbuddy = ps_scan.run()
-    assert hf.buddy2hash(seqbuddy) == "bc477b683784a24524b72422e04ff949"
+    seqbuddy.records = sorted(seqbuddy.records, key=lambda rec: rec.id)
+    assert hf.buddy2hash(seqbuddy) == "722f03e74786908a54c3d80de0653ed6", print(seqbuddy)
 
     seqbuddy = sb_resources.get_one("p g")
-    Sb.delete_features(seqbuddy, "splice")
+    seqbuddy.records = seqbuddy.records[:2]
     ps_scan = Sb.PrositeScan(seqbuddy)
     seqbuddy = ps_scan.run()
-    assert hf.buddy2hash(seqbuddy) == "f2479409b2fd17e0fd51add0d32cab05"
+    seqbuddy.records = sorted(seqbuddy.records, key=lambda rec: rec.id)
+    assert hf.buddy2hash(seqbuddy) == "848d2308deeaf4c57341d58018fd3905", print(seqbuddy)
+
+    seqbuddy = sb_resources.get_one("p f")
+    seqbuddy.records = [seqbuddy.records[0]]
+    rec_seq = str(seqbuddy.records[0].seq)
+    new_seq = rec_seq[:50] + "*" + rec_seq[50:150] + "*" + rec_seq[150:]
+    seqbuddy.records[0].seq = Seq(new_seq, alphabet=seqbuddy.records[0].seq.alphabet)
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    seqbuddy = ps_scan.run()
+    seqbuddy.out_format = "gb"
+    assert hf.buddy2hash(seqbuddy) == "1d420ba126c440698e85adb03f0d651d", print(seqbuddy)
+
+    def raise_keyboard_error(*_, **__):
+        raise KeyboardInterrupt("Interrupted!")
+    monkeypatch.setattr(br, "run_multicore_function", raise_keyboard_error)
+
+    capsys.readouterr()
+    seqbuddy = sb_resources.get_one("p g")
+    seqbuddy.records = sorted(seqbuddy.records[:2], key=lambda rec: rec.id)
+    initial_hash = hf.buddy2hash(seqbuddy)
+    ps_scan = Sb.PrositeScan(seqbuddy)
+    seqbuddy = ps_scan.run()
+    seqbuddy.records = sorted(seqbuddy.records, key=lambda rec: rec.id)
+    assert hf.buddy2hash(seqbuddy) == initial_hash, print(seqbuddy)
 
 
 # #####################  '-prr', '--pull_random_recs' ###################### ##
