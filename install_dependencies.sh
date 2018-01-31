@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 
 conda config --add channels r
+conda config --add channels defaults
+conda config --add channels conda-forge
 conda config --add channels bioconda
 conda update conda
-conda install dill scipy numpy six fasttree raxml mafft prank muscle blast hmmer iqtree clustalo clustalw phyml
+conda install -y dill scipy numpy six
+conda install -y fasttree
+conda install -y raxml
+conda install -y mafft
+conda install -y prank
+conda install -y muscle
+conda install -y blast
+conda install -y hmmer
+conda install -y iqtree
+conda install -y clustalo
+conda install -y clustalw
+conda install -y phyml
 pip install pip --upgrade
 pip install py pytest pytest-xdist pytest-cov pytest-colordots dendropy biopython
 pip install python-coveralls suds-py3 matplotlib
@@ -14,7 +27,7 @@ ln -s "$RAXMLHPC" "$RAXML"
 
 FASTTREE="$(which FastTree)"
 FT="$(echo ${FASTTREE} | rev | cut -c 9- | rev)fasttree"
-ln -s "FASTTREE" "FT"
+ln -s "$FASTTREE" "$FT"
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
