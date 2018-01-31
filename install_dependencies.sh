@@ -18,8 +18,8 @@ conda install -y clustalo
 conda install -y clustalw
 conda install -y phyml
 pip install pip --upgrade
-pip install py pytest pytest-xdist pytest-cov pytest-colordots dendropy biopython
-pip install python-coveralls suds-py3 matplotlib
+pip install py pytest pytest-xdist pytest-cov pytest-colordots dendropy biopython -U
+pip install python-coveralls suds-py3 matplotlib -U
 
 RAXMLHPC="$(which raxmlHPC)"
 RAXML="$(echo ${RAXMLHPC} | rev | cut -c 4- | rev)"
