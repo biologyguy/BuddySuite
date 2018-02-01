@@ -3425,14 +3425,15 @@ class PrositeScan(object):
                         raise err
 
             feature_list = []
-            for feature in result.split("\n"):
-                feature = feature.split("\t")
-                start = feature[6]
-                end = feature[7]
-                feature_description = feature[-1]
-                feature = SeqFeature(FeatureLocation(int(start) - 1, int(end)), type="Region",
-                                     qualifiers={"note": feature_description})
-                feature_list.append(feature)
+            if result:
+                for feature in result.split("\n"):
+                    feature = feature.split("\t")
+                    start = feature[6]
+                    end = feature[7]
+                    feature_description = feature[-1]
+                    feature = SeqFeature(FeatureLocation(int(start) - 1, int(end)), type="Region",
+                                         qualifiers={"note": feature_description})
+                    feature_list.append(feature)
 
             temp_seq = SeqBuddy([_rec], out_format="gb")
             temp_seq.records[0].features = feature_list
