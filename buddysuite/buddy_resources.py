@@ -2119,7 +2119,13 @@ alb_modifiers = {"in_format": {"flag": "f",
 
 # #################################################### PHYLOBUDDY #################################################### #
 
-pb_flags = {"collapse_polytomies": {"flag": "cpt",
+pb_flags = {"add_branch": {"flag": "ab",
+                           "nargs": "*",
+                           "action": "append",
+                           "metavar": "args",
+                           "help": "Add a new taxon or subtree to existing tree. "
+                                   "args: <branch/subtree> <sister> [sister]"},
+            "collapse_polytomies": {"flag": "cpt",
                                     "action": "append",
                                     "nargs": "*",
                                     "metavar": ("threshold", "{'bootstrap', 'length'}"),

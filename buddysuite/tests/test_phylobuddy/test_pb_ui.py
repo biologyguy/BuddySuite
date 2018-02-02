@@ -126,6 +126,27 @@ def test_in_place_ui(capsys, pb_resources):
     assert "Warning: The -i flag was passed in, but the positional" in err
 
 
+# ###################### 'ab', '--add_branch' ###################### #
+def test_add_branch_ui(capsys, pb_odd_resources, hf):
+    test_in_args = deepcopy(in_args)
+
+    test_in_args.add_branch = [["Foo", "α8"]]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['lengths']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "b83c4cfb07bd5df9f4bc41a7f9ebe718"
+
+    test_in_args.add_branch = [["((Foo:0.78,Bar:0.34):1.1,Baz:0.2);", "α2", "α5"]]
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['lengths']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "828a289b16f3a818230f54a0d4aa8c5d"
+
+    test_in_args.add_branch = [["Foo"]]
+    with pytest.raises(AttributeError):
+        Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['lengths']), skip_exit=True)
+        out, err = capsys.readouterr()
+        assert "Add branch tool requires at least two arguments: new_branch and sister_taxa." in err
+
+
 # ###################### 'cpt', '--collapse_polytomies' ###################### #
 def test_collapse_polytomies_ui(capsys, pb_odd_resources, hf):
     test_in_args = deepcopy(in_args)

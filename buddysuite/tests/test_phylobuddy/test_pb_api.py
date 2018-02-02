@@ -13,6 +13,7 @@ import shutil
 import re
 import webbrowser
 from collections import OrderedDict
+from dendropy import TreeList
 
 RES_PATH = __init__.RESOURCE_PATH
 HASH_MAP = OrderedDict([('mYSiElpW', 'Mle-Panxα9'), ('wPDsBSFF', 'Mle-Panxα7A'), ('eMBqjkZe', 'Mle-Panxα1'),
@@ -26,6 +27,47 @@ HASH_MAP = OrderedDict([('mYSiElpW', 'Mle-Panxα9'), ('wPDsBSFF', 'Mle-Panxα7A'
                         ('nM2JtozKiL', 'Pph-PanxβD'), ('V6onrYnwqL', 'Nbi-PanxβF'), ('l7keL2rmHu', 'Hvu-PanxβE'),
                         ('zbHrcxNBJB', 'Ccr-PanxγA'), ('vsDsQ3V1ZY', 'Che-PanxβC'), ('PJnknRqrKD', 'Hvu-PanxβJ'),
                         ('h7zOT9CNlZ', 'Che-PanxβD'), ('a0BEtaUs4Y', 'Nbi-PanxβG'), ('FMLbM2xkqq', 'Ate-PanxβC')])
+
+
+# ###################### 'cpt', '--collapse_polytomies' ###################### #
+def test_add_branch(pb_odd_resources, hf):
+    # Single taxon on a single sister taxon
+    tester = Pb.PhyloBuddy(pb_odd_resources['lengths'])
+    tester = Pb.add_branch(tester, "Foo", "Mle-Panxα8")
+    assert hf.buddy2hash(tester) == "b83c4cfb07bd5df9f4bc41a7f9ebe718", print(tester)
+
+    # Single taxon on multiple sister taxa
+    tester = Pb.PhyloBuddy(pb_odd_resources['lengths'])
+    tester = Pb.add_branch(tester, "Foo", ["Mle-Panxα2", "Mle-Panxα5"])
+    assert hf.buddy2hash(tester) == "b74b7af2e3ebc3af1d49bfd508475c63", print(tester)
+
+    # Subtree on a single sister taxon
+    tester = Pb.PhyloBuddy(pb_odd_resources['lengths'])
+    tester = Pb.add_branch(tester, Pb.PhyloBuddy("((Foo:0.78,Bar:0.34):1.1,Baz:0.2);"), "Mle-Panxα8")
+    assert hf.buddy2hash(tester) == "1319f48d46800d28179655a2125fd2c3", print(tester)
+
+    # Subtree on multiple sister taxa
+    tester = Pb.PhyloBuddy(pb_odd_resources['lengths'])
+    trees = TreeList()
+    trees.read(data="((Foo:0.78,Bar:0.34):1.1,Baz:0.2);", schema="newick")
+    tester = Pb.add_branch(tester, trees.pop(), ["Mle-Panxα2", "Mle-Panxα5"])
+    assert hf.buddy2hash(tester) == "828a289b16f3a818230f54a0d4aa8c5d", print(tester)
+
+    # Subtree on multiple sister taxa at root of tree
+    tester = Pb.PhyloBuddy(pb_odd_resources['lengths'])
+    trees = TreeList()
+    trees.read(data="((Foo:0.78,Bar:0.34):1.1,Baz:0.2);", schema="newick")
+    tester = Pb.add_branch(tester, trees.pop(), ["Mle-Panxα2", "Mle-Panxα9"])
+    assert hf.buddy2hash(tester) == "4e8c323a5104154bc8be844742bca000", print(tester)
+
+    # Error handling
+    with pytest.raises(TypeError) as err:
+        Pb.add_branch(tester, 123456, "Mle-Panxα8")
+    assert "new_branch parameter must be a string, dentropy tree, or PhyloBuddy object." in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        Pb.add_branch(tester, "Foo", "Mle-PanxαFoo")
+    assert "Unable to identify any sister taxa in tree." in str(err)
 
 
 # ###################### 'cpt', '--collapse_polytomies' ###################### #

@@ -373,6 +373,71 @@ def num_taxa(phylobuddy, nodes=False, split=False):
 
 
 # ################################################ MAIN API FUNCTIONS ################################################ #
+def add_branch(phylobuddy, new_branch, sister_taxa):
+    """
+    Add a subtree to an existing tree
+    :param phylobuddy: PhyloBuddy object of existing tree
+    :param new_branch: Single taxon or PhyloBuddy object of subtree
+    :param sister_taxa: Single taxon or list of taxa that the new branch should be placed sister to (regex patterns)
+    :return:
+    """
+    if type(new_branch) == str:
+        new_branch = PhyloBuddy("(%s);" % new_branch)
+    elif type(new_branch) == Tree:
+        new_branch = PhyloBuddy([new_branch])
+    elif type(new_branch) != PhyloBuddy:
+        raise TypeError("new_branch parameter must be a string, dentropy tree, or PhyloBuddy object.")
+
+    for node in new_branch.trees[0]:
+        if node.parent_node is None:
+            new_branch = node
+            if new_branch.num_child_nodes() == 1:
+                new_branch = new_branch.child_nodes()[0]
+            break
+
+    sister_taxa = [sister_taxa] if type(sister_taxa) == str else sister_taxa
+
+    for tree in phylobuddy.trees:
+        all_nodes = []
+        for regex in sister_taxa:
+            for indx, id_list in list_ids(PhyloBuddy([tree])).items():
+                for next_id in id_list:
+                    if re.search(regex, next_id):
+                        all_nodes.append(next_id)
+        if len(all_nodes) == 0:
+            raise AttributeError("Unable to identify any sister taxa in tree.")
+
+        elif len(all_nodes) == 1:
+            leaf_node = tree.find_node_with_taxon_label(all_nodes[0])
+            mrca = leaf_node.parent_node
+            new_edge_len = leaf_node.edge.length / 2
+            attachment = Node(edge_length=new_edge_len)
+            leaf_node.edge.length = new_edge_len
+            new_branch.edge.length = new_edge_len
+            mrca.remove_child(leaf_node)
+            mrca.add_child(attachment)
+            attachment.add_child(new_branch)
+            attachment.add_child(leaf_node)
+
+        else:
+            mrca = tree.mrca(taxon_labels=all_nodes)
+            new_edge_len = mrca.edge.length / 2
+            attachment = Node(edge_length=new_edge_len)
+            mrca.edge.length = new_edge_len
+            new_branch.edge.length = new_edge_len
+
+            mrca_parent = mrca.parent_node
+            if mrca_parent is not None:
+                mrca_parent.remove_child(mrca)
+                mrca_parent.add_child(attachment)
+                attachment.add_child(mrca)
+            else:
+                mrca.add_child(attachment)
+
+            attachment.add_child(new_branch)
+    return phylobuddy
+
+
 def collapse_polytomies(phylobuddy, threshold, mode="support"):
     """
     Remove nodes if their support value or branch length are below the given threshold
@@ -962,20 +1027,20 @@ def split_polytomies(phylobuddy, r_seed=None):
     :param r_seed: Specify a random seed so results can be reproducible
     :return: Modified PhyloBuddy object
     """
-    rng = random.Random(r_seed)
+    rand = random.Random(r_seed)
     for tree in phylobuddy.trees:
         polytomies = []
         for node in tree.postorder_node_iter():
             if len(node._child_nodes) > 2:
                 polytomies.append(node)
         for node in polytomies:
-            to_attach = rng.sample(node._child_nodes, len(node._child_nodes) - 2)
+            to_attach = rand.sample(node._child_nodes, len(node._child_nodes) - 2)
             for child in to_attach:
                 node.remove_child(child)
             attachment_points = list(node._child_nodes)
             while len(to_attach) > 0:
                 next_child = to_attach.pop()
-                next_sib = rng.choice(attachment_points)
+                next_sib = rand.choice(attachment_points)
                 next_attachment = Node(edge_length=0.000001)
                 p = next_sib._parent_node
                 p.add_child(next_attachment)
@@ -1111,6 +1176,22 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         _exit(_tool)
 
     # ############################################## COMMAND LINE LOGIC ############################################## #
+    # Add branch
+    if in_args.add_branch:
+        args = in_args.add_branch[0]
+        if len(args) < 2:
+            _raise_error(AttributeError("Add branch tool requires at least two arguments: new_branch and sister_taxa."),
+                         "add_branch")
+        try:
+            new_branch = PhyloBuddy(args[0])
+        except br.GuessError:
+            new_branch = args[0]
+
+        sister_taxa = args[1:]
+
+        _print_trees(add_branch(phylobuddy, new_branch, sister_taxa))
+        _exit("add_branch")
+
     # Collapse polytomies
     if in_args.collapse_polytomies:
         args = in_args.collapse_polytomies[0]
