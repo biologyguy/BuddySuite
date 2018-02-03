@@ -271,9 +271,12 @@ class PhyloBuddy(object):
 
         return _output
 
-    def write(self, _file_path):
+    def write(self, _file_path, out_format=None):
+        orig_out_format = str(self.out_format)
+        self.out_format = self.out_format if out_format is None else out_format
         with open(_file_path, "w", encoding="utf-8") as _ofile:
             _ofile.write(str(self))
+        self.out_format = orig_out_format
         return
 
 
@@ -480,71 +483,94 @@ def consensus_tree(phylobuddy, frequency=.5):
     return phylobuddy
 
 
-def display_trees(phylobuddy):
+def display_trees(phylobuddy, program=None):
     """
     Displays trees in a web browser window, one-by-one.
     :param phylobuddy: PhyloBuddy object
+    :param program: How should the tree be displayed --> ['figtree', 'system']
     :return: None
     """
+    available_programs = ['figtree', 'system']
+    if program and program not in available_programs:
+        raise AttributeError("Unknown program '%s' selected for display. "
+                             "Please select between %s" % (program, available_programs))
+
     if os.name != "nt" and sys.platform != "darwin" and "DISPLAY" not in os.environ:
         # We just assume that a Windows/Mac machine is graphical
         raise SystemError("This system does not appear to be graphical, "
                           "so display_trees() will not work. Try using trees_to_ascii()")
-    try:
-        import pylab
-    except RuntimeError as err:
-        if "The Mac OS X backend will not be able to function correctly" in str(err):
-            message = """\
+
+    program = "system" if program is None else program
+
+    if program == "figtree":
+        program = "figtree" if shutil.which("figtree") else "system"
+
+    tmp_dir = br.TempDir()
+    tree_file = tmp_dir.subfile('tree.svg')
+
+    if program == "figtree":
+        if not shutil.which("figtree"):
+            raise SystemError("Unable to find FigTree on your system. Please install it and ensure it is present in"
+                              "your PATH. http://tree.bio.ed.ac.uk/software/figtree/")
+
+        phylobuddy.write(tree_file, out_format="nexus")
+        Popen("figtree %s" % tree_file, shell=True)
+        input("Switching to FigTree. Hit any key to continue.\n")
+
+    elif program == "system":
+        try:
+            import pylab
+        except RuntimeError as err:
+            if "The Mac OS X backend will not be able to function correctly" in str(err):
+                message = """\
 It looks like you are on a Mac with an incorrect backend
 for matplotlib. This can probably be fixed by amending your 
 matplotlibrc file. Would you like PhyloBuddy try to do this 
 automatically? y/[n]: """
-            if br.ask(message, default="no"):
-                home = os.path.expanduser('~')
-                os.makedirs(os.path.join(home, ".matplotlib"), exist_ok=True)
-                if os.path.isfile(os.path.join(home, ".matplotlib", "matplotlibrc")):
-                    with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "r") as ifile:
-                        matplotlibrc = ifile.read().strip()
+                if br.ask(message, default="no"):
+                    home = os.path.expanduser('~')
+                    os.makedirs(os.path.join(home, ".matplotlib"), exist_ok=True)
+                    if os.path.isfile(os.path.join(home, ".matplotlib", "matplotlibrc")):
+                        with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "r") as ifile:
+                            matplotlibrc = ifile.read().strip()
+                    else:
+                        matplotlibrc = ""
+
+                    with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "a") as ofile:
+                        ofile.write("# Backend set by PhyloBuddy\nbackend: TkAgg\n%s" % matplotlibrc)
+
+                    br._stderr("\n%s amended.\nPlease re-run your command.\n" % os.path.join(home, ".matplotlib",
+                                                                                                   "matplotlibrc"))
                 else:
-                    matplotlibrc = ""
+                    br._stderr("\nOriginal error message:\n\n" + str(err) + "\n\nStack Overflow may help you out:\n"
+                               "https://stackoverflow.com/questions/21784641/installation-issue-with-"
+                               "matplotlib-python\n\n")
+                sys.exit()
 
-                with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "a") as ofile:
-                    ofile.write("# Backend set by PhyloBuddy\nbackend: TkAgg\n%s" % matplotlibrc)
-
-                br._stderr("\n%s amended.\nPlease re-run your command.\n" % os.path.join(home, ".matplotlib",
-                                                                                       "matplotlibrc"))
             else:
-                br._stderr("\nOriginal error message:\n\n" + str(err) + "\n\nStack Overflow may help you out:\n"
-                           "https://stackoverflow.com/questions/21784641/installation-issue-with-"
-                           "matplotlib-python\n\n")
-            sys.exit()
+                raise err
 
-        else:
-            raise err
+        label_colors = []
+        indx = 0
+        for tree in phylobuddy.trees:
+            label_colors.append(OrderedDict())
+            for node in tree:
+                if node.taxon and node.annotations.get_value('!color'):
+                    label_colors[indx][node.taxon.label] = node.annotations.get_value('!color')
+            indx += 1
 
-    label_colors = []
-    indx = 0
-    for tree in phylobuddy.trees:
-        label_colors.append(OrderedDict())
-        for node in tree:
-            if node.taxon and node.annotations.get_value('!color'):
-                label_colors[indx][node.taxon.label] = node.annotations.get_value('!color')
-        indx += 1
-
-    tmp_dir = br.TempDir()
-    tree_file = tmp_dir.subfile('tree.svg')
-    indx = 0
-    for tree in Bio.Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
-        Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False, label_colors=label_colors[indx])
-        pylab.axis('off')
-        pylab.savefig(tree_file, format='svg', bbox_inches='tight', dpi=300)
-        if os.name == "nt":  # File path specification different between operating systems
-            file_location = tree_file
-        else:
-            file_location = "file:///" + tree_file
-        webbrowser.open_new_tab(file_location)
-        input("Switching to web browser. Hit any key to continue.\n")
-        indx += 1
+        indx = 0
+        for tree in Bio.Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
+            Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False, label_colors=label_colors[indx])
+            pylab.axis('off')
+            pylab.savefig(tree_file, format='svg', bbox_inches='tight', dpi=300)
+            if os.name == "nt":  # File path specification different between operating systems
+                file_location = tree_file
+            else:
+                file_location = "file:///" + tree_file
+            webbrowser.open_new_tab(file_location)
+            input("Switching to system browser. Hit any key to continue.\n")
+            indx += 1
     return True
 
 
@@ -1220,8 +1246,9 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
     # Display trees
     if in_args.display_trees:
+        program = None if in_args.display_trees[0] is None else in_args.display_trees[0].lower()
         try:
-            display_trees(phylobuddy)
+            display_trees(phylobuddy, program)
         except SystemError:
             if sys.platform == "darwin":
                 br._stderr("Error: Your system does not appear to be graphical. "

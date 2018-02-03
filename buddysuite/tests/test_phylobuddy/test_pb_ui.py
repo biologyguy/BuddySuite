@@ -185,7 +185,7 @@ def test_consensus_tree_ui(capsys, pb_resources, hf):
 def test_display_trees_ui(monkeypatch, pb_resources):
     if 'DISPLAY' in os.environ:
         test_in_args = deepcopy(in_args)
-        test_in_args.display_trees = True
+        test_in_args.display_trees = [None]
         monkeypatch.setattr("builtins.input", lambda *_: "")
         monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
@@ -193,7 +193,7 @@ def test_display_trees_ui(monkeypatch, pb_resources):
 
 def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
     test_in_args = deepcopy(in_args)
-    test_in_args.display_trees = True
+    test_in_args.display_trees = [None]
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     monkeypatch.setattr(os, "name", "posix")
