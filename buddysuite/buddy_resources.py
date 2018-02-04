@@ -180,6 +180,16 @@ class DynamicPrint(object):
         return
 
 
+def dummy_func(*args, **kwargs):
+    """
+    This can be placed in code for unit test monkey patching
+    :param args: arguments
+    :param kwargs: key-word arguments
+    :return:
+    """
+    return args, kwargs
+
+
 def pretty_time(seconds):
     if seconds < 60:
         output = "%i sec" % seconds

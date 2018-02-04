@@ -148,6 +148,11 @@ def test_dynamicprint_write(capsys):
     assert err == ""
 
 
+def test_dummy_func():
+    dummy = br.dummy_func("Foo", "Bar", kwarg="Hello")
+    assert dummy == (('Foo', 'Bar'), {'kwarg': 'Hello'})
+
+
 def test_pretty_time():
     assert br.pretty_time(1) == '1 sec'
     assert br.pretty_time(60) == '1 min, 0 sec'
