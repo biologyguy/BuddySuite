@@ -12,6 +12,7 @@ import os
 import shutil
 import re
 import webbrowser
+import pylab
 from collections import OrderedDict
 from dendropy import TreeList
 
@@ -110,8 +111,13 @@ def test_consensus_tree_95(key, next_hash, pb_resources, hf):
 
 # ###################### 'dt', '--display_trees' ###################### #
 def test_display_trees(monkeypatch, pb_resources, capsys):
-    monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
+    monkeypatch.setattr(webbrowser, "open", lambda *_, **__: "")
+    monkeypatch.setattr(Pb.Bio.Phylo, "draw", lambda *_, **__: True)
+    monkeypatch.setattr(pylab, "axis", lambda *_: True)
+    monkeypatch.setattr(pylab, "savefig", lambda *_, **__: True)
     monkeypatch.setattr("builtins.input", lambda *_: print("Mock input"))
+    monkeypatch.setattr(Pb, "Popen", lambda *_, **__: True)
+
     with mock.patch.dict('os.environ'):
         os.environ["DISPLAY"] = ":0"
         phylobuddy = pb_resources.get_one("o k")
@@ -124,9 +130,15 @@ def test_display_trees(monkeypatch, pb_resources, capsys):
         assert "Mock input" in out
 
         monkeypatch.setattr(Pb, "Popen", lambda *_, **__: True)
+        monkeypatch.setattr(shutil, "which", lambda *_: True)
         assert Pb.display_trees(pb_resources.get_one("o k"), program="figtree") is True
         out, err = capsys.readouterr()
         assert "Mock input" in out
+
+        monkeypatch.setattr(os, "name", "nt")
+        assert Pb.display_trees(pb_resources.get_one("o k"), program="figtree") is False
+        out, err = capsys.readouterr()
+        assert "Sorry! I'm not sure how to launch FigTree on Windows" in out
 
 
 def test_display_trees_pylab_setup(monkeypatch, pb_resources, capsys):
@@ -136,9 +148,12 @@ def test_display_trees_pylab_setup(monkeypatch, pb_resources, capsys):
     tmp_dir = br.TempDir()
     mplibrc = os.path.join(tmp_dir.path, ".matplotlib", "matplotlibrc")
 
+    def mock_expand_user(path):
+        return re.sub("~", tmp_dir.path, path)
+
     monkeypatch.setattr(br, "dummy_func", mock_raise_runtime1)
     monkeypatch.setattr("builtins.input", lambda *_: print("Mock input"))
-    monkeypatch.setattr(os.path, "expanduser", lambda *_: tmp_dir.path)
+    monkeypatch.setattr(os.path, "expanduser", mock_expand_user)
     monkeypatch.setattr(br, "ask", lambda *_, **__: True)
 
     # First time this runs, matplotlibrc is not present in temp dir
@@ -200,10 +215,12 @@ def test_display_trees_error(pb_resources, monkeypatch):
 
     monkeypatch.setattr(shutil, "which", lambda *_: "")
 
-    with pytest.raises(SystemError) as err:
-        Pb.display_trees("PhyloBuddy", program="figtree")
-    assert "Unable to find FigTree on your system. Please install it and ensure it is present in" \
-           " your $PATH. http://tree.bio.ed.ac.uk/software/figtree/" in str(err)
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(SystemError) as err:
+            Pb.display_trees("PhyloBuddy", program="figtree")
+        assert "Unable to find FigTree on your system. Please install it and ensure it is present in" \
+               " your $PATH. http://tree.bio.ed.ac.uk/software/figtree/" in str(err)
 
     # noinspection PyUnresolvedReferences
     monkeypatch.setattr("builtins.input", lambda *_: "")

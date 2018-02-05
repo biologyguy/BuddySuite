@@ -30,6 +30,7 @@ from copy import deepcopy
 from unittest import mock
 import shutil
 import webbrowser
+import pylab
 
 import buddy_resources as br
 import PhyloBuddy as Pb
@@ -189,6 +190,9 @@ def test_display_trees_ui(monkeypatch, pb_resources, capsys):
         test_in_args.display_trees = [None]
         monkeypatch.setattr("builtins.input", lambda *_: "")
         monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
+        monkeypatch.setattr(pylab, "axis", lambda *_: True)
+        monkeypatch.setattr(pylab, "savefig", lambda *_, **__: True)
+        monkeypatch.setattr(Pb.Bio.Phylo, "draw", lambda *_, **__: True)
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
 
         test_in_args.display_trees = ["fake_program"]

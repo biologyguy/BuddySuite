@@ -511,14 +511,23 @@ def display_trees(phylobuddy, program=None):
     tree_file = tmp_dir.subfile('tree.svg')
 
     if program == "figtree":
+        if os.name == "nt":
+            print("Sorry! I'm not sure how to launch FigTree on Windows. Given that you've seen this message, you"
+                  " probably want the functionality, so leave a message in the GitHub issue tracker.")
+            return False
+
         phylobuddy.write(tree_file, out_format="nexus")
-        Popen("figtree %s" % tree_file, shell=True)
-        input("Switching to FigTree. Hit any key to continue.\n")
+        tty = open("/dev/tty", mode="r")
+        os.dup2(tty.fileno(), 0)
+
+        Popen("figtree %s" % tree_file, shell=True, stdout=PIPE, stderr=PIPE)
+        sys.stdin = input("Switching to FigTree, hit Enter to exit PhyloBuddy.\n")
+        tty.close()
 
     elif program == "system":
         try:
-            import pylab
             br.dummy_func()  # For monkey patching purposes in unit tests
+            import pylab
         except RuntimeError as err:
             if "The Mac OS X backend will not be able to function correctly" in str(err):
                 message = """\
@@ -559,6 +568,9 @@ automatically? y/[n]: """
             indx += 1
 
         indx = 0
+        tty = open("/dev/tty", mode="r")
+        os.dup2(tty.fileno(), 0)
+
         for tree in Bio.Phylo.parse(StringIO(str(phylobuddy)), phylobuddy.out_format):
             Bio.Phylo.draw(tree, label_func=lambda leaf: leaf.name, do_show=False, label_colors=label_colors[indx])
             pylab.axis('off')
@@ -567,9 +579,10 @@ automatically? y/[n]: """
                 file_location = tree_file
             else:
                 file_location = "file:///" + tree_file
-            webbrowser.open_new_tab(file_location)
-            input("Switching to system browser. Hit any key to continue.\n")
+            webbrowser.open(file_location, new=2)
+            input("Switching to system browser. Hit Enter to continue.\n")
             indx += 1
+        tty.close()
     return True
 
 
@@ -1246,6 +1259,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
     # Display trees
     if in_args.display_trees:
         program = None if in_args.display_trees[0] is None else in_args.display_trees[0].lower()
+        program = "figtree" if program and "figtree".startswith(program) else program
         try:
             display_trees(phylobuddy, program)
         except SystemError as err:
@@ -1314,7 +1328,8 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
         generated_trees = None
         try:
-            generated_trees = generate_tree(alignbuddy, args[0], params, in_args.keep_temp, quiet=in_args.quiet)
+            generated_trees = generate_tree(alignbuddy, args[0], params, in_args.keep_temp, quiet=in_args.quiet,
+                                            r_seed=in_args.random_seed)
         except (FileExistsError, AttributeError, ProcessLookupError, RuntimeError) as e:
             _raise_error(e, "generate_tree")
         except FileNotFoundError as e:
