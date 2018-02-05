@@ -182,13 +182,19 @@ def test_consensus_tree_ui(capsys, pb_resources, hf):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
-def test_display_trees_ui(monkeypatch, pb_resources):
-    if 'DISPLAY' in os.environ:
+def test_display_trees_ui(monkeypatch, pb_resources, capsys):
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
         test_in_args = deepcopy(in_args)
         test_in_args.display_trees = [None]
         monkeypatch.setattr("builtins.input", lambda *_: "")
         monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+
+        test_in_args.display_trees = ["fake_program"]
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+        out, err = capsys.readouterr()
+        assert "AttributeError: Unknown program 'fake_program' selected for display" in err
 
 
 def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
@@ -197,15 +203,37 @@ def test_display_trees_ui_no_display(capsys, monkeypatch, pb_resources):
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
     monkeypatch.setattr(os, "name", "posix")
-    # noinspection PyUnresolvedReferences
+
+    # Non-graphical, not Mac
     monkeypatch.setattr(sys, "platform", "blahh")
     with mock.patch.dict('os.environ'):
         if 'DISPLAY' in os.environ:
             del os.environ['DISPLAY']
         Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
         out, err = capsys.readouterr()
-
     assert "Error: Your system does not appear to be graphical" in err
+
+    # Try XQuarts Mac
+    def mock_systemerror1(*_, **__):
+        raise SystemError("graphical fail")
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(br, "dummy_func", mock_systemerror1)
+    with mock.patch.dict('os.environ'):
+        if 'DISPLAY' in os.environ:
+            del os.environ['DISPLAY']
+        Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+        out, err = capsys.readouterr()
+    assert "Try installing XQuartz (https://www.xquartz.org/)" in err, print(out, err)
+
+    # Unknown system error
+    def mock_systemerror2(*_, **__):
+        raise SystemError("Foo")
+    monkeypatch.setattr(br, "dummy_func", mock_systemerror2)
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(SystemError) as err:
+            Pb.command_line_ui(test_in_args, pb_resources.get_one("o k"), skip_exit=True)
+    assert "Foo" in str(err)
 
 
 # ###################### 'dis', '--distance' ###################### #

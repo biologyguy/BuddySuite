@@ -503,16 +503,14 @@ def display_trees(phylobuddy, program=None):
     program = "system" if program is None else program
 
     if program == "figtree":
-        program = "figtree" if shutil.which("figtree") else "system"
+        if not shutil.which("figtree"):
+            raise SystemError("Unable to find FigTree on your system. Please install it and ensure it is present in"
+                              " your $PATH. http://tree.bio.ed.ac.uk/software/figtree/")
 
     tmp_dir = br.TempDir()
     tree_file = tmp_dir.subfile('tree.svg')
 
     if program == "figtree":
-        if not shutil.which("figtree"):
-            raise SystemError("Unable to find FigTree on your system. Please install it and ensure it is present in"
-                              "your PATH. http://tree.bio.ed.ac.uk/software/figtree/")
-
         phylobuddy.write(tree_file, out_format="nexus")
         Popen("figtree %s" % tree_file, shell=True)
         input("Switching to FigTree. Hit any key to continue.\n")
@@ -520,6 +518,7 @@ def display_trees(phylobuddy, program=None):
     elif program == "system":
         try:
             import pylab
+            br.dummy_func()  # For monkey patching purposes in unit tests
         except RuntimeError as err:
             if "The Mac OS X backend will not be able to function correctly" in str(err):
                 message = """\
@@ -529,18 +528,18 @@ matplotlibrc file. Would you like PhyloBuddy try to do this
 automatically? y/[n]: """
                 if br.ask(message, default="no"):
                     home = os.path.expanduser('~')
+                    mplibrc = os.path.join(home, ".matplotlib", "matplotlibrc")
                     os.makedirs(os.path.join(home, ".matplotlib"), exist_ok=True)
-                    if os.path.isfile(os.path.join(home, ".matplotlib", "matplotlibrc")):
-                        with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "r") as ifile:
+                    if os.path.isfile(mplibrc):
+                        with open(mplibrc, "r") as ifile:
                             matplotlibrc = ifile.read().strip()
                     else:
                         matplotlibrc = ""
 
-                    with open(os.path.join(home, ".matplotlib", "matplotlibrc"), "a") as ofile:
+                    with open(mplibrc, "w") as ofile:
                         ofile.write("# Backend set by PhyloBuddy\nbackend: TkAgg\n%s" % matplotlibrc)
 
-                    br._stderr("\n%s amended.\nPlease re-run your command.\n" % os.path.join(home, ".matplotlib",
-                                                                                                   "matplotlibrc"))
+                    br._stderr("\n%s amended.\nPlease re-run your command.\n" % mplibrc)
                 else:
                     br._stderr("\nOriginal error message:\n\n" + str(err) + "\n\nStack Overflow may help you out:\n"
                                "https://stackoverflow.com/questions/21784641/installation-issue-with-"
@@ -1249,13 +1248,20 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
         program = None if in_args.display_trees[0] is None else in_args.display_trees[0].lower()
         try:
             display_trees(phylobuddy, program)
-        except SystemError:
-            if sys.platform == "darwin":
+        except SystemError as err:
+            print(sys.platform, str(err))
+            if sys.platform == "darwin" and "graphical" in str(err):
                 br._stderr("Error: Your system does not appear to be graphical. "
                            "Try installing XQuartz (https://www.xquartz.org/), or use print_trees instead.")
-            else:
+            elif "graphical" in str(err):
                 br._stderr("Error: Your system does not appear to be graphical, so display_trees can not work. "
                            "Please use print_trees instead.")
+            else:
+                _raise_error(err, "display_trees", "FigTree")
+
+        except AttributeError as err:
+            _raise_error(err, "display_trees", "Unknown program")
+        
         _exit("display_trees")
 
     # Distance

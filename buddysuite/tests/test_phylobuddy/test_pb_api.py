@@ -109,16 +109,102 @@ def test_consensus_tree_95(key, next_hash, pb_resources, hf):
 
 
 # ###################### 'dt', '--display_trees' ###################### #
-def test_display_trees(monkeypatch, pb_resources):
-    monkeypatch.setattr("builtins.input", lambda *_: "")
+def test_display_trees(monkeypatch, pb_resources, capsys):
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
-    try:
-        assert Pb.display_trees(pb_resources.get_one("o k"))
-    except SystemError as err:
-        assert "This system does not appear to be graphical, so display_trees() will not work." in str(err)
+    monkeypatch.setattr("builtins.input", lambda *_: print("Mock input"))
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        phylobuddy = pb_resources.get_one("o k")
+        tree = phylobuddy.trees[0]
+        for node in tree:
+            if node.taxon:
+                node.annotations['!color'] = '#ff0000'
+        assert Pb.display_trees(phylobuddy) is True
+        out, err = capsys.readouterr()
+        assert "Mock input" in out
+
+        monkeypatch.setattr(Pb, "Popen", lambda *_, **__: True)
+        assert Pb.display_trees(pb_resources.get_one("o k"), program="figtree") is True
+        out, err = capsys.readouterr()
+        assert "Mock input" in out
+
+
+def test_display_trees_pylab_setup(monkeypatch, pb_resources, capsys):
+    def mock_raise_runtime1():
+        raise RuntimeError("The Mac OS X backend will not be able to function correctly")
+
+    tmp_dir = br.TempDir()
+    mplibrc = os.path.join(tmp_dir.path, ".matplotlib", "matplotlibrc")
+
+    monkeypatch.setattr(br, "dummy_func", mock_raise_runtime1)
+    monkeypatch.setattr("builtins.input", lambda *_: print("Mock input"))
+    monkeypatch.setattr(os.path, "expanduser", lambda *_: tmp_dir.path)
+    monkeypatch.setattr(br, "ask", lambda *_, **__: True)
+
+    # First time this runs, matplotlibrc is not present in temp dir
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(SystemExit):
+            Pb.display_trees(pb_resources.get_one("o k"))
+
+    out, err = capsys.readouterr()
+    assert "%s amended.\nPlease re-run your command." % mplibrc in err
+    assert os.path.isfile(mplibrc)
+    with open(mplibrc, "r") as ifile:
+        assert ifile.read() == "# Backend set by PhyloBuddy\nbackend: TkAgg\n"
+
+    # Second time this runs, matplotlibrc is now present in temp dir
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(SystemExit):
+            Pb.display_trees(pb_resources.get_one("o k"))
+
+    out, err = capsys.readouterr()
+    assert "%s amended.\nPlease re-run your command." % mplibrc in err
+    with open(mplibrc, "r") as ifile:
+        output = ifile.read()
+        assert output == ("# Backend set by PhyloBuddy\nbackend: TkAgg\n" * 2).strip(), print(output)
+
+    # Do not agree to update matplotlibrc
+    monkeypatch.setattr(br, "ask", lambda *_, **__: False)
+    with open(mplibrc, "w") as ofile:
+        ofile.write("Foo bar\n")
+
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(SystemExit):
+            Pb.display_trees(pb_resources.get_one("o k"))
+
+    out, err = capsys.readouterr()
+    assert "Stack Overflow may help you out" in err
+
+    with open(mplibrc, "r") as ifile:
+        assert ifile.read() == "Foo bar\n"
+
+    def mock_raise_runtime2():
+        raise RuntimeError("Unknown runtime error")
+
+    monkeypatch.setattr(br, "dummy_func", mock_raise_runtime2)
+    with mock.patch.dict('os.environ'):
+        os.environ["DISPLAY"] = ":0"
+        with pytest.raises(RuntimeError) as err:
+            Pb.display_trees(pb_resources.get_one("o k"))
+        assert "Unknown runtime error" in str(err)
 
 
 def test_display_trees_error(pb_resources, monkeypatch):
+    # Unknown program
+    with pytest.raises(AttributeError) as err:
+        Pb.display_trees("PhyloBuddy", program="foo")
+    assert "Unknown program 'foo' selected for display. Please select between ['figtree', 'system']" in str(err)
+
+    monkeypatch.setattr(shutil, "which", lambda *_: "")
+
+    with pytest.raises(SystemError) as err:
+        Pb.display_trees("PhyloBuddy", program="figtree")
+    assert "Unable to find FigTree on your system. Please install it and ensure it is present in" \
+           " your $PATH. http://tree.bio.ed.ac.uk/software/figtree/" in str(err)
+
     # noinspection PyUnresolvedReferences
     monkeypatch.setattr("builtins.input", lambda *_: "")
     monkeypatch.setattr(webbrowser, "open_new_tab", lambda *_: "")
@@ -425,7 +511,7 @@ def test_hash_ids_edges(monkeypatch, pb_resources, hf, pb_odd_resources):
                            "kxFL0xMfFx"]
             self.current_value = self.values.pop()
 
-        def choice(self, *args):
+        def choice(self, *_):
             if not self.current_value:
                 self.current_value = self.values.pop()
             next_char = self.current_value[0]
@@ -492,6 +578,7 @@ def test_print_trees(key, next_hash, pb_resources, hf):
         assert hf.string2hash(tester) == next_hash[1]
     else:
         assert hf.string2hash(tester) == next_hash[0]
+
 
 # ###################### 'pr', '--prune_taxa' ###################### #
 pt_hashes = [('m k', '99635c6dbf708f94cf4dfdca87113c44'), ('m n', 'fc03b4f100f038277edf6a9f48913dd0'),
