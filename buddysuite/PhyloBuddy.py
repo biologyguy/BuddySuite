@@ -701,9 +701,13 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
             return parameters
 
         params = re.split(' ', params, )  # Expands paths in _params to absolute paths
+        file_list = []
         for indx, token in enumerate(params):
             if os.path.exists(token):
                 params[indx] = os.path.abspath(token)
+                if os.path.isfile(token):
+                    file_list.append(params[indx])
+
         params = ' '.join(params)
 
         phylo_objs = []
@@ -717,6 +721,18 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
             sub_alignbuddy.write(os.path.join(tmp_dir.path, "pb_input.aln"))  # Most tree builders require an input file
 
             if tool == 'raxml':
+                for next_file in file_list:
+                    with open(next_file, "r", encoding="utf-8", errors='ignore') as ifile:
+                        contents = ifile.read()
+                    for _hash, _id in sub_alignbuddy.hash_map.items():
+                        contents = re.sub(r'%s([,)\'\":])' % _id, r'%s\1' % _hash, contents)
+                        contents = re.sub(r'[\'\"]%s[\'\"]' % _hash, r'%s' % _hash, contents)
+                    file_name = os.path.split(next_file)[1]
+                    file_name = tmp_dir.subfile(file_name)
+                    with open(file_name, "w", encoding="utf-8") as ofile:
+                        ofile.write(contents)
+                    params = re.sub(next_file, file_name, params)
+
                 params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
                 if '-T' not in params:  # Num threads
                     params += ' -T 2'
@@ -730,7 +746,7 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                         params += " -m PROTCATLG"
 
                 if '-p' not in params:  # RNG seed
-                    params += ' -p 12345'
+                    params += ' -p 12345' if not r_seed else ' -p %s' % r_seed
                 if '-#' not in params and '-N' not in params:  # Number of trees to build
                     params += ' -# 1'
                 command = '{0} -s {1} {2} -n result -w {3}'.format(alias, tmp_in, params, tmp_dir.path)
