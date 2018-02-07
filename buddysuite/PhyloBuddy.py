@@ -1244,10 +1244,12 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
             new_branch = PhyloBuddy(args[0])
         except br.GuessError:
             new_branch = args[0]
-
         sister_taxa = args[1:]
 
-        _print_trees(add_branch(phylobuddy, new_branch, sister_taxa))
+        try:
+            _print_trees(add_branch(phylobuddy, new_branch, sister_taxa))
+        except AttributeError as err:
+            _raise_error(err, "add_branch", "Unable to identify any sister taxa in tree")
         _exit("add_branch")
 
     # Collapse polytomies

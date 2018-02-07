@@ -142,10 +142,9 @@ def test_add_branch_ui(capsys, pb_odd_resources, hf):
     assert hf.string2hash(out) == "828a289b16f3a818230f54a0d4aa8c5d"
 
     test_in_args.add_branch = [["Foo"]]
-    with pytest.raises(AttributeError):
-        Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['lengths']), skip_exit=True)
-        out, err = capsys.readouterr()
-        assert "Add branch tool requires at least two arguments: new_branch and sister_taxa." in err
+    Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources['lengths']), skip_exit=True)
+    out, err = capsys.readouterr()
+    assert "Add branch tool requires at least two arguments: new_branch and sister_taxa." in err
 
 
 # ###################### 'cpt', '--collapse_polytomies' ###################### #
