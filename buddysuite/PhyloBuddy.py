@@ -720,19 +720,19 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
 
             sub_alignbuddy.write(os.path.join(tmp_dir.path, "pb_input.aln"))  # Most tree builders require an input file
 
-            if tool == 'raxml':
-                for next_file in file_list:
-                    with open(next_file, "r", encoding="utf-8", errors='ignore') as ifile:
-                        contents = ifile.read()
-                    for _hash, _id in sub_alignbuddy.hash_map.items():
-                        contents = re.sub(r'%s([,)\'\":])' % _id, r'%s\1' % _hash, contents)
-                        contents = re.sub(r'[\'\"]%s[\'\"]' % _hash, r'%s' % _hash, contents)
-                    file_name = os.path.split(next_file)[1]
-                    file_name = tmp_dir.subfile(file_name)
-                    with open(file_name, "w", encoding="utf-8") as ofile:
-                        ofile.write(contents)
-                    params = re.sub(next_file, file_name, params)
+            for next_file in file_list:
+                with open(next_file, "r", encoding="utf-8", errors='ignore') as ifile:
+                    contents = ifile.read()
+                for _hash, _id in sub_alignbuddy.hash_map.items():
+                    contents = re.sub(r'%s([,)\'\":])' % _id, r'%s\1' % _hash, contents)
+                    contents = re.sub(r'[\'\"]%s[\'\"]' % _hash, r'%s' % _hash, contents)
+                file_name = os.path.split(next_file)[1]
+                file_name = tmp_dir.subfile(file_name)
+                with open(file_name, "w", encoding="utf-8") as ofile:
+                    ofile.write(contents)
+                params = re.sub(next_file, file_name, params)
 
+            if tool == 'raxml':
                 params = remove_invalid_params({'-s': True, '-n': True, '-w': True})
                 if '-T' not in params:  # Num threads
                     params += ' -T 2'
