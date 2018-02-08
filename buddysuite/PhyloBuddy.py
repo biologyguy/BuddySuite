@@ -223,7 +223,8 @@ class PhyloBuddy(object):
 
             _trees = dendropy.TreeList()
             if self.in_format != 'nexml':
-                _trees.read(data=in_from_handle, schema=self.in_format, extract_comment_metadata=True)
+                _trees.read(data=in_from_handle, schema=self.in_format, extract_comment_metadata=True,
+                            preserve_underscores=True)
             else:
                 _trees.read(data=in_from_handle, schema=self.in_format)
 

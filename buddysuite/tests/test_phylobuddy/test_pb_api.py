@@ -728,4 +728,4 @@ def test_split_polytomies():
 def test_unroot(pb_odd_resources, hf):
     tester = Pb.PhyloBuddy(pb_odd_resources['figtree'])
     Pb.unroot(tester)
-    assert hf.buddy2hash(tester) == "10e9024301b3178cdaed0b57ba33f615"
+    assert hf.buddy2hash(tester) == "e24e85fdc2f877f9340f147d9fed5fef", print(tester)

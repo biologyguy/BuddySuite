@@ -533,7 +533,7 @@ def test_unroot_ui(capsys, pb_odd_resources, hf):
 
     Pb.command_line_ui(test_in_args, Pb.PhyloBuddy(pb_odd_resources["figtree"]), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "10e9024301b3178cdaed0b57ba33f615"
+    assert hf.string2hash(out) == "e24e85fdc2f877f9340f147d9fed5fef", print(out)
 
 
 # ###################### main() ###################### #
