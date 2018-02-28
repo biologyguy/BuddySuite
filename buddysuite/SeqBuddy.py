@@ -228,7 +228,7 @@ class SeqBuddy(object):
             pass
 
         if in_format:
-            self.in_format = in_format
+            self.in_format = br.parse_format(in_format)
 
         elif sb_input.__class__.__name__ == "SeqBuddy":
             self.in_format = sb_input.in_format
@@ -237,7 +237,7 @@ class SeqBuddy(object):
             self.in_format = _guess_format(sb_input)
             if self.in_format == "empty file":
                 self.in_format = "fasta"
-            self.out_format = str(self.in_format) if not out_format else out_format
+            self.out_format = str(self.in_format) if not out_format else br.parse_format(out_format)
 
         if not self.in_format:
             if in_file:
@@ -253,7 +253,8 @@ class SeqBuddy(object):
                 raise br.GuessError("Unable to determine format or input type. "
                                     "Please check how SeqBuddy is being called.")
 
-        self.out_format = self.in_format if not out_format else out_format
+        self.out_format = self.in_format if not out_format else br.parse_format(out_format)
+        self.out_format = "clustal" if self.out_format == "blast-aln" else self.out_format  # Cant write blast-aln
 
         # ####  RECORDS  #### #
         if sb_input.__class__.__name__ == "SeqBuddy":
