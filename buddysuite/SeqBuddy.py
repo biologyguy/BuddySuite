@@ -3419,7 +3419,7 @@ class PrositeScan(object):
                     if attempt > 5:
                         br._stderr("Error: Bad request for record %s\n" % _rec.id, quiet=self.quiet)
                         return
-                    elif err.getcode() == 400:
+                    elif err.getcode() in [400, 500]:
                         attempt += 1
                         time.sleep(1)
                     else:
