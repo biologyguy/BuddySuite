@@ -3373,17 +3373,29 @@ class PrositeScan(object):
         self.user_deets = br.config_values()
 
     def _rest_request(self, url, request_data=None):
-        # Set the User-agent.
-        req = urllib.request.Request(url, None, self.http_headers)
-        if request_data:
-            # Make the submission (HTTP POST).
-            req_h = urllib.request.urlopen(req, request_data)
-        else:
-            # Make the request (HTTP GET).
-            req_h = urllib.request.urlopen(req)
-        result = req_h.read().decode("utf-8")
-        req_h.close()
-        return result
+        attempt = 1
+        while True:
+            try:
+                # Set the User-agent.
+                req = urllib.request.Request(url, None, self.http_headers)
+                if request_data:
+                    # Make the submission (HTTP POST).
+                    req_h = urllib.request.urlopen(req, request_data)
+                else:
+                    # Make the request (HTTP GET).
+                    req_h = urllib.request.urlopen(req)
+                result = req_h.read().decode("utf-8")
+                req_h.close()
+                return result
+            except urllib.error.HTTPError as err:
+                if attempt > 5:
+                    br._stderr("Error: Bad request at %s\n" % url, quiet=self.quiet)
+                    raise err
+                elif err.code in [400, 500]:
+                    attempt += 1
+                    time.sleep(attempt * 10)
+                else:
+                    raise err
 
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
@@ -3410,20 +3422,7 @@ class PrositeScan(object):
                 if result == 'RUNNING' or result == 'PENDING':
                     time.sleep(self.check_interval)
 
-            attempt = 1
-            while True:
-                try:
-                    result = self._rest_request('%s/result/%s/tsv' % (self.base_url, job_id)).strip()
-                    break
-                except urllib.error.HTTPError as err:
-                    if attempt > 5:
-                        br._stderr("Error: Bad request for record %s\n" % _rec.id, quiet=self.quiet)
-                        return
-                    elif err.getcode() in [400, 500]:
-                        attempt += 1
-                        time.sleep(1)
-                    else:
-                        raise err
+            result = self._rest_request('%s/result/%s/tsv' % (self.base_url, job_id)).strip()
 
             feature_list = []
             if result:
