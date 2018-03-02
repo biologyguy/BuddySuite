@@ -127,9 +127,9 @@ def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     assert "PhylipError: Malformed Phylip --> Less sequence found than expected" in str(err)
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("p py", "paths"), "-cmp", "-f", "foo"])
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(TypeError) as err:
         Sb.argparse_init()
-    assert "Unknown format 'foo'" in str(err)
+    assert "Format type 'foo' is not recognized/supported" in str(err)
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path"])
     temp_in_args, seqbuddy = Sb.argparse_init()
