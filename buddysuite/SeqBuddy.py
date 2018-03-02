@@ -3415,14 +3415,21 @@ class PrositeScan(object):
             request_data = urllib.parse.urlencode(params)
             request_data = request_data.encode("utf-8")
             job_id = self._rest_request('%s/run/' % self.base_url, request_data)
-            # ToDo: Consider including a timeout mechanism? Maybe handle Ctrl+C?
+            # ToDo: Consider including a timeout mechanism?
             result = 'PENDING'
             while result == 'RUNNING' or result == 'PENDING':
                 result = self._rest_request('%s/status/%s' % (self.base_url, job_id))
                 if result == 'RUNNING' or result == 'PENDING':
                     time.sleep(self.check_interval)
 
-            result = self._rest_request('%s/result/%s/tsv' % (self.base_url, job_id)).strip()
+            try:
+                result = self._rest_request('%s/result/%s/tsv' % (self.base_url, job_id)).strip()
+            except urllib.error.HTTPError as err:
+                if err.code in [400, 500]:
+                    br._stderr("Error: Failed to retrieve %s\n" % _rec.id)
+                    return
+                else:
+                    raise err
 
             feature_list = []
             if result:

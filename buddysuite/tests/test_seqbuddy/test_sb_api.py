@@ -1151,7 +1151,6 @@ def test_restriction_sites_all_emzymes(sb_resources):
 
 
 def test_restriction_sites_circular(sb_resources, sb_odd_resources, hf):
-
     # circular
     tester = Sb.find_restriction_sites(sb_resources.get_one("d g"), topology="circular")
     assert """LpnPI           1227..1230
@@ -1864,7 +1863,7 @@ XP_009950933.1\tdd1675f26044a927878cc3d92ea431e5\t565\tProSiteProfiles\tPS50104\
     monkeypatch.setattr(Sb.PrositeScan, "_rest_request", raise_http_error)
     ps_scan._mc_run_prosite(seqbuddy.records[0], [out_file.path, Sb.Lock()])
     out, err = capsys.readouterr()
-    assert "Error: Bad request for record Mle-Panxα12" in err
+    assert "Error: Failed to retrieve Mle-Panxα12" in err
 
     def raise_http_error(_, url, *__):
         if "result" in url:
