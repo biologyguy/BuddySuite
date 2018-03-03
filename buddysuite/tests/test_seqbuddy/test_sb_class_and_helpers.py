@@ -242,21 +242,7 @@ def test_guess_format(sb_resources, sb_odd_resources):
     assert Sb._guess_format(sb_odd_resources["blank"]) == "empty file"
     with pytest.raises(br.GuessError):
         Sb._guess_format("foo")
-
-    temp_file = br.TempFile()
-    temp_file.write('''\
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<nex:nexml
-    version="0.9"
-    xsi:schemaLocation="http://www.nexml.org/2009 ../xsd/nexml.xsd"
-    xmlns="http://www.nexml.org/2009"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns:xml="http://www.w3.org/XML/1998/namespace"
-    xmlns:nex="http://www.nexml.org/2009"
-    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
-''')
-
-    assert not Sb._guess_format(temp_file.path)
+    assert not Sb._guess_format(sb_odd_resources["gibberish"])
 
 
 # ######################  'GuessError' ###################### #

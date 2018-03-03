@@ -616,8 +616,52 @@ def _guess_format(_input):
             return "empty file"
         _input.seek(0)
 
-        possible_formats = ["stockholm", "fasta", "gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
-                            "fastq", "embl", "nexus", "seqxml", "clustal", "swiss"]
+        for line in _input:
+            if line.isspace() or line.startswith("//"):
+                continue
+
+            # Fasta
+            elif line.startswith(">"):
+                _input.seek(0)
+                return "fasta"
+
+            # GenBank
+            elif line.startswith("LOCUS  "):
+                _input.seek(0)
+                return "gb"
+
+            # Stockholm
+            elif line.startswith("# STOCKHOLM"):
+                _input.seek(0)
+                return "stockholm"
+
+            # NEXUS
+            elif line.startswith("#NEXUS"):
+                _input.seek(0)
+                return "nexus"
+
+            # CLUSTAL
+            elif line.startswith("CLUSTAL"):
+                _input.seek(0)
+                return "clustal"
+
+            # FASTQ
+            elif line.startswith("@"):
+                _input.seek(0)
+                return "fastq"
+
+            # SeqXML
+            elif line.startswith("<?xml"):
+                _input.seek(0)
+                return "seqxml"
+
+            else:
+                break
+        _input.seek(0)
+
+        # Can't determine from file header
+        possible_formats = ["phylipss", "phylipsr", "phylip", "phylip-relaxed", "embl", "swiss"]
+
         for next_format in possible_formats:
             try:
                 _input.seek(0)
@@ -627,27 +671,18 @@ def _guess_format(_input):
                         return phylip
                     else:
                         continue
-
                 seqs = SeqIO.parse(_input, next_format)
                 if next(seqs):
                     _input.seek(0)
                     return next_format
                 else:
                     continue
-            except StopIteration:  # ToDo check that other types of error are not possible
-                continue
-            except ValueError:
-                continue
             except AssertionError as err:
                 if next_format == 'swiss':
                     continue
                 else:
                     raise err
-            except SAXParseException:  # Thrown by seqxml parser
-                continue
-            except TreeError:  # Thrown by NEXUS tree files
-                continue
-            except br.PhylipError:
+            except (ValueError, StopIteration, br.PhylipError):
                 continue
         return None  # Unable to determine format from file handle
 
@@ -4376,8 +4411,11 @@ def argparse_init():
             seqbuddy += seq_set.records
 
         seqbuddy = SeqBuddy(seqbuddy, seq_set.in_format, seq_set.out_format, seq_set.alpha)
-    except br.GuessError as e:
-        br._stderr("GuessError: %s\n" % e, in_args.quiet)
+    except br.GuessError as err:
+        br._stderr("GuessError: %s\n" % err, in_args.quiet)
+        sys.exit()
+    except Exception as err:
+        br._stderr("Error: Unable to process input file(s)\n%s\n" % err)
         sys.exit()
 
     if in_args.restrict:

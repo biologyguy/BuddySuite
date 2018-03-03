@@ -26,33 +26,34 @@ import sys
 if int(sys.version_info[0]) < 3:
     print("Error: Attempting to run BuddySuite with Python %s. Python 3+ required." % sys.version_info[0])
     sys.exit()
-import argparse
-import datetime
-from collections import OrderedDict
-import os
-from configparser import ConfigParser, NoOptionError
-import json
-import traceback
-import re
-import sre_compile
-from ftplib import FTP, all_errors
-from hashlib import md5
-from urllib import request
-from urllib.error import URLError, HTTPError, ContentTooShortError
-from multiprocessing import Process, cpu_count
-from time import time, sleep
-from math import floor
-from tempfile import TemporaryDirectory
-from shutil import copytree, rmtree, copyfile
-import string
-from random import choice
-import signal
-from pkg_resources import Requirement, resource_filename, DistributionNotFound
-from subprocess import Popen, PIPE
+else:
+    import argparse
+    import datetime
+    from collections import OrderedDict
+    import os
+    from configparser import ConfigParser, NoOptionError
+    import json
+    import traceback
+    import re
+    import sre_compile
+    from ftplib import FTP, all_errors
+    from hashlib import md5
+    from urllib import request
+    from urllib.error import URLError, HTTPError, ContentTooShortError
+    from multiprocessing import Process, cpu_count
+    from time import time, sleep
+    from math import floor
+    from tempfile import TemporaryDirectory
+    from shutil import copytree, rmtree, copyfile
+    import string
+    from random import choice
+    import signal
+    from pkg_resources import Requirement, resource_filename, DistributionNotFound
+    from subprocess import Popen, PIPE
 
-from Bio import AlignIO
-from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
-from Bio.Alphabet import IUPAC
+    from Bio import AlignIO
+    from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
+    from Bio.Alphabet import IUPAC
 
 
 # ################################################## MYFUNCS ################################################### #
@@ -995,7 +996,7 @@ def parse_format(fmt_check):
                          "phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict",
                          "phylipi", "phylip-relaxed", "phylip-interleaved", "phylipr",
                          "phylips", "phylipsr", "phylip-sequential", "phylip-sequential-relaxed",
-                         "phylipss", "phylip-sequential-strict", "nexml", "newick")
+                         "phylipss", "phylip-sequential-strict", "seqxml", "nexml", "newick")
 
     fmt_check = fmt_check.lower()
     if fmt_check in ("phylip", "phylipis", "phylip-strict", "phylip-interleaved-strict"):

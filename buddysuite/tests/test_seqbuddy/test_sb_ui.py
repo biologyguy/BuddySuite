@@ -117,19 +117,22 @@ def test_argparse_init(capsys, monkeypatch, sb_resources, hf, sb_odd_resources):
     assert "GuessError: Could not determine format from sb_input file" in err
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_odd_resources["gibberish"], "-cmp", "-f", "phylip"])
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(SystemExit):
         Sb.argparse_init()
-    assert "ValueError: First line should have two integers" in str(err)
+    out, err = capsys.readouterr()
+    assert "Error: Unable to process input file(s)\nFirst line should have two integers" in err
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_odd_resources["phylipss_cols"], "-cmp", "-f", "phylipss"])
-    with pytest.raises(br.PhylipError) as err:
+    with pytest.raises(SystemExit):
         Sb.argparse_init()
-    assert "PhylipError: Malformed Phylip --> Less sequence found than expected" in str(err)
+    out, err = capsys.readouterr()
+    assert "Malformed Phylip --> Less sequence found than expected" in err
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("p py", "paths"), "-cmp", "-f", "foo"])
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(SystemExit):
         Sb.argparse_init()
-    assert "Format type 'foo' is not recognized/supported" in str(err)
+    out, err = capsys.readouterr()
+    assert "Format type 'foo' is not recognized/supported" in err
 
     monkeypatch.setattr(sys, "argv", ['SeqBuddy.py', sb_resources.get_one("p f", "paths"), "--blast", "blastdb/path"])
     temp_in_args, seqbuddy = Sb.argparse_init()
@@ -822,7 +825,7 @@ def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, hf, monkeypatch
     test_in_args.sequence += [sb_odd_resources["gibberish"], sb_odd_resources["figtree"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "94082594e3c0aafbcafcd3fd501497ac", print(out)
+    assert hf.string2hash(out) == "c1b601d684cd063bd29035cf84090505", print(out)
 
     text_io = io.open(sb_resources.get_one("d e", mode='paths'), "r")
     test_in_args.sequence = [text_io]
