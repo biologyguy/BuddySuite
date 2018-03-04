@@ -578,7 +578,7 @@ def test_exit(monkeypatch, capsys, pb_resources):
     assert "('PhyloBuddy', '%s', 'list_ids', 2412)" % Pb.VERSION.short() in out
 
 
-def test_error(monkeypatch, capsys, pb_resources, pb_odd_resources):
+def test_error(capsys, pb_resources):
     test_in_args = deepcopy(in_args)
     test_in_args.show_unique = [True]
 

@@ -13,6 +13,7 @@ import DatabaseBuddy as Db
 def fmt(prog):
     return br.CustomHelpFormatter(prog)
 
+
 parser = argparse.ArgumentParser(prog="DbBuddy.py", formatter_class=fmt, add_help=False, usage=argparse.SUPPRESS,
                                  description='''
 \033[1mDatabaseBuddy\033[m
@@ -733,8 +734,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     liveshell.do_show(None)
     out, err = capsys.readouterr()
     # ENSEMBL order gets messed up, so just sort the characters
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
+    assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
 
     # Try sequence format on LiveShell with only summary data
     dbbuddy.out_format = "fasta"

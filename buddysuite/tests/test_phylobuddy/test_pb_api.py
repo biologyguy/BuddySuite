@@ -9,6 +9,7 @@ from .. import __init__
 
 from unittest import mock
 import os
+from os.path import join
 import shutil
 import re
 import webbrowser
@@ -95,7 +96,7 @@ hashes = [('m k', 'acd3fb34cce867c37684244701f9f5bf'), ('m n', 'eede64c804e531cb
 def test_consensus_tree(key, next_hash, pb_resources, hf):
     tester = pb_resources.get_one(key)
     tester = Pb.consensus_tree(tester)
-    assert hf.buddy2hash(tester) == next_hash, tester.write("error_files%s%s" % (next_hash, os.path.sep))
+    assert hf.buddy2hash(tester) == next_hash, tester.write(join("error_files", next_hash))
 
 
 hashes = [('m k', 'baf9b2def2c0fa2ff97d3a16d24b4738'), ('m n', '3ab21ed1202222f17a44fff7b4051aa0'),
@@ -299,16 +300,16 @@ class MockPopen(object):
 
 def mock_check_output(*args, **kwargs):
     print([args, kwargs])
-    with open("{0}mock_resources{1}test_fasttree_inputs{1}result.tre".format(RES_PATH, os.path.sep), "r") as ifile:
+    with open(join(RES_PATH, "mock_resources", "test_fasttree_inputs", "result.tre"), "r") as ifile:
         return ifile.read()
 
 
 def test_raxml(alb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    root, dirs, files = next(os.walk("%smock_resources%stest_raxml_inputs" % (RES_PATH, os.path.sep)))
+    root, dirs, files = next(os.walk(join(RES_PATH, "mock_resources", "test_raxml_inputs")))
     for _file in files:
-        shutil.copyfile("%s%s%s" % (root, os.path.sep, _file), "%s%s%s" % (mock_tmp_dir.path, os.path.sep, _file))
+        shutil.copyfile(join(root, _file), join(mock_tmp_dir.path, _file))
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
     monkeypatch.setattr(Pb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -328,7 +329,7 @@ def test_raxml(alb_resources, hf, monkeypatch):
     # params
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
-    tester = Pb.generate_tree(tester, 'raxml', "-w path{0}to{0}nowhere".format(os.path.sep), quiet=True)
+    tester = Pb.generate_tree(tester, 'raxml', "-w %s" % join("path", "to", "nowhere"), quiet=True)
     assert hf.buddy2hash(tester) == "1cede6c576bb88125e2387d850f813ab", tester.write("temp.del")
 
     # slight edges
@@ -346,11 +347,11 @@ def test_raxml(alb_resources, hf, monkeypatch):
     # keep
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
-    Pb.generate_tree(tester, 'raxml', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
-    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
+    Pb.generate_tree(tester, 'raxml', keep_temp=join(tmp_dir.path, "keep_files"))
+    root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
     kept_output = ""
     for file in sorted(files):
-        with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
+        with open(join(root, file), "r") as ifile:
             kept_output += ifile.read()
     if os.name == "nt":
         assert hf.string2hash(kept_output) == "7f2fdfe55dbe805bd994f3f56c79bb1b"
@@ -358,16 +359,15 @@ def test_raxml(alb_resources, hf, monkeypatch):
         assert hf.string2hash(kept_output) == "393353fb47861460aecaefa69a6ec55c"
 
     # multi-run
-    os.remove("%s%sRAxML_bestTree.result" % (mock_tmp_dir.path, os.path.sep))
+    os.remove(join(mock_tmp_dir.path, "RAxML_bestTree.result"))
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-N 3", quiet=True)
     assert hf.buddy2hash(tester) == "e8ce19bba744f0188df2ebb4ffced4d8", tester.write("temp.del")
 
     # bipartitions
-    shutil.copy("{0}mock_resources{1}test_raxml_inputs{1}bipartitions{1}RAxML_bipartitions.result".format(RES_PATH,
-                                                                                                          os.path.sep),
-                "%s%s" % (mock_tmp_dir.path, os.path.sep))
+    shutil.copy(join(RES_PATH, "mock_resources", "test_raxml_inputs", "bipartitions", "RAxML_bipartitions.result"),
+                join(mock_tmp_dir.path, "RAxML_bipartitions.result"))
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
     tester = Pb.generate_tree(tester, 'raxml', "-f b -z {0}{1}RAxML_bootstrap.result "
@@ -378,9 +378,9 @@ def test_raxml(alb_resources, hf, monkeypatch):
 def test_phyml(alb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    for root, dirs, files in os.walk("%smock_resources%stest_phyml_inputs" % (RES_PATH, os.path.sep)):
+    for root, dirs, files in os.walk(join(RES_PATH, "mock_resources", "test_phyml_inputs")):
         for _file in files:
-            shutil.copyfile("%s%s%s" % (root, os.path.sep, _file), "%s%s%s" % (mock_tmp_dir.path, os.path.sep, _file))
+            shutil.copyfile(join(root, _file), join(mock_tmp_dir.path, _file))
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
     monkeypatch.setattr(Pb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -412,11 +412,11 @@ def test_phyml(alb_resources, hf, monkeypatch):
     # keep
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
-    Pb.generate_tree(tester, 'phyml', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
-    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
+    Pb.generate_tree(tester, 'phyml', keep_temp=join(tmp_dir.path, "keep_files"))
+    root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
     kept_output = ""
-    for file in sorted(files):
-        with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
+    for _file in sorted(files):
+        with open(join(root, _file), "r") as ifile:
             kept_output += ifile.read()
     if os.name == "nt":
         assert hf.string2hash(kept_output) == "a795da6869c5e3a34962a52ec35006ed"
@@ -427,9 +427,9 @@ def test_phyml(alb_resources, hf, monkeypatch):
 def test_fasttree(alb_resources, hf, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    for root, dirs, files in os.walk("%smock_resources%stest_fasttree_inputs" % (RES_PATH, os.path.sep)):
+    for root, dirs, files in os.walk(join(RES_PATH, "mock_resources", "test_fasttree_inputs")):
         for _file in files:
-            shutil.copyfile("%s%s%s" % (root, os.path.sep, _file), "%s%s%s" % (mock_tmp_dir.path, os.path.sep, _file))
+            shutil.copyfile(join(root, _file), join(mock_tmp_dir.path, _file))
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
     monkeypatch.setattr(Pb, "Popen", MockPopen)
     monkeypatch.setattr(Pb, "check_output", mock_check_output)
@@ -462,11 +462,11 @@ def test_fasttree(alb_resources, hf, monkeypatch):
     # keep
     tester = alb_resources.get_one("o d n")
     tester.hash_map = HASH_MAP
-    Pb.generate_tree(tester, 'fasttree', keep_temp="%s%skeep_files" % (tmp_dir.path, os.path.sep))
-    root, dirs, files = next(os.walk("%s%skeep_files" % (tmp_dir.path, os.path.sep)))
+    Pb.generate_tree(tester, 'fasttree', keep_temp=join(tmp_dir.path, "keep_files"))
+    root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
     kept_output = ""
-    for file in sorted(files):
-        with open("%s%s%s" % (root, os.path.sep, file), "r") as ifile:
+    for _file in sorted(files):
+        with open(join(root, _file), "r") as ifile:
             kept_output += ifile.read()
     if os.name == "nt":
         assert hf.string2hash(kept_output) == "bcd034f0db63a7b41f4b3b6661200ef3"
@@ -477,9 +477,9 @@ def test_fasttree(alb_resources, hf, monkeypatch):
 def test_generate_tree_edges(alb_resources, monkeypatch):
     mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    for root, dirs, files in os.walk("%smock_resources%stest_fasttree_inputs" % (RES_PATH, os.path.sep)):
+    for root, dirs, files in os.walk(join(RES_PATH, "mock_resources", "test_fasttree_inputs")):
         for _file in files:
-            shutil.copyfile("%s%s%s" % (root, os.path.sep, _file), "%s%s%s" % (mock_tmp_dir.path, os.path.sep, _file))
+            shutil.copyfile(join(root, _file), join(mock_tmp_dir.path, _file))
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: True)
     monkeypatch.setattr(Pb, "Popen", MockPopen)
     monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
@@ -702,10 +702,7 @@ def test_show_unique(pb_odd_resources, pb_resources, hf):
         Pb.show_unique(tester)
 
 
-def test_show_unique_unrooted(monkeypatch, pb_odd_resources, hf):
-    def mock_treeerror(*args):
-        raise TreeError(args)
-
+def test_show_unique_unrooted(pb_odd_resources, hf):
     tester = Pb.PhyloBuddy(pb_odd_resources['compare'])
     Pb.unroot(tester)
     Pb.show_unique(tester)

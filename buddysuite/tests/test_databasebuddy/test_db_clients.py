@@ -5,7 +5,7 @@ from collections import OrderedDict
 import tempfile
 import re
 import json
-import os
+from os.path import join
 import buddy_resources as br
 import DatabaseBuddy as Db
 from io import StringIO
@@ -18,6 +18,8 @@ def patched_close(self):  # This suppresses an 'ignored' exception
             pass
         else:
             self.file.close()
+
+
 tempfile._TemporaryFileCloser.close = patched_close
 
 # A few real accession numbers to test things out with
@@ -136,7 +138,8 @@ def test_client_parse_error_file():
 
     assert not client.parse_error_file()
     assert not dbbuddy.failures
-    client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar", StringIO("Baz")))
+    client.http_errors_file.write("Casp9\n%s\n//\n" % HTTPError("101", "Fake HTTPError from Mock", "Foo", "Bar",
+                                                                StringIO("Baz")))
     client.http_errors_file.write("Inx1\n%s\n//\n" % URLError("Fake URLError from Mock"))
 
     assert client.parse_error_file() == '''Casp9
@@ -177,7 +180,7 @@ def test_uniprotrestclient_init():
     assert client.max_url == 1000
 
 
-def test_uniprotrestclient_query_uniprot(capsys, monkeypatch):
+def test_uniprotrestclient_query_uniprot(monkeypatch):
     dbbuddy = Db.DbBuddy()
     client = Db.UniProtRestClient(dbbuddy)
     monkeypatch.setattr(Db, 'urlopen', mock_urlopen_handle_uniprot_ids)
@@ -399,12 +402,6 @@ def test_ncbiclient_mc_query(hf, monkeypatch):
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_taxa.xml" % hf.resource_path
         return open(test_file, "r")
 
-    def patch_entrez_efetch_gis(*args, **kwargs):
-        print("patch_entrez_efetch_gis\nargs: %s\nkwargs: %s" % (args, kwargs))
-        tmp_file = br.TempFile()
-        tmp_file.write("703125407\n703125412\n67586143\n")
-        return tmp_file.get_handle("r")
-
     def patch_entrez_esummary_seq(*args, **kwargs):
         print("patch_entrez_esummary_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
         test_file = "%s/mock_resources/test_databasebuddy_clients/Entrez_esummary_seq.xml" % hf.resource_path
@@ -469,7 +466,7 @@ def test_ncbiclient_mc_query(hf, monkeypatch):
     assert "<urlopen error Fake URLError from Mock>" in client.http_errors_file.read()
 
 
-def test_ncbiclient_search_ncbi(hf, monkeypatch, capsys):
+def test_ncbiclient_search_ncbi(hf, monkeypatch):
     def patch_entrez_esearch(*args, **kwargs):
         print("patch_entrez_esearch\nargs: %s\nkwargs: %s" % (args, kwargs))
         if "rettype" in kwargs:
@@ -536,8 +533,7 @@ def test_ncbiclient_fetch_summaries(hf, monkeypatch, capsys):
 def test_ncbiclient_fetch_sequences(hf, monkeypatch, capsys):
     def patch_entrez_fetch_seq(*args, **kwargs):
         print("patch_entrez_fetch_seq\nargs: %s\nkwargs: %s" % (args, kwargs))
-        test_file = "{0}mock_resources{1}test_databasebuddy_clients" \
-                    "{1}Entrez_efetch_seq.gb".format(hf.resource_path, os.path.sep)
+        test_file = join(hf.resource_path, "mock_resources", "test_databasebuddy_clients", "Entrez_efetch_seq.gb")
         with open(test_file, "r") as ifile:
             client.results_file.write(ifile.read())
 

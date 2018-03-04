@@ -7,6 +7,7 @@ from Bio.SeqFeature import FeatureLocation, CompoundLocation, Reference, SeqFeat
 from Bio.Seq import Seq
 from unittest import mock
 import os
+from os.path import join
 import re
 import urllib.request
 import suds.client
@@ -366,7 +367,7 @@ def test_bl2_no_binary(sb_resources):
 
 # ######################  '-bl', '--blast' ###################### #
 class MockPopen(object):
-    def __init__(self, command, shell, stdout=None, stderr=None):
+    def __init__(self, command, *_, **__):
         self.command = command
 
     def communicate(self):
@@ -2126,7 +2127,7 @@ def test_shuffle_seqs(key, next_hash, sb_resources, hf):
 
 
 # ##################### '-sxf', 'split_by_x_files' ###################### ##
-def test_split_by_x_files(sb_resources, hf):
+def test_split_by_x_files(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
     # File number % Seq number != 0
     sb_list = Sb.split_by_x_files(tester, file_number=3)
@@ -2158,7 +2159,7 @@ def test_split_by_x_files(sb_resources, hf):
 
 
 # ##################### '-sxs', 'split_by_x_seqs' ###################### ##
-def test_split_by_x_seqs(sb_resources, hf):
+def test_split_by_x_seqs(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f"))
     sb_list = Sb.split_by_x_seqs(tester, seq_number=3)
     assert len(sb_list) == 5
@@ -2329,10 +2330,11 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
             return [[next(self.job_check), self.result_url, self.errinfo]]
 
     def mock_urlretrieve(result_url, filename, reporthook):
+        assert result_url
         job_id = os.path.split(filename)[-1].split(".")[0]
-        if os.path.isfile("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id)):
-            os.remove("%s%s%s.hashmap" % (work_dir.path, os.path.sep, job_id))
-        shutil.copy("%stopcons%s%s.zip" % (hf.resource_path, os.path.sep, job_id), work_dir.path)
+        if os.path.isfile(join(work_dir.path, "%s.hashmap" % job_id)):
+            os.remove(join(work_dir.path, "%s.hashmap" % job_id))
+        shutil.copy(join(hf.resource_path, "topcons", "%s.zip" % job_id), work_dir.path)
         for root, _dirs, _files in br.walklevel(work_dir.path):
             print(root)
             print(_files)
@@ -2341,7 +2343,7 @@ def test_transmembrane_domains_pep(sb_resources, hf, monkeypatch, capsys):
 
     def mock_hash_ids(seqbuddy):
         hashmap = OrderedDict()
-        with open("{0}topcons{1}{2}.hashmap".format(hf.resource_path, os.path.sep, suds_client.service.current_job_id),
+        with open(join(hf.resource_path, "topcons", "%s.hashmap" % suds_client.service.current_job_id),
                   "r", encoding="utf-8") as ifile:
             for line in ifile:
                 if line:
