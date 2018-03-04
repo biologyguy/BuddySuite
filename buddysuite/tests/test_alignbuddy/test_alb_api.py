@@ -446,11 +446,8 @@ def test_clustalomega(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'clustalomega', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "bad3a345e769d32672d39ee51df295f5"
+    assert "result" in files
+    assert "tmp.fa" in files
 
 
 def test_clustalw2(sb_resources, hf, monkeypatch):
@@ -485,11 +482,8 @@ def test_clustalw2(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'clustalw2', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "7c03d671198d4e6c4bb56c8fb5619fff"
+    assert "result" in files
+    assert "tmp.fa" in files
 
 
 def test_pagan(sb_resources, hf, monkeypatch):
@@ -527,11 +521,8 @@ def test_pagan(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'pagan', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "864112dafb4896ba25ece7929ca0a818"
+    assert "result.fas" in files
+    assert "tmp.fa" in files
 
 
 def test_prank(sb_resources, hf, monkeypatch):
@@ -567,20 +558,14 @@ def test_prank(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'prank', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "d0564931e20a61b441fc60549f5560a0"
+    assert "result.best.fas" in files
+    assert "tmp.fa" in files
 
 
 def test_muscle(sb_resources, hf, monkeypatch):
-    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
-    shutil.copy(join(RES_PATH, "mock_resources", "test_muscle", "result"), join(mock_tmp_dir.path, "result"))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
-    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
     # basic
     tester = sb_resources.get_one("d f")
@@ -597,21 +582,17 @@ def test_muscle(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'muscle', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "bd85c34b11261aef2d38c7a6a9d20bf9"
+    assert files == ["tmp.fa"]
+    with open(join(root, "tmp.fa"), "r", encoding="utf-8") as ifile:
+        kept_file = ifile.read()
+    assert hf.string2hash(kept_file) == "b831e901d8b6b1ba52bad797bad92d14", print(kept_file)
 
 
 def test_mafft(sb_resources, hf, monkeypatch):
-    mock_tmp_dir = br.TempDir()
     tmp_dir = br.TempDir()
     tmp_dir.subdir("keep_files")
-    shutil.copy(join(RES_PATH, "mock_resources", "test_mafft", "result"), join(mock_tmp_dir.path, "result"))
     monkeypatch.setattr(Alb, "which", lambda *_: True)
     monkeypatch.setattr(Alb, "Popen", MockPopen)
-    monkeypatch.setattr(br, "TempDir", lambda: mock_tmp_dir)
 
     # basic
     tester = sb_resources.get_one("d f")
@@ -629,11 +610,10 @@ def test_mafft(sb_resources, hf, monkeypatch):
     tester = sb_resources.get_one("d f")
     Alb.generate_msa(tester, 'mafft', keep_temp=join(tmp_dir.path, "keep_files"))
     root, dirs, files = next(os.walk(join(tmp_dir.path, "keep_files")))
-    kept_output = ""
-    for file in sorted(files):
-        with open(join(root, file), "r", encoding="utf-8") as ifile:
-            kept_output += ifile.read()
-    assert hf.string2hash(kept_output) == "6eaa7e087dd42a8d3ffe86d216b917d8"
+    assert files == ["tmp.fa"]
+    with open(join(root, "tmp.fa"), "r", encoding="utf-8") as ifile:
+        kept_file = ifile.read()
+    assert hf.string2hash(kept_file) == "b831e901d8b6b1ba52bad797bad92d14", print(kept_file)
 
 
 def test_alignment_edges(monkeypatch, sb_resources):

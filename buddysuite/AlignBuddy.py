@@ -117,7 +117,7 @@ class AlignBuddy(object):
         except TypeError:  # This happens when testing something other than a string.
             pass
 
-        self.in_format = br.parse_format(in_format) if in_format else guess_format(_input)
+        self.in_format = br.parse_format(in_format) if in_format else br.guess_format(_input)
 
         if self.in_format == "empty file":
             raise br.GuessError("Empty file")
@@ -313,56 +313,6 @@ def guess_alphabet(alignments):
         return IUPAC.ambiguous_dna
     else:
         return IUPAC.protein
-
-
-def guess_format(_input):  # _input can be list, SeqBuddy object, file handle, or file path.
-    # If input is just a list, there is no BioPython in-format. Default to stockholm.
-    if isinstance(_input, list):
-        return "stockholm"
-
-    # Pull value directly from object if appropriate
-    if _input.__class__.__name__ == 'AlignBuddy':
-        return _input.in_format
-
-    # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
-    if os.path.isfile(str(_input)):
-        _input = open(_input, "r", encoding="utf-8")
-
-    if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-        if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-            _input = StringIO(_input.read().decode("utf-8"))
-        if _input.read() == "":
-            return "empty file"
-        _input.seek(0)
-
-        possible_formats = ["gb", "phylipss", "phylipsr", "phylip", "phylip-relaxed",
-                            "stockholm", "fasta", "nexus", "clustal"]
-        for next_format in possible_formats:
-            try:
-                _input.seek(0)
-                if next_format in ["phylip", "phylipsr", "phylipss"]:
-                    phylip = br.phylip_guess(next_format, _input)
-                    if phylip:
-                        return phylip
-                    else:
-                        continue
-
-                if list(AlignIO.parse(_input, next_format)):
-                    _input.seek(0)
-                    return br.parse_format(next_format)
-                else:
-                    continue
-            except br.PhylipError:
-                continue
-            except NexusError:
-                continue
-            except ValueError:
-                continue
-
-        return None  # Unable to determine format from file handle
-
-    else:
-        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % type(_input))
 
 
 def make_copy(alignbuddy):
@@ -1210,7 +1160,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                 elif tool["name"] == 'pagan':
                     with open('{0}{1}result.fas'.format(tmp_dir.path, os.path.sep), "r", encoding="utf-8") as result:
                         output = result.read()
-                    if os.path.isfile(".%swarnings" % os.path.sep):  # Pagan spits out this file (I've never seen anything in it)
+                    if os.path.isfile(".%swarnings" % os.path.sep):  # Pagan spits out this empty file
                         os.remove(".%swarnings" % os.path.sep)
 
                 # Fix broken outputs to play nicely with AlignBuddy parsers
@@ -2123,6 +2073,8 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
             _raise_error(e, "generate_alignment", "is not a recognized alignment tool")
         except SystemError as e:
             _raise_error(e, "generate_alignment", "Could not find")
+        except ValueError as err:
+            _raise_error(err, "generate_alignment", "PAGAN cannot run when less than 4 sequences are passed in")
         _exit("generate_alignment")
 
     # Generate HMM

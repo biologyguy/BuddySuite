@@ -839,7 +839,7 @@ def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, hf, monkeypatch
     out, err = capsys.readouterr()
     assert out == "PIPE\t-->\tUnknown\n"
 
-    monkeypatch.setattr(Sb, "_guess_format", mock_raisekeyerror)
+    monkeypatch.setattr(br, "guess_format", mock_raisekeyerror)
     test_in_args.sequence = [sb_resources.get_one("p g", mode='paths')]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()

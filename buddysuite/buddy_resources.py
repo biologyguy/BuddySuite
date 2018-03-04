@@ -46,12 +46,13 @@ else:
     from tempfile import TemporaryDirectory
     from shutil import copytree, rmtree, copyfile
     import string
+    from io import StringIO
     from random import choice
     import signal
     from pkg_resources import Requirement, resource_filename, DistributionNotFound
     from subprocess import Popen, PIPE
 
-    from Bio import AlignIO
+    from Bio import AlignIO, SeqIO
     from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
     from Bio.Alphabet import IUPAC
 
@@ -1016,6 +1017,108 @@ def parse_format(fmt_check):
         raise TypeError("Format type '%s' is not recognized/supported" % fmt_check)
 
     return fmt_check
+
+
+def guess_format(_input):
+    """
+    Check the formats that BioPython has a parser for.
+    :param _input: Duck-typed; can be list, SeqBuddy object, file handle, or file path.
+    :return: str or None
+    """
+    # If input is just a list, there is no BioPython in-format. Default to gb.
+    if isinstance(_input, list):
+        return "gb"
+
+    # Pull value directly from object if appropriate
+    if _input.__class__.__name__ == "SeqBuddy":
+        return _input.in_format
+
+    if _input.__class__.__name__ == "AlignBuddy":
+        return _input.in_format
+
+    # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
+    if os.path.isfile(str(_input)):
+        _input = open(_input, "r", encoding="utf-8")
+
+    if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
+        if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
+            _input = StringIO(_input.read())
+        if _input.read() == "":
+            return "empty file"
+        _input.seek(0)
+
+        for line in _input:
+            if line.isspace() or line.startswith("//"):
+                continue
+
+            # Fasta
+            elif line.startswith(">"):
+                _input.seek(0)
+                return "fasta"
+
+            # GenBank
+            elif line.startswith("LOCUS  "):
+                _input.seek(0)
+                return "gb"
+
+            # Stockholm
+            elif line.startswith("# STOCKHOLM"):
+                _input.seek(0)
+                return "stockholm"
+
+            # NEXUS
+            elif line.startswith("#NEXUS"):
+                _input.seek(0)
+                return "nexus"
+
+            # CLUSTAL
+            elif line.startswith("CLUSTAL") or line.startswith("MUSCLE"):
+                _input.seek(0)
+                return "clustal"
+
+            # FASTQ
+            elif line.startswith("@"):
+                _input.seek(0)
+                return "fastq"
+
+            # SeqXML
+            elif line.startswith("<?xml"):
+                _input.seek(0)
+                return "seqxml"
+
+            else:
+                break
+        _input.seek(0)
+
+        # Can't determine from file header
+        possible_formats = ["phylipss", "phylipsr", "phylip", "phylip-relaxed", "embl", "swiss"]
+
+        for next_format in possible_formats:
+            try:
+                _input.seek(0)
+                if next_format in ["phylip", "phylipsr", "phylipss"]:
+                    phylip = phylip_guess(next_format, _input)
+                    if phylip:
+                        return phylip
+                    else:
+                        continue
+                seqs = SeqIO.parse(_input, next_format)
+                if next(seqs):
+                    _input.seek(0)
+                    return next_format
+                else:
+                    continue
+            except AssertionError as err:
+                if next_format == 'swiss':
+                    continue
+                else:
+                    raise err
+            except (ValueError, StopIteration, PhylipError):
+                continue
+        return None  # Unable to determine format from file handle
+
+    else:
+        raise GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def nexus_out(record_src, out_format):

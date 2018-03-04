@@ -182,67 +182,16 @@ def test_feature_rc(sb_resources, hf):
 # ######################  'guess_alphabet' ###################### #
 def test_guess_alphabet(sb_resources):
     tester = sb_resources.get_one("d f")
-    assert Sb._guess_alphabet(tester) == IUPAC.ambiguous_dna
+    assert Sb.guess_alphabet(tester) == IUPAC.ambiguous_dna
 
     tester = sb_resources.get_one("p f")
-    assert Sb._guess_alphabet(tester) == IUPAC.protein
+    assert Sb.guess_alphabet(tester) == IUPAC.protein
 
     tester = sb_resources.get_one("r f")
-    assert Sb._guess_alphabet(tester) == IUPAC.ambiguous_rna
+    assert Sb.guess_alphabet(tester) == IUPAC.ambiguous_rna
 
     tester = Sb.SeqBuddy(">Seq1", in_format="fasta")
-    assert not Sb._guess_alphabet(tester)
-
-
-# ######################  'guess_format' ###################### #
-def test_guess_stockholm(hf):
-    assert Sb._guess_format("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep)) == "stockholm"
-
-    with open("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
-        assert Sb._guess_format(ifile) == "stockholm"
-
-    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep))
-    assert Sb._guess_format(seqbuddy) == "stockholm"
-
-
-def test_guess_fasta(hf):
-    assert Sb._guess_format("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep)) == "fasta"
-
-    with open("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
-        assert Sb._guess_format(ifile) == "fasta"
-
-    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep))
-    assert Sb._guess_format(seqbuddy) == "fasta"
-
-
-def test_guess_gb(hf):
-    assert Sb._guess_format("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep)) == "gb"
-
-    with open("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
-        assert Sb._guess_format(ifile) == "gb"
-
-    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep))
-    assert Sb._guess_format(seqbuddy) == "gb"
-
-
-def test_guess_phylipss(hf):
-    assert Sb._guess_format("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep)) == "phylipss"
-
-    with open("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
-        assert Sb._guess_format(ifile) == "phylipss"
-
-    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
-    assert Sb._guess_format(seqbuddy) == "phylipss"
-
-
-def test_guess_format(sb_resources, sb_odd_resources):
-    assert Sb._guess_format(["foo", "bar"]) == "gb"
-    assert Sb._guess_format(sb_resources.get_one("d f")) == "fasta"
-    assert Sb._guess_format(sb_resources.get_one("d f", mode="paths")) == "fasta"
-    assert Sb._guess_format(sb_odd_resources["blank"]) == "empty file"
-    with pytest.raises(br.GuessError):
-        Sb._guess_format("foo")
-    assert not Sb._guess_format(sb_odd_resources["gibberish"])
+    assert not Sb.guess_alphabet(tester)
 
 
 # ######################  'GuessError' ###################### #

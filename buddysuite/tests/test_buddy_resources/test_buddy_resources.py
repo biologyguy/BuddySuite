@@ -18,6 +18,7 @@ from time import sleep
 import datetime
 from unittest import mock
 import AlignBuddy as Alb
+import SeqBuddy as Sb
 import buddy_resources as br
 from pkg_resources import DistributionNotFound
 from configparser import ConfigParser
@@ -876,6 +877,80 @@ def test_parse_format():
 
     with pytest.raises(TypeError):
         br.parse_format("buddy")
+
+
+# ######################  'guess_format' ###################### #
+def test_alb_guess_format(alb_resources, alb_odd_resources):
+    assert br.guess_format(["dummy", "list"]) == "gb"
+
+    for key, obj in alb_resources.get().items():
+        assert br.guess_format(obj) == br.parse_format(alb_resources.get_key(key)["format"])
+
+    for key, path in alb_resources.get(mode="paths").items():
+        assert br.guess_format(path) == br.parse_format(alb_resources.get_key(key)["format"])
+        with open(path, "r", encoding="utf-8") as ifile:
+            assert br.guess_format(ifile) == br.parse_format(alb_resources.get_key(key)["format"])
+            ifile.seek(0)
+            string_io = io.StringIO(ifile.read())
+        assert br.guess_format(string_io) == br.parse_format(alb_resources.get_key(key)["format"])
+
+    assert br.guess_format(alb_odd_resources['blank']) == "empty file"
+    assert not br.guess_format(alb_odd_resources['dna']['single']['phylipss_recs'])
+    assert not br.guess_format(alb_odd_resources['dna']['single']['phylipss_cols'])
+
+    with pytest.raises(br.GuessError) as e:
+        br.guess_format({"Dummy dict": "Type not recognized by guess_format()"})
+    assert "Unsupported _input argument in guess_format()" in str(e)
+
+
+def test_guess_stockholm(hf):
+    assert br.guess_format("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep)) == "stockholm"
+
+    with open("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
+        assert br.guess_format(ifile) == "stockholm"
+
+    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.stklm" % (hf.resource_path, os.path.sep))
+    assert br.guess_format(seqbuddy) == "stockholm"
+
+
+def test_guess_fasta(hf):
+    assert br.guess_format("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep)) == "fasta"
+
+    with open("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
+        assert br.guess_format(ifile) == "fasta"
+
+    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.fa" % (hf.resource_path, os.path.sep))
+    assert br.guess_format(seqbuddy) == "fasta"
+
+
+def test_guess_gb(hf):
+    assert br.guess_format("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep)) == "gb"
+
+    with open("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
+        assert br.guess_format(ifile) == "gb"
+
+    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep))
+    assert br.guess_format(seqbuddy) == "gb"
+
+
+def test_guess_phylipss(hf):
+    assert br.guess_format("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep)) == "phylipss"
+
+    with open("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
+        assert br.guess_format(ifile) == "phylipss"
+
+    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
+    assert br.guess_format(seqbuddy) == "phylipss"
+
+
+def testguess_format(sb_resources, sb_odd_resources):
+    assert br.guess_format(["foo", "bar"]) == "gb"
+    assert br.guess_format(sb_resources.get_one("d f")) == "fasta"
+    assert br.guess_format(sb_resources.get_one("d f", mode="paths")) == "fasta"
+    assert br.guess_format(sb_odd_resources["blank"]) == "empty file"
+    with pytest.raises(br.GuessError):
+        br.guess_format("foo")
+    assert not br.guess_format(sb_odd_resources["gibberish"])
 
 
 def test_nexus_out(alb_resources, sb_resources, hf):

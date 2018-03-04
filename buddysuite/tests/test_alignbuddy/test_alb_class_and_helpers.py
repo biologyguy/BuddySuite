@@ -10,7 +10,7 @@ from Bio.Alphabet import IUPAC
 from Bio import AlignIO
 
 import buddy_resources as br
-from AlignBuddy import AlignBuddy, guess_alphabet, guess_format, make_copy
+from AlignBuddy import AlignBuddy, guess_alphabet, make_copy
 from buddy_resources import GuessError, parse_format
 
 
@@ -286,33 +286,9 @@ def test_guess_alphabet(alb_resources):
     assert not guess_alphabet(AlignBuddy("", in_format="fasta"))
 
 
-def test_guess_format(alb_resources, alb_odd_resources):
-    assert guess_format(["dummy", "list"]) == "stockholm"
-
-    for key, obj in alb_resources.get().items():
-        assert guess_format(obj) == parse_format(alb_resources.get_key(key)["format"])
-
-    for key, path in alb_resources.get(mode="paths").items():
-        print(parse_format(alb_resources.get_key(key)["format"]))
-        assert guess_format(path) == parse_format(alb_resources.get_key(key)["format"])
-        with open(path, "r", encoding="utf-8") as ifile:
-            assert guess_format(ifile) == parse_format(alb_resources.get_key(key)["format"])
-            ifile.seek(0)
-            string_io = io.StringIO(ifile.read())
-        assert guess_format(string_io) == parse_format(alb_resources.get_key(key)["format"])
-
-    guess_format(alb_odd_resources['blank']) == "empty file"
-    assert not guess_format(alb_odd_resources['dna']['single']['phylipss_recs'])
-    assert not guess_format(alb_odd_resources['dna']['single']['phylipss_cols'])
-
-    with pytest.raises(GuessError) as e:
-        guess_format({"Dummy dict": "Type not recognized by guess_format()"})
-    assert "Unsupported _input argument in guess_format()" in str(e)
-
-
 def test_make_copy(alb_resources, hf):
     for alb in alb_resources.get_list():
         tester = make_copy(alb)
-        hf.buddy2hash(tester) == hf.buddy2hash(alb)
+        assert hf.buddy2hash(tester) == hf.buddy2hash(alb)
 
 # ToDo: def test_feature_remapper()

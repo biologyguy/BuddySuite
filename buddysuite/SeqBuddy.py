@@ -234,7 +234,7 @@ class SeqBuddy(object):
             self.in_format = sb_input.in_format
 
         else:
-            self.in_format = _guess_format(sb_input)
+            self.in_format = br.guess_format(sb_input)
             if self.in_format == "empty file":
                 self.in_format = "fasta"
             self.out_format = str(self.in_format) if not out_format else br.parse_format(out_format)
@@ -292,7 +292,7 @@ class SeqBuddy(object):
             sequences = [SeqRecord(Seq(sb_input))]  # may be unreachable?
 
         if self.alpha is None:
-            self.alpha = _guess_alphabet(sequences)
+            self.alpha = guess_alphabet(sequences)
         elif "protein".startswith(str(self.alpha)) or self.alpha in ['pep', IUPAC.protein]:
             self.alpha = IUPAC.protein
         elif "dna".startswith(str(self.alpha)) or self.alpha in ['cds', IUPAC.ambiguous_dna]:
@@ -301,7 +301,7 @@ class SeqBuddy(object):
             self.alpha = IUPAC.ambiguous_rna
         else:
             br._stderr("WARNING: Alphabet not recognized. Correct alphabet will be guessed.\n")
-            self.alpha = _guess_alphabet(sequences)
+            self.alpha = guess_alphabet(sequences)
 
         for seq in sequences:
             seq.seq.alphabet = self.alpha
@@ -561,7 +561,7 @@ class FeatureReMapper(object):
             return feature
 
 
-def _guess_alphabet(seqbuddy):
+def guess_alphabet(seqbuddy):
     """
     Looks through the characters in the SeqBuddy records to determine the most likely alphabet
     Does not attempt to explicitly deal with weird cases (e.g., ambiguous residues).
@@ -588,106 +588,6 @@ def _guess_alphabet(seqbuddy):
         return IUPAC.protein
     else:
         return None
-
-
-def _guess_format(_input):
-    """
-    Loop through many possible formats that BioPython has a parser for, and return the format that is
-    actually able to return records.
-    :param _input: Duck-typed; can be list, SeqBuddy object, file handle, or file path.
-    :return: str or None
-    """
-    # If input is just a list, there is no BioPython in-format. Default to gb.
-    if isinstance(_input, list):
-        return "gb"
-
-    # Pull value directly from object if appropriate
-    if _input.__class__.__name__ == "SeqBuddy":
-        return _input.in_format
-
-    # If input is a handle or path, try to read the file in each format, and assume success if not error and # seqs > 0
-    if os.path.isfile(str(_input)):
-        _input = open(_input, "r", encoding="utf-8")
-
-    if str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
-        if not _input.seekable():  # Deal with input streams (e.g., stdout pipes)
-            _input = StringIO(_input.read())
-        if _input.read() == "":
-            return "empty file"
-        _input.seek(0)
-
-        for line in _input:
-            if line.isspace() or line.startswith("//"):
-                continue
-
-            # Fasta
-            elif line.startswith(">"):
-                _input.seek(0)
-                return "fasta"
-
-            # GenBank
-            elif line.startswith("LOCUS  "):
-                _input.seek(0)
-                return "gb"
-
-            # Stockholm
-            elif line.startswith("# STOCKHOLM"):
-                _input.seek(0)
-                return "stockholm"
-
-            # NEXUS
-            elif line.startswith("#NEXUS"):
-                _input.seek(0)
-                return "nexus"
-
-            # CLUSTAL
-            elif line.startswith("CLUSTAL"):
-                _input.seek(0)
-                return "clustal"
-
-            # FASTQ
-            elif line.startswith("@"):
-                _input.seek(0)
-                return "fastq"
-
-            # SeqXML
-            elif line.startswith("<?xml"):
-                _input.seek(0)
-                return "seqxml"
-
-            else:
-                break
-        _input.seek(0)
-
-        # Can't determine from file header
-        possible_formats = ["phylipss", "phylipsr", "phylip", "phylip-relaxed", "embl", "swiss"]
-
-        for next_format in possible_formats:
-            try:
-                _input.seek(0)
-                if next_format in ["phylip", "phylipsr", "phylipss"]:
-                    phylip = br.phylip_guess(next_format, _input)
-                    if phylip:
-                        return phylip
-                    else:
-                        continue
-                seqs = SeqIO.parse(_input, next_format)
-                if next(seqs):
-                    _input.seek(0)
-                    return next_format
-                else:
-                    continue
-            except AssertionError as err:
-                if next_format == 'swiss':
-                    continue
-                else:
-                    raise err
-            except (ValueError, StopIteration, br.PhylipError):
-                continue
-        return None  # Unable to determine format from file handle
-
-    else:
-        raise br.GuessError("Unsupported _input argument in guess_format(). %s" % _input)
 
 
 def make_copy(seqbuddy):
@@ -5186,14 +5086,14 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
     if in_args.guess_format:
         for seq_set in in_args.sequence:
             if str(type(seq_set)) == "<class '_io.TextIOWrapper'>":
-                _format = _guess_format(seq_set)
+                _format = br.guess_format(seq_set)
                 if _format:
                     br._stdout("PIPE\t-->\t%s\n" % _format)
                 else:
                     br._stdout("PIPE\t-->\tUnknown\n")
             else:
                 try:
-                    file_format = _guess_format(seq_set)
+                    file_format = br.guess_format(seq_set)
                 except Exception:  # This should NOT be made more specific. If it throws errors, it's unknown.
                     file_format = None
 
