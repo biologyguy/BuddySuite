@@ -1167,7 +1167,7 @@ def phylip_sequential_out(record_src, relaxed=True):
             if rec.id in id_check:
                 raise PhylipError("Malformed Phylip --> Repeat id '%s'" % rec.id)
             id_check.append(rec.id)
-            if not aln_len:
+            if aln_len == 0:
                 aln_len = len(str(rec.seq))
 
         max_id_len = 0
