@@ -148,7 +148,7 @@ if __name__ == '__main__':
     if not os.path.isfile("%s%s_tree.nwk" % (ref_dir, ref_name)):
         print(" -> Creating tree file")
         from dendropy.simulate import treesim
-        tree = treesim.birth_death_tree(birth_rate=1.0, death_rate=0.5, ntax=len(seqbuddy))
+        tree = treesim.birth_death_tree(birth_rate=1.0, death_rate=0.5, num_extant_tips=len(seqbuddy))
         tree = tree.as_string("newick")
         for indx, rec in enumerate(seqbuddy.records):
             tree = re.sub("T%s:" % indx, "%s:" % rec.id, tree)

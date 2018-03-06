@@ -78,6 +78,7 @@ lowercase,,alignbuddy,dna,False
 mapfeat2align,__ref.gb__,alignbuddy,dna,False
 num_seqs,,alignbuddy,dna,False
 order_ids,rev,alignbuddy,dna,False
+percent_id,,alignbuddy,dna,False
 pull_records,NM,alignbuddy,dna,False
 rename_ids,XM Predicted,alignbuddy,dna,False
 screw_formats,fasta,alignbuddy,dna,False
