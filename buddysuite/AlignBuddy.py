@@ -1388,12 +1388,14 @@ def percent_id(alignbuddy):
             matrix.setdefault(rec1.id, OrderedDict())
             for rec2 in alignment[i+1:]:
                 matrix.setdefault(rec2.id, OrderedDict())
-                regex = "^%s$|^%s$" % (rec1.id, rec2.id)
-                comp = pull_records(make_copy(alignbuddy), regex).records()
-                len_align = len(comp[0].seq)
                 id_counter = 0
-                for pair in zip(list(comp[0].seq), list(comp[1].seq)):
-                    id_counter += 1 if len(set(pair)) == 1 else 0
+                gap_counter = 0
+                for a, b in zip(list(rec1.seq), list(rec2.seq)):
+                    if a == b == "-":
+                        gap_counter += 1
+                        continue
+                    id_counter += 1 if a == b else 0
+                len_align = len(rec1) - gap_counter
                 matrix[rec1.id][rec2.id] = id_counter / len_align
                 matrix[rec2.id][rec1.id] = id_counter / len_align
         alignment.percent_ids = matrix
