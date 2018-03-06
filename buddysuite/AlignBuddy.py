@@ -332,8 +332,9 @@ class FeatureReMapper(object):
             specifying whether that column exists in the new alignment or not. Remap the features on the new alignment
             by calling the remap_features method.
     """
-    def __init__(self):
-        self.position_map = []
+    def __init__(self, max_len):
+        self.position_map = [None for _ in range(max_len)]
+        self.position_map_indx = 0
         self.starting_position_filled = False
 
     def extend(self, exists=True):
@@ -341,19 +342,19 @@ class FeatureReMapper(object):
         Iterates the position map, adding an index and whether the new alignment contains the column.
         :param exists: Specify whether the next column exists or not
         """
-        if not self.position_map:
+        if self.position_map[0] is None:
             if exists:
                 self.starting_position_filled = True
-            self.position_map.append((0, exists))
-
+            self.position_map[self.position_map_indx] = (0, exists)
         else:
             if exists and not self.starting_position_filled:
-                self.position_map.append((0, True))
+                self.position_map[self.position_map_indx] = (0, True)
                 self.starting_position_filled = True
             elif exists and self.starting_position_filled:
-                self.position_map.append((self.position_map[-1][0] + 1, True))
+                self.position_map[self.position_map_indx] = (self.position_map[self.position_map_indx - 1][0] + 1, True)
             else:
-                self.position_map.append((self.position_map[-1][0], False))
+                self.position_map[self.position_map_indx] = (self.position_map[self.position_map_indx - 1][0], False)
+        self.position_map_indx += 1
         return
 
     def remap_features(self, old_alignment, new_alignment):
@@ -406,7 +407,7 @@ class FeatureReMapper(object):
             return feature
 
     def append_pos_map(self, alignment):
-        alignment.position_map = self.position_map
+        alignment.position_map = self.position_map[:self.position_map_indx + 1]
         return
 
 
@@ -1604,7 +1605,7 @@ def trimal(alignbuddy, threshold):
 
         # Each position_map index corresponds to the original column position, values are tuples of the new position
         # and whether the column still exists (True) or has been deleted (False)
-        position_map = FeatureReMapper()
+        position_map = FeatureReMapper(len(alignment[0]))
 
         max_gaps = 0
         for indx in range(num_columns):
