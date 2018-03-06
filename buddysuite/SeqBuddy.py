@@ -1721,14 +1721,16 @@ def delete_records(seqbuddy, patterns, description=False):
 
     patterns = "|".join(patterns)
 
-    retained_records = []
+    retained_records = [None for _ in range(len(seqbuddy))]
     deleted = [rec.id for rec in pull_recs(make_copy(seqbuddy), patterns, description=description).records]
+    counter = 0
     for rec in seqbuddy.records:
         if rec.id in deleted:
             continue
         else:
-            retained_records.append(rec)
-    seqbuddy.records = retained_records
+            retained_records[counter] = rec
+            counter += 1
+    seqbuddy.records = retained_records[:counter]
     return seqbuddy
 
 
@@ -1774,10 +1776,12 @@ def delete_repeats(seqbuddy, scope='all'):  # scope in ['all', 'ids', 'seqs']
     if scope in ['all', 'ids']:
         find_repeats(seqbuddy)
         if len(seqbuddy.repeat_ids) > 0:
-            for rep_id in seqbuddy.repeat_ids:
-                store_one_copy = pull_recs(make_copy(seqbuddy), ["^%s$" % rep_id]).records[0]
-                delete_records(seqbuddy, "^%s$" % rep_id)
-                seqbuddy.records.append(store_one_copy)
+            stored_recs = [None for _ in range(len(seqbuddy.repeat_ids))]
+            for indx, rep_id in enumerate(seqbuddy.repeat_ids):
+                stored_recs[indx] = pull_recs(make_copy(seqbuddy), ["^%s$" % rep_id]).records[0]
+            regex = "^%s$" % "$|^".join(seqbuddy.repeat_ids)
+            delete_records(seqbuddy, regex)
+            seqbuddy.records += stored_recs
 
     # Then remove duplicate sequences
     if scope in ['all', 'seqs']:
