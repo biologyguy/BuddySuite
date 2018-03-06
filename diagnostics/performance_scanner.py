@@ -78,6 +78,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-t", "--tools", nargs="+", default=["all"],
                         help="Specify the module(s) or tool(s) to run")
+    parser.add_argument("-s", "--skip", nargs="+", help="Specify module(s) or tool(s) that will be ignored")
     parser.add_argument("-3p", "--third_party", action='store_true', help="Include tools that use third party software")
 
     parser.add_argument("-i", "--iterations", action='store', default=10, help="Specify number of timeit replicates")
@@ -167,9 +168,13 @@ if __name__ == '__main__':
     tools = [Tool(tl.flag, tl.options, tl.module, ref_name, tl.reference, tl.third_party)
              for indx, tl in pd_tools.iterrows()]
 
+    skip = [] if not in_args.skip else in_args.skip[0]
+
     # Benchmark each tool
     for tool in tools:
         if not in_args.third_party and tool.third_party:
+            continue
+        if tool.module in skip or tool.flag in skip:
             continue
 
         if any(i in in_args.tools for i in ["all", tool.flag, tool.module]):  # Allows multiple tools to be called
