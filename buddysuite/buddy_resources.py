@@ -1652,7 +1652,7 @@ contributor_list = [Contributor("Stephen", "Bond", commits=1149, github="https:/
 # NOTE: If this is added to, be sure to update the unit test!
 format_to_extension = {'fasta': 'fa', 'fa': 'fa', 'genbank': 'gb', 'gb': 'gb', 'newick': 'nwk', 'nwk': 'nwk',
                        'nexus': 'nex', 'nex': 'nex', 'phylip': 'phy', 'phy': 'phy', 'phylip-relaxed': 'phyr',
-                       'phyr': 'phyr', 'phylipss': 'physs', 'physs': 'physs', 'phylipsr': 'physr',
+                       'phyr': 'phyr', 'phylipss': 'physs', 'physs': 'physs', 'phylipsr': 'physr', 'embl': 'embl',
                        'physr': 'physr', 'stockholm': 'stklm', 'stklm': 'stklm', 'clustal': 'clus', 'clus': 'clus'}
 
 
