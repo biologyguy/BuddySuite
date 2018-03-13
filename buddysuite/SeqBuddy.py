@@ -1665,9 +1665,25 @@ def delete_features(seqbuddy, pattern):
     """
     for rec in seqbuddy.records:
         retained_features = []
-        for _feature in rec.features:
-            if not re.search(pattern, _feature.type):
-                retained_features.append(_feature)
+        for feat in rec.features:
+            keep = True
+            if re.search(pattern, feat.type):
+                keep = False
+            else:
+                for key, quals in feat.qualifiers.items():
+                    if re.search(pattern, key):
+                        keep = False
+                        break
+                    breakout = False
+                    for qual in quals:
+                        if re.search(pattern, qual):
+                            keep = False
+                            breakout = True
+                            break
+                    if breakout:
+                        break
+            if keep:
+                retained_features.append(feat)
         rec.features = retained_features
     return seqbuddy
 
@@ -1759,6 +1775,22 @@ def delete_recs_with_feature(seqbuddy, regex):
             if re.search(regex, feat.type) or re.search(regex, feat.id):
                 retain = False
                 break
+            breakout = False
+            for key, quals in feat.qualifiers.items():
+                if breakout:
+                    break
+                if re.search(regex, key):
+                    retain = False
+                    breakout = True
+                    break
+                for qual in quals:
+                    if re.search(regex, qual):
+                        retain = False
+                        breakout = True
+                        break
+            if breakout:
+                break
+
         if retain:
             keep_records.append(rec)
     seqbuddy.records = keep_records
@@ -3550,6 +3582,22 @@ def pull_recs_with_feature(seqbuddy, regex):
             if re.search(regex, feat.type) or re.search(regex, feat.id):
                 matched_records.append(rec)
                 break
+            breakout = False
+            for key, quals in feat.qualifiers.items():
+                if breakout:
+                    break
+                if re.search(regex, key):
+                    matched_records.append(rec)
+                    breakout = True
+                    break
+                for qual in quals:
+                    if re.search(regex, qual):
+                        matched_records.append(rec)
+                        breakout = True
+                        break
+            if breakout:
+                break
+
     seqbuddy.records = matched_records
     return seqbuddy
 
