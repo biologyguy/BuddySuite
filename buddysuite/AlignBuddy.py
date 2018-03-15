@@ -146,7 +146,7 @@ class AlignBuddy(object):
             sample = _input if len(_input) < 5 else random.sample(_input, 5)
             for _seq in sample:
                 if type(_seq) != MultipleSeqAlignment:
-                    raise TypeError("Seqlist is not populated with SeqRecords.")
+                    raise TypeError("Alignlist is not populated with MultipleSeqAlignment.")
             alignments = _input
 
         elif str(type(_input)) == "<class '_io.TextIOWrapper'>" or isinstance(_input, StringIO):
@@ -492,12 +492,13 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     return alignbuddy
 
 
-def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
+def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern="", suppress_position=False):
     """
     Concatenates two or more alignments together, end-to-end
     :param alignbuddy: AlignBuddy object
     :param group_pattern: Regex that matches some regular part of the sequence IDs, dictating who is bound to who
     :param align_name_pattern: Regex that matches something for the whole alignment
+    :param suppress_position: Do not append new features denoting the location of each concatenated sequence
     :return: AlignBuddy object containing a single concatenated alignment
     :rtype: AlignBuddy
     """
@@ -573,21 +574,23 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern=""):
         new_length = 0
         align_features = []
         for rec_indx, rec in enumerate(seqs):
-            location = FeatureLocation(new_length, new_length + len(rec.seq))
-            match = re.search(align_name_pattern, rec.id)
-            if align_name_pattern != "" and match:
-                if match.groups():
-                    match = "".join(match.groups())
+            if not suppress_position:
+                location = FeatureLocation(new_length, new_length + len(rec.seq))
+                match = re.search(align_name_pattern, rec.id)
+                if align_name_pattern != "" and match:
+                    if match.groups():
+                        match = "".join(match.groups())
+                    else:
+                        match = match.group(0)
+                    feature = SeqFeature(location=location, type=match)
                 else:
-                    match = match.group(0)
-                feature = SeqFeature(location=location, type=match)
-            else:
-                if str(rec.id) != "<unknown id>":
-                    feature = SeqFeature(location=location, type=rec.id)
-                else:
-                    feature = SeqFeature(location=location, type="Alignment_%s" % (rec_indx + 1))
-            align_features.append(feature)
+                    if str(rec.id) != "<unknown id>":
+                        feature = SeqFeature(location=location, type=rec.id)
+                    else:
+                        feature = SeqFeature(location=location, type="Alignment_%s" % (rec_indx + 1))
+                align_features.append(feature)
             new_length += len(rec.seq)
+
         new_records[group_indx].features = align_features + new_records[group_indx].features
         group_indx += 1
 

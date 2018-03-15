@@ -83,7 +83,14 @@ def test_concat_alignments(alb_resources, hf):
     Sb.pull_recs(tester, "Ccr|Cla|Hec")
     tester = Alb.AlignBuddy(str(tester))
     tester.alignments.append(tester.alignments[0])
-    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == '32a507107b7dcd044ea7760c8812441c'
+
+    tester.set_format("gb")
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester), suppress_position=True)
+    assert hf.buddy2hash(tester2) == 'a4bf16d88352935848dac29f4afdc871', print(tester2)
+
+    tester.set_format("nexus")
+    tester2 = Alb.concat_alignments(Alb.make_copy(tester))
+    assert hf.buddy2hash(tester2) == '32a507107b7dcd044ea7760c8812441c'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
