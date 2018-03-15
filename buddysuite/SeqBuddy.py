@@ -5311,7 +5311,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
                     padding = int(arg)
                 except ValueError:
                     sep = arg
-        _print_recs(make_ids_unique(seqbuddy, sep=sep, padding=padding))
+        _print_recs(make_ids_unique(seqbuddy, sep=sep.strip(), padding=padding))
         _exit("make_ids_unique")
 
     # Map features from cDNA over to protein
