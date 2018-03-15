@@ -3367,6 +3367,13 @@ class PrositeScan(object):
                     time.sleep(attempt * 10)
                 else:
                     raise err
+            except urllib.request.http.client.RemoteDisconnected:
+                if attempt > 5:
+                    br._stderr("Error: Bad request at %s\n" % url, quiet=self.quiet)
+                    raise
+                else:
+                    attempt += 1
+                    time.sleep(attempt * 10)
 
     def _mc_run_prosite(self, _rec, args):
         out_file_path, lock = args
