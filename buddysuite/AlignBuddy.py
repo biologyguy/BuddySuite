@@ -2093,7 +2093,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
                                                "No output detected after running"])
         for align in alignbuddy.alignments:
             if not in_args.quiet:
-                br._stdout("%s\n" % align.hmm_out)
+                br._stderr("%s\n" % align.hmm_out)
             br._stdout("%s\n" % align.hmm)
         _exit("generate_hmm")
 
