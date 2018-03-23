@@ -1327,9 +1327,10 @@ def clean_seq(seqbuddy, ambiguous=True, rep_char="N", skip_list=None):
         if rec.seq.alphabet == IUPAC.protein:
             full_skip = "ACDEFGHIKLMNPQRSTVWXYacdefghiklmnpqrstvwxy%s" % skip_list
             rec_copy.seq = Seq(re.sub("[^%s]" % full_skip, "-", str(rec.seq)),
-                               alphabet=rec.seq.alphabet)
+                               alphabet=IUPAC.protein)
+            rec.letter_annotations = {}
             rec.seq = Seq(re.sub("[^%s]" % full_skip, "", str(rec.seq)),
-                          alphabet=rec.seq.alphabet)
+                          alphabet=IUPAC.protein)
         else:
             full_skip = "ATGCURYWSMKHBVDNXatgcurywsmkhbvdnx%s" % skip_list
             rec_copy.seq = Seq(re.sub("[^%s]" % full_skip, "-", str(rec.seq)),
