@@ -743,10 +743,10 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                 if '-m' not in params:  # An evolutionary model is required
                     if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
                                                 IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
-                        br._stderr("Warning: Using default evolutionary model GTRCAT\n")
+                        br._stderr("Warning: Using default evolutionary model GTRCAT\n", quiet=quiet)
                         params += " -m GTRCAT"
                     elif sub_alignbuddy.alpha == IUPAC.protein:
-                        br._stderr("Warning: Using default evolutionary model PROTCATLG\n")
+                        br._stderr("Warning: Using default evolutionary model PROTCATLG\n", quiet=quiet)
                         params += " -m PROTCATLG"
 
                 if '-p' not in params:  # RNG seed
