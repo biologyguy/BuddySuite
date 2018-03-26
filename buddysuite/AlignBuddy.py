@@ -57,7 +57,6 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from Bio.Alphabet import IUPAC
-from Bio.Nexus.Nexus import NexusError
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -244,6 +243,9 @@ class AlignBuddy(object):
             return "%s\n\n" % output.rstrip()
         else:
             return "%s\n" % output.rstrip()
+
+    def __len__(self):
+        return len(self.alignments)
 
     def set_format(self, in_format):
         self.out_format = br.parse_format(in_format)

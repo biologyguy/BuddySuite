@@ -272,6 +272,9 @@ class PhyloBuddy(object):
 
         return _output
 
+    def __len__(self):
+        return len(self.trees)
+
     def write(self, _file_path, out_format=None):
         orig_out_format = str(self.out_format)
         self.out_format = self.out_format if out_format is None else out_format

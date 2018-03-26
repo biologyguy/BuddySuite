@@ -121,6 +121,11 @@ def test_write1(key, next_hash, pb_resources, hf):
     assert hf.string2hash(out) == next_hash
 
 
+def test_len(pb_resources):
+    tester = pb_resources.get_one("m k")
+    assert len(tester) == 4
+
+
 def test_guess_format(pb_resources):
     guessed_format = _guess_format([])
     assert guessed_format == "newick"

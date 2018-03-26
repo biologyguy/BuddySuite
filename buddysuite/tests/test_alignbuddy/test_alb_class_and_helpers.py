@@ -125,6 +125,7 @@ def test_lengths_multi(alb_resources):
     for alignbuddy in alb_resources.get_list("m p py pr pss psr"):
         assert alignbuddy.lengths()[1] == 480
 
+
 hashes = [('o p g', '46388b175b31b81f47199ae6327768af'), ('o p n', '17ff1b919cac899c5f918ce8d71904f6'),
           ('o p py', '968ed9fa772e65750f201000d7da670f'), ('o p pr', 'ce423d5b99d5917fbef6f3b47df40513'),
           ('o p pss', '4bd927145de635c429b2917e0a1db176'), ('o p psr', '8ff80c7f0b8fc7f237060f94603c17be'),
@@ -215,6 +216,7 @@ def test_write1(alb_resources, hf, key, next_hash):
         tester_hash = hf.string2hash(output)
     assert tester_hash == next_hash
 
+
 hashes = [('m p c', '9c6773e7d24000f8b72dd9d25620cff1'), ('m p s', '9c6773e7d24000f8b72dd9d25620cff1'),
           ('m p py', '1f172a3beef76e8e3d42698bb2c3c87d'), ('m p pr', '3fef9a05058a5259ebd517d1500388d4'),
           ('m p pss', '1f172a3beef76e8e3d42698bb2c3c87d'), ('m p psr', '3fef9a05058a5259ebd517d1500388d4')]
@@ -246,6 +248,11 @@ def test_write3(alb_resources, hf):  # Unloopable components
     tester = AlignBuddy("%s/Mnemiopsis_cds_hashed_ids.nex" % hf.resource_path)
     tester.set_format("phylip-strict")
     assert hf.buddy2hash(tester) == "16b3397d6315786e8ad8b66e0d9c798f"
+
+
+def test_len(alb_resources):
+    alignbuddy = alb_resources.get_one("m p py")
+    assert len(alignbuddy) == 2
 
 
 # ################################################# HELPER FUNCTIONS ################################################# #
