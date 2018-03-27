@@ -44,6 +44,7 @@ except ImportError:
 # Standard library
 import sys
 import os
+from os.path import join
 import re
 import string
 import zipfile
@@ -1083,28 +1084,37 @@ def bl2seq(seqbuddy):
     # threshold may need to be increased quite a bit to return short alignments
     def mc_blast(_query, _args):
         _subject_file = _args[0]
+        subject_sb = SeqBuddy(_subject_file)
+        assert len(subject_sb) == 1
         _query_file = br.TempFile()
-        with open(_query_file.path, "w", encoding="utf-8") as ofile:
-            ofile.write(_query.format("fasta"))
+        query_sb = SeqBuddy(_query)
+        query_sb.write(_query_file.path, out_format="fasta")
 
-        if subject.id == _query.id:
-            return
+        blast_res = Popen('%s -query "%s" -subject "%s" -outfmt 6' %
+                          (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
+        blast_res = blast_res[0].decode().strip().split("\n")
+        result_file = br.TempFile()
+        hit_ids = {}
+        current_id = ""
+        for res in blast_res:
+            res = res.strip().split("\t")
+            if current_id == res[0] or res[0] == res[1]:
+                continue
+            current_id = res[0]
+            hit_ids[res[0]] = None
+            if res[10] == '0.0':
+                res[10] = '1e-180'
 
-        _blast_res = Popen('%s -query "%s" -subject "%s" -outfmt 6' %
-                           (blast_bin, _query_file.path, _subject_file), stdout=PIPE, shell=True).communicate()
-        _blast_res = _blast_res[0].decode().split("\n")[0].split("\t")
+            res = "%s\t%s\t%s\t%s\t%s\t%s\n" % (res[0], res[1], res[2], res[3], res[10], res[11])
+            result_file.write(res)
 
-        if len(_blast_res) == 1:
-            _result = "%s\t%s\t0\t0\t0\t0\n" % (subject.id, _query.id)
-        else:
-            # values are: query, subject, %_ident, length, evalue, bit_score
-            if _blast_res[10] == '0.0':
-                _blast_res[10] = '1e-180'
-            _result = "%s\t%s\t%s\t%s\t%s\t%s\n" % (_blast_res[0], _blast_res[1], _blast_res[2],
-                                                    _blast_res[3], _blast_res[10], _blast_res[11].strip())
+        for _rec in query_sb.records:
+            if _rec.id not in hit_ids and _rec.id != subject_sb.records[0].id:
+                result_file.write("%s\t%s\t0\t0\t0\t0\n" % (_rec.id, subject_sb.records[0].id))
 
+        _result = result_file.read()
         with lock:
-            with open(os.path.join(tmp_dir.path, "blast_results.txt"), "a", encoding="utf-8") as _ofile:
+            with open(join(tmp_dir.path, "blast_results.txt"), "a", encoding="utf-8") as _ofile:
                 _ofile.write(_result)
         return
 
@@ -1126,16 +1136,19 @@ def bl2seq(seqbuddy):
 
     # Copy the seqbuddy records into new list, so they can be iteratively deleted below
     make_ids_unique(seqbuddy, sep="-")
-    seqs_copy = seqbuddy.records[:]
-    subject_file = os.path.join(tmp_dir.path, "subject.fa")
+    seqs_copy = make_copy(seqbuddy).records
+    subject_file = join(tmp_dir.path, "subject.fa")
+    cpus = br.usable_cpu_count()
     for subject in seqbuddy.records:
         with open(subject_file, "w", encoding="utf-8") as ifile:
             SeqIO.write(subject, ifile, "fasta")
 
-        br.run_multicore_function(seqs_copy, mc_blast, [subject_file], out_type=sys.stderr, quiet=True)
+        br.run_multicore_function(br.chunk_list(seqs_copy, cpus), mc_blast, [subject_file],
+                                  out_type=sys.stderr, quiet=True)
+
         seqs_copy = seqs_copy[1:]
 
-    with open(os.path.join(tmp_dir.path, "blast_results.txt"), "r", encoding="utf-8") as _ifile:
+    with open(join(tmp_dir.path, "blast_results.txt"), "r", encoding="utf-8") as _ifile:
         output_list = _ifile.read().strip().split("\n")
 
     # Push output into a dictionary of dictionaries, for more flexible use outside of this function
