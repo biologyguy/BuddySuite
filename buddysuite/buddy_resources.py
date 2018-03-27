@@ -42,7 +42,7 @@ else:
     from urllib.error import URLError, HTTPError, ContentTooShortError
     from multiprocessing import Process, cpu_count
     from time import time, sleep
-    from math import floor
+    from math import floor, ceil
     from tempfile import TemporaryDirectory
     from shutil import copytree, rmtree, copyfile
     import string
@@ -620,6 +620,26 @@ def num_sorted(input_list):
         return [convert(c) for c in re.split('([0-9]+)', key)]
 
     return sorted(input_list, key=alpha_num_key)
+
+
+def chunk_list(l, num_chunks):
+    """
+    Break up a list into a list of lists
+    :param l: Input list
+    :param num_chunks: How many lists should the list be chunked into
+    :return:
+    """
+    num_chunks = int(num_chunks)
+    if num_chunks < 1 or not l:
+        raise AttributeError("Input list must have items in it and num_chunks must be a positive integer")
+
+    size = int(ceil(len(l) / num_chunks))
+    num_long = len(l) % num_chunks
+    num_long = num_long if num_long != 0 else num_chunks
+    chunks = [l[i:i + size] for i in range(0, num_long * size, size)]
+    if size != 1:
+        chunks += [l[i:i + size - 1] for i in range(num_long * size, len(l), size - 1)]
+    return chunks
 
 
 # ##################################################### CLASSES ###################################################### #

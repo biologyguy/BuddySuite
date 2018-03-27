@@ -543,6 +543,21 @@ def test_num_sorted():
                                         "aab.3", "aab.10", "aab_10.1", "aab_10.56"], print(br.num_sorted(test_list))
 
 
+def test_chunk_list():
+    assert br.chunk_list(list(range(10)), 4) == [[0, 1, 2], [3, 4, 5], [6, 7], [8, 9]]
+    assert br.chunk_list(list(range(10)), 10) == [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]
+    assert br.chunk_list(list(range(10)), 100) == [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]
+    assert br.chunk_list(list(range(10)), 1) == [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]
+
+    with pytest.raises(AttributeError) as err:
+        br.chunk_list(list(range(10)), 0)
+    assert "Input list must have items in it and num_chunks must be a positive integer" in str(err)
+
+    with pytest.raises(AttributeError) as err:
+        br.chunk_list([], 10)
+    assert "Input list must have items in it and num_chunks must be a positive integer" in str(err)
+
+
 def test_guesserror():
     with pytest.raises(br.GuessError):
         error = br.GuessError("test")
