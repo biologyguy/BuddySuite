@@ -1432,15 +1432,6 @@ def ungap_feature_ends(feat, rec):
     :param rec: The original SeqRecord that the feature is derived from
     :return: The modified feature object
     """
-    if feat.location.start < 0:
-        feat.location = FeatureLocation(0, feat.location.end, feat.location.strand)
-
-    if feat.location.end < 0:
-        feat.location = FeatureLocation(feat.location.start, 0, feat.location.strand)
-
-    if feat.location.start > feat.location.end:
-            feat.location = FeatureLocation(feat.location.end, feat.location.start, feat.location.strand)
-
     if type(feat.location) == CompoundLocation:
         parts = []
         for part in feat.location.parts:
@@ -1451,6 +1442,14 @@ def ungap_feature_ends(feat, rec):
     elif type(feat.location) == FeatureLocation:
         if feat.strand == -1 and rec.seq.alphabet == IUPAC.protein:
             feat.strand = None
+
+        start = int(feat.location.start) if feat.location.start > 0 else 0
+        end = int(feat.location.end) if feat.location.end > 0 else 0
+        if start > end:
+            feat.location = FeatureLocation(end, start, feat.location.strand)
+        else:
+            feat.location = FeatureLocation(start, end, feat.location.strand)
+
         extract = str(feat.extract(rec.seq))
         front_gaps = re.search("^-+", extract)
         if front_gaps:

@@ -46,6 +46,7 @@ class MockLocation(object):
     def __init__(self):
         self.start = 0
         self.end = 1
+        self.strand = None
 
 
 def mock_valueerror(*args, **kwargs):
@@ -1215,11 +1216,13 @@ def test_ungap_feature_ends_compound(alb_resources):
     feature = rec.features[0]
     feature.location.parts[0]._start = 0
     feature.location.parts[1]._end = 238
+
     print(feature)
     feature = br.ungap_feature_ends(feature, rec)
+    print(feature)
+
     assert feature.location.parts[0].start == 9
     assert feature.location.parts[1].end == 225
-    print(feature)
 
 
 def test_ungap_feature_ends_error(alb_resources):
