@@ -969,11 +969,6 @@ def testguess_format(sb_resources, sb_odd_resources):
 
 
 def test_nexus_out(alb_resources, sb_resources, hf):
-    # Do not run tests until BioPython v1.71 has been released
-    if float(".".join(Bio.__version__.split(".")[:2])) < 1.71:
-        return
-    else:
-        assert 0, print("This whole if/else block can be deleted now that BioPython v1.71 is out.")
     # AlignBuddy input
     buddy = alb_resources.get_one("o p py")
     nexus = br.nexus_out(buddy, "nexus")
