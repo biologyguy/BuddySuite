@@ -128,25 +128,44 @@ def test_dynamicprint_init():
 
 def test_dynamicprint_write(capsys):
     printer = br.DynamicPrint()
+    printer.write("Foo")
     printer.write("Hello")
     printer.new_line(2)
     printer.write("foo")
     printer.clear()
     printer.write("bar")
     out, err = capsys.readouterr()
-    assert out == "\r\rHello\n\n\r\rfoo\r   \r\r\rbar"
+    assert out == "\r\rFoo\r   \rHello\n\n\r\rfoo\r   \r\r\rbar", print(out)
     assert err == ""
 
+    # Only update if new information is coming in
+    printer = br.DynamicPrint()
+    printer.write("Hello")
+    printer.write("Hello")
+    out, err = capsys.readouterr()
+    assert out == "\r\rHello"
+    assert err == ""
+
+    # Send to StdErr if the user prefers
     printer = br.DynamicPrint(out_type="stderr")
     printer.write("Hello")
     out, err = capsys.readouterr()
     assert out == ""
     assert err == "\r\rHello"
 
+    # Suppress with quiet
     printer = br.DynamicPrint(quiet=True)
     printer.write("Hello")
     out, err = capsys.readouterr()
     assert out == ""
+    assert err == ""
+
+    # Insert line breaks with logging turned on
+    printer = br.DynamicPrint(log=True)
+    printer.write("Hello")
+    printer.write("Foo")
+    out, err = capsys.readouterr()
+    assert out == "Hello\nFoo\n"
     assert err == ""
 
 

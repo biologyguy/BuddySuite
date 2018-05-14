@@ -138,10 +138,11 @@ class RunTime(object):
 
 # maybe use curses library in the future to extend this for multi-line printing
 class DynamicPrint(object):
-    def __init__(self, out_type="stdout", quiet=False):
+    def __init__(self, out_type="stdout", quiet=False, log=False):
         """
         :param out_type: 'stdout', 'stderr', sys.stdout, or sys.stderr
-        :param quiet:
+        :param quiet: Do not actually write anything
+        :param log: Include a line break after each call to `write`
         """
         self._last_print = ""
         self._next_print = ""
@@ -151,12 +152,15 @@ class DynamicPrint(object):
         out_type = sys.stderr if out_type == "stderr" else out_type
         self.out_type = out_type
         self.quiet = quiet
-        return
+        self.log = log
 
     def _write(self):
         try:
             while True:
-                self.out_type.write("\r%s\r%s" % (" " * len(self._last_print), self._next_print),)
+                if self.log:
+                    self.out_type.write("%s\n" % self._next_print)
+                else:
+                    self.out_type.write("\r%s\r%s" % (" " * len(self._last_print), self._next_print),)
                 self.out_type.flush()
                 self._last_print = self._next_print
                 yield
@@ -178,7 +182,8 @@ class DynamicPrint(object):
         return
 
     def clear(self):
-        self.write("")
+        if not self.log:
+            self.write("")
         return
 
 
