@@ -276,7 +276,7 @@ def test_extract_feature_sequences(alb_resources, hf):
 hashes = [('o d g', 'd06c46d7458f8b9a90aba14b83cdb329'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
           ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '19b5ae01128233d622c4a638f00d612e'),
           ('o p n', '5f400edc6f0990c0cd6eb52ae7687e39'), ('o p py', '69c9ad73ae02525150d4682f9dd68093'),
-          ('m d py', 'd06ba679c8a686c8f077bb460a4193b0'), ('m p py', '8151eeda36b9a170512709829d70230b')]
+          ('m d py', 'd00ed6280d9acca8d7d4fd9521de5799'), ('m p py', 'c1ffc524f72349eebe971b0d27845f0d')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
