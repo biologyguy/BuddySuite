@@ -277,7 +277,7 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) in ["08f48aaa5d64ac48ea15a4aa63d75141", 'b9a2268fefae3786a611f5e699fd6200']
+        assert hf.string2hash(output) == "8ccd0114970eaa924f55a4ab4239cecc", print(output)
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)

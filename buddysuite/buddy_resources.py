@@ -164,8 +164,8 @@ class DynamicPrint(object):
             pass
 
     def write(self, content):
-        if not self.quiet:
-            content = re.sub("\t", "    ", content)
+        content = re.sub("\t", "    ", content)
+        if not self.quiet and self._last_print != content:
             self._next_print = content
             next(self._writer)
         return
