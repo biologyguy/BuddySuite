@@ -254,12 +254,12 @@ def usable_cpu_count():
 
 
 def run_multicore_function(iterable, func, func_args=False, max_processes=0,
-                           quiet=False, out_type=sys.stdout):
+                           quiet=False, out_type=sys.stdout, log=False):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
         if func_args and not isinstance(func_args, list):
             raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
-        d_print = DynamicPrint(out_type, quiet=quiet)
+        d_print = DynamicPrint(out_type, quiet=quiet, log=log)
         if max_processes == 0:
             max_processes = usable_cpu_count()
         else:
@@ -280,7 +280,8 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0,
         start_time = round(time())
         elapsed = 0
         counter = 0
-        d_print.write("Running function %s() on %s cores\n" % (func.__name__, max_processes))
+        d_print.write("Running function %s() on %s cores" % (func.__name__, max_processes))
+        d_print.new_line()
         # fire up the multi-core!!
         d_print.write("\tJob 0 of %s" % iter_len)
 
@@ -315,7 +316,8 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0,
                                 running_processes -= 1
                                 break
 
-                        if (start_time + elapsed) < round(time()):
+                        if ((start_time + elapsed) < round(time()) and not log) or \
+                                (start_time + elapsed) < round(time()) - 10:
                             elapsed = round(time()) - start_time
                             d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
                         if running_processes < max_processes:
@@ -332,11 +334,13 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0,
                     child_list.pop(i)
                     running_processes -= 1
                     break  # need to break out of the for-loop, because the child_list index is changed by pop
-            if (start_time + elapsed) < round(time()):
+            if ((start_time + elapsed) < round(time()) and not log) or \
+                    (start_time + elapsed) < round(time()) - 10:
                 elapsed = round(time()) - start_time
                 d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
-                                                                               len(child_list)))
-        d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
+                                                                           len(child_list)))
+        d_print.write("\tDONE: %s jobs in %s" % (counter, pretty_time(elapsed)))
+        d_print.new_line()
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
         return
 

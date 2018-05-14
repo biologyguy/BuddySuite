@@ -260,21 +260,21 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
+        assert hf.string2hash(output) == "fcc1d606d7d4905112c6157d5fb872c7", print(output)
 
     with open(temp_path, "w") as output:
         br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
                                   max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) in ["107696d60ee9b932ecaffad7c97a609f", "c2adacdaf0de6526c707564068a3460a"]
+        assert hf.string2hash(output) == "fcc1d606d7d4905112c6157d5fb872c7", print(output)
 
     with open(temp_path, "w") as output:
         br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
                                   max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) in ["cf5afec941a4b854ed78f01d2753009d", "b9a2268fefae3786a611f5e699fd6200"]
+        assert hf.string2hash(output) == "82f8a0270fb76bc89e029e0904835c2c", print(output)
 
     with pytest.raises(AttributeError) as err:
         br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False,
@@ -296,7 +296,7 @@ def test_run_multicore_function(monkeypatch, hf):
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "8ccd0114970eaa924f55a4ab4239cecc", print(output)
+        assert hf.string2hash(output) == "7fc581d5aaaf256195e9ce9bb1f7f512", print(output)
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
