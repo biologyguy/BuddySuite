@@ -248,12 +248,13 @@ def usable_cpu_count():
     return max_processes
 
 
-def run_multicore_function(iterable, func, func_args=False, max_processes=0, quiet=False, out_type=sys.stdout):
+def run_multicore_function(iterable, func, func_args=False, max_processes=0,
+                           quiet=False, out_type=sys.stdout):
         # fun little piece of abstraction here... directly pass in a function that is going to be looped over, and
         # fork those loops onto independent processes. Any arguments the function needs must be provided as a list.
         if func_args and not isinstance(func_args, list):
             raise AttributeError("The arguments passed into the multi-thread function must be provided as a list")
-        d_print = DynamicPrint(out_type)
+        d_print = DynamicPrint(out_type, quiet=quiet)
         if max_processes == 0:
             max_processes = usable_cpu_count()
         else:
@@ -274,11 +275,9 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0, qui
         start_time = round(time())
         elapsed = 0
         counter = 0
-        if not quiet:
-            d_print.write("Running function %s() on %s cores\n" % (func.__name__, max_processes))
+        d_print.write("Running function %s() on %s cores\n" % (func.__name__, max_processes))
         # fire up the multi-core!!
-        if not quiet:
-            d_print.write("\tJob 0 of %s" % iter_len)
+        d_print.write("\tJob 0 of %s" % iter_len)
 
         for next_iter in iterable:
             if type(iterable) is dict:
@@ -289,8 +288,7 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0, qui
             while 1:     # Only fork a new process when there is a free processor.
                 if running_processes < max_processes:
                     # Start new process
-                    if not quiet:
-                        d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
+                    d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
                     if func_args:
                         p = Process(target=func, args=(next_iter, func_args))
@@ -312,16 +310,14 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0, qui
                                 running_processes -= 1
                                 break
 
-                        if not quiet:
-                            if (start_time + elapsed) < round(time()):
-                                elapsed = round(time()) - start_time
-                                d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
+                        if (start_time + elapsed) < round(time()):
+                            elapsed = round(time()) - start_time
+                            d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
                         if running_processes < max_processes:
                             break
 
         # wait for remaining processes to complete --> this is the same code as the processor wait loop above
-        if not quiet:
-            d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
+        d_print.write("\tJob %s of %s (%s)" % (counter, iter_len, pretty_time(elapsed)))
 
         while len(child_list) > 0:
             for i in range(len(child_list)):
@@ -331,13 +327,11 @@ def run_multicore_function(iterable, func, func_args=False, max_processes=0, qui
                     child_list.pop(i)
                     running_processes -= 1
                     break  # need to break out of the for-loop, because the child_list index is changed by pop
-            if not quiet:
-                if (start_time + elapsed) < round(time()):
-                    elapsed = round(time()) - start_time
-                    d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
+            if (start_time + elapsed) < round(time()):
+                elapsed = round(time()) - start_time
+                d_print.write("\t%s total jobs (%s, %s jobs remaining)" % (iter_len, pretty_time(elapsed),
                                                                                len(child_list)))
-        if not quiet:
-            d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
+        d_print.write("\tDONE: %s jobs in %s\n" % (counter, pretty_time(elapsed)))
         # func_args = []  # This may be necessary because of weirdness in assignment of incoming arguments
         return
 
