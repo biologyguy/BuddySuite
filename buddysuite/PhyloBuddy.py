@@ -800,7 +800,8 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                         Popen(command, shell=True, universal_newlines=True, stdout=sys.__stderr__).wait()
                     file_found = False
                     outfiles = {'raxml': ['RAxML_bestTree.result', 'RAxML_bootstrap.result',
-                                          'RAxML_bipartitions.result', 'RAxML_fastTreeSH_Support.result'],
+                                          'RAxML_bipartitions.result', 'RAxML_fastTreeSH_Support.result',
+                                          'RAxML_MajorityRuleExtendedConsensusTree.result'],
                                 'phyml': ['pb_input.aln_phyml_tree', 'pb_input.aln_phyml_tree.txt'],
                                 'iqtree': ['pb_input.aln.treefile']}
                     for path in [os.path.join(tmp_dir.path, x) for x in outfiles[tool]]:
@@ -833,6 +834,13 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                     with open(os.path.join(tmp_dir.path, "RAxML_fastTreeSH_Support.result"), "r", encoding="utf-8") \
                             as result:
                         output += result.read()
+                elif os.path.isfile(os.path.join(tmp_dir.path, "RAxML_MajorityRuleExtendedConsensusTree.result")):
+                    with open(os.path.join(tmp_dir.path, "RAxML_MajorityRuleExtendedConsensusTree.result"), "r",
+                              encoding="utf-8") as result:
+                        result = result.read()
+                        result = re.sub(":1\.0", "", result)
+                        result = re.sub(r'\[([0-9]+)\]', r'\1', result)
+                        output += result
                 elif num_runs > 1:
                     for tree_indx in range(num_runs):
                         with open(os.path.join(tmp_dir.path, "RAxML_result.result.RUN.{}".format(tree_indx)),
