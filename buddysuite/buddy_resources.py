@@ -1109,22 +1109,74 @@ def guess_format(_input):
                 _input.seek(0)
                 return "seqxml"
 
+            # PHYLIP
+            elif re.match(" [0-9]+ [0-9]+$", line):
+                line = _input.readline().strip()
+                _input.seek(0)
+
+                # If there are 0 spaces in the line, than the format MUST be phylip or phylipss with seq ID of length 10
+                if " " not in line:
+                    if len(line) > 20:
+                        return "phylipss"
+                    else:
+                        return "phylip"
+
+                # If there are multiple blocks of alignment then only phylip or phylip-relaxed are possible,
+                # Unless there are multiple alignments in the same file
+                blocks = _input.read().strip().split("\n\n")  # ToDo: Try to figure out a way around this read() call
+                _input.seek(0)
+                if len(blocks) > 1:
+                    second_line = blocks[1].split("\n")[0]
+                    if not re.match(" [0-9]+ [0-9]+$", second_line):
+                        spaces = re.search("^( +)", second_line).group(1)
+                        if len(spaces) == 10:
+                            return "phylip"
+                        else:
+                            return "phylip-relaxed"
+
+                # If there are multiple blocks of sequence per line, then sequential is again ruled out
+                # Check all lines in the alignment block, though, in case the format is phylip and some IDs are len 10
+                block_lines = blocks[0].split("\n")[1:]  # The first line is header info
+                first_line_split = re.findall(r'(?:.+? +)|(?:.+)$', block_lines[0])
+                for l in block_lines:
+                    l_split = re.findall(r'(?:.+? +)|(?:.+)$', l)
+                    if len(l_split) != len(first_line_split):
+                        if len(first_line_split) > 2:
+                            return "phylip"
+                        if len(l) > 20:
+                            return "phylipss"
+                        else:
+                            return "phylip"
+
+                if len(first_line_split) > 2:
+                    # If the format is phylip and all IDs are exactly len 10 and the total sequence len is less than 51,
+                    # then it's impossible to distinguish it from phylip-relaxed with id len 20...
+                    if len(first_line_split[0]) == 10:
+                        return "phylip"
+                    else:
+                        return "phylip-relaxed"
+
+                assert len(first_line_split) == 2
+                # At this point, there must be exactly one break in the sequence block
+                if len(first_line_split[0]) == 10 and len(first_line_split[1]) > 10:
+                    return "phylipss"
+                elif len(first_line_split[0]) == 10 and len(first_line_split[1]) <= 10:
+                    return "phylip"
+                elif len(first_line_split[0]) != 10 and len(first_line_split[1]) > 10:
+                    return "phylipsr"
+                else:
+                    return "phylip-relaxed"
+
             else:
                 break
         _input.seek(0)
 
         # Can't determine from file header
-        possible_formats = ["phylipss", "phylipsr", "phylip", "phylip-relaxed", "embl", "swiss"]
+        possible_formats = ["embl", "swiss"]
 
         for next_format in possible_formats:
             try:
                 _input.seek(0)
-                if next_format in ["phylip", "phylipsr", "phylipss"]:
-                    phylip = phylip_guess(next_format, _input)
-                    if phylip:
-                        return phylip
-                    else:
-                        continue
                 seqs = SeqIO.parse(_input, next_format)
                 if next(seqs):
                     _input.seek(0)
@@ -1274,54 +1326,6 @@ def phylip_sequential_read(sequence, relaxed=True):
         with open(temp_file.path, "r", encoding="utf-8") as ifile:
             aligns.append(AlignIO.read(ifile, "fasta"))
     return aligns
-
-
-def phylip_guess(next_format, _input):
-    if next_format == "phylip":
-        sequence = "\n %s" % _input.read().strip()
-        _input.seek(0)
-        alignments = re.split("\n ([0-9]+) ([0-9]+)\n", sequence)[1:]
-        align_sizes = []
-        for indx in range(int(len(alignments) / 3)):
-            align_sizes.append((int(alignments[indx * 3]), int(alignments[indx * 3 + 1])))
-
-        phy = list(AlignIO.parse(_input, "phylip"))
-        _input.seek(0)
-
-        indx = 0
-        phy_ids = []
-        for key in align_sizes:
-            phy_ids.append([])
-            for rec in phy[indx]:
-                assert len(rec.seq) == key[1]
-                phy_ids[-1].append(rec.id)
-            indx += 1
-
-        phy_rel = list(AlignIO.parse(_input, "phylip-relaxed"))
-        _input.seek(0)
-        if phy_rel:
-            for indx, aln in enumerate(phy_rel):
-                for rec in aln:
-                    if len(rec.seq) != align_sizes[indx][1]:
-                        return parse_format("phylip")
-                    if rec.id in phy_ids[indx]:
-                        return
-                    else:
-                        return parse_format("phylip-relaxed")
-        return parse_format("phylip")
-
-    if next_format == "phylipss":
-        if phylip_sequential_read(_input.read(), relaxed=False):
-            _input.seek(0)
-            return parse_format(next_format)
-        else:
-            return
-    if next_format == "phylipsr":
-        if phylip_sequential_read(_input.read()):
-            _input.seek(0)
-            return parse_format(next_format)
-        else:
-            return
 
 
 def replacements(input_str, query, replace="", num=0):

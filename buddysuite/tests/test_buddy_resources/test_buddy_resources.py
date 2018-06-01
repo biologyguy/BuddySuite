@@ -22,6 +22,7 @@ import SeqBuddy as Sb
 import buddy_resources as br
 from pkg_resources import DistributionNotFound
 from configparser import ConfigParser
+from io import StringIO
 if os.name == "nt":
     import msvcrt
 
@@ -930,8 +931,6 @@ def test_alb_guess_format(alb_resources, alb_odd_resources):
         assert br.guess_format(string_io) == br.parse_format(alb_resources.get_key(key)["format"])
 
     assert br.guess_format(alb_odd_resources['blank']) == "empty file"
-    assert not br.guess_format(alb_odd_resources['dna']['single']['phylipss_recs'])
-    assert not br.guess_format(alb_odd_resources['dna']['single']['phylipss_cols'])
 
     with pytest.raises(br.GuessError) as e:
         br.guess_format({"Dummy dict": "Type not recognized by guess_format()"})
@@ -966,16 +965,6 @@ def test_guess_gb(hf):
 
     seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.gb" % (hf.resource_path, os.path.sep))
     assert br.guess_format(seqbuddy) == "gb"
-
-
-def test_guess_phylipss(hf):
-    assert br.guess_format("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep)) == "phylipss"
-
-    with open("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
-        assert br.guess_format(ifile) == "phylipss"
-
-    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
-    assert br.guess_format(seqbuddy) == "phylipss"
 
 
 def testguess_format(sb_resources, sb_odd_resources):
@@ -1023,6 +1012,168 @@ def test_nexus_out(alb_resources, sb_resources, hf):
         buddy = sb_resources.get_one("p pr")
         br.nexus_out(buddy, "unknown_nexus")
     assert "Unknown NEXUS format 'unknown_nexus'." in str(err)
+
+
+def test_guess_phylip():
+    phylip = StringIO("""
+ 3 51
+Mle-Panxα9---MLD-----------ILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVG
+Mle-Panxα1MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWTNRIIMPTLMVG
+Mle-Panxα3M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQMNRTFMFLLLCG
+""")
+    assert br.guess_format(phylip) == "phylipss"
+
+    phylip = StringIO("""
+ 3 9
+Mle-Panxα9---MLD---
+Mle-Panxα1MYWIFE---
+Mle-Panxα3M-LLLG---
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 100
+Mle-Panxα9 ---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL NRSFMFVLLV
+Mle-Panxα1 MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT NRIIMPTLMV
+Mle-Panxα3 M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM NRTFMFLLLC
+
+           VMGTTVTVRQ YTGSV-ISCD GFKKF----- ---GSTFAED YCWTQGLYTV
+           ICCFLQTFTF MFGSN-ISCI GFEKL----- ---ERNFVEE YCWTQGIYTS
+           FMGTIVAVSQ YTGKN-ISCD GFTKF----- ---GEDFSQD YCWTQGLYTI
+""")
+    assert br.guess_format(phylip) == "phylip-relaxed"
+
+    phylip = StringIO("""
+ 3 100
+Mle-Panxα9---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL NRSFMFVLLV
+Mle-Panxα1MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT NRIIMPTLMV
+Mle-Panxα3M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM NRTFMFLLLC
+
+          VMGTTVTVRQ YTGSV-ISCD GFKKF----- ---GSTFAED YCWTQGLYTV
+          ICCFLQTFTF MFGSN-ISCI GFEKL----- ---ERNFVEE YCWTQGIYTS
+          FMGTIVAVSQ YTGKN-ISCD GFTKF----- ---GEDFSQD YCWTQGLYTI
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 100
+Panxα9    ---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL NRSFMFVLLV
+Panxα1    MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT NRIIMPTLMV
+Panxα3    M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM NRTFMFLLLC
+
+          VMGTTVTVRQ YTGSV-ISCD GFKKF----- ---GSTFAED YCWTQGLYTV
+          ICCFLQTFTF MFGSN-ISCI GFEKL----- ---ERNFVEE YCWTQGIYTS
+          FMGTIVAVSQ YTGKN-ISCD GFTKF----- ---GEDFSQD YCWTQGLYTI
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 100
+Mle-Panxα9asd ---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL NRSFMFVLLV
+Mle-Panxα1asd MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT NRIIMPTLMV
+Mle-Panxα3asd M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM NRTFMFLLLC
+
+              VMGTTVTVRQ YTGSV-ISCD GFKKF----- ---GSTFAED YCWTQGLYTV
+              ICCFLQTFTF MFGSN-ISCI GFEKL----- ---ERNFVEE YCWTQGIYTS
+              FMGTIVAVSQ YTGKN-ISCD GFTKF----- ---GEDFSQD YCWTQGLYTI
+""")
+    assert br.guess_format(phylip) == "phylip-relaxed"
+
+    phylip = StringIO("""
+ 3 50
+le-Panxα9 ---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL NRSFMFVLLV
+Mle-Panxα1MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT NRIIMPTLMV
+Mle-Panxα3M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM NRTFMFLLLC
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 50
+le-Panxα9 ---MLD-----------ILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLV
+Mle-Panxα1MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWTNRIIMPTLMV
+Mle-Panxα3M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQMNRTFMFLLLC
+""")
+    assert br.guess_format(phylip) == "phylipss"
+
+    phylip = StringIO("""
+ 3 6
+le-Panxα9 ---MLD
+Mle-Panxα1MYWIFE
+Mle-Panxα3M-LLLG
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 40
+le-Panxα9 ---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL
+le-Panxα1 MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT
+le-Panxα3 M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    # Note that this next one is actually not correct, but there is no way to differentiated between normal and relaxed
+    phylip = StringIO("""
+ 3 40
+Mle-Panxα9---MLD---- -------ILS KFKGVTPFKG ITIDDGWDQL
+Mle-Panxα1MYWIFE---- -------ICQ EIKRAQSCRK FAIDGPFDWT
+Mle-Panxα3M-LLLG---- -------SLG TIKNLSIFKD LSLDDWLDQM
+""")
+    assert br.guess_format(phylip) == "phylip-relaxed"
+
+    phylip = StringIO("""
+ 3 40
+le-Panxα9 ---MLD-----------ILSKFKGVTPFKGITIDDGWDQL
+le-Panxα1 MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWT
+le-Panxα3 M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQM
+""")
+    assert br.guess_format(phylip) == "phylipss"
+
+    phylip = StringIO("""
+ 3 9
+le-Panxα9 ---MLD---
+le-Panxα1 MYWIFE---
+le-Panxα3 M-LLLG---
+""")
+    assert br.guess_format(phylip) == "phylip"
+
+    phylip = StringIO("""
+ 3 40
+Mle-Panxα9  ---MLD-----------ILSKFKGVTPFKGITIDDGWDQL
+Mle-Panxα1  MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWT
+Mle-Panxα10 M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQM
+""")
+    assert br.guess_format(phylip) == "phylipsr"
+
+    phylip = StringIO("""
+ 3 9
+Mle-Panxα9  ---MLD---
+Mle-Panxα10 MYWIFE---
+Mle-Panxα3  M-LLLG---
+""")
+    assert br.guess_format(phylip) == "phylip-relaxed"
+
+    phylip = StringIO("""
+ 3 50
+le-Panxα9 ---MLD-----------ILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLV
+Mle-Panxα1MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWTNRIIMPTLMV
+Mle-Panxα3M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQMNRTFMFLLLC
+
+ 3 50
+le-Panxα9 ---MLD-----------ILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLV
+Mle-Panxα1MYWIFE-----------ICQEIKRAQSCRKFAIDGPFDWTNRIIMPTLMV
+Mle-Panxα3M-LLLG-----------SLGTIKNLSIFKDLSLDDWLDQMNRTFMFLLLC
+""")
+    assert br.guess_format(phylip) == "phylipss"
+
+
+def test_guess_phylipss(hf):
+    assert br.guess_format("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep)) == "phylipss"
+
+    with open("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep), "r", encoding="utf-8") as ifile:
+        assert br.guess_format(ifile) == "phylipss"
+
+    seqbuddy = Sb.SeqBuddy("%s%sMnemiopsis_cds.physs" % (hf.resource_path, os.path.sep))
+    assert br.guess_format(seqbuddy) == "phylipss"
 
 
 def test_phylip_sequential_out(alb_resources, sb_resources):

@@ -732,9 +732,12 @@ def test_split_alignment_ui(_format, _code, alb_resources):
     for num in range(7):
         tester.alignments += tester.alignments
     Alb.command_line_ui(test_in_args, tester, True)
-    assert os.path.isfile("%s/%s/Foo_001.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
-    assert os.path.isfile("%s/%s/Foo_061.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
-    assert os.path.isfile("%s/%s/Foo_121.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format]))
+    check = "%s/%s/Foo_001.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format])
+    assert os.path.isfile(check), print(check)
+    check = "%s/%s/Foo_061.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format])
+    assert os.path.isfile(check), print(check)
+    check = "%s/%s/Foo_121.%s" % (TEMP_DIR.path, _format, br.format_to_extension[_format])
+    assert os.path.isfile(check), print(check)
     TEMP_DIR.del_subdir(_format)
 
 
