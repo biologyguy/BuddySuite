@@ -138,7 +138,7 @@ class RunTime(object):
 
 # maybe use curses library in the future to extend this for multi-line printing
 class DynamicPrint(object):
-    def __init__(self, out_type="stdout", quiet=False, log=False):
+    def __init__(self, out_type="stdout", quiet=False, log=False, prefix=""):
         """
         :param out_type: 'stdout', 'stderr', sys.stdout, or sys.stderr
         :param quiet: Do not actually write anything
@@ -153,6 +153,7 @@ class DynamicPrint(object):
         self.out_type = out_type
         self.quiet = quiet
         self.log = log
+        self.prefix = prefix
 
     def _write(self):
         try:
@@ -168,6 +169,8 @@ class DynamicPrint(object):
             pass
 
     def write(self, content):
+        if self.prefix:
+            content = self.prefix + content
         content = re.sub("\t", "    ", content)
         if not self.quiet and self._last_print != content:
             self._next_print = content
