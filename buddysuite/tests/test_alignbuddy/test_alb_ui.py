@@ -29,7 +29,7 @@ import sys
 import argparse
 import re
 from copy import deepcopy
-
+from subprocess import Popen, PIPE
 import AlignBuddy as Alb
 import SeqBuddy as Sb
 import buddy_resources as br
@@ -427,7 +427,7 @@ def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
 
 # ######################  '-gh', '--generate_hmm' ###################### #
 @br.skip_windows
-def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
+def test_generate_hmm_ui(alb_resources, capsys, monkeypatch):
     test_in_args = deepcopy(in_args)
     test_in_args.generate_hmm = [[]]
 
@@ -446,23 +446,48 @@ def test_generate_hmm_ui(alb_resources, hf, capsys, monkeypatch):
 
     out, err = capsys.readouterr()
     hmm = re.findall("(HMM +A +C +G.+?//)", out, re.DOTALL)
-    assert """\
-            m->m     m->i     m->d     i->m     i->i     d->m     d->d
-  COMPO   1.37149  1.47979  1.42806  1.27722
-          1.38629  1.38629  1.38629  1.38629
-          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
-      1   0.06560  3.99042  3.73531  3.85677      1 A - - -
-          1.38629  1.38629  1.38629  1.38629
-          0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0]
+    hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
+    hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
+    if hmmer_version == "3.1b2":
+        assert """\
+                m->m     m->i     m->d     i->m     i->i     d->m     d->d
+      COMPO   1.37149  1.47979  1.42806  1.27722
+              1.38629  1.38629  1.38629  1.38629
+              0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
+          1   0.06560  3.99042  3.73531  3.85677      1 A - - -
+              1.38629  1.38629  1.38629  1.38629
+              0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0], print(hmm[0])
 
-    assert """\
+        assert """\
+                m->m     m->i     m->d     i->m     i->i     d->m     d->d
+      COMPO   1.26618  1.65166  1.51488  1.18245
+              0.93669  1.43354  1.84356  1.55419
+              0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
+          1   0.60107  2.55837  1.28853  2.31598     85 a - - -
+              1.38629  1.38629  1.38629  1.38629
+              0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1]
+
+    elif hmmer_version == "3.2":
+        assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
-  COMPO   1.26618  1.65166  1.51488  1.18245
-          0.93669  1.43354  1.84356  1.55419
-          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
-      1   0.60107  2.55837  1.28853  2.31598     85 a - - -
+  COMPO   1.36559  1.47500  1.43577  1.27993
           1.38629  1.38629  1.38629  1.38629
-          0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1]
+          0.10315  4.62497  2.42807  1.46634  0.26236  0.00000        *
+      1   0.03602  4.61276  4.24937  4.49387      1 A - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.02151  4.54333  4.54333  1.46634  0.26236  1.52593  0.24516""" in hmm[0]
+
+        assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.21822  1.69556  1.55437  1.17304
+          0.92349  1.43532  1.86505  1.56092
+          0.88021  1.47202  1.03326  3.55965  0.02886  0.00000        *
+      1   0.38203  3.71820  1.33658  3.48985     85 a - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.01756  4.74428  4.74428  1.46634  0.26236  2.73351  0.06720""" in hmm[1]
+
+    else:
+        raise AttributeError("Problem in test_generate_hmm_ui")
 
     test_in_args.generate_hmm = ["foo"]
     with pytest.raises(SystemExit):

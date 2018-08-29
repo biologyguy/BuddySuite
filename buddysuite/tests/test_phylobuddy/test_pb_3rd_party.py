@@ -170,7 +170,7 @@ def test_fasttree_inputs(alb_resources, hf):
 def get_iqtree_version():
     iqtree_version = Popen("iqtree -h", shell=True, stderr=PIPE, stdout=PIPE).communicate()[0].decode()
     iqtree_version = re.search("version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
-    if iqtree_version not in ["1.5.5", "1.6.1"]:
+    if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7"]:
         raise ValueError("Untested IQ-TREE version (%s). Please update the tests as necessary." % iqtree_version)
 
 
