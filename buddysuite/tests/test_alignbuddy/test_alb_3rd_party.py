@@ -338,8 +338,9 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
 def get_hmmer_version():
     hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
     hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
-    if hmmer_version not in ["3.1b2", "3.2"]:
+    if hmmer_version not in ["3.1b2", "3.2", "3.2.1"]:
         raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
+    return hmmer_version
 
 
 get_hmmer_version()
@@ -360,16 +361,29 @@ def test_generate_hmm(alb_resources, monkeypatch):
     tester = Alb.generate_hmm(tester, "hmmbuild")
     for align in tester.alignments:
         align.hmm = re.search("(HMM +A +C +G.+//)", align.hmm, re.DOTALL).group(1)
-    assert """\
+    if get_hmmer_version() == "3.2.1":
+        assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
-  COMPO   1.37149  1.47979  1.42806  1.27722
+  COMPO   1.36559  1.47500  1.43577  1.27993
           1.38629  1.38629  1.38629  1.38629
-          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm
-    assert """\
+          0.10315  4.62497  2.42807  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm, print(tester.alignments[0].hmm[:400])
+        assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
-  COMPO   1.26618  1.65166  1.51488  1.18245
-          0.93669  1.43354  1.84356  1.55419
-          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *""" in tester.alignments[1].hmm
+  COMPO   1.21822  1.69556  1.55437  1.17304
+          0.92349  1.43532  1.86505  1.56092
+          0.88021  1.47202  1.03326  3.55965  0.02886  0.00000        *""" in tester.alignments[1].hmm, print(tester.alignments[1].hmm[:400])
+
+    else:
+        assert """\
+                m->m     m->i     m->d     i->m     i->i     d->m     d->d
+      COMPO   1.37149  1.47979  1.42806  1.27722
+              1.38629  1.38629  1.38629  1.38629
+              0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm, print(tester.alignments[0].hmm[:400])
+        assert """\
+                m->m     m->i     m->d     i->m     i->i     d->m     d->d
+      COMPO   1.26618  1.65166  1.51488  1.18245
+              0.93669  1.43354  1.84356  1.55419
+              0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *""" in tester.alignments[1].hmm, print(tester.alignments[0].hmm[:400])
 
     with pytest.raises(SystemError) as err:
         Alb.generate_hmm(tester, "foo")

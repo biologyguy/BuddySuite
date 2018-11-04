@@ -86,7 +86,7 @@ def test_concat_alignments(alb_resources, hf):
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), suppress_position=True)
-    assert hf.buddy2hash(tester2) == 'a4bf16d88352935848dac29f4afdc871', print(tester2)
+    assert hf.buddy2hash(tester2) == 'e731fc159299bde5b7248ba9f6d16adc', print(tester2)
 
     tester.set_format("nexus")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester))
@@ -94,23 +94,23 @@ def test_concat_alignments(alb_resources, hf):
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert hf.buddy2hash(tester2) == 'cd2b6594b22c431aea67fa45899f933a'
+    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
-    assert hf.buddy2hash(tester2) == 'cd2b6594b22c431aea67fa45899f933a'
+    assert hf.buddy2hash(tester2) == '5ac908ebf7918a45664a31da480fda58'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "Panx.*")
-    assert hf.buddy2hash(tester2) == 'e49b26f695c910a93f93d70563fd9dd9'
+    assert hf.buddy2hash(tester2) == 'e754350b0397cf54f531421d1e85774f'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "...", "(P)an(x)(.)")
-    assert hf.buddy2hash(tester2) == '3abfdf2217050ac2170c0de27352a8c6'
+    assert hf.buddy2hash(tester2) == '5c6653aec09489cadcbed68fbd2f7465'
 
     shorten = Alb.delete_records(Alb.make_copy(tester), "Ccr")
     tester.alignments[1] = shorten.alignments[1]
-    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == '685f24ee1fc88860dd9465035040c91e'
+    assert hf.buddy2hash(Alb.concat_alignments(Alb.make_copy(tester))) == 'f3ed9139ab6f97042a244d3f791228b6'
 
 
 # ###########################################  '-con', '--consensus' ############################################ #

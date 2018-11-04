@@ -192,37 +192,37 @@ def test_concat_alignments_ui(capsys, alb_resources, hf):
     tester.set_format("genbank")
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "86349e715f41e0bdd91bbd1dc0914769"
+    assert hf.string2hash(out) == "d21940f3dad2295dd647f632825d8541"
 
     test_in_args.concat_alignments = [["(.).(.)-Panx(.)"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "cd2b6594b22c431aea67fa45899f933a"
+    assert hf.string2hash(out) == "5ac908ebf7918a45664a31da480fda58"
 
     test_in_args.concat_alignments = [["...", "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
+    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
 
     test_in_args.concat_alignments = [[3, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "e49b26f695c910a93f93d70563fd9dd9"
+    assert hf.string2hash(out) == "e754350b0397cf54f531421d1e85774f"
 
     test_in_args.concat_alignments = [[-9, "Panx.*"]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "aaa9d9b717a5f79cfdf5d2666fb0f687"
+    assert hf.string2hash(out) == "9d2886afc640d35618754e05223032a2"
 
     test_in_args.concat_alignments = [[3, 3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "2f37a4e395162032bf43fab291c882f4"
+    assert hf.string2hash(out) == "4e4101f9b5a6d44d524a9783a8c4004b"
 
     test_in_args.concat_alignments = [[3, -3]]
     Alb.command_line_ui(test_in_args, Alb.make_copy(tester), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "7fa8cd803df82414a5e1e190916456d8"
+    assert hf.string2hash(out) == "5d9d9ac8fae604be74c436e5f0b5b6db"
 
     Alb.command_line_ui(test_in_args, alb_resources.get_one("p o g"), skip_exit=True)
     out, err = capsys.readouterr()
@@ -450,24 +450,24 @@ def test_generate_hmm_ui(alb_resources, capsys, monkeypatch):
     hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
     if hmmer_version == "3.1b2":
         assert """\
-                m->m     m->i     m->d     i->m     i->i     d->m     d->d
-      COMPO   1.37149  1.47979  1.42806  1.27722
-              1.38629  1.38629  1.38629  1.38629
-              0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
-          1   0.06560  3.99042  3.73531  3.85677      1 A - - -
-              1.38629  1.38629  1.38629  1.38629
-              0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0], print(hmm[0])
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.37149  1.47979  1.42806  1.27722
+          1.38629  1.38629  1.38629  1.38629
+          0.10249  4.35641  2.47000  1.46634  0.26236  0.00000        *
+      1   0.06560  3.99042  3.73531  3.85677      1 A - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.02802  4.28194  4.28194  1.46634  0.26236  2.15125  0.12368""" in hmm[0], print(hmm[0][:500])
 
         assert """\
-                m->m     m->i     m->d     i->m     i->i     d->m     d->d
-      COMPO   1.26618  1.65166  1.51488  1.18245
-              0.93669  1.43354  1.84356  1.55419
-              0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
-          1   0.60107  2.55837  1.28853  2.31598     85 a - - -
-              1.38629  1.38629  1.38629  1.38629
-              0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1]
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.26618  1.65166  1.51488  1.18245
+          0.93669  1.43354  1.84356  1.55419
+          0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *
+      1   0.60107  2.55837  1.28853  2.31598     85 a - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.03300  4.12082  4.12082  1.46634  0.26236  3.38099  0.03461""" in hmm[1], print(hmm[1][:500])
 
-    elif hmmer_version == "3.2":
+    elif hmmer_version in ["3.2", "3.2.1"]:
         assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
   COMPO   1.36559  1.47500  1.43577  1.27993
