@@ -6,7 +6,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "test_fixtures.py"
 TEST_SCRIPTS=${DIR}'/tests/test_fixtures.py '
-#py.test ${TEST_SCRIPTS} --cov conftest --cov-report html -n 8 -p no:cacheprovider --durations=10 $@
+py.test ${TEST_SCRIPTS} -n 8 -p no:cacheprovider --durations=10 $@
 
 echo "buddy_resources.py"
 TEST_SCRIPTS=${DIR}'/tests/test_buddy_resources/ '
