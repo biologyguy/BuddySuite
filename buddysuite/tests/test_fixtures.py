@@ -6,6 +6,8 @@ verify that fixtures are working as expected. I.e., test the tests before testin
 import os
 import pytest
 from .__init__ import Sb, Alb, Db, Pb
+import tests.conftest
+
 '''
 from .. import SeqBuddy
 from .. import AlignBuddy
