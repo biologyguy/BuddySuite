@@ -3,10 +3,8 @@
 """
 verify that fixtures are working as expected. I.e., test the tests before testing ;)
 """
-import os
 import pytest
 from .__init__ import Sb, Alb, Db, Pb
-import tests.conftest
 
 '''
 from .. import SeqBuddy
@@ -44,7 +42,7 @@ def test_hf_res_path(hf):
 
 
 # #################################  -  SeqBuddy  -  ################################## #
-def test_sb_resources_init(hf, sb_resources, capsys):
+def test_sb_resources_init(hf, sb_resources):
     assert sb_resources
     for molecule in [('dna', 12), ('rna', 3), ('pep', 8)]:
         assert molecule[0] in sb_resources.resources
@@ -159,8 +157,9 @@ def test_sb_resources_get_one(sb_resources):
 
 def test_sb_odd_resources(sb_odd_resources):
     assert len(sb_odd_resources) == 15
-    for key in ["blank", "circular", "circular_digest", "figtree", "unrecognizable", "gibberish", "phylipss_cols", "duplicate",
-                "ambiguous_dna", "ambiguous_rna", "blastn", "blastp", "dummy_feats", "cnidaria_pep", "mixed"]:
+    for key in ["blank", "circular", "circular_digest", "figtree", "unrecognizable", "gibberish", "phylipss_cols",
+                "duplicate", "ambiguous_dna", "ambiguous_rna", "blastn", "blastp", "dummy_feats", "cnidaria_pep",
+                "mixed"]:
         assert key in sb_odd_resources
 
 

@@ -12,9 +12,10 @@ pwd
 ls -la
 
 TEST_SCRIPTS='test_fixtures.py '
-args="$TEST_SCRIPTS --cache-clear --cov=conftest --cov=__init__ --cov-report= --cov-config ../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+args="$TEST_SCRIPTS --cache-clear --durations=10"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -23,20 +24,17 @@ then
 fi
 ls -a -l
 pwd
-cat .coverage
-
-mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddy_resources/
 
 #### Buddy Resources
 echo "************* Buddy Resources *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddy_resources
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddy_resources
 TEST_SCRIPTS='test_buddy_resources.py '
-args="$TEST_SCRIPTS --cache-clear --cov=buddy_resources --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
+args="$TEST_SCRIPTS --cache-clear --cov=buddy_resources  --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
 echo "py.test $args"
-echo echo "*******************************************"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -47,14 +45,14 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_budd
 
 #### BuddySuite
 echo "************* BuddySuite *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddysuite
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddysuite
 TEST_SCRIPTS='test_buddysuite.py '
 args="$TEST_SCRIPTS --cache-clear --cov=BuddySuite --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -65,18 +63,17 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alig
 
 #### AlignBuddy
 echo "************* AlignBuddy *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy
 TEST_SCRIPTS='test_alb_class_and_helpers.py '
 TEST_SCRIPTS+='test_alb_api.py '
 TEST_SCRIPTS+='test_alb_ui.py '
 TEST_SCRIPTS+='test_alb_3rd_party.py '
-
 args="$TEST_SCRIPTS --cache-clear --cov=AlignBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -87,17 +84,16 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_data
 
 #### DatabaseBuddy
 echo "************* DatabaseBuddy *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy
 TEST_SCRIPTS='test_db_class_and_helpers.py '
 TEST_SCRIPTS+='test_db_clients.py '
 TEST_SCRIPTS+='test_db_ui.py '
-
 args="$TEST_SCRIPTS --cache-clear --cov=DatabaseBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -108,18 +104,17 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqb
 
 #### SeqBuddy
 echo "************* SeqBuddy *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqbuddy
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqbuddy
 TEST_SCRIPTS='test_sb_class_and_helpers.py '
 TEST_SCRIPTS+='test_sb_api.py '
 TEST_SCRIPTS+='test_sb_ui.py '
 TEST_SCRIPTS+='test_sb_3rd_party.py '
-
 args="$TEST_SCRIPTS --cache-clear --cov=SeqBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]
@@ -130,18 +125,17 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phyl
 
 #### PhyloBuddy
 echo "************* PhyloBuddy *************"
+cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phylobuddy
 pwd
 ls -la
-
-cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phylobuddy
 TEST_SCRIPTS='test_pb_class_and_helpers.py '
 TEST_SCRIPTS+='test_pb_api.py '
 TEST_SCRIPTS+='test_pb_ui.py '
 TEST_SCRIPTS+='test_pb_3rd_party.py '
-
 args="$TEST_SCRIPTS --cache-clear --cov=PhyloBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
-echo "py.test  $args"
-echo echo "*******************************************"
+echo "py.test $args"
+echo "*******************************************
+"
 
 py.test ${args}
 if [[ $? -ne 0 ]]

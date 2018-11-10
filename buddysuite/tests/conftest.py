@@ -2,12 +2,9 @@
 # coding=utf-8
 """ Fixtures for py.test  """
 import pytest
-import sys
-import os
 
 from .__init__ import RESOURCE_PATH
 from . import __init__ as init
-from .. import buddy_resources as br
 
 
 # #################################  -  Helper functions  -  ################################## #
