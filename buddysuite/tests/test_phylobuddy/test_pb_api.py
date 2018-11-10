@@ -681,7 +681,7 @@ def test_root_mrca1(key, next_hash, pb_resources, hf):
 
 def test_root_mrca2(pb_resources, hf):
     tester = pb_resources.get_one("o k")
-    starting_hash = hf.string2hash(re.sub("\[&U\]", "[&R]", str(tester)))
+    starting_hash = hf.string2hash(re.sub(r"\[&U\]", "[&R]", str(tester)))
     tester = Pb.root(tester, "NoMatchHere!")
     assert hf.buddy2hash(tester) == starting_hash
 

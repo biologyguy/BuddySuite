@@ -337,7 +337,7 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
 @br.skip_windows
 def get_hmmer_version():
     hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
-    hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
+    hmmer_version = re.search(r"# HMMER (.*?) \(", hmmer_version).group(1)
     if hmmer_version not in ["3.1b2", "3.2", "3.2.1"]:
         raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
     return hmmer_version

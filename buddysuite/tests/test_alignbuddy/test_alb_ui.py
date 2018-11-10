@@ -399,7 +399,7 @@ def test_generate_alignment_ui_patch_path(monkeypatch, capsys, sb_resources):
 
     test_in_args = deepcopy(in_args)
     test_in_args.generate_alignment = [[]]
-    monkeypatch.setenv("PATH", [])
+    monkeypatch.setenv("PATH", "")
     with pytest.raises(AttributeError) as err:
         Alb.command_line_ui(test_in_args, Alb.AlignBuddy, pass_through=True)
     assert "Unable to identify any supported alignment tools on your system." in str(err)
@@ -447,7 +447,7 @@ def test_generate_hmm_ui(alb_resources, capsys, monkeypatch):
     out, err = capsys.readouterr()
     hmm = re.findall("(HMM +A +C +G.+?//)", out, re.DOTALL)
     hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
-    hmmer_version = re.search("# HMMER (.*?) \(", hmmer_version).group(1)
+    hmmer_version = re.search(r"# HMMER (.*?) \(", hmmer_version).group(1)
     if hmmer_version == "3.1b2":
         assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d

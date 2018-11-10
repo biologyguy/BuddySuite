@@ -21,8 +21,8 @@ import buddy_resources as br
 @br.skip_windows
 def get_raxml_version():
     raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
-    raxml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
-    if raxml_version not in ["7.3.5", "7.6.6", "8.2.4", "8.2.8", "8.2.9", "8.2.10"]:
+    raxml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
+    if raxml_version not in ["7.3.5", "7.6.6", "8.2.4", "8.2.8", "8.2.9", "8.2.10", "8.2.12"]:
         raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
 
 
@@ -93,7 +93,7 @@ def test_raxml_multiple_searches(alb_resources, hf):
 @br.skip_windows
 def get_phyml_version():
     phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
-    phyml_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
+    phyml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
     if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
                              "3.2.20160701", "3.2.20160531", "3.3.20170530"]:
         raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
@@ -134,7 +134,7 @@ def test_phyml_pep(alb_resources, hf):
 @br.skip_windows
 def get_fasttree_version():
     fasttree_version = Popen("fasttree", shell=True, stderr=PIPE).communicate()[1].decode()
-    fasttree_version = re.search("([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
+    fasttree_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)", fasttree_version).group(0)
     if fasttree_version not in ["2.1.4", "2.1.8", "2.1.9", "2.1.10"]:
         raise ValueError("Untested FastTree version (%s). Please update the tests as necessary." % fasttree_version)
 
@@ -173,7 +173,7 @@ def test_fasttree_inputs(alb_resources, hf):
 @br.skip_windows
 def get_iqtree_version():
     iqtree_version = Popen("iqtree -h", shell=True, stderr=PIPE, stdout=PIPE).communicate()[0].decode()
-    iqtree_version = re.search("version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
+    iqtree_version = re.search(r"version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
     if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7", "1.6.8"]:
         raise ValueError("Untested IQ-TREE version (%s). Please update the tests as necessary." % iqtree_version)
 

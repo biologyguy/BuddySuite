@@ -45,6 +45,7 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alig
 
 #### AlignBuddy
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy
+ls -l /home/travis/build/biologyguy/BuddySuite/buddysuite/AlignBuddy.py
 TEST_SCRIPTS='test_alb_class_and_helpers.py '
 TEST_SCRIPTS+='test_alb_api.py '
 TEST_SCRIPTS+='test_alb_ui.py '

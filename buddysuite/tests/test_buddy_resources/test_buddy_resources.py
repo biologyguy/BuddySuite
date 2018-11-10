@@ -875,7 +875,7 @@ def test_flags(capsys, hf):
 
 
 def test_identify_msa_program(monkeypatch, sb_resources, hf):
-    mafft = {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
+    mafft = {"ver": " --help", "check": r"MAFFT v[0-9]\.[0-9]+", "ver_num": r"v([0-9]\.[0-9]+)",
              "name": "mafft", "url": "http://mafft.cbrc.jp/alignment/software/"}
     assert br.identify_msa_program("MaFfT") == mafft
     assert br.identify_msa_program("my_MaFfT") == mafft
@@ -1270,7 +1270,7 @@ def test_replacements():
                                                                            "(12345) and foos [CHARS] is a foot"
     assert br.replacements(input_str, r'\(([0-9]+)\)', r'\1') == "This test is A string with numbers 12345 and This " \
                                                                  "[CHARS] is a test"
-    query = '(.+)\(([0-9]+)\)(.+)\[(CHARS)\](.+)'
+    query = r'(.+)\(([0-9]+)\)(.+)\[(CHARS)\](.+)'
     assert br.replacements(input_str, query, r'\1\2\3\4\5') == "This test is A string with numbers 12345 and This " \
                                                                "CHARS is a test"
     assert br.replacements(input_str, '([Tt].{3}).*?(.{3}[Tt])', r'\1\2', -2) == "This test is A strin with numbers " \
@@ -1510,7 +1510,7 @@ def test_utf_encode():
 
 
 def test_clean_regex(capsys):
-    patterns = ["[1-4]This is fine", '[a-\\w]', '()(?(1)a|b']
+    patterns = ["[1-4]This is fine", r'[a-\w]', '()(?(1)a|b']
     assert br.clean_regex(patterns) == ["[1-4]This is fine"]
     out, err = capsys.readouterr()
     assert err == """\
