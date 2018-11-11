@@ -1544,7 +1544,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
 
         _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
-        self.dump_session()
+        #self.dump_session()
 
     def do_EOF(self, line):
         return True

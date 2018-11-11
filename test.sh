@@ -8,7 +8,8 @@ FAILURE=0
 #### Pre-tests
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests
 printf "
-\e[96m************************** Pre-Tests **************************\e[39m"
+************************** Pre-Tests **************************
+"
 pwd
 ls -la
 
@@ -18,7 +19,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-py.test ${args}
+#py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -28,7 +29,8 @@ pwd
 
 #### Buddy Resources
 printf "
-\e[96m************************** Buddy Resources **************************\e[39m"
+************************** Buddy Resources **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddy_resources
 pwd
 ls -la
@@ -47,7 +49,8 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_budd
 
 #### BuddySuite
 printf "
-\e[96m************************** BuddySuite **************************\e[39m"
+************************** BuddySuite **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_buddysuite
 pwd
 ls -la
@@ -57,7 +60,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-py.test ${args}
+#py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -66,7 +69,8 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alig
 
 #### AlignBuddy
 printf "
-\e[96m************************** AlignBuddy **************************\e[39m"
+************************** AlignBuddy **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_alignbuddy
 pwd
 ls -la
@@ -79,7 +83,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-py.test ${args}
+#py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -88,13 +92,14 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_data
 
 #### DatabaseBuddy
 printf "
-\e[96m************************** DatabaseBuddy **************************\e[39m"
+************************** DatabaseBuddy **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy
 pwd
 ls -la
-TEST_SCRIPTS='test_db_class_and_helpers.py '
-TEST_SCRIPTS+='test_db_clients.py '
-TEST_SCRIPTS+='test_db_ui.py '
+#TEST_SCRIPTS='test_db_class_and_helpers.py '
+#TEST_SCRIPTS+='test_db_clients.py '
+TEST_SCRIPTS='test_db_ui.py '
 args="$TEST_SCRIPTS --cache-clear --cov=DatabaseBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
 echo "py.test $args"
 echo "**************************************************************************************
@@ -109,7 +114,8 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqb
 
 #### SeqBuddy
 printf "
-\e[96m************************** SeqBuddy **************************\e[39m"
+************************** SeqBuddy **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_seqbuddy
 pwd
 ls -la
@@ -122,7 +128,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-py.test ${args}
+#py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -131,7 +137,8 @@ mv .coverage /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phyl
 
 #### PhyloBuddy
 printf "
-\e[96m************************** PhyloBuddy **************************\e[39m"
+************************** PhyloBuddy **************************
+"
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_phylobuddy
 pwd
 ls -la
@@ -144,7 +151,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-py.test ${args}
+#py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
