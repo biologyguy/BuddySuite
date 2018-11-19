@@ -19,7 +19,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-#py.test ${args}
+py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -60,7 +60,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-#py.test ${args}
+py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -83,7 +83,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-#py.test ${args}
+py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -97,9 +97,9 @@ printf "
 cd /home/travis/build/biologyguy/BuddySuite/buddysuite/tests/test_databasebuddy
 pwd
 ls -la
-#TEST_SCRIPTS='test_db_class_and_helpers.py '
-#TEST_SCRIPTS+='test_db_clients.py '
-TEST_SCRIPTS='test_db_ui.py '
+TEST_SCRIPTS='test_db_class_and_helpers.py '
+TEST_SCRIPTS+='test_db_clients.py '
+TEST_SCRIPTS+='test_db_ui.py '
 args="$TEST_SCRIPTS --cache-clear --cov=DatabaseBuddy --cov-append --cov-report= --cov-config ../../.coveragerc --durations=10"
 echo "py.test $args"
 echo "**************************************************************************************
@@ -128,7 +128,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-#py.test ${args}
+py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
@@ -151,7 +151,7 @@ echo "py.test $args"
 echo "**************************************************************************************
 "
 
-#py.test ${args}
+py.test ${args}
 if [[ $? -ne 0 ]]
 then
     FAILURE=1
