@@ -1921,6 +1921,7 @@ Further details about each command can be accessed by typing 'help <command>'
         def sub_sort(records, _sort_columns, _rev=False):
             heading = _sort_columns[0]
             subgroups = OrderedDict()
+            subgroups.setdefault("0", {})  # This will be the default if heading id not present
             for accn, _rec in records.items():
                 if heading.lower() == "accn":
                     subgroups.setdefault(_rec.accession, {})
@@ -1940,16 +1941,15 @@ Further details about each command can be accessed by typing 'help <command>'
                     subgroups[_value][accn] = _rec
                 else:
                     if heading not in _rec.summary:
-                        subgroups.setdefault("zzzzz", {})
-                        subgroups["zzzzz"][accn] = _rec
+                        subgroups["0"][accn] = _rec
                     else:
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
 
-                try:  # If the column is numbers sort numerically, otherwise alphabetically
-                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
-                except ValueError:
-                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
+            try:  # If the column is numbers sort numerically, otherwise alphabetically
+                subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
+            except ValueError:
+                subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
 
             final_order = OrderedDict()
             for subgroup, _recs in subgroups.items():
