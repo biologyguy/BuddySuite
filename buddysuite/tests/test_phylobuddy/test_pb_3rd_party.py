@@ -93,9 +93,9 @@ def test_raxml_multiple_searches(alb_resources, hf):
 @br.skip_windows
 def get_phyml_version():
     phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
-    phyml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(0)
+    phyml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)|([0-9]+)", phyml_version).group(1)
     if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
-                             "3.2.20160701", "3.2.20160531", "3.3.20170530"]:
+                             "3.2.20160701", "3.2.20160531", "3.3.20170530", "3.3.3"]:
         raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
 
@@ -113,7 +113,8 @@ def test_phyml_dna(alb_resources, hf):
                                      '754c38fab99c01c68a68c0a59248d242': "",
                                      '3ca772c34cdcf0a22c09e1592aba9ebf': "",
                                      'd7ae1badd31d48487276495bad4522e5': "",
-                                     'e84fb949f1a6ed0296cda4e5a8422423': "3.3.20170530"}, print(tester)
+                                     'e84fb949f1a6ed0296cda4e5a8422423': "3.3.20170530",
+                                     'ce0245ffd7076d7f920217f68ae00ffd': "3.3.3"}, print(tester)
 
 
 @br.skip_windows
@@ -127,7 +128,8 @@ def test_phyml_pep(alb_resources, hf):
                                      'd8ee3631002b6603d08272c2b44fd21c': "",
                                      '03acc8e899955f7e838852d7d71049ad': "",
                                      'abe46f3bac533ad2f510bd4657aa9505': "",
-                                     '06f5ec5db5e1a27c07e4e8b5f5850685': "3.3.20170530"}, print(tester)
+                                     '06f5ec5db5e1a27c07e4e8b5f5850685': "3.3.20170530",
+                                     'bd6dd6bb907a1fcf4e87b607c9676a34': "3.3.3"}, print(tester)
 
 
 # ######### FastTree ######### #
