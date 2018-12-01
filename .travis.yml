@@ -1,8 +1,10 @@
 sudo: required
+dist: xenial
 language: python
 python:
   - "3.5"
   - "3.6"
+  - "3.7"
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq tar python3 python3-pyqt4 bzip2 build-essential phyml clustalo clustalw

@@ -47,7 +47,6 @@ from time import sleep
 import json
 from multiprocessing import Lock
 from collections import OrderedDict
-from hashlib import md5
 import cmd
 from subprocess import Popen, PIPE
 from io import TextIOWrapper, StringIO
@@ -594,7 +593,7 @@ class Failure(object):
 
         # Create a unique identifier for identification purposes
         self.hash = "%s%s" % (query, error_message)
-        self.hash = md5(self.hash.encode()).hexdigest()
+        self.hash = br.md5_hash(self.hash)
 
     def __str__(self):
         _output = "%s\n" % self.query
@@ -1054,50 +1053,62 @@ class NCBIClient(GenericClient):
         else:
             self._mc_query(accn_searches[0], func_args=["esummary_seq", database])
         runtime.end()
-        results = self.results_file.read().split("\n### END ###\n")
+        results = self.results_file.read()
+
+        # Grab any record ERROR messages returned by NCBI then strip them from the results file
+        for e in re.finditer("<ERROR>.*</ERROR>", results):
+            uid = "" if "uid" not in e.group(0) else re.search("uid (.*) at", e.group(0)).group(1)
+            failure = Failure(uid, e.group(0))
+            self.dbbuddy.failures[failure.hash] = failure
+
+        results = re.sub("<ERROR>.*</ERROR>", "", results)
+        results = results.split("\n### END ###\n")
         results = [x for x in results if x != ""]
 
         # Sift through all the results and grab summary information
-        records = {}
-        taxa = []
+        summaries = []
         for result in results:
-            try:  # This will catch and retry when the server fails on us
-                summaries = [x for x in Entrez.parse(StringIO(result))]
-                self.tries = 0
-            except RuntimeError:
-                if self.tries >= self.max_attempts:
-                    self.tries = 0
+            parser = Entrez.parse(StringIO(result))
+            counter = 0
+            while True:
+                try:
+                    res = next(parser)
+                    summaries.append(res)
+                    counter += 1
+                except RuntimeError as e:
+                    br._stderr("NCBI error: %s\n" % e)
+                    continue
+                except StopIteration:
                     break
-                else:
-                    br._stderr("Problem talking to NCBI, retrying...\n")
-                    self.tries += 1
-                    self.fetch_summaries(database)
-                break
 
-            for summary in [dict(x) for x in summaries]:
-                # status can be 'live', 'dead', 'withdrawn', 'replaced'
-                status = summary["Status"] if summary["ReplacedBy"] == '' else \
-                    "%s->%s" % (summary["Status"], summary["ReplacedBy"])
+        taxa = []
+        records = {}
+        br._stderr("Number of results = %s\n" % len(summaries))
 
-                keys = ["TaxId",
-                        "organism",
-                        "length",
-                        "comments",
-                        "status"]
-                values = [summary["TaxId"],
-                          "",
-                          summary["Length"],
-                          summary["Title"],
-                          status]
-                rec_summary = OrderedDict([(key, value) for key, value in zip(keys, values)])
+        for summary in [dict(x) for x in summaries]:
+            # status can be 'live', 'dead', 'withdrawn', 'replaced'
+            status = summary["Status"] if summary["ReplacedBy"] == '' else \
+                "%s->%s" % (summary["Status"], summary["ReplacedBy"])
 
-                if summary["TaxId"] not in taxa:
-                    taxa.append(summary["TaxId"])
+            keys = ["TaxId",
+                    "organism",
+                    "length",
+                    "comments",
+                    "status"]
+            values = [summary["TaxId"],
+                      "",
+                      summary["Length"],
+                      summary["Title"],
+                      status]
+            rec_summary = OrderedDict([(key, value) for key, value in zip(keys, values)])
 
-                accn = summary["AccessionVersion"]
-                version = summary["AccessionVersion"].split(".")[-1]
-                records[accn] = Record(accn, _version=version, summary=rec_summary, _type=_type,
-                                       _size=rec_summary["length"], _database=database)
+            if summary["TaxId"] not in taxa:
+                taxa.append(summary["TaxId"])
+
+            accn = summary["AccessionVersion"]
+            version = summary["AccessionVersion"].split(".")[-1]
+            records[accn] = Record(accn, _version=version, summary=rec_summary, _type=_type,
+                                   _size=rec_summary["length"], _database=database)
 
         # Get taxa names for all of the records retrieved
         self.results_file.clear()
@@ -1544,7 +1555,7 @@ Further details about each command can be accessed by typing 'help <command>'
             else "\n%s records remain in the trash bin.\n\n" % len(self.dbbuddy.trash_bin)
 
         _stdout(output_message, format_in=GREEN, format_out=self.terminal_default)
-        self.dump_session()
+        #self.dump_session()
 
     def do_EOF(self, line):
         return True
@@ -1687,7 +1698,7 @@ Further details about each command can be accessed by typing 'help <command>'
             _stdout("The following failures have occured\n", format_in=[UNDERLINE, GREEN],
                     format_out=self.terminal_default)
             for _hash, _values in self.dbbuddy.failures.items():
-                _stdout("%s\n\n" % _values, format_out=self.terminal_default)
+                _stdout("%s\n" % _values, format_out=self.terminal_default)
 
     def do_fetch(self, *_):
         accn_only = self.dbbuddy.record_breakdown()["accession"]
@@ -1835,10 +1846,15 @@ Further details about each command can be accessed by typing 'help <command>'
             if _accn not in self.dbbuddy.records:
                 self.dbbuddy.records[_accn] = _rec
 
+        new_failures = 0
         for _hash, failure in temp_buddy.failures.items():
-            _stdout("%s\n" % failure, format_in=RED, format_out=self.terminal_default)
             if _hash not in self.dbbuddy.failures:
                 self.dbbuddy.failures[_hash] = failure
+                new_failures += 1
+
+        if new_failures:
+            _stdout("%s failures occurred during your search.\n" % new_failures, format_in=RED,
+                    format_out=self.terminal_default)
         self.dump_session()
 
     def do_show(self, line=None, group="records"):
@@ -1905,6 +1921,7 @@ Further details about each command can be accessed by typing 'help <command>'
         def sub_sort(records, _sort_columns, _rev=False):
             heading = _sort_columns[0]
             subgroups = OrderedDict()
+            subgroups.setdefault("0", {})  # This will be the default if heading id not present
             for accn, _rec in records.items():
                 if heading.lower() == "accn":
                     subgroups.setdefault(_rec.accession, {})
@@ -1924,16 +1941,15 @@ Further details about each command can be accessed by typing 'help <command>'
                     subgroups[_value][accn] = _rec
                 else:
                     if heading not in _rec.summary:
-                        subgroups.setdefault("zzzzz", {})
-                        subgroups["zzzzz"][accn] = _rec
+                        subgroups["0"][accn] = _rec
                     else:
                         subgroups.setdefault(_rec.summary[heading], {})
                         subgroups[_rec.summary[heading]][accn] = _rec
 
-                try:  # If the column is numbers sort numerically, otherwise alphabetically
-                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
-                except ValueError:
-                    subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
+            try:  # If the column is numbers sort numerically, otherwise alphabetically
+                subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: int(_x[0]), reverse=_rev))
+            except ValueError:
+                subgroups = OrderedDict(sorted(subgroups.items(), key=lambda _x: _x[0], reverse=_rev))
 
             final_order = OrderedDict()
             for subgroup, _recs in subgroups.items():

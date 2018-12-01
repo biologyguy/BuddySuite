@@ -227,22 +227,22 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     # 'keep' (default)
     capsys.readouterr()
     liveshell.filter("(organism) Mouse")
+
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(out) == "8c8bc0d638e981c71c41407337bb134d", ofile.write(out)
+    assert hf.string2hash(out) == "abf9f6a2209e3e8af910d9ba56416a34"
 
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "375874594a3748a3e13ad713610882c4"
+    assert hf.string2hash(out) == "6831f24b8ffd01572783fa5f88c865dc"
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "dbd45b5b47c9052112bdc8bc511081b4"
+    assert hf.string2hash(out) == "0c0cca75cd00f062b183812e7d0d5971"
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
@@ -254,30 +254,30 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     liveshell.filter(None)
     out, err = capsys.readouterr()
     assert "Error: you must specify a search string.\n" in out
-
+    
     # No search string given at first
     monkeypatch.setattr("builtins.input", lambda _: "Casein")
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "21cf3142c80dd611b350283b118a14bf"
+    assert hf.string2hash(out) == "737b163ef624e0b4efd75c308f391a7c"
 
     monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
     liveshell.filter(None, mode="restore")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "cd47b70b98f663c462fe5af5a2e1f729"
+    assert hf.string2hash(out) == "367d789ca9122d76a08ba7d1ce5bab5d"
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "f6ca34607e0c5562edfd54135854b793"
+    assert hf.string2hash(out) == "4bd32622c806cbbd8e367cce391a0cbc"
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c4da39b3c33123ed5347a96f9e75995f"
+    assert hf.string2hash(out) == "8cab73a8945140d6d260dc0d80d5c797"
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
@@ -721,7 +721,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     # Specify columns and number of records
     liveshell.do_show("ACCN organism 3")
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "615c84b691f49f4aeceb92b2dc211ff4"
+    assert hf.string2hash(out) == "3a49b25a2577d361fa97595cd9befa7f"
 
     # Large group, say 'no' to display
     monkeypatch.setattr(br, "ask", lambda *_, **kwargs: False)
@@ -734,7 +734,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     liveshell.do_show(None)
     out, err = capsys.readouterr()
     # ENSEMBL order gets messed up, so just sort the characters
-    assert hf.string2hash(''.join(sorted(out))) == "276b58c3d12682e9375a71bfeb947f8a"
+    assert hf.string2hash(''.join(sorted(out))) == "52b6f2ede9bb96eac50164100a487b6e"
 
     # Try sequence format on LiveShell with only summary data
     dbbuddy.out_format = "fasta"
@@ -748,7 +748,7 @@ def test_liveshell_do_show(monkeypatch, capsys, hf):
     monkeypatch.setattr(Db.DbBuddy, "print", lambda *_, **kwargs: True)
     liveshell.do_show(None)
     out, err = capsys.readouterr()
-    assert "Warning: 1722 records are only summary data, so will not be displayed in fasta format. " \
+    assert "Warning: 2116 records are only summary data, so will not be displayed in fasta format. " \
            "Use 'fetch' to retrieve all sequence data." in err
 
     # Raise errors
@@ -818,15 +818,15 @@ def test_liveshell_do_sort(monkeypatch, capsys, hf):
     assert after_sort != database
     assert after_sort == sorted(database)
 
-    organism = [rec.summary['organism'] for accn, rec in dbbuddy.records.items()]
+    organism = [rec.summary['organism'] for accn, rec in dbbuddy.records.items() if 'organism' in rec.summary]
     liveshell.do_sort("organism")
-    after_sort = [rec.summary['organism'] for accn, rec in dbbuddy.records.items()]
+    after_sort = [rec.summary['organism'] for accn, rec in dbbuddy.records.items() if 'organism' in rec.summary]
     assert after_sort != organism
     assert after_sort == sorted(organism)
 
-    length = [rec.summary['length'] for accn, rec in dbbuddy.records.items()]
+    length = [rec.summary['length'] for accn, rec in dbbuddy.records.items() if 'length' in rec.summary]
     liveshell.do_sort("length")
-    after_sort = [rec.summary['length'] for accn, rec in dbbuddy.records.items()]
+    after_sort = [rec.summary['length'] for accn, rec in dbbuddy.records.items() if 'length' in rec.summary]
     assert after_sort != length
     assert after_sort == sorted(length)
 
@@ -843,10 +843,9 @@ def test_liveshell_do_sort(monkeypatch, capsys, hf):
     dbbuddy.records["XP_011997944.1"].record = True
     liveshell.do_sort("record organism length ACCN")
     capsys.readouterr()
-    liveshell.do_show("10")
+    liveshell.do_show("100")
     out, err = capsys.readouterr()
-    with open("temp.del", "w") as ofile:
-        assert hf.string2hash(out) == "47747589b285aaccb0ee34891d97bd57", ofile.write(out)
+    assert hf.string2hash(out) == "219a511d18094062538d9a17b625ec2f"
 
 
 def test_liveshell_do_status(monkeypatch, capsys):
@@ -859,7 +858,7 @@ def test_liveshell_do_status(monkeypatch, capsys):
 
     liveshell.do_status(None)
     out, err = capsys.readouterr()
-    assert '''\
+    assert """\
 ############################
 ### DatabaseBuddy object ###
 Databases:    ncbi_nuc, ncbi_prot, uniprot, ensembl
@@ -871,7 +870,7 @@ ACCN only:    0
 Trash bin:  0
 Failures:     0
 ############################
-''' in out
+""" in out
 
 
 def test_liveshell_do_write(monkeypatch, capsys, hf):
@@ -891,9 +890,9 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
     liveshell.do_write(None)
     assert os.path.isfile("%s/save1" % tmp_dir.path)
     with open("%s/save1" % tmp_dir.path, "r") as ifile:
-        assert len(ifile.read()) == 290678
+        assert len(ifile.read()) == 365841
     out, err = capsys.readouterr()
-    assert re.search("1724 summary records.*written to.*save1", out)
+    assert re.search("2030 summary records.*written to.*save1", out)
 
     # write ids/accns
     dbbuddy.out_format = "ids"
@@ -901,9 +900,9 @@ def test_liveshell_do_write(monkeypatch, capsys, hf):
     liveshell.do_write("%s/save2" % tmp_dir.path)
     assert os.path.isfile("%s/save2" % tmp_dir.path)
     with open("%s/save2" % tmp_dir.path, "r") as ifile:
-        assert len(ifile.read()) == 22719
+        assert len(ifile.read()) == 27875
     out, err = capsys.readouterr()
-    assert re.search("1724 accessions.*written to.*save2", out)
+    assert re.search("2030 accessions.*written to.*save2", out)
 
     # Abort summary
     monkeypatch.setattr(br, "ask", lambda _: False)
@@ -1043,6 +1042,7 @@ def test_liveshell_complete_load_save_write(monkeypatch):
     crash_file = br.TempFile(byte_mode=True)
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     tmpdir = br.TempDir()
+    cwd = os.getcwd()
     os.chdir(tmpdir.path)
     tmpdir.subfile("file.txt")
     tmpdir.subdir("extra_dir")
@@ -1061,6 +1061,7 @@ def test_liveshell_complete_load_save_write(monkeypatch):
     assert liveshell.complete_write("write fi ", "write fi ", 6, 8) == ['file.txt']
     assert liveshell.complete_write("write ", "write ", 6, 6) == ['extra_dir%s' % os.path.sep, 'file.txt']
     assert not liveshell.complete_write("write ", "write ", 4, 5)
+    os.chdir(cwd)
 
 
 def test_helps(monkeypatch, capsys):

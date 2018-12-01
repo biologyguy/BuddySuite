@@ -878,7 +878,7 @@ def check_garbage_flags(in_args, tool):
 def error_report(trace_back, permission=False):
     message = ""
     error_hash = re.sub("^#.*?\n{2}", "", trace_back, flags=re.DOTALL)  # Remove error header information before hashing
-    error_hash = md5(error_hash.encode("utf-8")).hexdigest()  # Hash the error
+    error_hash = md5_hash(error_hash)  # Hash the error
     try:  # Check online to see if error has been reported before
         raw_error_data = request.urlopen("https://raw.githubusercontent.com/biologyguy/BuddySuite/error_codes/"
                                          "diagnostics/error_codes", timeout=2)
@@ -926,6 +926,11 @@ def error_report(trace_back, permission=False):
     except all_errors as e:
             print("Well... We tried. Seems there was a problem with the FTP upload\n%s" % e)
     return
+
+
+def md5_hash(in_str):
+    in_str = str(in_str).encode("utf-8")
+    return md5(in_str).hexdigest()
 
 
 def preparse_flags():

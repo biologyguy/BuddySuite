@@ -833,6 +833,10 @@ ZeroDivisionError: division by zero
     br.error_report(fake_error, True)
 
 
+def test_md5_hash():
+    assert br.md5_hash("Hello") == "8b1a9953c4611296a827abf8c47804d7"
+
+
 def test_preparse_flags():
     sys.argv = ['buddy_resources.py', "-v", "-foo", "blahh", "-c", "-ns", "57684", "--blast", "--bar"]
     br.preparse_flags()
