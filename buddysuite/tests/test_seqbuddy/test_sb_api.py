@@ -56,8 +56,8 @@ def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
      """
     # data_file_division
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "data_file_division", "ROD", ".*")
-    assert hf.buddy2hash(tester) == "a834ade7ffdc453b9c61817c9138a550"
+    tester = Sb.amend_metadata(tester, "data_file_division", "HUM", ".*")
+    assert hf.buddy2hash(tester) == "a834ade7ffdc453b9c61817c9138a55", print(tester)
 
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".*")

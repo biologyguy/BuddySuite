@@ -236,13 +236,17 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "6831f24b8ffd01572783fa5f88c865dc"
+    results = {"3.5": "f50a87d0da9cc14acb4dd67081fed943", "3.6": "abf9f6a2209e3e8af910d9ba56416a34",
+               "3.7": "6831f24b8ffd01572783fa5f88c865dc"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "0c0cca75cd00f062b183812e7d0d5971"
+    results = {"3.5": "eb03a4222fb4636758d2b9f45c9747d6", "3.6": "0c0cca75cd00f062b183812e7d0d5971",
+               "3.7": "0c0cca75cd00f062b183812e7d0d5971"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
@@ -260,24 +264,32 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "737b163ef624e0b4efd75c308f391a7c"
+    results = {"3.5": "34b282387a15df666d5a30887065134a", "3.6": "737b163ef624e0b4efd75c308f391a7c",
+               "3.7": "737b163ef624e0b4efd75c308f391a7c"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
     liveshell.filter(None, mode="restore")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "367d789ca9122d76a08ba7d1ce5bab5d"
+    results = {"3.5": "07c0e6c2deb665070492f23c114be05a", "3.6": "367d789ca9122d76a08ba7d1ce5bab5d",
+               "3.7": "367d789ca9122d76a08ba7d1ce5bab5d"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "4bd32622c806cbbd8e367cce391a0cbc"
+    results = {"3.5": "a97fc96f2d25983f4564b678283ac520", "3.6": "4bd32622c806cbbd8e367cce391a0cbc",
+               "3.7": "4bd32622c806cbbd8e367cce391a0cbc"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "8cab73a8945140d6d260dc0d80d5c797"
+    results = {"3.5": "8cab73a8945140d6d260dc0d80d5c797", "3.6": "8cab73a8945140d6d260dc0d80d5c797",
+               "3.7": "8cab73a8945140d6d260dc0d80d5c797"}
+    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
