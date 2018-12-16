@@ -50,14 +50,14 @@ def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
 
     """
     There are limited number of values that biopython will accept
-    ['BCT', 'CON', 'ENV', 'EST', 'FUN', 'GSS', 'HTC', 'HTG', 'HUM', 
-     'INV', 'MAM', 'MUS', 'PAT', 'PHG', 'PLN', 'PRI', 'PRO', 'ROD', 
-     'STS', 'SYN', 'TGN', 'UNA', 'UNC', 'VRL', 'VRT', 'XXX']
+    ["PRI", "ROD", "MAM", "VRT", "INV", "PLN", "BCT",
+     "VRL", "PHG", "SYN", "UNA", "EST", "PAT", "STS",
+     "GSS", "HTG", "HTC", "ENV", "CON"]
      """
     # data_file_division
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "data_file_division", "HUM", ".*")
-    assert hf.buddy2hash(tester) == "a834ade7ffdc453b9c61817c9138a55", print(tester)
+    tester = Sb.amend_metadata(tester, "data_file_division", "PRI", ".*")
+    assert hf.buddy2hash(tester) == "68cbefe01be215c373b75ee5cb4b0d4c"
 
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".*")
