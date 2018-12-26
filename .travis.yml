@@ -27,7 +27,7 @@ install:
   - wget -q http://wasabiapp.org/download/pagan/pagan.linux64.20150723.tgz -O /home/travis/pagan.tgz
   - tar -xzf /home/travis/pagan.tgz -C /home/travis
   - ln -s /home/travis/pagan/bin/pagan /home/travis/miniconda/bin/pagan
-  - sudo ln -s /home/travis/miniconda/bin/raxmlHPC /usr/bin/raxml
-  - sudo ln -s /home/travis/miniconda/bin/FastTree /usr/bin/fasttree
+  - sudo ln -s /home/travis/miniconda/envs/test-environment/bin/raxmlHPC /usr/bin/raxml
+  - sudo ln -s /home/travis/miniconda/envs/test-environment/bin/FastTree /usr/bin/fasttree
 script:
   - source test.sh

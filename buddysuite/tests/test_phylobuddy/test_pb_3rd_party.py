@@ -21,7 +21,7 @@ import buddy_resources as br
 @br.skip_windows
 def get_raxml_version():
     raxml_version = Popen("raxml -v", shell=True, stdout=PIPE).communicate()[0].decode()
-    raxml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(0)
+    raxml_version = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)", raxml_version).group(1)
     if raxml_version not in ["7.3.5", "7.6.6", "8.2.4", "8.2.8", "8.2.9", "8.2.10", "8.2.12"]:
         raise ValueError("Untested RAxML version (%s). Please update the tests as necessary." % raxml_version)
 
@@ -177,7 +177,7 @@ def test_fasttree_inputs(alb_resources, hf):
 def get_iqtree_version():
     iqtree_version = Popen("iqtree -h", shell=True, stderr=PIPE, stdout=PIPE).communicate()[0].decode()
     iqtree_version = re.search(r"version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
-    if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7", "1.6.8"]:
+    if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7", "1.6.8", "1.6.9"]:
         raise ValueError("Untested IQ-TREE version (%s). Please update the tests as necessary." % iqtree_version)
 
 
