@@ -37,7 +37,7 @@ in_args = parser.parse_args([])
 
 
 def mock_cmdloop(*args):
-    print(args)
+    print(type(args[0]))
     return True
 
 
@@ -217,7 +217,7 @@ def test_liveshell_get_headings(monkeypatch):
     assert liveshell.get_headings() == ['ACCN', 'DB', 'Type', 'record', 'organism']
 
 
-def test_liveshell_filter(monkeypatch, hf, capsys):
+def test_liveshell_filter_keep(monkeypatch, hf, capsys):
     monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
     dbbuddy = Db.DbBuddy()
     crash_file = br.TempFile(byte_mode=True)
@@ -232,64 +232,103 @@ def test_liveshell_filter(monkeypatch, hf, capsys):
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "abf9f6a2209e3e8af910d9ba56416a34"
 
+
+def test_liveshell_filter_restore(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
     # 'restore'
     liveshell.filter("Phaethon", mode='restore')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    results = {"3.5": "f50a87d0da9cc14acb4dd67081fed943", "3.6": "abf9f6a2209e3e8af910d9ba56416a34",
-               "3.7": "6831f24b8ffd01572783fa5f88c865dc"}
+    results = {"3.5": "e3cad6e29a980d2362dfdffb8e5dd119", "3.6": "3445a8c8279f3663d254cc1a9aa92c77",
+               "3.7": "2c3e003ea614cee05f6471c5330e2959"}
     assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
+
+
+def test_liveshell_filter_remove(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
 
     # 'remove'
     liveshell.filter("Fragment", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    results = {"3.5": "eb03a4222fb4636758d2b9f45c9747d6", "3.6": "0c0cca75cd00f062b183812e7d0d5971",
-               "3.7": "0c0cca75cd00f062b183812e7d0d5971"}
+    results = {"3.5": "243c205acc95666c5573a4154a188cd0", "3.6": "0e69dbab684e2520a85eec75f35499b2",
+               "3.7": "e7e3404b62418457311167dbf0e1949d"}
     assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
+
+
+def test_liveshell_filter_wrong_mode(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
 
     # Wrong mode
     with pytest.raises(ValueError) as err:
         liveshell.filter("Fragment", mode='Foo')
     assert "The 'mode' argument in filter() must be 'keep', 'remove', or 'restore', not Foo." in str(err)
 
+
+def test_liveshell_filter_no_search_string(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
+
     # No search string given at all
     monkeypatch.setattr("builtins.input", lambda _: False)
     liveshell.filter(None)
     out, err = capsys.readouterr()
     assert "Error: you must specify a search string.\n" in out
-    
-    # No search string given at first
+
+    # Confirm that filter still works after no search string error
     monkeypatch.setattr("builtins.input", lambda _: "Casein")
     liveshell.filter(None, mode="remove")
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    results = {"3.5": "34b282387a15df666d5a30887065134a", "3.6": "737b163ef624e0b4efd75c308f391a7c",
-               "3.7": "737b163ef624e0b4efd75c308f391a7c"}
+    results = {"3.5": "7f5ab75b22523bf30783b15babfd3b3c", "3.6": "cc8a56ad7d726a72fcd80aa3548e9860",
+               "3.7": "943ebd0c202fd14f97220f8da9c13a13"}
     assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
-    monkeypatch.setattr("builtins.input", lambda _: "Apoptosis")
-    liveshell.filter(None, mode="restore")
-    liveshell.dbbuddy.print()
-    out, err = capsys.readouterr()
-    results = {"3.5": "07c0e6c2deb665070492f23c114be05a", "3.6": "367d789ca9122d76a08ba7d1ce5bab5d",
-               "3.7": "367d789ca9122d76a08ba7d1ce5bab5d"}
-    assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
+
+def test_liveshell_filter_multiple_terms(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
 
     # Multiple terms
     liveshell.filter('"Baculoviral" "Mitogen"', mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    results = {"3.5": "a97fc96f2d25983f4564b678283ac520", "3.6": "4bd32622c806cbbd8e367cce391a0cbc",
-               "3.7": "4bd32622c806cbbd8e367cce391a0cbc"}
+    results = {"3.5": "e004a7e275370d519a7a41c400530288", "3.6": "d62f7f1ebaf18a47acc2f208985d1634",
+               "3.7": "5c62a14a3b777619359c8af81b5d5e7a"}
     assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
 
     liveshell.filter("'partial' 'Q[0-9]'", mode='remove')
     liveshell.dbbuddy.print()
     out, err = capsys.readouterr()
-    results = {"3.5": "8cab73a8945140d6d260dc0d80d5c797", "3.6": "8cab73a8945140d6d260dc0d80d5c797",
-               "3.7": "8cab73a8945140d6d260dc0d80d5c797"}
+    results = {"3.5": "b0ab262ec632b1f872512fd315536411", "3.6": "4a140381e169020fabbbf4f2eae6d3c1",
+               "3.7": "0f4cc514978c5cefa84dc55b28ed332d"}
     assert hf.string2hash(out) == results["%s.%s" % (sys.version_info.major, sys.version_info.minor)]
+
+
+def test_liveshell_filter_wonky_quotes(monkeypatch, hf, capsys):
+    monkeypatch.setattr(Db.LiveShell, "cmdloop", mock_cmdloop)
+    dbbuddy = Db.DbBuddy()
+    crash_file = br.TempFile(byte_mode=True)
+    liveshell = Db.LiveShell(dbbuddy, crash_file)
+    liveshell.do_load(hf.dbsave)
 
     # Wonkey quotes given as input
     error_msg = "Error: It appears that you are trying to mix quote types (\" and ') while specifying " \
