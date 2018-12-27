@@ -1089,7 +1089,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                         break
                     # PRANK
                     elif param.startswith("-f="):
-                        param = re.match("-f=(.*)", param)
+                        param = re.match("-f=(.+)", param)
                         try:
                             seqbuddy.out_format = br.parse_format(param.group(1))
                         except (TypeError, AttributeError):
@@ -1098,7 +1098,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                         break
                     # ClustalOmega
                     elif param.startswith("--outfmt="):
-                        param = re.match("--outfmt=(.*)", param)
+                        param = re.match("--outfmt=(.+)", param)
                         try:
                             seqbuddy.out_format = br.parse_format(param.group(1))
                         except (TypeError, AttributeError):
@@ -1107,7 +1107,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                         break
                     # ClustalW2
                     elif param.startswith("-output="):
-                        param = re.match("-output=(.*)", param)
+                        param = re.match("-output=(.+)", param)
                         try:
                             seqbuddy.out_format = br.parse_format(param.group(1))
                         except (TypeError, AttributeError):

@@ -192,7 +192,7 @@ class SeqBuddy(object):
         if str(type(sb_input)) == "<class '_io.TextIOWrapper'>":
             if not sb_input.seekable():  # Deal with input streams (e.g., stdout pipes)
                 input_txt = sb_input.read()
-                if re.search("Buddy::.* has crashed with the following traceback", input_txt):
+                if re.search("Buddy::.+ has crashed with the following traceback", input_txt):
                     print(input_txt)
                     sys.exit()
                 temp = StringIO(br.utf_encode(input_txt))
@@ -683,9 +683,9 @@ def amend_metadata(seqbuddy, attr, sub_value, regex):
                                                                                         flags=re.DOTALL)
                 rec.annotations["structured_comment"] = new_structured_comment
         elif attr == "references":
-            if not sub_value and regex == ".*":
+            if not sub_value and regex == ".+":
                 rec.annotations["references"] = []
-            elif regex and regex != ".*":
+            elif regex and regex != ".+":
                 rec.annotations.setdefault("references", [])
                 new_refs = []
                 for ref in rec.annotations["references"]:
@@ -698,7 +698,7 @@ def amend_metadata(seqbuddy, attr, sub_value, regex):
             # Check to see if the user is trying to send in a whole new list
             if type(sub_value) == str:
                 sub_value = sub_value.split() if sub_value else [""]
-            if len(sub_value) == 1 and regex != ".*":
+            if len(sub_value) == 1 and regex != ".+":
                 sub_value = sub_value[0]
                 rec.annotations.setdefault(attr, [])
                 if not rec.annotations[attr]:
@@ -715,7 +715,7 @@ def amend_metadata(seqbuddy, attr, sub_value, regex):
             # Check to see if the user is trying to send in a whole new list
             if type(sub_value) == str:
                 sub_value = sub_value.split() if sub_value else [""]
-            if len(sub_value) == 1 and regex != ".*":
+            if len(sub_value) == 1 and regex != ".+":
                 sub_value = sub_value[0]
                 if not rec.dbxrefs:
                     new_list = [sub_value]
@@ -4237,7 +4237,7 @@ def transmembrane_domains(seqbuddy, job_ids=None, quiet=False, keep_temp=None):
 
         for rec in topcons:
             printer.write("Processing results... %s" % len(records))
-            seq_id = re.search("Sequence name: (.*)", rec).group(1).strip()
+            seq_id = re.search("Sequence name: (.+)", rec).group(1).strip()
             if seq_id not in hash_map:
                 continue
             seq = re.search("Sequence:\n([A-Z]+)", rec).group(1).strip()
@@ -4470,9 +4470,9 @@ def command_line_ui(in_args, seqbuddy, skip_exit=False, pass_through=False):  # 
     if in_args.amend_metadata:
         args = in_args.amend_metadata[0]
         if len(args) == 1:
-            attr, sub_value, regex = args[0], "", ".*"
+            attr, sub_value, regex = args[0], "", ".+"
         elif len(args) == 2:
-            attr, sub_value, regex = args[0], args[1], ".*"
+            attr, sub_value, regex = args[0], args[1], ".+"
         else:
             attr, sub_value, regex = args[:3]
 
@@ -5765,7 +5765,7 @@ https://github.com/biologyguy/BuddySuite/wiki/SB-Extract-regions
         try:
             _print_recs(translate_cds(seqbuddy, quiet=in_args.quiet))
         except TypeError as e:
-            _raise_error(e, "translate", ["Nucleic acid sequence required, not protein.", "Record .* is protein."])
+            _raise_error(e, "translate", ["Nucleic acid sequence required, not protein.", "Record .+ is protein."])
         _exit("translate")
 
     # Translate 6 reading frames
