@@ -36,52 +36,58 @@ def test_amend_metadata_topo(sb_resources, hf, monkeypatch, capsys):
     for value, _hash in [('linear', 'b3feec305beee8243be7f7afb02a909d'),
                          ('circular', '7ff89b41edab0a10b53629a28092e062'),
                          ('', '0a8462e72f64fcd22544bb153b51b2b6')]:
-        tester = Sb.amend_metadata(tester, "topology", value, ".*")
+        tester = Sb.amend_metadata(tester, "topology", value, ".+")
         assert hf.buddy2hash(tester) == _hash
 
     with pytest.raises(ValueError) as err:
-        Sb.amend_metadata(tester, "topology", "foo_bar", ".*")
+        Sb.amend_metadata(tester, "topology", "foo_bar", ".+")
 
     assert "Topology values are limited to ['', 'linear', 'circular']" in str(err)
 
 
-def test_amend_metadata_str_attr(sb_resources, hf, monkeypatch):
-    monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
-
+def test_amend_metadata_str_attr_data_file_division(sb_resources, hf):
     """
     There are limited number of values that biopython will accept
     ["PRI", "ROD", "MAM", "VRT", "INV", "PLN", "BCT",
      "VRL", "PHG", "SYN", "UNA", "EST", "PAT", "STS",
      "GSS", "HTG", "HTC", "ENV", "CON"]
-     """
+    """
     # data_file_division
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "data_file_division", "PRI", ".*")
+    tester = Sb.amend_metadata(tester, "data_file_division", "PRI", ".+")
     assert hf.buddy2hash(tester) == "68cbefe01be215c373b75ee5cb4b0d4c"
 
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".*")
+    tester = Sb.amend_metadata(tester, "data_file_division", "FOO", ".+")
     assert hf.buddy2hash(tester) == "6d767ae1bdda9ce23ce99cfae35a1a74"
 
+
+def test_amend_metadata_str_attr_date(sb_resources, hf):
     # date
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "date", "21-APR-2000", ".*")
+    tester = Sb.amend_metadata(tester, "date", "21-APR-2000", ".+")
     assert hf.buddy2hash(tester) == "3695432066ca4c61727aa139d40a7b8e"
 
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "date", "FOO", ".*")
+    tester = Sb.amend_metadata(tester, "date", "FOO", ".+")
     assert hf.buddy2hash(tester) == "28b8f6425b92755f2936883837b1c452"
 
+
+def test_amend_metadata_str_attr_source(sb_resources, hf):
     # source
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "source", "Mnemiopsis", ".*")
     assert hf.buddy2hash(tester) == "ff0d55dc060e28e47440a07414ea62bf"
 
+
+def test_amend_metadata_str_attr_organism(sb_resources, hf):
     # organism
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "organism", "Foo", "leidyi")
     assert hf.buddy2hash(tester) == "0494f26e437928e8af96ba6e7cbfb7cf"
 
+
+def test_amend_metadata_str_attr_comment(sb_resources, hf):
     # comment
     tester = sb_resources.get_one("p g")
     structured_comment = OrderedDict()
@@ -116,7 +122,7 @@ def test_amend_metadata_list_attr(sb_resources, hf, monkeypatch):
     # taxonomy
     tester = sb_resources.get_one("p g")
     tester = Sb.amend_metadata(tester, "taxonomy", "Eukaryota Opisthokonta Metazoa Eumetazoa Ctenophora Tentaculata"
-                                                   " Lobata Bolinopsidae Mnemiopsis", ".*")
+                                                   " Lobata Bolinopsidae Mnemiopsis", ".+")
     assert hf.buddy2hash(tester) == "cdc30e7ec65c525bac898bbfaa75a0b7"
 
     tester = Sb.amend_metadata(tester, "taxonomy", "FooBar", "Eukaryota")
@@ -124,7 +130,7 @@ def test_amend_metadata_list_attr(sb_resources, hf, monkeypatch):
 
     # keywords
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "keywords", "Something Else", ".*")
+    tester = Sb.amend_metadata(tester, "keywords", "Something Else", ".+")
     assert hf.buddy2hash(tester) == "bda9a1405d954aa2542d9017ba5c0796"
 
     tester.records[0].annotations["keywords"] = []
@@ -135,7 +141,7 @@ def test_amend_metadata_list_attr(sb_resources, hf, monkeypatch):
 def test_amend_metadata_dbxrefs(sb_resources, hf, monkeypatch):
     monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "dbxrefs", "Project:1234 Project:4321", ".*")
+    tester = Sb.amend_metadata(tester, "dbxrefs", "Project:1234 Project:4321", ".+")
     assert hf.buddy2hash(tester) == "342286427f1dc495131610a9c02587cf"
 
     tester.records[0].dbxrefs = []
@@ -146,15 +152,15 @@ def test_amend_metadata_dbxrefs(sb_resources, hf, monkeypatch):
 def test_amend_metadata_version(sb_resources, hf, monkeypatch):
     monkeypatch.setattr(br, "clean_regex", lambda regex: [regex])
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "version", 5, ".*")
+    tester = Sb.amend_metadata(tester, "version", 5, ".+")
     assert hf.buddy2hash(tester) == "d83c18c44529700eaa3ab32da3ec8d08"
 
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "sequence_version", 5, ".*")
+    tester = Sb.amend_metadata(tester, "sequence_version", 5, ".+")
     assert hf.buddy2hash(tester) == "d83c18c44529700eaa3ab32da3ec8d08"
 
     tester = sb_resources.get_one("p g")
-    tester = Sb.amend_metadata(tester, "sequence_version", "foo", ".*")
+    tester = Sb.amend_metadata(tester, "sequence_version", "foo", ".+")
     assert hf.buddy2hash(tester) == "0a8462e72f64fcd22544bb153b51b2b6"
 
 
@@ -164,7 +170,7 @@ def test_amend_metadata_arb_attr(sb_resources, hf, monkeypatch):
     tester = Sb.amend_metadata(tester, "id", "Hech", "Mle")
     assert hf.buddy2hash(tester) == "c0a9461be6cb3b7e6ad76200f009c4ab"
 
-    tester = Sb.amend_metadata(tester, "foobar", "Some stuff", ".*")
+    tester = Sb.amend_metadata(tester, "foobar", "Some stuff", ".+")
     assert tester.records[0].foobar == "Some stuff"
 
 
