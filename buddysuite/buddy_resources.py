@@ -623,7 +623,7 @@ def num_sorted(input_list):
         return int(text) if text.isdigit() else text
 
     def alpha_num_key(key):
-        return [convert(c) for c in re.split('([0-9]+)', key)]
+        return [convert(c) for c in re.split('([0-9]+)', str(key))]
 
     return sorted(input_list, key=alpha_num_key)
 
