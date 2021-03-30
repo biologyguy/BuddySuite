@@ -993,19 +993,19 @@ def flags(parser, _positional=None, _flags=None, _modifiers=None, version=None):
 
 def identify_msa_program(msa_alias):
     # Figure out what tool is being used
-    tool_list = {'mafft': {"ver": " --help", "check": "MAFFT v[0-9]\.[0-9]+", "ver_num": "v([0-9]\.[0-9]+)",
+    tool_list = {'mafft': {"ver": " --help", "check": r"MAFFT v[0-9]\.[0-9]+", "ver_num": r"v([0-9]\.[0-9]+)",
                            "url": "http://mafft.cbrc.jp/alignment/software/", "name": "mafft"},
-                 'prank': {"ver": " -help", "check": "prank v[0-9]*\.[0-9]+", "ver_num": "v([0-9]*\.[0-9]+)",
+                 'prank': {"ver": " -help", "check": r"prank v[0-9]*\.[0-9]+", "ver_num": r"v([0-9]*\.[0-9]+)",
                            "url": "http://wasabiapp.org/software/prank/prank_installation/", "name": "prank"},
-                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": "v\.([0-9]+\.[0-9]+)",
+                 'pagan': {"ver": " -v", "check": "This is PAGAN", "ver_num": r"v\.([0-9]+\.[0-9]+)",
                            "url": "http://wasabiapp.org/software/pagan/pagan_installation/", "name": "pagan"},
-                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": "v([0-9]+\.[0-9]+\.[0-9]+)",
+                 'muscle': {"ver": " -version", "check": "Robert C. Edgar", "ver_num": r"v([0-9]+\.[0-9]+\.[0-9]+)",
                             "url": "http://www.drive5.com/muscle/downloads.htm", "name": "muscle"},
                  'clustalw': {"ver": " -help", "check": "CLUSTAL.*Multiple Sequence Alignments",
-                              "ver_num": "CLUSTAL ([0-9]+\.[0-9]+) ",
+                              "ver_num": r"CLUSTAL ([0-9]+\.[0-9]+) ",
                               "url": "http://www.clustal.org/clustal2/#Download", "name": "clustalw"},
-                 'clustalo': {"ver": " -h", "check": "Clustal Omega - [0-9]+\.[0-9]+",
-                              "ver_num": "Omega - ([0-9]+\.[0-9]+)",
+                 'clustalo': {"ver": " -h", "check": r"Clustal Omega - [0-9]+\.[0-9]+",
+                              "ver_num": r"Omega - ([0-9]+\.[0-9]+)",
                               "url": "http://www.clustal.org/omega/#Download", "name": "clustalo"}}
 
     if msa_alias.lower() in tool_list:
@@ -1346,7 +1346,7 @@ def replacements(input_str, query, replace="", num=0):
     :return: Modified string
     """
     # First make sure the user isn't trying to access more replacement groups than specified with parentheses
-    check_parentheses = re.findall("\([^()]*\)", query)
+    check_parentheses = re.findall(r"\([^()]*\)", query)
     check_keep_group = re.findall(r"\\[0-9]+", replace)
     check_keep_group = sorted([int(match[1:]) for match in check_keep_group])
     if check_keep_group and check_keep_group[-1] > len(check_parentheses):
@@ -1378,7 +1378,7 @@ def send_traceback(tool, func, e, version):
     tb = ""
     for _line in traceback.format_tb(sys.exc_info()[2]):
         if os.name == "nt":
-            _line = re.sub('"(?:[A-Za-z]:)*\{0}.*\{0}(.*)?"'.format(os.sep), r'"\1"', _line)
+            _line = re.sub(r'"(?:[A-Za-z]:)*{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         else:
             _line = re.sub('"{0}.*{0}(.*)?"'.format(os.sep), r'"\1"', _line)
         tb += _line

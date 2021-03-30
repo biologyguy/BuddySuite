@@ -193,7 +193,7 @@ class AlignBuddy(object):
         if self.out_format in ["gb", "genbank"]:
             for rec in self.records_iter():
                 try:
-                    if re.search("(\. )+", rec.annotations['organism']):
+                    if re.search(r"(\. )+", rec.annotations['organism']):
                         rec.annotations['organism'] = "."
                 except KeyError:
                     pass
@@ -302,7 +302,7 @@ def guess_alphabet(alignments):
         seq_list += [str(x.seq) for x in alignment]
 
     sequence = "".join(seq_list).upper()
-    sequence = re.sub("[NX\-?]", "", sequence)
+    sequence = re.sub(r"[NX\-?]", "", sequence)
 
     if len(sequence) == 0:
         return None
@@ -482,7 +482,7 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     # Protect gaps from being cleaned by Sb.clean_seq
     for rec in records:
         if rec.seq.alphabet == IUPAC.protein:
-            rec.seq = Seq(re.sub("\*", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
+            rec.seq = Seq(re.sub(r"\*", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
         rec.seq = Seq(re.sub("-", "�", str(rec.seq)), alphabet=rec.seq.alphabet)
 
     skip_list = "�" if not skip_list else "�" + "".join(skip_list)
@@ -2070,7 +2070,7 @@ https://github.com/biologyguy/BuddySuite/wiki/AB-Extract-regions
 
         seqbuddy = create_seqbuddy()
 
-        params = re.sub("\[(.*)\]", "\1", args[1]) if len(args) > 1 else None
+        params = re.sub(r'\[(.*)]', r'\1', args[1]) if len(args) > 1 else None
 
         try:
             alignbuddy = generate_msa(seqbuddy, args[0], params, in_args.keep_temp, in_args.quiet)
