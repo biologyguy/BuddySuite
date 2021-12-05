@@ -11,7 +11,7 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: SeqBuddy.py
 author: Stephen R. Bond
-email: steve.bond@nih.gov
+email: biologyguy@gmail.com
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
@@ -164,7 +164,7 @@ def keep_features(seqbuddy, regex(s)):
 # - Try to speed things up by reading in all sequence data only when necessary
 
 # ###################################################### GLOBALS ##################################################### #
-VERSION = br.Version("SeqBuddy", 1, "4b", br.contributor_list, {"year": 2017, "month": 12, "day": 20})
+VERSION = br.Version("SeqBuddy", 1, "4.0", br.contributor_list, {"year": 2021, "month": 12, "day": 5})
 OUTPUT_FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "fasta", "fastq", "fastq-sanger",
                   "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "nexuss", "nexusi", "phylip",
                   "phd", "phylip-relaxed", "phylipss", "phylipsr", "raw", "sff", "stockholm", "tab", "qual"]
