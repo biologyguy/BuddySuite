@@ -9,7 +9,6 @@ import shutil
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.AlignIO import MultipleSeqAlignment
-from Bio.Alphabet import IUPAC
 import AlignBuddy as Alb
 import SeqBuddy as Sb
 import buddy_resources as br
@@ -90,7 +89,7 @@ def test_concat_alignments(alb_resources, hf):
 
     tester.set_format("nexus")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester))
-    assert hf.buddy2hash(tester2) == '32a507107b7dcd044ea7760c8812441c'
+    assert hf.buddy2hash(tester2) == '2a2cd4a72100380f3765756e560f9a10'
 
     tester.set_format("gb")
     tester2 = Alb.concat_alignments(Alb.make_copy(tester), "(.).(.)-Panx(.)")
@@ -114,7 +113,7 @@ def test_concat_alignments(alb_resources, hf):
 
 
 # ###########################################  '-con', '--consensus' ############################################ #
-hashes = [('o d g', '36ed26ded1f4e146ad8018a2dc31f0b2'), ('o d n', 'b7a49ccc640b088f2fe7de67bad30f06'),
+hashes = [('o d g', '36ed26ded1f4e146ad8018a2dc31f0b2'), ('o d n', '54499624c9e6e72b96800dbedb189eab'),
           ('o p py', 'c32119f34633d3956b3a1d3ac578869c'), ('m p s', 'd1a8f7e629a020f5130373d7af65f9d9')]
 
 
@@ -124,7 +123,7 @@ def test_simple_consensus(alb_resources, hf, key, next_hash):
     assert hf.buddy2hash(tester) == next_hash
 
 
-hashes = [('o d g', 'c85a1726c3a6f8c3a402475d4f8fce27'), ('o d n', '15bb6c1959a6a5fee1a385921c39a4f5'),
+hashes = [('o d g', 'c85a1726c3a6f8c3a402475d4f8fce27'), ('o d n', '287baf1f348ee2851c1eeb715cf4774d'),
           ('o p py', '714bc7c67332fa96ef12cfeada88834c'), ('m p s', 'bf50c95916e9d62c95a460bbc517c053')]
 
 
@@ -160,10 +159,10 @@ def test_delete_invariant_sites(alb_resources, hf, alb_odd_resources):
 
 
 # ###########################################  '-dr', '--delete_records' ############################################ #
-hashes = [('o d g', 'c22d5cbef500d8baed8cead1d5fe9628'), ('o d n', '355a98dad5cf382797eb907e83940978'),
+hashes = [('o d g', 'c22d5cbef500d8baed8cead1d5fe9628'), ('o d n', 'bdf614975a48aef43e3874fcc5d5922e'),
           ('o d py', 'fe9a2776558f3fe9a1732c777c4bc9ac'), ('o d s', '35dc92c4f4697fb508eb1feca43d9d75'),
-          ('o r n', '96e6964115200d46c7cb4eb975718304'), ('o p g', 'ad384f639efda97e300dbe6a70dd9f7c'),
-          ('o p n', '1cfaa4109c5db8fbfeaedabdc57af655'), ('o p py', '1d0e7b4d8e89b42b0ef7cc8c40ed1a93'),
+          ('o r n', 'b47cbbd72f8af5bee8f5faae7d3cc246'), ('o p g', 'ad384f639efda97e300dbe6a70dd9f7c'),
+          ('o p n', 'a5f11a564ad64b1a02f148f672ec32a1'), ('o p py', '1d0e7b4d8e89b42b0ef7cc8c40ed1a93'),
           ('o p s', '1578d98739d2aa6196463957c7b408fa'), ('m d py', 'db4ed247b40707e8e1f0622bb420733b'),
           ('m d s', 'de5beddbc7f0a7f8e3dc2d5fd43b7b29'), ('m p py', '31f91f7dc548e4b075bfb0fdd7d5c82c'),
           ('m p s', '043e35023b355ed560166db9130cfe30')]
@@ -176,8 +175,8 @@ def test_delete_records(alb_resources, hf, key, next_hash):
 
 
 # ######################  'd2r', '--transcribe' and 'r2d', '--reverse_transcribe' ###################### #
-hashes = [('o d g', '81a17d48b752c5a760e98cf8e665d086', '842d9c911a33c0fd0484383eabefb0fe'),
-          ('o d n', 'e531dc31f24192f90aa1f4b6195185b0', 'cb1169c2dd357771a97a02ae2160935d'),
+hashes = [('o d g', '51807324d2fc8132fe14a18a5a1003e8', '842d9c911a33c0fd0484383eabefb0fe'),
+          ('o d n', 'be8fd74da1ae2cea76c68b5bc44504a6', '5cfb942a8c7d736b46816c0affc33507'),
           ('o d py', 'e55bd18b6d82a7fc3150338173e57e6a', '503e23720beea201f8fadf5dabda75e4'),
           ('o d s', '45b511f34653e3b984e412182edee3ca', '228e36a30e8433e4ee2cd78c3290fa6b'),
           ('m d py', '16cb082f5cd9f103292ccea0c4d65a06', '42679a32ebd93b628303865f68b0293d'),
@@ -195,26 +194,26 @@ def test_transcribe(alb_resources, hf, key, d2r_hash, r2d_hash):
 def test_transcribe_exceptions(alb_resources):
     with pytest.raises(TypeError) as e:
         Alb.dna2rna(alb_resources.get_one("o p s"))
-    assert "TypeError: DNA sequence required, not IUPACProtein()." in str(e)
+    assert "TypeError('DNA sequence required, not protein." in str(e)
 
     with pytest.raises(TypeError) as e:
         Alb.dna2rna(alb_resources.get_one("o r n"))
-    assert "TypeError: DNA sequence required, not IUPACAmbiguousRNA()." in str(e)
+    assert "TypeError('DNA sequence required, not RNA." in str(e)
 
 
 def test_reverse_transcribe_exceptions(alb_resources):  # Asserts that a TypeError will be thrown if user inputs protein
     with pytest.raises(TypeError) as e:
         Alb.rna2dna(alb_resources.get_one("o p s"))
-    assert "TypeError: RNA sequence required, not IUPACProtein()." in str(e)
+    assert "TypeError('RNA sequence required, not protein." in str(e)
 
     with pytest.raises(TypeError) as e:
         Alb.rna2dna(alb_resources.get_one("o d s"))
-    assert "TypeError: RNA sequence required, not IUPACAmbiguousDNA()." in str(e)
+    assert "TypeError('RNA sequence required, not DNA." in str(e)
 
 
 # ###########################################  '-et', '--enforce_triplets' ########################################### #
-hashes = [('o d g', 'd30529911c2ffdfb49152797225e3ff0'), ('o d n', 'c907d29434fe2b45db60f1a9b70f110d'),
-          ('o d py', 'b6cf61c86588023b58257c9008c862b5'), ('o r n', '0ed7383ab2897f8350c2791739f0b0a4'),
+hashes = [('o d g', 'd30529911c2ffdfb49152797225e3ff0'), ('o d n', '8fca39efa32594f8b3453c2961f26afd'),
+          ('o d py', 'b6cf61c86588023b58257c9008c862b5'), ('o r n', '5e9bce0855b45dcdf749647f99a16d05'),
           ('m d py', '669ffc4fa602fb101c559cb576bddee1')]
 
 
@@ -231,8 +230,8 @@ def test_enforce_triplets_error(alb_resources):
 
     with pytest.raises(TypeError) as e:
         tester = Alb.enforce_triplets(alb_resources.get_one("m d pr"))
-        tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY",
-                                          alphabet=IUPAC.protein)
+        tester.alignments[0][0].seq = Seq("MLDILSKFKGVTPFKGITIDDGWDQLNRSFMFVLLVVMGTTVTVRQYTGSVISCDGFKKFGSTFAEDYCWTQGLY")
+        tester.alignments[0][0].annotations["molecule_type"] = "protein"
         Alb.enforce_triplets(tester)
     assert "Record 'Mle-Panxα9' is protein. Nucleic acid sequence required." in str(e)
 
@@ -273,9 +272,9 @@ def test_extract_feature_sequences(alb_resources, hf):
 
 
 # ###########################################  'er', '--extract_regions' ############################################ #
-hashes = [('o d g', 'd06c46d7458f8b9a90aba14b83cdb329'), ('o d n', '10ca718b74f3b137c083a766cb737f31'),
+hashes = [('o d g', 'd06c46d7458f8b9a90aba14b83cdb329'), ('o d n', '073afb751255a694c795ba837e5de5bd'),
           ('o d py', 'd738a9ab3ab200a7e013177e1042e86c'), ('o p g', '19b5ae01128233d622c4a638f00d612e'),
-          ('o p n', '5f400edc6f0990c0cd6eb52ae7687e39'), ('o p py', '69c9ad73ae02525150d4682f9dd68093'),
+          ('o p n', 'f83796c69bef1a21f3b954851ee598c4'), ('o p py', '69c9ad73ae02525150d4682f9dd68093'),
           ('m d py', 'd00ed6280d9acca8d7d4fd9521de5799'), ('m p py', 'c1ffc524f72349eebe971b0d27845f0d')]
 
 
@@ -355,9 +354,9 @@ def test_extract_regions_mth_of_nth(alb_resources, hf):
 
 
 # ###########################################  'fa', '--faux_alignment' ############################################ #
-hashes = [('d g', '3a9aa82548f3690485ddcbe1fff28476'), ('d n', 'e0e56affb50efe8b2305a83f348064c1'),
+hashes = [('d g', '3a9aa82548f3690485ddcbe1fff28476'), ('d n', '6783ef2f08259ffc4b0fee668b0426b0'),
           ('d py', '7fe42a710e91979bd40a93207548bbda'), ('p g', '65fcda412cd548bb9c37f00429cb6fb7'),
-          ('p n', '97b76e936b623ec31b5bc96626af5a18'), ('p py', '15c05d7ad6366919fa23e9e9228d1f07')]
+          ('p n', 'f55a5a14b7ff8cf96da14617961b69aa'), ('p py', '15c05d7ad6366919fa23e9e9228d1f07')]
 
 
 @pytest.mark.parametrize("key,next_hash", hashes)
@@ -442,7 +441,7 @@ def test_clustalomega(sb_resources, hf, monkeypatch):
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "23d7c9fa33454ed551a5896e532cf552", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "f625cc6bdd77cfc46194a00f64018e18", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalomega', "--outfmt=foobar", quiet=True)
@@ -478,7 +477,7 @@ def test_clustalw2(sb_resources, hf, monkeypatch):
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "f4a61a8c2d08a1d84a736231a4035e2e", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "5b1dab8402eeff48c23d47594616bd12", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'clustalw2', "-output=foobar", quiet=True)
@@ -517,7 +516,7 @@ def test_pagan(sb_resources, hf, monkeypatch):
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "f93607e234441a2577fa7d8a387ef7ec", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "a1d0200b94fc18afcbc1634eaaab493e", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan', "-f foobar", quiet=True)
@@ -554,7 +553,7 @@ def test_prank(sb_resources, hf, monkeypatch):
     # params
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=nexus", quiet=True)
-    assert hf.buddy2hash(tester) == "4dcaa948e109487ee12512b6ac02183c", tester.write("temp.del")
+    assert hf.buddy2hash(tester) == "d56333c12d24d7a237eba6072c2dd7f4", tester.write("temp.del")
 
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'prank', "-f=foobar", quiet=True)
@@ -679,11 +678,11 @@ def test_hash_seq_ids_errors(alb_resources):
 
 # #################################### 'lc', '--lowercase' and 'uc', '--uppercase' ################################### #
 hashes = [('o d g', '842d9c911a33c0fd0484383eabefb0fe', '842d9c911a33c0fd0484383eabefb0fe'),
-          ('o d n', '52e74a09c305d031fc5263d1751e265d', 'cb1169c2dd357771a97a02ae2160935d'),
+          ('o d n', 'b10f9ec515f995d234ce525e22a68635', '5cfb942a8c7d736b46816c0affc33507'),
           ('o d py', 'cfe6cb9c80aebd353cf0378a6d284239', '503e23720beea201f8fadf5dabda75e4'),
           ('o d s', 'b82538a4630810c004dc8a4c2d5165ce', '228e36a30e8433e4ee2cd78c3290fa6b'),
           ('o p g', '46388b175b31b81f47199ae6327768af', '46388b175b31b81f47199ae6327768af'),
-          ('o p n', '8b6737fe33058121fd99d2deee2f9a76', '17ff1b919cac899c5f918ce8d71904f6'),
+          ('o p n', '43f7e1dc7b14fc59dc3dab4235c01404', '17f8f086cea696b06d3f1f6f70eb2d8e'),
           ('o p py', '968ed9fa772e65750f201000d7da670f', 'aacda2f5d4077f23926400f74afa2f46'),
           ('o p s', 'f35cbc6e929c51481e4ec31e95671638', 'c0dce60745515b31a27de1f919083fe9'),
           ('m d py', '6259e675def07bd4977f4ab1f5ffc26d', '0974ac9aefb2fb540957f15c4869c242'),
@@ -695,9 +694,9 @@ hashes = [('o d g', '842d9c911a33c0fd0484383eabefb0fe', '842d9c911a33c0fd0484383
 @pytest.mark.parametrize("key,uc_hash,lc_hash", hashes)
 def test_cases(key, uc_hash, lc_hash, alb_resources, hf):
     tester = Alb.uppercase(alb_resources.get_one(key))
-    assert hf.buddy2hash(tester) == uc_hash, tester.write(join("error_files", uc_hash))
+    assert hf.buddy2hash(tester) == uc_hash, tester.write(join("error_files", hf.buddy2hash(tester)))
     tester = Alb.lowercase(tester)
-    assert hf.buddy2hash(tester) == lc_hash, tester.write(join("error_files", lc_hash))
+    assert hf.buddy2hash(tester) == lc_hash, tester.write(join("error_files", hf.buddy2hash(tester)))
 
 
 # ##################### '-mf2a', '--map_features2alignment' ###################### ##
@@ -710,7 +709,7 @@ hashes = [('o p n', '46f48b266b424b5e43d11d589812f1bf'), ('o p pr', 'c377cbacc34
 @pytest.mark.parametrize("key,next_hash", hashes)
 def test_map_features2alignment(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
-    if alignbuddy.alpha == IUPAC.protein:
+    if alignbuddy.alpha == "protein":
         seqbuddy = Sb.SeqBuddy(join(RES_PATH, "Mnemiopsis_pep.gb"))
     else:
         seqbuddy = Sb.SeqBuddy(join(RES_PATH, "Mnemiopsis_cds.gb"))
@@ -739,20 +738,20 @@ def test_position_frequency_matrix(alb_resources):
         Alb.position_frequency_matrix(alignbuddy)
         for align, length in zip(alignbuddy.alignments, alignbuddy.lengths()):
             assert len(align.pfm) == length
-            if alignbuddy.alpha == IUPAC.ambiguous_dna:
+            if alignbuddy.alpha == "DNA":
                 assert align.pfm[-1]["-"] == 0.769231
-            if alignbuddy.alpha == IUPAC.ambiguous_rna:
+            if alignbuddy.alpha == "RNA":
                 assert align.pfm[-1]["-"] == 0.769231
-            if alignbuddy.alpha == IUPAC.protein:
+            if alignbuddy.alpha == "protein":
                 assert align.pfm[-1]["-"] == 0.692308
 
 
 # ###########################################  '-oi', '--order_ids' ############################################ #
 hashes = [('o d g', '8f1846922f3c4d955c42964ba0c24649', '982e66fa5eeba8de5c570a770042ec10'),
-          ('o d n', '132757da01b3caf174d024efdb2c3acd', '286bac7a213997924203622c3357457c'),
+          ('o d n', '8320ea9e4b522bbfc5e1f6184389321c', '63ab39acdfec6dc7288163dcb79aa1e5'),
           ('o d py', '3c49bdc1b0fe4e1d6bfc148eb0293e21', 'd6e79a5faeaff396aa7eab0b460c3eb9'),
           ('o p g', '80cc4fc343879ce5eb9c0ec0f430d965', '3a00afabf18266b813a99ebc34140d18'),
-          ('o p n', '197ba12e799ab2a1dadfe1b254381e00', 'f32fabc627615d25d8cd57553e7281af'),
+          ('o p n', 'c6e2ac57b8b073ace0f6b720b51f6736', 'c557a68220e1e200c4a837dfceacdfc7'),
           ('o p py', 'ffae954adc0d362354e43c1b70d9be29', 'f4c0924087fdb624823d02e909d94e95'),
           ('m d py', 'a44938e26e4b35967ed8e17a0eaebe4c', '9d6b6087d07f7d1fd701591ab7cb576d'),
           ('m p py', '5bdda310b29b18057e056f3c982446b2', '439f57b891dd2a72724b10c124f96378')]
@@ -762,10 +761,10 @@ hashes = [('o d g', '8f1846922f3c4d955c42964ba0c24649', '982e66fa5eeba8de5c570a7
 def test_order_ids1(key, fwd_hash, rev_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.order_ids(alignbuddy)
-    assert hf.buddy2hash(alignbuddy) == fwd_hash, alignbuddy.write(join("error_files", fwd_hash))
+    assert hf.buddy2hash(alignbuddy) == fwd_hash, alignbuddy.write(join("error_files", hf.buddy2hash(alignbuddy)))
 
     Alb.order_ids(alignbuddy, reverse=True)
-    assert hf.buddy2hash(alignbuddy) == rev_hash, alignbuddy.write(join("error_files", rev_hash))
+    assert hf.buddy2hash(alignbuddy) == rev_hash, alignbuddy.write(join("error_files", hf.buddy2hash(alignbuddy)))
 
 
 def test_order_ids2(alb_resources, hf):
@@ -774,13 +773,13 @@ def test_order_ids2(alb_resources, hf):
     Alb.rename(alignbuddy, "Mle-Panxα5", "Mle05-Panxα5")
     Alb.rename(alignbuddy, "Mle-Panxα9", "aMle-PanxαBlahh")
     Alb.order_ids(alignbuddy)
-    assert hf.buddy2hash(alignbuddy) == "5c1316e18205432b044101e720646cd5"
+    assert hf.buddy2hash(alignbuddy) == "70c75c0122538840a0cfd652dc266642"
 
 
 # ##################### '-pr', '--pull_records' ###################### ##
-hashes = [('o d g', '8488d218201ef84c8fe458576d38e3be'), ('o d n', 'd82e66c57548bcf8cba202b13b070ead'),
+hashes = [('o d g', '8488d218201ef84c8fe458576d38e3be'), ('o d n', '3312eabfbc423f4b949509f8071c112f'),
           ('o d py', 'd141752c38a892ccca800c637f609608'), ('o p g', '11de462227fb680510227b822f8c375e'),
-          ('o p n', '027bbc7e34522f9521f83ee7d03793a1'), ('o p py', '2cd74d7ede4d1fb6e18363567426437e'),
+          ('o p n', 'f5dbc643b93b13d92fc51f516c7eb25c'), ('o p py', '2cd74d7ede4d1fb6e18363567426437e'),
           ('m d py', '7c77c6f3245c21842f4be585714ec6ce'), ('m p py', 'f34fa4c34cfe5c1e6b228949557c9483')]
 
 
@@ -788,13 +787,13 @@ hashes = [('o d g', '8488d218201ef84c8fe458576d38e3be'), ('o d n', 'd82e66c57548
 def test_pull_records(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.pull_records(alignbuddy, "α[1-5]$|β[A-M]")
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", next_hash))
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", hf.buddy2hash(alignbuddy)))
 
 
 # ###########################################  '-ri', '--rename_ids' ############################################ #
-hashes = [('o d g', '98f69c2d39c9a4ca0cb5f7da026095cd'), ('o d n', '243024bfd2f686e6a6e0ef65aa963494'),
+hashes = [('o d g', '98f69c2d39c9a4ca0cb5f7da026095cd'), ('o d n', 'c1e07ed535e3d02d2af7a016ca494400'),
           ('o d py', '98bb9b57f97555d863054ddb526055b4'), ('o p g', '7a72ab9a2ef49a97ee60862aab1c88c3'),
-          ('o p n', '3598e85169ed3bcdbcb676bb2eb6cef0'), ('o p py', 'd49eb4de01d727b9e3ad648d6a04a3c9'),
+          ('o p n', 'e1260e0e142fa6ba08e4e60f87f9d563'), ('o p py', 'd49eb4de01d727b9e3ad648d6a04a3c9'),
           ('m d py', 'ddfffd9b999637abf7f5926f017de987'), ('m p py', '0a68229bd13439040f045cd8c72d7cc9')]
 
 
@@ -802,12 +801,12 @@ hashes = [('o d g', '98f69c2d39c9a4ca0cb5f7da026095cd'), ('o d n', '243024bfd2f6
 def test_rename_ids(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.rename(alignbuddy, 'Panx', 'Test', 0)
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", next_hash))
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", hf.buddy2hash(alignbuddy)))
 
 
 # ###########################################  'tr', '--translate' ############################################ #
-hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', '542794541324d74ff636eaf4ee5e6b1a'),
-          ('o d n', 'a2586af672ad71f16bbd54f359b323ff'), ('o d py', 'd0d4dd408e559215b2780f4f0ae0c418'),
+hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', 'da9eb27214bdf0435d27d4cffad53f13'),
+          ('o d n', '948334ed33c58e4cda36167b356893dc'), ('o d py', 'd0d4dd408e559215b2780f4f0ae0c418'),
           ('o d pr', 'f77705e32cd753267916539ee0936e1f'), ('o d pss', 'ede672b15221ec60981287ca1e286c52'),
           ('o d psr', '623fe1634752e812f482cfa7b7ea20ee'), ('o d s', '4ff563c39229d30aa3eda193cb290344'),
           ('o d c', '150179326629fffadb7aef7796bd1cec'), ('m d py', '7fd28236f491c38ba261dfde20919595'),
@@ -820,7 +819,7 @@ hashes = [('o d f', 'b7fe22a87fb78ce747d80e1d73e39c35'), ('o d g', '542794541324
 def test_translate1(key, next_hash, alb_resources, hf):
     alignbuddy = alb_resources.get_one(key)
     Alb.translate_cds(alignbuddy)
-    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", next_hash))
+    assert hf.buddy2hash(alignbuddy) == next_hash, alignbuddy.write(join("error_files", hf.buddy2hash(alignbuddy)))
 
 
 def test_translate2(alb_resources):
@@ -830,7 +829,7 @@ def test_translate2(alb_resources):
     assert "Nucleic acid sequence required, not protein." in str(e)
 
     tester = alb_resources.get_one('o d s')
-    tester.records()[0].seq.alphabet = IUPAC.protein
+    tester.records()[0].annotations["molecule_type"] = "protein"
     with pytest.raises(TypeError) as e:
         Alb.translate_cds(tester)
     assert "Record 'Mle-Panxα9' is protein." in str(e)
@@ -857,15 +856,15 @@ def test_trimal(key, hash3, hash07, alb_resources, hf):
 
 def test_trimal2(alb_resources, hf):
     tester = Alb.trimal(alb_resources.get_one("o p n"), 'all')
-    assert hf.buddy2hash(tester) == "8faaf09741ddb3137653cb77ee66974a"
+    assert hf.buddy2hash(tester) == "20dbf382c793372fe41bddb3a01ddbf7"
     tester = alb_resources.get_one("o p n")
     tester.alignments[0]._records = tester.alignments[0]._records[:5]
     Alb.trimal(tester, 'clean')
-    assert hf.buddy2hash(tester) == "93a2aa21e6baf5ca70eb2de52ae8dbea"
+    assert hf.buddy2hash(tester) == "699476d3580614517eed97a70b1eaa91"
     tester = alb_resources.get_one("o p n")
     tester_dir = TEMPDIR.subdir()
     tester.write(join(tester_dir, "trimal"))
-    assert hf.buddy2hash(Alb.trimal(tester, 'gappyout')) == "2877ecfb201fc35211a4625f34c7afdd"
+    assert hf.buddy2hash(Alb.trimal(tester, 'gappyout')) == "917d6f00ff4a39433cc4f3429a64237b"
     """ Probably not a good idea to be calling binaries like this...
     real_trimal = Popen("trimal -in %s%strimal -gappyout" % (tester_dir, os.path.sep),
                         stdout=PIPE, shell=True).communicate()

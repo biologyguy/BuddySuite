@@ -54,7 +54,6 @@ else:
 
     from Bio import AlignIO, SeqIO
     from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
-    from Bio.Alphabet import IUPAC
 
 
 # ################################################## MYFUNCS ################################################### #
@@ -84,7 +83,7 @@ class RunTime(object):
         :param final_clear: If set to True, the counter message will be deleted before moving on
         """
         if out_type not in ["stdout", "stderr"]:
-            raise ValueError("The 'out_type' parameter must be either 'stdout' or 'stderr', not %s." % out_type)
+            raise ValueError("The `out_type` parameter must be either `stdout` or `stderr`, not `%s`." % out_type)
         self.out_type = out_type
         self.prefix = prefix if prefix else ""
         self.postfix = postfix if postfix else ""
@@ -1210,7 +1209,8 @@ def nexus_out(record_src, out_format):
             raise ValueError("NEXUS format does not support multiple alignments in one file.\n")
         alignment = record_src.alignments[0]
     elif hasattr(record_src, "records"):
-        alignment = AlignIO.MultipleSeqAlignment(record_src.records, alphabet=record_src.alpha)
+        alignment = AlignIO.MultipleSeqAlignment(record_src.records)
+        alignment.annotations["molecule_type"] = record_src.alpha
     elif type(record_src) in (list, tuple):
         alignment = AlignIO.MultipleSeqAlignment(list(record_src))
     else:
@@ -1461,7 +1461,7 @@ def ungap_feature_ends(feat, rec):
         feat.location = CompoundLocation(parts, feat.location.operator)
 
     elif type(feat.location) == FeatureLocation:
-        if feat.strand == -1 and rec.seq.alphabet == IUPAC.protein:
+        if feat.strand == -1 and rec.annotations["molecule_type"] == "protein":
             feat.strand = None
 
         start = int(feat.location.start) if feat.location.start > 0 else 0
@@ -1869,6 +1869,12 @@ sb_flags = {"amend_metadata": {"flag": "amd",
                          "metavar": "hash length (int)",
                          "help": "Rename all sequence IDs to fixed length hashes. "
                                  "Default length is 10."},
+            "head": {"flag": "hd",
+                     "action": "append",
+                     "nargs": "?",
+                     "type": int,
+                     "metavar": "Num records (int)",
+                     "help": "Pull records off the top"},
             "insert_seq": {"flag": "is",
                            "action": "append",
                            "nargs": "*",
@@ -2039,6 +2045,12 @@ sb_flags = {"amend_metadata": {"flag": "amd",
                                 "action": "append",
                                 "nargs": "*",
                                 "help": "Splits with set number of records per file"},
+            "tail": {"flag": "tl",
+                     "action": "append",
+                     "nargs": "?",
+                     "type": int,
+                     "metavar": "Num records (int)",
+                     "help": "Pull records off the bottom"},
             "taxonomic_breakdown": {"flag": "tb",
                                     "action": "append",
                                     "nargs": "?",

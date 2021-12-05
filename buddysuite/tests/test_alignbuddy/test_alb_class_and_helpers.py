@@ -2,16 +2,13 @@
 # coding=utf-8
 """ tests basic functionality of AlignBuddy class """
 import pytest
-import io
-import os
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
 from Bio import AlignIO
 
 import buddy_resources as br
 from AlignBuddy import AlignBuddy, guess_alphabet, make_copy
-from buddy_resources import GuessError, parse_format
+from buddy_resources import GuessError
 
 
 def mock_valueerror(*args, **kwargs):
@@ -113,7 +110,7 @@ def test_records_iter(alb_resources):
 def test_records_dict(alb_resources, hf):
     alignbuddy = alb_resources.get_one("o p g")
     alb_dict = alignbuddy.records_dict()
-    assert hf.string2hash(str(alb_dict)) == "a11e822d85aa7dc43afad3eda4f1708d"
+    assert hf.string2hash(str(alb_dict)) == "c6b319d946a1f1100762c45dd35b52f4"
 
 
 def test_lengths_single(alb_resources):
@@ -126,18 +123,18 @@ def test_lengths_multi(alb_resources):
         assert alignbuddy.lengths()[1] == 480
 
 
-hashes = [('o p g', '46388b175b31b81f47199ae6327768af'), ('o p n', '17ff1b919cac899c5f918ce8d71904f6'),
+hashes = [('o p g', '46388b175b31b81f47199ae6327768af'), ('o p n', '17f8f086cea696b06d3f1f6f70eb2d8e'),
           ('o p py', '968ed9fa772e65750f201000d7da670f'), ('o p pr', 'ce423d5b99d5917fbef6f3b47df40513'),
           ('o p pss', '4bd927145de635c429b2917e0a1db176'), ('o p psr', '8ff80c7f0b8fc7f237060f94603c17be'),
           ('o p s', 'c0dce60745515b31a27de1f919083fe9'),
 
           ('o d c', '3c937c9fec251a42f0994caabb64420c'), ('o d f', '98a3a08389284461ea9379c217e99770'),
-          ('o d g', '842d9c911a33c0fd0484383eabefb0fe'), ('o d n', 'cb1169c2dd357771a97a02ae2160935d'),
+          ('o d g', '842d9c911a33c0fd0484383eabefb0fe'), ('o d n', '5cfb942a8c7d736b46816c0affc33507'),
           ('o d py', '503e23720beea201f8fadf5dabda75e4'), ('o d pr', '52c23bd793c9761b7c0f897d3d757c12'),
           ('o d pss', '4c0c1c0c63298786e6fb3db1385af4d5'), ('o d psr', 'c5fb6a5ce437afa1a4004e4f8780ad68'),
           ('o d s', '228e36a30e8433e4ee2cd78c3290fa6b'),
 
-          ('o r n', 'f3bd73151645359af5db50d2bdb6a33d'),
+          ('o r n', 'be8fd74da1ae2cea76c68b5bc44504a6'),
 
           ('m p c', 'f0e20a55f679ee492bb0b3be444b46f9'), ('m p s', '3fd5805f61777f7f329767c5f0fb7467'),
           ('m p py', '2a77f5761d4f51b88cb86b079e564e3b'), ('m p pr', '3fef9a05058a5259ebd517d1500388d4'),
@@ -195,7 +192,7 @@ def test_str2(alb_resources, hf, capsys, monkeypatch):
 
     alignbuddy = alb_resources.get_one("o p py")
     rec = alignbuddy.records()[0]
-    rec.seq = Seq(str(rec.seq)[:-2], alphabet=rec.seq.alphabet)
+    rec.seq = Seq(str(rec.seq)[:-2])
     assert hf.string2hash(str(alignbuddy)) == "9337bba9fb455f1e6257cc236a663001"
     out, err = capsys.readouterr()
     assert "Warning: Alignment format detected but sequences are different lengths." in err
@@ -284,11 +281,11 @@ def test_guess_error(alb_odd_resources):
 
 def test_guess_alphabet(alb_resources):
     for alb in alb_resources.get_list("d"):
-        assert guess_alphabet(alb) == IUPAC.ambiguous_dna
+        assert guess_alphabet(alb) == "DNA"
     for alb in alb_resources.get_list("p"):
-        assert guess_alphabet(alb) == IUPAC.protein
+        assert guess_alphabet(alb) == "protein"
     for alb in alb_resources.get_list("r"):
-        assert guess_alphabet(alb) == IUPAC.ambiguous_rna
+        assert guess_alphabet(alb) == "RNA"
 
     assert not guess_alphabet(AlignBuddy("", in_format="fasta"))
 

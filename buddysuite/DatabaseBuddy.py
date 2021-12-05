@@ -409,7 +409,7 @@ class DbBuddy(object):  # Open a file or read a handle and parse, or convert raw
             _stdout("{0}\n".format(_output.rstrip()))
         else:
             # remove any escape characters and convert space padding to tabs if writing the file
-            _output = re.sub("\\033\[[0-9]*m", "", _output)
+            _output = re.sub(r"\\033\[[0-9]*m", "", _output)
             _output = re.sub(" +\n", "\n", _output)
             destination.write(_output)
 
@@ -457,29 +457,29 @@ class Record(object):
             self.type = "nucleotide"
 
         # GenBank
-        elif re.match("^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}(\.([0-9]+))?$", self.accession):  # Nucleotide
+        elif re.match(r"^[A-Z][0-9]{5}$|^[A-Z]{2}[0-9]{6}(\.([0-9]+))?$", self.accession):  # Nucleotide
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
-        elif re.match("^[A-Z]{3}[0-9]{5}(\.([0-9]+))?$", self.accession):  # Protein
+        elif re.match(r"^[A-Z]{3}[0-9]{5}(\.([0-9]+))?$", self.accession):  # Protein
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("[0-9][A-Z0-9]{3}(_[A-Z0-9])?(\.([0-9]+))?$", self.accession) \
+        elif re.match(r"[0-9][A-Z0-9]{3}(_[A-Z0-9])?(\.([0-9]+))?$", self.accession) \
                 and re.search("[A-Z]", self.accession):  # PDB
             self.database = "ncbi_prot"
             self.type = "protein"
 
-        elif re.match("^[A-Z]{4}[0-9]{8,10}(\.([0-9]+))?$", self.accession):  # Whole Genome
+        elif re.match(r"^[A-Z]{4}[0-9]{8,10}(\.([0-9]+))?$", self.accession):  # Whole Genome
             self.database = "ncbi_nuc"
             self.type = "nucleotide"
 
-        elif re.match("^[A-Z]{5}[0-9]{7}(\.([0-9]+))?$", self.accession):  # MGA (Mass sequence for Genome Annotation)
+        elif re.match(r"^[A-Z]{5}[0-9]{7}(\.([0-9]+))?$", self.accession):  # MGA (Mass sequence for Genome Annotation)
             self.database = "ncbi_prot"
             self.type = "protein"
 
         # Catch accn.version
-        version = re.search("^(.*?)\.([0-9]+)$", self.accession)
+        version = re.search(r"^(.*?)\.([0-9]+)$", self.accession)
         if version:
             self.version = version.group(2)
 
@@ -495,7 +495,7 @@ class Record(object):
         else:
             flags = 0
 
-        column = re.match("\((.*?)\)", regex)
+        column = re.match(r"\((.*?)\)", regex)
         if column:
             column = column.group(1)
             # Special case, if user is searching sequence length
@@ -527,7 +527,7 @@ class Record(object):
                     return False
 
             # Strip off column syntax
-            regex = re.search("^\(.*?\)(.*)", regex, flags=flags)
+            regex = re.search(r"^\(.*?\)(.*)", regex, flags=flags)
             regex = None if not regex else regex.group(1).strip()
 
             if column.lower() == "accn":
@@ -615,14 +615,14 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
     if format_in:
         format_in = format_in if type(format_in) == list else [format_in]
         for _format in format_in:
-            if not re.search("\\033\[[0-9]*m", _format):
+            if not re.search(r"\\033\[[0-9]*m", _format):
                 raise AttributeError('Malformed format_in attribute escape code')
         output += "".join(format_in)
 
     if format_out:
         format_out = format_out if type(format_out) == list else [format_out]
         for _format in format_out:
-            if not re.search("\\033\[[0-9]*m", _format):
+            if not re.search(r"\\033\[[0-9]*m", _format):
                 raise AttributeError('Malformed format_out attribute escape code')
         output += "%s%s" % (message, "".join(format_out))
     else:
@@ -1174,7 +1174,7 @@ class NCBIClient(GenericClient):
         br._stderr("\tDone\n")
         for accn, rec in records.items():
             self.dbbuddy.records[accn].record = rec
-            version = re.search("^.*?\.([0-9]+)$", accn)
+            version = re.search(r"^.*?\.([0-9]+)$", accn)
             if version:
                 self.dbbuddy.records[accn].version = version.group(1)
         return
@@ -1810,7 +1810,7 @@ Further details about each command can be accessed by typing 'help <command>'
             return
 
         # Set the .db extension
-        if not re.search("\.db$", line):
+        if not re.search(r"\.db$", line):
             line += ".db"
 
         # Warn if file exists

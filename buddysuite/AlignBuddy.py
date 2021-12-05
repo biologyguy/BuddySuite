@@ -56,7 +56,7 @@ from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
-from Bio.Alphabet import IUPAC
+from Bio.Data import IUPACData
 
 # ##################################################### WISH LIST #################################################### #
 # - Map features from a sequence file over to the alignment
@@ -172,7 +172,7 @@ class AlignBuddy(object):
         for alignment in alignments:
             alignment._alphabet = self.alpha
             for rec in alignment:
-                rec.seq.alphabet = self.alpha
+                rec.annotations["molecule_type"] = self.alpha
         self.alignments = alignments
         self.memory_footprint = sum([len(rec) for rec in self.records()])
 
@@ -308,21 +308,21 @@ def guess_alphabet(alignments):
         return None
 
     if 'U' in sequence:  # U is unique to RNA
-        return IUPAC.ambiguous_rna
+        return "RNA"
 
     percent_dna = len(re.findall("[ATCG]", sequence)) / float(len(sequence))
     if percent_dna > 0.85:  # odds that a sequence with no Us and such a high ATCG count be anything but DNA is low
-        return IUPAC.ambiguous_dna
+        return "DNA"
     else:
-        return IUPAC.protein
+        return "protein"
 
 
 def make_copy(alignbuddy):
-    alphabet_list = [rec.seq.alphabet for rec in alignbuddy.records()]
+    alphabet_list = [rec.annotations["molecule_type"] for rec in alignbuddy.records()]
     _copy = deepcopy(alignbuddy)
     _copy.alpha = alignbuddy.alpha
     for indx, rec in enumerate(_copy.records()):
-        rec.seq.alphabet = alphabet_list[indx]
+        rec.annotations["molecule_type"] = alphabet_list[indx]
     return _copy
 
 
@@ -455,11 +455,11 @@ def bootstrap(alignbuddy, num_bootstraps=1, r_seed=None):
             align_as_lists = ["".join(seq) for seq in align_as_lists]
             alb_copy = make_copy(alignbuddy)
             for copy_indx, seq in enumerate(alb_copy.alignments[align_indx]):
-                seq.seq = Seq(align_as_lists[copy_indx], alphabet=seq.seq.alphabet)
+                seq.seq = Seq(align_as_lists[copy_indx])
                 seq.features = []
                 align_as_lists[copy_indx] = seq
 
-            new_alignment = MultipleSeqAlignment(align_as_lists, alphabet=alignbuddy.alpha)
+            new_alignment = MultipleSeqAlignment(align_as_lists)
             new_alignments.append(new_alignment)
 
     alignbuddy = AlignBuddy(new_alignments, out_format=alignbuddy.out_format)
@@ -481,16 +481,16 @@ def clean_seq(alignbuddy, ambiguous=True, rep_char="N", skip_list=None):
     records = alignbuddy.records()
     # Protect gaps from being cleaned by Sb.clean_seq
     for rec in records:
-        if rec.seq.alphabet == IUPAC.protein:
-            rec.seq = Seq(re.sub(r"\*", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
-        rec.seq = Seq(re.sub("-", "�", str(rec.seq)), alphabet=rec.seq.alphabet)
+        if rec.annotations["molecule_type"] == "protein":
+            rec.seq = Seq(re.sub(r"\*", "-", str(rec.seq)))
+        rec.seq = Seq(re.sub("-", "\a", str(rec.seq)))
 
-    skip_list = "�" if not skip_list else "�" + "".join(skip_list)
+    skip_list = "\a" if not skip_list else "\a" + "".join(skip_list)
 
     seqbuddy = Sb.SeqBuddy(records, alpha=alignbuddy.alpha)
     Sb.clean_seq(seqbuddy, ambiguous, rep_char, skip_list)
     for rec in records:
-        rec.seq = Seq(re.sub("�", "-", str(rec.seq)), alphabet=rec.seq.alphabet)
+        rec.seq = Seq(re.sub("\a", "-", str(rec.seq)))
     return alignbuddy
 
 
@@ -556,16 +556,17 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern="", sup
 
         for group, seqs in concat_groups.items():
             if not seqs[indx]:
-                concat_groups[group][indx] = SeqRecord(Seq("-" * align.get_alignment_length(),
-                                                           alphabet=alignbuddy.alpha))
+                concat_groups[group][indx] = SeqRecord(Seq("-" * align.get_alignment_length()))
+                concat_groups[group][indx].annotations["molecule_type"] = alignbuddy.alpha
 
-    new_records = [SeqRecord(Seq("", alphabet=alignbuddy.alpha), id=group, features=[]) for group in concat_groups]
+    new_records = [SeqRecord(Seq(""), id=group, features=[]) for group in concat_groups]
+    for rec in new_records:
+        rec.annotations["molecule_type"] = alignbuddy.alpha
     indx = 0
     for group, seqs in concat_groups.items():
         new_length = 0
         for rec in seqs:
-            new_records[indx].seq = Seq(str(new_records[indx].seq) + str(rec.seq),
-                                        alphabet=new_records[indx].seq.alphabet)
+            new_records[indx].seq = Seq(str(new_records[indx].seq) + str(rec.seq))
             rec.features = br.shift_features(rec.features, new_length, new_length + len(rec.seq))
             new_records[indx].features += rec.features
             new_length += len(rec.seq)
@@ -596,7 +597,9 @@ def concat_alignments(alignbuddy, group_pattern=None, align_name_pattern="", sup
         new_records[group_indx].features = align_features + new_records[group_indx].features
         group_indx += 1
 
-    alignbuddy.alignments = [MultipleSeqAlignment(new_records, alphabet=alignbuddy.alpha)]
+    alignbuddy.alignments = [MultipleSeqAlignment(new_records)]
+    for alignment in alignbuddy.alignments:
+        alignment.annotations["molecule_type"] = alignbuddy.alpha
     return alignbuddy
 
 
@@ -615,7 +618,7 @@ def consensus_sequence(alignbuddy, mode="weighted"):
     if mode == "weighted":
         for alignment in alignbuddy.alignments:
             alpha = guess_alphabet(alignment)
-            ambig_char = "X" if alpha == IUPAC.protein else "N"
+            ambig_char = "X" if alpha == "protein" else "N"
             new_seq = ""
             scores_all_pos = {}
             sequence_weights = {}
@@ -659,16 +662,18 @@ def consensus_sequence(alignbuddy, mode="weighted"):
                 else:
                     new_seq += ambig_char
 
-            new_seq = Seq(new_seq, alphabet=alpha)
+            new_seq = Seq(new_seq)
             description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
             new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
                                 description=description)
-            consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
-
+            new_seq.annotations["molecule_type"] = alpha
+            consensus_sequences.append(MultipleSeqAlignment([new_seq]))
+            for rec in consensus_sequences:
+                rec.annotations["molecule_type"] = alpha
     elif mode == "simple":
         for alignment in alignbuddy.alignments:
             alpha = guess_alphabet(alignment)
-            ambig_char = "X" if alpha == IUPAC.protein else "N"
+            ambig_char = "X" if alpha == "protein" else "N"
             new_seq = ""
             for indx in range(alignment.get_alignment_length()):
                 residues = {}
@@ -681,11 +686,13 @@ def consensus_sequence(alignbuddy, mode="weighted"):
                     new_seq += residues[0][0]
                 else:
                     new_seq += ambig_char
-            new_seq = Seq(new_seq, alphabet=alpha)
+            new_seq = Seq(new_seq)
             description = "Original sequences: %s" % ", ".join([rec.id for rec in alignment])
-            new_seq = SeqRecord(new_seq, id="consensus", name="consensus",
-                                description=description)
-            consensus_sequences.append(MultipleSeqAlignment([new_seq], alphabet=alpha))
+            new_seq = SeqRecord(new_seq, id="consensus", name="consensus",description=description)
+            new_seq.annotations["molecule_type"] = alpha
+            consensus_sequences.append(MultipleSeqAlignment([new_seq]))
+            for rec in consensus_sequences:
+                rec.annotations["molecule_type"] = alpha
 
     else:
         raise ValueError("No valid consensus mode specified (valid modes are 'simple' and 'weighted')")
@@ -705,8 +712,8 @@ def delete_invariant_sites(alignbuddy, consider_ambiguous=True):
     :rtype: AlignBuddy
     """
     from Bio.Data import IUPACData
-    nucs = {'A', 'U', 'C', 'G'} if alignbuddy.alpha == IUPAC.ambiguous_rna else {'A', 'T', 'C', 'G'}
-    ambiguiity_codes = IUPACData.ambiguous_rna_values if alignbuddy.alpha == IUPAC.ambiguous_rna \
+    nucs = {'A', 'U', 'C', 'G'} if alignbuddy.alpha == "RNA" else {'A', 'T', 'C', 'G'}
+    ambiguiity_codes = IUPACData.ambiguous_rna_values if alignbuddy.alpha == "RNA" \
         else IUPACData.ambiguous_dna_values
 
     for alignment_index, alignment in enumerate(alignbuddy.alignments):
@@ -730,13 +737,13 @@ def delete_invariant_sites(alignbuddy, consider_ambiguous=True):
             # Discard fully ambiguous residues
             for i in ["X", "-", ".", "*"]:
                 col.discard(i)
-            if alignbuddy.alpha != IUPAC.protein:
+            if alignbuddy.alpha != "protein":
                 col.discard("N")
 
             # Again, fully invariant columns discarded
             if len(col) <= 1:
                 pass
-            elif alignbuddy.alpha == IUPAC.protein:
+            elif alignbuddy.alpha == "protein":
                 # No partially ambiguous protein characters considered
                 keep_columns.append(col_indx)
             # Now it gets trickier... There are many ambiguities possible in nucleotide seqs
@@ -800,7 +807,7 @@ def dna2rna(alignbuddy):  # Transcribe
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
     Sb.dna2rna(seqbuddy)
-    alignbuddy.alpha = IUPAC.ambiguous_rna
+    alignbuddy.alpha = "RNA"
     return alignbuddy
 
 
@@ -811,12 +818,12 @@ def enforce_triplets(alignbuddy):
     :return: The rearranged AlignBuddy object
     :rtype: AlignBuddy
     """
-    if alignbuddy.alpha == IUPAC.protein:
+    if alignbuddy.alpha == "protein":
         raise TypeError("Nucleic acid sequence required, not protein.")
 
     alignbuddy_copy = make_copy(alignbuddy)
     for rec in alignbuddy.records_iter():
-        if rec.seq.alphabet == IUPAC.protein:
+        if rec.annotations["molecule_type"] == "protein":
             raise TypeError("Record '%s' is protein. Nucleic acid sequence required." % rec.name)
 
         seq_list = list(str(rec.seq))
@@ -862,7 +869,7 @@ def enforce_triplets(alignbuddy):
         for i in range(back_indx * -1):
             output[back_indx] = "-"
             back_indx += 1
-        rec.seq = Seq("".join(output), alphabet=rec.seq.alphabet)
+        rec.seq = Seq("".join(output))
     br.remap_gapped_features(alignbuddy_copy.records(), alignbuddy.records())
     trimal(alignbuddy, "clean")
     return alignbuddy
@@ -939,7 +946,7 @@ def extract_feature_sequences(alignbuddy, patterns):
 
         if not keep_ranges:
             for rec in alignment:
-                rec.seq = Seq("", alphabet=rec.seq.alphabet)
+                rec.seq = Seq("")
                 rec.features = []
             new_alignments.append(alignment)
         else:
@@ -979,7 +986,8 @@ def extract_regions(alignbuddy, positions):
     for indx, alignment in enumerate(alignbuddy.alignments):
         seqbuddy = Sb.SeqBuddy([rec for rec in alignment])
         seqbuddy = Sb.extract_regions(seqbuddy, positions)
-        alignbuddy.alignments[indx] = MultipleSeqAlignment(seqbuddy.records, alphabet=alignbuddy.alpha)
+        alignbuddy.alignments[indx] = MultipleSeqAlignment(seqbuddy.records)
+        alignbuddy.alignments[indx].annotations["molecule_type"] = alignbuddy.alpha
     return alignbuddy
 
 
@@ -1018,7 +1026,7 @@ def faux_alignment(seqbuddy, size=0, r_seed=None):
             gaps -= next_gap
             r = rand_gen.randint(1, len(seq) - 1)
             seq = seq[:r] + ['-' * next_gap] + seq[r:]
-        rec.seq = Seq("".join(seq), rec.seq.alphabet)
+        rec.seq = Seq("".join(seq))
         records.append(rec)
     gapped_seqbuddy = Sb.SeqBuddy(records, out_format='fasta')
     alignbuddy = AlignBuddy(str(gapped_seqbuddy), out_format=seqbuddy.out_format)
@@ -1128,6 +1136,7 @@ def generate_msa(seqbuddy, alias, params=None, keep_temp=None, quiet=False):
                     command = '{0} -d={1} {2} -o={3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
                 elif tool["name"] == 'pagan':
                     command = '{0} -s {1} {2} -o {3}{4}result'.format(alias, tmp_in, params, tmp_dir.path, os.sep)
+                    print(command)
                 elif tool["name"] == 'mafft':
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
@@ -1314,7 +1323,7 @@ def lowercase(alignbuddy):
     :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
-        rec.seq = Seq(str(rec.seq).lower(), alphabet=rec.seq.alphabet)
+        rec.seq = Seq(str(rec.seq).lower())
     return alignbuddy
 
 
@@ -1414,12 +1423,12 @@ def position_frequency_matrix(alignbuddy):
     :return:
     """
     for alignment, length in zip(alignbuddy.alignments, alignbuddy.lengths()):
-        if alignbuddy.alpha == IUPAC.ambiguous_dna:
-            residues = {res for res in IUPAC.unambiguous_dna.letters}
-        elif alignbuddy.alpha == IUPAC.ambiguous_rna:
-            residues = {res for res in IUPAC.unambiguous_rna.letters}
+        if alignbuddy.alpha == "DNA":
+            residues = {res for res in IUPACData.unambiguous_dna_letters}
+        elif alignbuddy.alpha == "RNA":
+            residues = {res for res in IUPACData.unambiguous_rna_letters}
         else:
-            residues = {res for res in IUPAC.protein.letters}
+            residues = {res for res in IUPACData.protein_letters}
 
         columns = [{} for _ in range(length)]
         for col_indx in range(length):
@@ -1494,7 +1503,7 @@ def rna2dna(alignbuddy):  # Reverse-transcribe
     records = alignbuddy.records()
     seqbuddy = Sb.SeqBuddy(records)
     Sb.rna2dna(seqbuddy)
-    alignbuddy.alpha = IUPAC.ambiguous_dna
+    alignbuddy.alpha = "DNA"
     return alignbuddy
 
 
@@ -1505,7 +1514,7 @@ def translate_cds(alignbuddy):
     :return: The translated AlignBuddy object
     :rtype: AlignBuddy
     """
-    if alignbuddy.alpha == IUPAC.protein:
+    if alignbuddy.alpha == "protein":
         raise TypeError("Nucleic acid sequence required, not protein.")
 
     enforce_triplets(alignbuddy)
@@ -1515,9 +1524,10 @@ def translate_cds(alignbuddy):
         seqbuddy = Sb.SeqBuddy(list(alignment))
         Sb.replace_subsequence(seqbuddy, "\\".join(GAP_CHARS), "-")
         Sb.translate_cds(seqbuddy, alignment=True)
-        alignment = MultipleSeqAlignment(seqbuddy.records, alphabet=IUPAC.protein)
+        alignment = MultipleSeqAlignment(seqbuddy.records)
+        alignment.annotations = "protein"
         new_aligns.append(alignment)
-    alignbuddy.alpha = IUPAC.protein
+    alignbuddy.alpha = "protein"
     alignbuddy.alignments = new_aligns
     return alignbuddy
 
@@ -1682,7 +1692,7 @@ def uppercase(alignbuddy):
     :rtype: AlignBuddy
     """
     for rec in alignbuddy.records_iter():
-        rec.seq = Seq(str(rec.seq).upper(), alphabet=rec.seq.alphabet)
+        rec.seq = Seq(str(rec.seq).upper())
     return alignbuddy
 
 

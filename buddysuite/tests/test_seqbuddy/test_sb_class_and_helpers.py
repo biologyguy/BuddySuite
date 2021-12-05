@@ -2,9 +2,7 @@
 # coding=utf-8
 """ tests basic functionality of SeqBuddy class """
 import pytest
-from Bio.Alphabet import IUPAC
 from collections import OrderedDict
-import os
 import buddy_resources as br
 import SeqBuddy as Sb
 
@@ -20,13 +18,8 @@ def test_instantiate_seqbuddy_from_handle(sb_resources):
             assert type(Sb.SeqBuddy(ifile)) == Sb.SeqBuddy
 
 
-def test_instantiate_seqbuddy_from_raw(sb_resources):
-    for _path in sb_resources.get_list("", mode="paths"):
-        with open(_path, 'r') as ifile:
-            assert type(Sb.SeqBuddy(ifile.read(), in_format="raw")) == Sb.SeqBuddy
-
-        with open(_path, 'r') as ifile:
-            assert type(Sb.SeqBuddy(ifile, in_format="raw")) == Sb.SeqBuddy
+def test_instantiate_seqbuddy_from_raw():
+    assert type(Sb.SeqBuddy("atcgtcgtcg", in_format="raw")) == Sb.SeqBuddy
 
 
 def test_instantiate_seqbuddy_from_seqbuddy(sb_resources, hf):
@@ -38,22 +31,22 @@ def test_instantiate_seqbuddy_from_seqbuddy(sb_resources, hf):
 
 def test_alpha_arg_dna(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f", mode="paths"), alpha='dna')
-    assert tester.alpha is IUPAC.ambiguous_dna
+    assert tester.alpha is "DNA"
 
 
 def test_alpha_arg_rna(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("r f", mode="paths"), alpha='rna')
-    assert tester.alpha is IUPAC.ambiguous_rna
+    assert tester.alpha is "RNA"
 
 
 def test_alpha_arg_prot(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("p f", mode="paths"), alpha='prot')
-    assert tester.alpha is IUPAC.protein
+    assert tester.alpha is "protein"
 
 
 def test_alpha_arg_guess(sb_resources):
     tester = Sb.SeqBuddy(sb_resources.get_one("d f", mode="paths"), alpha='foo')
-    assert tester.alpha is IUPAC.ambiguous_dna
+    assert tester.alpha is "DNA"
 
 
 def test_seqlist_error():
@@ -64,7 +57,7 @@ def test_seqlist_error():
 # ##################### SeqBuddy methods ###################### ##
 def test_to_dict(sb_resources, hf):
     tester = str(sb_resources.get_one("o d f").to_dict())
-    assert hf.string2hash(tester) == '2311d1712d41c5ec9c23ad107c8a06c3'
+    assert hf.string2hash(tester) == '73d7b26798494b76e474badca8992140'
 
     with pytest.raises(RuntimeError):
         tester = Sb.SeqBuddy(">duplicate_id\nATGCTCGTA\n>duplicate_id\nATGCTCGTCGATGCT\n")
@@ -109,12 +102,6 @@ def test_to_string(sb_resources, hf, capsys):
     assert hf.string2hash(str(tester)) == "d8b82d5eea15918aac180e5d1095d5ca"
     out, err = capsys.readouterr()
     assert "Attempting phylip-relaxed." in err
-
-    tester = Sb.SeqBuddy(">fooooooooooooooobaaaaaaaaaaaaaaaaaar\nATGATGATGTAGT\n>bar\nATGATGATGTAGT\n",
-                         out_format="gb")
-    assert hf.string2hash(str(tester)) == "e10a8872a05242a32f2f29c309d150f9", print(str(tester))
-    out, err = capsys.readouterr()
-    assert "Warning: Genbank format returned an 'ID too long' error. Format changed to EMBL." in err
 
 
 def test_write(sb_resources, hf):
@@ -182,13 +169,13 @@ def test_feature_rc(sb_resources, hf):
 # ######################  'guess_alphabet' ###################### #
 def test_guess_alphabet(sb_resources):
     tester = sb_resources.get_one("d f")
-    assert Sb.guess_alphabet(tester) == IUPAC.ambiguous_dna
+    assert Sb.guess_alphabet(tester) == "DNA"
 
     tester = sb_resources.get_one("p f")
-    assert Sb.guess_alphabet(tester) == IUPAC.protein
+    assert Sb.guess_alphabet(tester) == "protein"
 
     tester = sb_resources.get_one("r f")
-    assert Sb.guess_alphabet(tester) == IUPAC.ambiguous_rna
+    assert Sb.guess_alphabet(tester) == "RNA"
 
     tester = Sb.SeqBuddy(">Seq1", in_format="fasta")
     assert not Sb.guess_alphabet(tester)

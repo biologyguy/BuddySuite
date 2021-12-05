@@ -430,7 +430,7 @@ def test_root_ui_midpoint(capsys, pb_resources, hf):
 
     Pb.command_line_ui(test_in_args, pb_resources.get_one("m k"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) in ["8a7fdd9421e0752c9cd58a1e073186c7", "25ea14c2e89530a0fb48163c0ef2a102"]
+    assert hf.string2hash(out) == '3437d2a35392f618ea5fcb7d80608b89'
 
 
 def test_root_ui_leaf(capsys, pb_resources, hf):

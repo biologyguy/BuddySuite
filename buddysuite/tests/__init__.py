@@ -54,7 +54,7 @@ class SbResources(object):
             ("phylipsr", "{path}Mnemiopsis_cds.physr"),
             ("stockholm", "{path}Mnemiopsis_cds.stklm"),
             ("embl", "{path}Mnemiopsis_cds.embl"),
-            ("seqxml", "{path}Mnemiopsis_cds.seqxml"),
+            # ("seqxml", "{path}Mnemiopsis_cds.seqxml"),
             ("fastq", "{path}Hechinata.fq")]}
 
         self.resources['rna'] = {file_format: name.format(path=RESOURCE_PATH) for file_format, name in [
@@ -80,12 +80,12 @@ class SbResources(object):
         self.code_dict = {"molecule": {"p": "pep", "d": "dna", "r": "rna"},
                           "format": {"c": "clustal", "e": "embl", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                      "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "q": "fastq",
-                                     "s": "stockholm", "x": "seqxml"}}
+                                     "s": "stockholm"}}
 
         self.single_letter_codes = {"p": "pep", "d": "dna", "r": "rna",
                                     "c": "clustal", "e": "embl", "f": "fasta", "g": "gb", "n": "nexus", "py": "phylip",
                                     "pr": "phylipr", "pss": "phylipss", "psr": "phylipsr", "q": "fastq",
-                                    "s": "stockholm", "x": "seqxml"}
+                                    "s": "stockholm"}
 
     def parse_code(self, code="", strict=False):
         """

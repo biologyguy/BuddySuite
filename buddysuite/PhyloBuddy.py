@@ -55,7 +55,6 @@ from copy import deepcopy
 import Bio.Phylo
 # from Bio.Phylo import PhyloXML, NeXML, Newick
 # sys.path.insert(0, "./")  # For stand alone executable, where dependencies are packaged with BuddySuite
-from Bio.Alphabet import IUPAC
 try:
     import dendropy
 except ImportError:
@@ -741,11 +740,10 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
                 if '-T' not in params:  # Num threads
                     params += ' -T 2'
                 if '-m' not in params:  # An evolutionary model is required
-                    if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
-                                                IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+                    if sub_alignbuddy.alpha in ["DNA", "RNA"]:
                         br._stderr("Warning: Using default evolutionary model GTRCAT\n", quiet=quiet)
                         params += " -m GTRCAT"
-                    elif sub_alignbuddy.alpha == IUPAC.protein:
+                    elif sub_alignbuddy.alpha == "protein":
                         br._stderr("Warning: Using default evolutionary model PROTCATLG\n", quiet=quiet)
                         params += " -m PROTCATLG"
 
@@ -758,12 +756,11 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
             elif tool == 'phyml':
                 params = remove_invalid_params({'-q': False, '--sequential': False, '-u': True, '--inputtree': True,
                                                 '--run_id': True})
-                if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
-                                            IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+                if sub_alignbuddy.alpha in ["DNA", "RNA"]:
                     if '-d nt' not in params and '--datatype nt' not in params:
                         params += ' -d nt'
 
-                elif sub_alignbuddy.alpha == IUPAC.protein:
+                elif sub_alignbuddy.alpha == "protein":
                     if '-d aa' not in params and '--datatype aa' not in params:
                         params += ' -d aa'
 
@@ -771,16 +768,14 @@ def generate_tree(alignbuddy, alias, params=None, keep_temp=None, quiet=False, r
 
             elif tool == 'fasttree':
                 params = remove_invalid_params({'-n': True})
-                if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
-                                            IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+                if sub_alignbuddy.alpha in ["DNA", "RNA"]:
                     command = '{0} {1} -nt {2}'.format(alias, params, tmp_in)  # FastTree must be told what alpha to use
                 else:
                     command = '{0} {1} {2}'.format(alias, params, tmp_in)
 
             elif tool == "iqtree":
                 params = remove_invalid_params({"-s": True, "-st": True})
-                if sub_alignbuddy.alpha in [IUPAC.ambiguous_dna, IUPAC.unambiguous_dna,
-                                            IUPAC.ambiguous_rna, IUPAC.unambiguous_rna]:
+                if sub_alignbuddy.alpha in ["DNA", "RNA"]:
                     params += ' -st DNA'
                 else:
                     params += ' -st AA'
@@ -1309,7 +1304,7 @@ def command_line_ui(in_args, phylobuddy, skip_exit=False, pass_through=False):  
 
         except AttributeError as err:
             _raise_error(err, "display_trees", "Unknown program")
-        
+
         _exit("display_trees")
 
     # Distance

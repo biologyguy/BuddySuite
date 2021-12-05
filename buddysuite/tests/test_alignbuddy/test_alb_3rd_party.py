@@ -40,6 +40,7 @@ def test_pagan(sb_resources, hf):
     # FASTA
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, 'pagan')
+    print(tester)
     assert hf.buddy2hash(tester) in ['da1c6bb365e2da8cb4e7fad32d7dafdb', '1219647676b359a5ad0be6d9dda81c73']
     # NEXUS
     tester = sb_resources.get_one("d f")
@@ -147,7 +148,8 @@ def test_clustalw_outputs1(sb_resources, hf):
     # NEXUS
     tester = sb_resources.get_one("d f")
     tester = Alb.generate_msa(tester, clustalw_bin, '-output=nexus')
-    assert hf.buddy2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e', '7ca92360f0787164664843c895dd98f2']
+    assert hf.buddy2hash(tester) in ['f4a61a8c2d08a1d84a736231a4035e2e', '7ca92360f0787164664843c895dd98f2',
+                                     '5b1dab8402eeff48c23d47594616bd12']
 
 
 @br.skip_windows
@@ -298,7 +300,7 @@ def test_generate_alignment_keep_temp(monkeypatch, sb_resources):
 def test_generate_alignments_genbank(sb_resources, hf):
     tester = sb_resources.get_one("p g")
     tester = Alb.generate_msa(tester, "mafft")
-    assert hf.buddy2hash(tester) == "a4ab6b2a2ddda38a4d04abc18c54d18b"
+    assert hf.buddy2hash(tester) == "12a145cad7ca805cbb67a417cdf6a17e"
 
 
 @br.skip_windows
@@ -338,7 +340,7 @@ def test_generate_alignments_edges2(tool, params, sb_resources):
 def get_hmmer_version():
     hmmer_version = Popen("hmmbuild -h", shell=True, stdout=PIPE).communicate()[0].decode()
     hmmer_version = re.search(r"# HMMER (.*?) \(", hmmer_version).group(1)
-    if hmmer_version not in ["3.1b2", "3.2", "3.2.1"]:
+    if hmmer_version not in ["3.1b2", "3.2", "3.2.1", "3.3.2"]:
         raise ValueError("Untested HMMER version (%s). Please update the tests as necessary." % hmmer_version)
     return hmmer_version
 
@@ -352,10 +354,19 @@ def test_generate_hmm(alb_resources, monkeypatch):
     tester = Alb.generate_hmm(tester)
     for align in tester.alignments:
         align.hmm = re.search("(HMM +A +C +D.+//)", align.hmm, re.DOTALL).group(1)
-    assert "  COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  " \
-           "3.43272  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958  4.30351" in tester.alignments[0].hmm
-    assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  " \
-           "3.48106  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321  4.24683" in tester.alignments[1].hmm
+
+    if get_hmmer_version() == "3.2.1":
+        assert "  COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  " \
+               "3.43272  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958" in tester.alignments[0].hmm
+        assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  " \
+               "3.48106  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321" in tester.alignments[1].hmm
+    elif get_hmmer_version() == "3.3.2":
+        assert "  COMPO   2.68165  3.89225  3.04886  2.78132  3.07944  3.13137  3.72885  2.65091  2.67064  2.34859  " \
+               "3.43337  3.05582  3.57148  3.09795  3.03284  2.75085  2.90309  2.58861" in tester.alignments[0].hmm
+        assert "COMPO   2.62015  3.91013  3.13733  2.81841  3.03729  2.96297  3.76877  2.71263  2.73674  2.36762  " \
+               "3.46090  3.12779  3.41739  3.15137  3.06836  2.71132  2.81870  2.57864" in tester.alignments[1].hmm
+    else:
+        assert False, print("Unchecked version: " % get_hmmer_version())
 
     tester = alb_resources.get_one("m d c")
     tester = Alb.generate_hmm(tester, "hmmbuild")
@@ -366,13 +377,27 @@ def test_generate_hmm(alb_resources, monkeypatch):
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
   COMPO   1.36559  1.47500  1.43577  1.27993
           1.38629  1.38629  1.38629  1.38629
-          0.10315  4.62497  2.42807  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm, print(tester.alignments[0].hmm[:400])
+          0.10315  4.62497  2.42807  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm, \
+            print(tester.alignments[0].hmm[:400])
         assert """\
             m->m     m->i     m->d     i->m     i->i     d->m     d->d
   COMPO   1.21822  1.69556  1.55437  1.17304
           0.92349  1.43532  1.86505  1.56092
-          0.88021  1.47202  1.03326  3.55965  0.02886  0.00000        *""" in tester.alignments[1].hmm, print(tester.alignments[1].hmm[:400])
-
+          0.88021  1.47202  1.03326  3.55965  0.02886  0.00000        *""" in tester.alignments[1].hmm, \
+            print(tester.alignments[1].hmm[:400])
+    elif get_hmmer_version() == "3.3.2":
+        assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.36668  1.47405  1.43525  1.28014
+          1.38629  1.38629  1.38629  1.38629
+          0.11604  4.62497  2.30499  1.46634  0.26236  0.00000        *""" in tester.alignments[0].hmm, \
+            print(tester.alignments[0].hmm[:400])
+        assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.22124  1.70164  1.54701  1.17161
+          0.94243  1.48514  1.79234  1.52658
+          0.81259  1.73601  0.96741  3.09534  0.04632  0.00000        *""" in tester.alignments[1].hmm, \
+            print(tester.alignments[1].hmm[:400])
     else:
         assert """\
                 m->m     m->i     m->d     i->m     i->i     d->m     d->d
@@ -383,7 +408,7 @@ def test_generate_hmm(alb_resources, monkeypatch):
                 m->m     m->i     m->d     i->m     i->i     d->m     d->d
       COMPO   1.26618  1.65166  1.51488  1.18245
               0.93669  1.43354  1.84356  1.55419
-              0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *""" in tester.alignments[1].hmm, print(tester.alignments[0].hmm[:400])
+              0.72237  1.59420  1.16691  3.55520  0.02899  0.00000        *""" in tester.alignments[1].hmm, print(tester.alignments[1].hmm[:400])
 
     with pytest.raises(SystemError) as err:
         Alb.generate_hmm(tester, "foo")

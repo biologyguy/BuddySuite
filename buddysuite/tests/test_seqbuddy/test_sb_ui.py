@@ -28,11 +28,11 @@ import os
 import argparse
 from copy import deepcopy
 from unittest import mock
-from Bio.Alphabet import IUPAC
 import io
 import urllib.error
 import sys
 from collections import OrderedDict
+import warnings
 
 import SeqBuddy as Sb
 import buddy_resources as br
@@ -502,7 +502,7 @@ def test_delete_small_ui(capsys, sb_resources, hf):
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "196adf08d4993c51050289e5167dacdf"
 
-    
+
 # ######################  '-dt', '--delete_taxa' ###################### #
 def test_delete_taxa_ui(capsys, sb_resources, hf):
     test_in_args = deepcopy(in_args)
@@ -825,7 +825,7 @@ def test_guess_format_ui(capsys, sb_resources, sb_odd_resources, hf, monkeypatch
     test_in_args.sequence += [sb_odd_resources["gibberish"], sb_odd_resources["figtree"]]
     Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "c1b601d684cd063bd29035cf84090505", print(out)
+    assert hf.string2hash(out) == "3806384b5c8a61488eda01ddbb28a4cd", print(out)
 
     text_io = io.open(sb_resources.get_one("d e", mode='paths'), "r")
     test_in_args.sequence = [text_io]
@@ -1472,20 +1472,20 @@ def test_reverse_complement_ui(capsys, sb_resources, sb_odd_resources, hf):
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "47941614adfcc5bd107f71abef8b3e00"
 
-    with pytest.raises(TypeError) as err:
-        Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), pass_through=True)
-    assert "SeqBuddy object is protein. Nucleic acid sequences required." in str(err)
+    Sb.command_line_ui(test_in_args, sb_resources.get_one('p g'), True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "c545f4b8d822a3be309adcf97206964c"
 
     tester = Sb.SeqBuddy(sb_odd_resources['mixed'])
-    tester.alpha = IUPAC.ambiguous_dna
+    tester.alpha = "DNA"
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "efbcc71f3b2820ea05bf32038012b883"
 
-    tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(TypeError) as err:
-        Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "Record 'Mle-Panxα12' is protein. Nucleic acid sequences required." in str(err)
+    tester.records[0].seq.alphabet = "protein"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "97bfc6c8373cf29e15d37380b6a1a94b"
 
 
 # ######################  '-r2d', '--reverse_transcribe' ###################### #
@@ -1498,12 +1498,12 @@ def test_reverse_transcribe_ui(capsys, sb_resources, hf):
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('d f'), pass_through=True)
-    assert "RNA sequence required, not IUPACAmbiguousDNA()." in str(err)
+    assert "RNA sequence required, not DNA." in str(err)
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
 hashes = [("fasta", "09f92be10f39c7ce3f5671ef2534ac17"), ("gb", "37e1cdddc8386c8afe5b10787f24efe0"),
-          ("nexus", "2822cc00c2183a0d01e3b79388d344b3"), ("phylip", "6a4d62e1ee130b324cce48323c6d1d41"),
+          ("nexus", "8c3a06ffefc078549b1cd711f13eda96"), ("phylip", "6a4d62e1ee130b324cce48323c6d1d41"),
           ("phylip-relaxed", "4c2c5900a57aad343cfdb8b35a8f8442"), ("phylipss", "089cfb52076e63570597a74b2b000660"),
           ("phylipsr", "58a74f5e08afa0335ccfed0bdd94d3f2"), ("stockholm", "8c0f5e2aea7334a0f2774b0366d6da0b"),
           ("raw", "f0ce73f4d05a5fb3d222fb0277ff61d2")]
@@ -1720,7 +1720,7 @@ def test_transcribe_ui(capsys, sb_resources, hf):
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
-    assert "DNA sequence required, not IUPACProtein()." in str(err)
+    assert "DNA sequence required, not protein." in str(err)
 
 
 # ######################  '-tb', '--taxonomic_breakdown' ###################### #
@@ -1787,11 +1787,13 @@ def test_translate_ui(capsys, sb_resources, sb_odd_resources, hf):
     assert hf.string2hash(out) == "648ccc7c3400882be5bf6e8d9781f74e"
 
     tester = Sb.SeqBuddy(sb_odd_resources['mixed'])
-    tester.alpha = IUPAC.ambiguous_dna
-    tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(TypeError) as err:
-        Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert 'Record Mle-Panxα12 is protein.' in str(err)
+    tester.alpha = "DNA"
+    # Annotate the first record as protein
+    tester.records[0].seq.alphabet = "protein"
+    Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "8fb080a4b78706359e1131d440bff73e"
+    assert "Warning: size mismatch between aa and nucl seqs for Mle-Panxα12 --> 248, 82" in err
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)
@@ -1818,15 +1820,16 @@ def test_translate6frames_ui(capsys, sb_resources, sb_odd_resources, hf):
     assert err == ""
 
     tester = Sb.SeqBuddy(sb_odd_resources["mixed"])
-    tester.alpha = IUPAC.ambiguous_dna
+    tester.alpha = "DNA"
     Sb.command_line_ui(test_in_args, tester, True)
     out, err = capsys.readouterr()
     assert hf.string2hash(out) == "b54ec5c49bd88126de337e1eb3d2ad23"
 
-    tester.records[0].seq.alphabet = IUPAC.protein
-    with pytest.raises(TypeError) as err:
-        Sb.command_line_ui(test_in_args, tester, pass_through=True)
-    assert "Record 'Mle-Panxα12_f1' is protein. Nucleic acid sequences required." in str(err)
+    tester.records[0].seq.alphabet = "protein"
+    with pytest.warns(UserWarning, match='Record Mle-Panxα12_f1 is protein.'):
+        Sb.command_line_ui(test_in_args, tester, True)
+    out, err = capsys.readouterr()
+    assert hf.string2hash(out) == "ad83645340c9f44f51c1ffebf28551c5"
 
     with pytest.raises(TypeError) as err:
         Sb.command_line_ui(test_in_args, sb_resources.get_one('p f'), pass_through=True)

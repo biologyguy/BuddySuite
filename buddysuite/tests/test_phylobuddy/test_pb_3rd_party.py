@@ -95,7 +95,7 @@ def get_phyml_version():
     phyml_version = Popen("phyml --version", shell=True, stdout=PIPE).communicate()[0].decode()
     phyml_version = re.search(r"[0-9]\.[0-9]\.[0-9]{8}|[0-9]{8}|[0-9]\.[0-9]\.[0-9]", phyml_version).group(0)
 
-    if phyml_version not in ["20111216", "20120412", "20131022", "20160207",
+    if phyml_version not in ["20111216", "20120412", "20131022", "20160207", "3.2.0",
                              "3.2.20160701", "3.2.20160531", "3.3.20170530", "3.3.3"]:
         raise ValueError("Untested PhyML version (%s). Please update the tests as necessary." % phyml_version)
 
@@ -114,6 +114,7 @@ def test_phyml_dna(alb_resources, hf):
                                      '754c38fab99c01c68a68c0a59248d242': "",
                                      '3ca772c34cdcf0a22c09e1592aba9ebf': "",
                                      'd7ae1badd31d48487276495bad4522e5': "",
+                                     '1e8527da409935437089e1191531c51f': "3.2.0",
                                      'e84fb949f1a6ed0296cda4e5a8422423': "3.3.20170530",
                                      'ce0245ffd7076d7f920217f68ae00ffd': "3.3.3"}, print(tester)
 
@@ -129,6 +130,7 @@ def test_phyml_pep(alb_resources, hf):
                                      'd8ee3631002b6603d08272c2b44fd21c': "",
                                      '03acc8e899955f7e838852d7d71049ad': "",
                                      'abe46f3bac533ad2f510bd4657aa9505': "",
+                                     'c7c528888151e16392553320d6fa9414': "3.2.0",
                                      '06f5ec5db5e1a27c07e4e8b5f5850685': "3.3.20170530",
                                      'bd6dd6bb907a1fcf4e87b607c9676a34': "3.3.3"}, print(tester)
 
@@ -177,7 +179,7 @@ def test_fasttree_inputs(alb_resources, hf):
 def get_iqtree_version():
     iqtree_version = Popen("iqtree -h", shell=True, stderr=PIPE, stdout=PIPE).communicate()[0].decode()
     iqtree_version = re.search(r"version ([0-9]+\.[0-9]+\.[0-9]+)", iqtree_version).group(1)
-    if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7", "1.6.8", "1.6.9"]:
+    if iqtree_version not in ["1.5.5", "1.6.1", "1.6.7", "1.6.8", "1.6.9", "2.1.2"]:
         raise ValueError("Untested IQ-TREE version (%s). Please update the tests as necessary." % iqtree_version)
 
 
@@ -193,13 +195,15 @@ def test_iqtree_inputs(alb_resources, hf, capsys):
     tester = Pb.generate_tree(alignbuddy, 'iqtree', '-m JC -seed 12345 -nt 1', r_seed=12345)
     capsys.readouterr()
     assert hf.buddy2hash(tester) in {'08d1c7473503e52af5750caa79db1a0e': "1.5.5",
-                                     '476efd414108a677c8ae0b8dba55c677': "1.6.1"}, print(tester)
+                                     '476efd414108a677c8ae0b8dba55c677': "1.6.1",
+                                     '0756d105f4c9232deea6faa52623b540': "2.1.2"}, print(tester)
 
     alignbuddy = alb_resources.get_one("o p py")
     tester = Pb.generate_tree(alignbuddy, 'iqtree', '-m LG -seed 12345 -nt 1',
                               keep_temp=os.path.join(temp_dir.path, "new_dir"), r_seed=12345)
     assert hf.buddy2hash(tester) in {'4b4c79ddcae0836db33bc118f0b17292': '1.5.5',
-                                     '2abb71ad0bc5b61bcf1437e2485669b4': "1.6.1"}, print(tester)
+                                     '2abb71ad0bc5b61bcf1437e2485669b4': "1.6.1",
+                                     'e6f482540c830148f33f416f1af377b2': "2.1.2"}, print(tester)
 
     root, dirs, files = next(os.walk(os.path.join(temp_dir.path, 'new_dir')))
     assert sorted(files) == ['pb_input.aln', 'pb_input.aln.bionj', 'pb_input.aln.ckp.gz',

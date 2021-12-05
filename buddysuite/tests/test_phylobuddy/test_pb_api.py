@@ -499,7 +499,7 @@ def test_generate_tree_edges(alb_resources, monkeypatch):
     monkeypatch.setattr(Pb.shutil, "which", lambda *_: None)
     with pytest.raises(ProcessLookupError) as err:
         Pb.generate_tree(alb_resources.get_one("o d n"), 'Foo')
-    assert "ProcessLookupError: #### Could not find Foo on your system. ####" in str(err)
+    assert "ProcessLookupError('#### Could not find Foo on your system. ####" in str(err)
 
     monkeypatch.setattr(Pb.Popen, "communicate", lambda *_: ["".encode(), "".encode()])
     with pytest.raises(AttributeError) as err:
@@ -639,20 +639,19 @@ def test_rename_nodes(pb_odd_resources, hf):
 
 
 # ###################### 'rt', '--root' ###################### #
-# Note that there's a weird behaviour with dendropy here. If running pytest with -n, it returns slightly different trees
-hashes = [('m k', ['8a7fdd9421e0752c9cd58a1e073186c7', '25ea14c2e89530a0fb48163c0ef2a102']),
-          ('m n', ['c16b19aaa11678595f6ed4e7c6b77955', 'e3711259d579cbf0511a5ded66dfd437']),
-          ('m l', ['773e71730ccf270ea3a7cd37a7c0990d', '8135cec021240619c27d61288885d8e1']),
-          ('o k', ['eacf232776eea70b5de156328e10ecc7', '05a83105f54340839dca64a62a22026e']),
-          ('o n', ['53caffda3fed5b9004b79effc6d29c36', 'f0e26202274a191c9939835b25c1fae4']),
-          ('o l', ['3137d568fe07d88620c08480a15006d3', 'e97c246dc7ebf4d80363f836beff4a81'])]
+hashes = [('m k', ['3437d2a35392f618ea5fcb7d80608b89']),
+          ('m n', ['2f68f18033059eaf145cb71a4a652013']),
+          ('m l', ['661089f456977294136ea5030820fc18']),
+          ('o k', ['42b7b854c68364f2f5317ce02189c1f2']),
+          ('o n', ['c3d0af539fd02360e06dab474a9169ea']),
+          ('o l', ['67daa5b40fb0d93b0c9a2b4397d93c87'])]
 
 
 @pytest.mark.parametrize("key, next_hashes", hashes)
 def test_root_middle(key, next_hashes, pb_resources, hf):
     tester = pb_resources.get_one(key)
     tester = Pb.root(tester)
-    assert hf.buddy2hash(tester) in next_hashes
+    assert hf.buddy2hash(tester) in next_hashes, print(tester)
 
 
 hashes = [('m k', 'f32bdc34bfe127bb0453a80cf7b01302'), ('m n', 'a7003478d75ad76ef61fcdc643ccdab8'),

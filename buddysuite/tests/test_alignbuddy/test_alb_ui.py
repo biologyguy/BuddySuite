@@ -436,10 +436,10 @@ def test_generate_hmm_ui(alb_resources, capsys, monkeypatch):
 
     out, err = capsys.readouterr()
     hmm = re.findall("(HMM +A +C +D.+?//)", out, re.DOTALL)
-    assert "COMPO   2.68250  3.88919  3.04853  2.78121  3.08118  3.13138  3.72607  2.65113  2.67024  2.34849  3.43272" \
-           "  3.05512  3.56890  3.09868  3.03335  2.74953  2.90269  2.58958  4.30351  3.11199" in hmm[0]
-    assert "COMPO   2.61975  3.93095  3.12640  2.80659  3.03969  2.94881  3.78599  2.73397  2.73613  2.36723  3.48106" \
-           "  3.11755  3.38828  3.15135  3.06078  2.68581  2.82442  2.59321  4.24683  3.17591" in hmm[1]
+    assert "COMPO   2.68165  3.89225  3.04886  2.78132  3.07944  3.13137  3.72885  2.65091  2.67064  2.34859  3.43337" \
+           "  3.05582  3.57148  3.09795  3.03284  2.75085  2.90309  2.58861  4.30458  3.10857" in hmm[0]
+    assert "COMPO   2.62015  3.91013  3.13733  2.81841  3.03729  2.96297  3.76877  2.71263  2.73674  2.36762  3.46090" \
+           "  3.12779  3.41739  3.15137  3.06836  2.71132  2.81870  2.57864  4.22232  3.15744" in hmm[1]
 
     tester = alb_resources.get_one("m d c")
     Alb.command_line_ui(test_in_args, tester, True)
@@ -485,6 +485,25 @@ def test_generate_hmm_ui(alb_resources, capsys, monkeypatch):
       1   0.38203  3.71820  1.33658  3.48985     85 a - - -
           1.38629  1.38629  1.38629  1.38629
           0.01756  4.74428  4.74428  1.46634  0.26236  2.73351  0.06720""" in hmm[1]
+
+    elif hmmer_version in ["3.3.2"]:
+        assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.36668  1.47405  1.43525  1.28014
+          1.38629  1.38629  1.38629  1.38629
+          0.11604  4.62497  2.30499  1.46634  0.26236  0.00000        *
+      1   0.03697  4.58487  4.22718  4.46560      1 A - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.02178  4.53071  4.53071  1.46634  0.26236  1.57590  0.23171""" in hmm[0]
+
+        assert """\
+            m->m     m->i     m->d     i->m     i->i     d->m     d->d
+  COMPO   1.22124  1.70164  1.54701  1.17161
+          0.94243  1.48514  1.79234  1.52658
+          0.81259  1.73601  0.96741  3.09534  0.04632  0.00000        *
+      1   0.39313  3.66576  1.31942  3.43624     85 a - - -
+          1.38629  1.38629  1.38629  1.38629
+          0.01791  4.72451  4.72451  1.46634  0.26236  2.80295  0.06255""" in hmm[1]
 
     else:
         raise AttributeError("Problem in test_generate_hmm_ui")
@@ -678,16 +697,16 @@ def test_reverse_transcribe_ui(capsys, alb_resources, hf):
     test_in_args.reverse_transcribe = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "f8c2b216fa65fef9c74c1d0c4abc2ada"
+    assert hf.string2hash(out) == "5cfb942a8c7d736b46816c0affc33507"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("m d s"), pass_through=True)
-    assert "RNA sequence required, not IUPACAmbiguousDNA()." in str(err)
+    assert "RNA sequence required, not DNA." in str(err)
 
 
 # ######################  '-sf', '--screw_formats' ###################### #
 hashes = [("fasta", "cfa898d43918055b6a02041195874da9"), ("gb", "28c76bfc1ae74b2a55c3044287e074a8"),
-          ("nexus", "49bf9b3f56104e4f19048523d725f025"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
+          ("nexus", "6533a04f60bc92fe02437ed75bf1552b"), ("phylip", "968ed9fa772e65750f201000d7da670f"),
           ("phylipr", "5064c1d6ae6192a829972b7ec0f129ed"), ("phylipss", "4bd927145de635c429b2917e0a1db176"),
           ("phylipsr", "b46b57ede57f12c3c3b906681882f81a"), ("stockholm", "5d9a03d9e1b4bf72d991257d3a696306"),
           ("clustal", "9d328711cf6f6750c33373a912efb521")]
@@ -796,11 +815,11 @@ def test_transcribe_ui(capsys, alb_resources, hf):
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d n"), skip_exit=True)
     out, err = capsys.readouterr()
 
-    assert hf.string2hash(out) == "e531dc31f24192f90aa1f4b6195185b0"
+    assert hf.string2hash(out) == "be8fd74da1ae2cea76c68b5bc44504a6"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o r n"), pass_through=True)
-    assert "DNA sequence required, not IUPACAmbiguousRNA()." in str(err)
+    assert "DNA sequence required, not RNA." in str(err)
 
 
 # ##################### '-tr', '--translate' ###################### ##
@@ -809,7 +828,7 @@ def test_translate_ui(capsys, alb_resources, hf):
     test_in_args.translate = True
     Alb.command_line_ui(test_in_args, alb_resources.get_one("o d g"), skip_exit=True)
     out, err = capsys.readouterr()
-    assert hf.string2hash(out) == "542794541324d74ff636eaf4ee5e6b1a"
+    assert hf.string2hash(out) == "da9eb27214bdf0435d27d4cffad53f13"
 
     with pytest.raises(TypeError) as err:
         Alb.command_line_ui(test_in_args, alb_resources.get_one("o p n"), pass_through=True)

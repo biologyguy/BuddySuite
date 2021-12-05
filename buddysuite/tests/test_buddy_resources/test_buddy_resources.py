@@ -113,7 +113,7 @@ def test_runtime():
 
     with pytest.raises(ValueError) as err:
         br.RunTime(out_type=sys.stderr)
-    assert "The 'out_type' parameter must be either 'stdout' or 'stderr', not" in str(err)
+    assert "The `out_type` parameter must be either `stdout` or `stderr`, not" in str(err)
 
 
 def test_dynamicprint_init():
@@ -242,6 +242,10 @@ def test_usable_cpu_count(monkeypatch):
     assert br.usable_cpu_count() == 1
 
 
+def foo_func():  # This is for the multicore test below
+    return True
+
+
 @br.skip_windows
 def test_run_multicore_function(monkeypatch, hf):
     temp_file = br.TempFile()
@@ -257,28 +261,28 @@ def test_run_multicore_function(monkeypatch, hf):
     nums = range(1, 5)
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+        br.run_multicore_function(nums, foo_func, func_args=False,
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "fcc1d606d7d4905112c6157d5fb872c7", print(output)
+        assert hf.string2hash(output) == "4b86277b3b42b7d96dc1604ab58cf771", print(output)
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, lambda *_: True, func_args=["Foo"],
+        br.run_multicore_function(nums, foo_func, func_args=["Foo"],
                                   max_processes=5, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "fcc1d606d7d4905112c6157d5fb872c7", print(output)
+        assert hf.string2hash(output) == "4b86277b3b42b7d96dc1604ab58cf771", print(output)
 
     with open(temp_path, "w") as output:
-        br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, lambda *_: True, func_args=False,
+        br.run_multicore_function({"a": 1, "b": 2, "c": 3, "d": 4}, foo_func, func_args=False,
                                   max_processes=-4, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "82f8a0270fb76bc89e029e0904835c2c", print(output)
+        assert hf.string2hash(output) == "49c0f8f8d25adccc51479f6519eff314", print(output)
 
     with pytest.raises(AttributeError) as err:
-        br.run_multicore_function(nums, lambda *_: True, func_args="Foo", max_processes=4, quiet=False,
+        br.run_multicore_function(nums, foo_func, func_args="Foo", max_processes=4, quiet=False,
                                   out_type=sys.stdout)
     assert "The arguments passed into the multi-thread function must be provided" in str(err)
 
@@ -293,21 +297,21 @@ def test_run_multicore_function(monkeypatch, hf):
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+        br.run_multicore_function(nums, foo_func, func_args=False,
                                   max_processes=1, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
-        assert hf.string2hash(output) == "7fc581d5aaaf256195e9ce9bb1f7f512", print(output)
+        assert hf.string2hash(output) == "9b0ee41b022502db5e8ed70d3c914985", print(output)
 
     timer = MockTime()
     monkeypatch.setattr(br, "time", timer.time)
     with open(temp_path, "w") as output:
-        br.run_multicore_function(nums, lambda *_: True, func_args=False,
+        br.run_multicore_function(nums, foo_func, func_args=False,
                                   max_processes=0, quiet=False, out_type=output)
     with open(temp_path, "r") as out:
         output = out.read()
 
-    assert "Running function <lambda>() on 4 cores" in output
+    assert "Running function foo_func() on 4 cores" in output
     assert re.search("DONE: 4 jobs in [0-9]+ sec", output)
 
 
@@ -985,22 +989,22 @@ def test_nexus_out(alb_resources, sb_resources, hf):
     # AlignBuddy input
     buddy = alb_resources.get_one("o p py")
     nexus = br.nexus_out(buddy, "nexus")
-    assert hf.string2hash(nexus) == "49bf9b3f56104e4f19048523d725f025"
+    assert hf.string2hash(nexus) == "6533a04f60bc92fe02437ed75bf1552b"
 
     nexus = br.nexus_out(buddy, "nexusi")
-    assert hf.string2hash(nexus) == "b8ceaaffd5fd4c3b34dbec829a6f9bf1"
+    assert hf.string2hash(nexus) == "ed2694e8f75166674571d3fb64091235"
 
     nexus = br.nexus_out(buddy, "nexuss")
-    assert hf.string2hash(nexus) == "49bf9b3f56104e4f19048523d725f025"
+    assert hf.string2hash(nexus) == "6533a04f60bc92fe02437ed75bf1552b"
 
     # SeqBuddy input
     buddy = sb_resources.get_one("p pr")
     nexus = br.nexus_out(buddy, "nexusi")
-    assert hf.string2hash(nexus) == "542acd54f66f86088f30e52449215245"
+    assert hf.string2hash(nexus) == "86bb83a03108db001150656922e889ce"
 
     # List input
     nexus = br.nexus_out(buddy.records, "nexuss")
-    assert hf.string2hash(nexus) == "fa8430bd8b073bd283856561818e7b56"
+    assert hf.string2hash(nexus) == "10e0ab1db5fece69ff9aae5a74b52378"
 
     # Errors
     with pytest.raises(ValueError) as err:
