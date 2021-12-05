@@ -11,7 +11,7 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: AlignBuddy.py
 author: Stephen R. Bond
-email: steve.bond@nih.gov
+email: biologyguy@gmail.com
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
@@ -69,7 +69,7 @@ from Bio.Data import IUPACData
 
 # ################################################ GLOBALS ###################################################### #
 GAP_CHARS = ["-", ".", " "]
-VERSION = br.Version("AlignBuddy", 1, "4b", br.contributor_list, {"year": 2017, "month": 12, "day": 20})
+VERSION = br.Version("AlignBuddy", 1, "4.0", br.contributor_list, {"year": 2021, "month": 12, "day": 5})
 
 
 # #################################################### ALIGNBUDDY #################################################### #

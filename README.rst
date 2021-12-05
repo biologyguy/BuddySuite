@@ -93,7 +93,7 @@ Contact
 
 Any comments you have would be really appreciated. Please feel free to
 add issues in the GitHub issue tracker or contact Steve Bond (lead
-developer) directly at steve.bond@nih.gov.
+developer) directly at biologyguy@gmail.com.
 
 .. |Build_Status| image:: https://travis-ci.com/biologyguy/BuddySuite.svg?branch=master
    :target: https://travis-ci.com/biologyguy/BuddySuite

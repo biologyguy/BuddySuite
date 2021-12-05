@@ -11,7 +11,7 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: buddy_resources.py
 author: Stephen R. Bond
-email: steve.bond@nih.gov
+email: biologyguy@gmail.com
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD

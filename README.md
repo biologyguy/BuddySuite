@@ -82,4 +82,4 @@ Through a series of unfortunate events and a surprisingly unresponsive publishin
 
 ## Contact
 Any comments you have would be really appreciated. Please feel free to add issues in the GitHub issue tracker or
- contact Steve Bond (lead developer) directly at [steve.bond@nih.gov](mailto:steve.bond@nih.gov).
+ contact Steve Bond (lead developer) directly at [biologyguy@gmail.com](mailto:biologyguy@gmail.com).

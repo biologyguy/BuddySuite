@@ -11,7 +11,7 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 name: DatabaseBuddy.py
 author: Stephen R. Bond
-email: steve.bond@nih.gov
+email: biologyguy@gmail.com
 institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
            National Human Genome Research Institute, National Institutes of Health
            Bethesda, MD
@@ -79,7 +79,7 @@ FORMATS = ["ids", "accessions", "summary", "full-summary", "clustal", "embl", "f
            "fastq-solexa", "fastq-illumina", "genbank", "gb", "imgt", "nexus", "phd", "phylip", "seqxml",
            "stockholm", "tab", "qual"]
 CONFIG = br.config_values()
-VERSION = br.Version("DatabaseBuddy", 1, "4b", br.contributor_list, {"year": 2017, "month": 12, "day": 20})
+VERSION = br.Version("DatabaseBuddy", 1, "4.0", br.contributor_list, {"year": 2021, "month": 12, "day": 5})
 
 GREY = "\033[90m"
 RED = "\033[91m"
