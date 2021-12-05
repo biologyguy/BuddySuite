@@ -95,8 +95,8 @@ Any comments you have would be really appreciated. Please feel free to
 add issues in the GitHub issue tracker or contact Steve Bond (lead
 developer) directly at steve.bond@nih.gov.
 
-.. |Build_Status| image:: https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master
-   :target: https://travis-ci.org/biologyguy/BuddySuite
+.. |Build_Status| image:: https://travis-ci.com/biologyguy/BuddySuite.svg?branch=master
+   :target: https://travis-ci.com/biologyguy/BuddySuite
 .. |Coverage_Status| image:: https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg
    :target: https://coveralls.io/github/biologyguy/BuddySuite?branch=master
 .. |PyPi_version| image:: https://img.shields.io/pypi/v/buddysuite.svg

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/biologyguy/BuddySuite.svg?branch=master)](https://travis-ci.org/biologyguy/BuddySuite)
+[![Build Status](https://travis-ci.com/biologyguy/BuddySuite.svg?branch=master)](https://travis-ci.com/biologyguy/BuddySuite)
 [![Coverage Status](https://img.shields.io/coveralls/biologyguy/BuddySuite/master.svg)](https://coveralls.io/github/biologyguy/BuddySuite?branch=master)
 [![PyPi version](https://img.shields.io/pypi/v/buddysuite.svg)](https://pypi.python.org/pypi/buddysuite)
 <p align="center"><a href="https://github.com/biologyguy/BuddySuite/wiki">
