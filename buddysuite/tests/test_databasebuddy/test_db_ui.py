@@ -113,7 +113,7 @@ def test_liveshell_init(monkeypatch, capsys, hf):
     liveshell = Db.LiveShell(dbbuddy, crash_file)
     assert type(liveshell.tmpdir) == br.TempDir
     assert liveshell.terminal_default == "\033[m\033[40m\033[97m"
-    assert liveshell.prompt == '[95m[1mDbBuddy[m[40m[97m[1m>[m[40m[97m '
+    assert liveshell.prompt == '\033[95m\033[1mDbBuddy\033[m\033[40m\033[97m\033[1m>\033[m\033[40m\033[97m '
     assert hf.string2hash(liveshell.doc_leader) == "e71aa4976437bdb0c22eeaacfaea6f9f"
     assert hash(liveshell.dbbuddy) == hash(dbbuddy)
     assert liveshell.crash_file == crash_file
@@ -1216,7 +1216,6 @@ def test_main(monkeypatch):
 
 
 # ######################  loose command line ui helpers ###################### #
-@pytest.mark.loose
 def test_exit(monkeypatch, capsys):
     class MockExitUsage(object):
         @staticmethod
@@ -1238,7 +1237,6 @@ def test_exit(monkeypatch, capsys):
     assert "('DatabaseBuddy', '%s', 'LiveShell', 0)" % Db.VERSION.short() in out
 
 
-@pytest.mark.loose
 def test_error(monkeypatch, capsys):
     monkeypatch.setattr(Db, "LiveShell", mock_systemexit)
 
@@ -1256,7 +1254,6 @@ def test_error(monkeypatch, capsys):
     assert "can be loaded by launching DatabaseBuddy and using the 'load' command." in err
 
 
-@pytest.mark.loose
 def test_retrieve_accessions(monkeypatch):
     # Don't actually run anything, retrieve_summary() is tested elsewhere
     monkeypatch.setattr(Db, "retrieve_summary", lambda *_: True)
@@ -1281,7 +1278,6 @@ def test_retrieve_accessions(monkeypatch):
         assert dbbuddy.out_format == out_format
 
 
-@pytest.mark.loose
 def test_retrieve_sequences(monkeypatch, capsys, sb_resources, hf):
     # Don't actually run anything, retrieve_summary() is tested elsewhere
     monkeypatch.setattr(Db, "retrieve_summary", lambda *_: True)
@@ -1325,7 +1321,6 @@ Blahh
     assert out == '\x1b[91mAborted...\n\n\x1b[m\x1b[40m'
 
 
-@pytest.mark.loose
 def test_guess_db(capsys, hf):
     test_in_args = deepcopy(in_args)
     test_in_args.guess_database = True

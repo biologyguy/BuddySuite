@@ -614,16 +614,10 @@ def _stdout(message, quiet=False, format_in=None, format_out=None):
     output = ""
     if format_in:
         format_in = format_in if type(format_in) == list else [format_in]
-        for _format in format_in:
-            if not re.search(r"\\033\[[0-9]*m", _format):
-                raise AttributeError('Malformed format_in attribute escape code')
         output += "".join(format_in)
 
     if format_out:
         format_out = format_out if type(format_out) == list else [format_out]
-        for _format in format_out:
-            if not re.search(r"\\033\[[0-9]*m", _format):
-                raise AttributeError('Malformed format_out attribute escape code')
         output += "%s%s" % (message, "".join(format_out))
     else:
         output += "%s\033[m" % message
@@ -1013,10 +1007,12 @@ class NCBIClient(GenericClient):
         self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
-        results = [x for x in results if x != ""]
+        results = [re.sub(r'\\n', '\n', x)[2:-1] for x in results if x != ""]
         accns = []
         for result in results:
-            result = Entrez.read(StringIO(result))
+            read_file = br.TempFile(byte_mode=True)
+            read_file.write(str.encode(result, encoding="utf-8"))
+            result = Entrez.read(read_file.get_handle(mode='r'))
             accns += result["IdList"]
         if not accns:
             br._stderr("NCBI returned no %s results\n\n" % _type)
@@ -1063,12 +1059,14 @@ class NCBIClient(GenericClient):
 
         results = re.sub("<ERROR>.*</ERROR>", "", results)
         results = results.split("\n### END ###\n")
-        results = [x for x in results if x != ""]
+        results = [re.sub(r'\\n', '\n', x)[2:-1] for x in results if x != ""]
 
         # Sift through all the results and grab summary information
         summaries = []
         for result in results:
-            parser = Entrez.parse(StringIO(result))
+            read_file = br.TempFile(byte_mode=True)
+            read_file.write(str.encode(result, encoding="utf-8"))
+            parser = Entrez.parse(read_file.get_handle(mode='r'))
             counter = 0
             while True:
                 try:
@@ -1121,11 +1119,13 @@ class NCBIClient(GenericClient):
         self.parse_error_file()
 
         results = self.results_file.read().split("\n### END ###\n")
-        results = [x for x in results if x and "<ERROR>Empty id list" not in x]
+        results = [re.sub(r'\\n', '\n', x)[2:-1] for x in results if x and "<ERROR>Empty id list" not in x]
 
         taxa = {}
         for result in results:
-            for summary in Entrez.parse(StringIO(result)):
+            read_file = br.TempFile(byte_mode=True)
+            read_file.write(str.encode(result, encoding="utf-8"))
+            for summary in Entrez.parse(read_file.get_handle(mode='r')):
                 taxa[summary["TaxId"]] = "Unclassified" if "ScientificName" not in summary \
                     else summary["ScientificName"]
 
@@ -1189,7 +1189,7 @@ class EnsemblRestClient(GenericClient):
         self.parse_error_file()
         if self.species:
             self.species = self.species["species"]
-            self.species = {x["display_name"]: x for x in self.species if x["display_name"]}
+            self.species = {x["name"]: x for x in self.species if x["name"]}
         else:
             self.species = {}
         self.max_attempts = 5
@@ -1261,8 +1261,8 @@ class EnsemblRestClient(GenericClient):
         self.results_file.clear()
         species = [name for name, info in self.species.items()]
         for search_term in self.dbbuddy.search_terms:
-            br._stderr("Searching Ensembl for %s...\n" % search_term)
-            # br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
+            # br._stderr("Searching Ensembl for %s...\n" % search_term)
+            br.run_multicore_function(species, self._mc_search, [search_term], quiet=True)
             # TODO: fix multicore --> Many REST requests are failing unless a single request is sent at a time
             for i in species:
                 self._mc_search(i, [search_term])
@@ -1467,16 +1467,15 @@ Further details about each command can be accessed by typing 'help <command>'
         return stop
 
     def dump_session(self):
-        # Need to remove Lock()s to pickle
-        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
-            client.lock = False
+        # Need to remove server client objects to pickle
+        clients = self.dbbuddy.server_clients
+        self.dbbuddy.server_clients = {"ncbi": False, "ensembl": False, "uniprot": False}
         self.crash_file.save("%s_undo" % self.crash_file.path)
         self.crash_file.open()
-        dill.dump(self.dbbuddy, self.crash_file.handle, protocol=-1)
+        dill.dump(self.dbbuddy, self.crash_file.get_handle(), protocol=-1)  # protocol -1 = Highest available
         self.crash_file.close()
         self.undo = True
-        for client in [client for db, client in self.dbbuddy.server_clients.items() if client]:
-            client.lock = Lock()
+        self.dbbuddy.server_clients = clients
 
     def default(self, line):
         if line == "exit":
